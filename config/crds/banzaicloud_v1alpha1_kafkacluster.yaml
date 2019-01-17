@@ -27,10 +27,39 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            annotations:
+              type: object
+            brokers:
+              format: int32
+              type: integer
+            image:
+              type: string
+            monitoring:
+              type: object
+            nodeAffinity:
+              type: object
+            podAntiAffinity:
+              type: string
+            volumeMounts:
+              items:
+                type: object
+              type: array
+            volumes:
+              description: Config           map[string]interface{} `json:"config"`
+              items:
+                type: object
+              type: array
+          required:
+          - annotations
           type: object
         status:
+          properties:
+            healthybrokers:
+              format: int64
+              type: integer
           type: object
-  version: v1beta1
+  version: v1alpha1
 status:
   acceptedNames:
     kind: ""
