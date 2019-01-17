@@ -1,0 +1,3 @@
+version: "1"
+domain: banzaicloud.io
+repo: github.com/banzaicloud/kafka-operator
