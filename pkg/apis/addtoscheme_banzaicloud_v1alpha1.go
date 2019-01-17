@@ -14,10 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1beta1 contains API Schema definitions for the banzaicloud v1beta1 API group
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud
-// +k8s:defaulter-gen=TypeMeta
-// +groupName=banzaicloud.banzaicloud.io
-package v1beta1
+package apis
+
+import (
+	"github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+)
+
+func init() {
+	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
+	AddToSchemes = append(AddToSchemes, v1alpha1.SchemeBuilder.AddToScheme)
+}

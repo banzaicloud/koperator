@@ -14,25 +14,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1alpha1
 
 import (
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Important: Run "make" to regenerate code after modifying this file
+
+//TODO remove omitempty where not required
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Brokers     int32             `json:"brokers,omitempty"`
+	Image       string            `json:"image,omitempty"`
+	Annotations map[string]string `json:"annotations"`
+	//Config           map[string]interface{} `json:"config"`
+	Volumes          []v1.Volume      `json:"volumes,omitempty"`
+	VolumeMounts     []v1.VolumeMount `json:"volumeMounts,omitempty"`
+	MonitoringConfig MonitoringConfig `json:"monitoring,omitempty"`
+	NodeAffinity     v1.NodeAffinity  `json:"nodeAffinity,omitempty"`
+	PodAntiAffinity  string           `json:"podAntiAffinity,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
 type KafkaClusterStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	HealthyBrokers int `json:"healthybrokers,omitempty"`
+}
+
+// MonitoringConfig defines the monitoring configuration
+type MonitoringConfig struct {
 }
 
 // +genclient
