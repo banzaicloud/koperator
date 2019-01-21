@@ -270,7 +270,7 @@ func configMapForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.ConfigMap {
 			Namespace: kc.Namespace,
 			Labels:    labelsForKafka(kc.Name),
 		},
-		Data: kc.Spec.BrokerConfig.Config,
+		Data: map[string]string{"broker-config": kc.Spec.BrokerConfig},
 	}
 	return configMap
 }
@@ -294,7 +294,11 @@ func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *appsv1.StatefulS
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "broker-config",
-			MountPath: "/kafka/config",
+			MountPath: "/config",
+		},
+		{
+			Name:      "kafka-data",
+			MountPath: "/kafka-logs",
 		},
 	}
 
@@ -349,7 +353,8 @@ func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *appsv1.StatefulS
 							Image:           kc.Spec.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Name:            "kafka",
-							Args:            []string{""},
+							Command:         []string{"/opt/kafka/bin/kafka-server-start.sh"},
+							Args:            []string{"/config/broker-config"},
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 9092,

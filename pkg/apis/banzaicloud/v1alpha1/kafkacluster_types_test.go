@@ -36,12 +36,10 @@ func TestStorageKafkaCluster(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: KafkaClusterSpec{
-			Brokers:     1,
-			Image:       "banzaicloud/kafka:test",
-			Annotations: map[string]string{"kakfa": "test"},
-			BrokerConfig: BrokerConfig{
-				Config: nil,
-			},
+			Brokers:          1,
+			Image:            "banzaicloud/kafka:test",
+			Annotations:      map[string]string{"kafka": "test"},
+			BrokerConfig:     "broker=1",
 			MonitoringConfig: MonitoringConfig{},
 			ServiceAccount:   "",
 			StorageSize:      "1Gi",

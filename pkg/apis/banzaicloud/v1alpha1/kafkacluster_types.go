@@ -31,7 +31,7 @@ type KafkaClusterSpec struct {
 	Brokers          int32             `json:"brokers,omitempty"`
 	Image            string            `json:"image,omitempty"`
 	Annotations      map[string]string `json:"annotations"`
-	BrokerConfig     BrokerConfig      `json:"brokerConfig"`
+	BrokerConfig     string            `json:"brokerConfig"`
 	MonitoringConfig MonitoringConfig  `json:"monitoring,omitempty"`
 	ServiceAccount   string            `json:"serviceAccount"`
 	StorageSize      string            `json:"storageSize"`
@@ -44,11 +44,6 @@ type KafkaClusterStatus struct {
 
 // MonitoringConfig defines the monitoring configuration
 type MonitoringConfig struct {
-}
-
-// BrokerConfig defines the broker configuration
-type BrokerConfig struct {
-	Config map[string]string
 }
 
 // +genclient

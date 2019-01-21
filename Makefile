@@ -5,7 +5,7 @@ IMG ?= controller:latest
 all: test manager
 
 # Run tests
-test: fmt vet manifests
+test: generate fmt vet manifests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 # Build manager binary
