@@ -31,7 +31,7 @@ spec:
             annotations:
               type: object
             brokerConfig:
-              type: object
+              type: string
             brokers:
               format: int32
               type: integer
@@ -41,10 +41,13 @@ spec:
               type: object
             serviceAccount:
               type: string
+            storageSize:
+              type: string
           required:
           - annotations
           - brokerConfig
           - serviceAccount
+          - storageSize
           type: object
         status:
           properties:

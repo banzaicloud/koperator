@@ -9,7 +9,8 @@ spec:
   brokers: 2
   annotations: {}
   image: "wurstmeister/kafka:2.12-2.1.0"
-  brokerConfig:
-    alma: "korte"
+  brokerConfig: >-
+    num.network.threads=2
+    log.dirs=/kafka-logs
   serviceAccount: ""
   storageSize: "1Gi"
