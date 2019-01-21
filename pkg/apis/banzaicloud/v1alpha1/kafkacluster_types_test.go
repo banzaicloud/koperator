@@ -44,6 +44,7 @@ func TestStorageKafkaCluster(t *testing.T) {
 			},
 			MonitoringConfig: MonitoringConfig{},
 			ServiceAccount:   "",
+			StorageSize:      "1Gi",
 		},
 		Status: KafkaClusterStatus{
 			HealthyBrokers: 1,

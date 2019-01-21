@@ -34,6 +34,7 @@ type KafkaClusterSpec struct {
 	BrokerConfig     BrokerConfig      `json:"brokerConfig"`
 	MonitoringConfig MonitoringConfig  `json:"monitoring,omitempty"`
 	ServiceAccount   string            `json:"serviceAccount"`
+	StorageSize      string            `json:"storageSize"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
