@@ -18,8 +18,7 @@ package kafkacluster
 
 import (
 	"context"
-	"reflect"
-
+	"fmt"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -66,7 +66,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// TODO(user): Modify this to be the types you create
 	// Uncomment watch a Deployment created by KafkaCluster - change this for objects you create
-	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &banzaicloudv1alpha1.KafkaCluster{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &banzaicloudv1alpha1.KafkaCluster{},
 	})
@@ -106,41 +114,16 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	// TODO(user): Change this to be the object type created by your controller
-	// Define the desired Deployment object
-	deploy := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + "-deployment",
-			Namespace: instance.Namespace,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"deployment": instance.Name + "-deployment"},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"deployment": instance.Name + "-deployment"}},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "nginx",
-							Image: "nginx",
-						},
-					},
-				},
-			},
-		},
-	}
-	if err := controllerutil.SetControllerReference(instance, deploy, r.scheme); err != nil {
+	hService := headlessServiceForKafka(instance)
+	if err := controllerutil.SetControllerReference(instance, hService, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// TODO(user): Change this for the object type created by your controller
-	// Check if the Deployment already exists
-	found := &appsv1.Deployment{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: deploy.Name, Namespace: deploy.Namespace}, found)
+	foundHService := &corev1.Service{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: hService.Name, Namespace: hService.Namespace}, foundHService)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating Deployment", "namespace", deploy.Namespace, "name", deploy.Name)
-		err = r.Create(context.TODO(), deploy)
+		log.Info("Creating HeadlessService", "namespace", hService.Namespace, "name", hService.Name)
+		err = r.Create(context.TODO(), hService)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -148,16 +131,41 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	// TODO(user): Change this for the object type created by your controller
-	// Update the found object and write the result back if there are any changes
-	if !reflect.DeepEqual(deploy.Spec, found.Spec) {
-		found.Spec = deploy.Spec
-		log.Info("Updating Deployment", "namespace", deploy.Namespace, "name", deploy.Name)
-		err = r.Update(context.TODO(), found)
+	if !reflect.DeepEqual(hService.Spec, foundHService.Spec) {
+		foundHService.Spec = hService.Spec
+		log.Info("Updating HeadlessService", "namespace", hService.Namespace, "name", hService.Name)
+		err = r.Update(context.TODO(), foundHService)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 	}
+
+	sSet := statefulSetForKafka(instance)
+	if err := controllerutil.SetControllerReference(instance, sSet, r.scheme); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	foundSSet := &appsv1.StatefulSet{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: sSet.Name, Namespace: sSet.Namespace}, foundSSet)
+	if err != nil && errors.IsNotFound(err) {
+		log.Info("Creating StatefulSet", "namespace", sSet.Namespace, "name", sSet.Name)
+		err = r.Create(context.TODO(), sSet)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if !reflect.DeepEqual(sSet.Spec, foundSSet.Spec) {
+		foundSSet.Spec = sSet.Spec
+		log.Info("Updating StatefulSet", "namespace", sSet.Namespace, "name", sSet.Name)
+		err = r.Update(context.TODO(), foundSSet)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	return reconcile.Result{}, nil
 }
 
@@ -175,7 +183,7 @@ func headlessServiceForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Servi
 			Kind:       "Service",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      kc.Name,
+			Name:      fmt.Sprintf("%s-headless", kc.Name),
 			Namespace: kc.Namespace,
 		},
 		Spec: corev1.ServiceSpec{
@@ -193,7 +201,7 @@ func headlessServiceForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Servi
 }
 
 // statefulSetForKafka returns a Kafka StatefulSet object
-func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster) (*appsv1.StatefulSet, error) {
+func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *appsv1.StatefulSet {
 	ls := labelsForKafka(kc.Name)
 	replicas := kc.Spec.Brokers
 
@@ -245,11 +253,7 @@ func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster) (*appsv1.Stateful
 					Annotations: map[string]string{},
 				},
 				Spec: corev1.PodSpec{
-					//Affinity: &corev1.Affinity{
-					//	PodAntiAffinity: getPodAntiAffinity(v),
-					//	NodeAffinity:    getNodeAffinity(v),
-					//},
-					//ServiceAccountName: v.Spec.GetServiceAccount(),
+					ServiceAccountName: kc.Spec.GetServiceAccount(),
 					Containers: []corev1.Container{
 						{
 							Image:           kc.Spec.Image,
@@ -287,5 +291,5 @@ func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster) (*appsv1.Stateful
 			},
 		},
 	}
-	return statefulSet, nil
+	return statefulSet
 }

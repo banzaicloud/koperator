@@ -34,7 +34,21 @@ func TestStorageKafkaCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
-		}}
+		},
+		Spec: KafkaClusterSpec{
+			Brokers:     1,
+			Image:       "banzaicloud/kafka:test",
+			Annotations: map[string]string{"kakfa": "test"},
+			BrokerConfig: BrokerConfig{
+				Config: nil,
+			},
+			MonitoringConfig: MonitoringConfig{},
+			ServiceAccount:   "",
+		},
+		Status: KafkaClusterStatus{
+			HealthyBrokers: 1,
+		},
+	}
 	g := gomega.NewGomegaWithT(t)
 
 	// Test Create
