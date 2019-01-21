@@ -30,6 +30,8 @@ spec:
           properties:
             annotations:
               type: object
+            brokerConfig:
+              type: object
             brokers:
               format: int32
               type: integer
@@ -37,21 +39,12 @@ spec:
               type: string
             monitoring:
               type: object
-            nodeAffinity:
-              type: object
-            podAntiAffinity:
+            serviceAccount:
               type: string
-            volumeMounts:
-              items:
-                type: object
-              type: array
-            volumes:
-              description: Config           map[string]interface{} `json:"config"`
-              items:
-                type: object
-              type: array
           required:
           - annotations
+          - brokerConfig
+          - serviceAccount
           type: object
         status:
           properties:

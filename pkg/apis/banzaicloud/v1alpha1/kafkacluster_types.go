@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,15 +28,12 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	Brokers     int32             `json:"brokers,omitempty"`
-	Image       string            `json:"image,omitempty"`
-	Annotations map[string]string `json:"annotations"`
-	//Config           map[string]interface{} `json:"config"`
-	Volumes          []v1.Volume      `json:"volumes,omitempty"`
-	VolumeMounts     []v1.VolumeMount `json:"volumeMounts,omitempty"`
-	MonitoringConfig MonitoringConfig `json:"monitoring,omitempty"`
-	NodeAffinity     v1.NodeAffinity  `json:"nodeAffinity,omitempty"`
-	PodAntiAffinity  string           `json:"podAntiAffinity,omitempty"`
+	Brokers          int32             `json:"brokers,omitempty"`
+	Image            string            `json:"image,omitempty"`
+	Annotations      map[string]string `json:"annotations"`
+	BrokerConfig     BrokerConfig      `json:"brokerConfig"`
+	MonitoringConfig MonitoringConfig  `json:"monitoring,omitempty"`
+	ServiceAccount   string            `json:"serviceAccount"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -47,6 +43,11 @@ type KafkaClusterStatus struct {
 
 // MonitoringConfig defines the monitoring configuration
 type MonitoringConfig struct {
+}
+
+// BrokerConfig defines the broker configuration
+type BrokerConfig struct {
+	Config map[string]interface{}
 }
 
 // +genclient
@@ -73,4 +74,12 @@ type KafkaClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&KafkaCluster{}, &KafkaClusterList{})
+}
+
+// GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
+func (spec *KafkaClusterSpec) GetServiceAccount() string {
+	if spec.ServiceAccount != "" {
+		return spec.ServiceAccount
+	}
+	return "default"
 }
