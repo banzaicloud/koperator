@@ -47,7 +47,7 @@ type MonitoringConfig struct {
 
 // BrokerConfig defines the broker configuration
 type BrokerConfig struct {
-	Config map[string]interface{}
+	Config map[string]string
 }
 
 // +genclient

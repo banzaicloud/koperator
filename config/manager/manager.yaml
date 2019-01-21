@@ -1,11 +1,11 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
-  name: system
----
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  labels:
+#    control-plane: controller-manager
+#    controller-tools.k8s.io: "1.0"
+#  name: system
+#---
 apiVersion: v1
 kind: Service
 metadata:
@@ -45,7 +45,7 @@ spec:
       - command:
         - /manager
         image: controller:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: manager
         env:
           - name: POD_NAMESPACE

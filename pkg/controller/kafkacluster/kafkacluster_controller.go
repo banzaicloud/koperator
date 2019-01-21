@@ -114,6 +114,49 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
+	lBService := loadBalancerForKafka(instance)
+	if err := controllerutil.SetControllerReference(instance, lBService, r.scheme); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	foundLBService := &corev1.Service{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: lBService.Name, Namespace: lBService.Namespace}, foundLBService)
+	if err != nil && errors.IsNotFound(err) {
+		log.Info("Creating LoadBalancerService", "namespace", lBService.Namespace, "name", lBService.Name)
+		err = r.Create(context.TODO(), lBService)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	bConfigMap := configMapForKafka(instance)
+	if err := controllerutil.SetControllerReference(instance, bConfigMap, r.scheme); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	foundBConfigMap := &corev1.ConfigMap{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: bConfigMap.Name, Namespace: bConfigMap.Namespace}, foundBConfigMap)
+	if err != nil && errors.IsNotFound(err) {
+		log.Info("Creating ConfigMap for Brokers", "namespace", bConfigMap.Namespace, "name", bConfigMap.Name)
+		err = r.Create(context.TODO(), bConfigMap)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if !reflect.DeepEqual(bConfigMap.Data, foundBConfigMap.Data) {
+		foundBConfigMap.Data = bConfigMap.Data
+		log.Info("Updating ConfigMap", "namespace", bConfigMap.Namespace, "name", bConfigMap.Name)
+		err = r.Update(context.TODO(), foundBConfigMap)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	hService := headlessServiceForKafka(instance)
 	if err := controllerutil.SetControllerReference(instance, hService, r.scheme); err != nil {
 		return reconcile.Result{}, err
@@ -129,15 +172,6 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		}
 	} else if err != nil {
 		return reconcile.Result{}, err
-	}
-
-	if !reflect.DeepEqual(hService.Spec, foundHService.Spec) {
-		foundHService.Spec = hService.Spec
-		log.Info("Updating HeadlessService", "namespace", hService.Namespace, "name", hService.Name)
-		err = r.Update(context.TODO(), foundHService)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
 	}
 
 	sSet := statefulSetForKafka(instance)
@@ -198,6 +232,46 @@ func headlessServiceForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Servi
 		},
 	}
 	return service
+}
+
+func loadBalancerForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Service {
+	service := &corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Service",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-loadbalancer", kc.Name),
+			Namespace: kc.Namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: labelsForKafka(kc.Name),
+			Type:     corev1.ServiceTypeLoadBalancer,
+			Ports: []corev1.ServicePort{
+				{
+					Name: "broker",
+					Port: 9093,
+				},
+			},
+		},
+	}
+	return service
+}
+
+func configMapForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.ConfigMap {
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-config", kc.Name),
+			Namespace: kc.Namespace,
+			Labels:    labelsForKafka(kc.Name),
+		},
+		Data: kc.Spec.BrokerConfig.Config,
+	}
+	return configMap
 }
 
 // statefulSetForKafka returns a Kafka StatefulSet object
