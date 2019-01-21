@@ -12,3 +12,4 @@ spec:
   brokerConfig:
     alma: "korte"
   serviceAccount: ""
+  storageSize: "1Gi"
