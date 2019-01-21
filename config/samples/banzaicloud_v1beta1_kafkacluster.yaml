@@ -3,7 +3,12 @@ kind: KafkaCluster
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: kafkacluster-sample
+  name: kafkacluster-test
 spec:
   # Add fields here
-  foo: bar
+  brokers: 2
+  annotations: {}
+  image: "wurstmeister/kafka:2.12-2.1.0"
+  brokerConfig:
+    alma: "korte"
+  serviceAccount: ""

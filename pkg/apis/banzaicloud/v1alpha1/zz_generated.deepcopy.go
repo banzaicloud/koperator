@@ -28,13 +28,9 @@ func (in *BrokerConfig) DeepCopyInto(out *BrokerConfig) {
 	*out = *in
 	if in.Config != nil {
 		in, out := &in.Config, &out.Config
-		*out = make(map[string]interface{}, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				(*out)[key] = val
-			}
+			(*out)[key] = val
 		}
 	}
 	return
