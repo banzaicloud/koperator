@@ -11,7 +11,7 @@ spec:
   image: "wurstmeister/kafka:2.12-2.1.0"
   brokerConfig: |
     num.network.threads=2
-    log.dirs=/kafka-logs
+    log.dirs=/kafka-logs/kafka
     zookeeper.connect=example-zookeepercluster-client.zookeeper:2181
   serviceAccount: ""
   storageSize: "1Gi"
