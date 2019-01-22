@@ -9,8 +9,9 @@ spec:
   brokers: 2
   annotations: {}
   image: "wurstmeister/kafka:2.12-2.1.0"
-  brokerConfig: >-
+  brokerConfig: |
     num.network.threads=2
     log.dirs=/kafka-logs
+    zookeeper.connect=example-zookeepercluster-client.zookeeper:2181
   serviceAccount: ""
   storageSize: "1Gi"
