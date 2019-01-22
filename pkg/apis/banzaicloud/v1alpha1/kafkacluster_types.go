@@ -79,3 +79,9 @@ func (spec *KafkaClusterSpec) GetServiceAccount() string {
 	}
 	return "default"
 }
+
+func (spec *KafkaClusterSpec) GenerateDefaultConfig() string {
+	return spec.BrokerConfig +
+		"listener.security.protocol.map=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT\n" +
+		"inter.broker.listener.name=INTERNAL\n"
+}

@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"time"
 )
 
 var log = logf.Log.WithName("controller")
@@ -132,6 +133,21 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
+	if len(foundLBService.Status.LoadBalancer.Ingress) == 0 {
+		return reconcile.Result{}, fmt.Errorf("loadbalancer is not created waiting")
+	}
+
+	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" && foundLBService.Status.LoadBalancer.Ingress[0].IP == "" {
+		time.Sleep(20 * time.Second)
+		return reconcile.Result{}, fmt.Errorf("loadbalancer is not ready waiting")
+	}
+	var loadBalancerExternalAddress string
+	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" {
+		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].IP
+	} else {
+		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].Hostname
+	}
+
 	bConfigMap := configMapForKafka(instance)
 	if err := controllerutil.SetControllerReference(instance, bConfigMap, r.scheme); err != nil {
 		return reconcile.Result{}, err
@@ -175,7 +191,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	sSet := statefulSetForKafka(instance)
+	sSet := statefulSetForKafka(instance, loadBalancerExternalAddress)
 	if err := controllerutil.SetControllerReference(instance, sSet, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -227,7 +243,7 @@ func headlessServiceForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Servi
 			Ports: []corev1.ServicePort{
 				{
 					Name: "broker",
-					Port: 9092,
+					Port: 29092,
 				},
 			},
 		},
@@ -250,8 +266,12 @@ func loadBalancerForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Service 
 			Type:     corev1.ServiceTypeLoadBalancer,
 			Ports: []corev1.ServicePort{
 				{
-					Name: "broker",
-					Port: 9093,
+					Name: "broker-0",
+					Port: 9090,
+				},
+				{
+					Name: "broker-1",
+					Port: 9091,
 				},
 			},
 		},
@@ -270,13 +290,13 @@ func configMapForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.ConfigMap {
 			Namespace: kc.Namespace,
 			Labels:    labelsForKafka(kc.Name),
 		},
-		Data: map[string]string{"broker-config": kc.Spec.BrokerConfig},
+		Data: map[string]string{"broker-config": kc.Spec.GenerateDefaultConfig()},
 	}
 	return configMap
 }
 
 // statefulSetForKafka returns a Kafka StatefulSet object
-func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *appsv1.StatefulSet {
+func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP string) *appsv1.StatefulSet {
 	ls := labelsForKafka(kc.Name)
 	replicas := kc.Spec.Brokers
 
@@ -351,15 +371,21 @@ func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *appsv1.StatefulS
 					Containers: []corev1.Container{
 						{
 							Image:           kc.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							ImagePullPolicy: corev1.PullAlways,
 							Name:            "kafka",
-							Command:         []string{"/opt/kafka/bin/kafka-server-start.sh"},
-							Args:            []string{"/config/broker-config"},
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 9092,
-									Name:          "broker-port",
-								},
+							Command:         []string{"sh", "-c", "/opt/kafka/bin/kafka-server-start.sh /config/broker-config --override advertised.listeners=INTERNAL://${HOSTNAME}:29092,EXTERNAL://" + loadBalancerIP + ":" + "909${HOSTNAME##*-} --override listeners=INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:909${HOSTNAME##*-}"},
+							Ports:           []corev1.ContainerPort{
+								//{
+								//	ContainerPort: 29092,
+								//	Name:          "broker-port",
+								//},
+								//{
+								//
+								//},
+								//{
+								//	ContainerPort: 9093,
+								//	Name:          "external-access",
+								//},
 							},
 							//Env: {},
 							//LivenessProbe: &corev1.Probe{

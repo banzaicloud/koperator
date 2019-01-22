@@ -45,7 +45,7 @@ spec:
       - command:
         - /manager
         image: controller:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: manager
         env:
           - name: POD_NAMESPACE
