@@ -13,5 +13,16 @@ spec:
     num.network.threads=2
     log.dirs=/kafka-logs/kafka
     zookeeper.connect=example-zookeepercluster-client.zookeeper:2181
+  listeners:
+    externalListener:
+      - type: "plaintext"
+        name: "externalka"
+        externalStartingPort: 19090
+        containerPort: 9094
+    internalListener:
+      - type: "plaintext"
+        name: "internalka"
+        containerPort: 29092
+        usedForInnerBrokerCommunication: true
   serviceAccount: ""
   storageSize: "1Gi"

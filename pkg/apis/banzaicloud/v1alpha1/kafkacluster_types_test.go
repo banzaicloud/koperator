@@ -36,10 +36,28 @@ func TestStorageKafkaCluster(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: KafkaClusterSpec{
-			Brokers:          1,
-			Image:            "banzaicloud/kafka:test",
-			Annotations:      map[string]string{"kafka": "test"},
-			BrokerConfig:     "broker=1",
+			Brokers:      1,
+			Image:        "banzaicloud/kafka:test",
+			Annotations:  map[string]string{"kafka": "test"},
+			BrokerConfig: "broker=1",
+			Listeners: Listeners{
+				ExternalListener: []ExternalListenerConfig{
+					{
+						Type:                 "plaintext",
+						Name:                 "external",
+						ExternalStartingPort: 9090,
+						ContainerPort:        9094,
+					},
+				},
+				InternalListener: []InternalListenerConfig{
+					{
+						Type:                            "plaintext",
+						Name:                            "internal",
+						ContainerPort:                   29092,
+						UsedForInnerBrokerCommunication: true,
+					},
+				},
+			},
 			MonitoringConfig: MonitoringConfig{},
 			ServiceAccount:   "",
 			StorageSize:      "1Gi",
