@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -98,8 +99,9 @@ type ReconcileKafkaCluster struct {
 // Reconcile reads that state of the cluster for a KafkaCluster object and makes changes based on the state read
 // and what is in the KafkaCluster.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps,resources=deployments/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=statefulsets/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=banzaicloud.banzaicloud.io,resources=kafkaclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=banzaicloud.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
 func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -208,14 +210,14 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	if !reflect.DeepEqual(sSet.Spec, foundSSet.Spec) {
-		foundSSet.Spec = sSet.Spec
-		log.Info("Updating StatefulSet", "namespace", sSet.Namespace, "name", sSet.Name)
-		err = r.Update(context.TODO(), foundSSet)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	}
+	//if !reflect.DeepEqual(sSet.Spec, foundSSet.Spec) {
+	//	foundSSet.Spec = sSet.Spec
+	//	log.Info("Updating StatefulSet", "namespace", sSet.Namespace, "name", sSet.Name)
+	//	err = r.Update(context.TODO(), foundSSet)
+	//	if err != nil {
+	//		return reconcile.Result{}, err
+	//	}
+	//}
 
 	return reconcile.Result{}, nil
 }
@@ -266,12 +268,19 @@ func loadBalancerForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Service 
 			Type:     corev1.ServiceTypeLoadBalancer,
 			Ports: []corev1.ServicePort{
 				{
-					Name: "broker-0",
-					Port: 9090,
+					Name:       "broker-0",
+					Port:       9090,
+					TargetPort: intstr.FromInt(9094),
 				},
 				{
-					Name: "broker-1",
-					Port: 9091,
+					Name:       "broker-1",
+					Port:       9091,
+					TargetPort: intstr.FromInt(9094),
+				},
+				{
+					Name:       "broker-2",
+					Port:       9092,
+					TargetPort: intstr.FromInt(9094),
 				},
 			},
 		},
@@ -338,7 +347,8 @@ func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP st
 			Namespace: kc.Namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
-			Replicas: &replicas,
+			ServiceName: fmt.Sprintf("%s-headless", kc.Name),
+			Replicas:    &replicas,
 			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
 				Type: appsv1.RollingUpdateStatefulSetStrategyType,
 			},
@@ -373,19 +383,16 @@ func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP st
 							Image:           kc.Spec.Image,
 							ImagePullPolicy: corev1.PullAlways,
 							Name:            "kafka",
-							Command:         []string{"sh", "-c", "/opt/kafka/bin/kafka-server-start.sh /config/broker-config --override advertised.listeners=INTERNAL://${HOSTNAME}:29092,EXTERNAL://" + loadBalancerIP + ":" + "909${HOSTNAME##*-} --override listeners=INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:909${HOSTNAME##*-}"},
-							Ports:           []corev1.ContainerPort{
-								//{
-								//	ContainerPort: 29092,
-								//	Name:          "broker-port",
-								//},
-								//{
-								//
-								//},
-								//{
-								//	ContainerPort: 9093,
-								//	Name:          "external-access",
-								//},
+							Command:         []string{"sh", "-c", fmt.Sprintf("/opt/kafka/bin/kafka-server-start.sh /config/broker-config --override advertised.listeners=INTERNAL://${HOSTNAME}.%s-headless.test.svc.cluster.local:29092,EXTERNAL://"+loadBalancerIP+":"+"909${HOSTNAME##*-} --override listeners=EXTERNAL://:9094,INTERNAL://:29092", kc.Name)},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 29092,
+									Name:          "internal-access",
+								},
+								{
+									ContainerPort: 9094,
+									Name:          "external-access",
+								},
 							},
 							//Env: {},
 							//LivenessProbe: &corev1.Probe{
