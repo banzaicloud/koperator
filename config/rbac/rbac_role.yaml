@@ -25,6 +25,18 @@ rules:
   - update
   - patch
 - apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
   - banzaicloud.banzaicloud.io
   resources:
   - kafkaclusters
@@ -81,15 +93,3 @@ rules:
   - update
   - patch
   - delete
-- apiGroups:
-    - ""
-  resources:
-    - configmaps
-  verbs:
-    - get
-    - list
-    - watch
-    - create
-    - update
-    - patch
-    - delete
