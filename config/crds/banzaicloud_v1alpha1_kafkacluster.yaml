@@ -37,6 +37,51 @@ spec:
               type: integer
             image:
               type: string
+            listeners:
+              properties:
+                externalListener:
+                  items:
+                    properties:
+                      containerPort:
+                        format: int32
+                        type: integer
+                      externalStartingPort:
+                        format: int32
+                        type: integer
+                      name:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                    - type
+                    - name
+                    - externalStartingPort
+                    - containerPort
+                    type: object
+                  type: array
+                internalListener:
+                  items:
+                    properties:
+                      containerPort:
+                        format: int32
+                        type: integer
+                      name:
+                        type: string
+                      type:
+                        type: string
+                      usedForInnerBrokerCommunication:
+                        type: boolean
+                    required:
+                    - type
+                    - name
+                    - usedForInnerBrokerCommunication
+                    - containerPort
+                    type: object
+                  type: array
+              required:
+              - externalListener
+              - internalListener
+              type: object
             monitoring:
               type: object
             serviceAccount:
@@ -45,6 +90,7 @@ spec:
               type: string
           required:
           - annotations
+          - listeners
           - brokerConfig
           - serviceAccount
           - storageSize

@@ -20,14 +20,12 @@ import (
 	"context"
 	"fmt"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/kafka"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -118,7 +116,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	lBService := loadBalancerForKafka(instance)
+	lBService := kafka.LoadBalancerForKafka(instance)
 	if err := controllerutil.SetControllerReference(instance, lBService, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -150,7 +148,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].Hostname
 	}
 
-	bConfigMap := configMapForKafka(instance)
+	bConfigMap := kafka.ConfigMapForKafka(instance)
 	if err := controllerutil.SetControllerReference(instance, bConfigMap, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -176,7 +174,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		}
 	}
 
-	hService := headlessServiceForKafka(instance)
+	hService := kafka.HeadlessServiceForKafka(instance)
 	if err := controllerutil.SetControllerReference(instance, hService, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -193,7 +191,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	sSet := statefulSetForKafka(instance, loadBalancerExternalAddress)
+	sSet := kafka.StatefulSetForKafka(instance, loadBalancerExternalAddress)
 	if err := controllerutil.SetControllerReference(instance, sSet, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -220,204 +218,4 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 	//}
 
 	return reconcile.Result{}, nil
-}
-
-// labelsForKafka returns the labels for selecting the resources
-// belonging to the given kafka CR name.
-func labelsForKafka(name string) map[string]string {
-	return map[string]string{"app": "kafka", "kafka_cr": name}
-}
-
-// headlessServiceForKafka return a HeadLess service for Kafka
-func headlessServiceForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Service {
-	service := &corev1.Service{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Service",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-headless", kc.Name),
-			Namespace: kc.Namespace,
-		},
-		Spec: corev1.ServiceSpec{
-			Selector:  labelsForKafka(kc.Name),
-			ClusterIP: corev1.ClusterIPNone,
-			Ports: []corev1.ServicePort{
-				{
-					Name: "broker",
-					Port: 29092,
-				},
-			},
-		},
-	}
-	return service
-}
-
-func loadBalancerForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Service {
-	service := &corev1.Service{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Service",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-loadbalancer", kc.Name),
-			Namespace: kc.Namespace,
-		},
-		Spec: corev1.ServiceSpec{
-			Selector: labelsForKafka(kc.Name),
-			Type:     corev1.ServiceTypeLoadBalancer,
-			Ports: []corev1.ServicePort{
-				{
-					Name:       "broker-0",
-					Port:       9090,
-					TargetPort: intstr.FromInt(9094),
-				},
-				{
-					Name:       "broker-1",
-					Port:       9091,
-					TargetPort: intstr.FromInt(9094),
-				},
-				{
-					Name:       "broker-2",
-					Port:       9092,
-					TargetPort: intstr.FromInt(9094),
-				},
-			},
-		},
-	}
-	return service
-}
-
-func configMapForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.ConfigMap {
-	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-config", kc.Name),
-			Namespace: kc.Namespace,
-			Labels:    labelsForKafka(kc.Name),
-		},
-		Data: map[string]string{"broker-config": kc.Spec.GenerateDefaultConfig()},
-	}
-	return configMap
-}
-
-// statefulSetForKafka returns a Kafka StatefulSet object
-func statefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP string) *appsv1.StatefulSet {
-	ls := labelsForKafka(kc.Name)
-	replicas := kc.Spec.Brokers
-
-	volumes := []corev1.Volume{
-		{
-			Name: "broker-config",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: kc.Name + "-config"},
-				},
-			},
-		},
-	}
-
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "broker-config",
-			MountPath: "/config",
-		},
-		{
-			Name:      "kafka-data",
-			MountPath: "/kafka-logs",
-		},
-	}
-
-	//owner := asOwner(v)
-	//ownerJSON, err := json.Marshal(owner)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	statefulSet := &appsv1.StatefulSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "apps/v1",
-			Kind:       "StatefulSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kc.Name,
-			Namespace: kc.Namespace,
-		},
-		Spec: appsv1.StatefulSetSpec{
-			ServiceName: fmt.Sprintf("%s-headless", kc.Name),
-			Replicas:    &replicas,
-			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-				Type: appsv1.RollingUpdateStatefulSetStrategyType,
-			},
-			PodManagementPolicy: appsv1.OrderedReadyPodManagement,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: ls,
-			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "kafka-data",
-					},
-					Spec: corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceStorage: resource.MustParse(kc.Spec.StorageSize),
-							},
-						},
-					},
-				},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      ls,
-					Annotations: map[string]string{},
-				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: kc.Spec.GetServiceAccount(),
-					Containers: []corev1.Container{
-						{
-							Image:           kc.Spec.Image,
-							ImagePullPolicy: corev1.PullAlways,
-							Name:            "kafka",
-							Command:         []string{"sh", "-c", fmt.Sprintf("/opt/kafka/bin/kafka-server-start.sh /config/broker-config --override advertised.listeners=INTERNAL://${HOSTNAME}.%s-headless.test.svc.cluster.local:29092,EXTERNAL://"+loadBalancerIP+":"+"909${HOSTNAME##*-} --override listeners=EXTERNAL://:9094,INTERNAL://:29092", kc.Name)},
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 29092,
-									Name:          "internal-access",
-								},
-								{
-									ContainerPort: 9094,
-									Name:          "external-access",
-								},
-							},
-							//Env: {},
-							//LivenessProbe: &corev1.Probe{
-							//	Handler: corev1.Handler{
-							//		HTTPGet: &corev1.HTTPGetAction{
-							//			Port:   intstr.FromString("api-port"),
-							//			Path:   "/v1/sys/init",
-							//		}},
-							//},
-							//ReadinessProbe: &corev1.Probe{
-							//	Handler: corev1.Handler{
-							//		HTTPGet: &corev1.HTTPGetAction{
-							//			Port:   intstr.FromString("api-port"),
-							//			Path:   "/v1/sys/health",
-							//		}},
-							//	PeriodSeconds:    5,
-							//	FailureThreshold: 2,
-							//},
-							VolumeMounts: volumeMounts,
-						},
-					},
-					Volumes: volumes,
-				},
-			},
-		},
-	}
-	return statefulSet
 }

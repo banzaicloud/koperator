@@ -31,6 +31,7 @@ type KafkaClusterSpec struct {
 	Brokers          int32             `json:"brokers,omitempty"`
 	Image            string            `json:"image,omitempty"`
 	Annotations      map[string]string `json:"annotations"`
+	Listeners        Listeners         `json:"listeners"`
 	BrokerConfig     string            `json:"brokerConfig"`
 	MonitoringConfig MonitoringConfig  `json:"monitoring,omitempty"`
 	ServiceAccount   string            `json:"serviceAccount"`
@@ -44,6 +45,26 @@ type KafkaClusterStatus struct {
 
 // MonitoringConfig defines the monitoring configuration
 type MonitoringConfig struct {
+}
+
+//Listeners defines the Kafka listener types
+type Listeners struct {
+	ExternalListener []ExternalListenerConfig `json:"externalListener"`
+	InternalListener []InternalListenerConfig `json:"internalListener"`
+}
+
+type ExternalListenerConfig struct {
+	Type                 string `json:"type"`
+	Name                 string `json:"name"`
+	ExternalStartingPort int32  `json:"externalStartingPort"`
+	ContainerPort        int32  `json:"containerPort"`
+}
+
+type InternalListenerConfig struct {
+	Type                            string `json:"type"`
+	Name                            string `json:"name"`
+	UsedForInnerBrokerCommunication bool   `json:"usedForInnerBrokerCommunication"`
+	ContainerPort                   int32  `json:"containerPort"`
 }
 
 // +genclient
@@ -81,7 +102,5 @@ func (spec *KafkaClusterSpec) GetServiceAccount() string {
 }
 
 func (spec *KafkaClusterSpec) GenerateDefaultConfig() string {
-	return spec.BrokerConfig +
-		"listener.security.protocol.map=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT\n" +
-		"inter.broker.listener.name=INTERNAL\n"
+	return spec.BrokerConfig
 }
