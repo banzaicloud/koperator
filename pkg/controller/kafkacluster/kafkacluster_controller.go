@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/kafka"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -75,6 +76,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &banzaicloudv1alpha1.KafkaCluster{},
+	})
+	if err != nil {
+		return err
+	}
+
 	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &banzaicloudv1alpha1.KafkaCluster{},
@@ -116,7 +125,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	lBService := kafka.LoadBalancerForKafka(instance)
+	lBService := envoy.LoadBalancerForEnvoy(instance)
 	if err := controllerutil.SetControllerReference(instance, lBService, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -146,6 +155,23 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].IP
 	} else {
 		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].Hostname
+	}
+
+	eDeployment := envoy.DeploymentForEnvoy(instance)
+	if err := controllerutil.SetControllerReference(instance, eDeployment, r.scheme); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	foundEDeployment := &appsv1.Deployment{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: eDeployment.Name, Namespace: eDeployment.Namespace}, foundEDeployment)
+	if err != nil && errors.IsNotFound(err) {
+		log.Info("Creating Deployment", "namespace", eDeployment.Namespace, "name", eDeployment.Name)
+		err = r.Create(context.TODO(), eDeployment)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	} else if err != nil {
+		return reconcile.Result{}, err
 	}
 
 	bConfigMap := kafka.ConfigMapForKafka(instance)
