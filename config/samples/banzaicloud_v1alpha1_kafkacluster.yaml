@@ -13,6 +13,7 @@ spec:
     num.network.threads=2
     log.dirs=/kafka-logs/kafka
     zookeeper.connect=example-zookeepercluster-client.zookeeper:2181
+    default.replication.factor=3
   listeners:
     externalListener:
       - type: "plaintext"
