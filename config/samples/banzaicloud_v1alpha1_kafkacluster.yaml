@@ -14,16 +14,17 @@ spec:
     log.dirs=/kafka-logs/kafka
     zookeeper.connect=example-zookeepercluster-client.zookeeper:2181
     default.replication.factor=3
+    num.partitions=3
   listeners:
     externalListener:
       - type: "plaintext"
-        name: "externalka"
+        name: "external"
         externalStartingPort: 19090
         containerPort: 9094
     internalListener:
       - type: "plaintext"
-        name: "internalka"
+        name: "internal"
         containerPort: 29092
         usedForInnerBrokerCommunication: true
   serviceAccount: ""
-  storageSize: "1Gi"
+  storageSize: "10Gi"

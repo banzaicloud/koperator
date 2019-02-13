@@ -23,7 +23,6 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
-	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,13 +34,44 @@ import (
 var c client.Client
 
 var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-var depKey = types.NamespacedName{Name: "foo-deployment", Namespace: "default"}
+var depKey = types.NamespacedName{Name: "foo", Namespace: "default"}
 
 const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
-	instance := &banzaicloudv1alpha1.KafkaCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	instance := &banzaicloudv1alpha1.KafkaCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		Spec: banzaicloudv1alpha1.KafkaClusterSpec{
+			Brokers:      1,
+			Image:        "banzaicloud/kafka:test",
+			Annotations:  map[string]string{"kafka": "test"},
+			BrokerConfig: "broker=1",
+			Listeners: banzaicloudv1alpha1.Listeners{
+				ExternalListener: []banzaicloudv1alpha1.ExternalListenerConfig{
+					{
+						Type:                 "plaintext",
+						Name:                 "external",
+						ExternalStartingPort: 9090,
+						ContainerPort:        9094,
+					},
+				},
+				InternalListener: []banzaicloudv1alpha1.InternalListenerConfig{
+					{
+						Type:                            "plaintext",
+						Name:                            "internal",
+						ContainerPort:                   29092,
+						UsedForInnerBrokerCommunication: true,
+					},
+				},
+			},
+			MonitoringConfig: banzaicloudv1alpha1.MonitoringConfig{},
+			ServiceAccount:   "",
+			StorageSize:      "1Gi",
+		},
+		Status: banzaicloudv1alpha1.KafkaClusterStatus{
+			HealthyBrokers: 1,
+		},
+	}
 
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
@@ -70,18 +100,5 @@ func TestReconcile(t *testing.T) {
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	defer c.Delete(context.TODO(), instance)
 	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
-
-	deploy := &appsv1.Deployment{}
-	g.Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).
-		Should(gomega.Succeed())
-
-	// Delete the Deployment and expect Reconcile to be called for Deployment deletion
-	g.Expect(c.Delete(context.TODO(), deploy)).NotTo(gomega.HaveOccurred())
-	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
-	g.Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).
-		Should(gomega.Succeed())
-
-	// Manually delete Deployment since GC isn't enabled in the test control plane
-	g.Expect(c.Delete(context.TODO(), deploy)).To(gomega.Succeed())
 
 }
