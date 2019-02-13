@@ -35,12 +35,21 @@ static_resources:
               config:
                 stat_prefix: broker_tcp-2
                 cluster: broker-2
+    - address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 19093
+      filter_chains:
+        - filters:
+            - name: envoy.tcp_proxy
+              config:
+                stat_prefix: broker_tcp-3
+                cluster: broker-3
   clusters:
     - name: broker-0
       connect_timeout: 0.25s
       type: strict_dns
       lb_policy: round_robin
-      http2_protocol_options: {}
       hosts:
         - socket_address:
             address: kafka-0.kafka-headless.test.svc.cluster.local
@@ -62,4 +71,13 @@ static_resources:
       hosts:
         - socket_address:
             address: kafka-2.kafka-headless.test.svc.cluster.local
+            port_value: 9094
+    - name: broker-3
+      connect_timeout: 0.25s
+      type: strict_dns
+      lb_policy: round_robin
+      http2_protocol_options: {}
+      hosts:
+        - socket_address:
+            address: kafka-3.kafka-headless.test.svc.cluster.local
             port_value: 9094
