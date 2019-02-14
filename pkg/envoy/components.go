@@ -113,13 +113,13 @@ func ConfigMapForEnvoy(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.ConfigMap {
 			Namespace: kc.Namespace,
 			Labels:    map[string]string{"app": "envoy"},
 		},
-		Data: map[string]string{"envoy.yaml": generateEnvoyConfig()},
+		Data: map[string]string{"envoy.yaml": generateEnvoyConfig(kc)},
 	}
 	return configMap
 }
 
-func generateEnvoyConfig() string {
-
+func generateEnvoyConfig(kc *banzaicloudv1alpha1.KafkaCluster) string {
+	//TODO support multiple external listener by removing [0]
 	adminConfig := envoybootstrap.Admin{
 		AccessLogPath: "/tmp/admin_access.log",
 		Address: &core.Address{
@@ -134,30 +134,31 @@ func generateEnvoyConfig() string {
 		},
 	}
 
-	config := envoybootstrap.Bootstrap_StaticResources{
-		Listeners: []envoyapi.Listener{
-			{
-				Address: core.Address{
-					Address: &core.Address_SocketAddress{
-						SocketAddress: &core.SocketAddress{
-							Address: "0.0.0.0",
-							PortSpecifier: &core.SocketAddress_PortValue{
-								PortValue: 19090,
-							},
+	var listeners []envoyapi.Listener
+	var clusters []envoyapi.Cluster
+
+	for brokerId := int32(0); brokerId < kc.Spec.Brokers; brokerId++ {
+		listeners = append(listeners, envoyapi.Listener{
+			Address: core.Address{
+				Address: &core.Address_SocketAddress{
+					SocketAddress: &core.SocketAddress{
+						Address: "0.0.0.0",
+						PortSpecifier: &core.SocketAddress_PortValue{
+							PortValue: uint32(kc.Spec.Listeners.ExternalListener[0].ExternalStartingPort + brokerId),
 						},
 					},
 				},
-				FilterChains: []listener.FilterChain{
-					{
-						Filters: []listener.Filter{
-							{
-								Name: util.TCPProxy,
-								ConfigType: &listener.Filter_Config{
-									Config: &ptypes.Struct{
-										Fields: map[string]*ptypes.Value{
-											"stat_prefix": {Kind: &ptypes.Value_StringValue{StringValue: "broker_tcp-0"}},
-											"cluster":     {Kind: &ptypes.Value_StringValue{StringValue: "broker-0"}},
-										},
+			},
+			FilterChains: []listener.FilterChain{
+				{
+					Filters: []listener.Filter{
+						{
+							Name: util.TCPProxy,
+							ConfigType: &listener.Filter_Config{
+								Config: &ptypes.Struct{
+									Fields: map[string]*ptypes.Value{
+										"stat_prefix": {Kind: &ptypes.Value_StringValue{StringValue: fmt.Sprintf("broker_tcp-%d", brokerId)}},
+										"cluster":     {Kind: &ptypes.Value_StringValue{StringValue: fmt.Sprintf("broker-%d", brokerId)}},
 									},
 								},
 							},
@@ -165,35 +166,49 @@ func generateEnvoyConfig() string {
 					},
 				},
 			},
-		},
-		Clusters: []envoyapi.Cluster{
-			{
-				Name:           "broker-0",
-				ConnectTimeout: 250 * time.Millisecond,
-				Type:           envoyapi.Cluster_STRICT_DNS,
-				Hosts: []*core.Address{
-					{
-						Address: &core.Address_SocketAddress{
-							SocketAddress: &core.SocketAddress{
-								Address: "kafka-0.kafka-headless.test.svc.cluster.local",
-								PortSpecifier: &core.SocketAddress_PortValue{
-									PortValue: 9094,
-								},
+		})
+
+		clusters = append(clusters, envoyapi.Cluster{
+			Name:                 fmt.Sprintf("broker-%d", brokerId),
+			ConnectTimeout:       250 * time.Millisecond,
+			Type:                 envoyapi.Cluster_STRICT_DNS,
+			LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
+			Http2ProtocolOptions: &core.Http2ProtocolOptions{},
+			Hosts: []*core.Address{
+				{
+					Address: &core.Address_SocketAddress{
+						SocketAddress: &core.SocketAddress{
+							Address: fmt.Sprintf("%s-%d.%s-headless.%s.svc.cluster.local", kc.Name, brokerId, kc.Name, kc.Namespace),
+							PortSpecifier: &core.SocketAddress_PortValue{
+								PortValue: uint32(kc.Spec.Listeners.ExternalListener[0].ContainerPort),
 							},
 						},
 					},
 				},
 			},
-		},
+		})
+	}
+
+	config := envoybootstrap.Bootstrap_StaticResources{
+		Listeners: listeners,
+		Clusters:  clusters,
 	}
 	generatedConfig := envoybootstrap.Bootstrap{
 		Admin:           &adminConfig,
 		StaticResources: &config,
 	}
 	marshaller := &jsonpb.Marshaler{}
-	marshalledProtobufConfig, _ := marshaller.MarshalToString(&generatedConfig)
+	marshalledProtobufConfig, err := marshaller.MarshalToString(&generatedConfig)
+	if err != nil {
+		log.Error(err, "could not marshall envoy config")
+		return ""
+	}
 
-	marshalledConfig, _ := yaml.JSONToYAML([]byte(marshalledProtobufConfig))
+	marshalledConfig, err := yaml.JSONToYAML([]byte(marshalledProtobufConfig))
+	if err != nil {
+		log.Error(err, "could not convert config from Json to Yaml")
+		return ""
+	}
 	return string(marshalledConfig)
 }
 
