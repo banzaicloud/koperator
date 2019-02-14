@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/monitoring"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/monitoring"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
