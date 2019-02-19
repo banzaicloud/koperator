@@ -15,46 +15,6 @@ import (
 
 var log = logf.Log.WithName("kafka-components-builder")
 
-//// LoadBalancerForKafka return a Loadbalancer service for Kafka
-//func LoadBalancerForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Service {
-//
-//	var exposedPorts []corev1.ServicePort
-//
-//	for _, eListener := range kc.Spec.Listeners.ExternalListener {
-//		switch eListener.Type {
-//		case "plaintext":
-//			for brokerSize := int32(0); brokerSize < kc.Spec.Brokers; brokerSize++ {
-//				exposedPorts = append(exposedPorts, corev1.ServicePort{
-//					Name:       fmt.Sprintf("broker-%d", brokerSize),
-//					Port:       eListener.ExternalStartingPort + brokerSize,
-//					TargetPort: intstr.FromInt(int(eListener.ContainerPort)),
-//				})
-//			}
-//		case "tls":
-//			log.Error(errors.New("TLS listener type is not supported yet"), "not supported")
-//		case "both":
-//			log.Error(errors.New("both listener type is not supported yet"), "not supported")
-//		}
-//	}
-//
-//	service := &corev1.Service{
-//		TypeMeta: metav1.TypeMeta{
-//			APIVersion: "v1",
-//			Kind:       "Service",
-//		},
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name:      fmt.Sprintf(loadBalancerServiceTemplate, kc.Name),
-//			Namespace: kc.Namespace,
-//		},
-//		Spec: corev1.ServiceSpec{
-//			Selector: labelsForKafka(kc.Name),
-//			Type:     corev1.ServiceTypeLoadBalancer,
-//			Ports:    exposedPorts,
-//		},
-//	}
-//	return service
-//}
-
 // HeadlessServiceForKafka return a HeadLess service for Kafka
 func HeadlessServiceForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Service {
 

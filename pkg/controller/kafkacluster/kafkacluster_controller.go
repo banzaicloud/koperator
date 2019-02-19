@@ -66,33 +66,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-
-	// TODO(user): Modify this to be the types you create
-	// Uncomment watch a Deployment created by KafkaCluster - change this for objects you create
-	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &banzaicloudv1alpha1.KafkaCluster{},
-	})
-	if err != nil {
-		return err
-	}
-
-	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &banzaicloudv1alpha1.KafkaCluster{},
-	})
-	if err != nil {
-		return err
-	}
-
-	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &banzaicloudv1alpha1.KafkaCluster{},
-	})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -143,6 +116,17 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		}
 	} else if err != nil {
 		return reconcile.Result{}, err
+	} else {
+		lBService.Spec.ClusterIP = foundLBService.Spec.ClusterIP
+		if !reflect.DeepEqual(lBService.Spec, foundLBService.Spec) {
+			foundLBService.Spec = lBService.Spec
+			log.Info("Updating LoadBalancer", "namespace", foundLBService.Namespace, "name", foundLBService.Name)
+			err = r.Update(context.TODO(), foundLBService)
+			if err != nil {
+				log.Error(err, "Remove this if works")
+				return reconcile.Result{}, err
+			}
+		}
 	}
 
 	if len(foundLBService.Status.LoadBalancer.Ingress) == 0 {
@@ -167,18 +151,16 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 	foundConfigMapEnvoy := &corev1.ConfigMap{}
 	err = r.Get(context.TODO(), types.NamespacedName{Name: configMapEnvoy.Name, Namespace: configMapEnvoy.Namespace}, foundConfigMapEnvoy)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating Configmap", "namespace", configMapEnvoy.Namespace, "name", configMapEnvoy.Name)
+		log.Info("Creating Envoy Configmap", "namespace", configMapEnvoy.Namespace, "name", configMapEnvoy.Name)
 		err = r.Create(context.TODO(), configMapEnvoy)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 	} else if err != nil {
 		return reconcile.Result{}, err
-	}
-
-	if !reflect.DeepEqual(configMapEnvoy.Data, foundConfigMapEnvoy.Data) {
+	} else if !reflect.DeepEqual(configMapEnvoy.Data, foundConfigMapEnvoy.Data) {
 		foundConfigMapEnvoy.Data = configMapEnvoy.Data
-		log.Info("Updating Envoy ConfigMap", "namespace", configMapEnvoy.Namespace, "name", configMapEnvoy.Name)
+		log.Info("Updating Envoy ConfigMap", "namespace", foundConfigMapEnvoy.Namespace, "name", foundConfigMapEnvoy.Name)
 		err = r.Update(context.TODO(), foundConfigMapEnvoy)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -200,6 +182,13 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		}
 	} else if err != nil {
 		return reconcile.Result{}, err
+	} else if !reflect.DeepEqual(eDeployment.Spec, foundEDeployment.Spec) {
+		foundEDeployment.Spec = eDeployment.Spec
+		log.Info("Updating Envoy Deployment", "namespace", eDeployment.Namespace, "name", eDeployment.Name)
+		err = r.Update(context.TODO(), foundEDeployment)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	jmxConfigMap := monitoring.ConfigMapForMonitoring(instance)
@@ -217,9 +206,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		}
 	} else if err != nil {
 		return reconcile.Result{}, err
-	}
-
-	if !reflect.DeepEqual(jmxConfigMap.Data, foundJMXConfigMap.Data) {
+	} else if !reflect.DeepEqual(jmxConfigMap.Data, foundJMXConfigMap.Data) {
 		foundJMXConfigMap.Data = jmxConfigMap.Data
 		log.Info("Updating JMX ConfigMap", "namespace", jmxConfigMap.Namespace, "name", jmxConfigMap.Name)
 		err = r.Update(context.TODO(), foundJMXConfigMap)
@@ -243,9 +230,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		}
 	} else if err != nil {
 		return reconcile.Result{}, err
-	}
-
-	if !reflect.DeepEqual(bConfigMap.Data, foundBConfigMap.Data) {
+	} else if !reflect.DeepEqual(bConfigMap.Data, foundBConfigMap.Data) {
 		foundBConfigMap.Data = bConfigMap.Data
 		log.Info("Updating ConfigMap", "namespace", bConfigMap.Namespace, "name", bConfigMap.Name)
 		err = r.Update(context.TODO(), foundBConfigMap)
@@ -286,11 +271,9 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		}
 	} else if err != nil {
 		return reconcile.Result{}, err
-	}
-
-	if !reflect.DeepEqual(sSet.Spec, foundSSet.Spec) {
+	} else if !reflect.DeepEqual(sSet.Spec, foundSSet.Spec) {
 		foundSSet.Spec = sSet.Spec
-		log.Info("Updating StatefulSet", "namespace", sSet.Namespace, "name", sSet.Name)
+		log.Info("Updating StatefulSet", "namespace", foundSSet.Namespace, "name", foundSSet.Name)
 		err = r.Update(context.TODO(), foundSSet)
 		if err != nil {
 			return reconcile.Result{}, err
