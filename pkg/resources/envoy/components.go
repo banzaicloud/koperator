@@ -88,7 +88,7 @@ func DeploymentForEnvoy(kc *banzaicloudv1alpha1.KafkaCluster) *appsv1.Deployment
 					Containers: []corev1.Container{
 						{
 							Name:            "envoy",
-							Image:           "banzaicloud/envoy:01",
+							Image:           "banzaicloud/envoy:0.1.0",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: append(exposedPorts, []corev1.ContainerPort{
 								{Name: "envoy-admin", ContainerPort: 9901}}...),
