@@ -1,110 +1,24 @@
 package kafka
 
 import (
-	"errors"
 	"fmt"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/monitoring"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/runtime"
+	"strings"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"strings"
 )
 
-var log = logf.Log.WithName("kafka-components-builder")
-
-// HeadlessServiceForKafka return a HeadLess service for Kafka
-func HeadlessServiceForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Service {
-
-	var usedPorts []corev1.ServicePort
-
-	for _, iListeners := range kc.Spec.Listeners.InternalListener {
-		usedPorts = append(usedPorts, corev1.ServicePort{
-			Name: iListeners.Name,
-			Port: iListeners.ContainerPort,
-		})
-	}
-	service := &corev1.Service{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Service",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf(headlessServiceTemplate, kc.Name),
-			Namespace: kc.Namespace,
-		},
-		Spec: corev1.ServiceSpec{
-			Selector:  labelsForKafka(kc.Name),
-			ClusterIP: corev1.ClusterIPNone,
-			Ports:     usedPorts,
-		},
-	}
-	return service
-}
-
-func ConfigMapForKafka(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.ConfigMap {
-	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf(brokerConfigTemplate, kc.Name),
-			Namespace: kc.Namespace,
-			Labels:    labelsForKafka(kc.Name),
-		},
-		Data: map[string]string{"broker-config": generateListenerSpecificConfig(&kc.Spec.Listeners) + kc.Spec.GenerateDefaultConfig()},
-	}
-	return configMap
-}
-
-func generateListenerSpecificConfig(l *banzaicloudv1alpha1.Listeners) string {
-
-	var interBrokerListener string
-	var securityProtocolMapConfig []string
-	var listenerConfig []string
-
-	for _, iListener := range l.InternalListener {
-		if iListener.UsedForInnerBrokerCommunication {
-			if interBrokerListener == "" {
-				interBrokerListener = strings.ToUpper(iListener.Name)
-			} else {
-				log.Error(errors.New("inter broker listener name already set"), "config error")
-			}
-		}
-		UpperedListenerType := strings.ToUpper(iListener.Type)
-		UpperedListenerName := strings.ToUpper(iListener.Name)
-		switch UpperedListenerType {
-		case "PLAINTEXT":
-			securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
-		case "TLS":
-		}
-		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
-	}
-	for _, eListener := range l.ExternalListener {
-		UpperedListenerType := strings.ToUpper(eListener.Type)
-		UpperedListenerName := strings.ToUpper(eListener.Name)
-		switch UpperedListenerType {
-		case "PLAINTEXT":
-			securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
-		case "TLS":
-		}
-		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
-	}
-	return "listener.security.protocol.map=" + strings.Join(securityProtocolMapConfig, ",") + "\n" +
-		"inter.broker.listener.name=" + interBrokerListener + "\n" +
-		"listeners=" + strings.Join(listenerConfig, ",") + "\n"
-}
-
-// StatefulSetForKafka returns a Kafka StatefulSet object
-func StatefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP string) *appsv1.StatefulSet {
-	ls := labelsForKafka(kc.Name)
+func (r *Reconciler) statefulSet(loadBalancerIP string) runtime.Object {
+	ls := labelsForKafka(r.KafkaCluster.Name)
 	var kafkaBrokerContainerPorts []corev1.ContainerPort
 	var advertisedListenerConfig []string
 
-	for _, eListener := range kc.Spec.Listeners.ExternalListener {
+	for _, eListener := range r.KafkaCluster.Spec.Listeners.ExternalListener {
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
 			Name:          eListener.Name,
 			ContainerPort: eListener.ContainerPort,
@@ -113,13 +27,13 @@ func StatefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP st
 			fmt.Sprintf("%s://%s:$((%d+${HOSTNAME##*-}))", strings.ToUpper(eListener.Name), loadBalancerIP, eListener.ExternalStartingPort))
 	}
 
-	for _, iListener := range kc.Spec.Listeners.InternalListener {
+	for _, iListener := range r.KafkaCluster.Spec.Listeners.InternalListener {
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
 			Name:          iListener.Name,
 			ContainerPort: iListener.ContainerPort,
 		})
 		advertisedListenerConfig = append(advertisedListenerConfig,
-			fmt.Sprintf("%s://${HOSTNAME}.%s-headless.${%s}.svc.cluster.local:%d", strings.ToUpper(iListener.Name), kc.Name, podNamespace, iListener.ContainerPort))
+			fmt.Sprintf("%s://${HOSTNAME}.%s-headless.${%s}.svc.cluster.local:%d", strings.ToUpper(iListener.Name), r.KafkaCluster.Name, podNamespace, iListener.ContainerPort))
 	}
 
 	volumes := []corev1.Volume{
@@ -127,7 +41,7 @@ func StatefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP st
 			Name: brokerConfigVolumeMount,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(brokerConfigTemplate, kc.Name)},
+					LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(brokerConfigTemplate, r.KafkaCluster.Name)},
 				},
 			},
 		},
@@ -141,7 +55,7 @@ func StatefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP st
 			Name: "jmx-config",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(monitoring.BrokerJmxTemplate, kc.Name)},
+					LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(monitoring.BrokerJmxTemplate, r.KafkaCluster.Name)},
 				},
 			},
 		},
@@ -169,17 +83,10 @@ func StatefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP st
 	}
 
 	statefulSet := &appsv1.StatefulSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "apps/v1",
-			Kind:       "StatefulSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kc.Name,
-			Namespace: kc.Namespace,
-		},
+		ObjectMeta: templates.ObjectMeta(r.KafkaCluster.Name, map[string]string{}, r.KafkaCluster),
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: fmt.Sprintf(headlessServiceTemplate, kc.Name),
-			Replicas:    &kc.Spec.Brokers,
+			ServiceName: fmt.Sprintf(headlessServiceTemplate, r.KafkaCluster.Name),
+			Replicas:    &r.KafkaCluster.Spec.Brokers,
 			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
 				Type: appsv1.RollingUpdateStatefulSetStrategyType,
 			},
@@ -196,7 +103,7 @@ func StatefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP st
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
-								corev1.ResourceStorage: resource.MustParse(kc.Spec.StorageSize),
+								corev1.ResourceStorage: resource.MustParse(r.KafkaCluster.Spec.StorageSize),
 							},
 						},
 					},
@@ -212,7 +119,7 @@ func StatefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP st
 					},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: kc.Spec.GetServiceAccount(),
+					ServiceAccountName: r.KafkaCluster.Spec.GetServiceAccount(),
 					InitContainers: []corev1.Container{
 						{
 							Name:            "jmx-export",
@@ -229,13 +136,13 @@ func StatefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP st
 					},
 					Containers: []corev1.Container{
 						{
-							Image:           kc.Spec.Image,
+							Image:           r.KafkaCluster.Spec.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Name:            "kafka",
 							Env: []corev1.EnvVar{
 								{
 									Name:  podNamespace,
-									Value: kc.Namespace,
+									Value: r.KafkaCluster.Namespace,
 								},
 								//{
 								//	Name:  "KAFKA_LOG4J_OPTS",
@@ -284,10 +191,4 @@ func StatefulSetForKafka(kc *banzaicloudv1alpha1.KafkaCluster, loadBalancerIP st
 		},
 	}
 	return statefulSet
-}
-
-// labelsForKafka returns the labels for selecting the resources
-// belonging to the given kafka CR name.
-func labelsForKafka(name string) map[string]string {
-	return map[string]string{"app": "kafka", "kafka_cr": name}
 }

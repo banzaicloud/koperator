@@ -18,26 +18,20 @@ package kafkacluster
 
 import (
 	"context"
-	"fmt"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/monitoring"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"time"
 )
 
 var log = logf.Log.WithName("controller")
@@ -88,6 +82,8 @@ type ReconcileKafkaCluster struct {
 // +kubebuilder:rbac:groups=banzaicloud.banzaicloud.io,resources=kafkaclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=banzaicloud.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
 func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger.Info("Reconciling KafkaCluster")
 	// Fetch the KafkaCluster instance
 	instance := &banzaicloudv1alpha1.KafkaCluster{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
@@ -101,184 +97,17 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	lBService := envoy.LoadBalancerForEnvoy(instance)
-	if err := controllerutil.SetControllerReference(instance, lBService, r.scheme); err != nil {
-		return reconcile.Result{}, err
+	reconcilers := []resources.ComponentReconciler{
+		envoy.New(r.Client, instance),
+		monitoring.New(r.Client, instance),
+		kafka.New(r.Client, instance),
 	}
 
-	foundLBService := &corev1.Service{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: lBService.Name, Namespace: lBService.Namespace}, foundLBService)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating LoadBalancerService", "namespace", lBService.Namespace, "name", lBService.Name)
-		err = r.Create(context.TODO(), lBService)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	} else if err != nil {
-		return reconcile.Result{}, err
-	} else {
-		lBService.Spec.ClusterIP = foundLBService.Spec.ClusterIP
-		if !reflect.DeepEqual(lBService.Spec, foundLBService.Spec) {
-			foundLBService.Spec = lBService.Spec
-			log.Info("Updating LoadBalancer", "namespace", foundLBService.Namespace, "name", foundLBService.Name)
-			err = r.Update(context.TODO(), foundLBService)
-			if err != nil {
-				log.Error(err, "Remove this if works")
-				return reconcile.Result{}, err
-			}
-		}
-	}
-
-	if len(foundLBService.Status.LoadBalancer.Ingress) == 0 {
-		return reconcile.Result{}, fmt.Errorf("loadbalancer is not created waiting")
-	}
-
-	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" && foundLBService.Status.LoadBalancer.Ingress[0].IP == "" {
-		time.Sleep(20 * time.Second)
-		return reconcile.Result{}, fmt.Errorf("loadbalancer is not ready waiting")
-	}
-	var loadBalancerExternalAddress string
-	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" {
-		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].IP
-	} else {
-		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].Hostname
-	}
-
-	configMapEnvoy := envoy.ConfigMapForEnvoy(instance)
-	if err := controllerutil.SetControllerReference(instance, configMapEnvoy, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-	foundConfigMapEnvoy := &corev1.ConfigMap{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: configMapEnvoy.Name, Namespace: configMapEnvoy.Namespace}, foundConfigMapEnvoy)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating Envoy Configmap", "namespace", configMapEnvoy.Namespace, "name", configMapEnvoy.Name)
-		err = r.Create(context.TODO(), configMapEnvoy)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	} else if err != nil {
-		return reconcile.Result{}, err
-	} else if !reflect.DeepEqual(configMapEnvoy.Data, foundConfigMapEnvoy.Data) {
-		foundConfigMapEnvoy.Data = configMapEnvoy.Data
-		log.Info("Updating Envoy ConfigMap", "namespace", foundConfigMapEnvoy.Namespace, "name", foundConfigMapEnvoy.Name)
-		err = r.Update(context.TODO(), foundConfigMapEnvoy)
+	for _, rec := range reconcilers {
+		err = rec.Reconcile(reqLogger)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 	}
-
-	eDeployment := envoy.DeploymentForEnvoy(instance)
-	if err := controllerutil.SetControllerReference(instance, eDeployment, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	foundEDeployment := &appsv1.Deployment{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: eDeployment.Name, Namespace: eDeployment.Namespace}, foundEDeployment)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating Deployment", "namespace", eDeployment.Namespace, "name", eDeployment.Name)
-		err = r.Create(context.TODO(), eDeployment)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	} else if err != nil {
-		return reconcile.Result{}, err
-	} else if !reflect.DeepEqual(eDeployment.Spec, foundEDeployment.Spec) {
-		foundEDeployment.Spec = eDeployment.Spec
-		log.Info("Updating Envoy Deployment", "namespace", eDeployment.Namespace, "name", eDeployment.Name)
-		err = r.Update(context.TODO(), foundEDeployment)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
-	jmxConfigMap := monitoring.ConfigMapForMonitoring(instance)
-	if err := controllerutil.SetControllerReference(instance, jmxConfigMap, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	foundJMXConfigMap := &corev1.ConfigMap{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: jmxConfigMap.Name, Namespace: jmxConfigMap.Namespace}, foundJMXConfigMap)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating ConfigMap for JMX", "namespace", jmxConfigMap.Namespace, "name", jmxConfigMap.Name)
-		err = r.Create(context.TODO(), jmxConfigMap)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	} else if err != nil {
-		return reconcile.Result{}, err
-	} else if !reflect.DeepEqual(jmxConfigMap.Data, foundJMXConfigMap.Data) {
-		foundJMXConfigMap.Data = jmxConfigMap.Data
-		log.Info("Updating JMX ConfigMap", "namespace", jmxConfigMap.Namespace, "name", jmxConfigMap.Name)
-		err = r.Update(context.TODO(), foundJMXConfigMap)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
-	bConfigMap := kafka.ConfigMapForKafka(instance)
-	if err := controllerutil.SetControllerReference(instance, bConfigMap, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	foundBConfigMap := &corev1.ConfigMap{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: bConfigMap.Name, Namespace: bConfigMap.Namespace}, foundBConfigMap)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating ConfigMap for Brokers", "namespace", bConfigMap.Namespace, "name", bConfigMap.Name)
-		err = r.Create(context.TODO(), bConfigMap)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	} else if err != nil {
-		return reconcile.Result{}, err
-	} else if !reflect.DeepEqual(bConfigMap.Data, foundBConfigMap.Data) {
-		foundBConfigMap.Data = bConfigMap.Data
-		log.Info("Updating ConfigMap", "namespace", bConfigMap.Namespace, "name", bConfigMap.Name)
-		err = r.Update(context.TODO(), foundBConfigMap)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
-	hService := kafka.HeadlessServiceForKafka(instance)
-	if err := controllerutil.SetControllerReference(instance, hService, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	foundHService := &corev1.Service{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: hService.Name, Namespace: hService.Namespace}, foundHService)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating HeadlessService", "namespace", hService.Namespace, "name", hService.Name)
-		err = r.Create(context.TODO(), hService)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	} else if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	sSet := kafka.StatefulSetForKafka(instance, loadBalancerExternalAddress)
-	if err := controllerutil.SetControllerReference(instance, sSet, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	foundSSet := &appsv1.StatefulSet{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: sSet.Name, Namespace: sSet.Namespace}, foundSSet)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating StatefulSet", "namespace", sSet.Namespace, "name", sSet.Name)
-		err = r.Create(context.TODO(), sSet)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	} else if err != nil {
-		return reconcile.Result{}, err
-	} else if !reflect.DeepEqual(sSet.Spec, foundSSet.Spec) {
-		foundSSet.Spec = sSet.Spec
-		log.Info("Updating StatefulSet", "namespace", foundSSet.Namespace, "name", foundSSet.Name)
-		err = r.Update(context.TODO(), foundSSet)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
 	return reconcile.Result{}, nil
 }

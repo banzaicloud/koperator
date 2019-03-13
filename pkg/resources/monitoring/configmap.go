@@ -2,25 +2,15 @@ package monitoring
 
 import (
 	"fmt"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-var log = logf.Log.WithName("monitoring")
-
-func ConfigMapForMonitoring(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.ConfigMap {
+func (r *Reconciler) configMap() runtime.Object {
 	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf(BrokerJmxTemplate, kc.Name),
-			Namespace: kc.Namespace,
-			Labels:    labelsForJmx(kc.Name),
-		},
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerJmxTemplate, r.KafkaCluster.Name), labelsForJmx(r.KafkaCluster.Name), r.KafkaCluster),
 		Data: map[string]string{"config.yaml": `
     lowercaseOutputName: true
     rules:
@@ -114,8 +104,4 @@ func ConfigMapForMonitoring(kc *banzaicloudv1alpha1.KafkaCluster) *corev1.Config
 `},
 	}
 	return configMap
-}
-
-func labelsForJmx(name string) map[string]string {
-	return map[string]string{"app": "kafka-jmx", "kafka_cr": name}
 }
