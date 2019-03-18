@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func (r *Reconciler) deployment() runtime.Object {
@@ -37,21 +35,6 @@ func (r *Reconciler) deployment() runtime.Object {
 								r.KafkaCluster.Spec.ZKAddress,
 								"-tcpAddr",
 								"0.0.0.0:80"},
-							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Port: intstr.FromInt(80),
-										Path: "/",
-									}},
-								InitialDelaySeconds: 60,
-							},
-							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Port: intstr.FromInt(80),
-										Path: "/",
-									}},
-							},
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 80,
