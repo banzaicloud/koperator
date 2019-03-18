@@ -19,7 +19,7 @@ func (r *Reconciler) headlessService() runtime.Object {
 		})
 	}
 	service := &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(headlessServiceTemplate, r.KafkaCluster.Name), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Selector:  labelsForKafka(r.KafkaCluster.Name),
 			ClusterIP: corev1.ClusterIPNone,

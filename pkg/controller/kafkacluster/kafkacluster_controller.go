@@ -23,6 +23,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/monitoring"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/restproxy"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -101,6 +102,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 		envoy.New(r.Client, instance),
 		monitoring.New(r.Client, instance),
 		kafka.New(r.Client, instance),
+		restproxy.New(r.Client, instance),
 	}
 
 	for _, rec := range reconcilers {

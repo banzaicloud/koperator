@@ -32,10 +32,12 @@ type KafkaClusterSpec struct {
 	Image            string            `json:"image,omitempty"`
 	Annotations      map[string]string `json:"annotations"`
 	Listeners        Listeners         `json:"listeners"`
+	ZKAddress        string            `json:"zkAddress"`
 	BrokerConfig     string            `json:"brokerConfig"`
 	MonitoringConfig MonitoringConfig  `json:"monitoring,omitempty"`
 	ServiceAccount   string            `json:"serviceAccount"`
 	StorageSize      string            `json:"storageSize"`
+	RestProxyEnabled bool              `json:"restProxyEnabled"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
