@@ -15,7 +15,9 @@ import (
 func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate, r.KafkaCluster.Name), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
-		Data:       map[string]string{"broker-config": generateListenerSpecificConfig(&r.KafkaCluster.Spec.Listeners, log) + r.KafkaCluster.Spec.GenerateDefaultConfig()},
+		Data: map[string]string{"broker-config": generateListenerSpecificConfig(&r.KafkaCluster.Spec.Listeners, log) +
+			fmt.Sprintf("zookeeper.connect=%s\n", r.KafkaCluster.Spec.ZKAddress) +
+			r.KafkaCluster.Spec.GenerateDefaultConfig()},
 	}
 	return configMap
 }

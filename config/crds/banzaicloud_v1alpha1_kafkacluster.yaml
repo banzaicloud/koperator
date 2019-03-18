@@ -84,16 +84,22 @@ spec:
               type: object
             monitoring:
               type: object
+            restProxyEnabled:
+              type: boolean
             serviceAccount:
               type: string
             storageSize:
               type: string
+            zkAddress:
+              type: string
           required:
           - annotations
           - listeners
+          - zkAddress
           - brokerConfig
           - serviceAccount
           - storageSize
+          - restProxyEnabled
           type: object
         status:
           properties:

@@ -85,7 +85,7 @@ func (r *Reconciler) statefulSet(loadBalancerIP string) runtime.Object {
 	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: templates.ObjectMeta(r.KafkaCluster.Name, map[string]string{}, r.KafkaCluster),
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: fmt.Sprintf(headlessServiceTemplate, r.KafkaCluster.Name),
+			ServiceName: fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name),
 			Replicas:    &r.KafkaCluster.Spec.Brokers,
 			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
 				Type: appsv1.RollingUpdateStatefulSetStrategyType,

@@ -17,7 +17,7 @@ import (
 
 const (
 	componentName           = "kafka"
-	headlessServiceTemplate = "%s-headless"
+	HeadlessServiceTemplate = "%s-headless"
 	brokerConfigTemplate    = "%s-config"
 	brokerConfigVolumeMount = "broker-config"
 	kafkaDataVolumeMount    = "kafka-data"
