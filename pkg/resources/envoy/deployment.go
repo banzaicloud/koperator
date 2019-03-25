@@ -1,7 +1,6 @@
 package envoy
 
 import (
-	"errors"
 	"fmt"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/go-logr/logr"
@@ -67,18 +66,11 @@ func getExposedContainerPorts(extListeners []banzaicloudv1alpha1.ExternalListene
 	var exposedPorts []corev1.ContainerPort
 
 	for _, eListener := range extListeners {
-		switch eListener.Type {
-		case "plaintext":
-			for brokerSize := int32(0); brokerSize < brokers; brokerSize++ {
-				exposedPorts = append(exposedPorts, corev1.ContainerPort{
-					Name:          fmt.Sprintf("broker-%d", brokerSize),
-					ContainerPort: eListener.ExternalStartingPort + brokerSize,
-				})
-			}
-		case "tls":
-			log.Error(errors.New("TLS listener type is not supported yet"), "not supported")
-		case "both":
-			log.Error(errors.New("both listener type is not supported yet"), "not supported")
+		for brokerSize := int32(0); brokerSize < brokers; brokerSize++ {
+			exposedPorts = append(exposedPorts, corev1.ContainerPort{
+				Name:          fmt.Sprintf("broker-%d", brokerSize),
+				ContainerPort: eListener.ExternalStartingPort + brokerSize,
+			})
 		}
 	}
 	return exposedPorts

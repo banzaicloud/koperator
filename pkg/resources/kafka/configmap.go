@@ -38,21 +38,13 @@ func generateListenerSpecificConfig(l *banzaicloudv1alpha1.Listeners, log logr.L
 		}
 		UpperedListenerType := strings.ToUpper(iListener.Type)
 		UpperedListenerName := strings.ToUpper(iListener.Name)
-		switch UpperedListenerType {
-		case "PLAINTEXT":
-			securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
-		case "TLS":
-		}
+		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
 	}
 	for _, eListener := range l.ExternalListener {
 		UpperedListenerType := strings.ToUpper(eListener.Type)
 		UpperedListenerName := strings.ToUpper(eListener.Name)
-		switch UpperedListenerType {
-		case "PLAINTEXT":
-			securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
-		case "TLS":
-		}
+		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
 	}
 	return "listener.security.protocol.map=" + strings.Join(securityProtocolMapConfig, ",") + "\n" +
