@@ -24,14 +24,14 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 
 func generateListenerSpecificConfig(l *banzaicloudv1alpha1.Listeners, log logr.Logger) string {
 
-	var interBrokerListener string
+	var interBrokerListenerType string
 	var securityProtocolMapConfig []string
 	var listenerConfig []string
 
 	for _, iListener := range l.InternalListener {
 		if iListener.UsedForInnerBrokerCommunication {
-			if interBrokerListener == "" {
-				interBrokerListener = strings.ToUpper(iListener.Name)
+			if interBrokerListenerType == "" {
+				interBrokerListenerType = strings.ToUpper(iListener.Type)
 			} else {
 				log.Error(errors.New("inter broker listener name already set"), "config error")
 			}
@@ -48,6 +48,6 @@ func generateListenerSpecificConfig(l *banzaicloudv1alpha1.Listeners, log logr.L
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
 	}
 	return "listener.security.protocol.map=" + strings.Join(securityProtocolMapConfig, ",") + "\n" +
-		"inter.broker.listener.name=" + interBrokerListener + "\n" +
+		"security.inter.broker.protocol=" + interBrokerListenerType + "\n" +
 		"listeners=" + strings.Join(listenerConfig, ",") + "\n"
 }

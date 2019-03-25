@@ -23,8 +23,8 @@ spec:
         externalStartingPort: 19090
         containerPort: 9094
     internalListener:
-      - type: "plaintext"
-        name: "internal"
+      - type: "ssl"
+        name: "ssl"
         containerPort: 29092
         usedForInnerBrokerCommunication: true
     tlsSecretName: "my-tls-cert-kafka1"
