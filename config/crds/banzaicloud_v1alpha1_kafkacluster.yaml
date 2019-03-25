@@ -78,9 +78,11 @@ spec:
                     - containerPort
                     type: object
                   type: array
+                tlsSecretName:
+                  type: string
               required:
-              - externalListener
               - internalListener
+              - tlsSecretName
               type: object
             monitoring:
               type: object

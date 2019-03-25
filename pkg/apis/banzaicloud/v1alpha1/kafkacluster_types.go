@@ -51,8 +51,9 @@ type MonitoringConfig struct {
 
 //Listeners defines the Kafka listener types
 type Listeners struct {
-	ExternalListener []ExternalListenerConfig `json:"externalListener"`
+	ExternalListener []ExternalListenerConfig `json:"externalListener,omitempty"`
 	InternalListener []InternalListenerConfig `json:"internalListener"`
+	TLSSecretName    string                   `json:"tlsSecretName"`
 }
 
 type ExternalListenerConfig struct {
@@ -104,5 +105,9 @@ func (spec *KafkaClusterSpec) GetServiceAccount() string {
 }
 
 func (spec *KafkaClusterSpec) GenerateDefaultConfig() string {
-	return spec.BrokerConfig
+	return spec.BrokerConfig + `
+	ssl.keystore.location=/var/run/secrets/java.io/keystores/kafka.server.keystore.jks
+    ssl.truststore.location=/var/run/secrets/java.io/keystores/kafka.server.truststore.jks
+    ssl.client.auth=required
+`
 }

@@ -18,7 +18,7 @@ spec:
     num.partitions=3
   listeners:
     externalListener:
-      - type: "plaintext"
+      - type: "ssl"
         name: "external"
         externalStartingPort: 19090
         containerPort: 9094
@@ -27,5 +27,6 @@ spec:
         name: "internal"
         containerPort: 29092
         usedForInnerBrokerCommunication: true
+    tlsSecretName: "my-tls-cert-kafka1"
   serviceAccount: ""
   storageSize: "10Gi"

@@ -441,6 +441,14 @@
   version = "v1.1.0"
 
 [[projects]]
+  digest = "1:52a237b6b680a336fecd53ab9f85d264877382a68fc5b9dced25a68be849c71e"
+  name = "github.com/sethvargo/go-password"
+  packages = ["password"]
+  pruneopts = "T"
+  revision = "bc15c697eeda69a082991d2f1ed37660658fea32"
+  version = "v0.1.2"
+
+[[projects]]
   digest = "1:2c31831b97353515f0bb77a3e7f2df69e50c4173116aad4250e22b1c664a1484"
   name = "github.com/spf13/afero"
   packages = [
@@ -1053,6 +1061,7 @@
     "github.com/goph/emperror",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/sethvargo/go-password/password",
     "golang.org/x/net/context",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
