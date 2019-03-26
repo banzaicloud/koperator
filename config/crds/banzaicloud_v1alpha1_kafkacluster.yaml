@@ -78,11 +78,14 @@ spec:
                     - containerPort
                     type: object
                   type: array
+                saslSecret:
+                  type: string
                 tlsSecretName:
                   type: string
               required:
               - internalListener
               - tlsSecretName
+              - saslSecret
               type: object
             monitoring:
               type: object
