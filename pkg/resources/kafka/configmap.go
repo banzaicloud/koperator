@@ -18,6 +18,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 		Data: map[string]string{"broker-config": generateListenerSpecificConfig(&r.KafkaCluster.Spec.Listeners, log) +
 			fmt.Sprintf("zookeeper.connect=%s\n", r.KafkaCluster.Spec.ZKAddress) +
 			generateSSLConfig(&r.KafkaCluster.Spec.Listeners) +
+			generateSASLConfig(&r.KafkaCluster.Spec.Listeners) +
 			r.KafkaCluster.Spec.GenerateDefaultConfig()},
 	}
 	return configMap
@@ -28,6 +29,15 @@ func generateSSLConfig(l *banzaicloudv1alpha1.Listeners) (res string) {
 		res = `ssl.keystore.location=/var/run/secrets/java.io/keystores/kafka.server.keystore.jks
 ssl.truststore.location=/var/run/secrets/java.io/keystores/kafka.server.truststore.jks
 ssl.client.auth=required
+`
+	}
+	return
+}
+
+func generateSASLConfig(l *banzaicloudv1alpha1.Listeners) (res string) {
+	if l.SASLSecret != "" {
+		res = `sasl.enabled.mechanisms=SCRAM-SHA-256
+sasl.mechanism.inter.broker.protocol=SCRAM-SHA-256
 `
 	}
 	return

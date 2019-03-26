@@ -18,15 +18,16 @@ spec:
     num.partitions=3
   listeners:
     externalListener:
-      - type: "ssl"
+      - type: "sasl_ssl"
         name: "external"
         externalStartingPort: 19090
         containerPort: 9094
     internalListener:
-      - type: "ssl"
-        name: "ssl"
+      - type: "sasl_ssl"
+        name: "sasl_ssl"
         containerPort: 29092
         usedForInnerBrokerCommunication: true
     tlsSecretName: "my-tls-cert-kafka1"
+    saslSecret: "my-sasl-secret"
   serviceAccount: ""
   storageSize: "10Gi"

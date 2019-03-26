@@ -22,6 +22,10 @@ const (
 	brokerConfigVolumeMount = "broker-config"
 	kafkaDataVolumeMount    = "kafka-data"
 	podNamespace            = "POD_NAMESPACE"
+	keystoreVolume          = "ks-files"
+	pemFilesVolume          = "pem-files"
+	jaasConfig              = "jaas-config"
+	scramSecret             = "scram-secret"
 )
 
 type Reconciler struct {

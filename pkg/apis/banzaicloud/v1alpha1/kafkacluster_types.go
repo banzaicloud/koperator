@@ -54,6 +54,7 @@ type Listeners struct {
 	ExternalListener []ExternalListenerConfig `json:"externalListener,omitempty"`
 	InternalListener []InternalListenerConfig `json:"internalListener"`
 	TLSSecretName    string                   `json:"tlsSecretName"`
+	SASLSecret       string                   `json:"saslSecret"`
 }
 
 type ExternalListenerConfig struct {
