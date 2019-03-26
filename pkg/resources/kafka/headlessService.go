@@ -5,6 +5,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"strings"
 )
 
 // HeadlessServiceForKafka return a HeadLess service for Kafka
@@ -14,7 +15,7 @@ func (r *Reconciler) headlessService() runtime.Object {
 
 	for _, iListeners := range r.KafkaCluster.Spec.Listeners.InternalListener {
 		usedPorts = append(usedPorts, corev1.ServicePort{
-			Name: iListeners.Name,
+			Name: strings.ReplaceAll(iListeners.Name, "_", ""),
 			Port: iListeners.ContainerPort,
 		})
 	}

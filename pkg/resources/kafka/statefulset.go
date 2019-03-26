@@ -21,7 +21,7 @@ func (r *Reconciler) statefulSet(loadBalancerIP string) runtime.Object {
 
 	for _, eListener := range r.KafkaCluster.Spec.Listeners.ExternalListener {
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
-			Name:          eListener.Name,
+			Name:          strings.ReplaceAll(eListener.Name, "_", "-"),
 			ContainerPort: eListener.ContainerPort,
 		})
 		advertisedListenerConfig = append(advertisedListenerConfig,
@@ -30,32 +30,82 @@ func (r *Reconciler) statefulSet(loadBalancerIP string) runtime.Object {
 
 	for _, iListener := range r.KafkaCluster.Spec.Listeners.InternalListener {
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
-			Name:          iListener.Name,
+			Name:          strings.ReplaceAll(iListener.Name, "_", "-"),
 			ContainerPort: iListener.ContainerPort,
 		})
 		advertisedListenerConfig = append(advertisedListenerConfig,
 			fmt.Sprintf("%s://${HOSTNAME}.%s-headless.${%s}.svc.cluster.local:%d", strings.ToUpper(iListener.Name), r.KafkaCluster.Name, podNamespace, iListener.ContainerPort))
 	}
-	initPemToKeyStore := corev1.Container{}
-	pass, _ := password.Generate(8, 4, 0, true, false)
-	if r.KafkaCluster.Spec.Listeners.TLSSecretName != "" {
+	genSCRAM := corev1.Container{}
+	genJAAS := corev1.Container{}
+	if r.KafkaCluster.Spec.Listeners.SASLSecret != "" {
 		// TODO handle error
+		scramPass, _ := password.Generate(8, 4, 0, true, false)
+		//Generate SCRAM username/keystorePass to ZK
+		genSCRAM = corev1.Container{
+			Name:            "gen-scram",
+			ImagePullPolicy: corev1.PullIfNotPresent,
+			Image:           r.KafkaCluster.Spec.Image,
+			Command: []string{"/bin/sh", "-c",
+				fmt.Sprintf("/opt/kafka/bin/kafka-configs.sh --zookeeper %s  --alter --add-config 'SCRAM-SHA-256=[iterations=8192,password=%s],SCRAM-SHA-512=[password=%s]' --entity-type users --entity-name admin &&"+
+					`/opt/kafka/bin/kafka-configs.sh --zookeeper %s  --alter --add-config "SCRAM-SHA-256=[iterations=8192,password=$(cat /scram-secret/password)],SCRAM-SHA-512=[password=$(cat /scram-secret/password)]" --entity-type users --entity-name $(cat /scram-secret/username)`, r.KafkaCluster.Spec.ZKAddress, scramPass, scramPass, r.KafkaCluster.Spec.ZKAddress)},
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      scramSecret,
+					MountPath: "/scram-secret/",
+				},
+			},
+		}
+
+		//Generate JAAS config
+		genJAAS = corev1.Container{
+			Name:            "gen-jaas",
+			ImagePullPolicy: corev1.PullIfNotPresent,
+			Image:           r.KafkaCluster.Spec.Image,
+			Command: []string{"/bin/sh", "-c",
+				fmt.Sprintf(`cat >> config/jaas/kafka_server_jaas.conf << EOF
+		KafkaServer {
+			org.apache.kafka.common.security.scram.ScramLoginModule required
+			username="admin"
+			password="%s"
+			user_admin="%s"
+			user_$(cat /scram-secret/username)="$(cat /scram-secret/password)";
+		};
+EOF`, scramPass, scramPass)},
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      jaasConfig,
+					MountPath: "/config/jaas",
+				},
+				{
+					Name:      scramSecret,
+					MountPath: "/scram-secret/",
+				},
+			},
+		}
+	}
+
+	// Keystore generator
+	initPemToKeyStore := corev1.Container{}
+	// TODO handle error
+	keystorePass, _ := password.Generate(8, 4, 0, true, false)
+	if r.KafkaCluster.Spec.Listeners.TLSSecretName != "" {
 		initPemToKeyStore = corev1.Container{
 			Name:            "pem-to-jks",
 			ImagePullPolicy: corev1.PullIfNotPresent,
 			Image:           r.KafkaCluster.Spec.Image,
 			Command: []string{"/bin/sh", "-c",
-				fmt.Sprintf("apk update && apk add openssl && openssl pkcs12 -export -in /var/run/secrets/pemfiles/peerCert -inkey /var/run/secrets/pemfiles/peerKey -out server.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:%s &&", pass) +
-					fmt.Sprintf("keytool -importkeystore -deststorepass %s -destkeypass %s -destkeystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -srckeystore server.p12 -srcstoretype PKCS12 -srcstorepass %s -alias localhost &&", pass, pass, pass) +
-					fmt.Sprintf("keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass %s -noprompt && ", pass) +
-					fmt.Sprintf("keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass %s -noprompt", pass)},
+				fmt.Sprintf("apk update && apk add openssl && openssl pkcs12 -export -in /var/run/secrets/pemfiles/peerCert -inkey /var/run/secrets/pemfiles/peerKey -out server.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:%s &&", keystorePass) +
+					fmt.Sprintf("keytool -importkeystore -deststorepass %s -destkeypass %s -destkeystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -srckeystore server.p12 -srcstoretype PKCS12 -srcstorepass %s -alias localhost &&", keystorePass, keystorePass, keystorePass) +
+					fmt.Sprintf("keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass %s -noprompt && ", keystorePass) +
+					fmt.Sprintf("keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass %s -noprompt", keystorePass)},
 			VolumeMounts: []corev1.VolumeMount{
 				{
-					Name:      "ks-files",
+					Name:      keystoreVolume,
 					MountPath: "/var/run/secrets/java.io/keystores",
 				},
 				{
-					Name:      "pem-files",
+					Name:      pemFilesVolume,
 					MountPath: "/var/run/secrets/pemfiles",
 				},
 			},
@@ -90,15 +140,35 @@ func (r *Reconciler) statefulSet(loadBalancerIP string) runtime.Object {
 	if r.KafkaCluster.Spec.Listeners.TLSSecretName != "" {
 		volumes = append(volumes, []corev1.Volume{
 			{
-				Name: "ks-files",
+				Name: keystoreVolume,
 				VolumeSource: corev1.VolumeSource{
 					EmptyDir: &corev1.EmptyDirVolumeSource{},
-				}},
+				},
+			},
 			{
-				Name: "pem-files",
+				Name: pemFilesVolume,
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
 						SecretName: r.KafkaCluster.Spec.Listeners.TLSSecretName,
+					},
+				},
+			},
+		}...)
+	}
+
+	if r.KafkaCluster.Spec.Listeners.SASLSecret != "" {
+		volumes = append(volumes, []corev1.Volume{
+			{
+				Name: jaasConfig,
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			},
+			{
+				Name: scramSecret,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: r.KafkaCluster.Spec.Listeners.SASLSecret,
 					},
 				},
 			},
@@ -127,9 +197,22 @@ func (r *Reconciler) statefulSet(loadBalancerIP string) runtime.Object {
 	}
 	if r.KafkaCluster.Spec.Listeners.TLSSecretName != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      "ks-files",
+			Name:      keystoreVolume,
 			MountPath: "/var/run/secrets/java.io/keystores",
 		})
+	}
+
+	if r.KafkaCluster.Spec.Listeners.SASLSecret != "" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      jaasConfig,
+			MountPath: "/config/jaas",
+		})
+	}
+
+	kafkaOpts := "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar=9020:/etc/jmx-exporter/config.yaml"
+
+	if r.KafkaCluster.Spec.Listeners.SASLSecret != "" {
+		kafkaOpts = kafkaOpts + " -Djava.security.auth.login.config=/config/jaas/kafka_server_jaas.conf"
 	}
 
 	statefulSet := &appsv1.StatefulSet{
@@ -183,7 +266,7 @@ func (r *Reconciler) statefulSet(loadBalancerIP string) runtime.Object {
 								},
 							},
 						},
-						initPemToKeyStore,
+						initPemToKeyStore, genSCRAM, genJAAS,
 					},
 					Containers: []corev1.Container{
 						{
@@ -209,10 +292,11 @@ func (r *Reconciler) statefulSet(loadBalancerIP string) runtime.Object {
 								},
 								{
 									Name:  "KAFKA_OPTS",
-									Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar=9020:/etc/jmx-exporter/config.yaml",
+									Value: kafkaOpts,
 								},
 							},
-							Command: []string{"sh", "-c", fmt.Sprintf("/opt/kafka/bin/kafka-server-start.sh /config/broker-config --override broker.id=${HOSTNAME##*-} --override ssl.keystore.password=%s --override ssl.truststore.password=%s --override advertised.listeners=%s", pass, pass, strings.Join(advertisedListenerConfig, ","))},
+							//TODO add trustore password only when required
+							Command: []string{"sh", "-c", fmt.Sprintf("/opt/kafka/bin/kafka-server-start.sh /config/broker-config --override broker.id=${HOSTNAME##*-} --override ssl.keystore.password=%s --override ssl.truststore.password=%s --override advertised.listeners=%s", keystorePass, keystorePass, strings.Join(advertisedListenerConfig, ","))},
 							Ports: append(kafkaBrokerContainerPorts, []corev1.ContainerPort{
 								{Name: "prometheus", ContainerPort: 9020},
 								{Name: "jmx", ContainerPort: 5555}}...),
