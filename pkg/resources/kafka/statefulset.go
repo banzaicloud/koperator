@@ -214,6 +214,27 @@ EOF`, scramPass, scramPass)},
 	if r.KafkaCluster.Spec.Listeners.SASLSecret != "" {
 		kafkaOpts = kafkaOpts + " -Djava.security.auth.login.config=/config/jaas/kafka_server_jaas.conf"
 	}
+	initContainers := append([]corev1.Container{}, corev1.Container{
+		Name:            "jmx-export",
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Image:           "banzaicloud/jmx_exporter:latest",
+		Command:         []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "jmx-jar-data",
+				MountPath: "/opt/jmx-exporter/",
+			},
+		},
+	})
+
+	if r.KafkaCluster.Spec.Listeners.TLSSecretName != "" {
+		initContainers = append(initContainers, initPemToKeyStore)
+
+	}
+	if r.KafkaCluster.Spec.Listeners.SASLSecret != "" {
+		initContainers = append(initContainers, genSCRAM)
+		initContainers = append(initContainers, genJAAS)
+	}
 
 	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: templates.ObjectMeta(r.KafkaCluster.Name, map[string]string{}, r.KafkaCluster),
@@ -253,21 +274,7 @@ EOF`, scramPass, scramPass)},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: r.KafkaCluster.Spec.GetServiceAccount(),
-					InitContainers: []corev1.Container{
-						{
-							Name:            "jmx-export",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Image:           "banzaicloud/jmx_exporter:latest",
-							Command:         []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "jmx-jar-data",
-									MountPath: "/opt/jmx-exporter/",
-								},
-							},
-						},
-						initPemToKeyStore, genSCRAM, genJAAS,
-					},
+					InitContainers:     initContainers,
 					Containers: []corev1.Container{
 						{
 							Image:           r.KafkaCluster.Spec.Image,
