@@ -135,6 +135,12 @@ EOF`, scramPass, scramPass)},
 				},
 			},
 		},
+		{
+			Name: "extensions",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
 	}
 
 	if r.KafkaCluster.Spec.Listeners.TLSSecretName != "" {
@@ -194,6 +200,11 @@ EOF`, scramPass, scramPass)},
 			MountPath: "/etc/jmx-exporter/",
 			ReadOnly:  true,
 		},
+		{
+			Name:      "extensions",
+			MountPath: "/opt/kafka/libs/extensions",
+			ReadOnly:  true,
+		},
 	}
 	if r.KafkaCluster.Spec.Listeners.TLSSecretName != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
@@ -214,18 +225,30 @@ EOF`, scramPass, scramPass)},
 	if r.KafkaCluster.Spec.Listeners.SASLSecret != "" {
 		kafkaOpts = kafkaOpts + " -Djava.security.auth.login.config=/config/jaas/kafka_server_jaas.conf"
 	}
-	initContainers := append([]corev1.Container{}, corev1.Container{
-		Name:            "jmx-export",
-		ImagePullPolicy: corev1.PullIfNotPresent,
-		Image:           "banzaicloud/jmx_exporter:latest",
-		Command:         []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "jmx-jar-data",
-				MountPath: "/opt/jmx-exporter/",
+	initContainers := append([]corev1.Container{}, []corev1.Container{
+		{
+			Name:            "jmx-export",
+			ImagePullPolicy: corev1.PullIfNotPresent,
+			Image:           "banzaicloud/jmx_exporter:latest",
+			Command:         []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "jmx-jar-data",
+					MountPath: "/opt/jmx-exporter/",
+				},
 			},
 		},
-	})
+		{
+			Name:            "cruise-control-reporter",
+			ImagePullPolicy: corev1.PullIfNotPresent,
+			Image:           "solsson/kafka-cruise-control@sha256:c70eae329b4ececba58e8cf4fa6e774dd2e0205988d8e5be1a70e622fcc46716",
+			Command:         []string{"/bin/sh", "-cex", "cp -v /opt/cruise-control/cruise-control/build/dependant-libs/cruise-control-metrics-reporter.jar /opt/kafka/libs/extensions/cruise-control-metrics-reporter.jar"},
+			VolumeMounts: []corev1.VolumeMount{{
+				Name:      "extensions",
+				MountPath: "/opt/kafka/libs/extensions",
+			}},
+		},
+	}...)
 
 	if r.KafkaCluster.Spec.Listeners.TLSSecretName != "" {
 		initContainers = append(initContainers, initPemToKeyStore)
@@ -284,6 +307,10 @@ EOF`, scramPass, scramPass)},
 								{
 									Name:  podNamespace,
 									Value: r.KafkaCluster.Namespace,
+								},
+								{
+									Name:  "CLASSPATH",
+									Value: "/opt/kafka/libs/extensions/*",
 								},
 								//{
 								//	Name:  "KAFKA_LOG4J_OPTS",
