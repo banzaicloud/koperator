@@ -7,6 +7,10 @@ func IntstrPointer(i int) *intstr.IntOrString {
 	return &is
 }
 
+func Int64Pointer(i int64) *int64 {
+	return &i
+}
+
 func BoolPointer(b bool) *bool {
 	return &b
 }

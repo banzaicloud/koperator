@@ -19,6 +19,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 			fmt.Sprintf("zookeeper.connect=%s\n", r.KafkaCluster.Spec.ZKAddress) +
 			generateSSLConfig(&r.KafkaCluster.Spec.Listeners) +
 			generateSASLConfig(&r.KafkaCluster.Spec.Listeners) +
+			"metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter\n" +
 			r.KafkaCluster.Spec.GenerateDefaultConfig()},
 	}
 	return configMap
