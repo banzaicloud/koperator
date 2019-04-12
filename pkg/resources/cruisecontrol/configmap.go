@@ -1,6 +1,8 @@
 package cruisecontrol
 
 import (
+	"fmt"
+
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -12,7 +14,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(configAndVolumeName, labelSelector, r.KafkaCluster),
 		Data: map[string]string{
-			"cruisecontrol.properties": `
+			"cruisecontrol.properties": fmt.Sprintf(`
     # Copyright 2017 LinkedIn Corp. Licensed under the BSD 2-Clause License (the "License"). See License in the project root for license information.
     #
     # This is an example property file for Kafka Cruise Control. See KafkaCruiseControlConfig for more details.
@@ -122,7 +124,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
     # Configurations for the executor
     # =======================================
     # The zookeeper connect of the Kafka cluster
-    zookeeper.connect=example-zookeepercluster-client.zookeeper:2181/
+    zookeeper.connect=%s/
     # The max number of partitions to move in/out on a given broker at a given time.
     num.concurrent.partition.movements.per.broker=10
     # The interval between two execution progress checks.
@@ -201,14 +203,14 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
     webserver.accesslog.path=access.log
     # HTTP Request Log retention days
     webserver.accesslog.retention.days=14
-`,
+`,r.KafkaCluster.Spec.ZKAddress),
 			"capacity.json": `
 {
       "brokerCapacities":[
         {
           "brokerId": "-1",
           "capacity": {
-            "DISK": "100000",
+            "DISK": "10000",
             "CPU": "100",
             "NW_IN": "10000",
             "NW_OUT": "10000"
