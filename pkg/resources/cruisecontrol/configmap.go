@@ -203,7 +203,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
     webserver.accesslog.path=access.log
     # HTTP Request Log retention days
     webserver.accesslog.retention.days=14
-`,r.KafkaCluster.Spec.ZKAddress),
+`, r.KafkaCluster.Spec.ZKAddress),
 			"capacity.json": `
 {
       "brokerCapacities":[

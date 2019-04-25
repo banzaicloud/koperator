@@ -24,6 +24,24 @@ func ObjectMeta(name string, labels map[string]string, cluster *banzaicloudv1alp
 	}
 }
 
+func ObjectMetaWithGeneratedName(namePrefix string, labels map[string]string, cluster *banzaicloudv1alpha1.KafkaCluster) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		GenerateName: namePrefix,
+		Namespace:    cluster.Namespace,
+		Labels:       labels,
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion:         cluster.APIVersion,
+				Kind:               cluster.Kind,
+				Name:               cluster.Name,
+				UID:                cluster.UID,
+				Controller:         util.BoolPointer(true),
+				BlockOwnerDeletion: util.BoolPointer(true),
+			},
+		},
+	}
+}
+
 func ObjectMetaWithAnnotations(name string, labels map[string]string, annotations map[string]string, cluster *banzaicloudv1alpha1.KafkaCluster) metav1.ObjectMeta {
 	o := ObjectMeta(name, labels, cluster)
 	o.Annotations = annotations

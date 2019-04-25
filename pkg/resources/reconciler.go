@@ -22,3 +22,5 @@ type Resource func() runtime.Object
 type ResourceWithLogs func(log logr.Logger) runtime.Object
 
 type ResourceVariation func(t string) runtime.Object
+
+type ResourceWithId func(id int32) runtime.Object
