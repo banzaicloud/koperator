@@ -28,82 +28,22 @@ spec:
           type: object
         spec:
           properties:
-            annotations:
-              type: object
-            brokerConfig:
-              type: string
             brokers:
               format: int32
               type: integer
             image:
               type: string
-            listeners:
-              properties:
-                externalListener:
-                  items:
-                    properties:
-                      containerPort:
-                        format: int32
-                        type: integer
-                      externalStartingPort:
-                        format: int32
-                        type: integer
-                      name:
-                        type: string
-                      type:
-                        type: string
-                    required:
-                    - type
-                    - name
-                    - externalStartingPort
-                    - containerPort
-                    type: object
-                  type: array
-                internalListener:
-                  items:
-                    properties:
-                      containerPort:
-                        format: int32
-                        type: integer
-                      name:
-                        type: string
-                      type:
-                        type: string
-                      usedForInnerBrokerCommunication:
-                        type: boolean
-                    required:
-                    - type
-                    - name
-                    - usedForInnerBrokerCommunication
-                    - containerPort
-                    type: object
-                  type: array
-                saslSecret:
-                  type: string
-                tlsSecretName:
-                  type: string
-              required:
-              - internalListener
-              - tlsSecretName
-              - saslSecret
-              type: object
-            monitoring:
-              type: object
             restProxyEnabled:
+              description: BrokerConfig     string            `json:"brokerConfig"`
+                MonitoringConfig MonitoringConfig  `json:"monitoring,omitempty"` ServiceAccount   string            `json:"serviceAccount"`
+                StorageSize      string            `json:"storageSize"`
               type: boolean
-            serviceAccount:
-              type: string
-            storageSize:
-              type: string
             zkAddress:
+              description: Annotations      map[string]string `json:"annotations"`
+                Listeners        Listeners         `json:"listeners"`
               type: string
           required:
-          - annotations
-          - listeners
           - zkAddress
-          - brokerConfig
-          - serviceAccount
-          - storageSize
           - restProxyEnabled
           type: object
         status:

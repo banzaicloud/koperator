@@ -42,31 +42,31 @@ func TestReconcile(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 	instance := &banzaicloudv1alpha1.KafkaCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: banzaicloudv1alpha1.KafkaClusterSpec{
-			Brokers:      1,
-			Image:        "banzaicloud/kafka:test",
-			Annotations:  map[string]string{"kafka": "test"},
-			BrokerConfig: "broker=1",
-			Listeners: banzaicloudv1alpha1.Listeners{
-				ExternalListener: []banzaicloudv1alpha1.ExternalListenerConfig{
-					{
-						Type:                 "plaintext",
-						Name:                 "external",
-						ExternalStartingPort: 9090,
-						ContainerPort:        9094,
-					},
-				},
-				InternalListener: []banzaicloudv1alpha1.InternalListenerConfig{
-					{
-						Type:                            "plaintext",
-						Name:                            "internal",
-						ContainerPort:                   29092,
-						UsedForInnerBrokerCommunication: true,
-					},
-				},
-			},
-			MonitoringConfig: banzaicloudv1alpha1.MonitoringConfig{},
-			ServiceAccount:   "",
-			StorageSize:      "1Gi",
+			Brokers: 1,
+			Image:   "banzaicloud/kafka:test",
+			//Annotations:  map[string]string{"kafka": "test"},
+			//BrokerConfig: "broker=1",
+			//Listeners: banzaicloudv1alpha1.Listeners{
+			//	ExternalListener: []banzaicloudv1alpha1.ExternalListenerConfig{
+			//		{
+			//			Type:                 "plaintext",
+			//			Name:                 "external",
+			//			ExternalStartingPort: 9090,
+			//			ContainerPort:        9094,
+			//		},
+			//	},
+			//	InternalListener: []banzaicloudv1alpha1.InternalListenerConfig{
+			//		{
+			//			Type:                            "plaintext",
+			//			Name:                            "internal",
+			//			ContainerPort:                   29092,
+			//			UsedForInnerBrokerCommunication: true,
+			//		},
+			//	},
+			//},
+			//MonitoringConfig: banzaicloudv1alpha1.MonitoringConfig{},
+			//ServiceAccount:   "",
+			//StorageSize:      "1Gi",
 		},
 		Status: banzaicloudv1alpha1.KafkaClusterStatus{
 			HealthyBrokers: 1,

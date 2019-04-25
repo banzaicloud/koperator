@@ -18,13 +18,11 @@ package kafkacluster
 
 import (
 	"context"
+
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/monitoring"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/restproxy"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,11 +98,11 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	reconcilers := []resources.ComponentReconciler{
-		envoy.New(r.Client, instance),
-		monitoring.New(r.Client, instance),
+		//envoy.New(r.Client, instance),
+		//monitoring.New(r.Client, instance),
 		kafka.New(r.Client, instance),
 		cruisecontrol.New(r.Client, instance),
-		restproxy.New(r.Client, instance),
+		//restproxy.New(r.Client, instance),
 	}
 
 	for _, rec := range reconcilers {

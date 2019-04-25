@@ -7,27 +7,27 @@ metadata:
 spec:
   # Add fields here
   brokers: 3
-  annotations: {}
+#  annotations: {}
   image: "wurstmeister/kafka:2.12-2.1.0"
   zkAddress: "example-zookeepercluster-client.zookeeper:2181"
-  restProxyEnabled: true
-  brokerConfig: |
-    num.network.threads=2
-    log.dirs=/kafka-logs/kafka
-    default.replication.factor=3
-    num.partitions=3
-  listeners:
-    externalListener:
-      - type: "plaintext"
-        name: "external"
-        externalStartingPort: 19090
-        containerPort: 9094
-    internalListener:
-      - type: "plaintext"
-        name: "plaintext"
-        containerPort: 29092
-        usedForInnerBrokerCommunication: true
-    tlsSecretName: ""
-    saslSecret: ""
-  serviceAccount: ""
-  storageSize: "10Gi"
+  restProxyEnabled: false
+#  brokerConfig: |
+#    num.network.threads=2
+#    log.dirs=/kafka-logs/kafka
+#    default.replication.factor=3
+#    num.partitions=3
+#  listeners:
+#    externalListener:
+#      - type: "plaintext"
+#        name: "external"
+#        externalStartingPort: 19090
+#        containerPort: 9094
+#    internalListener:
+#      - type: "plaintext"
+#        name: "plaintext"
+#        containerPort: 29092
+#        usedForInnerBrokerCommunication: true
+#    tlsSecretName: ""
+#    saslSecret: ""
+#  serviceAccount: ""
+#  storageSize: "10Gi"

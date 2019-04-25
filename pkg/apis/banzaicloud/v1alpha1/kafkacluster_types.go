@@ -28,16 +28,16 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	Brokers          int32             `json:"brokers,omitempty"`
-	Image            string            `json:"image,omitempty"`
-	Annotations      map[string]string `json:"annotations"`
-	Listeners        Listeners         `json:"listeners"`
-	ZKAddress        string            `json:"zkAddress"`
-	BrokerConfig     string            `json:"brokerConfig"`
-	MonitoringConfig MonitoringConfig  `json:"monitoring,omitempty"`
-	ServiceAccount   string            `json:"serviceAccount"`
-	StorageSize      string            `json:"storageSize"`
-	RestProxyEnabled bool              `json:"restProxyEnabled"`
+	Brokers int32  `json:"brokers,omitempty"`
+	Image   string `json:"image,omitempty"`
+	//Annotations      map[string]string `json:"annotations"`
+	//Listeners        Listeners         `json:"listeners"`
+	ZKAddress string `json:"zkAddress"`
+	//BrokerConfig     string            `json:"brokerConfig"`
+	//MonitoringConfig MonitoringConfig  `json:"monitoring,omitempty"`
+	//ServiceAccount   string            `json:"serviceAccount"`
+	//StorageSize      string            `json:"storageSize"`
+	RestProxyEnabled bool `json:"restProxyEnabled"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -45,31 +45,31 @@ type KafkaClusterStatus struct {
 	HealthyBrokers int `json:"healthybrokers,omitempty"`
 }
 
-// MonitoringConfig defines the monitoring configuration
-type MonitoringConfig struct {
-}
-
-//Listeners defines the Kafka listener types
-type Listeners struct {
-	ExternalListener []ExternalListenerConfig `json:"externalListener,omitempty"`
-	InternalListener []InternalListenerConfig `json:"internalListener"`
-	TLSSecretName    string                   `json:"tlsSecretName"`
-	SASLSecret       string                   `json:"saslSecret"`
-}
-
-type ExternalListenerConfig struct {
-	Type                 string `json:"type"`
-	Name                 string `json:"name"`
-	ExternalStartingPort int32  `json:"externalStartingPort"`
-	ContainerPort        int32  `json:"containerPort"`
-}
-
-type InternalListenerConfig struct {
-	Type                            string `json:"type"`
-	Name                            string `json:"name"`
-	UsedForInnerBrokerCommunication bool   `json:"usedForInnerBrokerCommunication"`
-	ContainerPort                   int32  `json:"containerPort"`
-}
+//// MonitoringConfig defines the monitoring configuration
+//type MonitoringConfig struct {
+//}
+//
+////Listeners defines the Kafka listener types
+//type Listeners struct {
+//	ExternalListener []ExternalListenerConfig `json:"externalListener,omitempty"`
+//	InternalListener []InternalListenerConfig `json:"internalListener"`
+//	TLSSecretName    string                   `json:"tlsSecretName"`
+//	SASLSecret       string                   `json:"saslSecret"`
+//}
+//
+//type ExternalListenerConfig struct {
+//	Type                 string `json:"type"`
+//	Name                 string `json:"name"`
+//	ExternalStartingPort int32  `json:"externalStartingPort"`
+//	ContainerPort        int32  `json:"containerPort"`
+//}
+//
+//type InternalListenerConfig struct {
+//	Type                            string `json:"type"`
+//	Name                            string `json:"name"`
+//	UsedForInnerBrokerCommunication bool   `json:"usedForInnerBrokerCommunication"`
+//	ContainerPort                   int32  `json:"containerPort"`
+//}
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -98,13 +98,13 @@ func init() {
 }
 
 // GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
-func (spec *KafkaClusterSpec) GetServiceAccount() string {
-	if spec.ServiceAccount != "" {
-		return spec.ServiceAccount
-	}
-	return "default"
-}
+//func (spec *KafkaClusterSpec) GetServiceAccount() string {
+//	if spec.ServiceAccount != "" {
+//		return spec.ServiceAccount
+//	}
+//	return "default"
+//}
 
-func (spec *KafkaClusterSpec) GenerateDefaultConfig() string {
-	return spec.BrokerConfig
-}
+//func (spec *KafkaClusterSpec) GenerateDefaultConfig() string {
+//	return spec.BrokerConfig
+//}

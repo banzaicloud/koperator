@@ -46,6 +46,12 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			svc.ResourceVersion = current.(*corev1.Service).ResourceVersion
 			svc.Spec.ClusterIP = current.(*corev1.Service).Spec.ClusterIP
 			desired = svc
+		case *corev1.Pod:
+			pod := desired.(*corev1.Pod)
+			desired = pod
+		case *corev1.PersistentVolumeClaim:
+			//TODO
+			desired = current
 		case *appsv1.Deployment:
 			deploy := desired.(*appsv1.Deployment)
 			deploy.ResourceVersion = current.(*appsv1.Deployment).ResourceVersion
