@@ -19,16 +19,21 @@ package kafkacluster
 import (
 	"context"
 
+	objectmatch "github.com/banzaicloud/k8s-objectmatcher"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -59,6 +64,40 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(&source.Kind{Type: &banzaicloudv1alpha1.KafkaCluster{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
+	}
+
+	// Initialize object matcher
+	objectMatcher := objectmatch.New(logf.NewDelegatingLogger(logf.NullLogger{}))
+
+	// Watch for changes to resources managed by the operator
+	for _, t := range []runtime.Object{
+		&corev1.Pod{TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"}},
+		&corev1.ConfigMap{TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"}},
+		&corev1.PersistentVolumeClaim{TypeMeta: metav1.TypeMeta{Kind: "PersistentVolumeClaim", APIVersion: "v1"}},
+	} {
+		err = c.Watch(&source.Kind{Type: t}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &banzaicloudv1alpha1.KafkaCluster{},
+		}, predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				return false
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				return true
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				objectsEquals, err := objectMatcher.Match(e.ObjectOld, e.ObjectNew)
+				if err != nil {
+					log.Error(err, "could not match objects", "kind", e.ObjectOld.GetObjectKind())
+				} else if objectsEquals {
+					return false
+				}
+				return true
+			},
+		})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
