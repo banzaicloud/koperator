@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,48 +29,49 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	Brokers int32  `json:"brokers,omitempty"`
-	Image   string `json:"image,omitempty"`
-	//Annotations      map[string]string `json:"annotations"`
-	//Listeners        Listeners         `json:"listeners"`
-	ZKAddress string `json:"zkAddress"`
-	//BrokerConfig     string            `json:"brokerConfig"`
-	//MonitoringConfig MonitoringConfig  `json:"monitoring,omitempty"`
-	//ServiceAccount   string            `json:"serviceAccount"`
-	//StorageSize      string            `json:"storageSize"`
-	RestProxyEnabled bool `json:"restProxyEnabled"`
+	MonitoringEnabled    bool            `json:"monitoringEnabled,omitempty"`
+	ListenersConfig      ListenersConfig `json:"listenersConfig"`
+	ZKAddresses          []string        `json:"zkAddresses"`
+	RackAwarenessEnabled bool            `json:"rackAwarenessEnabled,omitempty"`
+	BrokerConfigs        []BrokerConfig  `json:"brokerConfigs"`
+	ServiceAccount       string          `json:"serviceAccount"`
+	//RestProxyEnabled bool `json:"restProxyEnabled"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
 type KafkaClusterStatus struct {
-	HealthyBrokers int `json:"healthybrokers,omitempty"`
+	BrokersState map[int]string `json:"brokersState,omitempty"`
 }
 
-//// MonitoringConfig defines the monitoring configuration
-//type MonitoringConfig struct {
-//}
-//
-////Listeners defines the Kafka listener types
-//type Listeners struct {
-//	ExternalListener []ExternalListenerConfig `json:"externalListener,omitempty"`
-//	InternalListener []InternalListenerConfig `json:"internalListener"`
-//	TLSSecretName    string                   `json:"tlsSecretName"`
-//	SASLSecret       string                   `json:"saslSecret"`
-//}
-//
-//type ExternalListenerConfig struct {
-//	Type                 string `json:"type"`
-//	Name                 string `json:"name"`
-//	ExternalStartingPort int32  `json:"externalStartingPort"`
-//	ContainerPort        int32  `json:"containerPort"`
-//}
-//
-//type InternalListenerConfig struct {
-//	Type                            string `json:"type"`
-//	Name                            string `json:"name"`
-//	UsedForInnerBrokerCommunication bool   `json:"usedForInnerBrokerCommunication"`
-//	ContainerPort                   int32  `json:"containerPort"`
-//}
+// BrokerConfig defines the broker configuration
+type BrokerConfig struct {
+	Image          string                             `json:"image,omitempty"`
+	Id             int32                              `json:"id"`
+	Config         string                             `json:"config"`
+	StorageConfigs []corev1.PersistentVolumeClaimSpec `json:"storageConfigs"`
+}
+
+//Listeners defines the Kafka listener types
+type ListenersConfig struct {
+	ExternalListeners []ExternalListenerConfig `json:"externalListeners,omitempty"`
+	InternalListeners []InternalListenerConfig `json:"internalListeners"`
+	TLSSecretName     string                   `json:"tlsSecretName,omitempty"`
+	//SASLSecret        string                   `json:"saslSecret"`
+}
+
+type ExternalListenerConfig struct {
+	Type                 string `json:"type"`
+	Name                 string `json:"name"`
+	ExternalStartingPort int32  `json:"externalStartingPort"`
+	ContainerPort        int32  `json:"containerPort"`
+}
+
+type InternalListenerConfig struct {
+	Type                            string `json:"type"`
+	Name                            string `json:"name"`
+	UsedForInnerBrokerCommunication bool   `json:"usedForInnerBrokerCommunication"`
+	ContainerPort                   int32  `json:"containerPort"`
+}
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
