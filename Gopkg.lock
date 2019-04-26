@@ -18,6 +18,14 @@
   version = "1.0.0"
 
 [[projects]]
+  branch = "add_pod"
+  digest = "1:c7a47989e15ed1787b05279f05b6df464a2bc206b8fe7aa057acb1eb7c82e1e2"
+  name = "github.com/banzaicloud/k8s-objectmatcher"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "36783728d9ea920927ea0283beaa4ca5bf47790a"
+
+[[projects]]
   branch = "master"
   digest = "1:ad4589ec239820ee99eb01c1ad47ebc5f8e02c4f5103a9b210adff9696d89f36"
   name = "github.com/beorn7/perks"
@@ -67,6 +75,14 @@
   pruneopts = "T"
   revision = "eb553e72ac8724721a99ed85fcb116467c7a2bac"
   version = "v0.6.7"
+
+[[projects]]
+  digest = "1:90171b862cb6ec187304a593e4d78bfcbcf0f4394870eb66e0eb62cc06b144ad"
+  name = "github.com/evanphx/json-patch"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "72bf35d0ff611848c1dc9df0f976c81192392fa5"
+  version = "v4.1.0"
 
 [[projects]]
   digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
@@ -1048,6 +1064,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/banzaicloud/k8s-objectmatcher",
     "github.com/emicklei/go-restful",
     "github.com/envoyproxy/go-control-plane/envoy/api/v2",
     "github.com/envoyproxy/go-control-plane/envoy/api/v2/core",
@@ -1082,8 +1099,10 @@
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller",
     "sigs.k8s.io/controller-runtime/pkg/envtest",
+    "sigs.k8s.io/controller-runtime/pkg/event",
     "sigs.k8s.io/controller-runtime/pkg/handler",
     "sigs.k8s.io/controller-runtime/pkg/manager",
+    "sigs.k8s.io/controller-runtime/pkg/predicate",
     "sigs.k8s.io/controller-runtime/pkg/reconcile",
     "sigs.k8s.io/controller-runtime/pkg/runtime/log",
     "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",

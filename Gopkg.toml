@@ -43,3 +43,7 @@ version="v1.4.7"
 [[constraint]]
   name = "github.com/sethvargo/go-password"
   version = "0.1.2"
+
+[[constraint]]
+  branch = "add_pod"
+  name = "github.com/banzaicloud/k8s-objectmatcher"
