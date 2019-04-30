@@ -15,11 +15,16 @@
 package receiver
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/go-logr/logr"
 )
+
+type receivedAlert struct {
+	Test string `json:"test,omitempty"`
+}
 
 // APIEndPoint for token handling
 const APIEndPoint = "/"
@@ -54,7 +59,13 @@ func (a *HTTPController) reciveAlert(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusAccepted)
 		_, _ = w.Write(body)
-		a.Logger.Info("INFO", "http_body", body)
+		alert := receivedAlert{}
+		err = json.Unmarshal(body, &alert)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		alertReciever(a.Logger, alert)
 
 	default:
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
