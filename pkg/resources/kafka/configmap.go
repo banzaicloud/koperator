@@ -1,6 +1,5 @@
 package kafka
 
-//
 //import (
 //	"errors"
 //	"fmt"
@@ -25,7 +24,7 @@ package kafka
 //	}
 //	return configMap
 //}
-//
+
 //func generateSSLConfig(l *banzaicloudv1alpha1.Listeners) (res string) {
 //	if l.TLSSecretName != "" {
 //		res = `ssl.keystore.location=/var/run/secrets/java.io/keystores/kafka.server.keystore.jks
@@ -35,7 +34,7 @@ package kafka
 //	}
 //	return
 //}
-//
+
 //func generateSASLConfig(l *banzaicloudv1alpha1.Listeners) (res string) {
 //	if l.SASLSecret != "" {
 //		res = `sasl.enabled.mechanisms=SCRAM-SHA-256
@@ -44,7 +43,7 @@ package kafka
 //	}
 //	return
 //}
-//
+
 //func generateListenerSpecificConfig(l *banzaicloudv1alpha1.Listeners, log logr.Logger) string {
 //
 //	var interBrokerListenerType string

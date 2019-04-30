@@ -45,7 +45,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		r.deployment,
 	} {
 		o := res(log)
-		err := k8sutil.Reconcile(log, r.Client, o)
+		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster.Name)
 		if err != nil {
 			return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 		}

@@ -21,6 +21,8 @@ type Resource func() runtime.Object
 
 type ResourceWithLogs func(log logr.Logger) runtime.Object
 
-type ResourceVariation func(t string) runtime.Object
+type ResourceWithBroker func(broker banzaicloudv1alpha1.BrokerConfig, log logr.Logger) runtime.Object
 
-type ResourceWithId func(id int32) runtime.Object
+type ResourceWithBrokerAndString func(broker banzaicloudv1alpha1.BrokerConfig, t string, log logr.Logger) runtime.Object
+
+type ResourceWithBrokerAndStorage func(broker banzaicloudv1alpha1.BrokerConfig, storage banzaicloudv1alpha1.StorageConfig, log logr.Logger) runtime.Object

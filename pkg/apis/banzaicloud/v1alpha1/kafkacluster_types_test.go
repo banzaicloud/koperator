@@ -36,8 +36,8 @@ func TestStorageKafkaCluster(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: KafkaClusterSpec{
-			Brokers: 1,
-			Image:   "banzaicloud/kafka:test",
+			//Brokers: 1,
+			//Image:   "banzaicloud/kafka:test",
 			//Annotations:  map[string]string{"kafka": "test"},
 			//BrokerConfig: "broker=1",
 			//Listeners: Listeners{
@@ -63,7 +63,7 @@ func TestStorageKafkaCluster(t *testing.T) {
 			//StorageSize:      "1Gi",
 		},
 		Status: KafkaClusterStatus{
-			HealthyBrokers: 1,
+			//HealthyBrokers: 1,
 		},
 	}
 	g := gomega.NewGomegaWithT(t)

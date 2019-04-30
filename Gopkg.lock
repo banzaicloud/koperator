@@ -19,11 +19,11 @@
 
 [[projects]]
   branch = "add_pod"
-  digest = "1:c7a47989e15ed1787b05279f05b6df464a2bc206b8fe7aa057acb1eb7c82e1e2"
+  digest = "1:b91a3897a03c5d80dae283346bf24c5352dc3227faf77329458c56468284346a"
   name = "github.com/banzaicloud/k8s-objectmatcher"
   packages = ["."]
   pruneopts = "T"
-  revision = "36783728d9ea920927ea0283beaa4ca5bf47790a"
+  revision = "4d5c67dbf9cf90c4fec4fd5ac36e305c68474075"
 
 [[projects]]
   branch = "master"
@@ -117,15 +117,15 @@
   version = "v1.6.12"
 
 [[projects]]
-  digest = "1:54d5c6a784a9de9c836fc070d51d0689c3e99ee6d24dba8a36f0762039dae830"
+  digest = "1:8b49904d2ff610bb1c7414c7f976ed46450c053633274fafb61a66589da056a2"
   name = "github.com/gogo/googleapis"
   packages = [
     "google/api",
     "google/rpc",
   ]
   pruneopts = "T"
-  revision = "8558fb44d2f1fc223118afc694129d2c2d2924d1"
-  version = "v1.1.0"
+  revision = "d31c731455cb061f42baff3bda55bad0118b126b"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:f5ccd717b5f093cbabc51ee2e7a5979b92f17d217f9031d6d64f337101c408e4"
@@ -278,12 +278,12 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:a2622947fc6ccb5bb1e9dbd8433894955e483bbe57e23a91b684e49fc248dc80"
+  digest = "1:a404c6713d3e7fb61746c8bc355c6009ddb8fbb2e376ce33c03881645217f1a1"
   name = "github.com/lyft/protoc-gen-validate"
   packages = ["validate"]
   pruneopts = "T"
-  revision = "4349a359d42fdfee53b85dd5c89a2f169e1dc6b2"
-  version = "v0.0.13"
+  revision = "ff6f7a9bc2e5fe006509b9f8c7594c41a953d50f"
+  version = "v0.0.14"
 
 [[projects]]
   digest = "1:3804a3a02964db8e6db3e5e7960ac1c1a9b12835642dd4f4ac4e56c749ec73eb"
@@ -455,14 +455,6 @@
   pruneopts = "T"
   revision = "68d1cb014f030acd0f10ac553801e43c0e5da629"
   version = "v1.1.0"
-
-[[projects]]
-  digest = "1:52a237b6b680a336fecd53ab9f85d264877382a68fc5b9dced25a68be849c71e"
-  name = "github.com/sethvargo/go-password"
-  packages = ["password"]
-  pruneopts = "T"
-  revision = "bc15c697eeda69a082991d2f1ed37660658fea32"
-  version = "v0.1.2"
 
 [[projects]]
   digest = "1:2c31831b97353515f0bb77a3e7f2df69e50c4173116aad4250e22b1c664a1484"
@@ -660,14 +652,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:91f75dc679abcf04b29b064a5b9c40a0b0561c86c322010fbf6fc08040cc48bc"
+  digest = "1:1fd2aac86d11f64e62d7c1cb2642e7927cd6deb83ff6fef7f39b015c3e1defa6"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "T"
-  revision = "4b09977fb92221987e99d190c8f88f2c92727a29"
+  revision = "357c62f0e4bbba7e6cc403ae09edcf3e2b9028fe"
 
 [[projects]]
-  digest = "1:adec72b8770ba7ad04c7a5a8ef8c6cc13a766bd11f900b60f360303b4f56e0b1"
+  digest = "1:dbb3ac0403bd9f4036537d4aa3a518d049fff68759d40db2ed22eeb83d9892d8"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -684,6 +676,7 @@
     "grpclog",
     "internal",
     "internal/backoff",
+    "internal/balancerload",
     "internal/binarylog",
     "internal/channelz",
     "internal/envconfig",
@@ -703,8 +696,8 @@
     "tap",
   ]
   pruneopts = "T"
-  revision = "a02b0774206b209466313a0b525d2c738fe407eb"
-  version = "v1.18.0"
+  revision = "25c4f928eaa6d96443009bd842389fb4fa48664e"
+  version = "v1.20.1"
 
 [[projects]]
   digest = "1:7fc160b460a6fc506b37fcca68332464c3f2cd57b6e3f111f26c5bbfd2d5518e"
@@ -1078,7 +1071,6 @@
     "github.com/goph/emperror",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
-    "github.com/sethvargo/go-password/password",
     "golang.org/x/net/context",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",

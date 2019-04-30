@@ -23,7 +23,9 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/monitoring"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -137,8 +139,8 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	reconcilers := []resources.ComponentReconciler{
-		//envoy.New(r.Client, instance),
-		//monitoring.New(r.Client, instance),
+		envoy.New(r.Client, instance),
+		monitoring.New(r.Client, instance),
 		kafka.New(r.Client, instance),
 		cruisecontrol.New(r.Client, instance),
 		//restproxy.New(r.Client, instance),
@@ -152,3 +154,36 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 	}
 	return reconcile.Result{}, nil
 }
+
+//func (r *ReconcileKafkaCluster) updateStatus(cluster *banzaicloudv1alpha1.KafkaCluster, status banzaicloudv1alpha1.BrokerState, brokerId int32, logger logr.Logger) error {
+//	typeMeta := cluster.TypeMeta
+//	cluster.Status.BrokersState[brokerId] = status
+//	err := r.Status().Update(context.Background(), cluster)
+//	if k8serrors.IsNotFound(err) {
+//		err = r.Update(context.Background(), cluster)
+//	}
+//	if err != nil {
+//		if !k8serrors.IsConflict(err) {
+//			return emperror.Wrapf(err, "could not update broker %d state to '%s'", brokerId, status)
+//		}
+//		err := r.Get(context.TODO(), types.NamespacedName{
+//			Namespace: cluster.Namespace,
+//			Name:      cluster.Name,
+//		}, cluster)
+//		if err != nil {
+//			return emperror.Wrap(err, "could not get config for updating status")
+//		}
+//		cluster.Status.BrokersState[brokerId] = status
+//		err = r.Status().Update(context.Background(), cluster)
+//		if k8serrors.IsNotFound(err) {
+//			err = r.Update(context.Background(), cluster)
+//		}
+//		if err != nil {
+//			return emperror.Wrapf(err, "could not update Broker state to '%s'", status)
+//		}
+//	}
+//	// update loses the typeMeta of the config that's used later when setting ownerrefs
+//	cluster.TypeMeta = typeMeta
+//	logger.Info("Broker state updated", "status", status)
+//	return nil
+//}

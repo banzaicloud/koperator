@@ -1,6 +1,5 @@
 package kafka
 
-//
 //import (
 //	"fmt"
 //	"github.com/banzaicloud/kafka-operator/pkg/resources/monitoring"

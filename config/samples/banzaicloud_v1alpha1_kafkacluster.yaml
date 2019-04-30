@@ -6,11 +6,40 @@ metadata:
   name: kafka
 spec:
   # Add fields here
-  brokers: 3
-#  annotations: {}
-  image: "wurstmeister/kafka:2.12-2.1.0"
-  zkAddress: "example-zookeepercluster-client.zookeeper:2181"
-  restProxyEnabled: false
+#  brokers: 3
+#  image: "wurstmeister/kafka:2.12-2.1.0"
+  zkAddresses:
+    - "example-zookeepercluster-client.zookeeper:2181"
+  brokerConfigs:
+    - image: "wurstmeister/kafka:2.12-2.1.0"
+      id: 0
+      storageConfigs:
+        - mountPath: "/var/log/kafka"
+          pvcSpec: {}
+    - image: "wurstmeister/kafka:2.12-2.1.0"
+      id: 1
+      storageConfigs:
+        - mountPath: "/var/log/kafka"
+          pvcSpec: {}
+    - image: "wurstmeister/kafka:2.12-2.1.0"
+      id: 2
+      storageConfigs:
+        - mountPath: "/var/log/kafka"
+          pvcSpec: {}
+  listenersConfig:
+    externalListeners:
+      - type: "plaintext"
+        name: "external"
+        externalStartingPort: 19090
+        containerPort: 9094
+    internalListeners:
+      - type: "plaintext"
+        name: "plaintext"
+        containerPort: 29092
+        usedForInnerBrokerCommunication: true
+    tlsSecretName: ""
+  serviceAccount: ""
+#  restProxyEnabled: false
 #  brokerConfig: |
 #    num.network.threads=2
 #    log.dirs=/kafka-logs/kafka

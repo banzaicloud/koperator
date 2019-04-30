@@ -28,29 +28,97 @@ spec:
           type: object
         spec:
           properties:
-            brokers:
-              format: int32
-              type: integer
-            image:
+            brokerConfigs:
+              description: RackAwarenessEnabled bool            `json:"rackAwarenessEnabled,omitempty"`
+              items:
+                properties:
+                  config:
+                    type: string
+                  id:
+                    format: int32
+                    type: integer
+                  image:
+                    type: string
+                  storageConfigs:
+                    items:
+                      properties:
+                        mountPath:
+                          type: string
+                        pvcSpec:
+                          type: object
+                      required:
+                      - mountPath
+                      - pvcSpec
+                      type: object
+                    type: array
+                required:
+                - id
+                - storageConfigs
+                type: object
+              type: array
+            listenersConfig:
+              description: MonitoringEnabled    bool            `json:"monitoringEnabled,omitempty"`
+              properties:
+                externalListeners:
+                  items:
+                    properties:
+                      containerPort:
+                        format: int32
+                        type: integer
+                      externalStartingPort:
+                        format: int32
+                        type: integer
+                      name:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                    - type
+                    - name
+                    - externalStartingPort
+                    - containerPort
+                    type: object
+                  type: array
+                internalListeners:
+                  items:
+                    properties:
+                      containerPort:
+                        format: int32
+                        type: integer
+                      name:
+                        type: string
+                      type:
+                        type: string
+                      usedForInnerBrokerCommunication:
+                        type: boolean
+                    required:
+                    - type
+                    - name
+                    - usedForInnerBrokerCommunication
+                    - containerPort
+                    type: object
+                  type: array
+                tlsSecretName:
+                  type: string
+              required:
+              - internalListeners
+              type: object
+            serviceAccount:
               type: string
-            restProxyEnabled:
-              description: BrokerConfig     string            `json:"brokerConfig"`
-                MonitoringConfig MonitoringConfig  `json:"monitoring,omitempty"` ServiceAccount   string            `json:"serviceAccount"`
-                StorageSize      string            `json:"storageSize"`
-              type: boolean
-            zkAddress:
-              description: Annotations      map[string]string `json:"annotations"`
-                Listeners        Listeners         `json:"listeners"`
-              type: string
+            zkAddresses:
+              items:
+                type: string
+              type: array
           required:
-          - zkAddress
-          - restProxyEnabled
+          - listenersConfig
+          - zkAddresses
+          - brokerConfigs
+          - serviceAccount
           type: object
         status:
           properties:
-            healthybrokers:
-              format: int64
-              type: integer
+            brokersState:
+              type: object
           type: object
   version: v1alpha1
 status:

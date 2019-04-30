@@ -2,17 +2,43 @@ package kafka
 
 import (
 	"fmt"
+	"strings"
 
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) pod(id int32) runtime.Object {
+func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, loadBalancerIP string, log logr.Logger) runtime.Object {
+
+	var kafkaBrokerContainerPorts []corev1.ContainerPort
+	var advertisedListenerConfig []string
+
+	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
+			Name:          strings.ReplaceAll(eListener.Name, "_", "-"),
+			ContainerPort: eListener.ContainerPort,
+		})
+		advertisedListenerConfig = append(advertisedListenerConfig,
+			fmt.Sprintf("%s://%s:$((%d+${HOSTNAME##*-}))", strings.ToUpper(eListener.Name), loadBalancerIP, eListener.ExternalStartingPort))
+	}
+
+	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
+		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
+			Name:          strings.ReplaceAll(iListener.Name, "_", "-"),
+			ContainerPort: iListener.ContainerPort,
+		})
+		advertisedListenerConfig = append(advertisedListenerConfig,
+			fmt.Sprintf("%s://${HOSTNAME}.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), r.KafkaCluster.Name, r.KafkaCluster.Namespace, iListener.ContainerPort))
+	}
+
 	return &corev1.Pod{
-		ObjectMeta: templates.ObjectMetaWithGeneratedName(r.KafkaCluster.Name, labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMetaWithGeneratedName(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), r.KafkaCluster),
 		Spec: corev1.PodSpec{
-			Hostname:  fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id),
+			Hostname:  fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id),
 			Subdomain: fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name),
 			InitContainers: []corev1.Container{
 				{
@@ -29,7 +55,7 @@ func (r *Reconciler) pod(id int32) runtime.Object {
 			Containers: []corev1.Container{
 				{
 					Name:            "kafka",
-					Image:           r.KafkaCluster.Spec.Image,
+					Image:           broker.Image,
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Env: []corev1.EnvVar{
 						{
@@ -37,12 +63,11 @@ func (r *Reconciler) pod(id int32) runtime.Object {
 							Value: "/opt/kafka/libs/extensions/*",
 						},
 					},
-					Command: []string{"sh", "-c", "/opt/kafka/bin/kafka-server-start.sh /config/broker-config"},
-					Ports: []corev1.ContainerPort{
-						{
-							ContainerPort: int32(29092),
-						},
-					},
+					Command: []string{"sh", "-c",
+						fmt.Sprintf("/opt/kafka/bin/kafka-server-start.sh /config/broker-config "+
+							"--override advertised.listeners=%s",
+							strings.Join(advertisedListenerConfig, ","))},
+					Ports: kafkaBrokerContainerPorts,
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      brokerConfigVolumeMount,
@@ -64,7 +89,7 @@ func (r *Reconciler) pod(id int32) runtime.Object {
 					Name: brokerConfigVolumeMount,
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id)},
+							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, broker.Id)},
 						},
 					},
 				},
@@ -72,7 +97,7 @@ func (r *Reconciler) pod(id int32) runtime.Object {
 					Name: kafkaDataVolumeMount,
 					VolumeSource: corev1.VolumeSource{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: fmt.Sprintf(brokerStorageTemplate+"-%d", r.KafkaCluster.Name, id),
+							ClaimName: fmt.Sprintf(brokerStorageTemplate+"-%d", r.KafkaCluster.Name, broker.Id),
 						},
 					},
 				},
