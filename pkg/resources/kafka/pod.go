@@ -12,18 +12,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, loadBalancerIP string, log logr.Logger) runtime.Object {
+func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, log logr.Logger) runtime.Object {
 
 	var kafkaBrokerContainerPorts []corev1.ContainerPort
-	var advertisedListenerConfig []string
 
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
 			Name:          strings.ReplaceAll(eListener.Name, "_", "-"),
 			ContainerPort: eListener.ContainerPort,
 		})
-		advertisedListenerConfig = append(advertisedListenerConfig,
-			fmt.Sprintf("%s://%s:$((%d+${HOSTNAME##*-}))", strings.ToUpper(eListener.Name), loadBalancerIP, eListener.ExternalStartingPort))
 	}
 
 	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
@@ -31,8 +28,6 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, loadBalancerIP
 			Name:          strings.ReplaceAll(iListener.Name, "_", "-"),
 			ContainerPort: iListener.ContainerPort,
 		})
-		advertisedListenerConfig = append(advertisedListenerConfig,
-			fmt.Sprintf("%s://${HOSTNAME}.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), r.KafkaCluster.Name, r.KafkaCluster.Namespace, iListener.ContainerPort))
 	}
 
 	return &corev1.Pod{
@@ -63,11 +58,8 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, loadBalancerIP
 							Value: "/opt/kafka/libs/extensions/*",
 						},
 					},
-					Command: []string{"sh", "-c",
-						fmt.Sprintf("/opt/kafka/bin/kafka-server-start.sh /config/broker-config "+
-							"--override advertised.listeners=%s",
-							strings.Join(advertisedListenerConfig, ","))},
-					Ports: kafkaBrokerContainerPorts,
+					Command: []string{"sh", "-c", "/opt/kafka/bin/kafka-server-start.sh /config/broker-config"},
+					Ports:   kafkaBrokerContainerPorts,
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      brokerConfigVolumeMount,

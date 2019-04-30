@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.BrokerConfig, log logr.Logger) runtime.Object {
+func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.BrokerConfig, loadBalancerIP string, log logr.Logger) runtime.Object {
 	return &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, broker.Id), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
 		Data: map[string]string{"broker-config": generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, log) +
@@ -22,8 +22,22 @@ func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.BrokerConfig, log l
 			fmt.Sprintf("cruise.control.metrics.reporter.bootstrap.servers=%s\n", strings.Join(getInternalListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, log), ",")) +
 			fmt.Sprintf("broker.id=%d\n", broker.Id) +
 			generateStorageConfig(broker.StorageConfigs) +
+			generateAdvertisedListenerConfig(broker, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIP, r.KafkaCluster.Namespace, r.KafkaCluster.Name) +
 			broker.Config},
 	}
+}
+
+func generateAdvertisedListenerConfig(broker banzaicloudv1alpha1.BrokerConfig, l banzaicloudv1alpha1.ListenersConfig, loadBalancerIP, namespace, crName string) string {
+	var advertisedListenerConfig []string
+	for _, eListener := range l.ExternalListeners {
+		advertisedListenerConfig = append(advertisedListenerConfig,
+			fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIP, eListener.ExternalStartingPort+broker.Id))
+	}
+	for _, iListener := range l.InternalListeners {
+		advertisedListenerConfig = append(advertisedListenerConfig,
+			fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, crName, namespace, iListener.ContainerPort))
+	}
+	return strings.Join(advertisedListenerConfig, ",") + "\n"
 }
 
 func generateStorageConfig(sConfig []banzaicloudv1alpha1.StorageConfig) string {

@@ -147,20 +147,20 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				}
 			}
 		}
-		for _, res := range []resources.ResourceWithBroker{
+		for _, res := range []resources.ResourceWithBrokerAndString{
 			r.configMapPod,
 		} {
-			o := res(broker, log)
+			o := res(broker, lBIp, log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster.Name)
 			if err != nil {
 				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 		}
 
-		for _, res := range []resources.ResourceWithBrokerAndString{
+		for _, res := range []resources.ResourceWithBroker{
 			r.pod,
 		} {
-			o := res(broker, lBIp, log)
+			o := res(broker, log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster.Name)
 			if err != nil {
 				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
