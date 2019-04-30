@@ -18,8 +18,10 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	"os"
 
+	"github.com/banzaicloud/kafka-operator/internal"
 	"github.com/banzaicloud/kafka-operator/pkg/apis"
 	"github.com/banzaicloud/kafka-operator/pkg/controller"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
@@ -31,8 +33,9 @@ import (
 )
 
 func main() {
-	var metricsAddr string
+	var metricsAddr, receiverAddr string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&receiverAddr, "receiver-addr", ":9001", "The address the receiver endpoint binds to.")
 	flag.Parse()
 	logf.SetLogger(logf.ZapLogger(false))
 	log := logf.Log.WithName("entrypoint")
@@ -74,6 +77,16 @@ func main() {
 		log.Error(err, "unable to register webhooks to the manager")
 		os.Exit(1)
 	}
+
+	go func() {
+		log.Info("Starting the receiver.")
+		mux := internal.NewApp(log)
+		err := http.ListenAndServe(receiverAddr, mux)
+		if err != nil {
+			log.Error(err, "unable to run receiver")
+			os.Exit(1)
+		}
+	}()
 
 	// Start the Cmd
 	log.Info("Starting the Cmd.")
