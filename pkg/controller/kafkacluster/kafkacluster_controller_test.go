@@ -42,8 +42,8 @@ func TestReconcile(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 	instance := &banzaicloudv1alpha1.KafkaCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: banzaicloudv1alpha1.KafkaClusterSpec{
-			Brokers: 1,
-			Image:   "banzaicloud/kafka:test",
+			//Brokers: 1,
+			//Image:   "banzaicloud/kafka:test",
 			//Annotations:  map[string]string{"kafka": "test"},
 			//BrokerConfig: "broker=1",
 			//Listeners: banzaicloudv1alpha1.Listeners{
@@ -69,7 +69,7 @@ func TestReconcile(t *testing.T) {
 			//StorageSize:      "1Gi",
 		},
 		Status: banzaicloudv1alpha1.KafkaClusterStatus{
-			HealthyBrokers: 1,
+			//HealthyBrokers: 1,
 		},
 	}
 

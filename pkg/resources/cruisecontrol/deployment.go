@@ -2,6 +2,7 @@ package cruisecontrol
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -30,9 +31,9 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					InitContainers: []corev1.Container{
 						{
 							Name:            "create-topic",
-							Image:           r.KafkaCluster.Spec.Image,
+							Image:           "wurstmeister/kafka:2.12-2.1.0",
 							ImagePullPolicy: corev1.PullIfNotPresent,
-							Command:         []string{"/bin/bash", "-c", fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 3; do echo waiting for kafka; sleep 3; done ;", r.KafkaCluster.Spec.ZKAddress)},
+							Command:         []string{"/bin/bash", "-c", fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 3; do echo waiting for kafka; sleep 3; done ;", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","))},
 						},
 					},
 					Containers: []corev1.Container{

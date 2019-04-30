@@ -29,29 +29,35 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	MonitoringEnabled    bool            `json:"monitoringEnabled,omitempty"`
-	ListenersConfig      ListenersConfig `json:"listenersConfig"`
-	ZKAddresses          []string        `json:"zkAddresses"`
-	RackAwarenessEnabled bool            `json:"rackAwarenessEnabled,omitempty"`
-	BrokerConfigs        []BrokerConfig  `json:"brokerConfigs"`
-	ServiceAccount       string          `json:"serviceAccount"`
+	//MonitoringEnabled    bool            `json:"monitoringEnabled,omitempty"`
+	ListenersConfig ListenersConfig `json:"listenersConfig"`
+	ZKAddresses     []string        `json:"zkAddresses"`
+	//RackAwarenessEnabled bool            `json:"rackAwarenessEnabled,omitempty"`
+	BrokerConfigs  []BrokerConfig `json:"brokerConfigs"`
+	ServiceAccount string         `json:"serviceAccount"`
 	//RestProxyEnabled bool `json:"restProxyEnabled"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
 type KafkaClusterStatus struct {
-	BrokersState map[int]string `json:"brokersState,omitempty"`
+	BrokersState map[int32]BrokerState `json:"brokersState,omitempty"`
 }
 
 // BrokerConfig defines the broker configuration
 type BrokerConfig struct {
-	Image          string                             `json:"image,omitempty"`
-	Id             int32                              `json:"id"`
-	Config         string                             `json:"config"`
-	StorageConfigs []corev1.PersistentVolumeClaimSpec `json:"storageConfigs"`
+	Image          string          `json:"image,omitempty"`
+	Id             int32           `json:"id"`
+	Config         string          `json:"config,omitempty"`
+	StorageConfigs []StorageConfig `json:"storageConfigs"`
 }
 
-//Listeners defines the Kafka listener types
+// StorageConfig defines the broker storage configuration
+type StorageConfig struct {
+	MountPath string                           `json:"mountPath"`
+	PVCSpec   corev1.PersistentVolumeClaimSpec `json:"pvcSpec"`
+}
+
+//ListenersConfig defines the Kafka listener types
 type ListenersConfig struct {
 	ExternalListeners []ExternalListenerConfig `json:"externalListeners,omitempty"`
 	InternalListeners []InternalListenerConfig `json:"internalListeners"`
@@ -99,14 +105,10 @@ func init() {
 	SchemeBuilder.Register(&KafkaCluster{}, &KafkaClusterList{})
 }
 
-// GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
-//func (spec *KafkaClusterSpec) GetServiceAccount() string {
-//	if spec.ServiceAccount != "" {
-//		return spec.ServiceAccount
-//	}
-//	return "default"
-//}
-
-//func (spec *KafkaClusterSpec) GenerateDefaultConfig() string {
-//	return spec.BrokerConfig
-//}
+//GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
+func (spec *KafkaClusterSpec) GetServiceAccount() string {
+	if spec.ServiceAccount != "" {
+		return spec.ServiceAccount
+	}
+	return "default"
+}
