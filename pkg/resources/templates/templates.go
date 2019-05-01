@@ -48,6 +48,12 @@ func ObjectMetaWithAnnotations(name string, labels map[string]string, annotation
 	return o
 }
 
+func ObjectMetaWithGeneratedNameAndAnnotations(namePrefix string, labels map[string]string, annotations map[string]string, cluster *banzaicloudv1alpha1.KafkaCluster) metav1.ObjectMeta {
+	o := ObjectMetaWithGeneratedName(namePrefix, labels, cluster)
+	o.Annotations = annotations
+	return o
+}
+
 func ObjectMetaClusterScope(name string, labels map[string]string, cluster *banzaicloudv1alpha1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:   name,

@@ -10,6 +10,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -38,6 +39,44 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			}
 			log.Info("resource created")
 		}
+	case *corev1.PersistentVolumeClaim:
+		log = log.WithValues("kind", desiredType)
+		log.Info("searching with label because name is empty")
+
+		pvcList := &corev1.PersistentVolumeClaimList{}
+		matchingLabels := map[string]string{
+			"kafka_cr": crName,
+			"brokerId": desired.(*corev1.PersistentVolumeClaim).Labels["brokerId"],
+		}
+		err = client.List(context.TODO(), runtimeClient.InNamespace(current.(*corev1.PersistentVolumeClaim).Namespace).MatchingLabels(matchingLabels), pvcList)
+		if err != nil && len(pvcList.Items) == 0 {
+			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType)
+		}
+		mountPath := current.(*corev1.PersistentVolumeClaim).Annotations["mountPath"]
+
+		// Creating the first PersistentVolume For Pod
+		if len(pvcList.Items) == 0 {
+			err = apierrors.NewNotFound(corev1.Resource("PersistentVolumeClaim"), "kafkaBroker")
+			if err := client.Create(context.TODO(), desired); err != nil {
+				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
+			}
+		}
+		alreadyCreated := false
+		for _, pvc := range pvcList.Items {
+			if mountPath == pvc.Annotations["mountPath"] {
+				current = pvc.DeepCopyObject()
+				alreadyCreated = true
+				break
+			}
+		}
+		if !alreadyCreated {
+			// Creating the 2+ PersistentVolumes for Pod
+			err = apierrors.NewNotFound(corev1.Resource("PersistentVolumeClaim"), "kafkaBroker")
+			if err := client.Create(context.TODO(), desired); err != nil {
+				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
+			}
+		}
+		log.Info("resource created")
 	case *corev1.Pod:
 		log = log.WithValues("kind", desiredType)
 		log.Info("searching with label because name is empty")
@@ -59,11 +98,14 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		} else if len(podList.Items) == 1 {
 			current = podList.Items[0].DeepCopyObject()
 		} else {
-			return emperror.WrapWith(errors.New("reconcile failed"), "more then one matching pod found", "lables", matchingLabels)
+			return emperror.WrapWith(errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
 		}
 		log.Info("resource created")
 	}
 	if err == nil {
+		//resourceVersion := current.(metav1.ObjectMetaAccessor).GetObjectMeta().GetResourceVersion()
+		//desired.(metav1.ObjectMetaAccessor).GetObjectMeta().SetResourceVersion(resourceVersion)
+
 		switch desired.(type) {
 		default:
 			return emperror.With(errors.New("unexpected resource type"), "kind", desiredType)

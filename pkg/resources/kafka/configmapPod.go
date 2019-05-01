@@ -43,7 +43,7 @@ func generateAdvertisedListenerConfig(broker banzaicloudv1alpha1.BrokerConfig, l
 func generateStorageConfig(sConfig []banzaicloudv1alpha1.StorageConfig) string {
 	mountPaths := []string{}
 	for _, storage := range sConfig {
-		mountPaths = append(mountPaths, storage.MountPath)
+		mountPaths = append(mountPaths, storage.MountPath+`\\kafka`)
 	}
 	return fmt.Sprintf("log.dirs=%s\n", strings.Join(mountPaths, ","))
 }
