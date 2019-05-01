@@ -32,12 +32,27 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 
 	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
 
+	volume := []corev1.Volume{}
+	volumeMount := []corev1.VolumeMount{}
+	initContainers := []corev1.Container{}
+	command := []string{"sh", "-c", "/opt/kafka/bin/kafka-server-start.sh /config/broker-config"}
+
+	volume = append(volume, dataVolume...)
+	volumeMount = append(volumeMount, dataVolumeMount...)
+
+	if r.KafkaCluster.Spec.ListenersConfig.TLSSecretName != "" {
+		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.TLSSecretName)...)
+		volumeMount = append(volumeMount, generateVolumeMountForSSL())
+		initContainers = append(initContainers, generateInitContainerForSSL(broker.Image, generatePassword()))
+		command = append(command, fmt.Sprintf("--override ssl.keystore.password=%s --override ssl.truststore.password=%s", generatePassword(), generatePassword()))
+	}
+
 	return &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedName(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), r.KafkaCluster),
 		Spec: corev1.PodSpec{
 			Hostname:  fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id),
 			Subdomain: fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name),
-			InitContainers: []corev1.Container{
+			InitContainers: append(initContainers, []corev1.Container{
 				{
 					Name:            "cruise-control-reporter",
 					ImagePullPolicy: corev1.PullIfNotPresent,
@@ -48,7 +63,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						MountPath: "/opt/kafka/libs/extensions",
 					}},
 				},
-			},
+			}...),
 			Containers: []corev1.Container{
 				{
 					Name:            "kafka",
@@ -60,9 +75,9 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 							Value: "/opt/kafka/libs/extensions/*",
 						},
 					},
-					Command: []string{"sh", "-c", "/opt/kafka/bin/kafka-server-start.sh /config/broker-config"},
+					Command: command,
 					Ports:   kafkaBrokerContainerPorts,
-					VolumeMounts: append(dataVolumeMount, []corev1.VolumeMount{
+					VolumeMounts: append(volumeMount, []corev1.VolumeMount{
 						{
 							Name:      brokerConfigVolumeMount,
 							MountPath: "/config",
@@ -74,7 +89,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 					}...),
 				},
 			},
-			Volumes: append(dataVolume, []corev1.Volume{
+			Volumes: append(volume, []corev1.Volume{
 				{
 					Name: brokerConfigVolumeMount,
 					VolumeSource: corev1.VolumeSource{
@@ -110,4 +125,58 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volu
 		})
 	}
 	return
+}
+
+
+func generateInitContainerForSSL(image, keystorePass string) corev1.Container {
+	// Keystore generator
+	initPemToKeyStore := corev1.Container{}
+	// TODO handle error
+	initPemToKeyStore = corev1.Container{
+		Name:            "pem-to-jks",
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Image:           image,
+		Command: []string{"/bin/sh", "-c",
+			fmt.Sprintf("apk update && apk add openssl && openssl pkcs12 -export -in /var/run/secrets/pemfiles/peerCert -inkey /var/run/secrets/pemfiles/peerKey -out server.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:%s &&", keystorePass) +
+				fmt.Sprintf("keytool -importkeystore -deststorepass %s -destkeypass %s -destkeystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -srckeystore server.p12 -srcstoretype PKCS12 -srcstorepass %s -alias localhost &&", keystorePass, keystorePass, keystorePass) +
+				fmt.Sprintf("keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass %s -noprompt && ", keystorePass) +
+				fmt.Sprintf("keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass %s -noprompt", keystorePass)},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      keystoreVolume,
+				MountPath: keystoreVolumePath,
+			},
+			{
+				Name:      pemFilesVolume,
+				MountPath: "/var/run/secrets/pemfiles",
+			},
+		},
+	}
+	return initPemToKeyStore
+}
+
+func generateVolumesForSSL(tlsSecretName string) []corev1.Volume {
+	return []corev1.Volume{
+		{
+			Name: keystoreVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: pemFilesVolume,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: tlsSecretName,
+				},
+			},
+		},
+	}
+}
+
+func generateVolumeMountForSSL() corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      keystoreVolume,
+		MountPath: keystoreVolumePath,
+	}
 }
