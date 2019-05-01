@@ -14,18 +14,40 @@ spec:
     - image: "wurstmeister/kafka:2.12-2.1.0"
       id: 0
       storageConfigs:
-        - mountPath: "/var/log/kafka"
-          pvcSpec: {}
+        - mountPath: "/kafka-logs"
+          pvcSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
     - image: "wurstmeister/kafka:2.12-2.1.0"
       id: 1
       storageConfigs:
-        - mountPath: "/var/log/kafka"
-          pvcSpec: {}
+        - mountPath: "/kafka-logs"
+          pvcSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
     - image: "wurstmeister/kafka:2.12-2.1.0"
       id: 2
       storageConfigs:
-        - mountPath: "/var/log/kafka"
-          pvcSpec: {}
+        - mountPath: "/kafka-logs"
+          pvcSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
+        - mountPath: "/kafka-logocska"
+          pvcSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
   listenersConfig:
     externalListeners:
       - type: "plaintext"

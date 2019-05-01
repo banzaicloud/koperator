@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, log logr.Logger) runtime.Object {
+func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
 
 	var kafkaBrokerContainerPorts []corev1.ContainerPort
 
@@ -29,6 +29,8 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, log logr.Logge
 			ContainerPort: iListener.ContainerPort,
 		})
 	}
+
+	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
 
 	return &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedName(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), r.KafkaCluster),
@@ -60,23 +62,19 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, log logr.Logge
 					},
 					Command: []string{"sh", "-c", "/opt/kafka/bin/kafka-server-start.sh /config/broker-config"},
 					Ports:   kafkaBrokerContainerPorts,
-					VolumeMounts: []corev1.VolumeMount{
+					VolumeMounts: append(dataVolumeMount, []corev1.VolumeMount{
 						{
 							Name:      brokerConfigVolumeMount,
 							MountPath: "/config",
 						},
 						{
-							Name:      kafkaDataVolumeMount,
-							MountPath: "/kafka-logs",
-						},
-						{
 							Name:      "extensions",
 							MountPath: "/opt/kafka/libs/extensions",
 						},
-					},
+					}...),
 				},
 			},
-			Volumes: []corev1.Volume{
+			Volumes: append(dataVolume, []corev1.Volume{
 				{
 					Name: brokerConfigVolumeMount,
 					VolumeSource: corev1.VolumeSource{
@@ -86,20 +84,30 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, log logr.Logge
 					},
 				},
 				{
-					Name: kafkaDataVolumeMount,
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: fmt.Sprintf(brokerStorageTemplate+"-%d", r.KafkaCluster.Name, broker.Id),
-						},
-					},
-				},
-				{
 					Name: "extensions",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
-			},
+			}...),
 		},
 	}
+}
+
+func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volume []corev1.Volume, volumeMount []corev1.VolumeMount) {
+	for i, pvc := range pvcs {
+		volume = append(volume, corev1.Volume{
+			Name: fmt.Sprintf(kafkaDataVolumeMount + "-%d", i),
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: pvc.Name,
+				},
+			},
+		})
+		volumeMount = append(volumeMount, corev1.VolumeMount{
+			Name:      fmt.Sprintf(kafkaDataVolumeMount + "-%d", i),
+			MountPath: pvc.Annotations["mountPath"],
+		})
+	}
+	return
 }

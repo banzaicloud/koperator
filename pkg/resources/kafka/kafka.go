@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
@@ -16,11 +17,10 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"k8s.io/apimachinery/pkg/types"
 
-	//"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
 	corev1 "k8s.io/api/core/v1"
-	//"k8s.io/apimachinery/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -31,7 +31,6 @@ const (
 	brokerStorageTemplate   = "%s-storage"
 	brokerConfigVolumeMount = "broker-config"
 	kafkaDataVolumeMount    = "kafka-data"
-	podNamespace            = "POD_NAMESPACE"
 	keystoreVolume          = "ks-files"
 	pemFilesVolume          = "pem-files"
 	jaasConfig              = "jaas-config"
@@ -55,6 +54,22 @@ func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Recon
 			KafkaCluster: cluster,
 		},
 	}
+}
+
+func getCreatedPVCForBroker(c client.Client, brokerID int32, namespace, crName string) ([]corev1.PersistentVolumeClaim, error) {
+	foundPVCList := &corev1.PersistentVolumeClaimList{}
+	matchingLabels := map[string]string{
+		"kafka_cr": crName,
+		"brokerId": fmt.Sprintf("%d", brokerID),
+	}
+	err := c.List(context.TODO(), client.InNamespace(namespace).MatchingLabels(matchingLabels), foundPVCList)
+	if err != nil {
+		return nil, err
+	}
+	if len(foundPVCList.Items) == 0 {
+		return nil, fmt.Errorf("no persistentvolume found for broker %d", brokerID)
+	}
+	return foundPVCList.Items, nil
 }
 
 func getLoadBalancerIP(client client.Client, namespace string, log logr.Logger) (string, error) {
@@ -95,6 +110,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 		}
 	}
+	// Handle Pod delete
 	podList := &corev1.PodList{}
 	matchingLabels := map[string]string{
 		"kafka_cr": r.KafkaCluster.Name,
@@ -123,9 +139,16 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			if err != nil {
 				return emperror.WrapWith(err, "could not delete configmap for broker", "id", broker.Labels["brokerId"])
 			}
-			err = r.Client.Delete(context.TODO(), &corev1.PersistentVolumeClaim{ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerStorageTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
-			if err != nil {
-				return emperror.WrapWith(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
+			for _, volume := range broker.Spec.Volumes {
+				if strings.HasPrefix(volume.Name, kafkaDataVolumeMount) {
+					err = r.Client.Delete(context.TODO(), &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
+						Name:      volume.PersistentVolumeClaim.ClaimName,
+						Namespace: r.KafkaCluster.Namespace,
+					}})
+					if err != nil {
+						return emperror.WrapWith(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
+					}
+				}
 			}
 		}
 	}
@@ -157,10 +180,15 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		}
 
-		for _, res := range []resources.ResourceWithBroker{
+		pvcs, err := getCreatedPVCForBroker(r.Client, broker.Id, r.KafkaCluster.Namespace, r.KafkaCluster.Name)
+		if err != nil {
+			return emperror.WrapWith(err, "failed to list PVC's")
+		}
+
+		for _, res := range []resources.ResourceWithBrokerAndVolume{
 			r.pod,
 		} {
-			o := res(broker, log)
+			o := res(broker, pvcs, log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster.Name)
 			if err != nil {
 				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
