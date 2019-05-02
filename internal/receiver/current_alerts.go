@@ -22,7 +22,7 @@ import (
 
 // CurrentAlerts interface
 type CurrentAlerts interface {
-	AddAlert(alertState) alertState
+	AddAlert(alertState) currentAlertStruct
 	AlertGC(alertState) error
 	DeleteAlert(model.Fingerprint) error
 	ListAlerts() map[model.Fingerprint]currentAlertStruct
@@ -60,7 +60,7 @@ func GetCurrentAlerts() CurrentAlerts {
 	return currAlert
 }
 
-func (a *currentAlerts) AddAlert(alert alertState) alertState {
+func (a *currentAlerts) AddAlert(alert alertState) currentAlertStruct {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	a.alerts[alert.FingerPrint] = currentAlertStruct{
@@ -68,7 +68,7 @@ func (a *currentAlerts) AddAlert(alert alertState) alertState {
 		Labels: alert.Labels,
 	}
 
-	return alert
+	return a.alerts[alert.FingerPrint]
 }
 
 func (a *currentAlerts) ListAlerts() map[model.Fingerprint]currentAlertStruct {
