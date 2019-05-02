@@ -31,11 +31,12 @@ func alertReciever(log logr.Logger, alert []byte) {
 		store := alertState{
 			FingerPrint: promAlert.Fingerprint(),
 			Status:      promAlert.Status(),
+			Labels:      promAlert.Labels,
 		}
 		storedAlerts.AddAlert(store)
 		storedAlerts.AlertGC(store)
 	}
 	for key, value := range storedAlerts.ListAlerts() {
-		log.Info("Stored Alert", "key", key, "value", value)
+		log.Info("Stored Alert", "key", key, "value", value.Status, "labels", value.Labels)
 	}
 }

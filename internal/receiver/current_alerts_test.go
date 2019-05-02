@@ -31,11 +31,19 @@ func TestGetCurrentAlerts(t *testing.T) {
 	testAlert1 := alertState{
 		FingerPrint: model.Fingerprint(1111),
 		Status:      model.AlertStatus("fireing"),
+		Labels: model.LabelSet{
+			"alertname": "PodAllert",
+			"test":      "test",
+		},
 	}
 
 	testAlert2 := alertState{
 		FingerPrint: model.Fingerprint(1111),
 		Status:      model.AlertStatus("resolved"),
+		Labels: model.LabelSet{
+			"alertname": "PodAllert",
+			"test":      "test",
+		},
 	}
 
 	a1 := alerts1.AddAlert(testAlert1)
@@ -44,7 +52,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 	}
 
 	list1 := alerts1.ListAlerts()
-	if list1 == nil || list1[model.Fingerprint(1111)] != "fireing" {
+	if list1 == nil || list1[model.Fingerprint(1111)].Status != "fireing" || list1[model.Fingerprint(1111)].Labels["alertname"] != "PodAllert" {
 		t.Error("Listing alerts failed a1")
 	}
 
@@ -59,7 +67,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 	}
 
 	list2 := alerts2.ListAlerts()
-	if list2 == nil || list2[model.Fingerprint(1111)] != "resolved" {
+	if list2 == nil || list2[model.Fingerprint(1111)].Status != "resolved" || list2[model.Fingerprint(1111)].Labels["alertname"] != "PodAllert" {
 		t.Error("Listing alerts failed a2")
 	}
 
@@ -69,7 +77,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 	}
 
 	list3 := alerts3.ListAlerts()
-	if list3 == nil || list3[model.Fingerprint(1111)] != "" {
+	if list3 == nil || list3[model.Fingerprint(1111)].Status != "" {
 		t.Error("1111 alert wasn't deleted")
 	}
 }
