@@ -1,9 +1,6 @@
 package kafka
 
 import (
-	//"fmt"
-	//"time"
-
 	"context"
 	"errors"
 	"fmt"
@@ -15,28 +12,27 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/sethvargo/go-password/password"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	componentName           = "kafka"
-	HeadlessServiceTemplate = "%s-headless"
-	brokerConfigTemplate    = "%s-config"
-	brokerStorageTemplate   = "%s-storage"
-	brokerConfigVolumeMount = "broker-config"
-	kafkaDataVolumeMount    = "kafka-data"
-	keystoreVolume          = "ks-files"
-	keystoreVolumePath      = "/var/run/secrets/java.io/keystores"
-	pemFilesVolume          = "pem-files"
-	jaasConfig              = "jaas-config"
-	scramSecret             = "scram-secret"
+	componentName                 = "kafka"
+	HeadlessServiceTemplate       = "%s-headless"
+	brokerConfigTemplate          = "%s-config"
+	brokerStorageTemplate         = "%s-storage"
+	brokerConfigMapVolumeMount    = "broker-config"
+	modbrokerConfigMapVolumeMount = "broker-modconfig"
+	kafkaDataVolumeMount          = "kafka-data"
+	keystoreVolume                = "ks-files"
+	keystoreVolumePath            = "/var/run/secrets/java.io/keystores"
+	pemFilesVolume                = "pem-files"
+	jaasConfig                    = "jaas-config"
+	scramSecret                   = "scram-secret"
 )
 
 type Reconciler struct {
@@ -47,15 +43,6 @@ type Reconciler struct {
 // belonging to the given kafka CR name.
 func labelsForKafka(name string) map[string]string {
 	return map[string]string{"app": "kafka", "kafka_cr": name}
-}
-
-var keystorePass = ""
-
-func generatePassword() string {
-	if keystorePass == ""{
-		keystorePass, _ = password.Generate(8, 4, 0, true, false)
-	}
-	return keystorePass
 }
 
 func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
@@ -168,6 +155,8 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	if err != nil {
 		return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
 	}
+	//// TODO remove after testing
+	//lBIp := "192.168.0.1"
 
 	for _, broker := range r.KafkaCluster.Spec.BrokerConfigs {
 		for _, storage := range broker.StorageConfigs {

@@ -47,14 +47,16 @@ spec:
                 storage: 10Gi
   listenersConfig:
     externalListeners:
-      - type: "plaintext"
+      - type: "ssl"
         name: "external"
         externalStartingPort: 19090
         containerPort: 9094
     internalListeners:
-      - type: "plaintext"
-        name: "plaintext"
+      - type: "ssl"
+        name: "ssl"
         containerPort: 29092
         usedForInnerBrokerCommunication: true
-    tlsSecretName: ""
+    sslSecrets:
+      tlsSecretName: "my-tls-cert-kafka1"
+      jksPasswordName: "my-ssl-pass"
   serviceAccount: ""

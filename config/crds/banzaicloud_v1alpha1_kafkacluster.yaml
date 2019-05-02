@@ -98,8 +98,16 @@ spec:
                     - containerPort
                     type: object
                   type: array
-                tlsSecretName:
-                  type: string
+                sslSecrets:
+                  properties:
+                    jksPasswordName:
+                      type: string
+                    tlsSecretName:
+                      type: string
+                  required:
+                  - tlsSecretName
+                  - jksPasswordName
+                  type: object
               required:
               - internalListeners
               type: object

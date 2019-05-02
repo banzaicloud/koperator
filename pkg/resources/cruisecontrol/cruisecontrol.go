@@ -10,11 +10,14 @@ import (
 )
 
 const (
-	componentName       = "cruisecontrol"
-	serviceName         = "cruisecontrol-svc"
-	configAndVolumeName = "cruisecontrol-config"
-	deploymentName      = "cruisecontrol"
-	jobName             = "create-cc-topic"
+	componentName          = "cruisecontrol"
+	serviceName            = "cruisecontrol-svc"
+	configAndVolumeName    = "cruisecontrol-config"
+	modconfigAndVolumeName = "cruisecontrol-modconfig"
+	deploymentName         = "cruisecontrol"
+	keystoreVolume         = "ks-files"
+	keystoreVolumePath     = "/var/run/secrets/java.io/keystores"
+	pemFilesVolume         = "pem-files"
 )
 
 var labelSelector = map[string]string{

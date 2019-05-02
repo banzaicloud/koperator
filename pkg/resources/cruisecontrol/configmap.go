@@ -8,6 +8,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -204,7 +205,8 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
     webserver.accesslog.path=access.log
     # HTTP Request Log retention days
     webserver.accesslog.retention.days=14
-`, strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")),
+`, strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")) +
+				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig),
 			"capacity.json": `
 {
       "brokerCapacities":[
@@ -250,4 +252,15 @@ log4j.rootLogger = INFO, FILE
 		},
 	}
 	return configMap
+}
+
+func generateSSLConfig(l *banzaicloudv1alpha1.ListenersConfig) (res string) {
+	if l.SSLSecrets != nil {
+		res = `
+security.protocol=SSL
+ssl.truststore.location=/var/run/secrets/java.io/keystores/client.truststore.jks
+ssl.keystore.location=/var/run/secrets/java.io/keystores/client.keystore.jks
+`
+	}
+	return
 }
