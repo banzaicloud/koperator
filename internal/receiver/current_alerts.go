@@ -25,17 +25,23 @@ type CurrentAlerts interface {
 	AddAlert(alertState) alertState
 	AlertGC(alertState) error
 	DeleteAlert(model.Fingerprint) error
-	ListAlerts() map[model.Fingerprint]model.AlertStatus
+	ListAlerts() map[model.Fingerprint]currentAlertStruct
 }
 
 type alertState struct {
 	FingerPrint model.Fingerprint
 	Status      model.AlertStatus
+	Labels      model.LabelSet
 }
 
 type currentAlerts struct {
 	lock   sync.Mutex
-	values map[model.Fingerprint]model.AlertStatus
+	alerts map[model.Fingerprint]currentAlertStruct
+}
+
+type currentAlertStruct struct {
+	Status model.AlertStatus
+	Labels model.LabelSet
 }
 
 var currAlert *currentAlerts
@@ -46,8 +52,8 @@ var once sync.Once
 func GetCurrentAlerts() CurrentAlerts {
 	once.Do(func() {
 		currAlert = &currentAlerts{}
-		if currAlert.values == nil {
-			currAlert.values = make(map[model.Fingerprint]model.AlertStatus)
+		if currAlert.alerts == nil {
+			currAlert.alerts = make(map[model.Fingerprint]currentAlertStruct)
 		}
 	})
 
@@ -57,19 +63,22 @@ func GetCurrentAlerts() CurrentAlerts {
 func (a *currentAlerts) AddAlert(alert alertState) alertState {
 	a.lock.Lock()
 	defer a.lock.Unlock()
-	a.values[alert.FingerPrint] = alert.Status
+	a.alerts[alert.FingerPrint] = currentAlertStruct{
+		Status: alert.Status,
+		Labels: alert.Labels,
+	}
 
 	return alert
 }
 
-func (a *currentAlerts) ListAlerts() map[model.Fingerprint]model.AlertStatus {
-	return a.values
+func (a *currentAlerts) ListAlerts() map[model.Fingerprint]currentAlertStruct {
+	return a.alerts
 }
 
 func (a *currentAlerts) DeleteAlert(alert model.Fingerprint) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
-	delete(a.values, alert)
+	delete(a.alerts, alert)
 	return nil
 }
 
