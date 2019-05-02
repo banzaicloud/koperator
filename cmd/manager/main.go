@@ -17,9 +17,12 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"net/http"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/banzaicloud/kafka-operator/internal"
 	"github.com/banzaicloud/kafka-operator/pkg/apis"
@@ -78,15 +81,28 @@ func main() {
 		os.Exit(1)
 	}
 
+	httpHandler := internal.NewApp(log)
+	server := &http.Server{Addr: receiverAddr, Handler: httpHandler}
+
 	go func() {
-		log.Info("Starting the receiver.")
-		mux := internal.NewApp(log)
-		err := http.ListenAndServe(receiverAddr, mux)
+		err := server.ListenAndServe()
 		if err != nil {
-			log.Error(err, "unable to run receiver")
+			log.Error(err, "unable to run alert receiver")
 			os.Exit(1)
 		}
 	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	select {
+	case <-stop:
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		err := server.Shutdown(ctx)
+		if err != nil {
+			log.Error(err, "unable to stop alert 	reciever")
+		}
+	}
 
 	// Start the Cmd
 	log.Info("Starting the Cmd.")
