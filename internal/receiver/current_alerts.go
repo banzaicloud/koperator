@@ -20,7 +20,7 @@ import (
 	"github.com/prometheus/common/model"
 )
 
-// CurrentAlerts singleton interface
+// CurrentAlerts interface
 type CurrentAlerts interface {
 	AddAlert(alertState) alertState
 	AlertGC(alertState) error
