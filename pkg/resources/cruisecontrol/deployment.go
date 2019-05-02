@@ -16,6 +16,23 @@ import (
 
 func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 
+	volume := []corev1.Volume{}
+	volumeMount := []corev1.VolumeMount{}
+	initContainers := []corev1.Container{}
+
+	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
+		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
+		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
+		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName))
+	} else {
+		volumeMount = append(volumeMount, []corev1.VolumeMount{
+			{
+				Name:      configAndVolumeName,
+				MountPath: "/opt/cruise-control/config",
+			},
+		}...)
+	}
+
 	return &appsv1.Deployment{
 		ObjectMeta: templates.ObjectMeta(deploymentName, labelSelector, r.KafkaCluster),
 		Spec: appsv1.DeploymentSpec{
@@ -28,14 +45,14 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),
-					InitContainers: []corev1.Container{
+					InitContainers: append(initContainers, []corev1.Container{
 						{
 							Name:            "create-topic",
 							Image:           "wurstmeister/kafka:2.12-2.1.0",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command:         []string{"/bin/bash", "-c", fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 3; do echo waiting for kafka; sleep 3; done ;", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","))},
 						},
-					},
+					}...),
 					Containers: []corev1.Container{
 						{
 							Name:            deploymentName,
@@ -60,15 +77,10 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 								},
 								TimeoutSeconds: int32(1),
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      configAndVolumeName,
-									MountPath: "/opt/cruise-control/config",
-								},
-							},
+							VolumeMounts: volumeMount,
 						},
 					},
-					Volumes: []corev1.Volume{
+					Volumes: append(volume, []corev1.Volume{
 						{
 							Name: configAndVolumeName,
 							VolumeSource: corev1.VolumeSource{
@@ -77,9 +89,99 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 								},
 							},
 						},
+					}...),
+				},
+			},
+		},
+	}
+}
+
+func generateInitContainerForSSL(secretName string) corev1.Container {
+	// Keystore generator
+	initPemToKeyStore := corev1.Container{}
+	initPemToKeyStore = corev1.Container{
+		Name:            "pem-to-jks",
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Image:           "wurstmeister/kafka:2.12-2.1.0",
+		Env: []corev1.EnvVar{
+			{
+				Name: "SSL_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: "password",
 					},
 				},
 			},
+		},
+		Command: []string{"bash", "-c", `
+		apk update && apk add openssl && openssl pkcs12 -export -in /var/run/secrets/pemfiles/clientCert -inkey /var/run/secrets/pemfiles/clientKey -out client.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:${SSL_PASSWORD} &&
+		keytool -importkeystore -deststorepass ${SSL_PASSWORD} -destkeypass ${SSL_PASSWORD} -destkeystore /var/run/secrets/java.io/keystores/client.keystore.jks -srckeystore client.p12 -srcstoretype PKCS12 -srcstorepass ${SSL_PASSWORD} -alias localhost &&
+		keytool -keystore /var/run/secrets/java.io/keystores/client.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
+		keytool -keystore /var/run/secrets/java.io/keystores/client.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
+		cat /config/cruisecontrol.properties > /opt/cruise-control/config/cruisecontrol.properties && cat /config/capacity.json > /opt/cruise-control/config/capacity.json &&
+		cat /config/clusterConfigs.json > /opt/cruise-control/config/clusterConfigs.json && cat /config/log4j.properties > /opt/cruise-control/config/log4j.properties && cat /config/log4j2.xml > /opt/cruise-control/config/log4j2.xml &&
+		echo "ssl.keystore.password=${SSL_PASSWORD}" >> /opt/cruise-control/config/cruisecontrol.properties && echo "ssl.truststore.password=${SSL_PASSWORD}" >> /opt/cruise-control/config/cruisecontrol.properties
+		`,
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      keystoreVolume,
+				MountPath: keystoreVolumePath,
+			},
+			{
+				Name:      pemFilesVolume,
+				MountPath: "/var/run/secrets/pemfiles",
+			},
+			{
+				Name:      configAndVolumeName,
+				MountPath: "/config",
+			},
+			{
+				Name:      modconfigAndVolumeName,
+				MountPath: "/opt/cruise-control/config",
+			},
+		},
+	}
+	return initPemToKeyStore
+}
+
+func generateVolumesForSSL(tlsSecretName string) []corev1.Volume {
+	return []corev1.Volume{
+		{
+			Name: keystoreVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: pemFilesVolume,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: tlsSecretName,
+				},
+			},
+		},
+		{
+			Name: modconfigAndVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	}
+}
+
+func generateVolumeMountForSSL() []corev1.VolumeMount {
+	return []corev1.VolumeMount{
+		{
+			Name:      keystoreVolume,
+			MountPath: keystoreVolumePath,
+		},
+		{
+			Name:      modconfigAndVolumeName,
+			MountPath: "/opt/cruise-control/config",
 		},
 	}
 }

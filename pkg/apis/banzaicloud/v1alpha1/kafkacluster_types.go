@@ -61,8 +61,13 @@ type StorageConfig struct {
 type ListenersConfig struct {
 	ExternalListeners []ExternalListenerConfig `json:"externalListeners,omitempty"`
 	InternalListeners []InternalListenerConfig `json:"internalListeners"`
-	TLSSecretName     string                   `json:"tlsSecretName,omitempty"`
+	SSLSecrets        *SSLSecrets              `json:"sslSecrets,omitempty"`
 	//SASLSecret        string                   `json:"saslSecret"`
+}
+
+type SSLSecrets struct {
+	TLSSecretName   string `json:"tlsSecretName"`
+	JKSPasswordName string `json:"jksPasswordName"`
 }
 
 type ExternalListenerConfig struct {

@@ -19,7 +19,7 @@ func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.BrokerConfig, loadB
 			fmt.Sprintf("zookeeper.connect=%s\n", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")) +
 			generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig) +
 			"metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter\n" +
-			fmt.Sprintf("cruise.control.metrics.reporter.bootstrap.servers=%s\n", strings.Join(getInternalListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, log), ",")) +
+			fmt.Sprintf("cruise.control.metrics.reporter.bootstrap.servers=%s\n", strings.Join(getInternalListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, broker, r.KafkaCluster.Namespace, r.KafkaCluster.Name), ",")) +
 			fmt.Sprintf("broker.id=%d\n", broker.Id) +
 			generateStorageConfig(broker.StorageConfigs) +
 			generateAdvertisedListenerConfig(broker, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIP, r.KafkaCluster.Namespace, r.KafkaCluster.Name) +
@@ -28,7 +28,7 @@ func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.BrokerConfig, loadB
 }
 
 func generateAdvertisedListenerConfig(broker banzaicloudv1alpha1.BrokerConfig, l banzaicloudv1alpha1.ListenersConfig, loadBalancerIP, namespace, crName string) string {
-	var advertisedListenerConfig []string
+	advertisedListenerConfig := []string{}
 	for _, eListener := range l.ExternalListeners {
 		advertisedListenerConfig = append(advertisedListenerConfig,
 			fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIP, eListener.ExternalStartingPort+broker.Id))
@@ -37,22 +37,25 @@ func generateAdvertisedListenerConfig(broker banzaicloudv1alpha1.BrokerConfig, l
 		advertisedListenerConfig = append(advertisedListenerConfig,
 			fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, crName, namespace, iListener.ContainerPort))
 	}
-	return strings.Join(advertisedListenerConfig, ",") + "\n"
+	return fmt.Sprintf("advertised.listeners=%s\n", strings.Join(advertisedListenerConfig, ","))
 }
 
 func generateStorageConfig(sConfig []banzaicloudv1alpha1.StorageConfig) string {
 	mountPaths := []string{}
 	for _, storage := range sConfig {
-		mountPaths = append(mountPaths, storage.MountPath+`\\kafka`)
+		mountPaths = append(mountPaths, storage.MountPath+`/kafka`)
 	}
 	return fmt.Sprintf("log.dirs=%s\n", strings.Join(mountPaths, ","))
 }
 
 func generateSSLConfig(l *banzaicloudv1alpha1.ListenersConfig) (res string) {
-	if l.TLSSecretName != "" {
+	if l.SSLSecrets != nil {
 		res = `ssl.keystore.location=/var/run/secrets/java.io/keystores/kafka.server.keystore.jks
 ssl.truststore.location=/var/run/secrets/java.io/keystores/kafka.server.truststore.jks
 ssl.client.auth=required
+cruise.control.metrics.reporter.security.protocol=SSL
+cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io/keystores/client.truststore.jks
+cruise.control.metrics.reporter.ssl.keystore.location=/var/run/secrets/java.io/keystores/client.keystore.jks
 `
 	}
 	return
@@ -88,21 +91,14 @@ func generateListenerSpecificConfig(l *banzaicloudv1alpha1.ListenersConfig, log 
 		"listeners=" + strings.Join(listenerConfig, ",") + "\n"
 }
 
-func getInternalListeners(iListeners []banzaicloudv1alpha1.InternalListenerConfig, log logr.Logger) []string {
+func getInternalListeners(iListeners []banzaicloudv1alpha1.InternalListenerConfig, broker banzaicloudv1alpha1.BrokerConfig, namespace, crName string) []string {
 
-	var interBrokerListenerType string
-	var listenerConfig []string
+	listenerConfig := []string{}
 
 	for _, iListener := range iListeners {
-		if iListener.UsedForInnerBrokerCommunication {
-			if interBrokerListenerType == "" {
-				interBrokerListenerType = strings.ToUpper(iListener.Type)
-			} else {
-				log.Error(errors.New("inter broker listener name already set"), "config error")
-			}
-		}
-		UpperedListenerName := strings.ToUpper(iListener.Name)
-		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
+		listenerConfig = append(listenerConfig,
+			fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, crName, namespace, iListener.ContainerPort))
 	}
+
 	return listenerConfig
 }
