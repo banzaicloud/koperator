@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: baz
+  labels:
+    app: prometheus
+    component: alertmanager
+    run: baz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: baz
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        component: alertmanager
+        run: baz
+    spec:
+      containers:
+      - name: controller
+        image: poke/controller
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9001
+          protocol: TCP
+        resources: {}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: baz
+  labels:
+    app: prometheus
+    component: alertmanager    
+spec:
+  selector:
+    run: baz
+  ports:
+  - protocol: TCP
+    port: 9001
+    targetPort: 9001

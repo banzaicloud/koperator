@@ -15,16 +15,11 @@
 package receiver
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/go-logr/logr"
 )
-
-type receivedAlert struct {
-	Test string `json:"test,omitempty"`
-}
 
 // APIEndPoint for token handling
 const APIEndPoint = "/"
@@ -53,18 +48,12 @@ func (a *HTTPController) reciveAlert(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch r.Method {
 	case "POST":
-		body, err := ioutil.ReadAll(r.Body)
+		alert, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "Error reading request body", http.StatusInternalServerError)
 		}
 		w.WriteHeader(http.StatusAccepted)
-		_, _ = w.Write(body)
-		alert := receivedAlert{}
-		err = json.Unmarshal(body, &alert)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+		_, _ = w.Write(alert)
 		alertReciever(a.Logger, alert)
 
 	default:

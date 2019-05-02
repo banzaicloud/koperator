@@ -93,6 +93,25 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:0ee9bd5a714d2be5087f99825263c33f3cd0edd1c57cbcbabaf05658d67e3e7a"
+  name = "github.com/go-kit/kit"
+  packages = [
+    "log",
+    "log/level",
+  ]
+  pruneopts = "T"
+  revision = "12210fb6ace19e0496167bb3e667dcd91fa9f69b"
+  version = "v0.8.0"
+
+[[projects]]
+  digest = "1:4062bc6de62d73e2be342243cf138cf499b34d558876db8d9430e2149388a4d8"
+  name = "github.com/go-logfmt/logfmt"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "07c9b44f60d7ffdfb7d8efe1ad539965737836dc"
+  version = "v0.4.0"
+
+[[projects]]
   branch = "master"
   digest = "1:65587005c6fa4293c0b8a2e457e689df7fda48cc5e1f5449ea2c1e7784551558"
   name = "github.com/go-logr/logr"
@@ -286,6 +305,13 @@
   revision = "0bc2a4274cd0f8baa49f2d598df5ef0cc3069c80"
 
 [[projects]]
+  digest = "1:a64e323dc06b73892e5bb5d040ced475c4645d456038333883f58934abbf6f72"
+  name = "github.com/kr/logfmt"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "b84e30acd515aadc4b783ad4ff83aff3299bdfe0"
+
+[[projects]]
   digest = "1:a404c6713d3e7fb61746c8bc355c6009ddb8fbb2e376ce33c03881645217f1a1"
   name = "github.com/lyft/protoc-gen-validate"
   packages = ["validate"]
@@ -406,6 +432,19 @@
   pruneopts = "T"
   revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
   version = "v0.8.1"
+
+[[projects]]
+  digest = "1:30855087775ae2917e83e919abf0da790ee731ed872ff16ead325adbeaa3cf65"
+  name = "github.com/prometheus/alertmanager"
+  packages = [
+    "provider",
+    "provider/mem",
+    "store",
+    "types",
+  ]
+  pruneopts = "T"
+  revision = "308b7620642dc147794e6686a3f94d1b6fc8ef4d"
+  version = "v0.16.2"
 
 [[projects]]
   digest = "1:3b5729e3fc486abc6fc16ce026331c3d196e788c3b973081ecf5d28ae3e1050d"
@@ -1073,6 +1112,7 @@
     "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2",
     "github.com/envoyproxy/go-control-plane/pkg/util",
     "github.com/ghodss/yaml",
+    "github.com/go-kit/kit/log",
     "github.com/go-logr/logr",
     "github.com/gogo/protobuf/jsonpb",
     "github.com/gogo/protobuf/types",
@@ -1080,6 +1120,11 @@
     "github.com/lestrrat-go/backoff",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/prometheus/alertmanager/provider/mem",
+    "github.com/prometheus/alertmanager/store",
+    "github.com/prometheus/alertmanager/types",
+    "github.com/prometheus/common/model",
+    "github.com/sethvargo/go-password/password",
     "golang.org/x/net/context",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",

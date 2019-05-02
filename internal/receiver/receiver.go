@@ -15,9 +15,27 @@
 package receiver
 
 import (
+	"encoding/json"
+
 	"github.com/go-logr/logr"
+	"github.com/prometheus/common/model"
 )
 
-func alertReciever(log logr.Logger, alert receivedAlert) {
-	log.Info("INFO", "TestAlert", alert)
+func alertReciever(log logr.Logger, alert []byte) {
+	promAlerts := make([]model.Alert, 0)
+	_ = json.Unmarshal(alert, &promAlerts)
+	log.Info("FROM", "promentheus", promAlerts)
+
+	storedAlerts := GetCurrentAlerts()
+	for _, promAlert := range promAlerts {
+		store := alertState{
+			FingerPrint: promAlert.Fingerprint(),
+			Status:      promAlert.Status(),
+		}
+		storedAlerts.AddAlert(store)
+		storedAlerts.AlertGC(store)
+	}
+	for key, value := range storedAlerts.ListAlerts() {
+		log.Info("Stored Alert", "key", key, "value", value)
+	}
 }
