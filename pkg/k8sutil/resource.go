@@ -5,6 +5,7 @@ import (
 	"errors"
 	"reflect"
 
+	objectmatch "github.com/banzaicloud/k8s-objectmatcher"
 	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
 	appsv1 "k8s.io/api/apps/v1"
@@ -103,8 +104,13 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		log.Info("resource created")
 	}
 	if err == nil {
-		//resourceVersion := current.(metav1.ObjectMetaAccessor).GetObjectMeta().GetResourceVersion()
-		//desired.(metav1.ObjectMetaAccessor).GetObjectMeta().SetResourceVersion(resourceVersion)
+		objectsEquals, err := objectmatch.New(log).Match(current, desired)
+		if err != nil {
+			log.Error(err, "could not match objects", "kind", desiredType)
+		} else if objectsEquals {
+			log.V(1).Info("resource is in sync")
+			return nil
+		}
 
 		switch desired.(type) {
 		default:

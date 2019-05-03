@@ -10,6 +10,7 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/go-logr/logr"
@@ -129,7 +130,11 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			deletedBrokers = append(deletedBrokers, pod)
 		}
 		for _, broker := range deletedBrokers {
-			err := r.Client.Delete(context.TODO(), &broker)
+			err = cruisecontrol.DownsizeCluster(broker.Labels["brokerId"])
+			if err != nil {
+				log.Error(err, "graceful downscale failed.")
+			}
+			err = r.Client.Delete(context.TODO(), &broker)
 			if err != nil {
 				return emperror.WrapWith(err, "could not delete broker", "id", broker.Labels["brokerId"])
 			}
@@ -151,12 +156,12 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	lBIp, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
-	if err != nil {
-		return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
-	}
-	//// TODO remove after testing
-	//lBIp := "192.168.0.1"
+	//lBIp, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
+	//if err != nil {
+	//	return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
+	//}
+	// TODO remove after testing
+	lBIp := "192.168.0.1"
 
 	for _, broker := range r.KafkaCluster.Spec.BrokerConfigs {
 		for _, storage := range broker.StorageConfigs {
@@ -193,6 +198,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			if err != nil {
 				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
+		}
+		err = cruisecontrol.UpScaleCluster(fmt.Sprintf("%d",broker.Id))
+		if err != nil {
+			log.Error(err, "graceful upscale failed, or cluster just started")
 		}
 	}
 

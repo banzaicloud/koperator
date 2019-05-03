@@ -20,6 +20,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
 			Name:          strings.ReplaceAll(eListener.Name, "_", "-"),
 			ContainerPort: eListener.ContainerPort,
+			Protocol: corev1.ProtocolTCP,
 		})
 	}
 
@@ -27,6 +28,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
 			Name:          strings.ReplaceAll(iListener.Name, "_", "-"),
 			ContainerPort: iListener.ContainerPort,
+			Protocol: corev1.ProtocolTCP,
 		})
 	}
 
@@ -64,6 +66,8 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						Name:      "extensions",
 						MountPath: "/opt/kafka/libs/extensions",
 					}},
+					TerminationMessagePath: "/dev/termination-log",
+					TerminationMessagePolicy: "File",
 				},
 			}...),
 			Containers: []corev1.Container{
@@ -83,12 +87,15 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						{
 							Name:      brokerConfigMapVolumeMount,
 							MountPath: "/config",
+							ReadOnly: true,
 						},
 						{
 							Name:      "extensions",
 							MountPath: "/opt/kafka/libs/extensions",
 						},
 					}...),
+					TerminationMessagePath: "/dev/termination-log",
+					TerminationMessagePolicy: "File",
 				},
 			},
 			Volumes: append(volume, []corev1.Volume{
@@ -97,6 +104,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, broker.Id)},
+							DefaultMode: util.Int32Pointer(0644),
 						},
 					},
 				},
@@ -170,16 +178,20 @@ echo "cruise.control.metrics.reporter.ssl.keystore.password=${SSL_PASSWORD}" >> 
 			{
 				Name:      pemFilesVolume,
 				MountPath: "/var/run/secrets/pemfiles",
+				ReadOnly: true,
 			},
 			{
 				Name:      brokerConfigMapVolumeMount,
 				MountPath: "/config",
+				ReadOnly: true,
 			},
 			{
 				Name:      modbrokerConfigMapVolumeMount,
 				MountPath: "/mod-config",
 			},
 		},
+		TerminationMessagePath: "/dev/termination-log",
+		TerminationMessagePolicy: "File",
 	}
 	return initPemToKeyStore
 }
@@ -197,6 +209,7 @@ func generateVolumesForSSL(tlsSecretName string) []corev1.Volume {
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: tlsSecretName,
+					DefaultMode: util.Int32Pointer(0644),
 				},
 			},
 		},
