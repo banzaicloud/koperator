@@ -1,6 +1,8 @@
 package cruisecontrol
 
 import (
+	"errors"
+
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
@@ -18,7 +20,15 @@ const (
 	keystoreVolume         = "ks-files"
 	keystoreVolumePath     = "/var/run/secrets/java.io/keystores"
 	pemFilesVolume         = "pem-files"
+
+	basePath           = "kafkacruisecontrol"
+	removeBrokerAction = "remove_broker"
+	cruiseControlStateAction = "state"
+	addBrokerAction    = "add_broker"
+	getTaskListAction  = "user_tasks"
 )
+
+var cruiseControlNotReadyErr = errors.New("cruise-control is not ready")
 
 var labelSelector = map[string]string{
 	"app": "cruisecontrol",

@@ -38,7 +38,10 @@ spec:
             resources:
               requests:
                 storage: 10Gi
-        - mountPath: "/kafka-logocska"
+    - image: "wurstmeister/kafka:2.12-2.1.0"
+      id: 3
+      storageConfigs:
+        - mountPath: "/kafka-logs"
           pvcSpec:
             accessModes:
               - ReadWriteOnce
