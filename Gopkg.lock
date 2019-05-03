@@ -19,11 +19,11 @@
 
 [[projects]]
   branch = "add_pod"
-  digest = "1:b91a3897a03c5d80dae283346bf24c5352dc3227faf77329458c56468284346a"
+  digest = "1:92a73dabb067f889893ddb3461db90dcb9c0e1abfb084d2118eb210631c21a39"
   name = "github.com/banzaicloud/k8s-objectmatcher"
   packages = ["."]
   pruneopts = "T"
-  revision = "4d5c67dbf9cf90c4fec4fd5ac36e305c68474075"
+  revision = "7fdb0ed7204771d0e7ba64849206b61900e80638"
 
 [[projects]]
   branch = "master"
@@ -455,14 +455,6 @@
   pruneopts = "T"
   revision = "68d1cb014f030acd0f10ac553801e43c0e5da629"
   version = "v1.1.0"
-
-[[projects]]
-  digest = "1:52a237b6b680a336fecd53ab9f85d264877382a68fc5b9dced25a68be849c71e"
-  name = "github.com/sethvargo/go-password"
-  packages = ["password"]
-  pruneopts = "T"
-  revision = "bc15c697eeda69a082991d2f1ed37660658fea32"
-  version = "v0.1.2"
 
 [[projects]]
   digest = "1:2c31831b97353515f0bb77a3e7f2df69e50c4173116aad4250e22b1c664a1484"
@@ -1079,7 +1071,6 @@
     "github.com/goph/emperror",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
-    "github.com/sethvargo/go-password/password",
     "golang.org/x/net/context",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
