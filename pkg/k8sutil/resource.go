@@ -6,12 +6,12 @@ import (
 	"reflect"
 
 	objectmatch "github.com/banzaicloud/k8s-objectmatcher"
+	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -61,6 +61,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
+			log.Info("resource created")
 		}
 		alreadyCreated := false
 		for _, pvc := range pvcList.Items {
@@ -77,7 +78,6 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
 		}
-		log.Info("resource created")
 	case *corev1.Pod:
 		log = log.WithValues("kind", desiredType)
 		log.Info("searching with label because name is empty")
@@ -96,12 +96,16 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
+			err = scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"])
+			if err != nil {
+				log.Error(err, "graceful upscale failed, or cluster just started")
+			}
+			log.Info("resource created")
 		} else if len(podList.Items) == 1 {
 			current = podList.Items[0].DeepCopyObject()
 		} else {
 			return emperror.WrapWith(errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
 		}
-		log.Info("resource created")
 	}
 	if err == nil {
 		objectsEquals, err := objectmatch.New(log).Match(current, desired)

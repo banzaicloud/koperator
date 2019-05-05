@@ -51,6 +51,8 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 							Image:           "wurstmeister/kafka:2.12-2.1.0",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command:         []string{"/bin/bash", "-c", fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 3; do echo waiting for kafka; sleep 3; done ;", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","))},
+							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 						},
 					}...),
 					Containers: []corev1.Container{
@@ -61,6 +63,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 8090,
+									Protocol: corev1.ProtocolTCP,
 								},
 							},
 							Resources: corev1.ResourceRequirements{
@@ -76,8 +79,14 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 									},
 								},
 								TimeoutSeconds: int32(1),
+								InitialDelaySeconds: 5,
+								PeriodSeconds:       10,
+								FailureThreshold:    3,
+								SuccessThreshold:    1,
 							},
 							VolumeMounts: volumeMount,
+							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 						},
 					},
 					Volumes: append(volume, []corev1.Volume{
@@ -86,6 +95,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{Name: configAndVolumeName},
+									DefaultMode: util.Int32Pointer(0644),
 								},
 							},
 						},
@@ -144,6 +154,8 @@ func generateInitContainerForSSL(secretName string) corev1.Container {
 				MountPath: "/opt/cruise-control/config",
 			},
 		},
+		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 	}
 	return initPemToKeyStore
 }
@@ -161,6 +173,7 @@ func generateVolumesForSSL(tlsSecretName string) []corev1.Volume {
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: tlsSecretName,
+					DefaultMode: util.Int32Pointer(0644),
 				},
 			},
 		},

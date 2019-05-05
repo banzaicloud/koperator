@@ -34,6 +34,7 @@ func getExposedServicePorts(extListeners []banzaicloudv1alpha1.ExternalListenerC
 			exposedPorts = append(exposedPorts, corev1.ServicePort{
 				Name: fmt.Sprintf("broker-%d", broker.Id),
 				Port: eListener.ExternalStartingPort + broker.Id,
+				Protocol: corev1.ProtocolTCP,
 			})
 		}
 	}

@@ -10,9 +10,9 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
 	corev1 "k8s.io/api/core/v1"
@@ -130,7 +130,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			deletedBrokers = append(deletedBrokers, pod)
 		}
 		for _, broker := range deletedBrokers {
-			err = cruisecontrol.DownsizeCluster(broker.Labels["brokerId"])
+			err = scale.DownsizeCluster(broker.Labels["brokerId"])
 			if err != nil {
 				log.Error(err, "graceful downscale failed.")
 			}
@@ -198,10 +198,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			if err != nil {
 				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
-		}
-		err = cruisecontrol.UpScaleCluster(fmt.Sprintf("%d",broker.Id))
-		if err != nil {
-			log.Error(err, "graceful upscale failed, or cluster just started")
 		}
 	}
 

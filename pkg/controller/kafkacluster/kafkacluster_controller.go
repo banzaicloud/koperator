@@ -21,6 +21,7 @@ import (
 
 	objectmatch "github.com/banzaicloud/k8s-objectmatcher"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
@@ -71,6 +72,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	//objectMatcher := objectmatch.New(logf.NewDelegatingLogger(logf.NullLogger{}))
 	objectMatcher := objectmatch.New(log)
 
+	// Initialize owner matcher
+	ownerMatcher := k8sutil.NewOwnerReferenceMatcher(&banzaicloudv1alpha1.KafkaCluster{}, true,  mgr.GetScheme())
+
 	// Watch for changes to resources managed by the operator
 	for _, t := range []runtime.Object{
 		&corev1.Pod{TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"}},
@@ -85,16 +89,32 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				return false
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
-				return true
+				related, object, err := ownerMatcher.Match(e.Object)
+				if err != nil {
+					log.Error(err, "could not determine relation", "kind", e.Object.GetObjectKind())
+				}
+				if related {
+					log.Info("related object deleted", "trigger", object.GetName())
+					return true
+				}
+				return false
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				objectsEquals, err := objectMatcher.Match(e.ObjectOld, e.ObjectNew)
+				related, object, err := ownerMatcher.Match(e.ObjectNew)
 				if err != nil {
-					log.Error(err, "could not match objects", "kind", e.ObjectOld.GetObjectKind())
-				} else if objectsEquals {
-					return false
+					log.Error(err, "could not determine relation", "kind", e.ObjectNew.GetObjectKind())
 				}
-				return true
+				if related {
+					log.Info("related object changed", "trigger", object.GetName())
+					objectsEquals, err := objectMatcher.Match(e.ObjectOld, e.ObjectNew)
+					if err != nil {
+						log.Error(err, "could not match objects", "kind", e.ObjectOld.GetObjectKind())
+					} else if objectsEquals {
+						return false
+					}
+					return true
+				}
+				return false
 			},
 		})
 		if err != nil {
