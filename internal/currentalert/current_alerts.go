@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package receiver
+package currentalert
 
 import (
 	"sync"
@@ -22,13 +22,13 @@ import (
 
 // CurrentAlerts interface
 type CurrentAlerts interface {
-	AddAlert(alertState) currentAlertStruct
-	AlertGC(alertState) error
+	AddAlert(AlertState) currentAlertStruct
+	AlertGC(AlertState) error
 	DeleteAlert(model.Fingerprint) error
 	ListAlerts() map[model.Fingerprint]currentAlertStruct
 }
 
-type alertState struct {
+type AlertState struct {
 	FingerPrint model.Fingerprint
 	Status      model.AlertStatus
 	Labels      model.LabelSet
@@ -60,7 +60,7 @@ func GetCurrentAlerts() CurrentAlerts {
 	return currAlert
 }
 
-func (a *currentAlerts) AddAlert(alert alertState) currentAlertStruct {
+func (a *currentAlerts) AddAlert(alert AlertState) currentAlertStruct {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	a.alerts[alert.FingerPrint] = currentAlertStruct{
@@ -82,7 +82,7 @@ func (a *currentAlerts) DeleteAlert(alert model.Fingerprint) error {
 	return nil
 }
 
-func (a *currentAlerts) AlertGC(alert alertState) error {
+func (a *currentAlerts) AlertGC(alert AlertState) error {
 	if alert.Status == "resolved" {
 		err := a.DeleteAlert(alert.FingerPrint)
 		if err != nil {

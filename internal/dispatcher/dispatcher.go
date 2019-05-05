@@ -12,20 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package receiver
+package dispatcher
 
 import (
-	"encoding/json"
-
-	"github.com/banzaicloud/kafka-operator/internal/dispatcher"
+	"github.com/banzaicloud/kafka-operator/internal/currentalert"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
 )
 
-func alertReciever(log logr.Logger, alert []byte) {
-	promAlerts := make([]model.Alert, 0)
-	_ = json.Unmarshal(alert, &promAlerts)
-	log.Info("FROM", "promentheus", promAlerts)
-
-	dispatcher.Dispatcher(promAlerts, log)
+func Dispatcher(promAlerts []model.Alert, log logr.Logger) {
+	storedAlerts := currentalert.GetCurrentAlerts()
+	for _, promAlert := range promAlerts {
+		store := currentalert.AlertState{
+			FingerPrint: promAlert.Fingerprint(),
+			Status:      promAlert.Status(),
+			Labels:      promAlert.Labels,
+		}
+		storedAlerts.AddAlert(store)
+		storedAlerts.AlertGC(store)
+	}
+	for key, value := range storedAlerts.ListAlerts() {
+		log.Info("Stored Alert", "key", key, "value", value.Status, "labels", value.Labels)
+	}
 }
