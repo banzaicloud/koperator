@@ -62,6 +62,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
 			log.Info("resource created")
+			break
 		}
 		alreadyCreated := false
 		for _, pvc := range pvcList.Items {
