@@ -87,7 +87,6 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						{
 							Name:      brokerConfigMapVolumeMount,
 							MountPath: "/config",
-							ReadOnly: true,
 						},
 						{
 							Name:      "extensions",
@@ -115,6 +114,13 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 					},
 				},
 			}...),
+			RestartPolicy: corev1.RestartPolicyAlways,
+			TerminationGracePeriodSeconds: util.Int64Pointer(30),
+			DNSPolicy: corev1.DNSClusterFirst,
+			ServiceAccountName: r.KafkaCluster.Spec.GetServiceAccount(),
+			SecurityContext: &corev1.PodSecurityContext{},
+			Priority: util.Int32Pointer(0),
+			SchedulerName: "default-scheduler",
 		},
 	}
 }
@@ -178,20 +184,18 @@ echo "cruise.control.metrics.reporter.ssl.keystore.password=${SSL_PASSWORD}" >> 
 			{
 				Name:      pemFilesVolume,
 				MountPath: "/var/run/secrets/pemfiles",
-				ReadOnly: true,
 			},
 			{
 				Name:      brokerConfigMapVolumeMount,
 				MountPath: "/config",
-				ReadOnly: true,
 			},
 			{
 				Name:      modbrokerConfigMapVolumeMount,
 				MountPath: "/mod-config",
 			},
 		},
-		TerminationMessagePath: "/dev/termination-log",
-		TerminationMessagePolicy: "File",
+		TerminationMessagePath: corev1.TerminationMessagePathDefault,
+		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 	}
 	return initPemToKeyStore
 }

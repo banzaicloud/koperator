@@ -3,6 +3,7 @@ package envoy
 import (
 	"fmt"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -21,6 +22,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{Name: envoyVolumeAndConfigName},
+					DefaultMode: util.Int32Pointer(0644),
 				},
 			},
 		},

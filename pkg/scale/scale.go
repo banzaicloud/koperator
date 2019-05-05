@@ -1,15 +1,29 @@
-package cruisecontrol
+package scale
 
 import (
-	"encoding/json"
-	"errors"
-	"io/ioutil"
-	"net/http"
+"encoding/json"
+"errors"
+"io/ioutil"
+"net/http"
+	"strconv"
 	"strings"
-	"time"
+"time"
 
+	"github.com/banzaicloud/kafka-operator/pkg/internal/backoff"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
+
+const (
+	basePath           = "kafkacruisecontrol"
+	removeBrokerAction = "remove_broker"
+	cruiseControlStateAction = "state"
+	addBrokerAction    = "add_broker"
+	getTaskListAction  = "user_tasks"
+	kafkaClusterStateAction = "kafka_cluster_state"
+	serviceName        = "cruisecontrol-svc"
+)
+
+var cruiseControlNotReadyErr = errors.New("cruise-control is not ready")
 
 var log = logf.Log.WithName("cruise-control-methods")
 
@@ -56,7 +70,7 @@ func getCruiseControl(action string, options map[string]string) (*http.Response,
 	return rsp, nil
 }
 
-func GetCruiseControlStatus() error {
+func getCruiseControlStatus() error {
 
 	options := map[string]string{
 		"substates": "ANALYZER",
@@ -68,10 +82,14 @@ func GetCruiseControlStatus() error {
 		log.Error(err, "can't work with cruise-control because it is not ready")
 		return err
 	}
-	defer rsp.Body.Close()
 	body, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
 		return  err
+	}
+
+	err = rsp.Body.Close()
+	if err != nil {
+		return err
 	}
 
 	var response map[string]interface{}
@@ -88,12 +106,68 @@ func GetCruiseControlStatus() error {
 	return nil
 }
 
+func isKafkaBrokerReady(brokerId string)(bool, error) {
+
+	running := false
+
+	options := map[string]string{
+		"json":     "true",
+	}
+
+	rsp, err := getCruiseControl(kafkaClusterStateAction, options)
+	if err != nil {
+		log.Error(err, "can't work with cruise-control because it is not ready")
+		return running,err
+	}
+
+	body, err := ioutil.ReadAll(rsp.Body)
+	if err != nil {
+		return running, err
+	}
+
+	err = rsp.Body.Close()
+	if err != nil {
+		return running, err
+	}
+
+	var response map[string]interface{}
+
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return running, err
+	}
+	bId, _ :=strconv.Atoi(brokerId)
+
+	if len(response["KafkaBrokerState"].(map[string]interface{})["OnlineLogDirsByBrokerId"].(map[string]interface{})) == bId+1 {
+		log.Info("could not handle graceful operation because cruise-control is not ready")
+		running = true
+	}
+	return running, nil
+}
+
 func UpScaleCluster(brokerId string) error {
 
-	err := GetCruiseControlStatus()
+	err := getCruiseControlStatus()
 	if err != nil {
 		return err
 	}
+
+	var backoffConfig = backoff.ConstantBackoffConfig{
+		Delay:      10 * time.Second,
+		MaxRetries: 5,
+	}
+	var backoffPolicy = backoff.NewConstantBackoffPolicy(&backoffConfig)
+
+	err = backoff.Retry(func() error {
+		ready, err :=  isKafkaBrokerReady(brokerId)
+		if err != nil {
+			return err
+		}
+		if !ready {
+			return errors.New("broker is not ready yet")
+		}
+		return nil
+	}, backoffPolicy)
 
 	options := map[string]string{
 		"json":  "true",
@@ -119,7 +193,7 @@ func UpScaleCluster(brokerId string) error {
 
 func DownsizeCluster(brokerId string) error {
 
-	err := GetCruiseControlStatus()
+	err := getCruiseControlStatus()
 	if err != nil {
 		return err
 	}
@@ -157,7 +231,7 @@ func checkIfCCTaskFinished(uTaskId string) error {
 			"user_task_ids": uTaskId,
 		})
 		if err != nil {
-			log.Error(err, "can't downsize cluster gracefully since get to cruise-control failed")
+			log.Error(err, "can't get task list from cruise-control")
 			return err
 		}
 
@@ -177,7 +251,7 @@ func checkIfCCTaskFinished(uTaskId string) error {
 		if err != nil {
 			return err
 		}
-		// TODO use struct insted of casting things
+		// TODO use struct instead of casting things
 		for _, task := range taskLists["userTasks"].([]interface{}) {
 			if task.(map[string]interface{})["Status"].(string) != "Completed" {
 				ccRunning = true
@@ -189,3 +263,4 @@ func checkIfCCTaskFinished(uTaskId string) error {
 	}
 	return  nil
 }
+

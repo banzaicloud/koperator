@@ -278,6 +278,14 @@
   version = "v1.1.5"
 
 [[projects]]
+  branch = "master"
+  digest = "1:31f78da7dcb294a865548bbf3a4128aa15f2db5fc8d6db58d499f481e9f6424f"
+  name = "github.com/lestrrat-go/backoff"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "0bc2a4274cd0f8baa49f2d598df5ef0cc3069c80"
+
+[[projects]]
   digest = "1:a404c6713d3e7fb61746c8bc355c6009ddb8fbb2e376ce33c03881645217f1a1"
   name = "github.com/lyft/protoc-gen-validate"
   packages = ["validate"]
@@ -1069,6 +1077,7 @@
     "github.com/gogo/protobuf/jsonpb",
     "github.com/gogo/protobuf/types",
     "github.com/goph/emperror",
+    "github.com/lestrrat-go/backoff",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "golang.org/x/net/context",
@@ -1076,6 +1085,7 @@
     "k8s.io/api/core/v1",
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     "k8s.io/apimachinery/pkg/api/errors",
+    "k8s.io/apimachinery/pkg/api/meta",
     "k8s.io/apimachinery/pkg/api/resource",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/runtime",
