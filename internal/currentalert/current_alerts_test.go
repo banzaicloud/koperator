@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package receiver
+package currentalert
 
 import (
 	"testing"
@@ -28,7 +28,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 
 	singleAlerts := alerts1
 
-	testAlert1 := alertState{
+	testAlert1 := AlertState{
 		FingerPrint: model.Fingerprint(1111),
 		Status:      model.AlertStatus("firing"),
 		Labels: model.LabelSet{
@@ -37,7 +37,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 		},
 	}
 
-	testAlert2 := alertState{
+	testAlert2 := AlertState{
 		FingerPrint: model.Fingerprint(1111),
 		Status:      model.AlertStatus("resolved"),
 		Labels: model.LabelSet{
