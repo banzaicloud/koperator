@@ -1,4 +1,4 @@
-package monitoring
+package kafka_monitoring
 
 import (
 	"fmt"

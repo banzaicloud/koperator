@@ -1,8 +1,6 @@
-package cruisecontrol
+package cruisecontrol_monitoring
 
 import (
-	"strings"
-
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
@@ -12,21 +10,9 @@ import (
 )
 
 const (
-	componentName          = "cruisecontrol"
-	serviceName            = "cruisecontrol-svc"
-	configAndVolumeName    = "cruisecontrol-config"
-	modconfigAndVolumeName = "cruisecontrol-modconfig"
-	deploymentName         = "cruisecontrol"
-	keystoreVolume         = "ks-files"
-	keystoreVolumePath     = "/var/run/secrets/java.io/keystores"
-	pemFilesVolume         = "pem-files"
-	jmxVolumePath          = "/opt/jmx-exporter/"
-	jmxVolumeName          = "jmx-jar-data"
+	CruiseControlJmxTemplate = "%s-cc-jmx-exporter"
+	componentName            = "cruisecontrol_monitoring"
 )
-
-var labelSelector = map[string]string{
-	"app": "cruisecontrol",
-}
 
 type Reconciler struct {
 	resources.Reconciler
@@ -46,12 +32,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	log.Info("Reconciling")
 
-	for _, res := range []resources.ResourceWithLogs{
-		r.service,
+	for _, res := range []resources.Resource{
 		r.configMap,
-		r.deployment,
 	} {
-		o := res(log)
+		o := res()
 		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster.Name)
 		if err != nil {
 			return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -63,13 +47,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	return nil
 }
 
-func isSSLEnabledForInternalCommunication(l []banzaicloudv1alpha1.InternalListenerConfig) (enabled bool) {
-
-	for _, listener := range l {
-		if strings.ToLower(listener.Type) == "ssl" {
-			enabled = true
-			break
-		}
-	}
-	return enabled
+func labelsForJmx(name string) map[string]string {
+	return map[string]string{"app": "cruisecontrol-jmx", "kafka_cr": name}
 }

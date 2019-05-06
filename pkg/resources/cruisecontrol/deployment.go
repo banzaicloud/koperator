@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol_monitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
@@ -20,7 +21,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	volumeMount := []corev1.VolumeMount{}
 	initContainers := []corev1.Container{}
 
-	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && isSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners){
+	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && isSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
 		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName))
@@ -29,6 +30,14 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 			{
 				Name:      configAndVolumeName,
 				MountPath: "/opt/cruise-control/config",
+			},
+			{
+				Name:      jmxVolumeName,
+				MountPath: jmxVolumePath,
+			},
+			{
+				Name:      fmt.Sprintf(cruisecontrol_monitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name),
+				MountPath: "/etc/jmx-exporter/",
 			},
 		}...)
 	}
@@ -41,29 +50,54 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labelSelector,
+					Labels:      labelSelector,
+					Annotations: util.MonitoringAnnotations(),
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),
 					InitContainers: append(initContainers, []corev1.Container{
 						{
-							Name:            "create-topic",
-							Image:           "wurstmeister/kafka:2.12-2.1.0",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Command:         []string{"/bin/bash", "-c", fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 3; do echo waiting for kafka; sleep 3; done ;", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","))},
+							Name:                     "create-topic",
+							Image:                    "wurstmeister/kafka:2.12-2.1.0",
+							ImagePullPolicy:          corev1.PullIfNotPresent,
+							Command:                  []string{"/bin/bash", "-c", fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 3; do echo waiting for kafka; sleep 3; done ;", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","))},
 							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+						},
+						{
+							Name:                     "jmx-exporter",
+							Image:                    "banzaicloud/jmx_exporter:latest",
+							ImagePullPolicy:          corev1.PullIfNotPresent,
+							Command:                  []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
+							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      jmxVolumeName,
+									MountPath: jmxVolumePath,
+								},
+							},
 						},
 					}...),
 					Containers: []corev1.Container{
 						{
-							Name:            deploymentName,
+							Name: deploymentName,
+							Env: []corev1.EnvVar{
+								{
+									Name:  "KAFKA_OPTS",
+									Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar=9020:/etc/jmx-exporter/config.yaml",
+								},
+							},
 							Image:           "solsson/kafka-cruise-control@sha256:d5e05c95d6e8fddc3e607ec3cdfa2a113b76eabca4aefe6c382f5b3d7d990505",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 8090,
-									Protocol: corev1.ProtocolTCP,
+									Protocol:      corev1.ProtocolTCP,
+								},
+								{
+									ContainerPort: 9020,
+									Protocol:      corev1.ProtocolTCP,
 								},
 							},
 							Resources: corev1.ResourceRequirements{
@@ -78,13 +112,13 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 										Port: *util.IntstrPointer(8090),
 									},
 								},
-								TimeoutSeconds: int32(1),
+								TimeoutSeconds:      int32(1),
 								InitialDelaySeconds: 5,
 								PeriodSeconds:       10,
 								FailureThreshold:    3,
 								SuccessThreshold:    1,
 							},
-							VolumeMounts: volumeMount,
+							VolumeMounts:             volumeMount,
 							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 						},
@@ -95,8 +129,23 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{Name: configAndVolumeName},
-									DefaultMode: util.Int32Pointer(0644),
+									DefaultMode:          util.Int32Pointer(0644),
 								},
+							},
+						},
+						{
+							Name: fmt.Sprintf(cruisecontrol_monitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name),
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(cruisecontrol_monitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name)},
+									DefaultMode:          util.Int32Pointer(0644),
+								},
+							},
+						},
+						{
+							Name: jmxVolumeName,
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					}...),
@@ -172,7 +221,7 @@ func generateVolumesForSSL(tlsSecretName string) []corev1.Volume {
 			Name: pemFilesVolume,
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: tlsSecretName,
+					SecretName:  tlsSecretName,
 					DefaultMode: util.Int32Pointer(0644),
 				},
 			},

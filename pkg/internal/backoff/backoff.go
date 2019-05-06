@@ -1,10 +1,10 @@
 package backoff
 
 import (
-"context"
+	"context"
 
-"github.com/goph/emperror"
-"github.com/lestrrat-go/backoff"
+	"github.com/goph/emperror"
+	"github.com/lestrrat-go/backoff"
 )
 
 // NewConstantBackoffPolicy creates a new constant backoff policy
@@ -37,4 +37,3 @@ func Retry(function func() error, backoffPolicy backoff.Policy) (err error) {
 func MarkErrorPermanent(err error) error {
 	return backoff.MarkPermanent(err)
 }
-

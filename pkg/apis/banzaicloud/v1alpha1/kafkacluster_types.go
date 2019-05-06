@@ -29,7 +29,6 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	//MonitoringEnabled    bool            `json:"monitoringEnabled,omitempty"`
 	ListenersConfig ListenersConfig `json:"listenersConfig"`
 	ZKAddresses     []string        `json:"zkAddresses"`
 	//RackAwarenessEnabled bool            `json:"rackAwarenessEnabled,omitempty"`

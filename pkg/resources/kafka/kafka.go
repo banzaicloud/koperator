@@ -32,8 +32,11 @@ const (
 	keystoreVolume                = "ks-files"
 	keystoreVolumePath            = "/var/run/secrets/java.io/keystores"
 	pemFilesVolume                = "pem-files"
-	jaasConfig                    = "jaas-config"
-	scramSecret                   = "scram-secret"
+	jmxVolumePath                 = "/opt/jmx-exporter/"
+	jmxVolumeName                 = "jmx-jar-data"
+
+	jaasConfig  = "jaas-config"
+	scramSecret = "scram-secret"
 )
 
 type Reconciler struct {

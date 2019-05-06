@@ -22,7 +22,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{Name: envoyVolumeAndConfigName},
-					DefaultMode: util.Int32Pointer(0644),
+					DefaultMode:          util.Int32Pointer(0644),
 				},
 			},
 		},
