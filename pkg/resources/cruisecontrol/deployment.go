@@ -20,7 +20,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	volumeMount := []corev1.VolumeMount{}
 	initContainers := []corev1.Container{}
 
-	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
+	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && isSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners){
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
 		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName))

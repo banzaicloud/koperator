@@ -255,7 +255,7 @@ log4j.rootLogger = INFO, FILE
 }
 
 func generateSSLConfig(l *banzaicloudv1alpha1.ListenersConfig) (res string) {
-	if l.SSLSecrets != nil {
+	if l.SSLSecrets != nil && isSSLEnabledForInternalCommunication(l.InternalListeners) {
 		res = `
 security.protocol=SSL
 ssl.truststore.location=/var/run/secrets/java.io/keystores/client.truststore.jks
