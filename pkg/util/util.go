@@ -1,6 +1,11 @@
 package util
 
-import "k8s.io/apimachinery/pkg/util/intstr"
+import (
+	"strings"
+
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+)
 
 func IntstrPointer(i int) *intstr.IntOrString {
 	is := intstr.FromInt(i)
@@ -36,3 +41,15 @@ func MonitoringAnnotations() map[string]string {
 		"prometheus.io/port":   "9020",
 	}
 }
+
+func IsSSLEnabledForInternalCommunication(l []banzaicloudv1alpha1.InternalListenerConfig) (enabled bool) {
+
+	for _, listener := range l {
+		if strings.ToLower(listener.Type) == "ssl" {
+			enabled = true
+			break
+		}
+	}
+	return enabled
+}
+

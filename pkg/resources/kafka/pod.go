@@ -46,7 +46,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(broker.Image, r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName))
+		initContainers = append(initContainers, generateInitContainerForSSL(broker.Image, r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.ListenersConfig.InternalListeners))
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /mod-config/broker-config")
 	} else {
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /config/broker-config")
@@ -190,7 +190,23 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volu
 	return
 }
 
-func generateInitContainerForSSL(image, secretName string) corev1.Container {
+func generateInitContainerForSSL(image, secretName string, l []banzaicloudv1alpha1.InternalListenerConfig) corev1.Container {
+
+	genScript := `apk update && apk add openssl && openssl pkcs12 -export -in /var/run/secrets/pemfiles/peerCert -inkey /var/run/secrets/pemfiles/peerKey -out server.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:${SSL_PASSWORD} &&
+keytool -importkeystore -deststorepass ${SSL_PASSWORD} -destkeypass ${SSL_PASSWORD} -destkeystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -srckeystore server.p12 -srcstoretype PKCS12 -srcstorepass ${SSL_PASSWORD} -alias localhost &&
+keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
+keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
+openssl pkcs12 -export -in /var/run/secrets/pemfiles/clientCert -inkey /var/run/secrets/pemfiles/clientKey -out client.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:${SSL_PASSWORD} &&
+keytool -importkeystore -deststorepass ${SSL_PASSWORD} -destkeypass ${SSL_PASSWORD} -destkeystore /var/run/secrets/java.io/keystores/client.keystore.jks -srckeystore client.p12 -srcstoretype PKCS12 -srcstorepass ${SSL_PASSWORD} -alias localhost &&
+keytool -keystore /var/run/secrets/java.io/keystores/client.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
+keytool -keystore /var/run/secrets/java.io/keystores/client.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
+cat /config/broker-config > /mod-config/broker-config && echo "ssl.keystore.password=${SSL_PASSWORD}" >> /mod-config/broker-config && echo "ssl.truststore.password=${SSL_PASSWORD}" >> /mod-config/broker-config`
+
+	if util.IsSSLEnabledForInternalCommunication(l) {
+		genScript = genScript + ` && 
+echo "cruise.control.metrics.reporter.ssl.keystore.password=${SSL_PASSWORD}" >> /mod-config/broker-config && echo "cruise.control.metrics.reporter.truststore.password=${SSL_PASSWORD}" >> /mod-config/broker-config
+`
+	}
 	// Keystore generator
 	initPemToKeyStore := corev1.Container{}
 	initPemToKeyStore = corev1.Container{
@@ -210,19 +226,7 @@ func generateInitContainerForSSL(image, secretName string) corev1.Container {
 				},
 			},
 		},
-		Command: []string{"bash", "-c", `
-apk update && apk add openssl && openssl pkcs12 -export -in /var/run/secrets/pemfiles/peerCert -inkey /var/run/secrets/pemfiles/peerKey -out server.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:${SSL_PASSWORD} &&
-keytool -importkeystore -deststorepass ${SSL_PASSWORD} -destkeypass ${SSL_PASSWORD} -destkeystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -srckeystore server.p12 -srcstoretype PKCS12 -srcstorepass ${SSL_PASSWORD} -alias localhost &&
-keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-openssl pkcs12 -export -in /var/run/secrets/pemfiles/clientCert -inkey /var/run/secrets/pemfiles/clientKey -out client.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:${SSL_PASSWORD} &&
-keytool -importkeystore -deststorepass ${SSL_PASSWORD} -destkeypass ${SSL_PASSWORD} -destkeystore /var/run/secrets/java.io/keystores/client.keystore.jks -srckeystore client.p12 -srcstoretype PKCS12 -srcstorepass ${SSL_PASSWORD} -alias localhost &&
-keytool -keystore /var/run/secrets/java.io/keystores/client.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-keytool -keystore /var/run/secrets/java.io/keystores/client.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-cat /config/broker-config > /mod-config/broker-config && echo "ssl.keystore.password=${SSL_PASSWORD}" >> /mod-config/broker-config && echo "ssl.truststore.password=${SSL_PASSWORD}" >> /mod-config/broker-config &&
-echo "cruise.control.metrics.reporter.ssl.keystore.password=${SSL_PASSWORD}" >> /mod-config/broker-config && echo "cruise.control.metrics.reporter.truststore.password=${SSL_PASSWORD}" >> /mod-config/broker-config
-`,
-		},
+		Command: []string{"bash", "-c", genScript},
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      keystoreVolume,

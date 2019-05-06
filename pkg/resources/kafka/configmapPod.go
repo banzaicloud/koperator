@@ -7,6 +7,7 @@ import (
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,7 +54,10 @@ func generateSSLConfig(l *banzaicloudv1alpha1.ListenersConfig) (res string) {
 		res = `ssl.keystore.location=/var/run/secrets/java.io/keystores/kafka.server.keystore.jks
 ssl.truststore.location=/var/run/secrets/java.io/keystores/kafka.server.truststore.jks
 ssl.client.auth=required
-cruise.control.metrics.reporter.security.protocol=SSL
+`
+	}
+	if l.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(l.InternalListeners){
+		res = res + `cruise.control.metrics.reporter.security.protocol=SSL
 cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io/keystores/client.truststore.jks
 cruise.control.metrics.reporter.ssl.keystore.location=/var/run/secrets/java.io/keystores/client.keystore.jks
 `
