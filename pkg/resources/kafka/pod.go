@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka_monitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
@@ -20,7 +21,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
 			Name:          strings.ReplaceAll(eListener.Name, "_", "-"),
 			ContainerPort: eListener.ContainerPort,
-			Protocol: corev1.ProtocolTCP,
+			Protocol:      corev1.ProtocolTCP,
 		})
 	}
 
@@ -28,7 +29,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
 			Name:          strings.ReplaceAll(iListener.Name, "_", "-"),
 			ContainerPort: iListener.ContainerPort,
-			Protocol: corev1.ProtocolTCP,
+			Protocol:      corev1.ProtocolTCP,
 		})
 	}
 
@@ -52,7 +53,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 	}
 
 	return &corev1.Pod{
-		ObjectMeta: templates.ObjectMetaWithGeneratedName(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), util.MonitoringAnnotations(), r.KafkaCluster),
 		Spec: corev1.PodSpec{
 			Hostname:  fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id),
 			Subdomain: fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name),
@@ -66,8 +67,22 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						Name:      "extensions",
 						MountPath: "/opt/kafka/libs/extensions",
 					}},
-					TerminationMessagePath: "/dev/termination-log",
+					TerminationMessagePath:   "/dev/termination-log",
 					TerminationMessagePolicy: "File",
+				},
+				{
+					Name:                     "jmx-exporter",
+					Image:                    "banzaicloud/jmx_exporter:latest",
+					ImagePullPolicy:          corev1.PullIfNotPresent,
+					Command:                  []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
+					TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+					TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      jmxVolumeName,
+							MountPath: jmxVolumePath,
+						},
+					},
 				},
 			}...),
 			Containers: []corev1.Container{
@@ -80,9 +95,18 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 							Name:  "CLASSPATH",
 							Value: "/opt/kafka/libs/extensions/*",
 						},
+						{
+							Name:  "KAFKA_OPTS",
+							Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar=9020:/etc/jmx-exporter/config.yaml",
+						},
 					},
 					Command: command,
-					Ports:   kafkaBrokerContainerPorts,
+					Ports: append(kafkaBrokerContainerPorts, []corev1.ContainerPort{
+						{
+							ContainerPort: 9020,
+							Protocol:      corev1.ProtocolTCP,
+						},
+					}...),
 					VolumeMounts: append(volumeMount, []corev1.VolumeMount{
 						{
 							Name:      brokerConfigMapVolumeMount,
@@ -92,8 +116,16 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 							Name:      "extensions",
 							MountPath: "/opt/kafka/libs/extensions",
 						},
+						{
+							Name:      jmxVolumeName,
+							MountPath: jmxVolumePath,
+						},
+						{
+							Name:      fmt.Sprintf(kafka_monitoring.BrokerJmxTemplate, r.KafkaCluster.Name),
+							MountPath: "/etc/jmx-exporter/",
+						},
 					}...),
-					TerminationMessagePath: "/dev/termination-log",
+					TerminationMessagePath:   "/dev/termination-log",
 					TerminationMessagePolicy: "File",
 				},
 			},
@@ -103,7 +135,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, broker.Id)},
-							DefaultMode: util.Int32Pointer(0644),
+							DefaultMode:          util.Int32Pointer(0644),
 						},
 					},
 				},
@@ -113,14 +145,29 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
+				{
+					Name: fmt.Sprintf(kafka_monitoring.BrokerJmxTemplate, r.KafkaCluster.Name),
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(kafka_monitoring.BrokerJmxTemplate, r.KafkaCluster.Name)},
+							DefaultMode:          util.Int32Pointer(0644),
+						},
+					},
+				},
+				{
+					Name: jmxVolumeName,
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 			}...),
-			RestartPolicy: corev1.RestartPolicyAlways,
+			RestartPolicy:                 corev1.RestartPolicyAlways,
 			TerminationGracePeriodSeconds: util.Int64Pointer(30),
-			DNSPolicy: corev1.DNSClusterFirst,
-			ServiceAccountName: r.KafkaCluster.Spec.GetServiceAccount(),
-			SecurityContext: &corev1.PodSecurityContext{},
-			Priority: util.Int32Pointer(0),
-			SchedulerName: "default-scheduler",
+			DNSPolicy:                     corev1.DNSClusterFirst,
+			ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
+			SecurityContext:               &corev1.PodSecurityContext{},
+			Priority:                      util.Int32Pointer(0),
+			SchedulerName:                 "default-scheduler",
 		},
 	}
 }
@@ -194,7 +241,7 @@ echo "cruise.control.metrics.reporter.ssl.keystore.password=${SSL_PASSWORD}" >> 
 				MountPath: "/mod-config",
 			},
 		},
-		TerminationMessagePath: corev1.TerminationMessagePathDefault,
+		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 	}
 	return initPemToKeyStore
@@ -212,7 +259,7 @@ func generateVolumesForSSL(tlsSecretName string) []corev1.Volume {
 			Name: pemFilesVolume,
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: tlsSecretName,
+					SecretName:  tlsSecretName,
 					DefaultMode: util.Int32Pointer(0644),
 				},
 			},

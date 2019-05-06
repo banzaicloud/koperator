@@ -13,12 +13,11 @@ func (r *Reconciler) service(log logr.Logger) runtime.Object {
 		ObjectMeta: templates.ObjectMeta(serviceName, labelSelector, r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Selector: labelSelector,
-			Ports:    []corev1.ServicePort{
+			Ports: []corev1.ServicePort{
 				{
-					Port: 8090,
+					Port:       8090,
 					TargetPort: intstr.FromInt(8090),
-					Protocol: corev1.ProtocolTCP,
-
+					Protocol:   corev1.ProtocolTCP,
 				},
 			},
 		},

@@ -1,4 +1,4 @@
-package monitoring
+package kafka_monitoring
 
 import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	BrokerJmxTemplate = "%s-jmx-exporter"
-	componentName     = "monitoring"
+	BrokerJmxTemplate = "%s-kafka-jmx-exporter"
+	componentName     = "kafka_monitoring"
 )
 
 type Reconciler struct {

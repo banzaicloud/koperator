@@ -25,7 +25,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/monitoring"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka_monitoring"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,7 +73,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	objectMatcher := objectmatch.New(log)
 
 	// Initialize owner matcher
-	ownerMatcher := k8sutil.NewOwnerReferenceMatcher(&banzaicloudv1alpha1.KafkaCluster{}, true,  mgr.GetScheme())
+	ownerMatcher := k8sutil.NewOwnerReferenceMatcher(&banzaicloudv1alpha1.KafkaCluster{}, true, mgr.GetScheme())
 
 	// Watch for changes to resources managed by the operator
 	for _, t := range []runtime.Object{
@@ -160,7 +160,8 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 
 	reconcilers := []resources.ComponentReconciler{
 		//envoy.New(r.Client, instance),
-		monitoring.New(r.Client, instance),
+		kafka_monitoring.New(r.Client, instance),
+		cruisecontrol.New(r.Client, instance),
 		kafka.New(r.Client, instance),
 		cruisecontrol.New(r.Client, instance),
 		//restproxy.New(r.Client, instance),
