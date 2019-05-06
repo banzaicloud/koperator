@@ -159,12 +159,12 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	//lBIp, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
-	//if err != nil {
-	//	return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
-	//}
-	// TODO remove after testing
-	lBIp := "192.168.0.1"
+	lBIp, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
+	if err != nil {
+		return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
+	}
+	//TODO remove after testing
+	//lBIp := "192.168.0.1"
 
 	for _, broker := range r.KafkaCluster.Spec.BrokerConfigs {
 		for _, storage := range broker.StorageConfigs {
