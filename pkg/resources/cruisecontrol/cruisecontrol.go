@@ -1,6 +1,8 @@
 package cruisecontrol
 
 import (
+	"strings"
+
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
@@ -57,4 +59,15 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.Info("Reconciled")
 
 	return nil
+}
+
+func isSSLEnabledForInternalCommunication(l []banzaicloudv1alpha1.InternalListenerConfig) (enabled bool) {
+
+	for _, listener := range l {
+		if strings.ToLower(listener.Type) == "ssl" {
+			enabled = true
+			break
+		}
+	}
+	return enabled
 }
