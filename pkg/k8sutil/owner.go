@@ -61,7 +61,7 @@ func (e *OwnerReferenceMatcher) Match(object runtime.Object) (bool, metav1.Objec
 			return false, o, emperror.WrapWith(err, "could not parse api version", "apiVersion", owner.APIVersion)
 		}
 
-		if owner.UID == e.ownerMeta.GetUID() && owner.Kind == e.ownerTypeGroupKind.Kind && groupVersion.Group == e.ownerTypeGroupKind.Group {
+		if (owner.UID == "" || (owner.UID == e.ownerMeta.GetUID())) && owner.Kind == e.ownerTypeGroupKind.Kind && groupVersion.Group == e.ownerTypeGroupKind.Group {
 			return true, o, nil
 		}
 	}

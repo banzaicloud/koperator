@@ -65,7 +65,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to KafkaCluster
-	err = c.Watch(&source.Kind{Type: &banzaicloudv1alpha1.KafkaCluster{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &banzaicloudv1alpha1.KafkaCluster{TypeMeta: metav1.TypeMeta{Kind: "KafkaCluster", APIVersion: "banzaicloud.banzaicloud.io/v1alpha1"}}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	objectMatcher := objectmatch.New(log)
 
 	// Initialize owner matcher
-	ownerMatcher := k8sutil.NewOwnerReferenceMatcher(&banzaicloudv1alpha1.KafkaCluster{}, true, mgr.GetScheme())
+	ownerMatcher := k8sutil.NewOwnerReferenceMatcher(&banzaicloudv1alpha1.KafkaCluster{TypeMeta: metav1.TypeMeta{Kind: "KafkaCluster", APIVersion: "banzaicloud.banzaicloud.io/v1alpha1"}}, true, mgr.GetScheme())
 
 	// Watch for changes to resources managed by the operator
 	for _, t := range []runtime.Object{
@@ -96,9 +96,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				}
 				if related {
 					log.Info("related object deleted", "trigger", object.GetName())
-					return true
 				}
-				return false
+				return true
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				related, object, err := ownerMatcher.Match(e.ObjectNew)
@@ -107,15 +106,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				}
 				if related {
 					log.Info("related object changed", "trigger", object.GetName())
-					objectsEquals, err := objectMatcher.Match(e.ObjectOld, e.ObjectNew)
-					if err != nil {
-						log.Error(err, "could not match objects", "kind", e.ObjectOld.GetObjectKind())
-					} else if objectsEquals {
-						return false
-					}
-					return true
 				}
-				return false
+				objectsEquals, err := objectMatcher.Match(e.ObjectOld, e.ObjectNew)
+				if err != nil {
+					log.Error(err, "could not match objects", "kind", e.ObjectOld.GetObjectKind())
+				} else if objectsEquals {
+					return false
+				}
+				return true
 			},
 		})
 		if err != nil {
