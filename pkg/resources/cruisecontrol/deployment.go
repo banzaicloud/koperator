@@ -31,14 +31,6 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 				Name:      configAndVolumeName,
 				MountPath: "/opt/cruise-control/config",
 			},
-			{
-				Name:      jmxVolumeName,
-				MountPath: jmxVolumePath,
-			},
-			{
-				Name:      fmt.Sprintf(cruisecontrol_monitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name),
-				MountPath: "/etc/jmx-exporter/",
-			},
 		}...)
 	}
 
@@ -118,7 +110,16 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 								FailureThreshold:    3,
 								SuccessThreshold:    1,
 							},
-							VolumeMounts:             volumeMount,
+							VolumeMounts:             append(volumeMount,[]corev1.VolumeMount{
+								{
+									Name:      jmxVolumeName,
+									MountPath: jmxVolumePath,
+								},
+								{
+									Name:      fmt.Sprintf(cruisecontrol_monitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name),
+									MountPath: "/etc/jmx-exporter/",
+								},
+							}...),
 							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 						},
