@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -255,7 +256,7 @@ log4j.rootLogger = INFO, FILE
 }
 
 func generateSSLConfig(l *banzaicloudv1alpha1.ListenersConfig) (res string) {
-	if l.SSLSecrets != nil && isSSLEnabledForInternalCommunication(l.InternalListeners) {
+	if l.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
 		res = `
 security.protocol=SSL
 ssl.truststore.location=/var/run/secrets/java.io/keystores/client.truststore.jks
