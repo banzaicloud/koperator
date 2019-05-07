@@ -20,6 +20,7 @@ import (
 	"github.com/prometheus/common/model"
 )
 
+// Dispatcher calls actioners based on alert annotations
 func Dispatcher(promAlerts []model.Alert, log logr.Logger) {
 	storedAlerts := currentalert.GetCurrentAlerts()
 	for _, promAlert := range promAlerts {
@@ -27,11 +28,12 @@ func Dispatcher(promAlerts []model.Alert, log logr.Logger) {
 			FingerPrint: promAlert.Fingerprint(),
 			Status:      promAlert.Status(),
 			Labels:      promAlert.Labels,
+			Annotations: promAlert.Annotations,
 		}
 		storedAlerts.AddAlert(store)
 		storedAlerts.AlertGC(store)
 	}
 	for key, value := range storedAlerts.ListAlerts() {
-		log.Info("Stored Alert", "key", key, "value", value.Status, "labels", value.Labels)
+		log.Info("Stored Alert", "key", key, "status", value.Status, "labels", value.Labels, "annotations", value.Annotations)
 	}
 }

@@ -80,4 +80,10 @@ func TestGetCurrentAlerts(t *testing.T) {
 	if list3 == nil || list3[testAlert2.FingerPrint].Status != "" {
 		t.Error("1111 alert wasn't deleted")
 	}
+
+	err := alerts3.HandleAlert(model.Fingerprint(2222))
+	expected := "alert doesn't exist"
+	if err == nil || err.Error() != expected {
+		t.Errorf("alert with 2222 should be %s", err)
+	}
 }

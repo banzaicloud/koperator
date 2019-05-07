@@ -15,6 +15,7 @@
 package currentalert
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/prometheus/common/model"
@@ -26,12 +27,15 @@ type CurrentAlerts interface {
 	AlertGC(AlertState) error
 	DeleteAlert(model.Fingerprint) error
 	ListAlerts() map[model.Fingerprint]currentAlertStruct
+	HandleAlert(model.Fingerprint) error
 }
 
+// AlertState current alert state
 type AlertState struct {
 	FingerPrint model.Fingerprint
 	Status      model.AlertStatus
 	Labels      model.LabelSet
+	Annotations model.LabelSet
 }
 
 type currentAlerts struct {
@@ -40,8 +44,10 @@ type currentAlerts struct {
 }
 
 type currentAlertStruct struct {
-	Status model.AlertStatus
-	Labels model.LabelSet
+	Status      model.AlertStatus
+	Labels      model.LabelSet
+	Annotations model.LabelSet
+	Processed   bool
 }
 
 var currAlert *currentAlerts
@@ -64,8 +70,9 @@ func (a *currentAlerts) AddAlert(alert AlertState) currentAlertStruct {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	a.alerts[alert.FingerPrint] = currentAlertStruct{
-		Status: alert.Status,
-		Labels: alert.Labels,
+		Status:      alert.Status,
+		Labels:      alert.Labels,
+		Annotations: alert.Annotations,
 	}
 
 	return a.alerts[alert.FingerPrint]
@@ -75,10 +82,10 @@ func (a *currentAlerts) ListAlerts() map[model.Fingerprint]currentAlertStruct {
 	return a.alerts
 }
 
-func (a *currentAlerts) DeleteAlert(alert model.Fingerprint) error {
+func (a *currentAlerts) DeleteAlert(alertFp model.Fingerprint) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
-	delete(a.alerts, alert)
+	delete(a.alerts, alertFp)
 	return nil
 }
 
@@ -88,6 +95,18 @@ func (a *currentAlerts) AlertGC(alert AlertState) error {
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint) error {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	if _, ok := a.alerts[alertFp]; !ok {
+		return errors.New("alert doesn't exist")
+	}
+	a.alerts[alertFp] = currentAlertStruct{
+		Processed: true,
 	}
 	return nil
 }
