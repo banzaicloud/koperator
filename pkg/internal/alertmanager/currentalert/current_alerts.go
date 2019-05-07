@@ -23,11 +23,11 @@ import (
 
 // CurrentAlerts interface
 type CurrentAlerts interface {
-	AddAlert(AlertState) currentAlertStruct
+	AddAlert(AlertState) *currentAlertStruct
 	AlertGC(AlertState) error
 	DeleteAlert(model.Fingerprint) error
-	ListAlerts() map[model.Fingerprint]currentAlertStruct
-	HandleAlert(model.Fingerprint) error
+	ListAlerts() map[model.Fingerprint]*currentAlertStruct
+	HandleAlert(model.Fingerprint) (*currentAlertStruct, error)
 }
 
 // AlertState current alert state
@@ -40,7 +40,7 @@ type AlertState struct {
 
 type currentAlerts struct {
 	lock   sync.Mutex
-	alerts map[model.Fingerprint]currentAlertStruct
+	alerts map[model.Fingerprint]*currentAlertStruct
 }
 
 type currentAlertStruct struct {
@@ -59,17 +59,17 @@ func GetCurrentAlerts() CurrentAlerts {
 	once.Do(func() {
 		currAlert = &currentAlerts{}
 		if currAlert.alerts == nil {
-			currAlert.alerts = make(map[model.Fingerprint]currentAlertStruct)
+			currAlert.alerts = make(map[model.Fingerprint]*currentAlertStruct)
 		}
 	})
 
 	return currAlert
 }
 
-func (a *currentAlerts) AddAlert(alert AlertState) currentAlertStruct {
+func (a *currentAlerts) AddAlert(alert AlertState) *currentAlertStruct {
 	a.lock.Lock()
 	defer a.lock.Unlock()
-	a.alerts[alert.FingerPrint] = currentAlertStruct{
+	a.alerts[alert.FingerPrint] = &currentAlertStruct{
 		Status:      alert.Status,
 		Labels:      alert.Labels,
 		Annotations: alert.Annotations,
@@ -78,7 +78,7 @@ func (a *currentAlerts) AddAlert(alert AlertState) currentAlertStruct {
 	return a.alerts[alert.FingerPrint]
 }
 
-func (a *currentAlerts) ListAlerts() map[model.Fingerprint]currentAlertStruct {
+func (a *currentAlerts) ListAlerts() map[model.Fingerprint]*currentAlertStruct {
 	return a.alerts
 }
 
@@ -99,14 +99,13 @@ func (a *currentAlerts) AlertGC(alert AlertState) error {
 	return nil
 }
 
-func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint) error {
+func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint) (*currentAlertStruct, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	if _, ok := a.alerts[alertFp]; !ok {
-		return errors.New("alert doesn't exist")
+		return &currentAlertStruct{}, errors.New("alert doesn't exist")
 	}
-	a.alerts[alertFp] = currentAlertStruct{
-		Processed: true,
-	}
-	return nil
+	a.alerts[alertFp].Processed = true
+
+	return a.alerts[alertFp], nil
 }

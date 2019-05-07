@@ -11,3 +11,4 @@ serverFiles:
         annotations:
           description: 'more than 15 pods (current value is: {{ $value }})'
           summary: 'too many pods'
+          command: 'decommission'

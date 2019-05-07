@@ -12,18 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package receiver
 
 import (
-	"net/http"
+	"encoding/json"
 
-	"github.com/banzaicloud/kafka-operator/internal/receiver"
+	"github.com/banzaicloud/kafka-operator/pkg/internal/alertmanager/dispatcher"
 	"github.com/go-logr/logr"
+	"github.com/prometheus/common/model"
 )
 
-// NewApp retunrs HTTPHandler
-func NewApp(log logr.Logger) http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle(receiver.APIEndPoint, receiver.NewHTTPHandler(log))
-	return mux
+func alertReciever(log logr.Logger, alert []byte) {
+	promAlerts := make([]model.Alert, 0)
+	_ = json.Unmarshal(alert, &promAlerts)
+	log.Info("FROM", "promentheus", promAlerts)
+
+	dispatcher.Dispatcher(promAlerts, log)
 }
