@@ -90,6 +90,13 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 					Name:            "kafka",
 					Image:           broker.Image,
 					ImagePullPolicy: corev1.PullIfNotPresent,
+					Lifecycle: &corev1.Lifecycle{
+						PreStop: &corev1.Handler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"bash", "-c", "kill -s TERM 1"},
+							},
+						},
+					},
 					Env: []corev1.EnvVar{
 						{
 							Name:  "CLASSPATH",
@@ -165,8 +172,8 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 					},
 				},
 			}...),
-			RestartPolicy:                 corev1.RestartPolicyAlways,
-			TerminationGracePeriodSeconds: util.Int64Pointer(30),
+			RestartPolicy:                 corev1.RestartPolicyNever,
+			TerminationGracePeriodSeconds: util.Int64Pointer(60),
 			DNSPolicy:                     corev1.DNSClusterFirst,
 			ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
 			SecurityContext:               &corev1.PodSecurityContext{},

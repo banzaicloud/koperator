@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/banzaicloud/kafka-operator/pkg/internal/backoff"
+	"github.com/banzaicloud/kafka-operator/pkg/util/backoff"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
