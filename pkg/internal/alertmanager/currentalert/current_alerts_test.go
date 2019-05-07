@@ -56,6 +56,16 @@ func TestGetCurrentAlerts(t *testing.T) {
 		t.Error("Listing alerts failed a1")
 	}
 
+	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint)
+	if err != nil {
+		t.Error("Hanlde alert failed a1 with error")
+	}
+	t.Log(currAlert)
+
+	if list1 == nil || list1[testAlert1.FingerPrint].Status != "firing" || list1[testAlert1.FingerPrint].Processed != true {
+		t.Error("handle alert failed a1")
+	}
+
 	alerts2 := GetCurrentAlerts()
 	if alerts2 != singleAlerts {
 		t.Error("Expected same instance in alerts2 but it got a different instance")
@@ -77,11 +87,11 @@ func TestGetCurrentAlerts(t *testing.T) {
 	}
 
 	list3 := alerts3.ListAlerts()
-	if list3 == nil || list3[testAlert2.FingerPrint].Status != "" {
+	if list3 == nil || list3[testAlert2.FingerPrint] != nil {
 		t.Error("1111 alert wasn't deleted")
 	}
 
-	err := alerts3.HandleAlert(model.Fingerprint(2222))
+	_, err = alerts3.HandleAlert(model.Fingerprint(1111))
 	expected := "alert doesn't exist"
 	if err == nil || err.Error() != expected {
 		t.Errorf("alert with 2222 should be %s", err)

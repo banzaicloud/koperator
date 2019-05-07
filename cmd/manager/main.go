@@ -26,7 +26,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/banzaicloud/kafka-operator/internal"
+	"github.com/banzaicloud/kafka-operator/pkg/alertmanager"
 	"github.com/banzaicloud/kafka-operator/pkg/apis"
 	"github.com/banzaicloud/kafka-operator/pkg/controller"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
@@ -87,7 +87,7 @@ func main() {
 	var g run.Group
 	{
 		ln, _ := net.Listen("tcp", receiverAddr)
-		httpServer := &http.Server{Handler: internal.NewApp(log)}
+		httpServer := &http.Server{Handler: alertmanager.NewApp(log)}
 
 		g.Add(
 			func() error {
