@@ -35,5 +35,9 @@ func Dispatcher(promAlerts []model.Alert, log logr.Logger) {
 	}
 	for key, value := range storedAlerts.ListAlerts() {
 		log.Info("Stored Alert", "key", key, "status", value.Status, "labels", value.Labels, "annotations", value.Annotations)
+		err := storedAlerts.HandleAlert(key)
+		if err != nil {
+			log.Error(err, "failed to handle alert", "fingerprint", key)
+		}
 	}
 }
