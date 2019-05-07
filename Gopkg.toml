@@ -51,3 +51,7 @@ version="v1.4.7"
 [[constraint]]
   branch = "master"
   name = "github.com/lestrrat-go/backoff"
+
+[[constraint]]
+  name = "github.com/oklog/run"
+  version = "1.0.0"
