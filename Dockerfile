@@ -5,6 +5,7 @@ FROM golang:1.12.1 as builder
 WORKDIR /go/src/github.com/banzaicloud/kafka-operator
 COPY pkg/    pkg/
 COPY cmd/    cmd/
+COPY internal/ internal/
 COPY vendor/ vendor/
 
 # Build

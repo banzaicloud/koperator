@@ -17,7 +17,7 @@ package receiver
 import (
 	"encoding/json"
 
-	"github.com/banzaicloud/kafka-operator/pkg/internal/alertmanager/dispatcher"
+	"github.com/banzaicloud/kafka-operator/internal/alertmanager/dispatcher"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
 )

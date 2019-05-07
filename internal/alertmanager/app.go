@@ -17,7 +17,7 @@ package alertmanager
 import (
 	"net/http"
 
-	"github.com/banzaicloud/kafka-operator/pkg/internal/alertmanager/receiver"
+	"github.com/banzaicloud/kafka-operator/internal/alertmanager/receiver"
 	"github.com/go-logr/logr"
 )
 
