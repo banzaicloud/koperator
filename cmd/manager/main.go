@@ -19,15 +19,18 @@ package main
 import (
 	"context"
 	"flag"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/banzaicloud/kafka-operator/internal"
 	"github.com/banzaicloud/kafka-operator/pkg/apis"
 	"github.com/banzaicloud/kafka-operator/pkg/controller"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
+	"github.com/oklog/run"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -81,33 +84,71 @@ func main() {
 		os.Exit(1)
 	}
 
-	httpHandler := internal.NewApp(log)
-	server := &http.Server{Addr: receiverAddr, Handler: httpHandler}
+	var g run.Group
+	{
+		ln, _ := net.Listen("tcp", receiverAddr)
+		httpServer := &http.Server{Handler: internal.NewApp(log)}
 
-	go func() {
-		err := server.ListenAndServe()
-		if err != nil {
-			log.Error(err, "unable to run alert receiver")
-			os.Exit(1)
-		}
-	}()
+		g.Add(
+			func() error {
+				log.Info("Starting the HTTP server.")
+				return httpServer.Serve(ln)
+			},
+			func(e error) {
+				log.Info("shutting server down")
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
-	select {
-	case <-stop:
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
-		err := server.Shutdown(ctx)
-		if err != nil {
-			log.Error(err, "unable to stop alert 	reciever")
-		}
+				ctx := context.Background()
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
+				defer cancel()
+
+				err := httpServer.Shutdown(ctx)
+				log.Error(err, "error")
+
+				_ = httpServer.Close()
+			},
+		)
 	}
 
-	// Start the Cmd
-	log.Info("Starting the Cmd.")
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
-		log.Error(err, "unable to run the manager")
-		os.Exit(1)
+	{
+		var (
+			cancelInterrupt = make(chan struct{})
+			ch              = make(chan os.Signal, 2)
+		)
+		defer close(ch)
+
+		g.Add(
+			func() error {
+				signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+
+				select {
+				case sig := <-ch:
+					log.Info("captured signal", map[string]interface{}{"signal": sig})
+				case <-cancelInterrupt:
+				}
+
+				return nil
+			},
+			func(e error) {
+				close(cancelInterrupt)
+				signal.Stop(ch)
+			},
+		)
 	}
+
+	{
+		// Start the Cmd
+		g.Add(
+			func() error {
+				log.Info("Starting the Cmd.")
+				return mgr.Start(signals.SetupSignalHandler())
+			},
+			func(error) {
+				log.Error(err, "unable to run the manager")
+				os.Exit(1)
+			},
+		)
+	}
+
+	g.Run()
 }
