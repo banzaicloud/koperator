@@ -67,8 +67,8 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						Name:      "extensions",
 						MountPath: "/opt/kafka/libs/extensions",
 					}},
-					TerminationMessagePath:   "/dev/termination-log",
-					TerminationMessagePolicy: "File",
+					TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+					TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 				},
 				{
 					Name:                     "jmx-exporter",
@@ -98,6 +98,10 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						{
 							Name:  "KAFKA_OPTS",
 							Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar=9020:/etc/jmx-exporter/config.yaml",
+						},
+						{
+							Name: "KAFKA_JVM_PERFORMANCE_OPTS",
+							Value: "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true -Dsun.net.inetaddr.ttl=60",
 						},
 					},
 					Command: command,
