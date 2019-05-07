@@ -134,10 +134,10 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			//pod := desired.(*corev1.Pod)
 			//pod.Name = current.(*corev1.Pod).Name
 			//desired = pod
-			immutableChange := false
-			for _, cond := range current.(*corev1.Pod).Status.Conditions {
-				if cond.Status != corev1.ConditionTrue {
-					immutableChange = true
+			//immutableChange := false
+			//for _, cond := range current.(*corev1.Pod).Status.Conditions {
+			//	if cond.Status != corev1.ConditionTrue {
+			//		immutableChange = true
 					err = client.Delete(context.TODO(), current)
 					if err != nil {
 						return emperror.WrapWith(err, "deleting resource failed", "kind", desiredType)
@@ -147,11 +147,11 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 						return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 					}
 					return nil
-				}
-			}
-			if !immutableChange {
-				desired = current
-			}
+				//}
+			//}
+			//if !immutableChange {
+			//	desired = current
+			//}
 		case *corev1.PersistentVolumeClaim:
 			//TODO
 			desired = current
