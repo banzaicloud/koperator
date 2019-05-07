@@ -15,7 +15,7 @@
 package dispatcher
 
 import (
-	"github.com/banzaicloud/kafka-operator/pkg/internal/alertmanager/currentalert"
+	"github.com/banzaicloud/kafka-operator/internal/alertmanager/currentalert"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
 )
