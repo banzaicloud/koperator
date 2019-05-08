@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	objectmatch "github.com/banzaicloud/k8s-objectmatcher"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
@@ -16,7 +17,7 @@ import (
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Object, crName string) error {
+func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Object, cr *banzaicloudv1alpha1.KafkaCluster) error {
 	desiredType := reflect.TypeOf(desired)
 	var current = desired.DeepCopyObject()
 	var err error
@@ -46,7 +47,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 
 		pvcList := &corev1.PersistentVolumeClaimList{}
 		matchingLabels := map[string]string{
-			"kafka_cr": crName,
+			"kafka_cr": cr.Name,
 			"brokerId": desired.(*corev1.PersistentVolumeClaim).Labels["brokerId"],
 		}
 		err = client.List(context.TODO(), runtimeClient.InNamespace(current.(*corev1.PersistentVolumeClaim).Namespace).MatchingLabels(matchingLabels), pvcList)
@@ -85,7 +86,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 
 		podList := &corev1.PodList{}
 		matchingLabels := map[string]string{
-			"kafka_cr": crName,
+			"kafka_cr": cr.Name,
 			"brokerId": desired.(*corev1.Pod).Labels["brokerId"],
 		}
 		err = client.List(context.TODO(), runtimeClient.InNamespace(current.(*corev1.Pod).Namespace).MatchingLabels(matchingLabels), podList)
@@ -130,28 +131,15 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			svc.Spec.ClusterIP = current.(*corev1.Service).Spec.ClusterIP
 			desired = svc
 		case *corev1.Pod:
-			//TODO
-			//pod := desired.(*corev1.Pod)
-			//pod.Name = current.(*corev1.Pod).Name
-			//desired = pod
-			//immutableChange := false
-			//for _, cond := range current.(*corev1.Pod).Status.Conditions {
-			//	if cond.Status != corev1.ConditionTrue {
-			//		immutableChange = true
-					err = client.Delete(context.TODO(), current)
-					if err != nil {
-						return emperror.WrapWith(err, "deleting resource failed", "kind", desiredType)
-					}
-					err = client.Create(context.TODO(), desired)
-					if err != nil {
-						return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
-					}
-					return nil
-				//}
-			//}
-			//if !immutableChange {
-			//	desired = current
-			//}
+			err := updateCrWithNodeAffinity(current.(*corev1.Pod), cr, client)
+			if err != nil {
+				return emperror.WrapWith(err, "updating cr failed")
+			}
+			err = client.Delete(context.TODO(), current)
+			if err != nil {
+				return emperror.WrapWith(err, "deleting resource failed", "kind", desiredType)
+			}
+			return nil
 		case *corev1.PersistentVolumeClaim:
 			//TODO
 			desired = current

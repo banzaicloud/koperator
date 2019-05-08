@@ -52,7 +52,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /config/broker-config")
 	}
 
-	return &corev1.Pod{
+	 pod := &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), util.MonitoringAnnotations(), r.KafkaCluster),
 		Spec: corev1.PodSpec{
 			Hostname:  fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id),
@@ -181,6 +181,10 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 			SchedulerName:                 "default-scheduler",
 		},
 	}
+	 if broker.NodeAffinity != nil {
+	 	pod.Spec.Affinity = &corev1.Affinity{NodeAffinity:broker.NodeAffinity}
+	 }
+	return pod
 }
 
 func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volume []corev1.Volume, volumeMount []corev1.VolumeMount) {

@@ -20,6 +20,7 @@ const (
 	addBrokerAction          = "add_broker"
 	getTaskListAction        = "user_tasks"
 	kafkaClusterStateAction  = "kafka_cluster_state"
+	rebalanceAction          = "rebalance"
 	serviceName              = "cruisecontrol-svc"
 )
 
@@ -220,6 +221,66 @@ func DownsizeCluster(brokerId string) error {
 
 	return nil
 }
+
+func RebalanceCluster() error {
+
+	err := getCruiseControlStatus()
+	if err != nil {
+		return err
+	}
+
+	options := map[string]string{
+		"dryrun":   "false",
+		"json":     "true",
+	}
+
+	dResp, err := postCruiseControl(rebalanceAction, options)
+	if err != nil {
+		log.Error(err, "can't rebalance cluster gracefully since post to cruise-control failed")
+		return err
+	}
+	log.Info("Initiated rebalance in cruise control")
+
+	uTaskId := dResp.Header.Get("User-Task-Id")
+
+	err = checkIfCCTaskFinished(uTaskId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func RunPreferedLeaderElectionInCluster() error {
+
+	err := getCruiseControlStatus()
+	if err != nil {
+		return err
+	}
+
+	options := map[string]string{
+		"dryrun":   "false",
+		"json":     "true",
+		"goals":    "PreferredLeaderElectionGoal",
+	}
+
+	dResp, err := postCruiseControl(rebalanceAction, options)
+	if err != nil {
+		log.Error(err, "can't rebalance cluster gracefully since post to cruise-control failed")
+		return err
+	}
+	log.Info("Initiated rebalance in cruise control")
+
+	uTaskId := dResp.Header.Get("User-Task-Id")
+
+	err = checkIfCCTaskFinished(uTaskId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 
 func checkIfCCTaskFinished(uTaskId string) error {
 	ccRunning := true

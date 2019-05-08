@@ -2,22 +2,22 @@ package kafka
 
 import (
 	"context"
-	"errors"
+	//"errors"
 	"fmt"
 	"strings"
-	"time"
+	//"time"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
+	//"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	//"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -74,29 +74,29 @@ func getCreatedPVCForBroker(c client.Client, brokerID int32, namespace, crName s
 	return foundPVCList.Items, nil
 }
 
-func getLoadBalancerIP(client client.Client, namespace string, log logr.Logger) (string, error) {
-	foundLBService := &corev1.Service{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: envoy.EnvoyServiceName, Namespace: namespace}, foundLBService)
-	if err != nil {
-		return "", err
-	}
-
-	if len(foundLBService.Status.LoadBalancer.Ingress) == 0 {
-		return "", errors.New("loadbalancer is not created waiting")
-	}
-
-	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" && foundLBService.Status.LoadBalancer.Ingress[0].IP == "" {
-		time.Sleep(20 * time.Second)
-		return "", errors.New("loadbalancer is not ready waiting")
-	}
-	var loadBalancerExternalAddress string
-	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" {
-		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].IP
-	} else {
-		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].Hostname
-	}
-	return loadBalancerExternalAddress, nil
-}
+//func getLoadBalancerIP(client client.Client, namespace string, log logr.Logger) (string, error) {
+//	foundLBService := &corev1.Service{}
+//	err := client.Get(context.TODO(), types.NamespacedName{Name: envoy.EnvoyServiceName, Namespace: namespace}, foundLBService)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	if len(foundLBService.Status.LoadBalancer.Ingress) == 0 {
+//		return "", errors.New("loadbalancer is not created waiting")
+//	}
+//
+//	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" && foundLBService.Status.LoadBalancer.Ingress[0].IP == "" {
+//		time.Sleep(20 * time.Second)
+//		return "", errors.New("loadbalancer is not ready waiting")
+//	}
+//	var loadBalancerExternalAddress string
+//	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" {
+//		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].IP
+//	} else {
+//		loadBalancerExternalAddress = foundLBService.Status.LoadBalancer.Ingress[0].Hostname
+//	}
+//	return loadBalancerExternalAddress, nil
+//}
 
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
@@ -107,7 +107,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		r.headlessServicePod,
 	} {
 		o := res()
-		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster.Name)
+		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 		if err != nil {
 			return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 		}
@@ -159,12 +159,12 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	lBIp, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
-	if err != nil {
-		return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
-	}
+	//lBIp, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
+	//if err != nil {
+	//	return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
+	//}
 	//TODO remove after testing
-	//lBIp := "192.168.0.1"
+	lBIp := "192.168.0.1"
 
 	for _, broker := range r.KafkaCluster.Spec.BrokerConfigs {
 		for _, storage := range broker.StorageConfigs {
@@ -172,7 +172,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				r.pvc,
 			} {
 				o := res(broker, storage, log)
-				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster.Name)
+				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 				if err != nil {
 					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 				}
@@ -182,7 +182,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			r.configMapPod,
 		} {
 			o := res(broker, lBIp, log)
-			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster.Name)
+			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
@@ -197,7 +197,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			r.pod,
 		} {
 			o := res(broker, pvcs, log)
-			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster.Name)
+			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
