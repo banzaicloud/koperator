@@ -25,7 +25,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol_monitoring"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka_monitoring"
 	corev1 "k8s.io/api/core/v1"
@@ -158,7 +157,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	reconcilers := []resources.ComponentReconciler{
-		envoy.New(r.Client, instance),
+		//envoy.New(r.Client, instance),
 		kafka_monitoring.New(r.Client, instance),
 		cruisecontrol_monitoring.New(r.Client, instance),
 		kafka.New(r.Client, instance),

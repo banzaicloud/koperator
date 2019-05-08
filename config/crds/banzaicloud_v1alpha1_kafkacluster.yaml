@@ -57,7 +57,6 @@ spec:
                 type: object
               type: array
             listenersConfig:
-              description: MonitoringEnabled    bool            `json:"monitoringEnabled,omitempty"`
               properties:
                 externalListeners:
                   items:

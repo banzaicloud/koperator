@@ -44,10 +44,11 @@ type KafkaClusterStatus struct {
 
 // BrokerConfig defines the broker configuration
 type BrokerConfig struct {
-	Image          string          `json:"image,omitempty"`
-	Id             int32           `json:"id"`
-	Config         string          `json:"config,omitempty"`
-	StorageConfigs []StorageConfig `json:"storageConfigs"`
+	Image          string               `json:"image,omitempty"`
+	Id             int32                `json:"id"`
+	NodeAffinity   *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
+	Config         string               `json:"config,omitempty"`
+	StorageConfigs []StorageConfig      `json:"storageConfigs"`
 }
 
 // StorageConfig defines the broker storage configuration
