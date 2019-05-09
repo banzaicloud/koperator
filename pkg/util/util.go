@@ -56,4 +56,3 @@ func IsSSLEnabledForInternalCommunication(l []banzaicloudv1alpha1.InternalListen
 	}
 	return enabled
 }
-

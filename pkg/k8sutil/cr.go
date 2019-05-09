@@ -19,7 +19,7 @@ func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 
 	brokerConfigs := []banzaicloudv1alpha1.BrokerConfig{}
 
-	for _, brokerConfig := range cr.Spec.BrokerConfigs{
+	for _, brokerConfig := range cr.Spec.BrokerConfigs {
 		if strconv.Itoa(int(brokerConfig.Id)) == current.Labels["brokerId"] {
 			nodeAffinity := &corev1.NodeAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
@@ -27,14 +27,14 @@ func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 						{
 							MatchExpressions: []corev1.NodeSelectorRequirement{
 								{
-									Key: zoneLabel,
+									Key:      zoneLabel,
 									Operator: corev1.NodeSelectorOpIn,
-									Values: []string{nodeZoneAndRegion.Zone},
+									Values:   []string{nodeZoneAndRegion.Zone},
 								},
 								{
-									Key: regionLabel,
+									Key:      regionLabel,
 									Operator: corev1.NodeSelectorOpIn,
-									Values: []string{nodeZoneAndRegion.Region},
+									Values:   []string{nodeZoneAndRegion.Region},
 								},
 							},
 						},
@@ -49,8 +49,8 @@ func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 	return updateCr(cr, client)
 }
 
-func AddNewBrokerToCr(brokerConfig *banzaicloudv1alpha1.BrokerConfig, crName, namespace string ,client runtimeClient.Client) error {
-	cr, err := getCr(crName,namespace, client)
+func AddNewBrokerToCr(brokerConfig *banzaicloudv1alpha1.BrokerConfig, crName, namespace string, client runtimeClient.Client) error {
+	cr, err := getCr(crName, namespace, client)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient
 	}
 
 	tmpBrokers := cr.Spec.BrokerConfigs[:0]
-	for _,broker := range cr.Spec.BrokerConfigs {
+	for _, broker := range cr.Spec.BrokerConfigs {
 		if strconv.Itoa(int(broker.Id)) != brokerId {
 			tmpBrokers = append(tmpBrokers, broker)
 		}
@@ -82,7 +82,7 @@ func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *ba
 		return err
 	}
 	tempConfigs := cr.Spec.BrokerConfigs[:0]
-	for _, brokerConfig := range cr.Spec.BrokerConfigs{
+	for _, brokerConfig := range cr.Spec.BrokerConfigs {
 		if strconv.Itoa(int(brokerConfig.Id)) == brokerId {
 			brokerConfig.StorageConfigs = append(brokerConfig.StorageConfigs, *storageConfig)
 		}
@@ -96,7 +96,7 @@ func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *ba
 func getCr(name, namespace string, client runtimeClient.Client) (*banzaicloudv1alpha1.KafkaCluster, error) {
 	cr := &banzaicloudv1alpha1.KafkaCluster{}
 
-	err := client.Get(context.TODO(),types.NamespacedName{Name: name, Namespace: namespace}, cr)
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr)
 	if err != nil {
 		return nil, emperror.WrapWith(err, "could not get cr from k8s", "crName", name)
 	}

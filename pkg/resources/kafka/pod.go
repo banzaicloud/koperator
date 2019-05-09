@@ -52,7 +52,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /config/broker-config")
 	}
 
-	 pod := &corev1.Pod{
+	pod := &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), util.MonitoringAnnotations(), r.KafkaCluster),
 		Spec: corev1.PodSpec{
 			Hostname:  fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id),
@@ -107,7 +107,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 							Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar=9020:/etc/jmx-exporter/config.yaml",
 						},
 						{
-							Name: "KAFKA_JVM_PERFORMANCE_OPTS",
+							Name:  "KAFKA_JVM_PERFORMANCE_OPTS",
 							Value: "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true -Dsun.net.inetaddr.ttl=60",
 						},
 					},
@@ -181,9 +181,9 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 			SchedulerName:                 "default-scheduler",
 		},
 	}
-	 if broker.NodeAffinity != nil {
-	 	pod.Spec.Affinity = &corev1.Affinity{NodeAffinity:broker.NodeAffinity}
-	 }
+	if broker.NodeAffinity != nil {
+		pod.Spec.Affinity = &corev1.Affinity{NodeAffinity: broker.NodeAffinity}
+	}
 	return pod
 }
 
