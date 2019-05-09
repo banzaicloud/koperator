@@ -56,7 +56,7 @@ ssl.truststore.location=/var/run/secrets/java.io/keystores/kafka.server.truststo
 ssl.client.auth=required
 `
 	}
-	if l.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(l.InternalListeners){
+	if l.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
 		res = res + `cruise.control.metrics.reporter.security.protocol=SSL
 cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io/keystores/client.truststore.jks
 cruise.control.metrics.reporter.ssl.keystore.location=/var/run/secrets/java.io/keystores/client.keystore.jks

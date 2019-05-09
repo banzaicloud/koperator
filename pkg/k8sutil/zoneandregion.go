@@ -9,24 +9,24 @@ import (
 )
 
 const (
-	zoneLabel = "failure-domain.beta.kubernetes.io/zone"
+	zoneLabel   = "failure-domain.beta.kubernetes.io/zone"
 	regionLabel = "failure-domain.beta.kubernetes.io/region"
 )
 
 type NodeZoneAndRegion struct {
-	Zone string
+	Zone   string
 	Region string
 }
 
 func determineNodeZoneAndRegion(nodeName string, client runtimeClient.Client) (*NodeZoneAndRegion, error) {
 
 	node := &corev1.Node{}
-	err := client.Get(context.TODO(),types.NamespacedName{Name: nodeName, Namespace: ""}, node)
+	err := client.Get(context.TODO(), types.NamespacedName{Name: nodeName, Namespace: ""}, node)
 	if err != nil {
 		return nil, err
 	}
 	return &NodeZoneAndRegion{
-		Zone: node.Labels[zoneLabel],
+		Zone:   node.Labels[zoneLabel],
 		Region: node.Labels[regionLabel],
-	},nil
+	}, nil
 }

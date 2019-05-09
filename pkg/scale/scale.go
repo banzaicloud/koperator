@@ -230,8 +230,8 @@ func RebalanceCluster() error {
 	}
 
 	options := map[string]string{
-		"dryrun":   "false",
-		"json":     "true",
+		"dryrun": "false",
+		"json":   "true",
 	}
 
 	dResp, err := postCruiseControl(rebalanceAction, options)
@@ -259,9 +259,9 @@ func RunPreferedLeaderElectionInCluster() error {
 	}
 
 	options := map[string]string{
-		"dryrun":   "false",
-		"json":     "true",
-		"goals":    "PreferredLeaderElectionGoal",
+		"dryrun": "false",
+		"json":   "true",
+		"goals":  "PreferredLeaderElectionGoal",
 	}
 
 	dResp, err := postCruiseControl(rebalanceAction, options)
@@ -280,7 +280,6 @@ func RunPreferedLeaderElectionInCluster() error {
 
 	return nil
 }
-
 
 func checkIfCCTaskFinished(uTaskId string) error {
 	ccRunning := true
