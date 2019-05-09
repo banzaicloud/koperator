@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	"github.com/prometheus/common/model"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // CurrentAlerts interface
@@ -27,7 +28,7 @@ type CurrentAlerts interface {
 	AlertGC(AlertState) error
 	DeleteAlert(model.Fingerprint) error
 	ListAlerts() map[model.Fingerprint]*currentAlertStruct
-	HandleAlert(model.Fingerprint) (*currentAlertStruct, error)
+	HandleAlert(model.Fingerprint, client.Client) (*currentAlertStruct, error)
 }
 
 // AlertState current alert state
@@ -99,7 +100,7 @@ func (a *currentAlerts) AlertGC(alert AlertState) error {
 	return nil
 }
 
-func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint) (*currentAlertStruct, error) {
+func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Client) (*currentAlertStruct, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	if _, ok := a.alerts[alertFp]; !ok {
