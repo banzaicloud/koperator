@@ -19,6 +19,7 @@ import (
 	"net/http"
 
 	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // APIEndPoint for token handling
@@ -27,20 +28,22 @@ const APIEndPoint = "/"
 // HTTPController collects the greeting use cases and exposes them as HTTP handlers.
 type HTTPController struct {
 	Logger logr.Logger
+	Client client.Client
 }
 
 // NewHTTPHandler returns a new HTTP handler for the greeter.
-func NewHTTPHandler(log logr.Logger) http.Handler {
+func NewHTTPHandler(log logr.Logger, client client.Client) http.Handler {
 	mux := http.NewServeMux()
-	controller := NewHTTPController(log)
+	controller := NewHTTPController(log, client)
 	mux.HandleFunc(APIEndPoint, controller.reciveAlert)
 	return mux
 }
 
 // NewHTTPController returns a new HTTPController instance.
-func NewHTTPController(log logr.Logger) *HTTPController {
+func NewHTTPController(log logr.Logger, client client.Client) *HTTPController {
 	return &HTTPController{
 		Logger: log,
+		Client: client,
 	}
 }
 
@@ -54,7 +57,7 @@ func (a *HTTPController) reciveAlert(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusAccepted)
 		_, _ = w.Write(alert)
-		alertReciever(a.Logger, alert)
+		alertReciever(a.Logger, alert, a.Client)
 
 	default:
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)

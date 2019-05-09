@@ -17,20 +17,12 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"flag"
-	"net"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
-	"github.com/banzaicloud/kafka-operator/internal/alertmanager"
 	"github.com/banzaicloud/kafka-operator/pkg/apis"
 	"github.com/banzaicloud/kafka-operator/pkg/controller"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
-	"github.com/oklog/run"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -39,9 +31,8 @@ import (
 )
 
 func main() {
-	var metricsAddr, receiverAddr string
+	var metricsAddr string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&receiverAddr, "receiver-addr", ":9001", "The address the receiver endpoint binds to.")
 	flag.Parse()
 	logf.SetLogger(logf.ZapLogger(false))
 	log := logf.Log.WithName("entrypoint")
@@ -84,71 +75,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	var g run.Group
-	{
-		ln, _ := net.Listen("tcp", receiverAddr)
-		httpServer := &http.Server{Handler: alertmanager.NewApp(log)}
-
-		g.Add(
-			func() error {
-				log.Info("Starting the HTTP server.")
-				return httpServer.Serve(ln)
-			},
-			func(e error) {
-				log.Info("shutting server down")
-
-				ctx := context.Background()
-				var cancel context.CancelFunc
-				ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
-				defer cancel()
-
-				err := httpServer.Shutdown(ctx)
-				log.Error(err, "error")
-
-				_ = httpServer.Close()
-			},
-		)
+	// Start the Cmd
+	log.Info("Starting the Cmd.")
+	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+		log.Error(err, "unable to run the manager")
+		os.Exit(1)
 	}
-
-	{
-		var (
-			cancelInterrupt = make(chan struct{})
-			ch              = make(chan os.Signal, 2)
-		)
-		defer close(ch)
-
-		g.Add(
-			func() error {
-				signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-
-				select {
-				case sig := <-ch:
-					log.Info("captured signal", map[string]interface{}{"signal": sig})
-				case <-cancelInterrupt:
-				}
-
-				return nil
-			},
-			func(e error) {
-				close(cancelInterrupt)
-				signal.Stop(ch)
-			},
-		)
-	}
-
-	{
-		// Start the Cmd
-		g.Add(
-			func() error {
-				log.Info("Starting the Cmd.")
-				return mgr.Start(signals.SetupSignalHandler())
-			},
-			func(error) {
-				log.Error(err, "unable to run the manager")
-				os.Exit(1)
-			},
-		)
-	}
-
-	g.Run()
 }
