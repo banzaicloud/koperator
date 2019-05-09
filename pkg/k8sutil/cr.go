@@ -49,8 +49,8 @@ func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 	return updateCr(cr, client)
 }
 
-func AddNewBrokerToCr(brokerConfig *banzaicloudv1alpha1.BrokerConfig, crName string ,client runtimeClient.Client) error {
-	cr, err := getCr(crName, client)
+func AddNewBrokerToCr(brokerConfig *banzaicloudv1alpha1.BrokerConfig, crName, namespace string ,client runtimeClient.Client) error {
+	cr, err := getCr(crName,namespace, client)
 	if err != nil {
 		return err
 	}
@@ -59,9 +59,9 @@ func AddNewBrokerToCr(brokerConfig *banzaicloudv1alpha1.BrokerConfig, crName str
 	return updateCr(cr, client)
 }
 
-func RemoveBrokerFromCr(brokerId, crName string, client runtimeClient.Client) error {
+func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient.Client) error {
 
-	cr, err := getCr(crName, client)
+	cr, err := getCr(crName, namespace, client)
 	if err != nil {
 		return err
 	}
@@ -76,14 +76,27 @@ func RemoveBrokerFromCr(brokerId, crName string, client runtimeClient.Client) er
 	return updateCr(cr, client)
 }
 
-//func AddPvToSpecificBroker(brokerId string, crName string, pvc *corev1.PersistentVolumeClaimSpec) error {
-//
-//}
+func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *banzaicloudv1alpha1.StorageConfig, client runtimeClient.Client) error {
+	cr, err := getCr(crName, namespace, client)
+	if err != nil {
+		return err
+	}
+	tempConfigs := cr.Spec.BrokerConfigs[:0]
+	for _, brokerConfig := range cr.Spec.BrokerConfigs{
+		if strconv.Itoa(int(brokerConfig.Id)) == brokerId {
+			brokerConfig.StorageConfigs = append(brokerConfig.StorageConfigs, *storageConfig)
+		}
+		tempConfigs = append(tempConfigs, brokerConfig)
+	}
 
-func getCr(name string, client runtimeClient.Client) (*banzaicloudv1alpha1.KafkaCluster, error) {
+	cr.Spec.BrokerConfigs = tempConfigs
+	return updateCr(cr, client)
+}
+
+func getCr(name, namespace string, client runtimeClient.Client) (*banzaicloudv1alpha1.KafkaCluster, error) {
 	cr := &banzaicloudv1alpha1.KafkaCluster{}
 
-	err := client.Get(context.TODO(),types.NamespacedName{Name: name, Namespace: ""}, cr)
+	err := client.Get(context.TODO(),types.NamespacedName{Name: name, Namespace: namespace}, cr)
 	if err != nil {
 		return nil, emperror.WrapWith(err, "could not get cr from k8s", "crName", name)
 	}

@@ -24,6 +24,10 @@ func BoolPointer(b bool) *bool {
 	return &b
 }
 
+func StringPointer(s string) *string {
+	return &s
+}
+
 func MergeLabels(l map[string]string, l2 map[string]string) map[string]string {
 	if l == nil {
 		l = make(map[string]string)
