@@ -18,10 +18,11 @@ import (
 	"github.com/banzaicloud/kafka-operator/internal/alertmanager/currentalert"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Dispatcher calls actioners based on alert annotations
-func Dispatcher(promAlerts []model.Alert, log logr.Logger) {
+func Dispatcher(promAlerts []model.Alert, log logr.Logger, client client.Client) {
 	storedAlerts := currentalert.GetCurrentAlerts()
 	for _, promAlert := range promAlerts {
 		store := currentalert.AlertState{
@@ -35,7 +36,7 @@ func Dispatcher(promAlerts []model.Alert, log logr.Logger) {
 	}
 	for key, value := range storedAlerts.ListAlerts() {
 		log.Info("Stored Alert", "key", key, "status", value.Status, "labels", value.Labels, "annotations", value.Annotations)
-		_, err := storedAlerts.HandleAlert(key)
+		_, err := storedAlerts.HandleAlert(key, client)
 		if err != nil {
 			log.Error(err, "failed to handle alert", "fingerprint", key)
 		}

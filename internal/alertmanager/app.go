@@ -19,11 +19,12 @@ import (
 
 	"github.com/banzaicloud/kafka-operator/internal/alertmanager/receiver"
 	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NewApp retunrs HTTPHandler
-func NewApp(log logr.Logger) http.Handler {
+// NewApp returns HTTPHandler
+func NewApp(log logr.Logger, client client.Client) http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle(receiver.APIEndPoint, receiver.NewHTTPHandler(log))
+	mux.Handle(receiver.APIEndPoint, receiver.NewHTTPHandler(log, client))
 	return mux
 }

@@ -20,12 +20,13 @@ import (
 	"github.com/banzaicloud/kafka-operator/internal/alertmanager/dispatcher"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func alertReciever(log logr.Logger, alert []byte) {
+func alertReciever(log logr.Logger, alert []byte, client client.Client) {
 	promAlerts := make([]model.Alert, 0)
 	_ = json.Unmarshal(alert, &promAlerts)
 	log.Info("FROM", "promentheus", promAlerts)
 
-	dispatcher.Dispatcher(promAlerts, log)
+	dispatcher.Dispatcher(promAlerts, log, client)
 }
