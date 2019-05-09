@@ -1,0 +1,83 @@
+# Default values for kafka-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+operator:
+  image:
+    repository: banzaicloud/kafka-operator
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  alertHandler:
+    enabled: true
+
+    serverFiles:
+      alerts:
+        groups:
+        - name: TestAlert
+          rules:
+          - alert: PodAllert
+            expr: kubelet_running_pod_count > 15
+            for: 1m
+            labels:
+              severity: alert
+            annotations:
+              description: 'more than 15 pods (current value is: {{ $value }})'
+              summary: 'too many pods'
+              command: 'decommission'
+
+prometheus:
+  alertmanager:
+    enabled: false
+    custom:
+      alerting:
+        alertmanagers:
+        - kubernetes_sd_configs:
+            - role: pod
+          tls_config:
+            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+          path_prefix: /
+          relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: default
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            regex: kafka-operator
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+            regex: operator
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            regex: 9001
+            action: keep
+
+prometheusMetrics:
+  enabled: true
+  authProxy:
+    enabled: true
+    image:
+      repository: gcr.io/kubebuilder/kube-rbac-proxy
+      tag: v0.4.0
+      pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+rbac:
+  enabled: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

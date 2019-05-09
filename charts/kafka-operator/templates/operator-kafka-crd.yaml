@@ -1,0 +1,143 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
+    helm.sh/chart: {{ include "kafka-operator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/component: operator
+  name: kafkaclusters.banzaicloud.banzaicloud.io
+spec:
+  group: banzaicloud.banzaicloud.io
+  names:
+    kind: KafkaCluster
+    plural: kafkaclusters
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            brokerConfigs:
+              description: RackAwarenessEnabled bool            `json:"rackAwarenessEnabled,omitempty"`
+              items:
+                properties:
+                  config:
+                    type: string
+                  id:
+                    format: int32
+                    type: integer
+                  image:
+                    type: string
+                  storageConfigs:
+                    items:
+                      properties:
+                        mountPath:
+                          type: string
+                        pvcSpec:
+                          type: object
+                      required:
+                      - mountPath
+                      - pvcSpec
+                      type: object
+                    type: array
+                required:
+                - id
+                - storageConfigs
+                type: object
+              type: array
+            listenersConfig:
+              properties:
+                externalListeners:
+                  items:
+                    properties:
+                      containerPort:
+                        format: int32
+                        type: integer
+                      externalStartingPort:
+                        format: int32
+                        type: integer
+                      name:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                    - type
+                    - name
+                    - externalStartingPort
+                    - containerPort
+                    type: object
+                  type: array
+                internalListeners:
+                  items:
+                    properties:
+                      containerPort:
+                        format: int32
+                        type: integer
+                      name:
+                        type: string
+                      type:
+                        type: string
+                      usedForInnerBrokerCommunication:
+                        type: boolean
+                    required:
+                    - type
+                    - name
+                    - usedForInnerBrokerCommunication
+                    - containerPort
+                    type: object
+                  type: array
+                sslSecrets:
+                  properties:
+                    jksPasswordName:
+                      type: string
+                    tlsSecretName:
+                      type: string
+                  required:
+                  - tlsSecretName
+                  - jksPasswordName
+                  type: object
+              required:
+              - internalListeners
+              type: object
+            serviceAccount:
+              type: string
+            zkAddresses:
+              items:
+                type: string
+              type: array
+          required:
+          - listenersConfig
+          - zkAddresses
+          - brokerConfigs
+          - serviceAccount
+          type: object
+        status:
+          properties:
+            brokersState:
+              type: object
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
