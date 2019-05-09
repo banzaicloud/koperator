@@ -98,8 +98,8 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
-			err = scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"])
-			if err != nil {
+			scaleErr := scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"])
+			if scaleErr != nil {
 				log.Error(err, "graceful upscale failed, or cluster just started")
 			}
 			log.Info("resource created")

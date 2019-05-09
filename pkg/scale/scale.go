@@ -140,7 +140,7 @@ func isKafkaBrokerReady(brokerId string) (bool, error) {
 	bId, _ := strconv.Atoi(brokerId)
 
 	if len(response["KafkaBrokerState"].(map[string]interface{})["OnlineLogDirsByBrokerId"].(map[string]interface{})) == bId+1 {
-		log.Info("could not handle graceful operation because cruise-control is not ready")
+		log.Info("waiting for broker to became available in cruise-control")
 		running = true
 	}
 	return running, nil
