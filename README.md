@@ -19,7 +19,7 @@
 
 </p>
 
-# Kafka-operator
+# Kafka-Operator
 
 Kafka-operator is a Kubernetes operator to deploy and manage [Apache Kafka](https://kafka.apache.org).
 
@@ -97,6 +97,10 @@ helm install --name=kafka --namespace=kafka banzaicloud-stable/kafka-operator
 ## Development
 
 Check out the [developer docs](docs/developer.md).
+
+## Features
+
+Check out the [supported features docs](docs/feature.md).
 
 ## Issues, feature requests and roadmap
 
