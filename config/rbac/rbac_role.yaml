@@ -57,6 +57,14 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - banzaicloud.banzaicloud.io
   resources:
   - kafkaclusters
