@@ -8,6 +8,8 @@ Released:
 Under development (next release)
 
 - [ ] - User management via CRD
+- [ ] - User managed Cruise Control Configuration
+- [ ] - Rack awareness deployment
 
 Short term roadmap
 
