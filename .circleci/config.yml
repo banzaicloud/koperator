@@ -1,0 +1,92 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.12
+
+    working_directory: /go/src/github.com/banzaicloud/kafka-operator
+    steps:
+      - checkout
+
+      - restore_cache:
+          name: Restore build dependencies
+          keys:
+            - build-deps-v1-{{ .Branch }}-{{ checksum "Makefile" }}
+            - build-deps-v1-{{ .Branch }}
+            - build-deps-v1-master
+            - build-deps-v1
+
+      - restore_cache:
+          name: Restore dependencies
+          keys:
+            - gopkg-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+            - gopkg-v1-{{ .Branch }}
+            - gopkg-v1-master
+            - gopkg-v1
+
+      - run:
+          name: Install dependencies
+          command: make vendor
+
+      - save_cache:
+          name: Save dependencies
+          key: gopkg-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          paths:
+            - vendor/
+
+      - restore_cache:
+          name: Restore license cache
+          keys:
+            - licensei-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+            - licensei-v1-{{ .Branch }}
+            - licensei-v1-master
+            - licensei-v1
+
+      - run:
+          name: Download license information for dependencies
+          command: make license-cache
+
+      - save_cache:
+          name: Save license cache
+          key: licensei-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          paths:
+            - .licensei.cache
+
+      - run:
+          name: Check dependency licenses
+          command: make license-check
+
+      - run:
+            name: Verify code generation
+            command: make verify-codegen
+
+      - run:
+          name: Build
+          command:
+            make generate
+
+      - run:
+          name: Run linter
+          command: make lint
+
+      - run:
+          name: Run unit tests
+          command: make test
+          when: always
+
+      - save_cache:
+          name: Save build dependencies
+          key: build-deps-v1-{{ .Branch }}-{{ checksum "Makefile" }}
+          paths:
+            - bin/
+
+      - store_test_results:
+          path: build/
+      - store_artifacts:
+          path: build/
+
+workflows:
+    version: 2
+    ci:
+        jobs:
+            - build
