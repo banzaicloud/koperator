@@ -39,6 +39,8 @@ spec:
                     type: integer
                   image:
                     type: string
+                  nodeAffinity:
+                    type: object
                   storageConfigs:
                     items:
                       properties:

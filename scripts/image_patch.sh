@@ -1,3 +1,9 @@
+#!/usr/bin/env bash
+
+: ${1?"Usage: $0 PATCH_FILE IMG_NAME"}
+: ${2?"Usage: $0 PATCH_FILE IMG_NAME"}
+
+cat << EOF > ${1}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -8,5 +14,6 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: banzaicloud/kafka-operator:0.2.0
+      - image: ${2}
         name: manager
+EOF

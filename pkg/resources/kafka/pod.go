@@ -1,3 +1,17 @@
+// Copyright © 2019 Banzai Cloud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package kafka
 
 import (
@@ -5,7 +19,7 @@ import (
 	"strings"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka_monitoring"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
@@ -132,7 +146,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 							MountPath: jmxVolumePath,
 						},
 						{
-							Name:      fmt.Sprintf(kafka_monitoring.BrokerJmxTemplate, r.KafkaCluster.Name),
+							Name:      fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, r.KafkaCluster.Name),
 							MountPath: "/etc/jmx-exporter/",
 						},
 					}...),
@@ -157,10 +171,10 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 					},
 				},
 				{
-					Name: fmt.Sprintf(kafka_monitoring.BrokerJmxTemplate, r.KafkaCluster.Name),
+					Name: fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, r.KafkaCluster.Name),
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(kafka_monitoring.BrokerJmxTemplate, r.KafkaCluster.Name)},
+							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, r.KafkaCluster.Name)},
 							DefaultMode:          util.Int32Pointer(0644),
 						},
 					},
@@ -223,8 +237,7 @@ echo "cruise.control.metrics.reporter.ssl.keystore.password=${SSL_PASSWORD}" >> 
 `
 	}
 	// Keystore generator
-	initPemToKeyStore := corev1.Container{}
-	initPemToKeyStore = corev1.Container{
+	initPemToKeyStore := corev1.Container{
 		Name:            "pem-to-jks",
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Image:           image,
