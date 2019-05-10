@@ -1,3 +1,17 @@
+// Copyright © 2019 Banzai Cloud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package k8sutil
 
 import (
@@ -98,7 +112,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
-			scaleErr := scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"])
+			scaleErr := scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"], desired.(*corev1.Pod).Namespace)
 			if scaleErr != nil {
 				log.Error(err, "graceful upscale failed, or cluster just started")
 			}

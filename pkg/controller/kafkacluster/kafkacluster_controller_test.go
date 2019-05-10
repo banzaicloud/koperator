@@ -1,18 +1,16 @@
-/*
-Copyright 2019 Banzai Cloud.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright © 2019 Banzai Cloud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package kafkacluster
 
@@ -23,6 +21,7 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,7 +33,6 @@ import (
 var c client.Client
 
 var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-var depKey = types.NamespacedName{Name: "foo", Namespace: "default"}
 
 const timeout = time.Second * 5
 
@@ -42,34 +40,38 @@ func TestReconcile(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 	instance := &banzaicloudv1alpha1.KafkaCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: banzaicloudv1alpha1.KafkaClusterSpec{
-			//Brokers: 1,
-			//Image:   "banzaicloud/kafka:test",
-			//Annotations:  map[string]string{"kafka": "test"},
-			//BrokerConfig: "broker=1",
-			//Listeners: banzaicloudv1alpha1.Listeners{
-			//	ExternalListener: []banzaicloudv1alpha1.ExternalListenerConfig{
-			//		{
-			//			Type:                 "plaintext",
-			//			Name:                 "external",
-			//			ExternalStartingPort: 9090,
-			//			ContainerPort:        9094,
-			//		},
-			//	},
-			//	InternalListener: []banzaicloudv1alpha1.InternalListenerConfig{
-			//		{
-			//			Type:                            "plaintext",
-			//			Name:                            "internal",
-			//			ContainerPort:                   29092,
-			//			UsedForInnerBrokerCommunication: true,
-			//		},
-			//	},
-			//},
-			//MonitoringConfig: banzaicloudv1alpha1.MonitoringConfig{},
-			//ServiceAccount:   "",
-			//StorageSize:      "1Gi",
-		},
-		Status: banzaicloudv1alpha1.KafkaClusterStatus{
-			//HealthyBrokers: 1,
+			ZKAddresses: []string{"example.zk:2181"},
+			BrokerConfigs: []banzaicloudv1alpha1.BrokerConfig{
+				{
+					Image: "banzaicloud/kafka-operator:latest",
+					Id:    int32(0),
+					StorageConfigs: []banzaicloudv1alpha1.StorageConfig{
+						{
+							MountPath: "/kafka-logs",
+							PVCSpec:   &corev1.PersistentVolumeClaimSpec{},
+						},
+					},
+				},
+			},
+			ListenersConfig: banzaicloudv1alpha1.ListenersConfig{
+				ExternalListeners: []banzaicloudv1alpha1.ExternalListenerConfig{
+					{
+						Type:                 "plaintext",
+						Name:                 "external",
+						ExternalStartingPort: 9090,
+						ContainerPort:        9094,
+					},
+				},
+				InternalListeners: []banzaicloudv1alpha1.InternalListenerConfig{
+					{
+						Type:                            "plaintext",
+						Name:                            "plaintext",
+						ContainerPort:                   29092,
+						UsedForInnerBrokerCommunication: true,
+					},
+				},
+			},
+			ServiceAccount: "",
 		},
 	}
 
