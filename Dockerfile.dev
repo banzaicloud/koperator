@@ -1,7 +1,7 @@
 # Build the manager binary
 ARG GO_VERSION=1.12.1
 
-FROM golang:${GO_VERSION} as builder
+FROM golang:${GO_VERSION}-alpine as builder
 
 RUN apk add --update --no-cache ca-certificates make git curl mercurial
 
