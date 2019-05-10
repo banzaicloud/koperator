@@ -1,10 +1,24 @@
+// Copyright © 2019 Banzai Cloud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cruisecontrol
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol_monitoring"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrolmonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
@@ -116,7 +130,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 									MountPath: jmxVolumePath,
 								},
 								{
-									Name:      fmt.Sprintf(cruisecontrol_monitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name),
+									Name:      fmt.Sprintf(cruisecontrolmonitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name),
 									MountPath: "/etc/jmx-exporter/",
 								},
 							}...),
@@ -135,10 +149,10 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 							},
 						},
 						{
-							Name: fmt.Sprintf(cruisecontrol_monitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name),
+							Name: fmt.Sprintf(cruisecontrolmonitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name),
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(cruisecontrol_monitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name)},
+									LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(cruisecontrolmonitoring.CruiseControlJmxTemplate, r.KafkaCluster.Name)},
 									DefaultMode:          util.Int32Pointer(0644),
 								},
 							},
@@ -158,8 +172,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 
 func generateInitContainerForSSL(secretName string) corev1.Container {
 	// Keystore generator
-	initPemToKeyStore := corev1.Container{}
-	initPemToKeyStore = corev1.Container{
+	initPemToKeyStore := corev1.Container{
 		Name:            "pem-to-jks",
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Image:           "wurstmeister/kafka:2.12-2.1.0",

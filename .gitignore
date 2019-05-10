@@ -18,9 +18,15 @@ bin
 !vendor/**/zz_generated.*
 
 # editor and IDE paraphernalia
-.idea
 *.swp
 *.swo
 *~
 
-vendor/
+.idea/*
+!/.idea/go.imports.xml
+vendor/*
+/.licensei.cache
+bin/*
+cover.out
+
+manager_image_patch.yaml

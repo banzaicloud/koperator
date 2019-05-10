@@ -3,7 +3,6 @@ kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
   labels:
-  labels:
     controller-tools.k8s.io: "1.0"
     app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
     helm.sh/chart: {{ include "kafka-operator.chart" . }}
