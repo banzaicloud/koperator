@@ -19,21 +19,7 @@ operator:
   
   alertHandler:
     enabled: true
-    serverFiles:
-      alerts:
-        groups:
-        - name: TestAlert
-          rules:
-          - alert: PodAllert
-            expr: kubelet_running_pod_count > 15
-            for: 1m
-            labels:
-              severity: alert
-            annotations:
-              description: 'more than 15 pods (current value is: {{ $value }})'
-              summary: 'too many pods'
-              command: 'decommission'
-
+    
 prometheus:
   alertmanager:
     enabled: false
@@ -59,6 +45,21 @@ prometheus:
           - source_labels: [__meta_kubernetes_pod_container_port_number]
             regex: 9001
             action: keep
+
+  serverFiles:
+    alerts:
+      groups:
+      - name: TestAlert
+        rules:
+        - alert: PodAllert
+          expr: kubelet_running_pod_count > 15
+          for: 1m
+          labels:
+            severity: alert
+          annotations:
+            description: 'more than 15 pods (current value is: {{ $value }})'
+            summary: 'too many pods'
+            command: 'decommission'
 
 prometheusMetrics:
   enabled: true
