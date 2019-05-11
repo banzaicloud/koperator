@@ -112,7 +112,7 @@ func getCr(name, namespace string, client runtimeClient.Client) (*banzaicloudv1a
 
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr)
 	if err != nil {
-		return nil, emperror.WrapWith(err, "could not get cr from k8s", "crName", name)
+		return nil, emperror.WrapWith(err, "could not get cr from k8s", "crName", name, "namespace", namespace)
 	}
 	return cr, nil
 }
