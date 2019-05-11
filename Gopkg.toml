@@ -19,6 +19,11 @@ required = [
 [prune]
   go-tests = true
 
+[[override]]
+  name = "k8s.io/code-generator"
+  # revision for tag "kubernetes-1.13.1"
+  revision = "c2090bec4d9b1fb25de3812f868accc2bc9ecbae"
+
 
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
@@ -41,17 +46,9 @@ version="v1.4.7"
   version = "=v0.6.7"
 
 [[constraint]]
-  name = "github.com/sethvargo/go-password"
-  version = "0.1.2"
-
-[[constraint]]
   branch = "add_pod"
   name = "github.com/banzaicloud/k8s-objectmatcher"
 
 [[constraint]]
   branch = "master"
   name = "github.com/lestrrat-go/backoff"
-
-[[constraint]]
-  name = "github.com/oklog/run"
-  version = "1.0.0"
