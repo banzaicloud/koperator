@@ -61,6 +61,34 @@ prometheus:
             summary: 'too many pods'
             command: 'decommission'
 
+      - name: KafkaAlerts
+        rules:
+        - alert: BrokerOverLoaded
+          expr: sum(rate(kafka_network_requestmetrics_requests_total[5m])) by (brokerId,kafka_cr,kubernetes_namespace) > 12.7
+          for: 1m
+          labels:
+            severity: alert
+          annotations:
+            description: 'broker {{ $labels.brokerId }} overloaded (current value is: {{ $value }})'
+            summary: 'broker overloaded'
+            storegeClasss: 'storargeclass'
+            mountPath: '/kafkalog'
+            diskSize: '2G'
+            command: 'addBroker'
+        - alert: BrokerUnderreplicated
+          expr: kafka_server_replicamanager_underreplicatedpartitions == 1
+          for: 5m
+          labels:
+            severity: alert
+          annotations:
+            description: 'broker {{ $labels.brokerId }} underreplicated'
+            summary: 'broker underreplicated'
+            storegeClasss: 'storargeclass'
+            mountPath: '/kafkalog'
+            diskSize: '2G'
+            command: 'addBroker'
+
+
 prometheusMetrics:
   enabled: true
   authProxy:
