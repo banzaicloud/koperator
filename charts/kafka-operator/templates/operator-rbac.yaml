@@ -95,12 +95,15 @@ rules:
   - create
   - watch
   - list
+  - delete
 - apiGroups:
   - ""
   resources:
   - nodes
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - admissionregistration.k8s.io
   resources:

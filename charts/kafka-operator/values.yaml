@@ -75,7 +75,7 @@ prometheus:
             mountPath: '/kafkalog'
             diskSize: '2G'
             command: 'addBroker'
-        - alert: BrokerUnderreplicated
+        - alert: BrokerUnderReplicated
           expr: kafka_server_replicamanager_underreplicatedpartitions == 1
           for: 5m
           labels:
@@ -87,7 +87,39 @@ prometheus:
             mountPath: '/kafkalog'
             diskSize: '2G'
             command: 'addBroker'
-
+        - alert: PartitionCountHigh
+          expr: kafka_server_replicamanager_partitioncount > 80
+          for: 1m
+          labels:
+            severity: alert
+          annotations:
+            description: 'broker {{ $labels.brokerId }} has high partition count'
+            summary: 'high partition count'
+            storegeClasss: 'storargeclass'
+            mountPath: '/kafkalog'
+            diskSize: '2G'
+            command: 'upScale'
+        - alert: PartitionCountHigh
+          expr: kafka_server_replicamanager_partitioncount < 40
+          for: 1m
+          labels:
+            severity: alert
+          annotations:
+            description: 'broker {{ $labels.brokerId }} has low partition count'
+            summary: 'low partition count'
+            command: 'DownScale'
+        - alert: RemainingDiskSpaceLow
+          expr: kubelet_volume_stats_available_bytes{persistentvolumeclaim=~"kafka-.*"} < 1 * 1000 * 1000 * 1000
+          for: 1m
+          labels:
+            severity: alert
+          annotations:
+            description: 'broker {{ $labels.brokerId }} has low disk space'
+            summary: 'low diskspace'
+            storegeClasss: 'storargeclass'
+            mountPath: '/kafkalog'
+            diskSize: '2G'
+            command: 'addPVC'
 
 prometheusMetrics:
   enabled: true
