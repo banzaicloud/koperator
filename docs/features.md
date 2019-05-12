@@ -37,6 +37,16 @@ Here at Banzai Cloud we know how to operate Kafka at scale but we also know Link
 To gracefully scale Kafka cluster we integrated LinkedIn's [Cruise-Control](https://github.com/linkedin/cruise-control) to do the hard work.
 
 #### External Access via LoadBalancer
+
+Banzai Cloud's operator externalizing access to Kafka using a dynamically (re)configured Envoy proxy. Using Envoy enables using only one LoadBalancer.
+![](img/kafka-external.png)
+
 #### Communication via SSL
+
+Operator fully automates Kafka's SSL support. Users must provide and install the right certificate as a Kubernetes Secret. 
+
 #### Monitoring via Prometheus
+
+Operator exposes Cruise-Control and Kafka JMX metrics to Prometheus.
+
 #### Reacting on Alerts
