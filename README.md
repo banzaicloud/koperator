@@ -100,7 +100,7 @@ Check out the [developer docs](docs/developer.md).
 
 ## Features
 
-Check out the [supported features](docs/feature.md).
+Check out the [supported features](docs/features.md).
 
 ## Issues, feature requests and roadmap
 
