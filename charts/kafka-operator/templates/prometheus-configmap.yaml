@@ -1,0 +1,49 @@
+{{- if not (empty .Values.prometheus.server.configMapOverrideName) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
+    helm.sh/chart: {{ include "kafka-operator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/component: prometheus
+  name: {{ .Release.Name }}-prometheus-cm-kafka-opertor
+data:
+{{- $root := . -}}
+{{- range $key, $value := .Values.prometheus.serverFiles }}
+  {{ $key }}: |
+{{- if eq $key "prometheus.yml" }}
+    global:
+{{ $root.Values.prometheus.server.global | toYaml | trimSuffix "\n" | indent 6 }}
+{{- end }}
+{{ toYaml $value | default "{}" | indent 4 }}
+{{- if eq $key "prometheus.yml" -}}
+{{- if $root.Values.prometheus.extraScrapeConfigs }}
+{{ tpl $root.Values.prometheus.extraScrapeConfigs $root | indent 4 }}
+{{- end -}}
+    alerting:
+      alertmanagers:
+      - kubernetes_sd_configs:
+          - role: pod
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        path_prefix: /
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace]
+          regex: {{ $root.Release.Namespace }}
+          action: keep
+        - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+          regex: {{ template "kafka-operator.name" $root }}
+          action: keep
+        - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+          regex: operator
+          action: keep
+        - source_labels: [__meta_kubernetes_pod_container_port_number]
+          regex: 9001
+          action: keep
+{{- end -}}
+{{- end -}}
+{{- end -}}
