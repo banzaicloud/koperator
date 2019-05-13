@@ -18,6 +18,7 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,24 +26,77 @@ import (
 
 func processAlert(alert *currentAlertStruct, client client.Client) error {
 
-	sConfig := banzaicloudv1alpha1.StorageConfig{
-		MountPath: "kafkacska",
-		PVCSpec: &corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteOnce,
-			},
-			StorageClassName: util.StringPointer("storagetest"),
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					"storage": resource.MustParse("1Gi"),
-				},
-			},
-		},
-	}
 
-	err := k8sutil.AddPvToSpecificBroker("2", "kafka", "kafka", &sConfig, client)
+	switch alert.Annotations["command"] {
+	case "addPVC":
+		err := addPVC(alert.Labels, alert.Annotations, client)
+		if err != nil {
+			return err
+		}
+	case "downScale":
+		err := downScale(alert.Labels, client)
+		if err != nil {
+			return err
+		}
+	case "upScale":
+		err := upScale(alert.Labels, alert.Annotations, client)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func addPVC(labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
+	//TODO
+return nil
+}
+
+func downScale(labels model.LabelSet, client client.Client) error {
+	err := k8sutil.RemoveBrokerFromCr(string(labels["brokerId"]),string(labels["kafka_cr"]),string(labels["kubernetes_namespace"]),client)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
+
+	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]),string(labels["kubernetes_namespace"]), client)
+	if err != nil {
+		return err
+	}
+
+	biggestId := int32(0)
+	for _, broker := range cr.Spec.BrokerConfigs {
+		if broker.Id > biggestId{
+			biggestId = broker.Id
+		}
+	}
+
+	brokerConfig := &banzaicloudv1alpha1.BrokerConfig{
+		Image: string(annotations["image"]),
+		Id: biggestId+1,
+		StorageConfigs: []banzaicloudv1alpha1.StorageConfig{
+			{
+				MountPath: string(annotations["mountPath"]),
+				PVCSpec: &corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
+					StorageClassName: util.StringPointer(string(annotations["storegeClass"])),
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"storage": resource.MustParse(string(annotations["diskSize"])),
+						},
+					},
+				},
+			},
+		},
+	}
+ err = k8sutil.AddNewBrokerToCr(brokerConfig, string(labels["kafka_cr"]),string(labels["kubernetes_namespace"]),client)
+	if err != nil {
+		return err
+	}
+ return nil
 }
