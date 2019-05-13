@@ -128,8 +128,18 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		if err != nil {
 			log.Error(err, "could not match objects", "kind", desiredType)
 		} else if objectsEquals {
-			log.V(1).Info("resource is in sync")
-			return nil
+			switch current.(type) {
+			case *corev1.Pod:
+				{
+					if current.(*corev1.Pod).Status.Phase != corev1.PodFailed {
+						log.V(1).Info("resource is in sync")
+						return nil
+					}
+				}
+			default:
+				log.V(1).Info("resource is in sync")
+				return nil
+			}
 		}
 
 		switch desired.(type) {

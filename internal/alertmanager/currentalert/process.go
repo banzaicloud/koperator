@@ -26,7 +26,6 @@ import (
 
 func processAlert(alert *currentAlertStruct, client client.Client) error {
 
-
 	switch alert.Annotations["command"] {
 	case "addPVC":
 		err := addPVC(alert.Labels, alert.Annotations, client)
@@ -49,11 +48,11 @@ func processAlert(alert *currentAlertStruct, client client.Client) error {
 
 func addPVC(labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
 	//TODO
-return nil
+	return nil
 }
 
 func downScale(labels model.LabelSet, client client.Client) error {
-	err := k8sutil.RemoveBrokerFromCr(string(labels["brokerId"]),string(labels["kafka_cr"]),string(labels["kubernetes_namespace"]),client)
+	err := k8sutil.RemoveBrokerFromCr(string(labels["brokerId"]), string(labels["kafka_cr"]), string(labels["kubernetes_namespace"]), client)
 	if err != nil {
 		return err
 	}
@@ -62,21 +61,21 @@ func downScale(labels model.LabelSet, client client.Client) error {
 
 func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
 
-	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]),string(labels["kubernetes_namespace"]), client)
+	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]), string(labels["kubernetes_namespace"]), client)
 	if err != nil {
 		return err
 	}
 
 	biggestId := int32(0)
 	for _, broker := range cr.Spec.BrokerConfigs {
-		if broker.Id > biggestId{
+		if broker.Id > biggestId {
 			biggestId = broker.Id
 		}
 	}
 
 	brokerConfig := &banzaicloudv1alpha1.BrokerConfig{
 		Image: string(annotations["image"]),
-		Id: biggestId+1,
+		Id:    biggestId + 1,
 		StorageConfigs: []banzaicloudv1alpha1.StorageConfig{
 			{
 				MountPath: string(annotations["mountPath"]),
@@ -84,7 +83,7 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 					AccessModes: []corev1.PersistentVolumeAccessMode{
 						corev1.ReadWriteOnce,
 					},
-					StorageClassName: util.StringPointer(string(annotations["storegeClass"])),
+					StorageClassName: util.StringPointer(string(annotations["storageClass"])),
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"storage": resource.MustParse(string(annotations["diskSize"])),
@@ -94,9 +93,9 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 			},
 		},
 	}
- err = k8sutil.AddNewBrokerToCr(brokerConfig, string(labels["kafka_cr"]),string(labels["kubernetes_namespace"]),client)
+	err = k8sutil.AddNewBrokerToCr(brokerConfig, string(labels["kafka_cr"]), string(labels["kubernetes_namespace"]), client)
 	if err != nil {
 		return err
 	}
- return nil
+	return nil
 }
