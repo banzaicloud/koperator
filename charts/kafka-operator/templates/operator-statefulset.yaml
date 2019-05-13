@@ -71,11 +71,9 @@ spec:
           name: metrics
           protocol: TCP
           {{- end }}
-          {{- if and .Values.operator.alertHandler.enabled }}
         - containerPort: 9001
           name: alerts
           protocol: TCP
-          {{- end }}
         resources:
 {{ toYaml .Values.operator.resources | indent 10 }}
     {{- with .Values.nodeSelector }}
