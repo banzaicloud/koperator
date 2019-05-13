@@ -18,12 +18,12 @@
   version = "1.0.0"
 
 [[projects]]
-  branch = "add_pod"
-  digest = "1:92a73dabb067f889893ddb3461db90dcb9c0e1abfb084d2118eb210631c21a39"
+  branch = "master"
+  digest = "1:f5cb7e742fcf167ff7d2ac8ca6ebc7f797a04c98f2daac3de7d4323dbf3dccd7"
   name = "github.com/banzaicloud/k8s-objectmatcher"
   packages = ["."]
   pruneopts = "T"
-  revision = "7fdb0ed7204771d0e7ba64849206b61900e80638"
+  revision = "5288f80397dd1d5c16ee4fcc7062b99322a17ca0"
 
 [[projects]]
   digest = "1:7679b7fa4a39470d9ed29a6026bf1ab4a679d82414e24867f4ffc3e5875ecf54"

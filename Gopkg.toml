@@ -46,7 +46,7 @@ version="v1.4.7"
   version = "=v0.6.7"
 
 [[constraint]]
-  branch = "add_pod"
+  branch = "master"
   name = "github.com/banzaicloud/k8s-objectmatcher"
 
 [[constraint]]
