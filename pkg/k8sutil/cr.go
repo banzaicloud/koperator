@@ -64,7 +64,7 @@ func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 }
 
 func AddNewBrokerToCr(brokerConfig *banzaicloudv1alpha1.BrokerConfig, crName, namespace string, client runtimeClient.Client) error {
-	cr, err := getCr(crName, namespace, client)
+	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func AddNewBrokerToCr(brokerConfig *banzaicloudv1alpha1.BrokerConfig, crName, na
 
 func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient.Client) error {
 
-	cr, err := getCr(crName, namespace, client)
+	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient
 }
 
 func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *banzaicloudv1alpha1.StorageConfig, client runtimeClient.Client) error {
-	cr, err := getCr(crName, namespace, client)
+	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *ba
 	return updateCr(cr, client)
 }
 
-func getCr(name, namespace string, client runtimeClient.Client) (*banzaicloudv1alpha1.KafkaCluster, error) {
+func GetCr(name, namespace string, client runtimeClient.Client) (*banzaicloudv1alpha1.KafkaCluster, error) {
 	cr := &banzaicloudv1alpha1.KafkaCluster{}
 
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr)
