@@ -1,6 +1,0 @@
-dependencies:
-- name: prometheus
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 8.11.1
-digest: sha256:d7e6bd4a88f2ab109530d8253bbb6efa7108c1e562633c457f397671f62d3d04
-generated: 2019-05-13T16:14:23.840157+02:00
