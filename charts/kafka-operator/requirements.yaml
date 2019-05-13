@@ -1,5 +1,5 @@
 dependencies:
 - name: prometheus
   version: "8.11.1"
-  repository: "file://../../../../pbalogh-sa/charts/stable/prometheus"
-  condition: operator.alerthandler.enabled
+  repository: "https://kubernetes-charts.storage.googleapis.com/"
+  condition: prometheus.enabled

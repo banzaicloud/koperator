@@ -16,51 +16,24 @@ operator:
     requests:
       cpu: 100m
       memory: 128Mi
-  
-  alertHandler:
-    enabled: true
-    
+
 prometheus:
+  enabled: true
+  nodeExporter:
+    enabled: false
+  kubeStateMetrics:
+    enabled: false
+  pushgateway:
+    enabled: false
   alertmanager:
     enabled: false
-    custom:
-      alerting:
-        alertmanagers:
-        - kubernetes_sd_configs:
-            - role: pod
-          tls_config:
-            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-          path_prefix: /
-          relabel_configs:
-          - source_labels: [__meta_kubernetes_namespace]
-            regex: default
-            action: keep
-          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
-            regex: kafka-operator
-            action: keep
-          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
-            regex: operator
-            action: keep
-          - source_labels: [__meta_kubernetes_pod_container_port_number]
-            regex: 9001
-            action: keep
+
+  server:
+    configMapOverrideName: prometheus-cm-kafka-opertor
 
   serverFiles:
     alerts:
       groups:
-      - name: TestAlert
-        rules:
-        - alert: PodAllert
-          expr: kubelet_running_pod_count > 15
-          for: 1m
-          labels:
-            severity: alert
-          annotations:
-            description: 'more than 15 pods (current value is: {{ $value }})'
-            summary: 'too many pods'
-            command: 'decommission'
-
       - name: KafkaAlerts
         rules:
         - alert: BrokerOverLoaded
@@ -71,9 +44,10 @@ prometheus:
           annotations:
             description: 'broker {{ $labels.brokerId }} overloaded (current value is: {{ $value }})'
             summary: 'broker overloaded'
-            storegeClass: 'storargeclass'
+            storageClass: 'standard'
             mountPath: '/kafkalog'
             diskSize: '2G'
+            image: 'wurstmeister/kafka:2.12-2.1.0'
             command: 'upScale'
         - alert: BrokerUnderReplicated
           expr: kafka_server_replicamanager_underreplicatedpartitions == 1
@@ -83,9 +57,10 @@ prometheus:
           annotations:
             description: 'broker {{ $labels.brokerId }} underreplicated'
             summary: 'broker underreplicated'
-            storegeClass: 'storargeclass'
+            storageClass: 'standard'
             mountPath: '/kafkalog'
             diskSize: '2G'
+            image: 'wurstmeister/kafka:2.12-2.1.0'
             command: 'upScale'
         - alert: PartitionCountHigh
           expr: kafka_server_replicamanager_partitioncount > 80
@@ -95,9 +70,10 @@ prometheus:
           annotations:
             description: 'broker {{ $labels.brokerId }} has high partition count'
             summary: 'high partition count'
-            storegeClass: 'storargeclass'
+            storageClass: 'standard'
             mountPath: '/kafkalog'
             diskSize: '2G'
+            image: 'wurstmeister/kafka:2.12-2.1.0'
             command: 'upScale'
         - alert: PartitionCountHigh
           expr: kafka_server_replicamanager_partitioncount < 40
@@ -116,7 +92,7 @@ prometheus:
           annotations:
             description: 'broker {{ $labels.brokerId }} has low disk space'
             summary: 'low diskspace'
-            storegeClass: 'storargeclass'
+            storageClass: 'standard'
             mountPath: '/kafkalog'
             diskSize: '2G'
             command: 'addPVC'
