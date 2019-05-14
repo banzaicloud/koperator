@@ -60,6 +60,6 @@ spec:
         containerPort: 29092
         usedForInnerBrokerCommunication: true
     sslSecrets:
-      tlsSecretName: "my-tls-cert-kafka1"
-      jksPasswordName: "my-ssl-pass"
+      tlsSecretName: "test-kafka-operator"
+      jksPasswordName: "test-kafka-operator-pass"
   serviceAccount: ""
