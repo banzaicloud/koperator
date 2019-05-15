@@ -26,7 +26,6 @@ import (
 func alertReciever(log logr.Logger, alert []byte, client client.Client) {
 	promAlerts := make([]model.Alert, 0)
 	_ = json.Unmarshal(alert, &promAlerts)
-	log.Info("FROM", "promentheus", promAlerts)
 
 	dispatcher.Dispatcher(promAlerts, log, client)
 }
