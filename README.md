@@ -67,17 +67,20 @@ You can deploy Zookeeper by using a Helm chart.
 
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
-helm install --name zookeeper-operator -namespace=zookeeper banzaicloud-stable/zookeeper-operator
+helm install --name zookeeper-operator --namespace=zookeeper banzaicloud-stable/zookeeper-operator
 kubectl create -f - <<EOF
 apiVersion: zookeeper.pravega.io/v1beta1
 kind: ZookeeperCluster
 metadata:
   name: example-zookeepercluster
+  namespace: zookeeper
 spec:
   replicas: 3
 EOF
 
 ```
+
+### Installation
 
 1. Set `KUBECONFIG` pointing towards your cluster 
 2. Run `make deploy` (deploys the operator in the `kafka` namespace to the cluster)
@@ -85,19 +88,25 @@ EOF
 
 ```bash
 # Add your zookeeper svc name to the configuration
+kubectl create -n kafka -f config/samples/example-secret.yaml
 kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 ```
 
-### Installation with Helm
+> In this case you have to install prometheus with proper configuration if you want to kafka-operator reacting on alerts.
+
+
+### Easy way: installing with Helm
 
 Alternatively, if you are using Helm, you can deploy the operator using a Helm chart [Helm chart](https://github.com/banzaicloud/kafka-operator/tree/master/charts):
 
 ```bash
-helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator
 # Add your zookeeper svc name to the configuration
+kubectl create -n kafka -f config/samples/example-secret.yaml
 kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 ```
+
+> In this case prometheus will be installed and configured properely for kafka-operator.
 
 ## Development
 
