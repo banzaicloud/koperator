@@ -50,3 +50,9 @@ Operator fully automates Kafka's SSL support. Users must provide and install the
 Operator exposes Cruise-Control and Kafka JMX metrics to Prometheus.
 
 #### Reacting on Alerts
+
+Operator acts as an alertmanager. It recieaves alerts defined in promethesus, and create action based on prometheus alert annotations.
+In kafka-operator 3 actions are defined:
+- upscale cluster (add new broker)
+- downscale cluster (remove broker)
+- add additional disk to a broker
