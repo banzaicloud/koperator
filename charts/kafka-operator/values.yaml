@@ -75,7 +75,7 @@ prometheus:
             diskSize: '2G'
             image: 'wurstmeister/kafka:2.12-2.1.0'
             command: 'upScale'
-        - alert: PartitionCountHigh
+        - alert: PartitionCountLow
           expr: kafka_server_replicamanager_partitioncount < 40
           for: 1m
           labels:
