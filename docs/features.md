@@ -51,7 +51,7 @@ Operator exposes Cruise-Control and Kafka JMX metrics to Prometheus.
 
 #### Reacting on Alerts
 
-Operator acts as an alertmanager. It recieaves alerts defined in promethesus, and create action based on prometheus alert annotations.
+Operator acts as an alertmanager. It receives alerts defined in prometheus, and create actions based on prometheus alert annotations.
 In kafka-operator 3 actions are defined:
 - upscale cluster (add new broker)
 - downscale cluster (remove broker)
