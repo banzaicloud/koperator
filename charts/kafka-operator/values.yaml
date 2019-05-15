@@ -37,7 +37,7 @@ prometheus:
       - name: KafkaAlerts
         rules:
         - alert: BrokerOverLoaded
-          expr: sum(rate(kafka_network_requestmetrics_requests_total[5m])) by (brokerId,kafka_cr,kubernetes_namespace) > 12.7
+          expr: sum(rate(kafka_network_requestmetrics_requests_total[5m])) by (brokerId,kafka_cr,kubernetes_namespace) > 20
           for: 1m
           labels:
             severity: alert
@@ -63,7 +63,7 @@ prometheus:
             image: 'wurstmeister/kafka:2.12-2.1.0'
             command: 'upScale'
         - alert: PartitionCountHigh
-          expr: kafka_server_replicamanager_partitioncount > 80
+          expr: kafka_server_replicamanager_partitioncount > 100
           for: 1m
           labels:
             severity: alert
