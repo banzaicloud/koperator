@@ -30,9 +30,7 @@ Kafka-operator is a Kubernetes operator to deploy and manage [Apache Kafka](http
 - Store streams of records in a fault-tolerant durable way.
 - Process streams of records as they occur.
 
-The goal of the **Kafka-operator** is to automate and simplify installing and managing Kafka on Kubernetes. 
-
-![Kafka Operator](/docs/img/operator.png)
+The goal of the **Kafka-operator** is to automate and simplify installing and managing Kafka on Kubernetes.
 
 ### Motivation
 
@@ -69,7 +67,16 @@ You can deploy Zookeeper by using a Helm chart.
 
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
-helm install --name zookeeper -namespace=zookeeper banzaicloud-stable/zookeeper
+helm install --name zookeeper-operator -namespace=zookeeper banzaicloud-stable/zookeeper-operator
+kubectl create -f - <<EOF
+apiVersion: zookeeper.pravega.io/v1beta1
+kind: ZookeeperCluster
+metadata:
+  name: example-zookeepercluster
+spec:
+  replicas: 3
+EOF
+
 ```
 
 1. Set `KUBECONFIG` pointing towards your cluster 
@@ -81,17 +88,15 @@ helm install --name zookeeper -namespace=zookeeper banzaicloud-stable/zookeeper
 kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 ```
 
-##### Alert
-
-TODO
-
 ### Installation with Helm
 
 Alternatively, if you are using Helm, you can deploy the operator using a Helm chart [Helm chart](https://github.com/banzaicloud/kafka-operator/tree/master/charts):
 
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
-helm install --name=kafka --namespace=kafka banzaicloud-stable/kafka-operator
+helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator
+# Add your zookeeper svc name to the configuration
+kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 ```
 
 ## Development
