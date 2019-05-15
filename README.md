@@ -100,6 +100,7 @@ kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 Alternatively, if you are using Helm, you can deploy the operator using a Helm chart [Helm chart](https://github.com/banzaicloud/kafka-operator/tree/master/charts):
 
 ```bash
+helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator
 # Add your zookeeper svc name to the configuration
 kubectl create -n kafka -f config/samples/example-secret.yaml
