@@ -45,7 +45,7 @@ There were several initiatives to simplify Kafka on Kubernetes:
 - [Yaml files](https://github.com/Yolean/kubernetes-kafka)
 - [Strimzi Kafka Operator](https://github.com/strimzi/strimzi-kafka-operator)
 
-however, none of these gave a full solution to **automate** the Kafka experience and make it consumable for the wider audience. Our motivation is to build an open source solution and a community which drives the innovation and features of this operator.
+However, none of these gave a full solution to **automate** the Kafka experience and make it consumable for the wider audience. Our motivation is to build an open source solution and a community which drives the innovation and features of this operator.
 
 If you are willing to kickstart your Kafka experience using Pipeline, check out the free developer beta:
 <p align="center">
@@ -85,6 +85,19 @@ EOF
 
 ### Installation
 
+> Banzai Cloud recommends to use a custom StorageClass to leverage the volume binding mode `WaitForFirstConsumer`
+```bash
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+  name: exampleStorageclass
+parameters:
+  type: pd-standard
+provisioner: kubernetes.io/gce-pd
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+```
+> Remember to set your Kafka cr properly to use the newly created StorageClass.
+
 1. Set `KUBECONFIG` pointing towards your cluster 
 2. Run `make deploy` (deploys the operator in the `kafka` namespace to the cluster)
 3. Set your Kafka configurations in a Kubernetes custom resource (sample: `config/samples/banzaicloud_v1alpha1_kafkacluster.yaml`) and run this command to deploy the Kafka components:
@@ -95,7 +108,7 @@ kubectl create -n kafka -f config/samples/example-secret.yaml
 kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 ```
 
-> In this case you have to install prometheus with proper configuration if you want to kafka-operator reacting on alerts.
+> In this case you have to install Prometheus with proper configuration if you want to Kafka-Operator reacting on alerts.
 
 
 ### Easy way: installing with Helm
@@ -110,7 +123,7 @@ kubectl create -n kafka -f config/samples/example-secret.yaml
 kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 ```
 
-> In this case prometheus will be installed and configured properely for kafka-operator.
+> In this case Prometheus will be installed and configured properly for Kafka-Operator.
 
 ## Development
 
