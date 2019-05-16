@@ -44,6 +44,7 @@ Banzai Cloud's operator externalizing access to Kafka using a dynamically (re)co
 #### Communication via SSL
 
 Operator fully automates Kafka's SSL support. Users must provide and install the right certificate as a Kubernetes Secret. 
+![](img/kafka-ssl.png)
 
 #### Monitoring via Prometheus
 
