@@ -14,7 +14,6 @@
 
 package currentalert
 
-
 import (
 	stdlog "log"
 	"os"
