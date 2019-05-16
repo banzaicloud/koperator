@@ -47,7 +47,7 @@ license-cache: bin/licensei ## Generate license cache
 
 # Run tests
 test: install-kubebuilder generate fmt vet manifests
-	KUBEBUILDER_ASSETS="$${PWD}/bin/kubebuilder/bin" go test ./pkg/... ./cmd/... -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$${PWD}/bin/kubebuilder/bin" go test ./... -coverprofile cover.out
 
 # Build manager binary
 manager: generate fmt vet
@@ -97,11 +97,11 @@ manifests:
 
 # Run go fmt against code
 fmt:
-	go fmt ./pkg/... ./cmd/... ./internal/...
+	go fmt ./...
 
 # Run go vet against code
 vet:
-	go vet ./pkg/... ./cmd/... ./internal/...
+	go vet ./...
 
 # Generate code
 generate:
