@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/img/kafka_operator_logo.png" width="160"></p>
+
 <p align="center">
 
   <a href="https://hub.docker.com/r/banzaicloud/kafka-operator/">
