@@ -4,10 +4,9 @@
     <img src="https://img.shields.io/docker/cloud/automated/banzaicloud/kafka-operator.svg" alt="Docker Automated build">
   </a>
 
-  <a href="https://circleci.com/gh/banzaicloud/kafka-operator/tree/master">
+  <a href="https://circleci.com/gh/banzaicloud/kafka-operator">
     <img src="https://circleci.com/gh/banzaicloud/kafka-operator/tree/master.svg?style=shield" alt="CircleCI">
   </a>
-
 
   <a href="https://goreportcard.com/report/github.com/banzaicloud/kafka-operator">
     <img src="https://goreportcard.com/badge/github.com/banzaicloud/kafka-operator" alt="Go Report Card">
