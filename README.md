@@ -24,6 +24,8 @@
 
 Kafka-operator is a Kubernetes operator to deploy and manage [Apache Kafka](https://kafka.apache.org).
 
+![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
+
 ## Overview
 
 [Kafka](https://kafka.apache.org) is an open-source distributed streaming platform. It has three capabilities:
