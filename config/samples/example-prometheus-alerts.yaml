@@ -1,0 +1,67 @@
+prometheus:
+  serverFiles:
+    alerts:
+      groups:
+      - name: KafkaAlerts
+        rules:
+        - alert: BrokerOverLoaded
+          expr: sum(rate(kafka_network_requestmetrics_requests_total[5m])) by (brokerId,kafka_cr,kubernetes_namespace) > 20
+          for: 1m
+          labels:
+            severity: alert
+          annotations:
+            description: 'broker {{ $labels.brokerId }} overloaded (current value is: {{ $value }})'
+            summary: 'broker overloaded'
+            storageClass: 'standard'
+            mountPath: '/kafkalog'
+            diskSize: '2G'
+            image: 'wurstmeister/kafka:2.12-2.1.0'
+            command: 'upScale'
+        - alert: BrokerUnderReplicated
+          expr: kafka_server_replicamanager_underreplicatedpartitions == 1
+          for: 5m
+          labels:
+            severity: alert
+          annotations:
+            description: 'broker {{ $labels.brokerId }} underreplicated'
+            summary: 'broker underreplicated'
+            storageClass: 'standard'
+            mountPath: '/kafkalog'
+            diskSize: '2G'
+            image: 'wurstmeister/kafka:2.12-2.1.0'
+            command: 'upScale'
+        - alert: PartitionCountHigh
+          expr: kafka_server_replicamanager_partitioncount > 100
+          for: 1m
+          labels:
+            severity: alert
+          annotations:
+            description: 'broker {{ $labels.brokerId }} has high partition count'
+            summary: 'high partition count'
+            storageClass: 'standard'
+            mountPath: '/kafkalog'
+            diskSize: '2G'
+            image: 'wurstmeister/kafka:2.12-2.1.0'
+            command: 'upScale'
+        - alert: PartitionCountLow
+          expr: kafka_server_replicamanager_partitioncount < 40
+          for: 1m
+          labels:
+            severity: alert
+          annotations:
+            description: 'broker {{ $labels.brokerId }} has low partition count'
+            summary: 'low partition count'
+            command: 'downScale'
+        - alert: RemainingDiskSpaceLow
+          expr: kubelet_volume_stats_available_bytes{persistentvolumeclaim=~"kafka-.*"} < 1 * 1000 * 1000 * 1000
+          for: 1m
+          labels:
+            severity: alert
+          annotations:
+            description: 'broker {{ $labels.brokerId }} has low disk space'
+            summary: 'low diskspace'
+            storageClass: 'standard'
+            mountPath: '/kafkalog'
+            diskSize: '2G'
+            command: 'addPVC'
+

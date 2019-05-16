@@ -101,7 +101,7 @@ Alternatively, if you are using Helm, you can deploy the operator using a Helm c
 
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
-helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator
+helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml
 # Add your zookeeper svc name to the configuration
 kubectl create -n kafka -f config/samples/example-secret.yaml
 kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
