@@ -134,6 +134,10 @@ If you find this project useful here's how you can help:
 - Help new users with issues they may encounter
 - Support the development of this project and star this repo!
 
+## Community
+
+If you have any questions about the Kafka operator, and would like to talk to us and the other members of the Banzai Cloud community, please join our **#kafka-operator** channel on [Slack](https://slack.banzaicloud.io/).
+
 ## License
 
 Copyright (c) 2017-2019 [Banzai Cloud, Inc.](https://banzaicloud.com)
