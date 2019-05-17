@@ -23,9 +23,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func alertReciever(log logr.Logger, alert []byte, client client.Client) {
+func alertReciever(log logr.Logger, alert []byte, client client.Client) error {
 	promAlerts := make([]model.Alert, 0)
-	_ = json.Unmarshal(alert, &promAlerts)
+	err := json.Unmarshal(alert, &promAlerts)
+	if err != nil {
+		return err
+	}
 
 	dispatcher.Dispatcher(promAlerts, log, client)
+	return nil
 }
