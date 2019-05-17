@@ -53,14 +53,19 @@ func (a *HTTPController) reciveAlert(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		alert, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "Error reading request body", http.StatusInternalServerError)
+			http.Error(w, "reading request body failed", http.StatusInternalServerError)
+			return
+		}
+		err = alertReciever(a.Logger, alert, a.Client)
+		if err != nil {
+			http.Error(w, "alert reciever error", http.StatusBadRequest)
+			return
 		}
 		w.WriteHeader(http.StatusAccepted)
 		_, _ = w.Write(alert)
-		alertReciever(a.Logger, alert, a.Client)
 
 	default:
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		http.Error(w, "invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 }

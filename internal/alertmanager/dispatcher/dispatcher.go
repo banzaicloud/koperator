@@ -32,7 +32,10 @@ func Dispatcher(promAlerts []model.Alert, log logr.Logger, client client.Client)
 			Annotations: promAlert.Annotations,
 		}
 		storedAlerts.AddAlert(store)
-		storedAlerts.AlertGC(store)
+		err := storedAlerts.AlertGC(store)
+		if err != nil {
+			log.Error(err, "alerts garbage collection failed")
+		}
 	}
 	for key, value := range storedAlerts.ListAlerts() {
 		log.Info("Stored Alert", "key", key, "status", value.Status, "labels", value.Labels, "annotations", value.Annotations)
