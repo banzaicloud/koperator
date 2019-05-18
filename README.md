@@ -22,18 +22,21 @@
 
 # Kafka-Operator
 
-Kafka-operator is a Kubernetes operator to deploy and manage [Apache Kafka](https://kafka.apache.org).
-
-![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
+The Banzai Cloud Kafka operator is a Kubernetes operator to automate provisioning, management, autoscaliging and operations of [Apache Kafka](https://kafka.apache.org clusters deployed to K8s.
 
 ## Overview
 
-[Kafka](https://kafka.apache.org) is an open-source distributed streaming platform. It has three capabilities:
-- Publish and subscribe to streams of records, similar to a message queue or enterprise messaging system.
-- Store streams of records in a fault-tolerant durable way.
-- Process streams of records as they occur.
+![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
 
-The goal of the **Kafka-operator** is to automate and simplify installing and managing Kafka on Kubernetes.
+Some of the main features of the **Kafka-operator** are:
+
+- Provision secure and production ready Kafka clusters
+- Fine grained broker configuration support
+- Advanced and highly configurable External Access via LoadBalancers using Envoy
+- Graceful Kafka cluster scaling (up and down)
+- Monitoring via Prometheus
+- Encrypted communication using SSL
+- Automatic reactiin and self healing based on alers (pluggable alerts, with meaningful defaults)
 
 ### Motivation
 
