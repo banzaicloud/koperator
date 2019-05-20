@@ -57,7 +57,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		}
 	case *corev1.PersistentVolumeClaim:
 		log = log.WithValues("kind", desiredType)
-		log.Info("searching with label because name is empty")
+		log.V(1).Info("searching with label because name is empty")
 
 		pvcList := &corev1.PersistentVolumeClaimList{}
 		matchingLabels := map[string]string{
@@ -96,7 +96,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		}
 	case *corev1.Pod:
 		log = log.WithValues("kind", desiredType)
-		log.Info("searching with label because name is empty")
+		log.V(1).Info("searching with label because name is empty")
 
 		podList := &corev1.PodList{}
 		matchingLabels := map[string]string{

@@ -74,7 +74,7 @@ You can deploy Zookeeper by using a Helm chart.
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 helm install --name zookeeper-operator --namespace=zookeeper banzaicloud-stable/zookeeper-operator
-kubectl create -f - <<EOF
+kubectl create --namespace zookeeper -f - <<EOF
 apiVersion: zookeeper.pravega.io/v1beta1
 kind: ZookeeperCluster
 metadata:

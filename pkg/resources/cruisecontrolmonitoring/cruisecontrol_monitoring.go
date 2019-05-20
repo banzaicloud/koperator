@@ -44,7 +44,7 @@ func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Recon
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 
-	log.Info("Reconciling")
+	log.V(1).Info("Reconciling")
 
 	for _, res := range []resources.Resource{
 		r.configMap,
@@ -56,7 +56,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	log.Info("Reconciled")
+	log.V(1).Info("Reconciled")
 
 	return nil
 }

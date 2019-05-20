@@ -115,7 +115,7 @@ func getLoadBalancerIP(client client.Client, namespace string, log logr.Logger) 
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 
-	log.Info("Reconciling")
+	log.V(1).Info("Reconciling")
 
 	for _, res := range []resources.Resource{
 		r.headlessServicePod,
@@ -218,7 +218,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	log.Info("Reconciled")
+	log.V(1).Info("Reconciled")
 
 	return nil
 }
