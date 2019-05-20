@@ -18,7 +18,7 @@ prometheus:
             image: 'wurstmeister/kafka:2.12-2.1.0'
             command: 'upScale'
         - alert: BrokerUnderReplicated
-          expr: kafka_server_replicamanager_underreplicatedpartitions == 1
+          expr: kafka_server_replicamanager_underreplicatedpartitions > 0
           for: 5m
           labels:
             severity: alert
