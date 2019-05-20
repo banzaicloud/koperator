@@ -5,8 +5,8 @@ prometheus:
       - name: KafkaAlerts
         rules:
         - alert: BrokerOverLoaded
-          expr: sum(rate(kafka_network_requestmetrics_requests_total[30m])) by (kafka_cr,kubernetes_namespace) > 150
-          for: 15m
+          expr: avg(sum by(brokerId, kafka_cr, kubernetes_namespace) (rate(kafka_network_requestmetrics_requests_total[15m]))) > 30
+          for: 5m
           labels:
             severity: alert
           annotations:
