@@ -38,6 +38,8 @@ Apache Kafka is an open-source distributed streaming platform. Some of the main 
 
 ![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
 
+>We took a different approach to what's out there - we believe for a good reason - please read on to understand more about our [design motivations(docs/features.md) and some of the [scenarios](docs/scenarios.md) which were driving us to create the Banzai Cloud Kafka operator.
+
 
 ### Motivation
 
@@ -65,7 +67,9 @@ To deep dive into some of the details of the most popular existing solutions and
 | Reacting to Alerts| Yes (Prometheus + Cruise Control | No |No|No|
 | Graceful Cluster Scaling (up and down)| Yes (using Cruise Control) | No |No|Yes|
 
-**Note: this comparison was made on May 20, 2019 - if you find it inaccurate please let us know or submit a PR  
+*Note: this comparison was made on May 20, 2019 - if you find it inaccurate please let us know or submit a PR  
+
+>We took a different approach to what's out there - we believe for a good reason - please read on to understand more about our [design motivations(docs/features.md) and some of the [scenarios](docs/scenarios.md) which were driving us to create the Banzai Cloud Kafka operator.
 
 Finally, our motivation is to build an open source solution and a community which drives the innovation and features of this operator. We are long term contributors and active community members of both Apache Kafka and Kubernetes, and we hope to recreate a similar community around this operator.  
 
