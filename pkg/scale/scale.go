@@ -208,6 +208,7 @@ func UpScaleCluster(brokerId, namespace string) error {
 		}
 		return nil
 	}, backoffPolicy)
+
 	if err != nil {
 		return err
 	}
@@ -257,6 +258,10 @@ func DownsizeCluster(brokerId, namespace string) error {
 		}
 		return nil
 	}, backoffPolicy)
+
+	if err != nil {
+		return err
+	}
 	log.Info("Initiated downsize in cruise control")
 
 	uTaskId := dResp.Header.Get("User-Task-Id")
