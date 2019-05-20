@@ -22,9 +22,11 @@
 
 # Kafka-Operator
 
-The Banzai Cloud Kafka operator is a Kubernetes operator to automate provisioning, management, autoscaliging and operations of [Apache Kafka](https://kafka.apache.org) clusters deployed to K8s.
+The Banzai Cloud Kafka operator is a Kubernetes operator to automate provisioning, management, autoscaling and operations of [Apache Kafka](https://kafka.apache.org) clusters deployed to K8s.
 
 ## Overview
+
+Apache Kafka is an open-source distributed streaming platform. 
 
 ![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
 
@@ -33,22 +35,42 @@ Some of the main features of the **Kafka-operator** are:
 - Provision secure and production ready Kafka clusters
 - Fine grained broker configuration support
 - Advanced and highly configurable External Access via LoadBalancers using Envoy
-- Graceful Kafka cluster scaling (up and down)
+- Graceful Kafka cluster scaling (up and down) and rebalancing
 - Monitoring via Prometheus
 - Encrypted communication using SSL
-- Automatic reactiin and self healing based on alers (pluggable alerts, with meaningful defaults)
+- Automatic reaction and self healing based on alerts (plugin system, with meaningful default alert plugins)
 
 ### Motivation
 
-At [Banzai Cloud](https://banzaicloud.com) we are building a Kubernetes distribution, [PKE](https://github.com/banzaicloud/pke) and platform, [Pipeline](https://github.com/banzaicloud/pipeline) and operate managed Kafka clusters for our customers.
+At [Banzai Cloud](https://banzaicloud.com) we are building a Kubernetes distribution, [PKE](https://github.com/banzaicloud/pke) and a hybrid-cloud container management platform, [Pipeline](https://github.com/banzaicloud/pipeline) and operate managed Kafka clusters for our customers. Apache Kafka predates Kubernetes and it has been designed mostly for `static` on-premise environments. State management, node identity, failover, etc is all part and internal to Kafka, thus making it properly work on Kubernetes and an underlying dynamic environment could be a challenge. 
 
-There is a huge interest in the Kafka community for a solution which enables Kafka on Kubernetes.
-There were several initiatives to simplify Kafka on Kubernetes:
+There are already several approaches to operate Kafka on Kubernetes - however we did not find any of them appropriate for a highly dynamic environment, nor satisfying our customer needs. The skillset to operate Kafka and Kubernetes often does not overlap, and these are clearly visible on the existing operators. We are lucky to have Apache Kafka and Kubernetes contributors among our team and when we decided to work on the Kafka operator we designed and PoC every step from both perspectives. 
+
+At the same time there is a huge interest in the Kafka community for a solution which enables Kafka on Kubernetes, both in the open source and closed source space. 
+
 - [Helm chart](https://github.com/confluentinc/cp-helm-charts/tree/master/charts/cp-kafka)
 - [Yaml files](https://github.com/Yolean/kubernetes-kafka)
 - [Strimzi Kafka Operator](https://github.com/strimzi/strimzi-kafka-operator)
 
-However, none of these gave a full solution to **automate** the Kafka experience and make it consumable for the wider audience. Our motivation is to build an open source solution and a community which drives the innovation and features of this operator.
+To deep dive into more details of the most popular existing solution please see this table:
+
+|               | Banzai Cloud | Krallistic | Strimzi | Confluent|
+| ------------- | ------------ | ------------ | ------------ | ------------ |
+| Open source  | Apache 2 | Apache 2|Apache 2| No|
+| Fine grained broker config support  | Yes (learn more) | Limited via StatefulSet|Limited via StatefulSet|Limited via StatefulSet|
+| Fine grained broker volume support  | Yes (learn more) | Limited via StatefulSet|Limited via StatefulSet|Limited via StatefulSet|
+| Monitoring  | Yes | Yes|Yes|Yes|
+| Encryption using SSL  | Yes | Yes|Yes|Yes|
+| Rolling Update  | Work in progress | No |No|Yes|
+| Cluster external accesses  | Envoy (single LB) | Nodeport |Nodeport or LB/broker|Yes (N/A)|
+| User Management via CRD  | Work in progress | No |Yes|No|
+| Topic management via CRD  | Work in progress | No |Yes|No|
+| Reacting to Alerts| Yes (Prometheus + Cruise Control | No |No|No|
+| Graceful Cluster Scaling (up and down)| Yes (using Cruise Control) | No |No|Yes|
+
+**Note: this assessment was made on May 20, 2019 - if you find it inaccurate please submit a PR  
+
+Finally, our motivation is to build an open source solution and a community which drives the innovation and features of this operator.
 
 If you are willing to kickstart your Kafka experience using Pipeline, check out the free developer beta:
 <p align="center">
@@ -59,17 +81,16 @@ If you are willing to kickstart your Kafka experience using Pipeline, check out 
 
 ## Installation
 
-The operator installs the 2.1.0 version of Kafka, and can run on Minikube v0.33.1+ and Kubernetes 1.12.0+.
+The operator installs the 2.1.0 version of Apache Kafka, and can run on Minikube v0.33.1+ and Kubernetes 1.12.0+.
 
-As a pre-requisite it needs a Kubernetes cluster (you can create one using [Pipeline](https://github.com/banzaicloud/pipeline)).
-Also, Kafka requires Zookeeper so you need to first start a Zookeeper server if you don't already have one.
+As a pre-requisite it needs a Kubernetes cluster (you can create one using [Pipeline](https://github.com/banzaicloud/pipeline)). Also, Kafka requires Zookeeper so you need to first have a Zookeeper cluster if you don't already have one.
 
-> Banzai Cloud's Kafka operator is a pure Kafka Operator without Zookeeper support.
+> We believe in the `separation of concerns` principle, thus the Kafka operator does not install nor manage Zookeeper. If you would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
 
 ##### Install Zookeeper
 
-To install Zookeeper we recommend using [Pravega's Zookeeper Operator](https://github.com/pravega/zookeeper-operator).
-You can deploy Zookeeper by using a Helm chart.
+To install Zookeeper we recommend using the [Pravega's Zookeeper Operator](https://github.com/pravega/zookeeper-operator).
+You can deploy Zookeeper by using the Helm chart.
 
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
@@ -88,7 +109,8 @@ EOF
 
 ### Installation
 
-> Banzai Cloud recommends to use a custom StorageClass to leverage the volume binding mode `WaitForFirstConsumer`
+We recommend to use a **custom StorageClass** to leverage the volume binding mode `WaitForFirstConsumer`
+
 ```bash
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -99,10 +121,10 @@ provisioner: kubernetes.io/gce-pd
 reclaimPolicy: Delete
 volumeBindingMode: WaitForFirstConsumer
 ```
-> Remember to set your Kafka cr properly to use the newly created StorageClass.
+> Remember to set your Kafka CR properly to use the newly created StorageClass.
 
 1. Set `KUBECONFIG` pointing towards your cluster 
-2. Run `make deploy` (deploys the operator in the `kafka` namespace to the cluster)
+2. Run `make deploy` (deploys the operator in the `kafka` namespace into the cluster)
 3. Set your Kafka configurations in a Kubernetes custom resource (sample: `config/samples/banzaicloud_v1alpha1_kafkacluster.yaml`) and run this command to deploy the Kafka components:
 
 ```bash
@@ -111,7 +133,7 @@ kubectl create -n kafka -f config/samples/example-secret.yaml
 kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 ```
 
-> In this case you have to install Prometheus with proper configuration if you want to Kafka-Operator reacting on alerts.
+> In this case you have to install Prometheus with proper configuration if you want the Kafka-Operator to react to alerts. Again, if you need Prometheus and would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
 
 
 ### Easy way: installing with Helm
@@ -126,7 +148,7 @@ kubectl create -n kafka -f config/samples/example-secret.yaml
 kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 ```
 
-> In this case Prometheus will be installed and configured properly for Kafka-Operator.
+> In this case Prometheus will be installed and configured properly for the Kafka-Operator.
 
 ## Development
 
