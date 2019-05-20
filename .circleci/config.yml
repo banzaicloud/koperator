@@ -1,4 +1,8 @@
 version: 2.1
+
+orbs:
+    helm: banzaicloud/helm@0.0.3
+
 jobs:
   build:
     docker:
@@ -90,3 +94,20 @@ workflows:
     ci:
         jobs:
             - build
+
+    helm-chart:
+        jobs:
+            - helm/lint-chart:
+                  chart-path: charts/kafka-operator
+                  filters:
+                      tags:
+                          ignore: /.*/
+
+            - helm/publish-chart:
+                  context: helm
+                  chart-path: charts/kafka-operator
+                  filters:
+                      branches:
+                          ignore: /.*/
+                      tags:
+                          only: /chart\/kafka-operator\/\d+.\d+.\d+/
