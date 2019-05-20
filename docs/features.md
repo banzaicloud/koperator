@@ -1,59 +1,59 @@
 # Features
 
+Some of the features of the Kafka operator and the design decisions are:
+
 #### Fine Grained Broker Config Support
 
-Kafka is a stateful application. 
-The smallest brick in the puzzle is the Broker which is a simple server capable to create a cluster with other Brokers.
-Every Broker has his own unique configuration which slightly differs from the others eg.: unique broker ID.
+Kafka is a stateful application.  The smallest brick in the puzzle is the Broker which is a simple server capable to create/form a cluster with other Brokers. Every Broker has his own **unique** configuration which slightly differs from the others eg.: *unique broker ID*.
 
-All Kafka on Kubernetes solution uses StatefulSet to create a Kafka Cluster.
+All Kafka on Kubernetes solution are using **StatefulSet** to create a Kafka Cluster.
 
 With StatefulSet we get:
 - Unique Broker ID generated during Pod startup
 - Networking between brokers with headless services
 - Unique Persistent Volume for Brokers
 
-Using StatefulSet we lost:
-- Modify the configuration of an unique Broker
-- Remove specific Broker from cluster
-- Using multiple Persistent Volume per Brokers
+Using StatefulSet we loose:
+- Ability to modify the configuration of a unique Broker
+- Remove a specific Broker from cluster (StatefulSet always removes the last)
+- Using multiple and different Persistent Volumes per Broker
 
-Banzai Cloud's Kafka Operator is the first one to use `simple Pods`, ConfigMaps, PersistentVolumeClaims instead of StatefulSet.
-Using resources other then StatefulSet allows us to build an Operator which can intervene better for Kafka.
+The Banzai Cloud Kafka Operator is using only `simple` Pods, ConfigMaps, and PersistentVolumeClaims instead of StatefulSet.
+Using these resources (other then StatefulSet) allows us to build an Operator which serves better Kafka.
 
-With BanzaiCloud's operator we can:
-- Modify the configuration of an unique Broker
-- Remove specific Broker from the cluster
-- Use multiple Persistent Volume per Broker
+With the Banzai Cloud Kafka operator we can:
+- Modify the configuration of a unique Broker
+- Remove a specific Broker from the cluster
+- Use multiple Persistent Volumes per Broker
 
-This also means to react on events, which otherwise impossible to do because of the limitations of the StatefulSet.
-
-No more Broker configs which are impossible to read because of cryptic scripts placed inside the container to generate the config runtime.
-With Banzai Cloud's Kafka Operator Broker configs are placed in a specific Configmap. 
+This also means that reacting to events is possible in a fine grained way, per Broker and we are not limited to how StatefulSet works (which e.g. removes the last Broker). The solutions out there try to overcome some of these issues by placing scripts inside the container to generate the config at runtime, whereas with the Banzai Cloud Kafka operator configurations are deterministic and placed in specific Configmaps. 
 
 #### Graceful Kafka Cluster Scaling
 
-Here at Banzai Cloud we know how to operate Kafka at scale but we also know LinkedIn has way more experience with that.
-To gracefully scale Kafka cluster we integrated LinkedIn's [Cruise-Control](https://github.com/linkedin/cruise-control) to do the hard work.
+Here at Banzai Cloud we know how to operate Kafka at scale (we are contributors and have been operating Kafka on Kubernetes for years now) however we believe that LinkedIn has way more experience than us. To gracefully scale (up and down) Kafka clusters we integrated LinkedIn's [Cruise-Control](https://github.com/linkedin/cruise-control) to do the hard work. We have good defaults (plugins) to react to events, however we allow users to write their own.
 
 #### External Access via LoadBalancer
 
-Banzai Cloud's operator externalizing access to Kafka using a dynamically (re)configured Envoy proxy. Using Envoy enables using only one LoadBalancer.
+The Banzai Cloud Kafka operator is externalizing the access to Kafka using a dynamically (re)configured Envoy proxy. Using Envoy allows us using **only one** LoadBalancer, no need a LB per Broker.
 ![](img/kafka-external.png)
 
 #### Communication via SSL
 
-Operator fully automates Kafka's SSL support. Users must provide and install the right certificate as a Kubernetes Secret. 
+The operator fully automates Kafka's SSL support. Users must provide and install the right certificate as a Kubernetes Secret, however the Pipeline platform can automate this as well. 
+
 ![](img/kafka-ssl.png)
 
 #### Monitoring via Prometheus
 
-Operator exposes Cruise-Control and Kafka JMX metrics to Prometheus.
+The Kafka operator exposes Cruise-Control and Kafka JMX metrics to Prometheus.
 
 #### Reacting on Alerts
 
-Operator acts as an alertmanager. It receives alerts defined in prometheus, and create actions based on prometheus alert annotations.
-In kafka-operator 3 actions are defined:
-- upscale cluster (add new broker)
-- downscale cluster (remove broker)
-- add additional disk to a broker
+The Kafka Operator acts as a **Prometheus Alert Manager**. It receives alerts defined in Prometheus, and create actions based on Prometheus alert annotations.
+
+Currently there are 3 actions defined by default (can be extended):
+- upscale cluster (add new Broker)
+- downscale cluster (remove Broker)
+- add additional disk to a Broker
+
+For a further list of scenarios, please follow this [link](/scenarios.md).
