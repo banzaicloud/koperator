@@ -22,7 +22,7 @@
 
 # Kafka-Operator
 
-The Banzai Cloud Kafka operator is a Kubernetes operator to automate provisioning, management, autoscaliging and operations of [Apache Kafka](https://kafka.apache.org clusters deployed to K8s.
+The Banzai Cloud Kafka operator is a Kubernetes operator to automate provisioning, management, autoscaliging and operations of [Apache Kafka](https://kafka.apache.org) clusters deployed to K8s.
 
 ## Overview
 
@@ -156,7 +156,7 @@ If you have any questions about the Kafka operator, and would like to talk to us
 
 ## License
 
-Copyright (c) 2017-2019 [Banzai Cloud, Inc.](https://banzaicloud.com)
+Copyright (c) 2019 [Banzai Cloud, Inc.](https://banzaicloud.com)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
