@@ -39,6 +39,7 @@ const (
 )
 
 var errCruiseControlNotReady = errors.New("cruise-control is not ready")
+var errCruiseControlNotReturned200 = errors.New("non 200 response from cruise-control")
 
 var log = logf.Log.WithName("cruise-control-methods")
 
@@ -63,7 +64,7 @@ func postCruiseControl(action, namespace string, options map[string]string) (*ht
 	}
 	if rsp.StatusCode != 200 {
 		log.Error(errors.New("Non 200 response from cruise-control: "+rsp.Status), "error during talking to cruise-control")
-		return nil, errors.New("Non 200 response from cruise-control: " + rsp.Status)
+		return nil, errCruiseControlNotReturned200
 	}
 
 	return rsp, nil
@@ -193,11 +194,24 @@ func UpScaleCluster(brokerId, namespace string) error {
 		"brokerid": brokerId,
 	}
 
-	uResp, err := postCruiseControl(addBrokerAction, namespace, options)
+	var uResp *http.Response
+
+	err = backoff.Retry(func() error {
+		uResp, err = postCruiseControl(addBrokerAction, namespace, options)
+		if err != nil && err != errCruiseControlNotReturned200 {
+			log.Error(err, "can't upscale cluster gracefully since post to cruise-control failed")
+			return err
+		}
+		if err == errCruiseControlNotReturned200 {
+			log.Info("trying to communicate with cc")
+			return err
+		}
+		return nil
+	}, backoffPolicy)
 	if err != nil {
-		log.Error(err, "can't upscale cluster gracefully since post to cruise-control failed")
 		return err
 	}
+
 	log.Info("Initiated upscale in cruise control")
 
 	uTaskId := uResp.Header.Get("User-Task-Id")
@@ -222,11 +236,27 @@ func DownsizeCluster(brokerId, namespace string) error {
 		"json":     "true",
 	}
 
-	dResp, err := postCruiseControl(removeBrokerAction, namespace, options)
-	if err != nil {
-		log.Error(err, "can't downsize cluster gracefully since post to cruise-control failed")
-		return err
+	var backoffConfig = backoff.ConstantBackoffConfig{
+		Delay:      10 * time.Second,
+		MaxRetries: 5,
 	}
+	var backoffPolicy = backoff.NewConstantBackoffPolicy(&backoffConfig)
+
+	var dResp *http.Response
+
+	err = backoff.Retry(func() error {
+
+		dResp, err = postCruiseControl(removeBrokerAction, namespace, options)
+		if err != nil && err != errCruiseControlNotReturned200 {
+			log.Error(err, "can't downsize cluster gracefully since post to cruise-control failed")
+			return err
+		}
+		if err == errCruiseControlNotReturned200 {
+			log.Info("trying to communicate with cc")
+			return err
+		}
+		return nil
+	}, backoffPolicy)
 	log.Info("Initiated downsize in cruise control")
 
 	uTaskId := dResp.Header.Get("User-Task-Id")
@@ -331,7 +361,7 @@ func checkIfCCTaskFinished(uTaskId, namespace string) error {
 		// TODO use struct instead of casting things
 		for _, task := range taskLists["userTasks"].([]interface{}) {
 			if task.(map[string]interface{})["Status"].(string) != "Completed" {
-				log.Info("Cruise controlel task  stillrunning", "taskID", uTaskId)
+				log.Info("Cruise control task  still running", "taskID", uTaskId)
 				time.Sleep(20 * time.Second)
 			}
 		}
