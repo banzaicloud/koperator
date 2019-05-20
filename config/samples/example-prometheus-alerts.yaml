@@ -32,7 +32,7 @@ prometheus:
             command: 'upScale'
         - alert: PartitionCountHigh
           expr: kafka_server_replicamanager_partitioncount > 100
-          for: 1m
+          for: 3m
           labels:
             severity: alert
           annotations:
@@ -45,7 +45,7 @@ prometheus:
             command: 'upScale'
         - alert: PartitionCountLow
           expr: kafka_server_replicamanager_partitioncount < 40
-          for: 1m
+          for: 3m
           labels:
             severity: alert
           annotations:
@@ -54,7 +54,7 @@ prometheus:
             command: 'downScale'
         - alert: RemainingDiskSpaceLow
           expr: kubelet_volume_stats_available_bytes{persistentvolumeclaim=~"kafka-.*"} < 1 * 1000 * 1000 * 1000
-          for: 1m
+          for: 2m
           labels:
             severity: alert
           annotations:

@@ -85,6 +85,7 @@ rules:
   - create
   - watch
   - list
+  - delete
 - apiGroups:
   - ""
   resources:
