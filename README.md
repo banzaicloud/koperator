@@ -26,11 +26,7 @@ The Banzai Cloud Kafka operator is a Kubernetes operator to automate provisionin
 
 ## Overview
 
-Apache Kafka is an open-source distributed streaming platform. 
-
-![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
-
-Some of the main features of the **Kafka-operator** are:
+Apache Kafka is an open-source distributed streaming platform. Some of the main features of the **Kafka-operator** are:
 
 - Provision secure and production ready Kafka clusters
 - Fine grained broker configuration support
@@ -40,19 +36,20 @@ Some of the main features of the **Kafka-operator** are:
 - Encrypted communication using SSL
 - Automatic reaction and self healing based on alerts (plugin system, with meaningful default alert plugins)
 
+![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
+
+
 ### Motivation
 
 At [Banzai Cloud](https://banzaicloud.com) we are building a Kubernetes distribution, [PKE](https://github.com/banzaicloud/pke) and a hybrid-cloud container management platform, [Pipeline](https://github.com/banzaicloud/pipeline) and operate managed Kafka clusters for our customers. Apache Kafka predates Kubernetes and it has been designed mostly for `static` on-premise environments. State management, node identity, failover, etc is all part and internal to Kafka, thus making it properly work on Kubernetes and an underlying dynamic environment could be a challenge. 
 
-There are already several approaches to operate Kafka on Kubernetes - however we did not find any of them appropriate for a highly dynamic environment, nor satisfying our customer needs. The skillset to operate Kafka and Kubernetes often does not overlap, and these are clearly visible on the existing operators. We are lucky to have Apache Kafka and Kubernetes contributors among our team and when we decided to work on the Kafka operator we designed and PoC every step from both perspectives. 
-
-At the same time there is a huge interest in the Kafka community for a solution which enables Kafka on Kubernetes, both in the open source and closed source space. 
+There are already several approaches to operate Kafka on Kubernetes - however we did not find any of them appropriate for a highly dynamic environment, nor satisfying our customer needs. Also there is a huge interest in the Kafka community for a solution which enables Kafka on Kubernetes, both in the open source and closed source space. 
 
 - [Helm chart](https://github.com/confluentinc/cp-helm-charts/tree/master/charts/cp-kafka)
 - [Yaml files](https://github.com/Yolean/kubernetes-kafka)
 - [Strimzi Kafka Operator](https://github.com/strimzi/strimzi-kafka-operator)
 
-To deep dive into more details of the most popular existing solution please see this table:
+To deep dive into some of the details of the most popular existing solutions and our approach please check this table:
 
 |               | Banzai Cloud | Krallistic | Strimzi | Confluent|
 | ------------- | ------------ | ------------ | ------------ | ------------ |
@@ -68,11 +65,11 @@ To deep dive into more details of the most popular existing solution please see 
 | Reacting to Alerts| Yes (Prometheus + Cruise Control | No |No|No|
 | Graceful Cluster Scaling (up and down)| Yes (using Cruise Control) | No |No|Yes|
 
-**Note: this assessment was made on May 20, 2019 - if you find it inaccurate please submit a PR  
+**Note: this comparison was made on May 20, 2019 - if you find it inaccurate please let us know or submit a PR  
 
-Finally, our motivation is to build an open source solution and a community which drives the innovation and features of this operator.
+Finally, our motivation is to build an open source solution and a community which drives the innovation and features of this operator. We are long term contributors and active community members of both Apache Kafka and Kubernetes, and we hope to recreate a similar community around this operator.  
 
-If you are willing to kickstart your Kafka experience using Pipeline, check out the free developer beta:
+If you are willing to kickstart your managed Apache Kafka experience on 5 cloud providers, on-premise or hybrid environments, check out the free developer beta:
 <p align="center">
   <a href="https://beta.banzaicloud.io">
   <img src="https://camo.githubusercontent.com/a487fb3128bcd1ef9fc1bf97ead8d6d6a442049a/68747470733a2f2f62616e7a6169636c6f75642e636f6d2f696d672f7472795f706970656c696e655f627574746f6e2e737667">
