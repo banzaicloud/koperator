@@ -31,7 +31,7 @@ prometheus:
             image: 'wurstmeister/kafka:2.12-2.1.0'
             command: 'upScale'
         - alert: PartitionCountHigh
-          expr: kafka_server_replicamanager_partitioncount > 100
+          expr: max(kafka_server_replicamanager_partitioncount) > 100
           for: 3m
           labels:
             severity: alert
@@ -44,7 +44,7 @@ prometheus:
             image: 'wurstmeister/kafka:2.12-2.1.0'
             command: 'upScale'
         - alert: PartitionCountLow
-          expr: kafka_server_replicamanager_partitioncount < 40
+          expr: min(kafka_server_replicamanager_partitioncount) < 40
           for: 3m
           labels:
             severity: alert
