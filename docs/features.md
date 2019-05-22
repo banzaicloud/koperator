@@ -6,7 +6,7 @@ Some of the features of the Kafka operator and the design decisions are:
 
 Kafka is a stateful application.  The smallest brick in the puzzle is the Broker which is a simple server capable to create/form a cluster with other Brokers. Every Broker has his own **unique** configuration which slightly differs from the others eg.: *unique broker ID*.
 
-All Kafka on Kubernetes solution are using **StatefulSet** to create a Kafka Cluster.
+All Kafka on Kubernetes operators we are aware of are using **StatefulSet** to create a Kafka Cluster.
 
 With StatefulSet we get:
 - Unique Broker ID generated during Pod startup
@@ -26,7 +26,7 @@ With the Banzai Cloud Kafka operator we can:
 - Remove a specific Broker from the cluster
 - Use multiple Persistent Volumes per Broker
 
-This also means that reacting to events is possible in a fine grained way, per Broker and we are not limited to how StatefulSet works (which e.g. removes the last Broker). The solutions out there try to overcome some of these issues by placing scripts inside the container to generate the config at runtime, whereas with the Banzai Cloud Kafka operator configurations are deterministic and placed in specific Configmaps. 
+This also means that reacting to events is possible in a fine grained way, per Broker and we are not limited to how StatefulSet works (which e.g. removes the last Broker). The solutions out there try to overcome some of these issues by placing scripts inside the container to generate the config at runtime, whereas with the Banzai Cloud Kafka operator configurations are deterministic and placed in specific ConfigMaps. 
 
 #### Graceful Kafka Cluster Scaling
 
