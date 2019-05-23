@@ -56,4 +56,4 @@ Currently there are 3 actions defined by default (can be extended):
 - downscale cluster (remove Broker)
 - add additional disk to a Broker
 
-For a further list of scenarios, please follow this [link](/scenarios.md).
+For a further list of scenarios, please follow this [link](docs/scenarios.md).
