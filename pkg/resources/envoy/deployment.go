@@ -68,8 +68,10 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 							Image:           "banzaicloud/envoy:0.1.0",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: append(exposedPorts, []corev1.ContainerPort{
-								{Name: "envoy-admin", ContainerPort: 9901}}...),
-							VolumeMounts: volumeMounts,
+								{Name: "envoy-admin", ContainerPort: 9901, Protocol: corev1.ProtocolTCP}}...),
+							VolumeMounts:             volumeMounts,
+							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 						},
 					},
 					Volumes: volumes,
@@ -87,6 +89,7 @@ func getExposedContainerPorts(extListeners []banzaicloudv1alpha1.ExternalListene
 			exposedPorts = append(exposedPorts, corev1.ContainerPort{
 				Name:          fmt.Sprintf("broker-%d", broker.Id),
 				ContainerPort: eListener.ExternalStartingPort + broker.Id,
+				Protocol:      corev1.ProtocolTCP,
 			})
 		}
 	}
