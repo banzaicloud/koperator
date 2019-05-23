@@ -24,14 +24,17 @@ import (
 )
 
 const (
+	// CruiseControlJmxTemplate holds the template for CC monitoring
 	CruiseControlJmxTemplate = "%s-cc-jmx-exporter"
 	componentName            = "cruisecontrol_monitoring"
 )
 
+// Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
 }
 
+// New creates a new reconciler for CC Monitoring
 func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
@@ -41,6 +44,7 @@ func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Recon
 	}
 }
 
+// Reconcile implements the reconcile logic for CC Monitoring
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 

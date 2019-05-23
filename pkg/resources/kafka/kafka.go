@@ -36,7 +36,8 @@ import (
 )
 
 const (
-	componentName                 = "kafka"
+	componentName = "kafka"
+	// HeadlessServiceTemplate template for Kafka headless service
 	HeadlessServiceTemplate       = "%s-headless"
 	brokerConfigTemplate          = "%s-config"
 	brokerStorageTemplate         = "%s-storage"
@@ -53,6 +54,7 @@ const (
 	//scramSecret = "scram-secret"
 )
 
+// Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
 }
@@ -63,6 +65,7 @@ func labelsForKafka(name string) map[string]string {
 	return map[string]string{"app": "kafka", "kafka_cr": name}
 }
 
+// New creates a new reconciler for Kafka
 func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
@@ -112,6 +115,7 @@ func getLoadBalancerIP(client client.Client, namespace string, log logr.Logger) 
 	return loadBalancerExternalAddress, nil
 }
 
+// Reconcile implements the reconcile logic for Kafka
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 

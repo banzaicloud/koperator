@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// OwnerReferenceMatcher holds the required field for matcher
 type OwnerReferenceMatcher struct {
 	owner              runtime.Object
 	ownerMeta          metav1.Object

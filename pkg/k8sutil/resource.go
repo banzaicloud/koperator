@@ -31,6 +31,7 @@ import (
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// Reconcile reconciles K8S resources
 func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Object, cr *banzaicloudv1alpha1.KafkaCluster) error {
 	desiredType := reflect.TypeOf(desired)
 	var current = desired.DeepCopyObject()

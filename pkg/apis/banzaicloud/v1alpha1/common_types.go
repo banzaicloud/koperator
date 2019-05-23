@@ -14,9 +14,12 @@
 
 package v1alpha1
 
+// BrokerState holds information about broker state
 type BrokerState string
 
 const (
+	// Running states the broker is running
 	Running BrokerState = "Running"
-	Error   BrokerState = "Error"
+	// Error states the broker is in error
+	Error BrokerState = "Error"
 )
