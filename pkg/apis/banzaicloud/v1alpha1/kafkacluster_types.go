@@ -63,11 +63,13 @@ type ListenersConfig struct {
 	//SASLSecret        string                   `json:"saslSecret"`
 }
 
+// SSLSecrets defines the Kafka SSL secrets
 type SSLSecrets struct {
 	TLSSecretName   string `json:"tlsSecretName"`
 	JKSPasswordName string `json:"jksPasswordName"`
 }
 
+// ExternalListenerConfig defines the external listener config for Kafka
 type ExternalListenerConfig struct {
 	Type                 string `json:"type"`
 	Name                 string `json:"name"`
@@ -75,6 +77,7 @@ type ExternalListenerConfig struct {
 	ContainerPort        int32  `json:"containerPort"`
 }
 
+// InternalListenerConfig defines the internal listener config for Kafka
 type InternalListenerConfig struct {
 	Type                            string `json:"type"`
 	Name                            string `json:"name"`

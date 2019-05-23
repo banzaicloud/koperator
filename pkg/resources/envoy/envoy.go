@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	componentName            = "envoy"
+	componentName = "envoy"
+	// EnvoyServiceName name for loadbalancer service
 	EnvoyServiceName         = "envoy-loadbalancer"
 	envoyVolumeAndConfigName = "envoy-config"
 	envoyDeploymentName      = "envoy"
@@ -34,10 +35,12 @@ var labelSelector = map[string]string{
 	"app": "envoy",
 }
 
+// Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
 }
 
+// New creates a new reconciler for Envoy
 func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
@@ -47,6 +50,7 @@ func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Recon
 	}
 }
 
+// Reconcile implements the reconcile logic for Envoy
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 

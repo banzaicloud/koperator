@@ -63,6 +63,7 @@ func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 	return updateCr(cr, client)
 }
 
+// AddNewBrokerToCr modifies the CR and adds a new broker
 func AddNewBrokerToCr(brokerConfig *banzaicloudv1alpha1.BrokerConfig, crName, namespace string, client runtimeClient.Client) error {
 	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
@@ -73,6 +74,7 @@ func AddNewBrokerToCr(brokerConfig *banzaicloudv1alpha1.BrokerConfig, crName, na
 	return updateCr(cr, client)
 }
 
+// RemoveBrokerFromCr modifies the CR and removes the given broker from the cluster
 func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient.Client) error {
 
 	cr, err := GetCr(crName, namespace, client)
@@ -90,6 +92,7 @@ func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient
 	return updateCr(cr, client)
 }
 
+// AddPvToSpecificBroker adds a new PV to a specific broker
 func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *banzaicloudv1alpha1.StorageConfig, client runtimeClient.Client) error {
 	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
@@ -107,6 +110,7 @@ func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *ba
 	return updateCr(cr, client)
 }
 
+// GetCr returns the given cr object
 func GetCr(name, namespace string, client runtimeClient.Client) (*banzaicloudv1alpha1.KafkaCluster, error) {
 	cr := &banzaicloudv1alpha1.KafkaCluster{}
 

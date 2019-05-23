@@ -161,6 +161,7 @@ func isKafkaBrokerReady(brokerId, namespace string) (bool, error) {
 	return running, nil
 }
 
+// UpScaleCluster upscales Kafka cluster
 func UpScaleCluster(brokerId, namespace string) error {
 
 	err := getCruiseControlStatus(namespace)
@@ -224,6 +225,7 @@ func UpScaleCluster(brokerId, namespace string) error {
 	return nil
 }
 
+// DownsizeCluster downscales Kafka cluster
 func DownsizeCluster(brokerId, namespace string) error {
 
 	err := getCruiseControlStatus(namespace)
@@ -274,6 +276,7 @@ func DownsizeCluster(brokerId, namespace string) error {
 	return nil
 }
 
+// RebalanceCluster rebalances Kafka cluster using CC
 func RebalanceCluster(namespace string) error {
 
 	err := getCruiseControlStatus(namespace)
@@ -303,6 +306,7 @@ func RebalanceCluster(namespace string) error {
 	return nil
 }
 
+// RunPreferedLeaderElectionInCluster runs leader election in  Kafka cluster using CC
 func RunPreferedLeaderElectionInCluster(namespace string) error {
 
 	err := getCruiseControlStatus(namespace)

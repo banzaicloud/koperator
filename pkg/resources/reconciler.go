@@ -23,21 +23,28 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// Reconciler holds client and CR for Kafka
 type Reconciler struct {
 	client.Client
 	KafkaCluster *banzaicloudv1alpha1.KafkaCluster
 }
 
+// ComponentReconciler describes the Reconcile method
 type ComponentReconciler interface {
 	Reconcile(log logr.Logger) error
 }
 
+// Resource simple function without parameter
 type Resource func() runtime.Object
 
+// ResourceWithLogs function with log parameter
 type ResourceWithLogs func(log logr.Logger) runtime.Object
 
+// ResourceWithBrokerAndVolume function with brokerConfig, persistenVolumeClaims and log parameters
 type ResourceWithBrokerAndVolume func(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object
 
+// ResourceWithBrokerAndString function with brokerConfig, string and log parameters
 type ResourceWithBrokerAndString func(broker banzaicloudv1alpha1.BrokerConfig, t string, log logr.Logger) runtime.Object
 
+// ResourceWithBrokerAndStorage function with brokerConfig, storageConfig and log parameters
 type ResourceWithBrokerAndStorage func(broker banzaicloudv1alpha1.BrokerConfig, storage banzaicloudv1alpha1.StorageConfig, log logr.Logger) runtime.Object

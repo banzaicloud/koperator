@@ -40,10 +40,12 @@ var labelSelector = map[string]string{
 	"app": "cruisecontrol",
 }
 
+// Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
 }
 
+// New creates a new reconciler for CC
 func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
@@ -53,6 +55,7 @@ func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Recon
 	}
 }
 
+// Reconcile implements the reconcile logic for CC
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 

@@ -27,6 +27,7 @@ const (
 	regionLabel = "failure-domain.beta.kubernetes.io/region"
 )
 
+// NodeZoneAndRegion holds information about Zone and Region
 type NodeZoneAndRegion struct {
 	Zone   string
 	Region string

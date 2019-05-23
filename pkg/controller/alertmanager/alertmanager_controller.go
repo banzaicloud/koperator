@@ -28,6 +28,7 @@ const (
 	receiverAddr = ":9001"
 )
 
+// AController implements Runnable
 type AController struct {
 	Client client.Client
 }
@@ -39,6 +40,7 @@ func Add(mgr manager.Manager) error {
 	return mgr.Add(AController{Client: mgr.GetClient()})
 }
 
+// Start initiates the alertmanager controller
 func (c AController) Start(<-chan struct{}) error {
 	logf.SetLogger(logf.ZapLogger(false))
 	log := logf.Log.WithName("alertmanager-entrypoint")

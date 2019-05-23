@@ -21,27 +21,33 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+// IntstrPointer generate IntOrString pointer from int
 func IntstrPointer(i int) *intstr.IntOrString {
 	is := intstr.FromInt(i)
 	return &is
 }
 
+// Int64Pointer generates int64 pointer from int64
 func Int64Pointer(i int64) *int64 {
 	return &i
 }
 
+// Int32Pointer generates int32 pointer from int32
 func Int32Pointer(i int32) *int32 {
 	return &i
 }
 
+// BoolPointer generates bool pointer from bool
 func BoolPointer(b bool) *bool {
 	return &b
 }
 
+// StringPointer generates string pointer from string
 func StringPointer(s string) *string {
 	return &s
 }
 
+// MergeLabels merges two given labels
 func MergeLabels(l map[string]string, l2 map[string]string) map[string]string {
 	if l == nil {
 		l = make(map[string]string)
@@ -52,6 +58,7 @@ func MergeLabels(l map[string]string, l2 map[string]string) map[string]string {
 	return l
 }
 
+// MonitoringAnnotations returns specific prometheus annotations
 func MonitoringAnnotations() map[string]string {
 	return map[string]string{
 		"prometheus.io/scrape": "true",
@@ -60,6 +67,7 @@ func MonitoringAnnotations() map[string]string {
 	}
 }
 
+// IsSSLEnabledForInternalCommunication checks if ssl is enabled for internal communication
 func IsSSLEnabledForInternalCommunication(l []banzaicloudv1alpha1.InternalListenerConfig) (enabled bool) {
 
 	for _, listener := range l {
