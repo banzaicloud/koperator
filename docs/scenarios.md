@@ -1,4 +1,4 @@
-As highlighted in the [features](docs/features.md) section, we removed the reliance on StatefulSet, we dig deep and write bunch of code for the operator to allow scenarios as (this is by far not a complete list, get in touch if you have a requirement, question or would like to talk about the operator).
+As highlighted in the [features](features.md) section, we removed the reliance on StatefulSet, we dig deep and write bunch of code for the operator to allow scenarios as (this is by far not a complete list, get in touch if you have a requirement, question or would like to talk about the operator).
 
 
 ### Vertical capacity scaling
