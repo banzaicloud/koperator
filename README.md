@@ -26,15 +26,15 @@ The Banzai Cloud Kafka operator is a Kubernetes operator to automate provisionin
 
 ## Overview
 
-Apache Kafka is an open-source distributed streaming platform. Some of the main features of the **Kafka-operator** are:
+Apache Kafka is an open-source distributed streaming platform, and some of the main features of the **Kafka-operator** are:
 
-- Provision secure and production ready Kafka clusters
-- Fine grained broker configuration support
-- Advanced and highly configurable External Access via LoadBalancers using Envoy
-- Graceful Kafka cluster scaling (up and down) and rebalancing
-- Monitoring via Prometheus
-- Encrypted communication using SSL
-- Automatic reaction and self healing based on alerts (plugin system, with meaningful default alert plugins)
+- the provisioning of secure and production ready Kafka clusters
+- **fine grained** broker configuration support
+- advanced and highly configurable External Access via LoadBalancers using **Envoy**
+- graceful Kafka cluster **scaling and rebalancing**
+- monitoring via **Prometheus**
+- encrypted communication using SSL
+- automatic reaction and self healing based on alerts (plugin system, with meaningful default alert plugins) using **Cruise Control**
 
 ![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
 
