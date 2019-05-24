@@ -40,18 +40,18 @@ Apache Kafka is an open-source distributed streaming platform, and some of the m
 
 >We took a different approach to what's out there - we believe for a good reason - please read on to understand more about our [design motivations](docs/features.md) and some of the [scenarios](docs/scenarios.md) which were driving us to create the Banzai Cloud Kafka operator.
 
+## Motivation
 
-### Motivation
+At [Banzai Cloud](https://banzaicloud.com) we are building a Kubernetes distribution, [PKE](https://github.com/banzaicloud/pke), and a hybrid-cloud container management platform, [Pipeline](https://github.com/banzaicloud/pipeline), that operate Kafka clusters (among other types) for our customers. Apache Kafka predates Kubernetes and was designed mostly for `static` on-premise environments. State management, node identity, failover, etc all come part and parcel with Kafka, so making it work properly on Kubernetes and on an underlying dynamic environment can be a challenge.
 
-At [Banzai Cloud](https://banzaicloud.com) we are building a Kubernetes distribution, [PKE](https://github.com/banzaicloud/pke) and a hybrid-cloud container management platform, [Pipeline](https://github.com/banzaicloud/pipeline) and operate managed Kafka clusters for our customers. Apache Kafka predates Kubernetes and it has been designed mostly for `static` on-premise environments. State management, node identity, failover, etc is all part and internal to Kafka, thus making it properly work on Kubernetes and an underlying dynamic environment could be a challenge. 
-
-There are already several approaches to operate Kafka on Kubernetes - however we did not find any of them appropriate for a highly dynamic environment, nor satisfying our customer needs. Also there is a huge interest in the Kafka community for a solution which enables Kafka on Kubernetes, both in the open source and closed source space. 
+There are already several approaches to operating Kafka on Kubernetes, however, we did not find them appropriate for use in a highly dynamic environment, nor capable of meeting our customers' needs. At the same time, there is substantial interest within the Kafka community for a solution which enables Kafka on Kubernetes, both in the open source and closed source space.
 
 - [Helm chart](https://github.com/confluentinc/cp-helm-charts/tree/master/charts/cp-kafka)
 - [Yaml files](https://github.com/Yolean/kubernetes-kafka)
 - [Strimzi Kafka Operator](https://github.com/strimzi/strimzi-kafka-operator)
+- Confluent operator
 
-To deep dive into some of the details of the most popular existing solutions and our approach please check this table:
+Join us as we take a deep dive into some of the details of the most popular pre-existing solutions, as well as our own:
 
 |               | Banzai Cloud | Krallistic | Strimzi | Confluent|
 | ------------- | ------------ | ------------ | ------------ | ------------ |
@@ -67,7 +67,7 @@ To deep dive into some of the details of the most popular existing solutions and
 | Reacting to Alerts| Yes (Prometheus + Cruise Control | No |No|No|
 | Graceful Cluster Scaling (up and down)| Yes (using Cruise Control) | No |No|Yes|
 
-*Note: this comparison was made on May 20, 2019 - if you find it inaccurate please let us know or submit a PR  
+*-if you find any of this information inaccurate, please let us know, and we'll fix it*
 
 >We took a different approach to what's out there - we believe for a good reason - please read on to understand more about our [design motivations](docs/features.md) and some of the [scenarios](docs/scenarios.md) which were driving us to create the Banzai Cloud Kafka operator.
 
