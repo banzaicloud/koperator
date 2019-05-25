@@ -17,6 +17,7 @@ package currentalert
 import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
@@ -52,7 +53,11 @@ func addPVC(labels model.LabelSet, annotations model.LabelSet, client client.Cli
 }
 
 func downScale(labels model.LabelSet, client client.Client) error {
-	err := k8sutil.RemoveBrokerFromCr(string(labels["brokerId"]), string(labels["kafka_cr"]), string(labels["kubernetes_namespace"]), client)
+	brokerId, err := scale.GetBrokerIDWithLeastPartition(string(labels["kubernetes_namespace"]))
+	if err != nil {
+		return err
+	}
+	err = k8sutil.RemoveBrokerFromCr(brokerId, string(labels["kafka_cr"]), string(labels["kubernetes_namespace"]), client)
 	if err != nil {
 		return err
 	}
