@@ -161,6 +161,56 @@ func isKafkaBrokerReady(brokerId, namespace string) (bool, error) {
 	return running, nil
 }
 
+// GetBrokerIDWithLeastPartition returns
+func GetBrokerIDWithLeastPartition(namespace string) (string, error) {
+
+	brokerWithLeastPartition := ""
+
+	err := getCruiseControlStatus(namespace)
+	if err != nil {
+		return brokerWithLeastPartition, err
+	}
+
+	options := map[string]string{
+		"json": "true",
+	}
+
+	rsp, err := getCruiseControl(kafkaClusterStateAction, namespace, options)
+	if err != nil {
+		log.Error(err, "can't work with cruise-control because it is not ready")
+		return brokerWithLeastPartition, err
+	}
+
+	body, err := ioutil.ReadAll(rsp.Body)
+	if err != nil {
+		return brokerWithLeastPartition, err
+	}
+
+	err = rsp.Body.Close()
+	if err != nil {
+		return brokerWithLeastPartition, err
+	}
+
+	var response map[string]interface{}
+
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return brokerWithLeastPartition, err
+	}
+
+	replicaCountByBroker := response["KafkaBrokerState"].(map[string]interface{})["ReplicaCountByBrokerId"].(map[string]interface{})
+	replicaCount := float64(99999)
+
+	for brokerID, replica := range replicaCountByBroker {
+		if replicaCount > replica.(float64) {
+			replicaCount = replica.(float64)
+			brokerWithLeastPartition = brokerID
+		}
+	}
+	return brokerWithLeastPartition, nil
+
+}
+
 // UpScaleCluster upscales Kafka cluster
 func UpScaleCluster(brokerId, namespace string) error {
 

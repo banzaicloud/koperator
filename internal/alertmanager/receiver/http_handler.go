@@ -58,7 +58,7 @@ func (a *HTTPController) reciveAlert(w http.ResponseWriter, r *http.Request) {
 		}
 		err = alertReciever(a.Logger, alert, a.Client)
 		if err != nil {
-			http.Error(w, "alert reciever error", http.StatusBadRequest)
+			http.Error(w, "alert receiver error", http.StatusBadRequest)
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
