@@ -104,7 +104,7 @@ vet:
 	go vet ./...
 
 # Generate code
-generate:
+generate: vendor
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif
