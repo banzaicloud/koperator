@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
@@ -38,7 +39,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
     # Configuration for the metadata client.
     # =======================================
     # The Kafka cluster to control.
-    bootstrap.servers=kafka-headless:29092
+    bootstrap.servers=%s:%d
     # The maximum interval in milliseconds between two metadata refreshes.
     #metadata.max.age.ms=300000
     # Client id for the Cruise Control. It is used for the metadata client.
@@ -220,7 +221,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
     webserver.accesslog.path=access.log
     # HTTP Request Log retention days
     webserver.accesslog.retention.days=14
-`, strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")) +
+`, fmt.Sprintf(kafka.HeadlessServiceTemplate, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")) +
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig),
 			"capacity.json": `
 {
