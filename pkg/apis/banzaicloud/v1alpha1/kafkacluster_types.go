@@ -32,7 +32,6 @@ type KafkaClusterSpec struct {
 	//RackAwarenessEnabled bool            `json:"rackAwarenessEnabled,omitempty"`
 	BrokerConfigs  []BrokerConfig `json:"brokerConfigs"`
 	ServiceAccount string         `json:"serviceAccount"`
-	//RestProxyEnabled bool `json:"restProxyEnabled"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
