@@ -1,0 +1,65 @@
+apiVersion: banzaicloud.banzaicloud.io/v1alpha1
+kind: KafkaCluster
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: kafka
+spec:
+  zkAddresses:
+    - "example-zookeepercluster-client.zookeeper:2181"
+  brokerConfigs:
+    - image: "wurstmeister/kafka:2.12-2.1.0"
+      id: 0
+      storageConfigs:
+        - mountPath: "/kafka-logs"
+          pvcSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
+    - image: "wurstmeister/kafka:2.12-2.1.0"
+      id: 1
+      storageConfigs:
+        - mountPath: "/kafka-logs"
+          pvcSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
+    - image: "wurstmeister/kafka:2.12-2.1.0"
+      id: 2
+      storageConfigs:
+        - mountPath: "/kafka-logs"
+          pvcSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
+    - image: "wurstmeister/kafka:2.12-2.1.0"
+      id: 3
+      storageConfigs:
+        - mountPath: "/kafka-logs"
+          pvcSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
+  listenersConfig:
+    externalListeners:
+      - type: "ssl"
+        name: "external"
+        externalStartingPort: 19090
+        containerPort: 9094
+    internalListeners:
+      - type: "plaintext"
+        name: "plaintext"
+        containerPort: 29092
+        usedForInnerBrokerCommunication: true
+    sslSecrets:
+      tlsSecretName: "test-kafka-operator"
+      jksPasswordName: "test-kafka-operator-pass"
+  serviceAccount: ""
