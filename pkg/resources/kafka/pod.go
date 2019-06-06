@@ -24,6 +24,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -99,6 +100,21 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 					},
 				},
 			}...),
+			Affinity: &corev1.Affinity{
+				PodAntiAffinity: &corev1.PodAntiAffinity{
+					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+						{
+							Weight: int32(100),
+							PodAffinityTerm: corev1.PodAffinityTerm{
+								LabelSelector: &metav1.LabelSelector{
+									MatchLabels: labelsForKafka(r.KafkaCluster.Name),
+								},
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+				},
+			},
 			Containers: []corev1.Container{
 				{
 					Name:            "kafka",
@@ -196,7 +212,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		},
 	}
 	if broker.NodeAffinity != nil {
-		pod.Spec.Affinity = &corev1.Affinity{NodeAffinity: broker.NodeAffinity}
+		pod.Spec.Affinity.NodeAffinity = broker.NodeAffinity
 	}
 	return pod
 }

@@ -29,7 +29,7 @@ import (
 type KafkaClusterSpec struct {
 	ListenersConfig ListenersConfig `json:"listenersConfig"`
 	ZKAddresses     []string        `json:"zkAddresses"`
-	//RackAwarenessEnabled bool            `json:"rackAwarenessEnabled,omitempty"`
+	//RackAwareness   *RackAwareness  `json:"rackAwareness,omitempty"`
 	BrokerConfigs  []BrokerConfig `json:"brokerConfigs"`
 	ServiceAccount string         `json:"serviceAccount"`
 }
@@ -46,6 +46,11 @@ type BrokerConfig struct {
 	NodeAffinity   *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 	Config         string               `json:"config,omitempty"`
 	StorageConfigs []StorageConfig      `json:"storageConfigs"`
+}
+
+//RackAwareness defines the required fields to enable kafka's rack aware feature
+type RackAwareness struct {
+	Labels   []map[string]string          `json:"labels"`
 }
 
 // StorageConfig defines the broker storage configuration
