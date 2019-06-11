@@ -27,11 +27,13 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	ListenersConfig ListenersConfig `json:"listenersConfig"`
-	ZKAddresses     []string        `json:"zkAddresses"`
-	//RackAwareness   *RackAwareness  `json:"rackAwareness,omitempty"`
-	BrokerConfigs  []BrokerConfig `json:"brokerConfigs"`
-	ServiceAccount string         `json:"serviceAccount"`
+	ListenersConfig     ListenersConfig     `json:"listenersConfig"`
+	ZKAddresses         []string            `json:"zkAddresses"`
+	RackAwareness       *RackAwareness      `json:"rackAwareness,omitempty"`
+	BrokerConfigs       []BrokerConfig      `json:"brokerConfigs"`
+	OneBrokerPerNode    bool                `json:"oneBrokerPerNode"`
+	CruiseControlConfig CruiseControlConfig `json:"cruiseControlConfig"`
+	ServiceAccount      string              `json:"serviceAccount"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -48,9 +50,16 @@ type BrokerConfig struct {
 	StorageConfigs []StorageConfig      `json:"storageConfigs"`
 }
 
-//RackAwareness defines the required fields to enable kafka's rack aware feature
+// RackAwareness defines the required fields to enable kafka's rack aware feature
 type RackAwareness struct {
-	Labels   []map[string]string          `json:"labels"`
+	Labels []string `json:"labels"`
+}
+
+// CruiseControlConfig defines the config for Cruise Control
+type CruiseControlConfig struct {
+	Config         string `json:"config"`
+	CapacityConfig string `json:"capacityConfig"`
+	ClusterConfigs string `json:"clusterConfigs"`
 }
 
 // StorageConfig defines the broker storage configuration
