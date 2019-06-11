@@ -29,7 +29,6 @@ spec:
         spec:
           properties:
             brokerConfigs:
-              description: RackAwarenessEnabled bool            `json:"rackAwarenessEnabled,omitempty"`
               items:
                 properties:
                   config:
@@ -111,6 +110,15 @@ spec:
                   type: object
               required:
               - internalListeners
+              type: object
+            rackAwareness:
+              properties:
+                labels:
+                  items:
+                    type: object
+                  type: array
+              required:
+              - labels
               type: object
             serviceAccount:
               type: string

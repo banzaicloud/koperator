@@ -101,19 +101,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 				},
 			}...),
 			Affinity: &corev1.Affinity{
-				PodAntiAffinity: &corev1.PodAntiAffinity{
-					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-						{
-							Weight: int32(100),
-							PodAffinityTerm: corev1.PodAffinityTerm{
-								LabelSelector: &metav1.LabelSelector{
-									MatchLabels: labelsForKafka(r.KafkaCluster.Name),
-								},
-								TopologyKey: "kubernetes.io/hostname",
-							},
-						},
-					},
-				},
+				PodAntiAffinity: generatePodAntyAffinity(r.KafkaCluster.Name, r.KafkaCluster.Spec.OneBrokerPerNode),
 			},
 			Containers: []corev1.Container{
 				{
@@ -215,6 +203,61 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		pod.Spec.Affinity.NodeAffinity = broker.NodeAffinity
 	}
 	return pod
+}
+
+//func generateRackAwarenessConfig(labels []string) *corev1.Container {
+//	return &corev1.Container{
+//		Name:  "genRackAwareConfig",
+//		Image: "solsson/kafka-initutils@sha256:c98d7fb5e9365eab391a5dcd4230fc6e72caf929c60f29ff091e3b0215124713",
+//		Env: []corev1.EnvVar{
+//			{
+//				Name: "NODE_NAME",
+//				ValueFrom: &corev1.EnvVarSource{
+//					FieldRef: &corev1.ObjectFieldSelector{
+//						FieldPath: "spec.nodeName",
+//					},
+//				},
+//			},
+//			{
+//				Name:  "AWARE_LABELS",
+//				Value: strings.Join(labels, ","),
+//			},
+//		},
+//		Command: []string{
+//			"/bin/bash", "-c", "kubectl get node $NODE_NAME -o=",
+//		},
+//	}
+//}
+
+func generatePodAntyAffinity(clusterName string, hardRuleEnabled bool) *corev1.PodAntiAffinity {
+	podAntyAffinity := corev1.PodAntiAffinity{}
+	if hardRuleEnabled {
+		podAntyAffinity = corev1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: labelsForKafka(clusterName),
+					},
+					TopologyKey: "kubernetes.io/hostname",
+				},
+			},
+		}
+	} else {
+		podAntyAffinity = corev1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+				{
+					Weight: int32(100),
+					PodAffinityTerm: corev1.PodAffinityTerm{
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: labelsForKafka(clusterName),
+						},
+						TopologyKey: "kubernetes.io/hostname",
+					},
+				},
+			},
+		}
+	}
+	return &podAntyAffinity
 }
 
 func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volume []corev1.Volume, volumeMount []corev1.VolumeMount) {
