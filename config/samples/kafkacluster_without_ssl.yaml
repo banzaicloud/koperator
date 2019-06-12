@@ -7,6 +7,7 @@ metadata:
 spec:
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
+  oneBrokerPerNode: false
   brokerConfigs:
     - image: "wurstmeister/kafka:2.12-2.1.0"
       id: 0
