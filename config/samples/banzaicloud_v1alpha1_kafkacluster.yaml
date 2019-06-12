@@ -8,10 +8,15 @@ spec:
   # Specify the zookeeper addresses where the Kafka should store it's metadata
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
+  # rackAwareness add support for Kafka rack aware feature
   rackAwareness:
+    # operator will use these labels from the nodes to create the rack for Kafka
     labels:
       - "failure-domain.beta.kubernetes.io/region"
       - "failure-domain.beta.kubernetes.io/zone"
+  # oneBrokerPerNode if set to true every broker is started on a new node, if there is not enough node to do that
+  # it will stay in pending state. If set to false the operator also tries to schedule the brokers to a unique node
+  # but if the node number is insufficient the brokers will be scheduled to a node where a broker is already running.
   oneBrokerPerNode: false
   # Specify the Kafka Broker related settings
   # All Broker requires an image, unique id, and storageConfigs settings
