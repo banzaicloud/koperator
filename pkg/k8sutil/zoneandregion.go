@@ -35,13 +35,28 @@ type NodeZoneAndRegion struct {
 
 func determineNodeZoneAndRegion(nodeName string, client runtimeClient.Client) (*NodeZoneAndRegion, error) {
 
+	labels, err := getSpecificNodeLabels(nodeName, client, []string{zoneLabel, regionLabel})
+	if err != nil {
+		return nil, err
+	}
+	return &NodeZoneAndRegion{
+		Zone:   labels[zoneLabel],
+		Region: labels[regionLabel],
+	}, nil
+}
+
+func getSpecificNodeLabels(nodeName string, client runtimeClient.Client, filter []string) (map[string]string, error) {
 	node := &corev1.Node{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: nodeName, Namespace: ""}, node)
 	if err != nil {
 		return nil, err
 	}
-	return &NodeZoneAndRegion{
-		Zone:   node.Labels[zoneLabel],
-		Region: node.Labels[regionLabel],
-	}, nil
+	requestedLabels := map[string]string{}
+
+	for _, label := range filter {
+		if val, ok := node.Labels[label]; ok {
+			requestedLabels[label] = val
+		}
+	}
+	return requestedLabels, nil
 }

@@ -16,7 +16,9 @@ package k8sutil
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"strings"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/goph/emperror"
@@ -61,6 +63,33 @@ func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 	}
 	cr.Spec.BrokerConfigs = brokerConfigs
 	return updateCr(cr, client)
+}
+
+func updateCrWithRackAwarenessConfig(current *corev1.Pod, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
+	if cr.Spec.RackAwareness != nil {
+		rackConfigMap, err := getSpecificNodeLabels(current.Spec.NodeName, client, cr.Spec.RackAwareness.Labels)
+		if err != nil {
+			return emperror.WrapWith(err, "fetching Node rack awareness labels failed")
+		}
+		rackConfigValues := make([]string, 0, len(rackConfigMap))
+		for _, value := range rackConfigMap {
+			rackConfigValues = append(rackConfigValues, value)
+		}
+		brokerConfigs := []banzaicloudv1alpha1.BrokerConfig{}
+
+		for _, brokerConfig := range cr.Spec.BrokerConfigs {
+			if strconv.Itoa(int(brokerConfig.Id)) == current.Labels["brokerId"] {
+				if !strings.Contains(brokerConfig.Config, "broker.rack=") {
+					config := brokerConfig.Config + fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
+					brokerConfig.Config = config
+				}
+			}
+			brokerConfigs = append(brokerConfigs, brokerConfig)
+		}
+		cr.Spec.BrokerConfigs = brokerConfigs
+		return updateCr(cr, client)
+	}
+	return nil
 }
 
 // AddNewBrokerToCr modifies the CR and adds a new broker
