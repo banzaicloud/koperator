@@ -8,6 +8,11 @@ spec:
   # Specify the zookeeper addresses where the Kafka should store it's metadata
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
+  rackAwareness:
+    labels:
+      - "failure-domain.beta.kubernetes.io/region"
+      - "failure-domain.beta.kubernetes.io/zone"
+  oneBrokerPerNode: false
   # Specify the Kafka Broker related settings
   # All Broker requires an image, unique id, and storageConfigs settings
   brokerConfigs:

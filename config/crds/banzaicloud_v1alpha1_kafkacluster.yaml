@@ -57,6 +57,19 @@ spec:
                 - storageConfigs
                 type: object
               type: array
+            cruiseControlConfig:
+              properties:
+                capacityConfig:
+                  type: string
+                clusterConfigs:
+                  type: string
+                config:
+                  type: string
+              required:
+              - config
+              - capacityConfig
+              - clusterConfigs
+              type: object
             listenersConfig:
               properties:
                 externalListeners:
@@ -111,11 +124,13 @@ spec:
               required:
               - internalListeners
               type: object
+            oneBrokerPerNode:
+              type: boolean
             rackAwareness:
               properties:
                 labels:
                   items:
-                    type: object
+                    type: string
                   type: array
               required:
               - labels
@@ -130,6 +145,8 @@ spec:
           - listenersConfig
           - zkAddresses
           - brokerConfigs
+          - oneBrokerPerNode
+          - cruiseControlConfig
           - serviceAccount
           type: object
         status:

@@ -160,6 +160,10 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err != nil {
 				return emperror.WrapWith(err, "updating cr failed")
 			}
+			err = updateCrWithRackAwarenessConfig(current.(*corev1.Pod), cr, client)
+			if err != nil {
+				return emperror.WrapWith(err, "updating cr failed")
+			}
 			err = client.Delete(context.TODO(), current)
 			if err != nil {
 				return emperror.WrapWith(err, "deleting resource failed", "kind", desiredType)

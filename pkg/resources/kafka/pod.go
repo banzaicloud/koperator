@@ -67,6 +67,10 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /config/broker-config")
 	}
 
+	if r.KafkaCluster.Spec.RackAwareness != nil {
+		initContainers = append(initContainers, *generateRackAwarenessConfig(broker.Image))
+	}
+
 	pod := &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), util.MonitoringAnnotations(), r.KafkaCluster),
 		Spec: corev1.PodSpec{
@@ -205,29 +209,24 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 	return pod
 }
 
-//func generateRackAwarenessConfig(labels []string) *corev1.Container {
-//	return &corev1.Container{
-//		Name:  "genRackAwareConfig",
-//		Image: "solsson/kafka-initutils@sha256:c98d7fb5e9365eab391a5dcd4230fc6e72caf929c60f29ff091e3b0215124713",
-//		Env: []corev1.EnvVar{
-//			{
-//				Name: "NODE_NAME",
-//				ValueFrom: &corev1.EnvVarSource{
-//					FieldRef: &corev1.ObjectFieldSelector{
-//						FieldPath: "spec.nodeName",
-//					},
-//				},
-//			},
-//			{
-//				Name:  "AWARE_LABELS",
-//				Value: strings.Join(labels, ","),
-//			},
-//		},
-//		Command: []string{
-//			"/bin/bash", "-c", "kubectl get node $NODE_NAME -o=",
-//		},
-//	}
-//}
+func generateRackAwarenessConfig(image string) *corev1.Container {
+	return &corev1.Container{
+		Name:            "gen-rack-aware-config",
+		Image:           image,
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Command: []string{
+			"/bin/bash", "-c", `if grep -q broker.rack /config/broker-config; then echo already configured; else exit -1; fi`,
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      brokerConfigMapVolumeMount,
+				MountPath: "/config",
+			},
+		},
+		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+	}
+}
 
 func generatePodAntyAffinity(clusterName string, hardRuleEnabled bool) *corev1.PodAntiAffinity {
 	podAntyAffinity := corev1.PodAntiAffinity{}
