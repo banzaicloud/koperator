@@ -17,7 +17,7 @@ package kafkacluster
 import (
 	"context"
 
-	objectmatch "github.com/banzaicloud/k8s-objectmatcher"
+	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
@@ -68,9 +68,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Initialize object matcher
-	objectMatcher := objectmatch.New(log)
-
 	// Initialize owner matcher
 	ownerMatcher := k8sutil.NewOwnerReferenceMatcher(&banzaicloudv1alpha1.KafkaCluster{TypeMeta: metav1.TypeMeta{Kind: "KafkaCluster", APIVersion: "banzaicloud.banzaicloud.io/v1alpha1"}}, true, mgr.GetScheme())
 
@@ -105,10 +102,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				if related {
 					log.Info("related object changed", "trigger", object.GetName())
 				}
-				objectsEquals, err := objectMatcher.Match(e.ObjectOld, e.ObjectNew)
+				patchResult, err := patch.DefaultPatchMaker.Calculate(e.ObjectOld, e.ObjectNew)
 				if err != nil {
 					log.Error(err, "could not match objects", "kind", e.ObjectOld.GetObjectKind())
-				} else if objectsEquals {
+				} else if patchResult.IsEmpty() {
 					return false
 				}
 				return true

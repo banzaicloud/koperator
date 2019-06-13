@@ -30,9 +30,12 @@ import (
 
 func main() {
 	var metricsAddr string
+	var verbose bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.BoolVar(&verbose, "verbose", false, "Enable verbose logging")
 	flag.Parse()
-	logf.SetLogger(logf.ZapLogger(false))
+
+	logf.SetLogger(logf.ZapLogger(verbose))
 	log := logf.Log.WithName("entrypoint")
 
 	// Get a config to talk to the apiserver
