@@ -45,9 +45,9 @@ version="v1.4.7"
   name = "github.com/envoyproxy/go-control-plane"
   version = "=v0.6.7"
 
-[[constraint]]
-  branch = "master"
+[[override]]
   name = "github.com/banzaicloud/k8s-objectmatcher"
+  revision = "1596e84aae2764cab454a32215e756bbbee3af5d"
 
 [[constraint]]
   branch = "master"

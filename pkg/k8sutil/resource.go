@@ -19,7 +19,7 @@ import (
 	"errors"
 	"reflect"
 
-	objectmatch "github.com/banzaicloud/k8s-objectmatcher"
+	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/go-logr/logr"
@@ -51,10 +51,12 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType, "name", key.Name)
 		}
 		if apierrors.IsNotFound(err) {
+			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType, "name", key.Name)
 			}
 			log.Info("resource created")
+			return nil
 		}
 	case *corev1.PersistentVolumeClaim:
 		log = log.WithValues("kind", desiredType)
@@ -74,11 +76,12 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		// Creating the first PersistentVolume For Pod
 		if len(pvcList.Items) == 0 {
 			err = apierrors.NewNotFound(corev1.Resource("PersistentVolumeClaim"), "kafkaBroker")
+			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
 			log.Info("resource created")
-			break
+			return nil
 		}
 		alreadyCreated := false
 		for _, pvc := range pvcList.Items {
@@ -91,9 +94,11 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		if !alreadyCreated {
 			// Creating the 2+ PersistentVolumes for Pod
 			err = apierrors.NewNotFound(corev1.Resource("PersistentVolumeClaim"), "kafkaBroker")
+			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
+			return nil
 		}
 	case *corev1.Pod:
 		log = log.WithValues("kind", desiredType)
@@ -110,6 +115,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		}
 		if len(podList.Items) == 0 {
 			err = apierrors.NewNotFound(corev1.Resource("Pod"), "kafkaBroker")
+			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
@@ -118,6 +124,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				log.Error(err, "graceful upscale failed, or cluster just started")
 			}
 			log.Info("resource created")
+			return nil
 		} else if len(podList.Items) == 1 {
 			current = podList.Items[0].DeepCopyObject()
 		} else {
@@ -125,10 +132,10 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		}
 	}
 	if err == nil {
-		objectsEquals, err := objectmatch.New(log).Match(current, desired)
+		patchResult, err := patch.DefaultPatchMaker.Calculate(current, desired)
 		if err != nil {
 			log.Error(err, "could not match objects", "kind", desiredType)
-		} else if objectsEquals {
+		} else if patchResult.IsEmpty() {
 			switch current.(type) {
 			case *corev1.Pod:
 				{
@@ -141,7 +148,15 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				log.V(1).Info("resource is in sync")
 				return nil
 			}
+		} else {
+			log.V(1).Info("resource diffs",
+				"patch", string(patchResult.Patch),
+				"current", string(patchResult.Current),
+				"modified", string(patchResult.Modified),
+				"original", string(patchResult.Original))
 		}
+
+		patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 
 		switch desired.(type) {
 		default:
