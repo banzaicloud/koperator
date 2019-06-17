@@ -19,7 +19,9 @@ type BrokerState string
 
 const (
 	// Running states the broker is running
-	Running BrokerState = "Running"
+	Configured BrokerState = "Configured"
+	// WaitingForRackAwareness states the broker is waiting for the rack awareness config
+	WaitingForRackAwareness BrokerState = "WaitingForRackAwareness"
 	// Error states the broker is in error
 	Error BrokerState = "Error"
 )

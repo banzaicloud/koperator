@@ -171,36 +171,3 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 	}
 	return reconcile.Result{}, nil
 }
-
-//func (r *ReconcileKafkaCluster) updateStatus(cluster *banzaicloudv1alpha1.KafkaCluster, status banzaicloudv1alpha1.BrokerState, brokerId int32, logger logr.Logger) error {
-//	typeMeta := cluster.TypeMeta
-//	cluster.Status.BrokersState[brokerId] = status
-//	err := r.Status().Update(context.Background(), cluster)
-//	if k8serrors.IsNotFound(err) {
-//		err = r.Update(context.Background(), cluster)
-//	}
-//	if err != nil {
-//		if !k8serrors.IsConflict(err) {
-//			return emperror.Wrapf(err, "could not update broker %d state to '%s'", brokerId, status)
-//		}
-//		err := r.Get(context.TODO(), types.NamespacedName{
-//			Namespace: cluster.Namespace,
-//			Name:      cluster.Name,
-//		}, cluster)
-//		if err != nil {
-//			return emperror.Wrap(err, "could not get config for updating status")
-//		}
-//		cluster.Status.BrokersState[brokerId] = status
-//		err = r.Status().Update(context.Background(), cluster)
-//		if k8serrors.IsNotFound(err) {
-//			err = r.Update(context.Background(), cluster)
-//		}
-//		if err != nil {
-//			return emperror.Wrapf(err, "could not update Broker state to '%s'", status)
-//		}
-//	}
-//	// update loses the typeMeta of the config that's used later when setting ownerrefs
-//	cluster.TypeMeta = typeMeta
-//	logger.Info("Broker state updated", "status", status)
-//	return nil
-//}

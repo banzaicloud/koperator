@@ -15,6 +15,7 @@
 package util
 
 import (
+	"strconv"
 	"strings"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
@@ -65,6 +66,14 @@ func MonitoringAnnotations() map[string]string {
 		"prometheus.io/probe":  "cruisecontrol",
 		"prometheus.io/port":   "9020",
 	}
+}
+
+func ConvertStringToInt32(s string) int32 {
+	i, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		return -1
+	}
+	return int32(i)
 }
 
 // IsSSLEnabledForInternalCommunication checks if ssl is enabled for internal communication
