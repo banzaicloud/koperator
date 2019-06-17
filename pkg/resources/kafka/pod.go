@@ -215,7 +215,7 @@ func generateRackAwarenessConfig(image string) *corev1.Container {
 		Image:           image,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command: []string{
-			"/bin/bash", "-c", `if grep -q broker.rack /config/broker-config; then echo already configured; else exit -1; fi`,
+			"/bin/bash", "-c", `until grep -q broker.rack /config/broker-config; do echo waiting for configuration; sleep 3; done;`,
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{

@@ -22,6 +22,7 @@ import (
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
 	appsv1 "k8s.io/api/apps/v1"
@@ -119,6 +120,12 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
+			if cr.Spec.RackAwareness != nil {
+				statusErr := updateStatus(client, util.ConvertStringToInt32(desired.(*corev1.Pod).Labels["brokerId"]), cr, banzaicloudv1alpha1.WaitingForRackAwareness, log)
+				if statusErr != nil {
+					log.Error(statusErr, "could not update broker state")
+				}
+			}
 			scaleErr := scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"], desired.(*corev1.Pod).Namespace)
 			if scaleErr != nil {
 				log.Error(err, "graceful upscale failed, or cluster just started")
@@ -127,6 +134,17 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			return nil
 		} else if len(podList.Items) == 1 {
 			current = podList.Items[0].DeepCopyObject()
+			brokerId := util.ConvertStringToInt32(current.(*corev1.Pod).Labels["brokerId"])
+			if cr.Status.BrokersState[brokerId] == banzaicloudv1alpha1.WaitingForRackAwareness {
+				err := updateCrWithRackAwarenessConfig(current.(*corev1.Pod), cr, client)
+				if err != nil {
+					return emperror.Wrap(err, "updating cr with rack awareness info failed")
+				}
+				statusErr := updateStatus(client, brokerId, cr, banzaicloudv1alpha1.Configured, log)
+				if statusErr != nil {
+					return emperror.WrapWith(err, "updating status for resource failed", "kind", desiredType)
+				}
+			}
 		} else {
 			return emperror.WrapWith(errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
 		}
@@ -172,10 +190,6 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			desired = svc
 		case *corev1.Pod:
 			err := updateCrWithNodeAffinity(current.(*corev1.Pod), cr, client)
-			if err != nil {
-				return emperror.WrapWith(err, "updating cr failed")
-			}
-			err = updateCrWithRackAwarenessConfig(current.(*corev1.Pod), cr, client)
 			if err != nil {
 				return emperror.WrapWith(err, "updating cr failed")
 			}
