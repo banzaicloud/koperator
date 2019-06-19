@@ -78,24 +78,18 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 			Subdomain: fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name),
 			InitContainers: append(initContainers, []corev1.Container{
 				{
-					Name:            "cruise-control-reporter",
-					ImagePullPolicy: corev1.PullIfNotPresent,
-					Image:           "solsson/kafka-cruise-control@sha256:c70eae329b4ececba58e8cf4fa6e774dd2e0205988d8e5be1a70e622fcc46716",
-					Command:         []string{"/bin/sh", "-cex", "cp -v /opt/cruise-control/cruise-control/build/dependant-libs/cruise-control-metrics-reporter.jar /opt/kafka/libs/extensions/cruise-control-metrics-reporter.jar"},
+					Name:    "cruise-control-reporter",
+					Image:   "solsson/kafka-cruise-control@sha256:c70eae329b4ececba58e8cf4fa6e774dd2e0205988d8e5be1a70e622fcc46716",
+					Command: []string{"/bin/sh", "-cex", "cp -v /opt/cruise-control/cruise-control/build/dependant-libs/cruise-control-metrics-reporter.jar /opt/kafka/libs/extensions/cruise-control-metrics-reporter.jar"},
 					VolumeMounts: []corev1.VolumeMount{{
 						Name:      "extensions",
 						MountPath: "/opt/kafka/libs/extensions",
 					}},
-					TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-					TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 				},
 				{
-					Name:                     "jmx-exporter",
-					Image:                    "banzaicloud/jmx_exporter:latest",
-					ImagePullPolicy:          corev1.PullIfNotPresent,
-					Command:                  []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
-					TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-					TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+					Name:    "jmx-exporter",
+					Image:   "banzaicloud/jmx_exporter:latest",
+					Command: []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      jmxVolumeName,
@@ -109,9 +103,8 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 			},
 			Containers: []corev1.Container{
 				{
-					Name:            "kafka",
-					Image:           broker.Image,
-					ImagePullPolicy: corev1.PullIfNotPresent,
+					Name:  "kafka",
+					Image: broker.Image,
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.Handler{
 							Exec: &corev1.ExecAction{
@@ -158,8 +151,6 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 							MountPath: "/etc/jmx-exporter/",
 						},
 					}...),
-					TerminationMessagePath:   "/dev/termination-log",
-					TerminationMessagePolicy: "File",
 				},
 			},
 			Volumes: append(volume, []corev1.Volume{
@@ -211,9 +202,8 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 
 func generateRackAwarenessConfig(image string) *corev1.Container {
 	return &corev1.Container{
-		Name:            "gen-rack-aware-config",
-		Image:           image,
-		ImagePullPolicy: corev1.PullIfNotPresent,
+		Name:  "gen-rack-aware-config",
+		Image: image,
 		Command: []string{
 			"/bin/bash", "-c", `until grep -q broker.rack /config/broker-config; do echo waiting for configuration; sleep 3; done;`,
 		},
@@ -223,8 +213,6 @@ func generateRackAwarenessConfig(image string) *corev1.Container {
 				MountPath: "/config",
 			},
 		},
-		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 	}
 }
 
@@ -296,9 +284,8 @@ echo "cruise.control.metrics.reporter.ssl.keystore.password=${SSL_PASSWORD}" >> 
 	}
 	// Keystore generator
 	initPemToKeyStore := corev1.Container{
-		Name:            "pem-to-jks",
-		ImagePullPolicy: corev1.PullIfNotPresent,
-		Image:           image,
+		Name:  "pem-to-jks",
+		Image: image,
 		Env: []corev1.EnvVar{
 			{
 				Name: "SSL_PASSWORD",
@@ -331,8 +318,6 @@ echo "cruise.control.metrics.reporter.ssl.keystore.password=${SSL_PASSWORD}" >> 
 				MountPath: "/mod-config",
 			},
 		},
-		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 	}
 	return initPemToKeyStore
 }

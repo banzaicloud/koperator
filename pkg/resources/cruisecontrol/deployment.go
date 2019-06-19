@@ -63,20 +63,14 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),
 					InitContainers: append(initContainers, []corev1.Container{
 						{
-							Name:                     "create-topic",
-							Image:                    "wurstmeister/kafka:2.12-2.1.0",
-							ImagePullPolicy:          corev1.PullIfNotPresent,
-							Command:                  []string{"/bin/bash", "-c", fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 3; do echo waiting for kafka; sleep 3; done ;", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","))},
-							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+							Name:    "create-topic",
+							Image:   "wurstmeister/kafka:2.12-2.1.0",
+							Command: []string{"/bin/bash", "-c", fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 3; do echo waiting for kafka; sleep 3; done ;", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","))},
 						},
 						{
-							Name:                     "jmx-exporter",
-							Image:                    "banzaicloud/jmx_exporter:latest",
-							ImagePullPolicy:          corev1.PullIfNotPresent,
-							Command:                  []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
-							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+							Name:    "jmx-exporter",
+							Image:   "banzaicloud/jmx_exporter:latest",
+							Command: []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      jmxVolumeName,
@@ -94,8 +88,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 									Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar=9020:/etc/jmx-exporter/config.yaml",
 								},
 							},
-							Image:           "solsson/kafka-cruise-control@sha256:d5e05c95d6e8fddc3e607ec3cdfa2a113b76eabca4aefe6c382f5b3d7d990505",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "solsson/kafka-cruise-control@sha256:d5e05c95d6e8fddc3e607ec3cdfa2a113b76eabca4aefe6c382f5b3d7d990505",
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 8090,
@@ -134,8 +127,6 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 									MountPath: "/etc/jmx-exporter/",
 								},
 							}...),
-							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 						},
 					},
 					Volumes: append(volume, []corev1.Volume{
@@ -173,9 +164,8 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 func generateInitContainerForSSL(secretName string) corev1.Container {
 	// Keystore generator
 	initPemToKeyStore := corev1.Container{
-		Name:            "pem-to-jks",
-		ImagePullPolicy: corev1.PullIfNotPresent,
-		Image:           "wurstmeister/kafka:2.12-2.1.0",
+		Name:  "pem-to-jks",
+		Image: "wurstmeister/kafka:2.12-2.1.0",
 		Env: []corev1.EnvVar{
 			{
 				Name: "SSL_PASSWORD",
@@ -217,8 +207,6 @@ func generateInitContainerForSSL(secretName string) corev1.Container {
 				MountPath: "/opt/cruise-control/config",
 			},
 		},
-		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 	}
 	return initPemToKeyStore
 }
