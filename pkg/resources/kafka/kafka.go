@@ -27,6 +27,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
 	corev1 "k8s.io/api/core/v1"
@@ -173,6 +174,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 						return emperror.WrapWith(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
 					}
 				}
+			}
+			err = k8sutil.DeleteStatus(r.Client, util.ConvertStringToInt32(broker.Labels["brokerId"]), r.KafkaCluster, log)
+			if err != nil {
+				return emperror.WrapWith(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
 			}
 		}
 	}
