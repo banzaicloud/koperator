@@ -64,14 +64,11 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:            "envoy",
-							Image:           "banzaicloud/envoy:0.1.0",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Name:  "envoy",
+							Image: "banzaicloud/envoy:0.1.0",
 							Ports: append(exposedPorts, []corev1.ContainerPort{
 								{Name: "envoy-admin", ContainerPort: 9901, Protocol: corev1.ProtocolTCP}}...),
-							VolumeMounts:             volumeMounts,
-							TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+							VolumeMounts: volumeMounts,
 						},
 					},
 					Volumes: volumes,
