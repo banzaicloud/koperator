@@ -16,6 +16,7 @@ package k8sutil
 
 import (
 	"context"
+	"fmt"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/go-logr/logr"
@@ -64,5 +65,50 @@ func updateStatus(c client.Client, brokerId int32, cluster *banzaicloudv1alpha1.
 	// update loses the typeMeta of the config that's used later when setting ownerrefs
 	cluster.TypeMeta = typeMeta
 	logger.Info("Kafka cluster state updated", "status", status)
+	return nil
+}
+
+// DeleteStatus deletes the given broker state from the CR
+func DeleteStatus(c client.Client, brokerId int32, cluster *banzaicloudv1alpha1.KafkaCluster, logger logr.Logger) error {
+	typeMeta := cluster.TypeMeta
+
+	brokerStatus := cluster.Status.BrokersState
+
+	delete(brokerStatus, brokerId)
+
+	cluster.Status.BrokersState = brokerStatus
+
+	err := c.Status().Update(context.Background(), cluster)
+	if errors.IsNotFound(err) {
+		err = c.Update(context.Background(), cluster)
+	}
+	if err != nil {
+		if !errors.IsConflict(err) {
+			return emperror.Wrapf(err, "could not delete Kafka cluster broker %d state ", brokerId)
+		}
+		err := c.Get(context.TODO(), types.NamespacedName{
+			Namespace: cluster.Namespace,
+			Name:      cluster.Name,
+		}, cluster)
+		if err != nil {
+			return emperror.Wrap(err, "could not get config for updating status")
+		}
+		brokerStatus = cluster.Status.BrokersState
+
+		delete(brokerStatus, brokerId)
+
+		cluster.Status.BrokersState = brokerStatus
+		err = c.Status().Update(context.Background(), cluster)
+		if errors.IsNotFound(err) {
+			err = c.Update(context.Background(), cluster)
+		}
+		if err != nil {
+			return emperror.Wrapf(err, "could not delete Kafka clusters broker %d state ", brokerId)
+		}
+	}
+
+	// update loses the typeMeta of the config that's used later when setting ownerrefs
+	cluster.TypeMeta = typeMeta
+	logger.Info(fmt.Sprintf("Kafka broker %d state deleted", brokerId))
 	return nil
 }
