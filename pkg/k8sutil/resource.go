@@ -120,31 +120,53 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
 			}
-			if cr.Spec.RackAwareness != nil {
-				statusErr := updateStatus(client, util.ConvertStringToInt32(desired.(*corev1.Pod).Labels["brokerId"]), cr, banzaicloudv1alpha1.WaitingForRackAwareness, log)
-				if statusErr != nil {
-					log.Error(statusErr, "could not update broker state")
-				}
-			}
-			scaleErr := scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"], desired.(*corev1.Pod).Namespace)
-			if scaleErr != nil {
-				log.Error(err, "graceful upscale failed, or cluster just started")
-			}
 			log.Info("resource created")
 			return nil
 		} else if len(podList.Items) == 1 {
 			current = podList.Items[0].DeepCopyObject()
 			brokerId := util.ConvertStringToInt32(current.(*corev1.Pod).Labels["brokerId"])
-			if cr.Status.BrokersState[brokerId] == banzaicloudv1alpha1.WaitingForRackAwareness {
-				err := updateCrWithRackAwarenessConfig(current.(*corev1.Pod), cr, client)
-				if err != nil {
-					return emperror.Wrap(err, "updating cr with rack awareness info failed")
+			if brokerState, ok := cr.Status.BrokersState[brokerId]; ok {
+				if brokerState.RackAwarenessState == banzaicloudv1alpha1.WaitingForRackAwareness {
+					err := updateCrWithRackAwarenessConfig(current.(*corev1.Pod), cr, client)
+					if err != nil {
+						return emperror.Wrap(err, "updating cr with rack awareness info failed")
+					}
+					statusErr := updateRackAwarenessStatus(client, brokerId, cr, banzaicloudv1alpha1.Configured, log)
+					if statusErr != nil {
+						return emperror.WrapWith(err, "updating status for resource failed", "kind", desiredType)
+					}
 				}
-				statusErr := updateStatus(client, brokerId, cr, banzaicloudv1alpha1.Configured, log)
+				if current.(*corev1.Pod).Status.Phase == corev1.PodRunning && brokerState.GracefulActionState.CruiseControlState == banzaicloudv1alpha1.GracefulUpdateRequired {
+					scaleErr := scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"], desired.(*corev1.Pod).Namespace)
+					if scaleErr != nil {
+						log.Error(err, "graceful upscale failed, or cluster just started")
+						statusErr := updateGracefulScaleStatus(client, brokerId, cr,
+							banzaicloudv1alpha1.GracefulActionState{ErrorMessage: scaleErr.Error(), CruiseControlState: banzaicloudv1alpha1.GracefulUpdateFailed}, log)
+						if statusErr != nil {
+							return emperror.Wrap(statusErr, "could not update broker graceful action state")
+						}
+					} else {
+						statusErr := updateGracefulScaleStatus(client, brokerId, cr,
+							banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateSucceeded}, log)
+						if statusErr != nil {
+							return emperror.Wrap(statusErr, "could not update broker graceful action state")
+						}
+					}
+				}
+			} else {
+				statusErr := updateGracefulScaleStatus(client, brokerId, cr,
+					banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateRequired}, log)
 				if statusErr != nil {
-					return emperror.WrapWith(err, "updating status for resource failed", "kind", desiredType)
+					return emperror.Wrap(statusErr, "could not update broker graceful action state")
+				}
+				if cr.Spec.RackAwareness != nil {
+					statusErr := updateRackAwarenessStatus(client, brokerId, cr, banzaicloudv1alpha1.WaitingForRackAwareness, log)
+					if statusErr != nil {
+						return emperror.Wrap(statusErr, "could not update broker rack state")
+					}
 				}
 			}
+
 		} else {
 			return emperror.WrapWith(errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
 		}

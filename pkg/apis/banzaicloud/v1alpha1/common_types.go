@@ -14,14 +14,39 @@
 
 package v1alpha1
 
+type RackAwarenessState string
+
+type CruiseControlState string
+
+// GracefulActionState holds information about GracefulAction State
+type GracefulActionState struct {
+	// ErrorMessage holds the information what happened with CC
+	ErrorMessage string
+	// CruiseControlState holds the information about CC state
+	CruiseControlState CruiseControlState
+}
+
 // BrokerState holds information about broker state
-type BrokerState string
+type BrokerState struct {
+	// RackAwarenessState holds info about rack awareness status
+	RackAwarenessState RackAwarenessState
+	// GracefulActionState holds info about cc action status
+	GracefulActionState GracefulActionState
+}
 
 const (
-	// Running states the broker is running
-	Configured BrokerState = "Configured"
+	// Configured states the broker is running
+	Configured RackAwarenessState = "Configured"
 	// WaitingForRackAwareness states the broker is waiting for the rack awareness config
-	WaitingForRackAwareness BrokerState = "WaitingForRackAwareness"
+	WaitingForRackAwareness RackAwarenessState = "WaitingForRackAwareness"
 	// Error states the broker is in error
-	Error BrokerState = "Error"
+	Error RackAwarenessState = "Error"
+	// GracefulUpdateSucceeded states the broker is updated gracefully
+	GracefulUpdateSucceeded CruiseControlState = "GracefulUpdateSucceeded"
+	// GracefulUpdateFailed states the broker could not be updated gracefully
+	GracefulUpdateFailed CruiseControlState = "GracefulUpdateFailed"
+	// GracefulUpdateRequired states the broker requires an
+	GracefulUpdateRequired CruiseControlState = "GracefulUpdateRequired"
+	// ReadyForGracefulUpdate states the broker is
+
 )
