@@ -26,24 +26,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func updateStatus(c client.Client, brokerId int32, cluster *banzaicloudv1alpha1.KafkaCluster, status banzaicloudv1alpha1.BrokerState, logger logr.Logger) error {
+func updateRackAwarenessStatus(c client.Client, brokerId int32, cluster *banzaicloudv1alpha1.KafkaCluster, rackstatus banzaicloudv1alpha1.RackAwarenessState, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
-	brokerStatus := map[int32]banzaicloudv1alpha1.BrokerState{}
-
-	for k, v := range cluster.Status.BrokersState {
-		brokerStatus[k] = v
+	if cluster.Status.BrokersState == nil {
+		cluster.Status.BrokersState = map[int32]*banzaicloudv1alpha1.BrokerState{brokerId: {RackAwarenessState: rackstatus}}
+	} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
+		val.RackAwarenessState = rackstatus
+		cluster.Status.BrokersState[brokerId] = val
+	} else {
+		cluster.Status.BrokersState[brokerId] = &banzaicloudv1alpha1.BrokerState{RackAwarenessState: rackstatus}
 	}
 
-	brokerStatus[brokerId] = status
-	cluster.Status.BrokersState = brokerStatus
 	err := c.Status().Update(context.Background(), cluster)
 	if errors.IsNotFound(err) {
 		err = c.Update(context.Background(), cluster)
 	}
 	if err != nil {
 		if !errors.IsConflict(err) {
-			return emperror.Wrapf(err, "could not update Kafka cluster broker %d state to '%s'", brokerId, status)
+			return emperror.Wrapf(err, "could not update Kafka broker %d rack state to '%s'", brokerId, rackstatus)
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
 			Namespace: cluster.Namespace,
@@ -52,19 +53,78 @@ func updateStatus(c client.Client, brokerId int32, cluster *banzaicloudv1alpha1.
 		if err != nil {
 			return emperror.Wrap(err, "could not get config for updating status")
 		}
-		brokerStatus[brokerId] = status
-		cluster.Status.BrokersState = brokerStatus
+
+		if cluster.Status.BrokersState == nil {
+			cluster.Status.BrokersState = map[int32]*banzaicloudv1alpha1.BrokerState{brokerId: {RackAwarenessState: rackstatus}}
+		} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
+			val.RackAwarenessState = rackstatus
+			cluster.Status.BrokersState[brokerId] = val
+		} else {
+			cluster.Status.BrokersState[brokerId] = &banzaicloudv1alpha1.BrokerState{RackAwarenessState: rackstatus}
+		}
+
 		err = c.Status().Update(context.Background(), cluster)
 		if errors.IsNotFound(err) {
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
-			return emperror.Wrapf(err, "could not update Kafka clusters broker %d state to '%s'", brokerId, status)
+			return emperror.Wrapf(err, "could not update Kafka clusters broker %d rack state to '%s'", brokerId, rackstatus)
 		}
 	}
 	// update loses the typeMeta of the config that's used later when setting ownerrefs
 	cluster.TypeMeta = typeMeta
-	logger.Info("Kafka cluster state updated", "status", status)
+	logger.Info("Kafka cluster rack state updated", "status", rackstatus)
+	return nil
+}
+
+func updateGracefulScaleStatus(c client.Client, brokerId int32, cluster *banzaicloudv1alpha1.KafkaCluster, scaleStatus banzaicloudv1alpha1.GracefulActionState, logger logr.Logger) error {
+	typeMeta := cluster.TypeMeta
+
+	if cluster.Status.BrokersState == nil {
+		cluster.Status.BrokersState = map[int32]*banzaicloudv1alpha1.BrokerState{brokerId: {GracefulActionState: scaleStatus}}
+	} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
+		val.GracefulActionState = scaleStatus
+		cluster.Status.BrokersState[brokerId] = val
+	} else {
+		cluster.Status.BrokersState[brokerId] = &banzaicloudv1alpha1.BrokerState{GracefulActionState: scaleStatus}
+	}
+
+	err := c.Status().Update(context.Background(), cluster)
+	if errors.IsNotFound(err) {
+		err = c.Update(context.Background(), cluster)
+	}
+	if err != nil {
+		if !errors.IsConflict(err) {
+			return emperror.Wrapf(err, "could not update Kafka broker %d graceful scale state to '%s'", brokerId, scaleStatus)
+		}
+		err := c.Get(context.TODO(), types.NamespacedName{
+			Namespace: cluster.Namespace,
+			Name:      cluster.Name,
+		}, cluster)
+		if err != nil {
+			return emperror.Wrap(err, "could not get config for updating status")
+		}
+
+		if cluster.Status.BrokersState == nil {
+			cluster.Status.BrokersState = map[int32]*banzaicloudv1alpha1.BrokerState{brokerId: {GracefulActionState: scaleStatus}}
+		} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
+			val.GracefulActionState = scaleStatus
+			cluster.Status.BrokersState[brokerId] = val
+		} else {
+			cluster.Status.BrokersState[brokerId] = &banzaicloudv1alpha1.BrokerState{GracefulActionState: scaleStatus}
+		}
+
+		err = c.Status().Update(context.Background(), cluster)
+		if errors.IsNotFound(err) {
+			err = c.Update(context.Background(), cluster)
+		}
+		if err != nil {
+			return emperror.Wrapf(err, "could not update Kafka clusters broker %d graceful scale to '%s'", brokerId, scaleStatus)
+		}
+	}
+	// update loses the typeMeta of the config that's used later when setting ownerrefs
+	cluster.TypeMeta = typeMeta
+	logger.Info("Kafka cluster graceful scale updated", "status", scaleStatus)
 	return nil
 }
 

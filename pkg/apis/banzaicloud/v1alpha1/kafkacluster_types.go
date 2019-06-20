@@ -38,7 +38,7 @@ type KafkaClusterSpec struct {
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
 type KafkaClusterStatus struct {
-	BrokersState map[int32]BrokerState `json:"brokersState,omitempty"`
+	BrokersState map[int32]*BrokerState `json:"brokersState,omitempty"`
 }
 
 // BrokerConfig defines the broker configuration
