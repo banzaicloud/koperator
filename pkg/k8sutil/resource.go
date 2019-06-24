@@ -126,7 +126,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			current = podList.Items[0].DeepCopyObject()
 			brokerId := util.ConvertStringToInt32(current.(*corev1.Pod).Labels["brokerId"])
 			if brokerState, ok := cr.Status.BrokersState[brokerId]; ok {
-				if brokerState.RackAwarenessState == banzaicloudv1alpha1.WaitingForRackAwareness {
+				if cr.Spec.RackAwareness != nil && (brokerState.RackAwarenessState == banzaicloudv1alpha1.WaitingForRackAwareness || brokerState.RackAwarenessState == "") {
 					err := updateCrWithRackAwarenessConfig(current.(*corev1.Pod), cr, client)
 					if err != nil {
 						return emperror.Wrap(err, "updating cr with rack awareness info failed")
