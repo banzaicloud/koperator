@@ -4,12 +4,12 @@ Released:
 - [x] - SSL support
 - [x] - Graceful Cluster Scale (via Cruise-Control)
 - [x] - Process and React on custom Prometheus Alerts
+- [x] - User managed Cruise Control Configuration
+- [x] - Rack awareness deployment
 
 Under development (next release)
 
 - [ ] - User management via CRD
-- [ ] - User managed Cruise Control Configuration
-- [ ] - Rack awareness deployment
 
 Short term roadmap
 
