@@ -99,7 +99,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 				},
 			}...),
 			Affinity: &corev1.Affinity{
-				PodAntiAffinity: generatePodAntyAffinity(r.KafkaCluster.Name, r.KafkaCluster.Spec.OneBrokerPerNode),
+				PodAntiAffinity: generatePodAntiAffinity(r.KafkaCluster.Name, r.KafkaCluster.Spec.OneBrokerPerNode),
 			},
 			Containers: []corev1.Container{
 				{
@@ -216,10 +216,10 @@ func generateRackAwarenessConfig(image string) *corev1.Container {
 	}
 }
 
-func generatePodAntyAffinity(clusterName string, hardRuleEnabled bool) *corev1.PodAntiAffinity {
-	podAntyAffinity := corev1.PodAntiAffinity{}
+func generatePodAntiAffinity(clusterName string, hardRuleEnabled bool) *corev1.PodAntiAffinity {
+	podAntiAffinity := corev1.PodAntiAffinity{}
 	if hardRuleEnabled {
-		podAntyAffinity = corev1.PodAntiAffinity{
+		podAntiAffinity = corev1.PodAntiAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 				{
 					LabelSelector: &metav1.LabelSelector{
@@ -230,7 +230,7 @@ func generatePodAntyAffinity(clusterName string, hardRuleEnabled bool) *corev1.P
 			},
 		}
 	} else {
-		podAntyAffinity = corev1.PodAntiAffinity{
+		podAntiAffinity = corev1.PodAntiAffinity{
 			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
 				{
 					Weight: int32(100),
@@ -244,7 +244,7 @@ func generatePodAntyAffinity(clusterName string, hardRuleEnabled bool) *corev1.P
 			},
 		}
 	}
-	return &podAntyAffinity
+	return &podAntiAffinity
 }
 
 func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volume []corev1.Volume, volumeMount []corev1.VolumeMount) {

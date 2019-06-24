@@ -39,8 +39,6 @@ const (
 	Configured RackAwarenessState = "Configured"
 	// WaitingForRackAwareness states the broker is waiting for the rack awareness config
 	WaitingForRackAwareness RackAwarenessState = "WaitingForRackAwareness"
-	// Error states the broker is in error
-	Error RackAwarenessState = "Error"
 	// GracefulUpdateSucceeded states the broker is updated gracefully
 	GracefulUpdateSucceeded CruiseControlState = "GracefulUpdateSucceeded"
 	// GracefulUpdateFailed states the broker could not be updated gracefully
