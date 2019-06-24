@@ -28,9 +28,14 @@ import (
 )
 
 func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
-	nodeZoneAndRegion, err := determineNodeZoneAndRegion(current.Spec.NodeName, client)
+	failureDomainSelectors, err :=  failureDomainSelectors(current.Spec.NodeName, client)
 	if err != nil {
-		return emperror.WrapWith(err, "determining Node zone failed")
+		return emperror.WrapWith(err, "determining Node selector failed")
+	}
+
+	// don't set node affinity when none of the selector labels are available for the node
+	if len(failureDomainSelectors) < 1 {
+		return nil
 	}
 
 	brokerConfigs := []banzaicloudv1alpha1.BrokerConfig{}
@@ -39,22 +44,7 @@ func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 		if strconv.Itoa(int(brokerConfig.Id)) == current.Labels["brokerId"] {
 			nodeAffinity := &corev1.NodeAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-					NodeSelectorTerms: []corev1.NodeSelectorTerm{
-						{
-							MatchExpressions: []corev1.NodeSelectorRequirement{
-								{
-									Key:      zoneLabel,
-									Operator: corev1.NodeSelectorOpIn,
-									Values:   []string{nodeZoneAndRegion.Zone},
-								},
-								{
-									Key:      regionLabel,
-									Operator: corev1.NodeSelectorOpIn,
-									Values:   []string{nodeZoneAndRegion.Region},
-								},
-							},
-						},
-					},
+					NodeSelectorTerms: failureDomainSelectors,
 				},
 			}
 			brokerConfig.NodeAffinity = nodeAffinity
