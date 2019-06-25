@@ -35,7 +35,6 @@ spec:
         spec:
           properties:
             brokerConfigs:
-              description: RackAwarenessEnabled bool            `json:"rackAwarenessEnabled,omitempty"`
               items:
                 properties:
                   config:
@@ -45,6 +44,8 @@ spec:
                     type: integer
                   image:
                     type: string
+                  nodeAffinity:
+                    type: object
                   storageConfigs:
                     items:
                       properties:
@@ -53,15 +54,28 @@ spec:
                         pvcSpec:
                           type: object
                       required:
-                      - mountPath
-                      - pvcSpec
+                        - mountPath
+                        - pvcSpec
                       type: object
                     type: array
                 required:
-                - id
-                - storageConfigs
+                  - id
+                  - storageConfigs
                 type: object
               type: array
+            cruiseControlConfig:
+              properties:
+                capacityConfig:
+                  type: string
+                clusterConfigs:
+                  type: string
+                config:
+                  type: string
+              required:
+                - config
+                - capacityConfig
+                - clusterConfigs
+              type: object
             listenersConfig:
               properties:
                 externalListeners:
@@ -78,10 +92,10 @@ spec:
                       type:
                         type: string
                     required:
-                    - type
-                    - name
-                    - externalStartingPort
-                    - containerPort
+                      - type
+                      - name
+                      - externalStartingPort
+                      - containerPort
                     type: object
                   type: array
                 internalListeners:
@@ -97,10 +111,10 @@ spec:
                       usedForInnerBrokerCommunication:
                         type: boolean
                     required:
-                    - type
-                    - name
-                    - usedForInnerBrokerCommunication
-                    - containerPort
+                      - type
+                      - name
+                      - usedForInnerBrokerCommunication
+                      - containerPort
                     type: object
                   type: array
                 sslSecrets:
@@ -110,11 +124,22 @@ spec:
                     tlsSecretName:
                       type: string
                   required:
-                  - tlsSecretName
-                  - jksPasswordName
+                    - tlsSecretName
+                    - jksPasswordName
                   type: object
               required:
-              - internalListeners
+                - internalListeners
+              type: object
+            oneBrokerPerNode:
+              type: boolean
+            rackAwareness:
+              properties:
+                labels:
+                  items:
+                    type: string
+                  type: array
+              required:
+                - labels
               type: object
             serviceAccount:
               type: string
@@ -123,10 +148,12 @@ spec:
                 type: string
               type: array
           required:
-          - listenersConfig
-          - zkAddresses
-          - brokerConfigs
-          - serviceAccount
+            - listenersConfig
+            - zkAddresses
+            - brokerConfigs
+            - oneBrokerPerNode
+            - cruiseControlConfig
+            - serviceAccount
           type: object
         status:
           properties:
