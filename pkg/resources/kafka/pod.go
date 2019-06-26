@@ -67,10 +67,6 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /config/broker-config")
 	}
 
-	if r.KafkaCluster.Spec.RackAwareness != nil {
-		initContainers = append(initContainers, *generateRackAwarenessConfig(broker.Image))
-	}
-
 	pod := &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), util.MonitoringAnnotations(), r.KafkaCluster),
 		Spec: corev1.PodSpec{
@@ -198,22 +194,6 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 		pod.Spec.Affinity.NodeAffinity = broker.NodeAffinity
 	}
 	return pod
-}
-
-func generateRackAwarenessConfig(image string) *corev1.Container {
-	return &corev1.Container{
-		Name:  "gen-rack-aware-config",
-		Image: image,
-		Command: []string{
-			"/bin/bash", "-c", `until grep -q broker.rack /config/broker-config; do echo waiting for configuration; sleep 3; done;`,
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      brokerConfigMapVolumeMount,
-				MountPath: "/config",
-			},
-		},
-	}
 }
 
 func generatePodAntiAffinity(clusterName string, hardRuleEnabled bool) *corev1.PodAntiAffinity {
