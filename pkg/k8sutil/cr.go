@@ -28,7 +28,7 @@ import (
 )
 
 func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
-	failureDomainSelectors, err :=  failureDomainSelectors(current.Spec.NodeName, client)
+	failureDomainSelectors, err := failureDomainSelectors(current.Spec.NodeName, client)
 	if err != nil {
 		return emperror.WrapWith(err, "determining Node selector failed")
 	}

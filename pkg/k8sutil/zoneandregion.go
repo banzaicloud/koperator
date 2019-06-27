@@ -41,10 +41,10 @@ func failureDomainSelectors(nodeName string, client runtimeClient.Client) ([]cor
 		for key, val := range labels {
 			defaultFailureDomainSelector.MatchExpressions =
 				append(defaultFailureDomainSelector.MatchExpressions, corev1.NodeSelectorRequirement{
-						Key:      key,
-						Operator: corev1.NodeSelectorOpIn,
-						Values:   []string{val},
-					})
+					Key:      key,
+					Operator: corev1.NodeSelectorOpIn,
+					Values:   []string{val},
+				})
 		}
 		terms = append(terms, defaultFailureDomainSelector)
 	}
