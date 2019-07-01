@@ -16,6 +16,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,11 +44,12 @@ type KafkaClusterStatus struct {
 
 // BrokerConfig defines the broker configuration
 type BrokerConfig struct {
-	Image          string               `json:"image,omitempty"`
-	Id             int32                `json:"id"`
-	NodeAffinity   *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
-	Config         string               `json:"config,omitempty"`
-	StorageConfigs []StorageConfig      `json:"storageConfigs"`
+	Image          string                       `json:"image,omitempty"`
+	Id             int32                        `json:"id"`
+	NodeAffinity   *corev1.NodeAffinity         `json:"nodeAffinity,omitempty"`
+	Config         string                       `json:"config,omitempty"`
+	StorageConfigs []StorageConfig              `json:"storageConfigs"`
+	Resources      *corev1.ResourceRequirements `json:"resourceReqs,omitempty"`
 }
 
 // RackAwareness defines the required fields to enable kafka's rack aware feature
@@ -130,4 +132,21 @@ func (spec *KafkaClusterSpec) GetServiceAccount() string {
 		return spec.ServiceAccount
 	}
 	return "default"
+}
+
+// GetResources returns the broker specific Kubernetes resource
+func (bConfig *BrokerConfig) GetResources() *corev1.ResourceRequirements {
+	if bConfig.Resources != nil {
+		return bConfig.Resources
+	}
+	return &corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse("500m"),
+			"memory": resource.MustParse("1Gi"),
+		},
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("200m"),
+			"memory": resource.MustParse("500Mi"),
+		},
+	}
 }

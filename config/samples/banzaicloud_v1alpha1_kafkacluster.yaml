@@ -25,6 +25,15 @@ spec:
     - image: "wurstmeister/kafka:2.12-2.1.0"
       # Unique broker id which is used as kafka config broker.id
       id: 0
+      # ResourceReqs works exactly like Container resources, the user can specify the limit and the requests
+      # through this property
+      resourceReqs:
+        limits:
+          memory: "300Mi"
+          cpu: "200m"
+        requests:
+          memory: "300Mi"
+          cpu: "200m"
       # nodeAffinity can be specified, operator populates this value if new pvc added later to brokers
       # nodeAffinity:
       # config parameter can be used to pass any Kafka config https://kafka.apache.org/documentation/#brokerconfigs

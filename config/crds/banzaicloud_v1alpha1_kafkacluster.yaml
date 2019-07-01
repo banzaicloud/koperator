@@ -40,6 +40,8 @@ spec:
                     type: string
                   nodeAffinity:
                     type: object
+                  resourceReqs:
+                    type: object
                   storageConfigs:
                     items:
                       properties:
