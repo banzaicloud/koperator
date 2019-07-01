@@ -147,6 +147,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 							MountPath: "/etc/jmx-exporter/",
 						},
 					}...),
+					Resources: *broker.GetResources(),
 				},
 			},
 			Volumes: append(volume, []corev1.Volume{
