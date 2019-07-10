@@ -53,7 +53,13 @@ func addPVC(labels model.LabelSet, annotations model.LabelSet, client client.Cli
 }
 
 func downScale(labels model.LabelSet, client client.Client) error {
-	brokerId, err := scale.GetBrokerIDWithLeastPartition(string(labels["kubernetes_namespace"]))
+
+	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]), string(labels["kubernetes_namespace"]), client)
+	if err != nil {
+		return err
+	}
+
+	brokerId, err := scale.GetBrokerIDWithLeastPartition(string(labels["kubernetes_namespace"]), cr.Spec.CruiseControlConfig.CruiseControlEndpoint)
 	if err != nil {
 		return err
 	}

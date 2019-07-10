@@ -152,7 +152,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			deletedBrokers = append(deletedBrokers, pod)
 		}
 		for _, broker := range deletedBrokers {
-			err = scale.DownsizeCluster(broker.Labels["brokerId"], broker.Namespace)
+			err = scale.DownsizeCluster(broker.Labels["brokerId"], broker.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint)
 			if err != nil {
 				log.Error(err, "graceful downscale failed.")
 			}
