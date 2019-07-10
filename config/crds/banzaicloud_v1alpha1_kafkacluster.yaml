@@ -67,10 +67,8 @@ spec:
                   type: string
                 config:
                   type: string
-              required:
-              - config
-              - capacityConfig
-              - clusterConfigs
+                cruiseControlEndpoint:
+                  type: string
               type: object
             listenersConfig:
               properties:

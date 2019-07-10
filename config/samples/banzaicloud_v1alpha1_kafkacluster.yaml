@@ -128,6 +128,9 @@ spec:
       jksPasswordName: "test-kafka-operator-pass"
   # cruiseControlConfig describes the cruise control related configuration
   cruiseControlConfig:
+    # CruiseControlEndpoint describes the endpoint where the already running CC is accessable. If set the Operator will not
+    # try to install one
+    #cruiseControlEndpoint: "localhost:8090"
     # Config describes the main configuration file called cruisecontrol.properties bootsrap.server and zookeeper.connect must left out
     # because those values are generated
     config: |

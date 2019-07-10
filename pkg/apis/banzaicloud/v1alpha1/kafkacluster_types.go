@@ -59,9 +59,10 @@ type RackAwareness struct {
 
 // CruiseControlConfig defines the config for Cruise Control
 type CruiseControlConfig struct {
-	Config         string `json:"config"`
-	CapacityConfig string `json:"capacityConfig"`
-	ClusterConfigs string `json:"clusterConfigs"`
+	CruiseControlEndpoint string `json:"cruiseControlEndpoint,omitempty"`
+	Config                string `json:"config,omitempty"`
+	CapacityConfig        string `json:"capacityConfig,omitempty"`
+	ClusterConfigs        string `json:"clusterConfigs,omitempty"`
 }
 
 // StorageConfig defines the broker storage configuration
