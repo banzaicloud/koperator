@@ -181,10 +181,13 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		}
 	}
+	lBIp := ""
 
-	lBIp, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
-	if err != nil {
-		return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
+	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
+		lBIp, err = getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
+		if err != nil {
+			return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
+		}
 	}
 	//TODO remove after testing
 	//lBIp := "192.168.0.1"

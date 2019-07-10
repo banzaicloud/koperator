@@ -55,16 +55,18 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 
 	log.V(1).Info("Reconciling")
+	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
 
-	for _, res := range []resources.ResourceWithLogs{
-		r.loadBalancer,
-		r.configMap,
-		r.deployment,
-	} {
-		o := res(log)
-		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-		if err != nil {
-			return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+		for _, res := range []resources.ResourceWithLogs{
+			r.loadBalancer,
+			r.configMap,
+			r.deployment,
+		} {
+			o := res(log)
+			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+			if err != nil {
+				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			}
 		}
 	}
 
