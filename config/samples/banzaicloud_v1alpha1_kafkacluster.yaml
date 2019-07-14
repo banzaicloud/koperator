@@ -42,6 +42,10 @@ spec:
       #   delete.topic.enable=true
       #   auto.create.topics.enable=true
       # storageConfigs specifies the broker log related configs
+      # kafkaHeapOpts specifies the jvm heap size for the broker
+      # kafkaHeapOpts: "-Xmx4G -Xms4G"
+      # kafkaJvmPerfOpts specifies the jvm performance configs for the broker
+      # kafkaJvmPerfOpts: "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true -Dsun.net.inetaddr.ttl=60"
       storageConfigs:
         # mountPath will be used in kafka config log.dirs so it must be unique
         - mountPath: "/kafka-logs"

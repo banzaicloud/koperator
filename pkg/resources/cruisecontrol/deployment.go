@@ -63,14 +63,15 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),
 					InitContainers: append(initContainers, []corev1.Container{
 						{
-							Name:    "create-topic",
-							Image:   "wurstmeister/kafka:2.12-2.1.0",
-							Command: []string{"/bin/bash", "-c", fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 3; do echo waiting for kafka; sleep 3; done ;", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","))},
+							Name:  "create-topic",
+							Image: "wurstmeister/kafka:2.12-2.1.0",
+							Command: []string{"/bin/bash", "-c",
+								fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 2; do echo waiting for kafka; sleep 3; done ;", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","))},
 						},
 						{
 							Name:    "jmx-exporter",
-							Image:   "banzaicloud/jmx_exporter:latest",
-							Command: []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
+							Image:   "banzaicloud/jmx-javaagent:0.12.0",
+							Command: []string{"cp", "/opt/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar", "/opt/jmx-exporter/"},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      jmxVolumeName,
@@ -85,7 +86,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 							Env: []corev1.EnvVar{
 								{
 									Name:  "KAFKA_OPTS",
-									Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar=9020:/etc/jmx-exporter/config.yaml",
+									Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.12.0.jar=9020:/etc/jmx-exporter/config.yaml",
 								},
 							},
 							Image: "solsson/kafka-cruise-control@sha256:d5e05c95d6e8fddc3e607ec3cdfa2a113b76eabca4aefe6c382f5b3d7d990505",

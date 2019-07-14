@@ -63,7 +63,6 @@ func MergeLabels(l map[string]string, l2 map[string]string) map[string]string {
 func MonitoringAnnotations() map[string]string {
 	return map[string]string{
 		"prometheus.io/scrape": "true",
-		"prometheus.io/probe":  "cruisecontrol",
 		"prometheus.io/port":   "9020",
 	}
 }

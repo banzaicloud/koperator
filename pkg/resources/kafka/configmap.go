@@ -50,7 +50,7 @@ func generateAdvertisedListenerConfig(broker banzaicloudv1alpha1.BrokerConfig, l
 	}
 	for _, iListener := range l.InternalListeners {
 		advertisedListenerConfig = append(advertisedListenerConfig,
-			fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, crName, namespace, iListener.ContainerPort))
+			fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, namespace, iListener.ContainerPort))
 	}
 	return fmt.Sprintf("advertised.listeners=%s\n", strings.Join(advertisedListenerConfig, ","))
 }
@@ -115,7 +115,7 @@ func getInternalListeners(iListeners []banzaicloudv1alpha1.InternalListenerConfi
 
 	for _, iListener := range iListeners {
 		listenerConfig = append(listenerConfig,
-			fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, crName, namespace, iListener.ContainerPort))
+			fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, namespace, iListener.ContainerPort))
 	}
 
 	return listenerConfig

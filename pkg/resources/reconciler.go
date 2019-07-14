@@ -48,3 +48,6 @@ type ResourceWithBrokerAndString func(broker banzaicloudv1alpha1.BrokerConfig, t
 
 // ResourceWithBrokerAndStorage function with brokerConfig, storageConfig and log parameters
 type ResourceWithBrokerAndStorage func(broker banzaicloudv1alpha1.BrokerConfig, storage banzaicloudv1alpha1.StorageConfig, log logr.Logger) runtime.Object
+
+// ResourceWithBrokerAndLog function with brokerConfig and log parameters
+type ResourceWithBrokerAndLog func(broker banzaicloudv1alpha1.BrokerConfig, log logr.Logger) runtime.Object
