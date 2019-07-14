@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (r *Reconciler) headlessServicePod() runtime.Object {
+func (r *Reconciler) allBrokerService() runtime.Object {
 
 	var usedPorts []corev1.ServicePort
 
@@ -38,12 +38,11 @@ func (r *Reconciler) headlessServicePod() runtime.Object {
 	}
 
 	return &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(AllBrokerServiceTemplate, r.KafkaCluster.Name), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
 			SessionAffinity: corev1.ServiceAffinityNone,
 			Selector:        labelsForKafka(r.KafkaCluster.Name),
-			ClusterIP:       corev1.ClusterIPNone,
 			Ports:           usedPorts,
 		},
 	}

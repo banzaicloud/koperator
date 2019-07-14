@@ -70,8 +70,6 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 	pod := &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), util.MonitoringAnnotations(), r.KafkaCluster),
 		Spec: corev1.PodSpec{
-			Hostname:  fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id),
-			Subdomain: fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name),
 			InitContainers: append(initContainers, []corev1.Container{
 				{
 					Name:    "cruise-control-reporter",
@@ -84,8 +82,8 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 				},
 				{
 					Name:    "jmx-exporter",
-					Image:   "banzaicloud/jmx_exporter:latest",
-					Command: []string{"cp", "/usr/share/jmx_exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar", "/opt/jmx-exporter/"},
+					Image:   "banzaicloud/jmx-javaagent:0.12.0",
+					Command: []string{"cp", "/opt/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar", "/opt/jmx-exporter/"},
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      jmxVolumeName,
@@ -115,11 +113,15 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						},
 						{
 							Name:  "KAFKA_OPTS",
-							Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.3.1-SNAPSHOT.jar=9020:/etc/jmx-exporter/config.yaml",
+							Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.12.0.jar=9020:/etc/jmx-exporter/config.yaml",
+						},
+						{
+							Name:  "KAFKA_HEAP_OPTS",
+							Value: broker.GetKafkaHeapOpts(),
 						},
 						{
 							Name:  "KAFKA_JVM_PERFORMANCE_OPTS",
-							Value: "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true -Dsun.net.inetaddr.ttl=60",
+							Value: broker.GetKafkaPerfJmvOpts(),
 						},
 					},
 					Command: command,

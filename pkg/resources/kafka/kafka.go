@@ -38,8 +38,8 @@ import (
 
 const (
 	componentName = "kafka"
-	// HeadlessServiceTemplate template for Kafka headless service
-	HeadlessServiceTemplate       = "%s-headless"
+	// AllBrokerServiceTemplate template for Kafka headless service
+	AllBrokerServiceTemplate      = "%s-all-broker"
 	brokerConfigTemplate          = "%s-config"
 	brokerStorageTemplate         = "%s-storage"
 	brokerConfigMapVolumeMount    = "broker-config"
@@ -123,7 +123,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciling")
 
 	for _, res := range []resources.Resource{
-		r.headlessServicePod,
+		r.allBrokerService,
 	} {
 		o := res()
 		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
@@ -163,6 +163,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 			if err != nil {
 				return emperror.WrapWith(err, "could not delete configmap for broker", "id", broker.Labels["brokerId"])
+			}
+			err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+			if err != nil {
+				return emperror.WrapWith(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
 			}
 			for _, volume := range broker.Spec.Volumes {
 				if strings.HasPrefix(volume.Name, kafkaDataVolumeMount) {
@@ -233,6 +237,16 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		pvcs, err := getCreatedPVCForBroker(r.Client, broker.Id, r.KafkaCluster.Namespace, r.KafkaCluster.Name)
 		if err != nil {
 			return emperror.WrapWith(err, "failed to list PVC's")
+		}
+
+		for _, res := range []resources.ResourceWithBrokerAndLog{
+			r.service,
+		} {
+			o := res(broker, log)
+			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+			if err != nil {
+				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			}
 		}
 
 		for _, res := range []resources.ResourceWithBrokerAndVolume{

@@ -38,6 +38,10 @@ spec:
                     type: integer
                   image:
                     type: string
+                  kafkaHeapOpts:
+                    type: string
+                  kafkaJvmPerfOpts:
+                    type: string
                   nodeAffinity:
                     type: object
                   resourceReqs:

@@ -44,12 +44,14 @@ type KafkaClusterStatus struct {
 
 // BrokerConfig defines the broker configuration
 type BrokerConfig struct {
-	Image          string                       `json:"image,omitempty"`
-	Id             int32                        `json:"id"`
-	NodeAffinity   *corev1.NodeAffinity         `json:"nodeAffinity,omitempty"`
-	Config         string                       `json:"config,omitempty"`
-	StorageConfigs []StorageConfig              `json:"storageConfigs"`
-	Resources      *corev1.ResourceRequirements `json:"resourceReqs,omitempty"`
+	Image            string                       `json:"image,omitempty"`
+	Id               int32                        `json:"id"`
+	NodeAffinity     *corev1.NodeAffinity         `json:"nodeAffinity,omitempty"`
+	Config           string                       `json:"config,omitempty"`
+	StorageConfigs   []StorageConfig              `json:"storageConfigs"`
+	Resources        *corev1.ResourceRequirements `json:"resourceReqs,omitempty"`
+	KafkaHeapOpts    string                       `json:"kafkaHeapOpts,omitempty"`
+	KafkaJVMPerfOpts string                       `json:"kafkaJvmPerfOpts,omitempty"`
 }
 
 // RackAwareness defines the required fields to enable kafka's rack aware feature
@@ -150,4 +152,22 @@ func (bConfig *BrokerConfig) GetResources() *corev1.ResourceRequirements {
 			"memory": resource.MustParse("500Mi"),
 		},
 	}
+}
+
+// GetKafkaHeapOpts returns the broker specific Heap settings
+func (bConfig *BrokerConfig) GetKafkaHeapOpts() string {
+	if bConfig.KafkaHeapOpts != "" {
+		return bConfig.KafkaHeapOpts
+	}
+
+	return "-Xmx2G -Xms2G"
+}
+
+// GetKafkaPerfJmvOpts returns the broker specific Perf JVM settings
+func (bConfig *BrokerConfig) GetKafkaPerfJmvOpts() string {
+	if bConfig.KafkaHeapOpts != "" {
+		return bConfig.KafkaJVMPerfOpts
+	}
+
+	return "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true -Dsun.net.inetaddr.ttl=60"
 }

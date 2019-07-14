@@ -37,7 +37,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
     bootstrap.servers=%s:%d
     # The zookeeper connect of the Kafka cluster
     zookeeper.connect=%s/
-`, fmt.Sprintf(kafka.HeadlessServiceTemplate, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")) +
+`, fmt.Sprintf(kafka.AllBrokerServiceTemplate, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")) +
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig),
 			"capacity.json":       r.KafkaCluster.Spec.CruiseControlConfig.CapacityConfig,
 			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfigs,
