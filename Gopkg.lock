@@ -462,6 +462,17 @@
   version = "v1.3.0"
 
 [[projects]]
+  digest = "1:f1351aefb65029d53c0f818391f73fc1b775219e217cdf1b4f01e8f286057532"
+  name = "github.com/segmentio/kafka-go"
+  packages = [
+    ".",
+    "sasl",
+  ]
+  pruneopts = "T"
+  revision = "0b38267f13d5e17fcf8dfbb89168ef7fb520deb8"
+  version = "v0.2.5"
+
+[[projects]]
   digest = "1:dee0cc3252ce6fcc3334c9529abd32925f2aaf072c90336a5a38254953564aa5"
   name = "github.com/spf13/afero"
   packages = [
@@ -1080,6 +1091,7 @@
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/prometheus/common/model",
+    "github.com/segmentio/kafka-go",
     "golang.org/x/net/context",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",

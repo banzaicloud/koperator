@@ -63,15 +63,27 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	if r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint == "" {
 
-		for _, res := range []resources.ResourceWithLogs{
-			r.service,
-			r.configMap,
-			r.deployment,
-		} {
-			o := res(log)
-			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-			if err != nil {
-				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+		err := generateCCTopic(r.KafkaCluster)
+		if err != nil {
+			k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicNotReady, log)
+			return err
+		}
+		statusErr := k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicReady, log)
+		if statusErr != nil {
+			return emperror.Wrap(statusErr, "could not update CC topic status")
+		}
+
+		if *r.KafkaCluster.Status.CruiseControlState == banzaicloudv1alpha1.CruiseControlTopicReady {
+			for _, res := range []resources.ResourceWithLogs{
+				r.service,
+				r.configMap,
+				r.deployment,
+			} {
+				o := res(log)
+				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+				if err != nil {
+					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				}
 			}
 		}
 	}
