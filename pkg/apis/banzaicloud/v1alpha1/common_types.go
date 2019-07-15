@@ -18,6 +18,8 @@ type RackAwarenessState string
 
 type CruiseControlState string
 
+type CruiseControlTopicStatus string
+
 // GracefulActionState holds information about GracefulAction State
 type GracefulActionState struct {
 	// ErrorMessage holds the information what happened with CC
@@ -45,6 +47,8 @@ const (
 	GracefulUpdateFailed CruiseControlState = "GracefulUpdateFailed"
 	// GracefulUpdateRequired states the broker requires an
 	GracefulUpdateRequired CruiseControlState = "GracefulUpdateRequired"
-	// ReadyForGracefulUpdate states the broker is
-
+	// CruiseControlTopicNotReady states the CC required topic is not yet created
+	CruiseControlTopicNotReady CruiseControlTopicStatus = "CruiseControlTopicNotReady"
+	// CruiseControlTopicReady states the CC required topic is created
+	CruiseControlTopicReady CruiseControlTopicStatus = "CruiseControlTopicReady"
 )

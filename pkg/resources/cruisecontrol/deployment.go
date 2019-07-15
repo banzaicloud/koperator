@@ -16,7 +16,6 @@ package cruisecontrol
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrolmonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
@@ -62,12 +61,6 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),
 					InitContainers: append(initContainers, []corev1.Container{
-						{
-							Name:  "create-topic",
-							Image: "wurstmeister/kafka:2.12-2.1.0",
-							Command: []string{"/bin/bash", "-c",
-								fmt.Sprintf("until /opt/kafka/bin/kafka-topics.sh --zookeeper %s --create --if-not-exists --topic __CruiseControlMetrics --partitions 12 --replication-factor 2; do echo waiting for kafka; sleep 3; done ;", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","))},
-						},
 						{
 							Name:    "jmx-exporter",
 							Image:   "banzaicloud/jmx-javaagent:0.12.0",

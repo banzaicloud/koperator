@@ -52,3 +52,7 @@ version="v1.4.7"
 [[constraint]]
   branch = "master"
   name = "github.com/lestrrat-go/backoff"
+
+[[constraint]]
+  name = "github.com/segmentio/kafka-go"
+  version = "0.2.5"

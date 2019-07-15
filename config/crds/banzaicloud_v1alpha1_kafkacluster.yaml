@@ -157,6 +157,8 @@ spec:
           properties:
             brokersState:
               type: object
+            cruiseControlState:
+              type: string
           type: object
   version: v1alpha1
 status:
