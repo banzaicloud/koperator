@@ -28,7 +28,7 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	//HeadlessServiceEnabled bool                `json:"headlessServiceEnabled,omitempty"`
+	HeadlessServiceEnabled bool                `json:"headlessServiceEnabled"`
 	ListenersConfig        ListenersConfig     `json:"listenersConfig"`
 	ZKAddresses            []string            `json:"zkAddresses"`
 	RackAwareness          *RackAwareness      `json:"rackAwareness,omitempty"`

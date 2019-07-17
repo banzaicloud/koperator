@@ -193,6 +193,10 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 			SchedulerName:                 "default-scheduler",
 		},
 	}
+	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
+		pod.Spec.Hostname = fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id)
+		pod.Spec.Subdomain = fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name)
+	}
 	if broker.NodeAffinity != nil {
 		pod.Spec.Affinity.NodeAffinity = broker.NodeAffinity
 	}

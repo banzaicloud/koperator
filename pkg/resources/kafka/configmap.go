@@ -34,23 +34,28 @@ func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.BrokerConfig, loadB
 			fmt.Sprintf("zookeeper.connect=%s\n", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")) +
 			generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig) +
 			"metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter\n" +
-			fmt.Sprintf("cruise.control.metrics.reporter.bootstrap.servers=%s\n", strings.Join(getInternalListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, broker, r.KafkaCluster.Namespace, r.KafkaCluster.Name), ",")) +
+			fmt.Sprintf("cruise.control.metrics.reporter.bootstrap.servers=%s\n", strings.Join(getInternalListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, broker, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled), ",")) +
 			fmt.Sprintf("broker.id=%d\n", broker.Id) +
 			generateStorageConfig(broker.StorageConfigs) +
-			generateAdvertisedListenerConfig(broker, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIP, r.KafkaCluster.Namespace, r.KafkaCluster.Name) +
+			generateAdvertisedListenerConfig(broker, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIP, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled) +
 			broker.Config},
 	}
 }
 
-func generateAdvertisedListenerConfig(broker banzaicloudv1alpha1.BrokerConfig, l banzaicloudv1alpha1.ListenersConfig, loadBalancerIP, namespace, crName string) string {
+func generateAdvertisedListenerConfig(broker banzaicloudv1alpha1.BrokerConfig, l banzaicloudv1alpha1.ListenersConfig, loadBalancerIP, namespace, crName string, headlessServiceEnabled bool) string {
 	advertisedListenerConfig := []string{}
 	for _, eListener := range l.ExternalListeners {
 		advertisedListenerConfig = append(advertisedListenerConfig,
 			fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIP, eListener.ExternalStartingPort+broker.Id))
 	}
 	for _, iListener := range l.InternalListeners {
-		advertisedListenerConfig = append(advertisedListenerConfig,
-			fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, namespace, iListener.ContainerPort))
+		if headlessServiceEnabled {
+			advertisedListenerConfig = append(advertisedListenerConfig,
+				fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, crName, namespace, iListener.ContainerPort))
+		} else {
+			advertisedListenerConfig = append(advertisedListenerConfig,
+				fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, namespace, iListener.ContainerPort))
+		}
 	}
 	return fmt.Sprintf("advertised.listeners=%s\n", strings.Join(advertisedListenerConfig, ","))
 }
@@ -109,13 +114,20 @@ func generateListenerSpecificConfig(l *banzaicloudv1alpha1.ListenersConfig, log 
 		"listeners=" + strings.Join(listenerConfig, ",") + "\n"
 }
 
-func getInternalListeners(iListeners []banzaicloudv1alpha1.InternalListenerConfig, broker banzaicloudv1alpha1.BrokerConfig, namespace, crName string) []string {
+func getInternalListeners(iListeners []banzaicloudv1alpha1.InternalListenerConfig, broker banzaicloudv1alpha1.BrokerConfig, namespace, crName string, headlessServiceEnabled bool) []string {
 
 	listenerConfig := []string{}
 
-	for _, iListener := range iListeners {
-		listenerConfig = append(listenerConfig,
-			fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, namespace, iListener.ContainerPort))
+	if headlessServiceEnabled {
+		for _, iListener := range iListeners {
+			listenerConfig = append(listenerConfig,
+				fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, crName, namespace, iListener.ContainerPort))
+		}
+	} else {
+		for _, iListener := range iListeners {
+			listenerConfig = append(listenerConfig,
+				fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, namespace, iListener.ContainerPort))
+		}
 	}
 
 	return listenerConfig

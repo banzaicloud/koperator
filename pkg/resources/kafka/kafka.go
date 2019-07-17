@@ -39,7 +39,9 @@ import (
 const (
 	componentName = "kafka"
 	// AllBrokerServiceTemplate template for Kafka headless service
-	AllBrokerServiceTemplate      = "%s-all-broker"
+	AllBrokerServiceTemplate = "%s-all-broker"
+	// HeadlessServiceTemplate template for Kafka headless service
+	HeadlessServiceTemplate       = "%s-headless"
 	brokerConfigTemplate          = "%s-config"
 	brokerStorageTemplate         = "%s-storage"
 	brokerConfigMapVolumeMount    = "broker-config"
@@ -122,13 +124,25 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	log.V(1).Info("Reconciling")
 
-	for _, res := range []resources.Resource{
-		r.allBrokerService,
-	} {
-		o := res()
-		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-		if err != nil {
-			return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
+		for _, res := range []resources.Resource{
+			r.headlessService,
+		} {
+			o := res()
+			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+			if err != nil {
+				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			}
+		}
+	} else {
+		for _, res := range []resources.Resource{
+			r.allBrokerService,
+		} {
+			o := res()
+			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+			if err != nil {
+				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			}
 		}
 	}
 	// Handle Pod delete
@@ -164,9 +178,11 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			if err != nil {
 				return emperror.WrapWith(err, "could not delete configmap for broker", "id", broker.Labels["brokerId"])
 			}
-			err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
-			if err != nil {
-				return emperror.WrapWith(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
+			if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
+				err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+				if err != nil {
+					return emperror.WrapWith(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
+				}
 			}
 			for _, volume := range broker.Spec.Volumes {
 				if strings.HasPrefix(volume.Name, kafkaDataVolumeMount) {
@@ -239,13 +255,16 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			return emperror.WrapWith(err, "failed to list PVC's")
 		}
 
-		for _, res := range []resources.ResourceWithBrokerAndLog{
-			r.service,
-		} {
-			o := res(broker, log)
-			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-			if err != nil {
-				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+		if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
+
+			for _, res := range []resources.ResourceWithBrokerAndLog{
+				r.service,
+			} {
+				o := res(broker, log)
+				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+				if err != nil {
+					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				}
 			}
 		}
 

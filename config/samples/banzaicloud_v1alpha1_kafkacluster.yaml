@@ -5,6 +5,9 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: kafka
 spec:
+  # Specify if the cluster should use headlessService for Kafka or individual services
+  # using service/broker may come in handy in case of service mesh
+  headlessServiceEnabled: true
   # Specify the zookeeper addresses where the Kafka should store it's metadata
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
