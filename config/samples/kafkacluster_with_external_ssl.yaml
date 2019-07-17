@@ -5,6 +5,7 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: kafka
 spec:
+  headlessServiceEnabled: true
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
   oneBrokerPerNode: false

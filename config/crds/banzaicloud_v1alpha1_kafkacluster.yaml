@@ -73,7 +73,18 @@ spec:
                   type: string
                 cruiseControlEndpoint:
                   type: string
+                image:
+                  type: string
               type: object
+            envoyConfig:
+              properties:
+                image:
+                  type: string
+              required:
+              - image
+              type: object
+            headlessServiceEnabled:
+              type: boolean
             listenersConfig:
               properties:
                 externalListeners:
@@ -128,6 +139,20 @@ spec:
               required:
               - internalListeners
               type: object
+            monitoringConfig:
+              properties:
+                cCJMXExporterConfig:
+                  type: string
+                jmxImage:
+                  type: string
+                kafkaJMXExporterConfig:
+                  type: string
+                pathToJar:
+                  type: string
+              required:
+              - jmxImage
+              - pathToJar
+              type: object
             oneBrokerPerNode:
               type: boolean
             rackAwareness:
@@ -146,6 +171,7 @@ spec:
                 type: string
               type: array
           required:
+          - headlessServiceEnabled
           - listenersConfig
           - zkAddresses
           - brokerConfigs
@@ -157,7 +183,7 @@ spec:
           properties:
             brokersState:
               type: object
-            cruiseControlState:
+            cruiseControlTopicStatus:
               type: string
           type: object
   version: v1alpha1
