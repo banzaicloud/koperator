@@ -132,7 +132,7 @@ func updateGracefulScaleStatus(c client.Client, brokerId int32, cluster *banzaic
 func UpdateCCTopicStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, ccTopicStatus banzaicloudv1alpha1.CruiseControlTopicStatus, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
-	cluster.Status.CruiseControlState = &ccTopicStatus
+	cluster.Status.CruiseControlTopicStatus = &ccTopicStatus
 
 	err := c.Status().Update(context.Background(), cluster)
 	if errors.IsNotFound(err) {
@@ -150,7 +150,7 @@ func UpdateCCTopicStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaClus
 			return emperror.Wrap(err, "could not get config for updating status")
 		}
 
-		cluster.Status.CruiseControlState = &ccTopicStatus
+		cluster.Status.CruiseControlTopicStatus = &ccTopicStatus
 
 		err = c.Status().Update(context.Background(), cluster)
 		if errors.IsNotFound(err) {

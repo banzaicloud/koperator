@@ -63,17 +63,19 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	if r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint == "" {
 
-		err := generateCCTopic(r.KafkaCluster)
-		if err != nil {
-			k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicNotReady, log)
-			return err
-		}
-		statusErr := k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicReady, log)
-		if statusErr != nil {
-			return emperror.Wrap(statusErr, "could not update CC topic status")
+		if *r.KafkaCluster.Status.CruiseControlTopicStatus != banzaicloudv1alpha1.CruiseControlTopicReady {
+			err := generateCCTopic(r.KafkaCluster)
+			if err != nil {
+				k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicNotReady, log)
+				return err
+			}
+			statusErr := k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicReady, log)
+			if statusErr != nil {
+				return emperror.Wrap(statusErr, "could not update CC topic status")
+			}
 		}
 
-		if *r.KafkaCluster.Status.CruiseControlState == banzaicloudv1alpha1.CruiseControlTopicReady {
+		if *r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1alpha1.CruiseControlTopicReady {
 			for _, res := range []resources.ResourceWithLogs{
 				r.service,
 				r.configMap,
