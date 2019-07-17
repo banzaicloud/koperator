@@ -26,7 +26,7 @@ import (
 func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster) error {
 
 	conn, err := kafkaGo.Dial("tcp",
-		fmt.Sprintf("%s.%s.svc.cluster.local:%d", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort))
+		generateKafkaAddress(cluster))
 	if err != nil {
 		return emperror.Wrap(err, "could not create topic for CC because kafka is unavailable")
 	}
@@ -41,4 +41,11 @@ func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster) error {
 		return emperror.Wrap(err, "could not create topic for CC")
 	}
 	return nil
+}
+
+func generateKafkaAddress(cluster *banzaicloudv1alpha1.KafkaCluster) string {
+	if cluster.Spec.HeadlessServiceEnabled {
+		return fmt.Sprintf("%s.%s.svc.cluster.local:%d", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
+	}
+	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
 }
