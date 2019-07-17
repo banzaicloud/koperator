@@ -65,7 +65,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					Containers: []corev1.Container{
 						{
 							Name:  "envoy",
-							Image: "banzaicloud/envoy:0.1.0",
+							Image: r.KafkaCluster.Spec.EnvoyConfig.GetEnvoyImage(),
 							Ports: append(exposedPorts, []corev1.ContainerPort{
 								{Name: "envoy-admin", ContainerPort: 9901, Protocol: corev1.ProtocolTCP}}...),
 							VolumeMounts: volumeMounts,

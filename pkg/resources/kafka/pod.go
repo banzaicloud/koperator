@@ -73,7 +73,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 			InitContainers: append(initContainers, []corev1.Container{
 				{
 					Name:    "cruise-control-reporter",
-					Image:   "solsson/kafka-cruise-control@sha256:c70eae329b4ececba58e8cf4fa6e774dd2e0205988d8e5be1a70e622fcc46716",
+					Image:   r.KafkaCluster.Spec.CruiseControlConfig.GetCCImage(),
 					Command: []string{"/bin/sh", "-cex", "cp -v /opt/cruise-control/cruise-control/build/dependant-libs/cruise-control-metrics-reporter.jar /opt/kafka/libs/extensions/cruise-control-metrics-reporter.jar"},
 					VolumeMounts: []corev1.VolumeMount{{
 						Name:      "extensions",
@@ -82,8 +82,8 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 				},
 				{
 					Name:    "jmx-exporter",
-					Image:   "banzaicloud/jmx-javaagent:0.12.0",
-					Command: []string{"cp", "/opt/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar", "/opt/jmx-exporter/"},
+					Image:   r.KafkaCluster.Spec.MonitoringConfig.GetImage(),
+					Command: []string{"cp", r.KafkaCluster.Spec.MonitoringConfig.GetPathToJar(), "/opt/jmx-exporter/jmx_prometheus.jar"},
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      jmxVolumeName,
@@ -113,7 +113,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						},
 						{
 							Name:  "KAFKA_OPTS",
-							Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.12.0.jar=9020:/etc/jmx-exporter/config.yaml",
+							Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus.jar=9020:/etc/jmx-exporter/config.yaml",
 						},
 						{
 							Name:  "KAFKA_HEAP_OPTS",

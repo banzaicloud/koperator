@@ -26,9 +26,7 @@ import (
 func (r *Reconciler) configMap() runtime.Object {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(CruiseControlJmxTemplate, r.KafkaCluster.Name), labelsForJmx(r.KafkaCluster.Name), r.KafkaCluster),
-		Data: map[string]string{"config.yaml": `
-    lowercaseOutputName: true
-`},
+		Data:       map[string]string{"config.yaml": r.KafkaCluster.Spec.MonitoringConfig.GetCCJMXExporterConfig()},
 	}
 	return configMap
 }

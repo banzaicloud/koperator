@@ -38,9 +38,9 @@ spec:
       # nodeAffinity:
       # config parameter can be used to pass any Kafka config https://kafka.apache.org/documentation/#brokerconfigs
       # expect listener specific configs, security based configs, log dir related configs
-      # config: |
-      #   delete.topic.enable=true
-      #   auto.create.topics.enable=true
+      # we recommend to disable automatic topic creation, enabling it may result ineffective CC topic
+      config: |
+        auto.create.topics.enable=false
       # storageConfigs specifies the broker log related configs
       # kafkaHeapOpts specifies the jvm heap size for the broker
       # kafkaHeapOpts: "-Xmx4G -Xms4G"
@@ -67,6 +67,8 @@ spec:
         #          storage: 3Gi
     - image: "wurstmeister/kafka:2.12-2.1.0"
       id: 1
+      config: |
+        auto.create.topics.enable=false
       storageConfigs:
         - mountPath: "/kafka-logs"
           pvcSpec:
@@ -77,6 +79,8 @@ spec:
                 storage: 10Gi
     - image: "wurstmeister/kafka:2.12-2.1.0"
       id: 2
+      config: |
+        auto.create.topics.enable=false
       storageConfigs:
         - mountPath: "/kafka-logs"
           pvcSpec:
@@ -87,6 +91,8 @@ spec:
                 storage: 10Gi
     - image: "wurstmeister/kafka:2.12-2.1.0"
       id: 3
+      config: |
+        auto.create.topics.enable=false
       storageConfigs:
         - mountPath: "/kafka-logs"
           pvcSpec:
