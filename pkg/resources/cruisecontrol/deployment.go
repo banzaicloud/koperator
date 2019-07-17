@@ -37,7 +37,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName))
+		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.BrokerConfigs[0].Image))
 	} else {
 		volumeMount = append(volumeMount, []corev1.VolumeMount{
 			{
@@ -63,8 +63,8 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					InitContainers: append(initContainers, []corev1.Container{
 						{
 							Name:    "jmx-exporter",
-							Image:   "banzaicloud/jmx-javaagent:0.12.0",
-							Command: []string{"cp", "/opt/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar", "/opt/jmx-exporter/"},
+							Image:   r.KafkaCluster.Spec.MonitoringConfig.GetImage(),
+							Command: []string{"cp", r.KafkaCluster.Spec.MonitoringConfig.GetPathToJar(), "/opt/jmx-exporter/jmx_prometheus.jar"},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      jmxVolumeName,
@@ -79,10 +79,10 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 							Env: []corev1.EnvVar{
 								{
 									Name:  "KAFKA_OPTS",
-									Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.12.0.jar=9020:/etc/jmx-exporter/config.yaml",
+									Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus.jar=9020:/etc/jmx-exporter/config.yaml",
 								},
 							},
-							Image: "solsson/kafka-cruise-control@sha256:d5e05c95d6e8fddc3e607ec3cdfa2a113b76eabca4aefe6c382f5b3d7d990505",
+							Image: r.KafkaCluster.Spec.CruiseControlConfig.GetCCImage(),
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 8090,
@@ -155,11 +155,11 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	}
 }
 
-func generateInitContainerForSSL(secretName string) corev1.Container {
+func generateInitContainerForSSL(secretName, image string) corev1.Container {
 	// Keystore generator
 	initPemToKeyStore := corev1.Container{
 		Name:  "pem-to-jks",
-		Image: "wurstmeister/kafka:2.12-2.1.0",
+		Image: image,
 		Env: []corev1.EnvVar{
 			{
 				Name: "SSL_PASSWORD",

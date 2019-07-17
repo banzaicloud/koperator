@@ -28,13 +28,16 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	ListenersConfig     ListenersConfig     `json:"listenersConfig"`
-	ZKAddresses         []string            `json:"zkAddresses"`
-	RackAwareness       *RackAwareness      `json:"rackAwareness,omitempty"`
-	BrokerConfigs       []BrokerConfig      `json:"brokerConfigs"`
-	OneBrokerPerNode    bool                `json:"oneBrokerPerNode"`
-	CruiseControlConfig CruiseControlConfig `json:"cruiseControlConfig"`
-	ServiceAccount      string              `json:"serviceAccount"`
+	//HeadlessServiceEnabled bool                `json:"headlessServiceEnabled,omitempty"`
+	ListenersConfig        ListenersConfig     `json:"listenersConfig"`
+	ZKAddresses            []string            `json:"zkAddresses"`
+	RackAwareness          *RackAwareness      `json:"rackAwareness,omitempty"`
+	BrokerConfigs          []BrokerConfig      `json:"brokerConfigs"`
+	OneBrokerPerNode       bool                `json:"oneBrokerPerNode"`
+	CruiseControlConfig    CruiseControlConfig `json:"cruiseControlConfig"`
+	EnvoyConfig            EnvoyConfig         `json:"envoyConfig,omitempty"`
+	ServiceAccount         string              `json:"serviceAccount"`
+	MonitoringConfig       MonitoringConfig    `json:"monitoringConfig,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -66,6 +69,20 @@ type CruiseControlConfig struct {
 	Config                string `json:"config,omitempty"`
 	CapacityConfig        string `json:"capacityConfig,omitempty"`
 	ClusterConfigs        string `json:"clusterConfigs,omitempty"`
+	Image                 string `json:"image,omitempty"`
+}
+
+// EnvoyConfig defines the config for Envoy
+type EnvoyConfig struct {
+	Image string `json:"image"`
+}
+
+// MonitoringConfig defines the config for monitoring Kafka and Cruise Control
+type MonitoringConfig struct {
+	JmxImage               string `json:"jmxImage"`
+	PathToJar              string `json:"pathToJar"`
+	KafkaJMXExporterConfig string `json:"kafkaJMXExporterConfig,omitempty"`
+	CCJMXExporterConfig    string `json:"cCJMXExporterConfig,omitempty"`
 }
 
 // StorageConfig defines the broker storage configuration
@@ -171,4 +188,145 @@ func (bConfig *BrokerConfig) GetKafkaPerfJmvOpts() string {
 	}
 
 	return "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true -Dsun.net.inetaddr.ttl=60"
+}
+
+// GetEnvoyImage returns the used envoy image
+func (eConfig *EnvoyConfig) GetEnvoyImage() string {
+	if eConfig.Image != "" {
+		return eConfig.Image
+	}
+
+	return "banzaicloud/envoy:0.1.0"
+}
+
+// GetCCImage returns the used Cruise Control image
+func (cConfig *CruiseControlConfig) GetCCImage() string {
+	if cConfig.Image != "" {
+		return cConfig.Image
+	}
+	return "solsson/kafka-cruise-control@sha256:c70eae329b4ececba58e8cf4fa6e774dd2e0205988d8e5be1a70e622fcc46716"
+}
+
+// GetImage returns the used image for Prometheus JMX exporter
+func (mConfig *MonitoringConfig) GetImage() string {
+	if mConfig.JmxImage != "" {
+		return mConfig.JmxImage
+	}
+	return "banzaicloud/jmx-javaagent:0.12.0"
+}
+
+// GetPathToJar returns the path in the used Image for Prometheus JMX exporter
+func (mConfig *MonitoringConfig) GetPathToJar() string {
+	if mConfig.PathToJar != "" {
+		return mConfig.PathToJar
+	}
+	return "/opt/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar"
+}
+
+// GetKafkaJMXExporterConfig returns the config for Kafka Prometheus JMX exporter
+func (mConfig *MonitoringConfig) GetKafkaJMXExporterConfig() string {
+	if mConfig.KafkaJMXExporterConfig != "" {
+		return mConfig.KafkaJMXExporterConfig
+	}
+	return `
+    lowercaseOutputName: true
+    rules:
+    - pattern : kafka.cluster<type=(.+), name=(.+), topic=(.+), partition=(.+)><>Value
+      name: kafka_cluster_$1_$2
+      labels:
+        topic: "$3"
+        partition: "$4"
+    - pattern : kafka.log<type=Log, name=(.+), topic=(.+), partition=(.+)><>Value
+      name: kafka_log_$1
+      labels:
+        topic: "$2"
+        partition: "$3"
+    - pattern : kafka.controller<type=(.+), name=(.+)><>(Count|Value)
+      name: kafka_controller_$1_$2
+    - pattern : kafka.network<type=(.+), name=(.+)><>Value
+      name: kafka_network_$1_$2
+    - pattern : kafka.network<type=(.+), name=(.+)PerSec, request=(.+)><>Count
+      name: kafka_network_$1_$2_total
+      labels:
+        request: "$3"
+    - pattern : kafka.network<type=(.+), name=(\w+), networkProcessor=(.+)><>Count
+      name: kafka_network_$1_$2
+      labels:
+        request: "$3"
+      type: COUNTER
+    - pattern : kafka.network<type=(.+), name=(\w+), request=(\w+)><>Count
+      name: kafka_network_$1_$2
+      labels:
+        request: "$3"
+      type: COUNTER
+    - pattern : kafka.network<type=(.+), name=(\w+)><>Count
+      name: kafka_network_$1_$2
+      type: COUNTER
+    - pattern : kafka.server<type=(.+), name=(.+)PerSec\w*, topic=(.+)><>Count
+      name: kafka_server_$1_$2_total
+      labels:
+        topic: "$3"
+      type: COUNTER
+    - pattern : kafka.server<type=(.+), name=(.+)PerSec\w*><>Count
+      name: kafka_server_$1_$2_total
+      type: COUNTER
+    - pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)><>(Count|Value)
+      name: kafka_server_$1_$2
+      labels:
+        clientId: "$3"
+        topic: "$4"
+        partition: "$5"
+    - pattern : kafka.server<type=(.+), name=(.+), topic=(.+), partition=(.*)><>(Count|Value)
+      name: kafka_server_$1_$2
+      labels:
+        topic: "$3"
+        partition: "$4"
+    - pattern : kafka.server<type=(.+), name=(.+), topic=(.+)><>(Count|Value)
+      name: kafka_server_$1_$2
+      labels:
+        topic: "$3"
+      type: COUNTER
+    - pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), brokerHost=(.+), brokerPort=(.+)><>(Count|Value)
+      name: kafka_server_$1_$2
+      labels:
+        clientId: "$3"
+        broker: "$4:$5"
+    - pattern : kafka.server<type=(.+), name=(.+), clientId=(.+)><>(Count|Value)
+      name: kafka_server_$1_$2
+      labels:
+        clientId: "$3"
+    - pattern : kafka.server<type=(.+), name=(.+)><>(Count|Value)
+      name: kafka_server_$1_$2
+    - pattern : kafka.(\w+)<type=(.+), name=(.+)PerSec\w*><>Count
+      name: kafka_$1_$2_$3_total
+      type: COUNTER
+    - pattern : kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, topic=(.+)><>Count
+      name: kafka_$1_$2_$3_total
+      labels:
+        topic: "$4"
+      type: COUNTER
+    - pattern : kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, topic=(.+), partition=(.+)><>Count
+      name: kafka_$1_$2_$3_total
+      labels:
+        topic: "$4"
+        partition: "$5"
+      type: COUNTER
+    - pattern : kafka.(\w+)<type=(.+), name=(.+)><>(Count|Value)
+      name: kafka_$1_$2_$3_$4
+      type: COUNTER
+    - pattern : kafka.(\w+)<type=(.+), name=(.+), (\w+)=(.+)><>(Count|Value)
+      name: kafka_$1_$2_$3_$6
+      labels:
+        "$4": "$5"
+`
+}
+
+// GetCCJMXExporterConfig returns the config for CC Prometheus JMX exporter
+func (mConfig *MonitoringConfig) GetCCJMXExporterConfig() string {
+	if mConfig.CCJMXExporterConfig != "" {
+		return mConfig.CCJMXExporterConfig
+	}
+	return `
+    lowercaseOutputName: true
+`
 }
