@@ -63,7 +63,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	if r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint == "" {
 
-		if *r.KafkaCluster.Status.CruiseControlTopicStatus != banzaicloudv1alpha1.CruiseControlTopicReady {
+		if r.KafkaCluster.Status.CruiseControlTopicStatus == "" || r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1alpha1.CruiseControlTopicNotReady {
 			err := generateCCTopic(r.KafkaCluster)
 			if err != nil {
 				k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicNotReady, log)
@@ -75,7 +75,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		}
 
-		if *r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1alpha1.CruiseControlTopicReady {
+		if r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1alpha1.CruiseControlTopicReady {
 			for _, res := range []resources.ResourceWithLogs{
 				r.service,
 				r.configMap,

@@ -269,11 +269,6 @@ func (in *KafkaClusterStatus) DeepCopyInto(out *KafkaClusterStatus) {
 			(*out)[key] = outVal
 		}
 	}
-	if in.CruiseControlTopicStatus != nil {
-		in, out := &in.CruiseControlTopicStatus, &out.CruiseControlTopicStatus
-		*out = new(CruiseControlTopicStatus)
-		**out = **in
-	}
 	return
 }
 

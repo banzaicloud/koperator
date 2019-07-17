@@ -42,8 +42,8 @@ type KafkaClusterSpec struct {
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
 type KafkaClusterStatus struct {
-	BrokersState             map[int32]*BrokerState    `json:"brokersState,omitempty"`
-	CruiseControlTopicStatus *CruiseControlTopicStatus `json:"cruiseControlTopicStatus,omitempty"`
+	BrokersState             map[int32]*BrokerState   `json:"brokersState,omitempty"`
+	CruiseControlTopicStatus CruiseControlTopicStatus `json:"cruiseControlTopicStatus,omitempty"`
 }
 
 // BrokerConfig defines the broker configuration
