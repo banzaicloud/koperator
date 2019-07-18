@@ -15,21 +15,61 @@
 package cruisecontrol
 
 import (
+	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"time"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/goph/emperror"
 	kafkaGo "github.com/segmentio/kafka-go"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster) error {
+func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Client) error {
 
-	conn, err := kafkaGo.Dial("tcp",
+	dialer := &kafkaGo.Dialer{}
+
+	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
+		tlsKeys := &corev1.Secret{}
+		err := client.Get(context.TODO(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, tlsKeys)
+		if err != nil {
+			return emperror.Wrap(err, "could not get TLS secret to create CC topic")
+		}
+		serverCert := tlsKeys.Data["serverCert"]
+		serverKey := tlsKeys.Data["serverKey"]
+		caCert := tlsKeys.Data["caCert"]
+		x509ServerCert, err := tls.X509KeyPair(serverCert, serverKey)
+		if err != nil {
+			return err
+		}
+		rootCAs := x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM(caCert)
+
+		dialer = &kafkaGo.Dialer{
+			Timeout:   10 * time.Second,
+			DualStack: true,
+			TLS: &tls.Config{
+				Certificates: []tls.Certificate{x509ServerCert},
+				RootCAs:      rootCAs,
+			},
+		}
+	} else {
+		dialer = &kafkaGo.Dialer{
+			Timeout:   10 * time.Second,
+			DualStack: true,
+		}
+	}
+	conn, err := dialer.Dial("tcp",
 		generateKafkaAddress(cluster))
 	if err != nil {
 		return emperror.Wrap(err, "could not create topic for CC because kafka is unavailable")
 	}
+	defer conn.Close()
 	tConfig := kafkaGo.TopicConfig{
 		Topic:             "__CruiseControlMetrics",
 		NumPartitions:     12,
@@ -45,7 +85,7 @@ func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster) error {
 
 func generateKafkaAddress(cluster *banzaicloudv1alpha1.KafkaCluster) string {
 	if cluster.Spec.HeadlessServiceEnabled {
-		return fmt.Sprintf("%s.%s.svc.cluster.local:%d", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
+		return fmt.Sprintf("%s:%d", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
 	}
 	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
 }
