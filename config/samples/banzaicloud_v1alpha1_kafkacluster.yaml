@@ -139,8 +139,14 @@ spec:
       tlsSecretName: "test-kafka-operator"
       # jksPasswordName should contain a password field which contains the jks password
       jksPasswordName: "test-kafka-operator-pass"
+  # envoyConfig defines the envoy specific config used for externalListeners
+  #envoyConfig:
+  # image describes the Envoy docker image
+  #  image: "banzaicloud/envoy:0.1.0"
   # cruiseControlConfig describes the cruise control related configuration
   cruiseControlConfig:
+    # image describes the CC docker image
+    #image: "solsson/kafka-cruise-control@sha256:c70eae329b4ececba58e8cf4fa6e774dd2e0205988d8e5be1a70e622fcc46716"
     # CruiseControlEndpoint describes the endpoint where the already running CC is accessable. If set the Operator will not
     # try to install one
     #cruiseControlEndpoint: "localhost:8090"
@@ -354,3 +360,15 @@ spec:
       }
   # Specify the ServiceAccount where the Kafka Pods and the Cruise Control is running
   serviceAccount: ""
+  # monitoringConfig describes the monitoring related configs
+  #monitoringConfig:
+  # jmxImage describes the used prometheus jmx exporter agent container
+  #  jmxImage: "banzaicloud/jmx-javaagent:0.12.0"
+  # pathToJar describes the path to the jar file in the given image
+  #  pathToJar: "/opt/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar"
+  # kafkaJMXExporterConfig describes jmx exporter config for Kafka
+  #  kafkaJMXExporterConfig: |
+  #   lowercaseOutputName: true
+  # cCJMXExporterConfig describes jmx exporter config for CruiseControl
+  # cCJMXExporterConfig: |
+  #  lowercaseOutputName: true
