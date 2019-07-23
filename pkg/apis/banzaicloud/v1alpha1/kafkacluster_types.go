@@ -183,7 +183,7 @@ func (bConfig *BrokerConfig) GetKafkaHeapOpts() string {
 
 // GetKafkaPerfJmvOpts returns the broker specific Perf JVM settings
 func (bConfig *BrokerConfig) GetKafkaPerfJmvOpts() string {
-	if bConfig.KafkaHeapOpts != "" {
+	if bConfig.KafkaJVMPerfOpts != "" {
 		return bConfig.KafkaJVMPerfOpts
 	}
 
