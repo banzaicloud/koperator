@@ -1,0 +1,197 @@
+{
+    "name": "kafka-perf",
+    "location": "eu-north-1",
+    "cloud": "amazon",
+    "secretId": "yourownsecretID",
+    "properties": {
+      "pke": {
+        "nodepools": [
+          {
+            "name": "pool0",
+            "roles": [
+              "worker"
+            ],
+            "provider": "amazon",
+            "autoscaling": false,
+            "providerConfig": {
+              "autoScalingGroup": {
+                "name": "pool0",
+                "zones": [
+                  "eu-north-1a"
+                ],
+                "instanceType": "r5.4xlarge",
+                "launchConfigurationName": "pool0",
+                "spotPrice": "0.5",
+                "size": {
+                  "desired": 1,
+                  "min": 1,
+                  "max": 1
+                },
+                "vpcID": "yourOwnVPCID",
+                "subnets": [
+                  "yourSubnetInEu-north-1aRegion"
+                ]
+              }
+            }
+          },
+          {
+            "name": "clients",
+            "roles": [
+              "worker"
+            ],
+            "provider": "amazon",
+            "autoscaling": false,
+            "providerConfig": {
+              "autoScalingGroup": {
+                "name": "pool0",
+                "zones": [
+                  "eu-north-1a"
+                ],
+                "instanceType": "c5.2xlarge",
+                "launchConfigurationName": "pool0",
+                "spotPrice": "0.18",
+                "size": {
+                  "desired": 3,
+                  "min": 3,
+                  "max": 3
+                },
+                "vpcID": "yourOwnVPCID",
+                "subnets": [
+                  "yourSubnetInEu-north-1aRegion"
+                ]
+              }
+            }
+          },
+          {
+            "name": "master",
+            "roles": [
+              "master"
+            ],
+            "provider": "amazon",
+            "autoscaling": false,
+            "providerConfig": {
+              "autoScalingGroup": {
+                "name": "master",
+                "zones": [
+                  "eu-north-1a"
+                ],
+                "instanceType": "c5.large",
+                "launchConfigurationName": "master",
+                "spotPrice": "",
+                "size": {
+                  "desired": 1,
+                  "min": 1,
+                  "max": 1
+                },
+                "vpcID": "yourOwnVPCID",
+                "subnets": [
+                  "yourSubnetInEu-north-1aRegion"
+                ]
+              }
+            }
+          },
+          {
+            "name": "pool1",
+            "roles": [
+              "worker"
+            ],
+            "provider": "amazon",
+            "autoscaling": false,
+            "providerConfig": {
+              "autoScalingGroup": {
+                "name": "pool1",
+                "zones": [
+                  "eu-north-1b"
+                ],
+                "instanceType": "r5.4xlarge",
+                "launchConfigurationName": "pool1",
+                "spotPrice": "0.5",
+                "size": {
+                  "desired": 1,
+                  "min": 1,
+                  "max": 1
+                },
+                "vpcID": "yourOwnVPCID",
+                "subnets": [
+                  "yourSubnetInEu-north-1bRegion"
+                ]
+              }
+            }
+          },
+          {
+            "name": "pool2",
+            "roles": [
+              "worker"
+            ],
+            "provider": "amazon",
+            "autoscaling": false,
+            "providerConfig": {
+              "autoScalingGroup": {
+                "name": "pool2",
+                "zones": [
+                  "eu-north-1c"
+                ],
+                "instanceType": "r5.4xlarge",
+                "launchConfigurationName": "pool2",
+                "spotPrice": "0.5",
+                "size": {
+                  "desired": 1,
+                  "min": 1,
+                  "max": 1
+                },
+                "vpcID": "yourOwnVPCID",
+                "subnets": [
+                  "yourSubnetInEu-north-1cRegion"
+                ]
+              }
+            }
+          },
+          {
+            "name": "zkpool",
+            "roles": [
+              "worker"
+            ],
+            "provider": "amazon",
+            "autoscaling": false,
+            "providerConfig": {
+              "autoScalingGroup": {
+                "name": "zkpool",
+                "zones": [
+                  "eu-north-1b"
+                ],
+                "instanceType": "c5.xlarge",
+                "launchConfigurationName": "zkpool",
+                "spotPrice": "0.18",
+                "size": {
+                  "desired": 3,
+                  "min": 3,
+                  "max": 3
+                },
+                "vpcID": "yourOwnVPCID",
+                "subnets": [
+                  "yourSubnetInEu-north-1bRegion"
+                ]
+              }
+            }
+          }
+        ],
+        "kubernetes": {
+          "version": "1.14.2",
+          "rbac": {
+            "enabled": true
+          }
+        },
+        "cri": {
+          "runtime": "containerd"
+        },
+        "network": {
+          "cloudProviderConfig": {
+            "vpcID": "yourOwnVPCID",
+            "subnets": [
+              "yourSubnetInEu-north-1aRegion"
+            ]
+          }
+        }
+      }
+    }
+  }

@@ -1,0 +1,42 @@
+{
+  "name": "yourclustername",
+  "location": "eu-north-1",
+  "cloud": "amazon",
+  "secretId": "yoursecretid",
+  "properties": {
+    "eks": {
+      "version": "1.13.7",
+      "nodePools": {
+        "pool1": {
+          "spotPrice": "0.18",
+          "count": 3,
+          "minCount": 3,
+          "maxCount": 3,
+          "autoscaling": false,
+          "instanceType": "c5.xlarge"
+        },
+        "pool2": {
+          "spotPrice": "0.82",
+          "count": 3,
+          "minCount": 3,
+          "maxCount": 3,
+          "autoscaling": false,
+          "instanceType": "r5.4xlarge"
+        },
+        "pool3": {
+          "spotPrice": "0.36",
+          "count": 3,
+          "minCount": 3,
+          "maxCount": 3,
+          "autoscaling": false,
+          "instanceType": "c5.2xlarge"
+        }
+      }
+    }
+  },
+  "postHooks": {
+    "InstallMonitoring": {
+      "enabled": true
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+    "name": "kafka-perf-gke",
+    "location": "europe-north1-a",
+    "cloud": "google",
+    "secretId": "yoursecretid",
+    "properties": {
+      "gke": {
+        "master": {
+          "version": "1.12.8-gke.10"
+        },
+        "nodeVersion": "1.12.8-gke.10",
+        "nodePools": {
+          "pool1": {
+            "count": 3,
+            "autoscaling": false,
+            "instanceType": "n1-standard-2",
+            "preemptible": true
+          },
+          "pool2": {
+            "count": 3,
+            "autoscaling": false,
+            "instanceType": "n1-standard-16",
+            "preemptible": true
+          },
+          "pool3": {
+            "count": 4,
+            "autoscaling": false,
+            "instanceType": "n1-standard-8",
+            "preemptible": true
+          }
+        },
+        "projectId": "yourprojectid"
+      }
+    },
+    "postHooks": {
+      "InstallMonitoring": {
+        "enabled": true
+      }
+    }
+  }
