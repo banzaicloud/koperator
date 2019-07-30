@@ -40,9 +40,15 @@ func (r *Reconciler) service(broker banzaicloudv1alpha1.BrokerConfig, log logr.L
 			Protocol:   corev1.ProtocolTCP,
 		})
 	}
+	usedPorts = append(usedPorts, corev1.ServicePort{
+		Name:       "metrics",
+		Port:       metricsPort,
+		TargetPort: intstr.FromInt(metricsPort),
+		Protocol:   corev1.ProtocolTCP,
+	})
 
 	return &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id), util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
 			SessionAffinity: corev1.ServiceAffinityNone,

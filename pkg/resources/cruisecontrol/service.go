@@ -33,6 +33,12 @@ func (r *Reconciler) service(log logr.Logger) runtime.Object {
 					TargetPort: intstr.FromInt(8090),
 					Protocol:   corev1.ProtocolTCP,
 				},
+				{
+					Name:       "metrics",
+					Port:       metricsPort,
+					TargetPort: intstr.FromInt(metricsPort),
+					Protocol:   corev1.ProtocolTCP,
+				},
 			},
 		},
 	}

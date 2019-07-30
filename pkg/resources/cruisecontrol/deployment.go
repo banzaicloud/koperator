@@ -56,7 +56,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      labelSelector,
-					Annotations: util.MonitoringAnnotations(),
+					Annotations: util.MonitoringAnnotations(metricsPort),
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),

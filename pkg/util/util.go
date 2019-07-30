@@ -60,10 +60,10 @@ func MergeLabels(l map[string]string, l2 map[string]string) map[string]string {
 }
 
 // MonitoringAnnotations returns specific prometheus annotations
-func MonitoringAnnotations() map[string]string {
+func MonitoringAnnotations(port int) map[string]string {
 	return map[string]string{
 		"prometheus.io/scrape": "true",
-		"prometheus.io/port":   "9020",
+		"prometheus.io/port":   string(port),
 	}
 }
 
