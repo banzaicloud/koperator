@@ -68,7 +68,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 	}
 
 	pod := &corev1.Pod{
-		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), util.MonitoringAnnotations(), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), util.MonitoringAnnotations(metricsPort), r.KafkaCluster),
 		Spec: corev1.PodSpec{
 			InitContainers: append(initContainers, []corev1.Container{
 				{

@@ -26,7 +26,7 @@ import (
 func (r *Reconciler) configMap() runtime.Object {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerJmxTemplate, r.KafkaCluster.Name), labelsForJmx(r.KafkaCluster.Name), r.KafkaCluster),
-		Data:       map[string]string{"config.yaml": r.KafkaCluster.Spec.MonitoringConfig.KafkaJMXExporterConfig},
+		Data:       map[string]string{"config.yaml": r.KafkaCluster.Spec.MonitoringConfig.GetKafkaJMXExporterConfig()},
 	}
 	return configMap
 }

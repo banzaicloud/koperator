@@ -34,6 +34,7 @@ const (
 	pemFilesVolume         = "pem-files"
 	jmxVolumePath          = "/opt/jmx-exporter/"
 	jmxVolumeName          = "jmx-jar-data"
+	metricsPort            = 9020
 )
 
 var labelSelector = map[string]string{
