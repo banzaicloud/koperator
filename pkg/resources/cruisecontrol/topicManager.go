@@ -22,6 +22,7 @@ import (
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
+	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
 
 	"github.com/Shopify/sarama"
@@ -30,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Client) error {
+func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Client, log logr.Logger) error {
 
 	conf := sarama.NewConfig()
 	conf.Version = sarama.V2_1_0_0
@@ -72,7 +73,7 @@ func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Cl
 		ReplicationFactor: 3,
 	}, false)
 
-	if err != nil && err.(*sarama.TopicError).Err != sarama.ErrTopicAlreadyExists  {
+	if err != nil && err.(*sarama.TopicError).Err != sarama.ErrTopicAlreadyExists {
 		return emperror.Wrap(err, "Error while creating CC topic")
 	}
 

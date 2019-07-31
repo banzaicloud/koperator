@@ -10,5 +10,5 @@
             "O": "kafka"
         }
     ],
-    "Hosts": ["*.kafka-headless.kafka.svc.cluster.local","kafka-headless", "*.kafka-headless"]
+    "Hosts": ["*.kafka-headless.kafka.svc.cluster.local","kafka-headless", "*.kafka-headless", "kafka-headless.kafka"]
 }
