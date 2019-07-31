@@ -85,7 +85,7 @@ func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Cl
 
 func generateKafkaAddress(cluster *banzaicloudv1alpha1.KafkaCluster) string {
 	if cluster.Spec.HeadlessServiceEnabled {
-		return fmt.Sprintf("%s:%d", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
+		return fmt.Sprintf("%s.%s:%d", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
 	}
 	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
 }
