@@ -29,6 +29,7 @@ func (r *Reconciler) service(log logr.Logger) runtime.Object {
 			Selector: labelSelector,
 			Ports: []corev1.ServicePort{
 				{
+					Name:       "cc",
 					Port:       8090,
 					TargetPort: intstr.FromInt(8090),
 					Protocol:   corev1.ProtocolTCP,

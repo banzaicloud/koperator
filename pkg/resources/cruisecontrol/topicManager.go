@@ -19,12 +19,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"time"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/goph/emperror"
-	kafkaGo "github.com/segmentio/kafka-go"
+
+	"github.com/Shopify/sarama"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,7 +32,8 @@ import (
 
 func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Client) error {
 
-	dialer := &kafkaGo.Dialer{}
+	conf := sarama.NewConfig()
+	conf.Version = sarama.V2_1_0_0
 
 	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
 		tlsKeys := &corev1.Secret{}
@@ -40,46 +41,41 @@ func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Cl
 		if err != nil {
 			return emperror.Wrap(err, "could not get TLS secret to create CC topic")
 		}
-		serverCert := tlsKeys.Data["serverCert"]
-		serverKey := tlsKeys.Data["serverKey"]
+		clientCert := tlsKeys.Data["clientCert"]
+		clientKey := tlsKeys.Data["clientKey"]
 		caCert := tlsKeys.Data["caCert"]
-		x509ServerCert, err := tls.X509KeyPair(serverCert, serverKey)
+
+		x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
 		if err != nil {
 			return err
 		}
+
 		rootCAs := x509.NewCertPool()
 		rootCAs.AppendCertsFromPEM(caCert)
 
-		dialer = &kafkaGo.Dialer{
-			Timeout:   10 * time.Second,
-			DualStack: true,
-			TLS: &tls.Config{
-				Certificates: []tls.Certificate{x509ServerCert},
-				RootCAs:      rootCAs,
-			},
+		t := &tls.Config{
+			Certificates: []tls.Certificate{x509ClientCert},
+			RootCAs:      rootCAs,
 		}
-	} else {
-		dialer = &kafkaGo.Dialer{
-			Timeout:   10 * time.Second,
-			DualStack: true,
-		}
-	}
-	conn, err := dialer.Dial("tcp",
-		generateKafkaAddress(cluster))
-	if err != nil {
-		return emperror.Wrap(err, "could not create topic for CC because kafka is unavailable")
-	}
-	defer conn.Close()
-	tConfig := kafkaGo.TopicConfig{
-		Topic:             "__CruiseControlMetrics",
-		NumPartitions:     12,
-		ReplicationFactor: 3,
+		conf.Net.TLS.Enable = true
+		conf.Net.TLS.Config = t
 	}
 
-	err = conn.CreateTopics(tConfig)
+	adminClient, err := sarama.NewClusterAdmin([]string{generateKafkaAddress(cluster)}, conf)
 	if err != nil {
-		return emperror.Wrap(err, "could not create topic for CC")
+		return emperror.Wrap(err, "Error while creating admin client to create CC topic")
 	}
+	defer func() { _ = adminClient.Close() }()
+
+	err = adminClient.CreateTopic("__CruiseControlMetrics", &sarama.TopicDetail{
+		NumPartitions:     12,
+		ReplicationFactor: 3,
+	}, false)
+
+	if err != nil && err.(*sarama.TopicError).Err != sarama.ErrTopicAlreadyExists  {
+		return emperror.Wrap(err, "Error while creating CC topic")
+	}
+
 	return nil
 }
 

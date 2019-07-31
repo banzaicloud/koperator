@@ -54,5 +54,5 @@ version="v1.4.7"
   name = "github.com/lestrrat-go/backoff"
 
 [[constraint]]
-  name = "github.com/segmentio/kafka-go"
-  version = "0.2.5"
+  name = "github.com/Shopify/sarama"
+  version = "1.23.1"

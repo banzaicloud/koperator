@@ -12,6 +12,7 @@ ignored = [
   "github.com/hpcloud/tail",
   "github.com/inconshreveable/mousetrap",
   "sigs.k8s.io/yaml",
+  "github.com/rcrowley/go-metrics",
 
   "github.com/davecgh/go-spew", # ISC license
 ]

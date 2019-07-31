@@ -10,6 +10,22 @@
   version = "v0.38.0"
 
 [[projects]]
+  digest = "1:1e910daf4c9eb87dbad2aafe2f8e0c0cb46e79b84ae5df09c2da4983bcb7f419"
+  name = "github.com/DataDog/zstd"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "2347a397da4ee9c6b8226d4aff82c302d0e52773"
+  version = "v1.4.1"
+
+[[projects]]
+  digest = "1:22606de65c70a958fe5d6fdcd9b4bdaf29195551c5e5985ba871b3098e15dba3"
+  name = "github.com/Shopify/sarama"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "46c83074a05474240f9620fb7c70fb0d80ca401a"
+  version = "v1.23.1"
+
+[[projects]]
   digest = "1:464aef731a5f82ded547c62e249a2e9ec59fbbc9ddab53cda7b9857852630a61"
   name = "github.com/appscode/jsonpatch"
   packages = ["."]
@@ -39,6 +55,30 @@
   pruneopts = "T"
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
+
+[[projects]]
+  digest = "1:8480f60ae4bd46d06511a2577565acd0e60110899240c7e54be1e4b0bd55ed06"
+  name = "github.com/eapache/go-resiliency"
+  packages = ["breaker"]
+  pruneopts = "T"
+  revision = "5efd2ed019fd331ec2defc6f3bd98882f1e3e636"
+  version = "v1.2.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:5b9eecdd952ee665ce94669cd1074c4fe5fb389a1095a42133ed0ad7ce1e81bd"
+  name = "github.com/eapache/go-xerial-snappy"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "776d5712da21bc4762676d614db1d8a64f4238b0"
+
+[[projects]]
+  digest = "1:444b82bfe35c83bbcaf84e310fb81a1f9ece03edfed586483c869e2c046aef69"
+  name = "github.com/eapache/queue"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "44cc805cf13205b55f69e14bcb69867d1ae92f98"
+  version = "v1.1.0"
 
 [[projects]]
   digest = "1:628563098b6c90c4658950c43396b28cd0cb6adcdbfe557bd0f425e0b06f1e61"
@@ -165,6 +205,14 @@
   version = "v1.3.1"
 
 [[projects]]
+  digest = "1:f37c069fadbaa889f79aea9cd463d225000a0d26f1e7423f14c0cd58fbc5c597"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "2a8bb927dd31d8daada140a5d09578521ce5c36a"
+  version = "v0.0.1"
+
+[[projects]]
   digest = "1:0bfbe13936953a98ae3cfe8ed6670d396ad81edf069a806d2f6515d7bb6950df"
   name = "github.com/google/btree"
   packages = ["."]
@@ -220,6 +268,14 @@
   revision = "3befbb6ad0cc97d4c25d851e9528915809e1a22f"
 
 [[projects]]
+  digest = "1:f14364057165381ea296e49f8870a9ffce2b8a95e34d6ae06c759106aaef428c"
+  name = "github.com/hashicorp/go-uuid"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "4f571afc59f3043a65f8fe6bf46d887b10a01d43"
+  version = "v1.0.1"
+
+[[projects]]
   digest = "1:d15ee511aa0f56baacc1eb4c6b922fa1c03b38413b6be18166b996d82a0156ea"
   name = "github.com/hashicorp/golang-lru"
   packages = [
@@ -259,6 +315,17 @@
   pruneopts = "T"
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
+
+[[projects]]
+  digest = "1:569e67119c5cf9c8fc8abc8c763db09df12530cdadd87f93d33e3f7141835810"
+  name = "github.com/jcmturner/gofork"
+  packages = [
+    "encoding/asn1",
+    "x/crypto/pbkdf2",
+  ]
+  pruneopts = "T"
+  revision = "dc7c13fece037a4a36e2b3c69db4991498d30692"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:ee5840274624ad20cac08227aeca582fbdaf3727ef9dd37ae935706240679e09"
@@ -399,6 +466,17 @@
   version = "v3.0.0"
 
 [[projects]]
+  digest = "1:70a52da87178fe61ce55c024a58761359fd4c6c7d6a7a0cb61d7d43717196789"
+  name = "github.com/pierrec/lz4"
+  packages = [
+    ".",
+    "internal/xxh32",
+  ]
+  pruneopts = "T"
+  revision = "377214e3044ff9f12d996f3037fb8c3e3ad16b49"
+  version = "v2.2.5"
+
+[[projects]]
   digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -450,6 +528,14 @@
   revision = "5867b95ac084bbfee6ea16595c4e05ab009021da"
 
 [[projects]]
+  branch = "master"
+  digest = "1:58eab328c322d689287b5300d3b8bbf41f798d69438a7e5431b74714e10e8567"
+  name = "github.com/rcrowley/go-metrics"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "9beb055b7962d16947a14e1cd718098a2431e20e"
+
+[[projects]]
   digest = "1:5e2ebcff4614ac5a6d9abbbaaa6df76082658d797621f2a25e54c5e5e4203161"
   name = "github.com/rogpeppe/go-internal"
   packages = [
@@ -460,17 +546,6 @@
   pruneopts = "T"
   revision = "438578804ca6f31be148c27683afc419ce47c06e"
   version = "v1.3.0"
-
-[[projects]]
-  digest = "1:f1351aefb65029d53c0f818391f73fc1b775219e217cdf1b4f01e8f286057532"
-  name = "github.com/segmentio/kafka-go"
-  packages = [
-    ".",
-    "sasl",
-  ]
-  pruneopts = "T"
-  revision = "0b38267f13d5e17fcf8dfbb89168ef7fb520deb8"
-  version = "v0.2.5"
 
 [[projects]]
   digest = "1:dee0cc3252ce6fcc3334c9529abd32925f2aaf072c90336a5a38254953564aa5"
@@ -534,7 +609,11 @@
   branch = "master"
   digest = "1:a0fcf7beb9d89aed1ac911a72a5cfa8ecc9973cf71109c51e2545238154433ca"
   name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
+  packages = [
+    "md4",
+    "pbkdf2",
+    "ssh/terminal",
+  ]
   pruneopts = "T"
   revision = "cbcb750295291b33242907a04be40e80801d0cfc"
 
@@ -552,7 +631,9 @@
     "http2",
     "http2/hpack",
     "idna",
+    "internal/socks",
     "internal/timeseries",
+    "proxy",
     "trace",
   ]
   pruneopts = "T"
@@ -732,6 +813,72 @@
   pruneopts = "T"
   revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
   version = "v0.9.1"
+
+[[projects]]
+  digest = "1:c902038ee2d6f964d3b9f2c718126571410c5d81251cbab9fe58abd37803513c"
+  name = "gopkg.in/jcmturner/aescts.v1"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "f6abebb3171c4c1b1fea279cb7c7325020a26290"
+  version = "v1.0.1"
+
+[[projects]]
+  digest = "1:a1a3e185c03d79a7452d5d5b4c91be4cc433f55e6ed3a35233d852c966e39013"
+  name = "gopkg.in/jcmturner/dnsutils.v1"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "13eeb8d49ffb74d7a75784c35e4d900607a3943c"
+  version = "v1.0.1"
+
+[[projects]]
+  digest = "1:3fc73aba04c19a6ff67e1bb055ec501dba6ec87b9f29062e26e19c8a863f0eba"
+  name = "gopkg.in/jcmturner/gokrb5.v7"
+  packages = [
+    "asn1tools",
+    "client",
+    "config",
+    "credentials",
+    "crypto",
+    "crypto/common",
+    "crypto/etype",
+    "crypto/rfc3961",
+    "crypto/rfc3962",
+    "crypto/rfc4757",
+    "crypto/rfc8009",
+    "gssapi",
+    "iana",
+    "iana/addrtype",
+    "iana/adtype",
+    "iana/asnAppTag",
+    "iana/chksumtype",
+    "iana/errorcode",
+    "iana/etypeID",
+    "iana/flags",
+    "iana/keyusage",
+    "iana/msgtype",
+    "iana/nametype",
+    "iana/patype",
+    "kadmin",
+    "keytab",
+    "krberror",
+    "messages",
+    "pac",
+    "types",
+  ]
+  pruneopts = "T"
+  revision = "363118e62befa8a14ff01031c025026077fe5d6d"
+  version = "v7.3.0"
+
+[[projects]]
+  digest = "1:ab34660806b7f5fff3f808f7c2e3a967474bbd3cde6a16885fe2ee8f47b2b255"
+  name = "gopkg.in/jcmturner/rpc.v1"
+  packages = [
+    "mstypes",
+    "ndr",
+  ]
+  pruneopts = "T"
+  revision = "99a8ce2fbf8b8087b6ed12a37c61b10f04070043"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "v1"
@@ -1075,6 +1222,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/Shopify/sarama",
     "github.com/banzaicloud/k8s-objectmatcher/patch",
     "github.com/emicklei/go-restful",
     "github.com/envoyproxy/go-control-plane/envoy/api/v2",
@@ -1091,7 +1239,6 @@
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/prometheus/common/model",
-    "github.com/segmentio/kafka-go",
     "golang.org/x/net/context",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
