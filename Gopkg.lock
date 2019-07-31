@@ -10,6 +10,14 @@
   version = "v0.38.0"
 
 [[projects]]
+  digest = "1:0c045f69aa440970ae8ce63c98a9a3b8525e479962498fc5e67fb12ac9bde70f"
+  name = "emperror.dev/errors"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "c860353d32ac4b82cdb1bedf56819965e02b6c5c"
+  version = "v0.4.2"
+
+[[projects]]
   digest = "1:1e910daf4c9eb87dbad2aafe2f8e0c0cb46e79b84ae5df09c2da4983bcb7f419"
   name = "github.com/DataDog/zstd"
   packages = ["."]
@@ -1222,6 +1230,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "emperror.dev/errors",
     "github.com/Shopify/sarama",
     "github.com/banzaicloud/k8s-objectmatcher/patch",
     "github.com/emicklei/go-restful",

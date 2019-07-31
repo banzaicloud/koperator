@@ -16,7 +16,10 @@ package kafkacluster
 
 import (
 	"context"
+	"time"
 
+	"emperror.dev/errors"
+	"github.com/Shopify/sarama"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
@@ -27,7 +30,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -146,7 +149,7 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 	instance := &banzaicloudv1alpha1.KafkaCluster{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
@@ -166,6 +169,13 @@ func (r *ReconcileKafkaCluster) Reconcile(request reconcile.Request) (reconcile.
 	for _, rec := range reconcilers {
 		err = rec.Reconcile(reqLogger)
 		if err != nil {
+			var tError *sarama.TopicError
+			if errors.Is(err, sarama.ErrOutOfBrokers) || errors.As(err, &tError) {
+				return reconcile.Result{
+					Requeue:      true,
+					RequeueAfter: time.Duration(20) * time.Second,
+				}, nil
+			}
 			return reconcile.Result{}, err
 		}
 	}
