@@ -22,7 +22,7 @@ Next step is to create the cluster itself.
 banzai cluster create
 ```
 
-The required cluster template file can be found [here](/infrastructure/cluster_pke.json)
+The required cluster template file can be found [here](infrastructure/cluster_pke.json)
 
 > Please don't forget to fill out the template with the created ids.
 
@@ -34,7 +34,7 @@ Create the cluster itself:
 ```
 banzai cluster create
 ```
-The required cluster template file can be found [here](/infrastructure/cluster_gke.json)
+The required cluster template file can be found [here](infrastructure/cluster_gke.json)
 
 > Please don't forget to fill out the template with the created ids.
 
@@ -45,7 +45,7 @@ Create the cluster itself:
 ```
 banzai cluster create
 ```
-The required cluster template file can be found [here](/infrastructure/cluster_eks.json)
+The required cluster template file can be found [here](infrastructure/cluster_eks.json)
 
 > Please don't forget to fill out the template with the created ids.
 
@@ -105,7 +105,7 @@ Install the latest version of Banzai Cloud Kafka Operator
 helm install --name=kafka-operator banzaicloud-stable/kafka-operator
 ```
 
-Create a 3 broker Kafka Cluster using the [provided](/infrastructure/kafka.yaml) yaml.
+Create a 3 broker Kafka Cluster using the [provided](infrastructure/kafka.yaml) yaml.
 
 This will install 3 brokers partitioned to three different zone with fast ssd.
 
@@ -138,7 +138,7 @@ kubectl exec -it kafka-test bash
 
 Monitoring environment automatically installed, find your cluster and Grafanas UI/credentials on our [UI](https://beta.banzaicloud.io). To monitor the infrastructure we used the official Node Exporter dashboard available with id `1860`.
 
-Run perf test against the cluster, by building the provided Docker [image](/loadgens/Dockerfile)
+Run perf test against the cluster, by building the provided Docker [image](loadgens/Dockerfile)
 ```
 docker build -t yourname/perfload:0.1.0 /loadgens
 docker push yourname/perfload:0.1.0
