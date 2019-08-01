@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	"emperror.dev/errors"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/go-logr/logr"
@@ -73,7 +74,9 @@ func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Cl
 		ReplicationFactor: 3,
 	}, false)
 
-	if err != nil && err.(*sarama.TopicError).Err != sarama.ErrTopicAlreadyExists {
+	var tError *sarama.TopicError
+
+	if err != nil && !(errors.As(err, &tError) && tError.Err == sarama.ErrTopicAlreadyExists) {
 		return emperror.Wrap(err, "Error while creating CC topic")
 	}
 
