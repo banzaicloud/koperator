@@ -28,17 +28,17 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	HeadlessServiceEnabled bool                         `json:"headlessServiceEnabled"`
-	ListenersConfig        ListenersConfig              `json:"listenersConfig"`
-	ZKAddresses            []string                     `json:"zkAddresses"`
-	RackAwareness          *RackAwareness               `json:"rackAwareness,omitempty"`
-	BrokerConfigs          []BrokerConfig               `json:"brokerConfigs"`
-	BrokerClasses          map[string]*BrokerConfig     `json:"brokerClasses"`
-	OneBrokerPerNode       bool                         `json:"oneBrokerPerNode"`
-	CruiseControlConfig    CruiseControlConfig          `json:"cruiseControlConfig"`
-	EnvoyConfig            EnvoyConfig                  `json:"envoyConfig,omitempty"`
-	ServiceAccount         string                       `json:"serviceAccount"`
-	MonitoringConfig       MonitoringConfig             `json:"monitoringConfig,omitempty"`
+	HeadlessServiceEnabled bool                     `json:"headlessServiceEnabled"`
+	ListenersConfig        ListenersConfig          `json:"listenersConfig"`
+	ZKAddresses            []string                 `json:"zkAddresses"`
+	RackAwareness          *RackAwareness           `json:"rackAwareness,omitempty"`
+	BrokerConfigs          []BrokerConfig           `json:"brokerConfigs"`
+	BrokerClasses          map[string]*BrokerConfig `json:"brokerClasses"`
+	OneBrokerPerNode       bool                     `json:"oneBrokerPerNode"`
+	CruiseControlConfig    CruiseControlConfig      `json:"cruiseControlConfig"`
+	EnvoyConfig            EnvoyConfig              `json:"envoyConfig,omitempty"`
+	ServiceAccount         string                   `json:"serviceAccount"`
+	MonitoringConfig       MonitoringConfig         `json:"monitoringConfig,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
