@@ -200,6 +200,12 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 	if broker.NodeAffinity != nil {
 		pod.Spec.Affinity.NodeAffinity = broker.NodeAffinity
 	}
+	if broker.NodeSelector != nil {
+		pod.Spec.NodeSelector = broker.NodeSelector
+	}
+	if broker.Tolerations != nil {
+		pod.Spec.Tolerations = broker.Tolerations
+	}
 	return pod
 }
 

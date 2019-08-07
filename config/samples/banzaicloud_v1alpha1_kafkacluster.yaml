@@ -39,6 +39,10 @@ spec:
           cpu: "200m"
       # nodeAffinity can be specified, operator populates this value if new pvc added later to brokers
       # nodeAffinity:
+      # nodeSelector can be specified, which set the pod to fit on a node
+      # nodeSelector:
+      # tolerations can be specified, which set the pod's tolerations
+      # tolerations:
       # config parameter can be used to pass any Kafka config https://kafka.apache.org/documentation/#brokerconfigs
       # expect listener specific configs, security based configs, log dir related configs
       # we recommend to disable automatic topic creation, enabling it may result ineffective CC topic
