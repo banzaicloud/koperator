@@ -51,6 +51,8 @@ type BrokerConfig struct {
 	Image            string                       `json:"image,omitempty"`
 	Id               int32                        `json:"id"`
 	NodeAffinity     *corev1.NodeAffinity         `json:"nodeAffinity,omitempty"`
+	NodeSelector     map[string]string            `json:"nodeSelector,omitempty"`
+	Tolerations      []corev1.Toleration          `json:"tolerations,omitempty"`
 	Config           string                       `json:"config,omitempty"`
 	StorageConfigs   []StorageConfig              `json:"storageConfigs"`
 	Resources        *corev1.ResourceRequirements `json:"resourceReqs,omitempty"`
