@@ -69,6 +69,8 @@ spec:
                   - storageConfigs
                 type: object
               type: array
+            brokerConfigGroups:
+              type: object
             cruiseControlConfig:
               properties:
                 capacityConfig:
