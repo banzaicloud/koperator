@@ -108,6 +108,22 @@ spec:
             resources:
               requests:
                 storage: 10Gi
+  # brokerConfigGroups specifies multiple broker configs with unique name
+  brokerConfigGroups:
+    # Specify desired group name (eg., 'default_group')
+    default_group:
+      # brokerConfig spec
+      image: "wurstmeister/kafka:2.12-2.1.0"
+      config: |
+        auto.create.topics.enable=false
+      storageConfigs:
+        - mountPath: "/kafka-logs"
+          pvcSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
   # listenersConfig specifies kafka's listener specific configs
   listenersConfig:
     # externalListeners specifies settings required to access kafka externally

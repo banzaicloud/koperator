@@ -86,12 +86,12 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 
 	var brokerConfig *banzaicloudv1alpha1.BrokerConfig
 
-	brokerClass := string(annotations["brokerClass"])
+	brokerConfigGroupName := string(annotations["brokerConfigGroup"])
 
-	if brokerClassConfig, ok := cr.Spec.BrokerClasses[brokerClass]; ok {
+	if brokerConfigGroup, ok := cr.Spec.BrokerConfigGroups[brokerConfigGroupName]; ok {
 
-		brokerClassConfig.Id = biggestId + 1
-		brokerConfig = brokerClassConfig
+		brokerConfig = brokerConfigGroup
+		brokerConfig.Id = biggestId + 1
 
 	} else {
 

@@ -12,6 +12,8 @@ prometheus:
           annotations:
             description: 'broker {{ $labels.brokerId }} overloaded (current value is: {{ $value }})'
             summary: 'broker overloaded'
+            # If brokerConfigGroup is defined it will override scaled broker config
+            # brokerConfigGroup: 'default_group'
             storageClass: 'standard'
             mountPath: '/kafkalog'
             diskSize: '2G'
