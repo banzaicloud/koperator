@@ -76,7 +76,6 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 
 		// Creating the first PersistentVolume For Pod
 		if len(pvcList.Items) == 0 {
-			err = apierrors.NewNotFound(corev1.Resource("PersistentVolumeClaim"), "kafkaBroker")
 			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
@@ -94,7 +93,6 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		}
 		if !alreadyCreated {
 			// Creating the 2+ PersistentVolumes for Pod
-			err = apierrors.NewNotFound(corev1.Resource("PersistentVolumeClaim"), "kafkaBroker")
 			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
@@ -115,7 +113,6 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType)
 		}
 		if len(podList.Items) == 0 {
-			err = apierrors.NewNotFound(corev1.Resource("Pod"), "kafkaBroker")
 			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)

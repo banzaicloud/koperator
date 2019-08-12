@@ -8,7 +8,7 @@ RELEASE_MSG ?= "operator release"
 REL_TAG = $(shell ./scripts/increment_version.sh -${RELEASE_TYPE} ${TAG})
 
 DEP_VERSION = 0.5.1
-GOLANGCI_VERSION = 1.15.0
+GOLANGCI_VERSION = 1.17.1
 LICENSEI_VERSION = 0.1.0
 
 KUSTOMIZE_BASE = config/default
