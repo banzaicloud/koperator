@@ -1,4 +1,6 @@
 run:
+    concurrency: 4
+  
     skip-dirs:
         - client
 
