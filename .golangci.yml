@@ -1,5 +1,5 @@
 run:
-    concurrency: 4
+    deadline: 2m
   
     skip-dirs:
         - client
