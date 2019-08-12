@@ -235,6 +235,21 @@ func (in *KafkaClusterSpec) DeepCopyInto(out *KafkaClusterSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.BrokerConfigGroups != nil {
+		in, out := &in.BrokerConfigGroups, &out.BrokerConfigGroups
+		*out = make(map[string]*BrokerConfig, len(*in))
+		for key, val := range *in {
+			var outVal *BrokerConfig
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				in, out := &val, &outVal
+				*out = new(BrokerConfig)
+				(*in).DeepCopyInto(*out)
+			}
+			(*out)[key] = outVal
+		}
+	}
 	out.CruiseControlConfig = in.CruiseControlConfig
 	out.EnvoyConfig = in.EnvoyConfig
 	out.MonitoringConfig = in.MonitoringConfig
