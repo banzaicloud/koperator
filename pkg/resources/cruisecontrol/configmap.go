@@ -30,7 +30,7 @@ import (
 
 func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 	configMap := &corev1.ConfigMap{
-		ObjectMeta: templates.ObjectMeta(configAndVolumeName, labelSelector, r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name), labelSelector, r.KafkaCluster),
 		Data: map[string]string{
 			"cruisecontrol.properties": r.KafkaCluster.Spec.CruiseControlConfig.Config + fmt.Sprintf(`
     # The Kafka cluster to control.

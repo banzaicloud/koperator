@@ -59,7 +59,7 @@ func downScale(labels model.LabelSet, client client.Client) error {
 		return err
 	}
 
-	brokerId, err := scale.GetBrokerIDWithLeastPartition(string(labels["namespace"]), cr.Spec.CruiseControlConfig.CruiseControlEndpoint)
+	brokerId, err := scale.GetBrokerIDWithLeastPartition(string(labels["namespace"]), cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)
 	if err != nil {
 		return err
 	}
