@@ -134,7 +134,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 					}
 				}
 				if current.(*corev1.Pod).Status.Phase == corev1.PodRunning && brokerState.GracefulActionState.CruiseControlState == banzaicloudv1alpha1.GracefulUpdateRequired {
-					scaleErr := scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"], desired.(*corev1.Pod).Namespace, cr.Spec.CruiseControlConfig.CruiseControlEndpoint)
+					scaleErr := scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"], desired.(*corev1.Pod).Namespace, cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)
 					if scaleErr != nil {
 						log.Error(err, "graceful upscale failed, or cluster just started")
 						statusErr := updateGracefulScaleStatus(client, brokerId, cr,

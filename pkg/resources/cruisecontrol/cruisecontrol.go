@@ -15,6 +15,8 @@
 package cruisecontrol
 
 import (
+	"fmt"
+
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
@@ -24,17 +26,17 @@ import (
 )
 
 const (
-	componentName          = "cruisecontrol"
-	serviceName            = "cruisecontrol-svc"
-	configAndVolumeName    = "cruisecontrol-config"
-	modconfigAndVolumeName = "cruisecontrol-modconfig"
-	deploymentName         = "cruisecontrol"
-	keystoreVolume         = "ks-files"
-	keystoreVolumePath     = "/var/run/secrets/java.io/keystores"
-	pemFilesVolume         = "pem-files"
-	jmxVolumePath          = "/opt/jmx-exporter/"
-	jmxVolumeName          = "jmx-jar-data"
-	metricsPort            = 9020
+	componentNameTemplate       = "%s-cruisecontrol"
+	serviceNameTemplate         = "%s-cruisecontrol-svc"
+	configAndVolumeNameTemplate = "%s-cruisecontrol-config"
+	modconfigAndVolumeName      = "cruisecontrol-modconfig"
+	deploymentNameTemplate      = "%s-cruisecontrol"
+	keystoreVolume              = "ks-files"
+	keystoreVolumePath          = "/var/run/secrets/java.io/keystores"
+	pemFilesVolume              = "pem-files"
+	jmxVolumePath               = "/opt/jmx-exporter/"
+	jmxVolumeName               = "jmx-jar-data"
+	metricsPort                 = 9020
 )
 
 var labelSelector = map[string]string{
@@ -58,7 +60,7 @@ func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Recon
 
 // Reconcile implements the reconcile logic for CC
 func (r *Reconciler) Reconcile(log logr.Logger) error {
-	log = log.WithValues("component", componentName)
+	log = log.WithValues("component", fmt.Sprintf(componentNameTemplate, r.KafkaCluster.Name))
 
 	log.V(1).Info("Reconciling")
 

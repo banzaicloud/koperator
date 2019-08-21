@@ -37,18 +37,18 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.BrokerConfigs[0].Image))
+		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.BrokerConfigs[0].Image, r.KafkaCluster.Name))
 	} else {
 		volumeMount = append(volumeMount, []corev1.VolumeMount{
 			{
-				Name:      configAndVolumeName,
+				Name:      fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
 				MountPath: "/opt/cruise-control/config",
 			},
 		}...)
 	}
 
 	return &appsv1.Deployment{
-		ObjectMeta: templates.ObjectMeta(deploymentName, labelSelector, r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(deploymentNameTemplate, r.KafkaCluster.Name), labelSelector, r.KafkaCluster),
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labelSelector,
@@ -75,7 +75,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					}...),
 					Containers: []corev1.Container{
 						{
-							Name: deploymentName,
+							Name: fmt.Sprintf(deploymentNameTemplate, r.KafkaCluster.Name),
 							Env: []corev1.EnvVar{
 								{
 									Name:  "KAFKA_OPTS",
@@ -125,10 +125,10 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					},
 					Volumes: append(volume, []corev1.Volume{
 						{
-							Name: configAndVolumeName,
+							Name: fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{Name: configAndVolumeName},
+									LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name)},
 									DefaultMode:          util.Int32Pointer(0644),
 								},
 							},
@@ -155,7 +155,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	}
 }
 
-func generateInitContainerForSSL(secretName, image string) corev1.Container {
+func generateInitContainerForSSL(secretName, image, clusterName string) corev1.Container {
 	// Keystore generator
 	initPemToKeyStore := corev1.Container{
 		Name:  "pem-to-jks",
@@ -193,7 +193,7 @@ func generateInitContainerForSSL(secretName, image string) corev1.Container {
 				MountPath: "/var/run/secrets/pemfiles",
 			},
 			{
-				Name:      configAndVolumeName,
+				Name:      fmt.Sprintf(configAndVolumeNameTemplate, clusterName),
 				MountPath: "/config",
 			},
 			{
