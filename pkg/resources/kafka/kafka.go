@@ -18,18 +18,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	"emperror.dev/emperror"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
-	"github.com/goph/emperror"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -81,11 +81,11 @@ func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Recon
 
 func getCreatedPVCForBroker(c client.Client, brokerID int32, namespace, crName string) ([]corev1.PersistentVolumeClaim, error) {
 	foundPVCList := &corev1.PersistentVolumeClaimList{}
-	matchingLabels := map[string]string{
+	matchingLabels := client.MatchingLabels{
 		"kafka_cr": crName,
 		"brokerId": fmt.Sprintf("%d", brokerID),
 	}
-	err := c.List(context.TODO(), client.InNamespace(namespace).MatchingLabels(matchingLabels), foundPVCList)
+	err := c.List(context.TODO(), foundPVCList, client.ListOption(client.InNamespace(namespace)), client.ListOption(matchingLabels))
 	if err != nil {
 		return nil, err
 	}
@@ -148,10 +148,11 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 	// Handle Pod delete
 	podList := &corev1.PodList{}
-	matchingLabels := map[string]string{
+	matchingLabels := client.MatchingLabels{
 		"kafka_cr": r.KafkaCluster.Name,
 	}
-	err := r.Client.List(context.TODO(), client.InNamespace(r.KafkaCluster.Namespace).MatchingLabels(matchingLabels), podList)
+
+	err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
 	if err != nil {
 		return emperror.Wrap(err, "failed to reconcile resource")
 	}
@@ -196,7 +197,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					}
 				}
 			}
-			err = k8sutil.DeleteStatus(r.Client, util.ConvertStringToInt32(broker.Labels["brokerId"]), r.KafkaCluster, log)
+			err = k8sutil.DeleteStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster, log)
 			if err != nil {
 				return emperror.WrapWith(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
 			}
@@ -236,7 +237,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				}
 			}
 		} else {
-			if brokerState, ok := r.KafkaCluster.Status.BrokersState[broker.Id]; ok {
+			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 				if brokerState.RackAwarenessState == banzaicloudv1alpha1.Configured {
 					for _, res := range []resources.ResourceWithBrokerAndString{
 						r.configMapPod,

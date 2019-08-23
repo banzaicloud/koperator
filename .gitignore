@@ -20,13 +20,12 @@ charts/kafka-operator/requirements.lock
 !vendor/**/zz_generated.*
 
 # editor and IDE paraphernalia
+.idea/*
 *.swp
 *.swo
 *~
 
-.idea/*
 !/.idea/go.imports.xml
-vendor/*
 /.licensei.cache
 bin/*
 cover.out

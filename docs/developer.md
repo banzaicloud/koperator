@@ -6,8 +6,7 @@ The Kafka operator is built on the [kubebuilder](https://github.com/kubernetes-s
 
 To build the operator and run tests:
 
-1. Run `make vendor`
-2. Run `make`
+1. Run `make`
 
 If you make changes and would like to try your own version, create your own image:
 

@@ -1,26 +1,27 @@
 # Build the manager binary
-ARG GO_VERSION=1.12.1
+FROM golang:1.12.5 as builder
 
-FROM golang:${GO_VERSION}-alpine as builder
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+# cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN go mod download
 
-RUN apk add --update --no-cache ca-certificates make git curl mercurial
-
-ARG PACKAGE=github.com/banzaicloud/kafka-operator
-
-RUN mkdir -p /go/src/${PACKAGE}
-WORKDIR /go/src/${PACKAGE}
-COPY pkg/    pkg/
-COPY cmd/    cmd/
+# Copy the go source
+COPY main.go main.go
+COPY api/ api/
+COPY controllers/ controllers/
 COPY internal/ internal/
-COPY Makefile Gopkg.* /go/src/${PACKAGE}/
-RUN make vendor
+COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager github.com/banzaicloud/kafka-operator/cmd/manager
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
 
-# Copy the controller-manager into a thin image
-FROM alpine:3.9
-RUN apk add --no-cache ca-certificates
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+FROM gcr.io/distroless/static:latest
 WORKDIR /
-COPY --from=builder /go/src/github.com/banzaicloud/kafka-operator/manager .
+COPY --from=builder /workspace/manager .
 ENTRYPOINT ["/manager"]

@@ -27,7 +27,7 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	envoyapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	ptypes "github.com/gogo/protobuf/types"

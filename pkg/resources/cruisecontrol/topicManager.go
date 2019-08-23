@@ -20,11 +20,11 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	"emperror.dev/emperror"
 	"emperror.dev/errors"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/go-logr/logr"
-	"github.com/goph/emperror"
 
 	"github.com/Shopify/sarama"
 	corev1 "k8s.io/api/core/v1"

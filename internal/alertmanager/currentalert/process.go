@@ -15,7 +15,7 @@
 package currentalert
 
 import (
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -84,7 +84,7 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 		}
 	}
 
-	var brokerConfig *banzaicloudv1alpha1.BrokerConfig
+	var brokerConfig banzaicloudv1alpha1.BrokerConfig
 
 	brokerConfigGroupName := string(annotations["brokerConfigGroup"])
 
@@ -95,7 +95,7 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 
 	} else {
 
-		brokerConfig = &banzaicloudv1alpha1.BrokerConfig{
+		brokerConfig = banzaicloudv1alpha1.BrokerConfig{
 			Image: string(annotations["image"]),
 			Id:    biggestId + 1,
 			StorageConfigs: []banzaicloudv1alpha1.StorageConfig{
