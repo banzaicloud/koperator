@@ -188,6 +188,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 			TerminationGracePeriodSeconds: util.Int64Pointer(60),
 			DNSPolicy:                     corev1.DNSClusterFirst,
 			ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
+			ImagePullSecrets:              r.KafkaCluster.Spec.GetImagePullSecrets(),
 			SecurityContext:               &corev1.PodSecurityContext{},
 			Priority:                      util.Int32Pointer(0),
 			SchedulerName:                 "default-scheduler",
