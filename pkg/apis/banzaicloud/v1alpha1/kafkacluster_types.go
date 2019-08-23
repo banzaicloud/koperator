@@ -28,17 +28,18 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	HeadlessServiceEnabled bool                     `json:"headlessServiceEnabled"`
-	ListenersConfig        ListenersConfig          `json:"listenersConfig"`
-	ZKAddresses            []string                 `json:"zkAddresses"`
-	RackAwareness          *RackAwareness           `json:"rackAwareness,omitempty"`
-	BrokerConfigs          []BrokerConfig           `json:"brokerConfigs"`
-	BrokerConfigGroups     map[string]*BrokerConfig `json:"brokerConfigGroups,omitempty"`
-	OneBrokerPerNode       bool                     `json:"oneBrokerPerNode"`
-	CruiseControlConfig    CruiseControlConfig      `json:"cruiseControlConfig"`
-	EnvoyConfig            EnvoyConfig              `json:"envoyConfig,omitempty"`
-	ServiceAccount         string                   `json:"serviceAccount"`
-	MonitoringConfig       MonitoringConfig         `json:"monitoringConfig,omitempty"`
+	HeadlessServiceEnabled bool                          `json:"headlessServiceEnabled"`
+	ListenersConfig        ListenersConfig               `json:"listenersConfig"`
+	ZKAddresses            []string                      `json:"zkAddresses"`
+	RackAwareness          *RackAwareness                `json:"rackAwareness,omitempty"`
+	BrokerConfigs          []BrokerConfig                `json:"brokerConfigs"`
+	BrokerConfigGroups     map[string]*BrokerConfig      `json:"brokerConfigGroups,omitempty"`
+	OneBrokerPerNode       bool                          `json:"oneBrokerPerNode"`
+	CruiseControlConfig    CruiseControlConfig           `json:"cruiseControlConfig"`
+	EnvoyConfig            EnvoyConfig                   `json:"envoyConfig,omitempty"`
+	ServiceAccount         string                        `json:"serviceAccount"`
+	ImagePullSecrets       []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	MonitoringConfig       MonitoringConfig              `json:"monitoringConfig,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -156,6 +157,11 @@ func (spec *KafkaClusterSpec) GetServiceAccount() string {
 		return spec.ServiceAccount
 	}
 	return "default"
+}
+
+//GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
+func (spec *KafkaClusterSpec) GetImagePullSecrets() []corev1.LocalObjectReference {
+	return spec.ImagePullSecrets
 }
 
 // GetResources returns the broker specific Kubernetes resource
