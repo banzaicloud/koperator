@@ -85,6 +85,7 @@ install: manifests
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: install-kustomize manifests
+	kubectl apply -f config/manager/namespace.yaml
 	cd config/manager && kustomize edit set image controller=${IMG}
 	kustomize build config/default | kubectl apply -f -
 
@@ -105,7 +106,7 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths="./..."
 
 # Build the docker image
-docker-build: test
+docker-build:
 	docker build . -t ${IMG}
 
 # Push the docker image
