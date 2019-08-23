@@ -13,6 +13,19 @@ ignored = [
   "github.com/inconshreveable/mousetrap",
   "sigs.k8s.io/yaml",
   "github.com/rcrowley/go-metrics",
+  "go.uber.org/atomic",
+  "go.uber.org/multierr",
+  "emperror.dev/errors",
+  "emperror.dev/emperror",
+  "go.uber.org/zap",
+  "google.golang.org/grpc",
+  "google.golang.org/genproto",
+  "gomodules.xyz/jsonpatch/v2",
+  "gopkg.in/fsnotify.v1",
+  "k8s.io/apiextensions-apiserver",
+  "github.com/imdario/mergo",
+  "github.com/spf13/pflag",
+  "cloud.google.com/go",
 
   "github.com/davecgh/go-spew", # ISC license
 ]

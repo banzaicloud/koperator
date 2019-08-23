@@ -19,12 +19,11 @@ import (
 	"errors"
 	"reflect"
 
+	"emperror.dev/emperror"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
-	"github.com/goph/emperror"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -64,11 +63,12 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		log.V(1).Info("searching with label because name is empty")
 
 		pvcList := &corev1.PersistentVolumeClaimList{}
-		matchingLabels := map[string]string{
+		matchingLabels := runtimeClient.MatchingLabels{
 			"kafka_cr": cr.Name,
 			"brokerId": desired.(*corev1.PersistentVolumeClaim).Labels["brokerId"],
 		}
-		err = client.List(context.TODO(), runtimeClient.InNamespace(current.(*corev1.PersistentVolumeClaim).Namespace).MatchingLabels(matchingLabels), pvcList)
+		err = client.List(context.TODO(), pvcList,
+			runtimeClient.ListOption(runtimeClient.InNamespace(current.(*corev1.PersistentVolumeClaim).Namespace)), runtimeClient.ListOption(matchingLabels))
 		if err != nil && len(pvcList.Items) == 0 {
 			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType)
 		}
@@ -104,11 +104,11 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		log.V(1).Info("searching with label because name is empty")
 
 		podList := &corev1.PodList{}
-		matchingLabels := map[string]string{
+		matchingLabels := runtimeClient.MatchingLabels{
 			"kafka_cr": cr.Name,
 			"brokerId": desired.(*corev1.Pod).Labels["brokerId"],
 		}
-		err = client.List(context.TODO(), runtimeClient.InNamespace(current.(*corev1.Pod).Namespace).MatchingLabels(matchingLabels), podList)
+		err = client.List(context.TODO(), podList, runtimeClient.ListOption(runtimeClient.InNamespace(current.(*corev1.Pod).Namespace)), runtimeClient.ListOption(matchingLabels))
 		if err != nil && len(podList.Items) == 0 {
 			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType)
 		}
@@ -121,7 +121,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			return nil
 		} else if len(podList.Items) == 1 {
 			current = podList.Items[0].DeepCopyObject()
-			brokerId := util.ConvertStringToInt32(current.(*corev1.Pod).Labels["brokerId"])
+			brokerId := current.(*corev1.Pod).Labels["brokerId"]
 			if brokerState, ok := cr.Status.BrokersState[brokerId]; ok {
 				if cr.Spec.RackAwareness != nil && (brokerState.RackAwarenessState == banzaicloudv1alpha1.WaitingForRackAwareness || brokerState.RackAwarenessState == "") {
 					err := updateCrWithRackAwarenessConfig(current.(*corev1.Pod), cr, client)

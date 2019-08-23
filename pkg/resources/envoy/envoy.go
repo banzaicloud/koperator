@@ -15,11 +15,11 @@
 package envoy
 
 import (
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
+	"emperror.dev/emperror"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/go-logr/logr"
-	"github.com/goph/emperror"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

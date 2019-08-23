@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"strings"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/pkg/apis/banzaicloud/v1alpha1"
-	"github.com/goph/emperror"
+	"emperror.dev/emperror"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,12 +81,12 @@ func updateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *banzaicloudv1alpha1.Ka
 }
 
 // AddNewBrokerToCr modifies the CR and adds a new broker
-func AddNewBrokerToCr(brokerConfig *banzaicloudv1alpha1.BrokerConfig, crName, namespace string, client runtimeClient.Client) error {
+func AddNewBrokerToCr(brokerConfig banzaicloudv1alpha1.BrokerConfig, crName, namespace string, client runtimeClient.Client) error {
 	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
 		return err
 	}
-	cr.Spec.BrokerConfigs = append(cr.Spec.BrokerConfigs, *brokerConfig)
+	cr.Spec.BrokerConfigs = append(cr.Spec.BrokerConfigs, brokerConfig)
 
 	return updateCr(cr, client)
 }

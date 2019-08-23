@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-version=1.0.11 # versions starting from v2.0.0 have issues with outside paths: https://github.com/kubernetes-sigs/kustomize/issues/776
+version=v3.1.0
 opsys=$(echo "$(uname -s)" | awk '{print tolower($0)}')
 
 # download the release

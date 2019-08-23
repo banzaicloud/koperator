@@ -1,0 +1,7 @@
+apiVersion: banzaicloud.banzaicloud.io/v1beta1
+kind: KafkaCluster
+metadata:
+  name: kafkacluster-sample
+spec:
+  # Add fields here
+  foo: bar
