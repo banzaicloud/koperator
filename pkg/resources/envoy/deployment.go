@@ -62,6 +62,8 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					Labels: labelSelector,
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName: r.KafkaCluster.Spec.GetServiceAccount(),
+					ImagePullSecrets:   r.KafkaCluster.Spec.GetImagePullSecrets(),
 					Containers: []corev1.Container{
 						{
 							Name:  "envoy",

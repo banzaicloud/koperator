@@ -59,6 +59,8 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					Annotations: util.MonitoringAnnotations(metricsPort),
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
+					ImagePullSecrets:              r.KafkaCluster.Spec.GetImagePullSecrets(),
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),
 					InitContainers: append(initContainers, []corev1.Container{
 						{
