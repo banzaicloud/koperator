@@ -53,7 +53,9 @@ spec:
                   nodeSelector:
                     type: object
                   tolerations:
-                    type: object
+                    items:
+                      type: object
+                    type: array
                   resourceReqs:
                     type: object
                   storageConfigs:
@@ -97,6 +99,10 @@ spec:
               type: object
             headlessServiceEnabled:
               type: boolean
+            imagePullSecrets:
+              items:
+                type: object
+              type: array
             listenersConfig:
               properties:
                 externalListeners:
