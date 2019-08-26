@@ -266,6 +266,11 @@ func (in *KafkaClusterSpec) DeepCopyInto(out *KafkaClusterSpec) {
 	}
 	out.CruiseControlConfig = in.CruiseControlConfig
 	out.EnvoyConfig = in.EnvoyConfig
+	if in.ImagePullSecrets != nil {
+		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
+		*out = make([]v1.LocalObjectReference, len(*in))
+		copy(*out, *in)
+	}
 	out.MonitoringConfig = in.MonitoringConfig
 	return
 }
