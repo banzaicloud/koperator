@@ -28,6 +28,8 @@ spec:
           type: object
         spec:
           properties:
+            brokerConfigGroups:
+              type: object
             brokerConfigs:
               items:
                 properties:
@@ -46,8 +48,6 @@ spec:
                     type: object
                   nodeSelector:
                     type: object
-                  tolerations:
-                    type: object
                   resourceReqs:
                     type: object
                   storageConfigs:
@@ -62,13 +62,15 @@ spec:
                       - pvcSpec
                       type: object
                     type: array
+                  tolerations:
+                    items:
+                      type: object
+                    type: array
                 required:
                 - id
                 - storageConfigs
                 type: object
               type: array
-            brokerConfigGroups:
-              type: object
             cruiseControlConfig:
               properties:
                 capacityConfig:
@@ -91,6 +93,10 @@ spec:
               type: object
             headlessServiceEnabled:
               type: boolean
+            imagePullSecrets:
+              items:
+                type: object
+              type: array
             listenersConfig:
               properties:
                 externalListeners:
