@@ -31,6 +31,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -113,17 +114,31 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Build
 	builder.WithEventFilter(
 		predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
+				object, err := meta.Accessor(e.Object)
+				if err != nil {
+					return false
+				}
+				if _, ok := object.(*banzaicloudv1alpha1.KafkaCluster); ok {
+					return true
+				}
 				return false
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
 				return true
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				patchResult, err := patch.DefaultPatchMaker.Calculate(e.ObjectOld, e.ObjectNew)
+				object, err := meta.Accessor(e.ObjectNew)
 				if err != nil {
-					log.Error(err, "could not match objects", "kind", e.ObjectOld.GetObjectKind())
-				} else if patchResult.IsEmpty() {
 					return false
+				}
+				switch object.(type) {
+				case *corev1.Pod, *corev1.ConfigMap, *corev1.PersistentVolumeClaim:
+					patchResult, err := patch.DefaultPatchMaker.Calculate(e.ObjectOld, e.ObjectNew)
+					if err != nil {
+						log.Error(err, "could not match objects", "kind", e.ObjectOld.GetObjectKind())
+					} else if patchResult.IsEmpty() {
+						return false
+					}
 				}
 				return true
 			},
