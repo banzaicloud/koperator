@@ -139,9 +139,12 @@ func GetCr(name, namespace string, client runtimeClient.Client) (*banzaicloudv1a
 }
 
 func updateCr(cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
+	typeMeta := cr.TypeMeta
 	err := client.Update(context.TODO(), cr)
 	if err != nil {
 		return err
 	}
+	// update loses the typeMeta of the config that's used later when setting ownerrefs
+	cr.TypeMeta = typeMeta
 	return nil
 }
