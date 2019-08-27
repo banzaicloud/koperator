@@ -1,7 +1,7 @@
 apiVersion: v1
 name: kafka-operator
-version: 0.0.12
+version: 0.1.0
 description: kafka-operator manages Kafka deployments on Kubernetes
 sources:
   - https://github.com/banzaicloud/kafka-operator
-appVersion: 0.5.3
+appVersion: 0.5.4

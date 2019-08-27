@@ -30,7 +30,7 @@ type KafkaClusterSpec struct {
 	ZKAddresses            []string                      `json:"zkAddresses"`
 	RackAwareness          *RackAwareness                `json:"rackAwareness,omitempty"`
 	BrokerConfigs          []BrokerConfig                `json:"brokerConfigs"`
-	BrokerConfigGroups     map[string]BrokerConfig      `json:"brokerConfigGroups,omitempty"`
+	BrokerConfigGroups     map[string]BrokerConfig       `json:"brokerConfigGroups,omitempty"`
 	OneBrokerPerNode       bool                          `json:"oneBrokerPerNode"`
 	CruiseControlConfig    CruiseControlConfig           `json:"cruiseControlConfig"`
 	EnvoyConfig            EnvoyConfig                   `json:"envoyConfig,omitempty"`

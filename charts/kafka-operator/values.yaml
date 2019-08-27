@@ -6,8 +6,8 @@ replicaCount: 1
 
 operator:
   image:
-    repository: banzaicloud/kafka-operator
-    tag: 0.5.3
+    repository: baluchicken/kafka-operator
+    tag: 0.5.4-dev
     pullPolicy: IfNotPresent
   resources:
     limits:
