@@ -151,6 +151,10 @@ kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 
 > In this case Prometheus will be installed and configured properly for the Kafka-Operator.
 
+## Test Deployment
+
+For simple test code please check out the [test docs](docs/test.md)
+
 ## Development
 
 Check out the [developer docs](docs/developer.md).
