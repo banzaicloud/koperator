@@ -33,9 +33,59 @@ To try Kafka guarded by SSL we recommend to use [Kafkacat](https://github.com/ed
 
 > Want to use the java client instead please generate the proper truststore and keystore using the [official docs](https://kafka.apache.org/documentation/#security_ssl).
 
+To use Kafka inside the cluster, create a Pod which contains `Kafkacat`.
+
+The following command will create a `kafka-test` pod in the `kafka` namespace.
+
+```bash
+kubectl create -n kafka -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kafka-test
+spec:
+  containers:
+  - name: kafka-test
+    image: solsson/kafkacat
+    # Just spin & wait forever
+    command: [ "/bin/bash", "-c", "--" ]
+    args: [ "while true; do sleep 3000; done;" ]
+    volumeMounts:
+    - name: sslcerts
+      mountPath: "/ssl/certs"
+  volumes:
+  - name: sslcerts
+    secret:
+      secretName: test-kafka-operator
+EOF
+```
+
+Then exec into the container and produce and consume some messages:
+
+```bash
+kubectl exec -it -n kafka kafka-test bash
+```
+
 ##### Produce Messages
 
+```bash
+kafkacat -P -b kafka-headless:29092 -t my-topic \
+-X security.protocol=SSL \ 
+-X ssl.key.location=/ssl/certs/clientKey \ 
+-X ssl.certificate.location=/ssl/certs/clientCert \ 
+-X ssl.ca.location=/ssl/certs/caCert
+```
+
 ##### Consume Messages
+
+```bash
+kafkacat -C -b kafka-headless:29092 -t my-topic \ 
+-X security.protocol=SSL \
+-X ssl.key.location=/ssl/certs/clientKey \ 
+-X ssl.certificate.location=/ssl/certs/clientCert \ 
+-X ssl.ca.location=/ssl/certs/caCert
+
+```
 
 ### Outside Kubernetes Cluster
 
