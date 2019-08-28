@@ -30,13 +30,13 @@ spec:
       id: 0
       # ResourceReqs works exactly like Container resources, the user can specify the limit and the requests
       # through this property
-      resourceReqs:
-        limits:
-          memory: "300Mi"
-          cpu: "200m"
-        requests:
-          memory: "300Mi"
-          cpu: "200m"
+      #resourceReqs:
+      #  limits:
+      #    memory: "300Mi"
+      #    cpu: "200m"
+      #  requests:
+      #    memory: "300Mi"
+      #    cpu: "200m"
       # nodeAffinity can be specified, operator populates this value if new pvc added later to brokers
       # nodeAffinity:
       # nodeSelector can be specified, which set the pod to fit on a node
