@@ -28,7 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (r *Reconciler) service(broker banzaicloudv1alpha1.BrokerConfig, log logr.Logger) runtime.Object {
+func (r *Reconciler) service(broker banzaicloudv1alpha1.Brokers, log logr.Logger) runtime.Object {
 
 	var usedPorts []corev1.ServicePort
 

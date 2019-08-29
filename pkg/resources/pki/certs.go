@@ -210,7 +210,7 @@ func getCommonName(cluster *banzaicloudv1alpha1.KafkaCluster) string {
 
 func getDNSNames(cluster *banzaicloudv1alpha1.KafkaCluster) (dnsNames []string) {
 	dnsNames = make([]string, 0)
-	for _, broker := range cluster.Spec.BrokerConfigs {
+	for _, broker := range cluster.Spec.Brokers {
 		if cluster.Spec.HeadlessServiceEnabled {
 			dnsNames = append(dnsNames,
 				fmt.Sprintf("%s-%d.%s.%s.svc.cluster.local", cluster.Name, broker.Id, fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))

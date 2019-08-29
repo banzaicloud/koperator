@@ -38,20 +38,20 @@ func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 		return nil
 	}
 
-	brokerConfigs := []banzaicloudv1alpha1.BrokerConfig{}
+	brokers := []banzaicloudv1alpha1.Brokers{}
 
-	for _, brokerConfig := range cr.Spec.BrokerConfigs {
+	for _, brokerConfig := range cr.Spec.Brokers {
 		if strconv.Itoa(int(brokerConfig.Id)) == current.Labels["brokerId"] {
 			nodeAffinity := &corev1.NodeAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
 					NodeSelectorTerms: failureDomainSelectors,
 				},
 			}
-			brokerConfig.NodeAffinity = nodeAffinity
+			brokerConfig.BrokerConfig.NodeAffinity = nodeAffinity
 		}
-		brokerConfigs = append(brokerConfigs, brokerConfig)
+		brokers = append(brokers, brokerConfig)
 	}
-	cr.Spec.BrokerConfigs = brokerConfigs
+	cr.Spec.Brokers = brokers
 	return updateCr(cr, client)
 }
 
@@ -65,28 +65,28 @@ func updateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *banzaicloudv1alpha1.Ka
 	for _, value := range rackConfigMap {
 		rackConfigValues = append(rackConfigValues, value)
 	}
-	brokerConfigs := []banzaicloudv1alpha1.BrokerConfig{}
+	brokerConfigs := []banzaicloudv1alpha1.Brokers{}
 
-	for _, brokerConfig := range cr.Spec.BrokerConfigs {
-		if strconv.Itoa(int(brokerConfig.Id)) == pod.Labels["brokerId"] {
-			if !strings.Contains(brokerConfig.Config, "broker.rack=") {
-				config := brokerConfig.Config + fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
-				brokerConfig.Config = config
+	for _, broker := range cr.Spec.Brokers {
+		if strconv.Itoa(int(broker.Id)) == pod.Labels["brokerId"] {
+			if !strings.Contains(broker.BrokerConfig.Config, "broker.rack=") {
+				config := broker.BrokerConfig.Config + fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
+				broker.BrokerConfig.Config = config
 			}
 		}
-		brokerConfigs = append(brokerConfigs, brokerConfig)
+		brokerConfigs = append(brokerConfigs, broker)
 	}
-	cr.Spec.BrokerConfigs = brokerConfigs
+	cr.Spec.Brokers = brokerConfigs
 	return updateCr(cr, client)
 }
 
 // AddNewBrokerToCr modifies the CR and adds a new broker
-func AddNewBrokerToCr(brokerConfig banzaicloudv1alpha1.BrokerConfig, crName, namespace string, client runtimeClient.Client) error {
+func AddNewBrokerToCr(broker banzaicloudv1alpha1.Brokers, crName, namespace string, client runtimeClient.Client) error {
 	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
 		return err
 	}
-	cr.Spec.BrokerConfigs = append(cr.Spec.BrokerConfigs, brokerConfig)
+	cr.Spec.Brokers = append(cr.Spec.Brokers, broker)
 
 	return updateCr(cr, client)
 }
@@ -99,13 +99,13 @@ func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient
 		return err
 	}
 
-	tmpBrokers := cr.Spec.BrokerConfigs[:0]
-	for _, broker := range cr.Spec.BrokerConfigs {
+	tmpBrokers := cr.Spec.Brokers[:0]
+	for _, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) != brokerId {
 			tmpBrokers = append(tmpBrokers, broker)
 		}
 	}
-	cr.Spec.BrokerConfigs = tmpBrokers
+	cr.Spec.Brokers = tmpBrokers
 	return updateCr(cr, client)
 }
 
@@ -115,15 +115,15 @@ func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *ba
 	if err != nil {
 		return err
 	}
-	tempConfigs := cr.Spec.BrokerConfigs[:0]
-	for _, brokerConfig := range cr.Spec.BrokerConfigs {
-		if strconv.Itoa(int(brokerConfig.Id)) == brokerId {
-			brokerConfig.StorageConfigs = append(brokerConfig.StorageConfigs, *storageConfig)
+	tempConfigs := cr.Spec.Brokers[:0]
+	for _, broker := range cr.Spec.Brokers {
+		if strconv.Itoa(int(broker.Id)) == brokerId {
+			broker.BrokerConfig.StorageConfigs = append(broker.BrokerConfig.StorageConfigs, *storageConfig)
 		}
-		tempConfigs = append(tempConfigs, brokerConfig)
+		tempConfigs = append(tempConfigs, broker)
 	}
 
-	cr.Spec.BrokerConfigs = tempConfigs
+	cr.Spec.Brokers = tempConfigs
 	return updateCr(cr, client)
 }
 
