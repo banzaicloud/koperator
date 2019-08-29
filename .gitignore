@@ -26,6 +26,13 @@ charts/kafka-operator/requirements.lock
 *~
 
 !/.idea/go.imports.xml
+!/.idea/copyright
+!/.idea/encodings.xml
+!/.idea/externalDependencies.xml
+!/.idea/kafka-operator.iml
+!/.idea/misc.xml
+!/.idea/modules.xml
+!/.idea/vcs.xml
 /.licensei.cache
 bin/*
 cover.out

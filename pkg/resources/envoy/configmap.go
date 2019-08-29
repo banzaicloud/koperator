@@ -61,7 +61,7 @@ func generateEnvoyConfig(kc *banzaicloudv1alpha1.KafkaCluster, log logr.Logger) 
 	var listeners []envoyapi.Listener
 	var clusters []envoyapi.Cluster
 
-	for _, broker := range kc.Spec.BrokerConfigs {
+	for _, broker := range kc.Spec.Brokers {
 		listeners = append(listeners, envoyapi.Listener{
 			Address: core.Address{
 				Address: &core.Address_SocketAddress{

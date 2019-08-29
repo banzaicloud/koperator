@@ -115,3 +115,24 @@ func StringSliceRemove(list []string, s string) []string {
 	}
 	return list
 }
+
+// ParsePropertiesFormat parses the properties format configuration into map[string]string
+func ParsePropertiesFormat(properties string) map[string]string {
+	config := map[string]string{}
+
+	splitProps := strings.Split(properties, "\n")
+
+	for _, line := range splitProps {
+		if equal := strings.Index(line, "="); equal >= 0 {
+			if key := strings.TrimSpace(line[:equal]); len(key) > 0 {
+				value := ""
+				if len(line) > equal {
+					value = strings.TrimSpace(line[equal+1:])
+				}
+				config[key] = value
+			}
+		}
+	}
+
+	return config
+}
