@@ -30,7 +30,7 @@ import (
 
 func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 
-	exposedPorts := getExposedContainerPorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.BrokerConfigs)
+	exposedPorts := getExposedContainerPorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.Brokers)
 	volumes := []corev1.Volume{
 		{
 			Name: envoyVolumeAndConfigName,
@@ -62,8 +62,8 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					Labels: labelSelector,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: r.KafkaCluster.Spec.GetServiceAccount(),
-					ImagePullSecrets:   r.KafkaCluster.Spec.GetImagePullSecrets(),
+					//ServiceAccountName: r.KafkaCluster.Spec.GetServiceAccount(),
+					//ImagePullSecrets:   r.KafkaCluster.Spec.GetImagePullSecrets(),
 					Containers: []corev1.Container{
 						{
 							Name:  "envoy",
@@ -80,7 +80,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	}
 }
 
-func getExposedContainerPorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.BrokerConfig) []corev1.ContainerPort {
+func getExposedContainerPorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.Brokers) []corev1.ContainerPort {
 	var exposedPorts []corev1.ContainerPort
 
 	for _, eListener := range extListeners {

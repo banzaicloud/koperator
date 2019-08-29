@@ -25,18 +25,20 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	HeadlessServiceEnabled bool                          `json:"headlessServiceEnabled"`
-	ListenersConfig        ListenersConfig               `json:"listenersConfig"`
-	ZKAddresses            []string                      `json:"zkAddresses"`
-	RackAwareness          *RackAwareness                `json:"rackAwareness,omitempty"`
-	BrokerConfigs          []BrokerConfig                `json:"brokerConfigs"`
-	BrokerConfigGroups     map[string]BrokerConfig       `json:"brokerConfigGroups,omitempty"`
-	OneBrokerPerNode       bool                          `json:"oneBrokerPerNode"`
-	CruiseControlConfig    CruiseControlConfig           `json:"cruiseControlConfig"`
-	EnvoyConfig            EnvoyConfig                   `json:"envoyConfig,omitempty"`
-	ServiceAccount         string                        `json:"serviceAccount"`
-	ImagePullSecrets       []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	MonitoringConfig       MonitoringConfig              `json:"monitoringConfig,omitempty"`
+	HeadlessServiceEnabled bool                    `json:"headlessServiceEnabled"`
+	ListenersConfig        ListenersConfig         `json:"listenersConfig"`
+	ZKAddresses            []string                `json:"zkAddresses"`
+	RackAwareness          *RackAwareness          `json:"rackAwareness,omitempty"`
+	ClusterImage           string                  `json:"clusterImage,omitempty"`
+	ReadOnlyConfig         string                  `json:"readOnlyConfig,omitempty"`
+	ClusterWideConfig      string                  `json:"clusterWideConfig,omitempty"`
+	BrokerConfigGroups     map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
+	Brokers                []Brokers               `json:"brokers"`
+	RollingUpgradeConfig   RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
+	OneBrokerPerNode       bool                    `json:"oneBrokerPerNode"`
+	CruiseControlConfig    CruiseControlConfig     `json:"cruiseControlConfig"`
+	EnvoyConfig            EnvoyConfig             `json:"envoyConfig,omitempty"`
+	MonitoringConfig       MonitoringConfig        `json:"monitoringConfig,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -45,13 +47,24 @@ type KafkaClusterStatus struct {
 	CruiseControlTopicStatus CruiseControlTopicStatus `json:"cruiseControlTopicStatus,omitempty"`
 }
 
+// RollingUpgradeConfig defines the desired config of the RollingUpgrade
+type RollingUpgradeConfig struct {
+	FailureThreshold int `json:"failureThreshold"`
+}
+
+// Brokers defines the broker basic configuration
+type Brokers struct {
+	Id                int32        `json:"id"`
+	BrokerConfigGroup string       `json:"brokerConfigGroup,omitempty"`
+	BrokerConfig      BrokerConfig `json:"brokerConfig,omitempty"`
+}
+
 // BrokerConfig defines the broker configuration
 type BrokerConfig struct {
-	Image            string                       `json:"image,omitempty"`
-	Id               int32                        `json:"id"`
+	Image string `json:"image,omitempty"`
+	//PodSpec          *corev1.PodSpec              `json:"podsSpec,omitempty"`
 	NodeAffinity     *corev1.NodeAffinity         `json:"nodeAffinity,omitempty"`
-	NodeSelector     map[string]string            `json:"nodeSelector,omitempty"`
-	Tolerations      []corev1.Toleration          `json:"tolerations,omitempty"`
+	ReadOnlyConfig   string                       `json:"readOnlyConfig,omitempty"`
 	Config           string                       `json:"config,omitempty"`
 	StorageConfigs   []StorageConfig              `json:"storageConfigs"`
 	Resources        *corev1.ResourceRequirements `json:"resourceReqs,omitempty"`
@@ -67,15 +80,17 @@ type RackAwareness struct {
 // CruiseControlConfig defines the config for Cruise Control
 type CruiseControlConfig struct {
 	CruiseControlEndpoint string `json:"cruiseControlEndpoint,omitempty"`
-	Config                string `json:"config,omitempty"`
-	CapacityConfig        string `json:"capacityConfig,omitempty"`
-	ClusterConfigs        string `json:"clusterConfigs,omitempty"`
-	Image                 string `json:"image,omitempty"`
+	//PodSpec               *corev1.PodSpec `json:"podsSpec,omitempty"`
+	Config         string `json:"config,omitempty"`
+	CapacityConfig string `json:"capacityConfig,omitempty"`
+	ClusterConfigs string `json:"clusterConfigs,omitempty"`
+	Image          string `json:"image,omitempty"`
 }
 
 // EnvoyConfig defines the config for Envoy
 type EnvoyConfig struct {
 	Image string `json:"image"`
+	//PodSpec *corev1.PodSpec `json:"podsSpec,omitempty"`
 }
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
@@ -97,7 +112,6 @@ type ListenersConfig struct {
 	ExternalListeners []ExternalListenerConfig `json:"externalListeners,omitempty"`
 	InternalListeners []InternalListenerConfig `json:"internalListeners"`
 	SSLSecrets        *SSLSecrets              `json:"sslSecrets,omitempty"`
-	//SASLSecret        string                   `json:"saslSecret"`
 }
 
 // SSLSecrets defines the Kafka SSL secrets
@@ -149,17 +163,17 @@ func init() {
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
-func (spec *KafkaClusterSpec) GetServiceAccount() string {
-	if spec.ServiceAccount != "" {
-		return spec.ServiceAccount
-	}
-	return "default"
-}
-
-//GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
-func (spec *KafkaClusterSpec) GetImagePullSecrets() []corev1.LocalObjectReference {
-	return spec.ImagePullSecrets
-}
+//func (spec *KafkaClusterSpec) GetServiceAccount() string {
+//	if spec.ServiceAccount != "" {
+//		return spec.ServiceAccount
+//	}
+//	return "default"
+//}
+//
+////GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
+//func (spec *KafkaClusterSpec) GetImagePullSecrets() []corev1.LocalObjectReference {
+//	return spec.ImagePullSecrets
+//}
 
 // GetResources returns the broker specific Kubernetes resource
 func (bConfig *BrokerConfig) GetResources() *corev1.ResourceRequirements {

@@ -29,7 +29,7 @@ import (
 // loadBalancer return a Loadbalancer service for Envoy
 func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 
-	exposedPorts := getExposedServicePorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.BrokerConfigs)
+	exposedPorts := getExposedServicePorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.Brokers)
 
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMeta(EnvoyServiceName, map[string]string{}, r.KafkaCluster),
@@ -42,7 +42,7 @@ func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 	return service
 }
 
-func getExposedServicePorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.BrokerConfig) []corev1.ServicePort {
+func getExposedServicePorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.Brokers) []corev1.ServicePort {
 	var exposedPorts []corev1.ServicePort
 
 	for _, eListener := range extListeners {

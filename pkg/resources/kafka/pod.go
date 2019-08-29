@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
+func (r *Reconciler) pod(broker banzaicloudv1alpha1.Brokers, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
 
 	var kafkaBrokerContainerPorts []corev1.ContainerPort
 
@@ -61,7 +61,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(broker.Image, r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.ListenersConfig.InternalListeners))
+		initContainers = append(initContainers, generateInitContainerForSSL(broker.BrokerConfig.Image, r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.ListenersConfig.InternalListeners))
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /mod-config/broker-config")
 	} else {
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /config/broker-config")
@@ -98,7 +98,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 			Containers: []corev1.Container{
 				{
 					Name:  "kafka",
-					Image: broker.Image,
+					Image: getBrokerImage(broker, r.KafkaCluster.Spec.ClusterImage),
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.Handler{
 							Exec: &corev1.ExecAction{
@@ -117,11 +117,11 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 						},
 						{
 							Name:  "KAFKA_HEAP_OPTS",
-							Value: broker.GetKafkaHeapOpts(),
+							Value: broker.BrokerConfig.GetKafkaHeapOpts(),
 						},
 						{
 							Name:  "KAFKA_JVM_PERFORMANCE_OPTS",
-							Value: broker.GetKafkaPerfJmvOpts(),
+							Value: broker.BrokerConfig.GetKafkaPerfJmvOpts(),
 						},
 					},
 					Command: command,
@@ -149,7 +149,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 							MountPath: "/etc/jmx-exporter/",
 						},
 					}...),
-					Resources: *broker.GetResources(),
+					Resources: *broker.BrokerConfig.GetResources(),
 				},
 			},
 			Volumes: append(volume, []corev1.Volume{
@@ -187,27 +187,34 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.
 			RestartPolicy:                 corev1.RestartPolicyNever,
 			TerminationGracePeriodSeconds: util.Int64Pointer(60),
 			DNSPolicy:                     corev1.DNSClusterFirst,
-			ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
-			ImagePullSecrets:              r.KafkaCluster.Spec.GetImagePullSecrets(),
-			SecurityContext:               &corev1.PodSecurityContext{},
-			Priority:                      util.Int32Pointer(0),
-			SchedulerName:                 "default-scheduler",
+			//ImagePullSecrets:              r.KafkaCluster.Spec.GetImagePullSecrets(),
+			//ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
+			SecurityContext: &corev1.PodSecurityContext{},
+			Priority:        util.Int32Pointer(0),
+			SchedulerName:   "default-scheduler",
 		},
 	}
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
 		pod.Spec.Hostname = fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id)
 		pod.Spec.Subdomain = fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name)
 	}
-	if broker.NodeAffinity != nil {
-		pod.Spec.Affinity.NodeAffinity = broker.NodeAffinity
+	if broker.BrokerConfig.NodeAffinity != nil {
+		pod.Spec.Affinity.NodeAffinity = broker.BrokerConfig.NodeAffinity
 	}
-	if broker.NodeSelector != nil {
-		pod.Spec.NodeSelector = broker.NodeSelector
-	}
-	if broker.Tolerations != nil {
-		pod.Spec.Tolerations = broker.Tolerations
-	}
+	//if broker.NodeSelector != nil {
+	//	pod.Spec.NodeSelector = broker.NodeSelector
+	//}
+	//if broker.Tolerations != nil {
+	//	pod.Spec.Tolerations = broker.Tolerations
+	//}
 	return pod
+}
+
+func getBrokerImage(broker banzaicloudv1alpha1.Brokers, clusterImage string) string {
+	if broker.BrokerConfig.Image != "" {
+		return broker.BrokerConfig.Image
+	}
+	return clusterImage
 }
 
 func generatePodAntiAffinity(clusterName string, hardRuleEnabled bool) *corev1.PodAntiAffinity {

@@ -158,11 +158,11 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	if err != nil {
 		return emperror.Wrap(err, "failed to reconcile resource")
 	}
-	if len(podList.Items) > len(r.KafkaCluster.Spec.BrokerConfigs) {
+	if len(podList.Items) > len(r.KafkaCluster.Spec.Brokers) {
 		deletedBrokers := make([]corev1.Pod, 0)
 	OUTERLOOP:
 		for _, pod := range podList.Items {
-			for _, broker := range r.KafkaCluster.Spec.BrokerConfigs {
+			for _, broker := range r.KafkaCluster.Spec.Brokers {
 				if pod.Labels["brokerId"] == fmt.Sprintf("%d", broker.Id) {
 					continue OUTERLOOP
 				}
@@ -237,8 +237,8 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	for _, broker := range r.KafkaCluster.Spec.BrokerConfigs {
-		for _, storage := range broker.StorageConfigs {
+	for _, broker := range r.KafkaCluster.Spec.Brokers {
+		for _, storage := range broker.BrokerConfig.StorageConfigs {
 			for _, res := range []resources.ResourceWithBrokerAndStorage{
 				r.pvc,
 			} {
