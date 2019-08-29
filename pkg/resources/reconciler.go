@@ -41,13 +41,13 @@ type Resource func() runtime.Object
 type ResourceWithLogs func(log logr.Logger) runtime.Object
 
 // ResourceWithBrokerAndVolume function with brokerConfig, persistenVolumeClaims and log parameters
-type ResourceWithBrokerAndVolume func(broker banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object
+type ResourceWithBrokerAndVolume func(broker banzaicloudv1alpha1.Brokers, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object
 
 // ResourceWithBrokerAndString function with brokerConfig, string and log parameters
-type ResourceWithBrokerAndString func(broker banzaicloudv1alpha1.BrokerConfig, t string, su []string, log logr.Logger) runtime.Object
+type ResourceWithBrokerAndString func(broker banzaicloudv1alpha1.Brokers, t string, su []string, log logr.Logger) runtime.Object
 
 // ResourceWithBrokerAndStorage function with brokerConfig, storageConfig and log parameters
-type ResourceWithBrokerAndStorage func(broker banzaicloudv1alpha1.BrokerConfig, storage banzaicloudv1alpha1.StorageConfig, log logr.Logger) runtime.Object
+type ResourceWithBrokerAndStorage func(broker banzaicloudv1alpha1.Brokers, storage banzaicloudv1alpha1.StorageConfig, log logr.Logger) runtime.Object
 
 // ResourceWithBrokerAndLog function with brokerConfig and log parameters
-type ResourceWithBrokerAndLog func(broker banzaicloudv1alpha1.BrokerConfig, log logr.Logger) runtime.Object
+type ResourceWithBrokerAndLog func(broker banzaicloudv1alpha1.Brokers, log logr.Logger) runtime.Object

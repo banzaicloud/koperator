@@ -37,7 +37,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.BrokerConfigs[0].Image, r.KafkaCluster.Name))
+		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.Brokers[0].BrokerConfig.Image, r.KafkaCluster.Name))
 	} else {
 		volumeMount = append(volumeMount, []corev1.VolumeMount{
 			{
@@ -59,8 +59,8 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					Annotations: util.MonitoringAnnotations(metricsPort),
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
-					ImagePullSecrets:              r.KafkaCluster.Spec.GetImagePullSecrets(),
+					//ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
+					//ImagePullSecrets:              r.KafkaCluster.Spec.GetImagePullSecrets(),
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),
 					InitContainers: append(initContainers, []corev1.Container{
 						{

@@ -78,37 +78,39 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 	}
 
 	biggestId := int32(0)
-	for _, broker := range cr.Spec.BrokerConfigs {
+	for _, broker := range cr.Spec.Brokers {
 		if broker.Id > biggestId {
 			biggestId = broker.Id
 		}
 	}
 
-	var brokerConfig banzaicloudv1alpha1.BrokerConfig
+	var broker banzaicloudv1alpha1.Brokers
 
 	brokerConfigGroupName := string(annotations["brokerConfigGroup"])
 
 	if brokerConfigGroup, ok := cr.Spec.BrokerConfigGroups[brokerConfigGroupName]; ok {
 
-		brokerConfig = brokerConfigGroup
-		brokerConfig.Id = biggestId + 1
+		broker.BrokerConfig = brokerConfigGroup
+		broker.Id = biggestId + 1
 
 	} else {
 
-		brokerConfig = banzaicloudv1alpha1.BrokerConfig{
-			Image: string(annotations["image"]),
-			Id:    biggestId + 1,
-			StorageConfigs: []banzaicloudv1alpha1.StorageConfig{
-				{
-					MountPath: string(annotations["mountPath"]),
-					PVCSpec: &corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
-						},
-						StorageClassName: util.StringPointer(string(annotations["storageClass"])),
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse(string(annotations["diskSize"])),
+		broker = banzaicloudv1alpha1.Brokers{
+			Id: biggestId + 1,
+			BrokerConfig: banzaicloudv1alpha1.BrokerConfig{
+				Image: string(annotations["image"]),
+				StorageConfigs: []banzaicloudv1alpha1.StorageConfig{
+					{
+						MountPath: string(annotations["mountPath"]),
+						PVCSpec: &corev1.PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+							StorageClassName: util.StringPointer(string(annotations["storageClass"])),
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse(string(annotations["diskSize"])),
+								},
 							},
 						},
 					},
@@ -117,7 +119,7 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 		}
 	}
 
-	err = k8sutil.AddNewBrokerToCr(brokerConfig, string(labels["kafka_cr"]), string(labels["namespace"]), client)
+	err = k8sutil.AddNewBrokerToCr(broker, string(labels["kafka_cr"]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
 	}
