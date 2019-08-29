@@ -16,14 +16,11 @@ package kafka
 
 import (
 	"bytes"
-	//"bytes"
 	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"text/template"
-
-	//"text/template"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
