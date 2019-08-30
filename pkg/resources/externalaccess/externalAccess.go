@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package envoy
+package externalaccess
 
 import (
 	"emperror.dev/emperror"
@@ -20,6 +20,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -55,17 +56,27 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 
 	log.V(1).Info("Reconciling")
-	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
+	if r.KafkaCluster.Spec.ServiceType == string(corev1.ServiceTypeLoadBalancer) {
+		if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
 
-		for _, res := range []resources.ResourceWithLogs{
-			r.loadBalancer,
-			r.configMap,
-			r.deployment,
-		} {
-			o := res(log)
-			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-			if err != nil {
-				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			for _, res := range []resources.ResourceWithLogs{
+				r.loadBalancer,
+				r.configMap,
+				r.deployment,
+			} {
+				o := res(log)
+				if err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster); err != nil {
+					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				}
+			}
+		}
+	} else if r.KafkaCluster.Spec.ServiceType == string(corev1.ServiceTypeNodePort) {
+		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+			for _, broker := range r.KafkaCluster.Spec.BrokerConfigs {
+				o := r.nodePort(log, eListener, broker, r.KafkaCluster.Name)
+				if err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster); err != nil {
+					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				}
 			}
 		}
 	}

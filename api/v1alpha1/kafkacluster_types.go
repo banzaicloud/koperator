@@ -35,6 +35,7 @@ type KafkaClusterSpec struct {
 	CruiseControlConfig    CruiseControlConfig           `json:"cruiseControlConfig"`
 	EnvoyConfig            EnvoyConfig                   `json:"envoyConfig,omitempty"`
 	ServiceAccount         string                        `json:"serviceAccount"`
+	ServiceType            string                        `json:"serviceType"`
 	ImagePullSecrets       []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	MonitoringConfig       MonitoringConfig              `json:"monitoringConfig,omitempty"`
 }

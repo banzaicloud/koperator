@@ -5,6 +5,7 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: kafka
 spec:
+  serviceType: "NodePort"
   headlessServiceEnabled: true
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
@@ -54,7 +55,7 @@ spec:
     externalListeners:
       - type: "plaintext"
         name: "external"
-        externalStartingPort: 19090
+        externalStartingPort: 30010
         containerPort: 9094
     internalListeners:
       - type: "plaintext"

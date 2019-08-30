@@ -24,7 +24,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrolmonitoring"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/externalaccess"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
 	"github.com/go-logr/logr"
@@ -78,7 +78,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	}
 
 	reconcilers := []resources.ComponentReconciler{
-		envoy.New(r.Client, instance),
+		externalaccess.New(r.Client, instance),
 		kafkamonitoring.New(r.Client, instance),
 		cruisecontrolmonitoring.New(r.Client, instance),
 		kafka.New(r.Client, instance),

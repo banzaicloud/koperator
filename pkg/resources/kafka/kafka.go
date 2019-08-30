@@ -26,7 +26,7 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/externalaccess"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/go-logr/logr"
@@ -97,7 +97,7 @@ func getCreatedPVCForBroker(c client.Client, brokerID int32, namespace, crName s
 
 func getLoadBalancerIP(client client.Client, namespace string, log logr.Logger) (string, error) {
 	foundLBService := &corev1.Service{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: envoy.EnvoyServiceName, Namespace: namespace}, foundLBService)
+	err := client.Get(context.TODO(), types.NamespacedName{Name: externalaccess.EnvoyServiceName, Namespace: namespace}, foundLBService)
 	if err != nil {
 		return "", err
 	}
@@ -205,14 +205,13 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 	lBIp := ""
 
-	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
+	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil &&
+		r.KafkaCluster.Spec.ServiceType == string(corev1.ServiceTypeLoadBalancer) {
 		lBIp, err = getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
 		if err != nil {
 			return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
 		}
 	}
-	//TODO remove after testing
-	//lBIp := "192.168.0.1"
 
 	for _, broker := range r.KafkaCluster.Spec.BrokerConfigs {
 		for _, storage := range broker.StorageConfigs {

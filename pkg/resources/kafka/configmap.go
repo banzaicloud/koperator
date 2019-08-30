@@ -15,6 +15,7 @@
 package kafka
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -23,8 +24,11 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
+	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.BrokerConfig, loadBalancerIP string, log logr.Logger) runtime.Object {
@@ -37,17 +41,38 @@ func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.BrokerConfig, loadB
 			fmt.Sprintf("cruise.control.metrics.reporter.bootstrap.servers=%s\n", strings.Join(getInternalListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, broker, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled), ",")) +
 			fmt.Sprintf("broker.id=%d\n", broker.Id) +
 			generateStorageConfig(broker.StorageConfigs) +
-			generateAdvertisedListenerConfig(broker, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIP, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled) +
+			generateAdvertisedListenerConfig(r.Client, broker, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIP, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled) +
 			broker.Config},
 	}
 }
 
-func generateAdvertisedListenerConfig(broker banzaicloudv1alpha1.BrokerConfig, l banzaicloudv1alpha1.ListenersConfig, loadBalancerIP, namespace, crName string, headlessServiceEnabled bool) string {
+func generateAdvertisedListenerConfig(cli client.Client, broker banzaicloudv1alpha1.BrokerConfig, l banzaicloudv1alpha1.ListenersConfig, loadBalancerIP, namespace, crName string, headlessServiceEnabled bool) string {
 	advertisedListenerConfig := []string{}
-	for _, eListener := range l.ExternalListeners {
-		advertisedListenerConfig = append(advertisedListenerConfig,
-			fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIP, eListener.ExternalStartingPort+broker.Id))
+
+	if loadBalancerIP != "" {
+		for _, eListener := range l.ExternalListeners {
+			advertisedListenerConfig = append(advertisedListenerConfig,
+				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIP, eListener.ExternalStartingPort+broker.Id))
+		}
+	} else {
+		var svc corev1.Service
+		var pods corev1.PodList
+		if err := cli.List(context.TODO(), &pods,
+			client.MatchingLabels{"kafka_cr": crName, "brokerId": string(broker.Id)}); err != nil {
+			log.Error(err)
+		}
+		pod := pods.Items[0]
+		if err := cli.Get(context.TODO(), types.NamespacedName{Namespace: namespace,
+			Name: fmt.Sprintf("%s-%d-svc", crName, broker.Id)}, &svc); err != nil {
+			log.Error(err)
+		}
+
+		for _, eListener := range l.ExternalListeners {
+			advertisedListenerConfig = append(advertisedListenerConfig,
+				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), pod.Status.HostIP, svc.Spec.Ports[0].NodePort))
+		}
 	}
+
 	for _, iListener := range l.InternalListeners {
 		if headlessServiceEnabled {
 			advertisedListenerConfig = append(advertisedListenerConfig,

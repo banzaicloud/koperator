@@ -7,37 +7,48 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - apps
+  - ""
   resources:
-  - deployments
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
   verbs:
   - get
   - list
   - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - apps
-  resources:
-  - deployments/status
-  verbs:
-  - get
-  - update
-  - patch
 - apiGroups:
   - ""
   resources:
   - persistentvolumeclaims
   verbs:
+  - create
+  - delete
   - get
   - list
-  - watch
-  - create
-  - update
   - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
   - delete
+  - get
+  - list
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -51,61 +62,50 @@ rules:
   resources:
   - services
   verbs:
+  - create
+  - delete
   - get
   - list
-  - watch
-  - create
-  - update
   - patch
-  - delete
+  - update
+  - watch
 - apiGroups:
-  - ""
+  - apps
   resources:
-  - configmaps
+  - deployments
   verbs:
+  - create
+  - delete
   - get
   - list
-  - watch
-  - create
-  - update
   - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
-  - watch
-  - create
   - update
-  - delete
+  - watch
 - apiGroups:
-  - ""
+  - apps
   resources:
-  - nodes
+  - deployments/status
   verbs:
   - get
-  - list
-  - watch
+  - patch
+  - update
 - apiGroups:
   - banzaicloud.banzaicloud.io
   resources:
   - kafkaclusters
   verbs:
+  - create
+  - delete
   - get
   - list
-  - watch
-  - create
-  - update
   - patch
-  - delete
+  - update
+  - watch
 - apiGroups:
   - banzaicloud.banzaicloud.io
   resources:
   - kafkaclusters/status
   verbs:
   - get
-  - update
   - patch
+  - update
