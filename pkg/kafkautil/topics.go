@@ -14,10 +14,12 @@ type CreateTopicOptions struct {
 	Config            map[string]*string
 }
 
+// ListTopics is used primarily for checking the existence of topics
 func (k *kafkaClient) ListTopics() (map[string]sarama.TopicDetail, error) {
 	return k.admin.ListTopics()
 }
 
+// GetTopic is used to check the existence, and retrieve details for a topic
 func (k *kafkaClient) GetTopic(topicName string) (meta *sarama.TopicDetail, err error) {
 	topics, err := k.ListTopics()
 	if err != nil {
@@ -30,6 +32,7 @@ func (k *kafkaClient) GetTopic(topicName string) (meta *sarama.TopicDetail, err 
 	return
 }
 
+// DescribeTopic is used during status syncs to retrieve topic metadata
 func (k *kafkaClient) DescribeTopic(topic string) (meta *sarama.TopicMetadata, err error) {
 	res, err := k.admin.DescribeTopics([]string{topic})
 	if err != nil {
@@ -43,6 +46,7 @@ func (k *kafkaClient) DescribeTopic(topic string) (meta *sarama.TopicMetadata, e
 	return
 }
 
+// CreateTopic creates a topic with the given options
 func (k *kafkaClient) CreateTopic(opts *CreateTopicOptions) error {
 	return k.admin.CreateTopic(opts.Name, &sarama.TopicDetail{
 		NumPartitions:     opts.Partitions,
@@ -51,10 +55,13 @@ func (k *kafkaClient) CreateTopic(opts *CreateTopicOptions) error {
 	}, false)
 }
 
+// DeleteTopic deletes a topic
 func (k *kafkaClient) DeleteTopic(topic string) error {
 	return k.admin.DeleteTopic(topic)
 }
 
+// EnsurePartitionCount will check if a partition increase is requested and apply
+// the changed.
 func (k *kafkaClient) EnsurePartitionCount(topic string, desired int32) (changed bool, err error) {
 	changed = false
 	meta, err := k.admin.DescribeTopics([]string{topic})
@@ -76,6 +83,7 @@ func (k *kafkaClient) EnsurePartitionCount(topic string, desired int32) (changed
 	return
 }
 
+// EnsureTopicConfig is an idempotent call to ensure topic configuration overrides
 func (k *kafkaClient) EnsureTopicConfig(topic string, desiredConf map[string]*string) error {
 	return k.admin.AlterConfig(sarama.TopicResource, topic, desiredConf, false)
 }
