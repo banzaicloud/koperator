@@ -23,13 +23,15 @@ const (
 	ClientPropertiesKey = "client-ssl.properties"
 )
 
+// This gives the user of the secret a convenience consumer/producer config.
+// It may not be necessary.
 var clientPropertiesTemplate = `security.protocol=SSL
 ssl.truststore.location=/etc/certs/tls.jks
 ssl.truststore.password={{ .Password }}
 ssl.keystore.location=/etc/certs/tls.jks
 ssl.keystore.password={{ .Password }}
 ssl.key.password={{ .Password }}
-ssl.endpoint.identification.algorithm=`
+`
 
 func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 	block, _ := pem.Decode(raw)
