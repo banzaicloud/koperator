@@ -86,7 +86,7 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 				},
 			})
 
-	} else {
+	} else if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		// We need a cluster issuer made from the provided secret
 		secret := &corev1.Secret{}
 		err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.KafkaCluster.Namespace, Name: r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
