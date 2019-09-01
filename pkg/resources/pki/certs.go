@@ -200,6 +200,8 @@ func getDNSNames(cluster *banzaicloudv1alpha1.KafkaCluster) (dnsNames []string) 
 			fmt.Sprintf("%s.%s.svc", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
 		dnsNames = append(dnsNames,
 			fmt.Sprintf("%s.%s", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
+		dnsNames = append(dnsNames,
+			fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name))
 	} else {
 		dnsNames = append(dnsNames,
 			fmt.Sprintf("%s.%s.svc.cluster.local", cluster.Name, cluster.Namespace))
@@ -207,6 +209,8 @@ func getDNSNames(cluster *banzaicloudv1alpha1.KafkaCluster) (dnsNames []string) 
 			fmt.Sprintf("%s.%s.svc", cluster.Name, cluster.Namespace))
 		dnsNames = append(dnsNames,
 			fmt.Sprintf("%s.%s", cluster.Name, cluster.Namespace))
+		dnsNames = append(dnsNames,
+			fmt.Sprintf(cluster.Name))
 	}
 	return
 }
