@@ -9,6 +9,7 @@ func (k *kafkaClient) GetCA() (name string, cakind string) {
 	return k.opts.IssueCA, k.opts.IssueCAKind
 }
 
+// CreateUserACLs creates Kafka ACLs for the given access type and user
 func (k *kafkaClient) CreateUserACLs(accessType v1alpha1.KafkaAccessType, dn string, topic string) error {
 	switch accessType {
 	case v1alpha1.KafkaAccessTypeRead:
@@ -20,6 +21,7 @@ func (k *kafkaClient) CreateUserACLs(accessType v1alpha1.KafkaAccessType, dn str
 	}
 }
 
+// DeleteUserACLs removes all ACLs for a given user
 func (k *kafkaClient) DeleteUserACLs(dn string) (err error) {
 	matches, err := k.admin.DeleteACL(sarama.AclFilter{
 		Principal: &dn,

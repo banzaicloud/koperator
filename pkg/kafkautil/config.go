@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// Should I retain the option to run it as a standalone topic/user controller?
 const (
 	kafkaHostVar      = "KAFKA_BROKER"
 	kafkaUseSSLVar    = "KAFKA_USE_SSL"
@@ -32,6 +33,7 @@ const (
 	kafkaDefaultTimeout = int64(10)
 )
 
+// KafkaConfig are the options to creating a new ClusterAdmin client
 type KafkaConfig struct {
 	BrokerURI             string
 	UseSSL                bool
@@ -62,6 +64,7 @@ func EnvConfig() *KafkaConfig {
 	}
 }
 
+// ClusterConfig creates connection options from a KafkaCluster CR
 func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (conf *KafkaConfig, err error) {
 	tlsKeys := &corev1.Secret{}
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, tlsKeys)
@@ -86,7 +89,7 @@ func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (conf *
 		BrokerURI:        generateKafkaAddress(cluster),
 		UseSSL:           true,
 		TLSConfig:        t,
-		OperationTimeout: getOperationTimeout(),
+		OperationTimeout: kafkaDefaultTimeout,
 		IssueCA:          fmt.Sprintf(pki.BrokerIssuerTemplate, cluster.Name),
 		IssueCAKind:      "ClusterIssuer",
 	}, nil
