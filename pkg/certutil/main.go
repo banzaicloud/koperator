@@ -54,9 +54,8 @@ func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 	if key, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
 		if key, err = x509.ParsePKCS8PrivateKey(block.Bytes); err != nil {
 			return
-		} else {
-			keytype = certv1.PKCS8
 		}
+		keytype = certv1.PKCS8
 	} else {
 		keytype = certv1.PKCS1
 	}
@@ -108,7 +107,7 @@ func InjectJKS(reqLogger logr.Logger, secret *corev1.Secret) (injected *corev1.S
 		return
 	}
 
-	certBundle := []keystore.Certificate{keystore.Certificate{
+	certBundle := []keystore.Certificate{{
 		Type:    "X.509",
 		Content: cert.Raw,
 	}}

@@ -187,7 +187,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 func (r *KafkaTopicReconciler) syncTopicStatus(kafkaConfig *kafkautil.KafkaConfig, instance *v1alpha1.KafkaTopic) {
 	syncLogger := r.Log.WithName(fmt.Sprintf("%s_sync", instance.Name))
 	ticker := time.NewTicker(time.Duration(15) * time.Second)
-	for _ = range ticker.C {
+	for range ticker.C {
 		syncLogger.Info("Syncing topic status")
 		if cont := r.doTopicStatusSync(syncLogger, kafkaConfig, instance); !cont {
 			if _, ok := syncRoutines[instance.Name]; ok {
