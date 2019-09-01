@@ -41,9 +41,10 @@ const (
 	// AllBrokerServiceTemplate template for Kafka headless service
 	AllBrokerServiceTemplate = "%s-all-broker"
 	// HeadlessServiceTemplate template for Kafka headless service
-	HeadlessServiceTemplate       = "%s-headless"
-	brokerConfigTemplate          = "%s-config"
-	brokerStorageTemplate         = "%s-storage"
+	HeadlessServiceTemplate = "%s-headless"
+	brokerConfigTemplate    = "%s-config"
+	brokerStorageTemplate   = "%s-storage"
+
 	brokerConfigMapVolumeMount    = "broker-config"
 	modbrokerConfigMapVolumeMount = "broker-modconfig"
 	kafkaDataVolumeMount          = "kafka-data"

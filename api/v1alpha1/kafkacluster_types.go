@@ -104,6 +104,7 @@ type ListenersConfig struct {
 type SSLSecrets struct {
 	TLSSecretName   string `json:"tlsSecretName"`
 	JKSPasswordName string `json:"jksPasswordName"`
+	Create          bool   `json:"create,omitempty"`
 }
 
 // ExternalListenerConfig defines the external listener config for Kafka

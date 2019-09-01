@@ -3,6 +3,8 @@
 # It should be run by config/default
 resources:
 - bases/banzaicloud.banzaicloud.io_kafkaclusters.yaml
+- bases/banzaicloud.banzaicloud.io_kafkatopics.yaml
+- bases/banzaicloud.banzaicloud.io_kafkausers.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

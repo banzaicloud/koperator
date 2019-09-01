@@ -35,6 +35,7 @@ import (
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/controllers"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -67,11 +68,17 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
+		Namespace:          "",
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	if err := certv1.AddToScheme(mgr.GetScheme()); err != nil {
+		setupLog.Error(err, "")
 		os.Exit(1)
 	}
 
@@ -87,6 +94,16 @@ func main() {
 
 	if err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(kafkaClusterReconciler); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KafkaCluster")
+		os.Exit(1)
+	}
+
+	if err = controllers.SetupKafkaTopicWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "KafkaTopic")
+		os.Exit(1)
+	}
+
+	if err = controllers.SetupKafkaUserWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "KafkaTopic")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
