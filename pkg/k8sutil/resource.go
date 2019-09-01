@@ -24,10 +24,12 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/go-logr/logr"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -47,6 +49,24 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		log = log.WithValues("kind", desiredType, "name", key.Name)
 
 		err = client.Get(context.TODO(), key, current)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType, "name", key.Name)
+		}
+		if apierrors.IsNotFound(err) {
+			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
+			if err := client.Create(context.TODO(), desired); err != nil {
+				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType, "name", key.Name)
+			}
+			log.Info("resource created")
+			return nil
+		}
+	case *certv1.ClusterIssuer:
+		var key runtimeClient.ObjectKey
+		key, err = runtimeClient.ObjectKeyFromObject(current)
+		if err != nil {
+			return emperror.With(err, "kind", desiredType)
+		}
+		err = client.Get(context.TODO(), types.NamespacedName{Namespace: "", Name: key.Name}, current)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType, "name", key.Name)
 		}
@@ -198,9 +218,25 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		switch desired.(type) {
 		default:
 			return emperror.With(errors.New("unexpected resource type"), "kind", desiredType)
+		case *certv1.ClusterIssuer:
+			cm := desired.(*certv1.ClusterIssuer)
+			cm.ResourceVersion = current.(*certv1.ClusterIssuer).ResourceVersion
+			desired = cm
+		case *certv1.Issuer:
+			cm := desired.(*certv1.Issuer)
+			cm.ResourceVersion = current.(*certv1.Issuer).ResourceVersion
+			desired = cm
+		case *certv1.Certificate:
+			cm := desired.(*certv1.Certificate)
+			cm.ResourceVersion = current.(*certv1.Certificate).ResourceVersion
+			desired = cm
 		case *corev1.ConfigMap:
 			cm := desired.(*corev1.ConfigMap)
 			cm.ResourceVersion = current.(*corev1.ConfigMap).ResourceVersion
+			desired = cm
+		case *corev1.Secret:
+			cm := desired.(*corev1.Secret)
+			cm.ResourceVersion = current.(*corev1.Secret).ResourceVersion
 			desired = cm
 		case *corev1.Service:
 			svc := desired.(*corev1.Service)
@@ -217,6 +253,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				return emperror.WrapWith(err, "deleting resource failed", "kind", desiredType)
 			}
 			return nil
+
 		case *corev1.PersistentVolumeClaim:
 			//TODO
 			desired = current

@@ -1,0 +1,198 @@
+package pki
+
+import (
+	"context"
+	"fmt"
+
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/certutil"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+)
+
+// A full PKI for Kafka
+
+func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
+	rootCertMeta := templates.ObjectMeta(fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster)
+	rootCertMeta.Namespace = "cert-manager"
+	var objs []runtime.Object
+	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.Create {
+		// A self-signer for the CA Certificate
+		objs = append(objs, &certv1.ClusterIssuer{
+			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerSelfSignerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+			Spec: certv1.IssuerSpec{
+				IssuerConfig: certv1.IssuerConfig{
+					SelfSigned: &certv1.SelfSignedIssuer{},
+				},
+			},
+		})
+		// The CA Certificate
+		objs = append(objs, &certv1.Certificate{
+			ObjectMeta: rootCertMeta,
+			Spec: certv1.CertificateSpec{
+				SecretName: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name),
+				CommonName: fmt.Sprintf("kafkaca.%s.cluster.local", r.KafkaCluster.Namespace),
+				IsCA:       true,
+				IssuerRef: certv1.ObjectReference{
+					Name: fmt.Sprintf(brokerSelfSignerTemplate, r.KafkaCluster.Name),
+					Kind: "ClusterIssuer",
+				},
+			},
+		})
+		// A cluster issuer backed by the CA certificate - so it can provision secrets
+		// for producers/consumers in other namespaces
+		objs = append(objs,
+			&certv1.ClusterIssuer{
+				ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+				Spec: certv1.IssuerSpec{
+					IssuerConfig: certv1.IssuerConfig{
+						CA: &certv1.CAIssuer{
+							SecretName: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name),
+						},
+					},
+				},
+			})
+
+		// The broker certificates
+		objs = append(objs, &certv1.Certificate{
+			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+			Spec: certv1.CertificateSpec{
+				SecretName:  fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name),
+				KeyEncoding: certv1.PKCS8,
+				CommonName:  fmt.Sprintf("%s.%s.svc.cluster.local", r.KafkaCluster.Name, r.KafkaCluster.Namespace),
+				DNSNames:    getDNSNames(r.KafkaCluster),
+				IssuerRef: certv1.ObjectReference{
+					Name: fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name),
+					Kind: "ClusterIssuer",
+				},
+			},
+		})
+		// And finally one for us so we can manage topics/users
+		objs = append(objs,
+			&certv1.Certificate{
+				ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+				Spec: certv1.CertificateSpec{
+					SecretName:  fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name),
+					KeyEncoding: certv1.PKCS8,
+					CommonName:  fmt.Sprintf("%s-controller", r.KafkaCluster.Name),
+					IssuerRef: certv1.ObjectReference{
+						Name: fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name),
+						Kind: "ClusterIssuer",
+					},
+				},
+			})
+
+	} else {
+		// We need a cluster issuer made from the provided secret
+		secret := &corev1.Secret{}
+		err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.KafkaCluster.Namespace, Name: r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
+		if err != nil {
+			return objs, err
+		}
+		caKey := secret.Data["caKey"]
+		caCert := secret.Data["caCert"]
+
+		objs = append(objs, &corev1.Secret{
+			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+			Data: map[string][]byte{
+				"ca.crt":                caCert,
+				corev1.TLSCertKey:       caCert,
+				corev1.TLSPrivateKeyKey: caKey,
+			},
+		})
+
+		objs = append(objs, &certv1.ClusterIssuer{
+			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+			Spec: certv1.IssuerSpec{
+				IssuerConfig: certv1.IssuerConfig{
+					CA: &certv1.CAIssuer{
+						SecretName: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name),
+					},
+				},
+			},
+		})
+	}
+
+	return objs, nil
+}
+
+func (r *Reconciler) getBootstrapSSLSecret() (certs, passw *corev1.Secret, err error) {
+	// get server (peer) certificate
+	serverSecret := &corev1.Secret{}
+	if err = r.Client.Get(context.TODO(), types.NamespacedName{
+		Name:      fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name),
+		Namespace: r.KafkaCluster.Namespace,
+	}, serverSecret); err != nil {
+		return
+	}
+
+	clientSecret := &corev1.Secret{}
+	if err = r.Client.Get(context.TODO(), types.NamespacedName{
+		Name:      fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name),
+		Namespace: r.KafkaCluster.Namespace,
+	}, clientSecret); err != nil {
+		return
+	}
+
+	certs = &corev1.Secret{
+		ObjectMeta: templates.ObjectMeta(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName, labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+		Data: map[string][]byte{
+			// this one doesn't appear to have a constant
+			"caCert":     serverSecret.Data["ca.crt"],
+			"peerCert":   serverSecret.Data[corev1.TLSCertKey],
+			"peerKey":    serverSecret.Data[corev1.TLSPrivateKeyKey],
+			"clientCert": clientSecret.Data[corev1.TLSCertKey],
+			"clientKey":  clientSecret.Data[corev1.TLSPrivateKeyKey],
+		},
+	}
+
+	passw = &corev1.Secret{
+		ObjectMeta: templates.ObjectMeta(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+		Data: map[string][]byte{
+			"password": certutil.GeneratePass(16),
+		},
+	}
+
+	return
+}
+
+func getDNSNames(cluster *banzaicloudv1alpha1.KafkaCluster) (dnsNames []string) {
+	dnsNames = make([]string, 0)
+	for _, broker := range cluster.Spec.BrokerConfigs {
+		if cluster.Spec.HeadlessServiceEnabled {
+			dnsNames = append(dnsNames,
+				fmt.Sprintf("%s-%d.%s.%s.svc.cluster.local", cluster.Name, broker.Id, fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
+			dnsNames = append(dnsNames,
+				fmt.Sprintf("%s-%d.%s.%s.svc", cluster.Name, broker.Id, fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
+			dnsNames = append(dnsNames,
+				fmt.Sprintf("%s-%d.%s.%s", cluster.Name, broker.Id, fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
+		} else {
+			dnsNames = append(dnsNames,
+				fmt.Sprintf("%s-%d.%s.svc.cluster.local", cluster.Name, broker.Id, cluster.Namespace))
+			dnsNames = append(dnsNames,
+				fmt.Sprintf("%s-%d.%s.svc", cluster.Name, broker.Id, cluster.Namespace))
+			dnsNames = append(dnsNames,
+				fmt.Sprintf("%s-%d.%s", cluster.Name, broker.Id, cluster.Namespace))
+		}
+	}
+	if cluster.Spec.HeadlessServiceEnabled {
+		dnsNames = append(dnsNames,
+			fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
+		dnsNames = append(dnsNames,
+			fmt.Sprintf("%s.%s.svc", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
+		dnsNames = append(dnsNames,
+			fmt.Sprintf("%s.%s", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
+	} else {
+		dnsNames = append(dnsNames,
+			fmt.Sprintf("%s.%s.svc.cluster.local", cluster.Name, cluster.Namespace))
+		dnsNames = append(dnsNames,
+			fmt.Sprintf("%s.%s.svc", cluster.Name, cluster.Namespace))
+		dnsNames = append(dnsNames,
+			fmt.Sprintf("%s.%s", cluster.Name, cluster.Namespace))
+	}
+	return
+}

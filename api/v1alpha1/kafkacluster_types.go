@@ -104,6 +104,7 @@ type ListenersConfig struct {
 type SSLSecrets struct {
 	TLSSecretName   string `json:"tlsSecretName"`
 	JKSPasswordName string `json:"jksPasswordName"`
+	Create          bool   `json:"create,omitempty"`
 }
 
 // ExternalListenerConfig defines the external listener config for Kafka
@@ -124,7 +125,6 @@ type InternalListenerConfig struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=kafkaclusters,scope=Cluster
 
 // KafkaCluster is the Schema for the kafkaclusters API
 type KafkaCluster struct {

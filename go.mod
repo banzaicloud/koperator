@@ -13,17 +13,21 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/gogo/googleapis v1.2.0 // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190730201129-28a6bbf47e48
+	github.com/jetstack/cert-manager v0.9.1
 	github.com/lestrrat-go/backoff v0.0.0-20190107202757-0bc2a4274cd0
 	github.com/lyft/protoc-gen-validate v0.1.0 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
-	github.com/prometheus/common v0.0.0-20180801064454-c7de2306084e
+	github.com/pavel-v-chernykh/keystore-go v2.1.0+incompatible
+	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
+	github.com/prometheus/common v0.2.0
 	google.golang.org/grpc v1.23.0 // indirect
 	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
-	k8s.io/api v0.0.0-20190528154508-67ef80593b24
-	k8s.io/apimachinery v0.0.0-20190528154326-e59c2fb0a8e5
+	k8s.io/api v0.0.0-20190718183219-b59d8169aab5
+	k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
 	k8s.io/client-go v11.0.1-0.20190516230509-ae8359b20417+incompatible
 	sigs.k8s.io/controller-runtime v0.2.0
+	sigs.k8s.io/controller-tools v0.2.0 // indirect
 )
 
 replace (

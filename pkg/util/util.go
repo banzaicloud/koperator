@@ -48,6 +48,15 @@ func StringPointer(s string) *string {
 	return &s
 }
 
+// MapStringStringPointer generates a map[string]*string
+func MapStringStringPointer(in map[string]string) (out map[string]*string) {
+	out = make(map[string]*string, 0)
+	for k, v := range in {
+		out[k] = StringPointer(v)
+	}
+	return
+}
+
 // MergeLabels merges two given labels
 func MergeLabels(l map[string]string, l2 map[string]string) map[string]string {
 	if l == nil {
