@@ -14,7 +14,7 @@ import (
 )
 
 var log = logf.Log.WithName("kafka_util")
-var apiVersion = sarama.V2_3_0_0
+var apiVersion = sarama.V2_1_0_0
 
 // KafkaClient is the exported interface for kafka operations
 type KafkaClient interface {
