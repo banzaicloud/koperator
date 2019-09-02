@@ -136,16 +136,14 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	if existing != nil {
 		// check if requesting a partition decrease, we can't do this
 		reqLogger.Info("Topic already exists, verifying configuration")
-		if existing.NumPartitions > instance.Spec.Partitions {
-			reqLogger.Info(fmt.Sprint("IGNORING: Spec is requesting partition decrease from", existing.NumPartitions, "to", instance.Spec.Partitions))
-		} else {
-			// Ensure partition count and topic configurations
-			if changed, err := broker.EnsurePartitionCount(instance.Spec.Name, instance.Spec.Partitions); err != nil {
-				return reconcile.Result{}, err
-			} else if changed {
-				reqLogger.Info("Increased partition count for topic")
-			}
+
+		// Ensure partition count and topic configurations
+		if changed, err := broker.EnsurePartitionCount(instance.Spec.Name, instance.Spec.Partitions); err != nil {
+			return reconcile.Result{}, err
+		} else if changed {
+			reqLogger.Info("Increased partition count for topic")
 		}
+
 		if err = broker.EnsureTopicConfig(instance.Spec.Name, util.MapStringStringPointer(instance.Spec.Config)); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -217,7 +215,7 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, kafkaCo
 	}
 
 	// get topic metadata
-	meta, err := k.DescribeTopic(topic.Name)
+	meta, err := k.DescribeTopic(topic.Spec.Name)
 	if err != nil {
 		syncLogger.Error(err, "Failed to describe topic to update its status")
 		return true

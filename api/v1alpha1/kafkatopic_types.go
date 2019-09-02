@@ -41,6 +41,8 @@ type KafkaTopicStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // +k8s:openapi-gen=true
+// +kubebuilder:webhook:failurePolicy="fail",name="kafkatopics.banzaicloud.banzaicloud.io",path="/validate",mutating=false,resources={"kafkatopics"},verbs={"create","update"},groups={"banzaicloud.banzaicloud.io"},versions={"v1alpha1"}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // KafkaTopic is the Schema for the kafkatopics API

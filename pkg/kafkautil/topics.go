@@ -42,6 +42,8 @@ func (k *kafkaClient) GetTopic(topicName string) (meta *sarama.TopicDetail, err 
 	found, exists := topics[topicName]
 	if exists {
 		meta = &found
+	} else {
+		meta = nil
 	}
 	return
 }
