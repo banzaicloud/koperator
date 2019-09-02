@@ -86,7 +86,7 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 		log.Error(err, "Can't decode body")
 		admissionResponse = notAllowed(err.Error())
 	} else {
-		fmt.Println(r.URL.Path)
+		log.Info(fmt.Sprintf("%s %s", r.Method, r.URL.Path))
 		admissionResponse = s.validate(&ar)
 	}
 
