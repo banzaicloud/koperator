@@ -47,20 +47,12 @@ func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissio
 		var topic v1alpha1.KafkaTopic
 		if err := json.Unmarshal(req.Object.Raw, &topic); err != nil {
 			log.Error(err, "Could not unmarshal raw object")
-			return &admissionv1beta1.AdmissionResponse{
-				Result: &metav1.Status{
-					Message: err.Error(),
-				},
-			}
+			return notAllowed(err.Error())
 		}
 		return s.validateKafkaTopic(topic)
 
 	default:
-		return &admissionv1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: fmt.Sprintf("Unexpected resource kind: %s", req.Kind.Kind),
-			},
-		}
+		return notAllowed(fmt.Sprintf("Unexpected resource kind: %s", req.Kind.Kind))
 	}
 }
 
@@ -92,11 +84,7 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 	ar := admissionv1beta1.AdmissionReview{}
 	if _, _, err := deserializer.Decode(body, nil, &ar); err != nil {
 		log.Error(err, "Can't decode body")
-		admissionResponse = &admissionv1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: err.Error(),
-			},
-		}
+		admissionResponse = notAllowed(err.Error())
 	} else {
 		fmt.Println(r.URL.Path)
 		admissionResponse = s.validate(&ar)
@@ -121,4 +109,12 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)
 	}
 
+}
+
+func notAllowed(msg string) *admissionv1beta1.AdmissionResponse {
+	return &admissionv1beta1.AdmissionResponse{
+		Result: &metav1.Status{
+			Message: msg,
+		},
+	}
 }
