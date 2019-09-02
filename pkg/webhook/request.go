@@ -32,13 +32,6 @@ var (
 	deserializer = codecs.UniversalDeserializer()
 )
 
-var (
-	ignoredNamespaces = []string{
-		metav1.NamespaceSystem,
-		metav1.NamespacePublic,
-	}
-)
-
 func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
