@@ -164,6 +164,13 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		}
 	}
 
+	// Do an initial topic status sync
+	if _, err = r.doTopicStatusSync(reqLogger, cluster, instance); err != nil {
+		reqLogger.Error(err, "Failed to update new topic status")
+		return reconcile.Result{}, err
+	}
+
+	// Kick off a goroutine to sync topic status every 5 minutes
 	if _, ok := syncRoutines[instance.Name]; !ok {
 		reqLogger.Info("Starting status sync routine for topic")
 		syncRoutines[instance.Name] = struct{}{}
@@ -177,10 +184,10 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 
 func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1alpha1.KafkaCluster, instance *v1alpha1.KafkaTopic) {
 	syncLogger := r.Log.WithName(fmt.Sprintf("%s_sync", instance.Name))
-	ticker := time.NewTicker(time.Duration(15) * time.Second)
+	ticker := time.NewTicker(time.Duration(5) * time.Minute)
 	for range ticker.C {
 		syncLogger.Info("Syncing topic status")
-		if cont := r.doTopicStatusSync(syncLogger, cluster, instance); !cont {
+		if cont, _ := r.doTopicStatusSync(syncLogger, cluster, instance); !cont {
 			if _, ok := syncRoutines[instance.Name]; ok {
 				delete(syncRoutines, instance.Name)
 			}
@@ -189,13 +196,13 @@ func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1alpha1.KafkaCluster, i
 	}
 }
 
-func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster *v1alpha1.KafkaCluster, instance *v1alpha1.KafkaTopic) bool {
+func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster *v1alpha1.KafkaCluster, instance *v1alpha1.KafkaTopic) (bool, error) {
 	// grab a connection to kafka
 	k, err := kafkautil.NewFromCluster(r.Client, cluster)
 	if err != nil {
 		syncLogger.Error(err, "Failed to get a broker connection to update topic status")
 		// let's still try again later, in case it was just a blip in availability
-		return true
+		return true, err
 	}
 	defer k.Close()
 
@@ -204,14 +211,14 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster
 	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, topic); err != nil {
 		syncLogger.Info("Topic has been deleted, stopping sync routine")
 		// return false to stop calling goroutine
-		return false
+		return false, nil
 	}
 
 	// get topic metadata
 	meta, err := k.DescribeTopic(topic.Spec.Name)
 	if err != nil {
 		syncLogger.Error(err, "Failed to describe topic to update its status")
-		return true
+		return true, err
 	}
 
 	// iterate topic partitions and populate maps with their values
@@ -246,8 +253,9 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster
 	}
 	if err = r.Client.Status().Update(context.TODO(), updated); err != nil {
 		syncLogger.Error(err, "Failed to update KafkaTopic status")
+		return true, err
 	}
-	return true
+	return true, nil
 
 }
 
@@ -282,7 +290,7 @@ func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker 
 }
 
 func (r *KafkaTopicReconciler) addFinalizer(reqLogger logr.Logger, topic *v1alpha1.KafkaTopic) error {
-	reqLogger.Info("Addinag Finalizer for the KafkaTopic")
+	reqLogger.Info("Adding Finalizer for the KafkaTopic")
 	topic.SetFinalizers(append(topic.GetFinalizers(), topicFinalizer))
 
 	// Update CR
