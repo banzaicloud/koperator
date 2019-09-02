@@ -68,7 +68,7 @@ func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admi
 			if apierrors.IsNotFound(err) {
 				// User is trying to overwrite an existing topic
 				return notAllowed(fmt.Sprintf("Topic '%s' already exists on kafka cluster '%s'", topic.Spec.Name, topic.Spec.ClusterRef.Name))
-			} else if err != nil {
+			} else {
 				return notAllowed("API failure while validating topic, please try again")
 			}
 		}
