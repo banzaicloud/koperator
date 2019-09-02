@@ -35,6 +35,7 @@ import (
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/controllers"
+	"github.com/banzaicloud/kafka-operator/pkg/webhook"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -59,19 +60,21 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var webhookCertDir string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&webhookCertDir, "tls-cert-dir", "/etc/webhook/certs", "The directory with a tls.key and tls.crt for serving HTTPS requests")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.Logger(true))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
-		Namespace:          "",
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
 	})
+
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
@@ -106,6 +109,9 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "KafkaUser")
 		os.Exit(1)
 	}
+
+	webhook.SetupServerHandlers(mgr, webhookCertDir)
+
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

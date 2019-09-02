@@ -3,8 +3,9 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: kafkaclusters.banzaicloud.banzaicloud.io
+  name: kafkatopics.banzaicloud.banzaicloud.io
 spec:
+  preserveUnknownFields: false
   conversion:
     strategy: Webhook
     webhookClientConfig:
@@ -14,4 +15,4 @@ spec:
       service:
         namespace: system
         name: webhook-service
-        path: /convert
+        path: /validate
