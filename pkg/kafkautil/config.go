@@ -79,34 +79,40 @@ func EnvConfig() *KafkaConfig {
 }
 
 // ClusterConfig creates connection options from a KafkaCluster CR
-func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (conf *KafkaConfig, err error) {
-	tlsKeys := &corev1.Secret{}
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, tlsKeys)
-	if err != nil {
-		return
-	}
-	clientCert := tlsKeys.Data["clientCert"]
-	clientKey := tlsKeys.Data["clientKey"]
-	caCert := tlsKeys.Data["caCert"]
-	x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
-	if err != nil {
-		return
+func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (*KafkaConfig, error) {
+	conf := &KafkaConfig{}
+	conf.BrokerURI = generateKafkaAddress(cluster)
+	conf.OperationTimeout = kafkaDefaultTimeout
+
+	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
+		var err error
+		tlsKeys := &corev1.Secret{}
+		err = client.Get(context.TODO(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, tlsKeys)
+		if err != nil {
+			return conf, err
+		}
+		clientCert := tlsKeys.Data["clientCert"]
+		clientKey := tlsKeys.Data["clientKey"]
+		caCert := tlsKeys.Data["caCert"]
+		x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
+		if err != nil {
+			return conf, err
+		}
+
+		rootCAs := x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM(caCert)
+		t := &tls.Config{
+			Certificates: []tls.Certificate{x509ClientCert},
+			RootCAs:      rootCAs,
+		}
+
+		conf.UseSSL = true
+		conf.TLSConfig = t
+		conf.IssueCA = fmt.Sprintf(pki.BrokerIssuerTemplate, cluster.Name)
+		conf.IssueCAKind = "ClusterIssuer"
 	}
 
-	rootCAs := x509.NewCertPool()
-	rootCAs.AppendCertsFromPEM(caCert)
-	t := &tls.Config{
-		Certificates: []tls.Certificate{x509ClientCert},
-		RootCAs:      rootCAs,
-	}
-	return &KafkaConfig{
-		BrokerURI:        generateKafkaAddress(cluster),
-		UseSSL:           true,
-		TLSConfig:        t,
-		OperationTimeout: kafkaDefaultTimeout,
-		IssueCA:          fmt.Sprintf(pki.BrokerIssuerTemplate, cluster.Name),
-		IssueCAKind:      "ClusterIssuer",
-	}, nil
+	return conf, nil
 }
 
 func getOperationTimeout() int64 {

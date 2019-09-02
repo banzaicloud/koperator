@@ -125,16 +125,9 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
-	// Build a kafka config from the cluster spec
-	kafkaConfig, err := kafkautil.ClusterConfig(r.Client, cluster)
-	if err != nil {
-		reqLogger.Error(err, "Failed to retrieve kafka config from cluster")
-		return reconcile.Result{}, err
-	}
-
 	// Get a kafka connection
 	reqLogger.Info("Retrieving kafka admin client")
-	broker, err := kafkautil.New(kafkaConfig)
+	broker, err := kafkautil.NewFromCluster(r.Client, cluster)
 	if err != nil {
 		reqLogger.Error(err, "Error connecting to kafka")
 		return reconcile.Result{}, err
