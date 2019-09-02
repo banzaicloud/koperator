@@ -104,16 +104,9 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 
-	// Build a kafka config from the cluster spec
-	kafkaConfig, err := kafkautil.ClusterConfig(r.Client, cluster)
-	if err != nil {
-		reqLogger.Error(err, "Failed to retrieve kafka config from cluster")
-		return reconcile.Result{}, err
-	}
-
 	// Get a kafka connection
 	reqLogger.Info("Retrieving kafka admin client")
-	broker, err := kafkautil.New(kafkaConfig)
+	broker, err := kafkautil.NewFromCluster(r.Client, cluster)
 	if err != nil {
 		reqLogger.Error(err, "Error connecting to kafka")
 		return reconcile.Result{}, err
@@ -174,7 +167,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	if _, ok := syncRoutines[instance.Name]; !ok {
 		reqLogger.Info("Starting status sync routine for topic")
 		syncRoutines[instance.Name] = struct{}{}
-		go r.syncTopicStatus(kafkaConfig, instance)
+		go r.syncTopicStatus(cluster, instance)
 	}
 
 	reqLogger.Info("Ensured topic")
@@ -182,12 +175,12 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	return reconcile.Result{}, nil
 }
 
-func (r *KafkaTopicReconciler) syncTopicStatus(kafkaConfig *kafkautil.KafkaConfig, instance *v1alpha1.KafkaTopic) {
+func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1alpha1.KafkaCluster, instance *v1alpha1.KafkaTopic) {
 	syncLogger := r.Log.WithName(fmt.Sprintf("%s_sync", instance.Name))
 	ticker := time.NewTicker(time.Duration(15) * time.Second)
 	for range ticker.C {
 		syncLogger.Info("Syncing topic status")
-		if cont := r.doTopicStatusSync(syncLogger, kafkaConfig, instance); !cont {
+		if cont := r.doTopicStatusSync(syncLogger, cluster, instance); !cont {
 			if _, ok := syncRoutines[instance.Name]; ok {
 				delete(syncRoutines, instance.Name)
 			}
@@ -196,12 +189,12 @@ func (r *KafkaTopicReconciler) syncTopicStatus(kafkaConfig *kafkautil.KafkaConfi
 	}
 }
 
-func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, kafkaConfig *kafkautil.KafkaConfig, instance *v1alpha1.KafkaTopic) bool {
+func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster *v1alpha1.KafkaCluster, instance *v1alpha1.KafkaTopic) bool {
 	// grab a connection to kafka
-	k, err := kafkautil.New(kafkaConfig)
+	k, err := kafkautil.NewFromCluster(r.Client, cluster)
 	if err != nil {
 		syncLogger.Error(err, "Failed to get a broker connection to update topic status")
-		// let's still try again later, in case it was just a blib in availability
+		// let's still try again later, in case it was just a blip in availability
 		return true
 	}
 	defer k.Close()

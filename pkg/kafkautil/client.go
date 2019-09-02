@@ -24,6 +24,7 @@ import (
 
 	"github.com/Shopify/sarama"
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
@@ -81,6 +82,15 @@ func New(opts *KafkaConfig) (client KafkaClient, err error) {
 
 func (k *kafkaClient) Close() error {
 	return k.admin.Close()
+}
+
+// NewFromCluster is a convenience wrapper around New() and ClusterConfig()
+func NewFromCluster(k8sclient client.Client, cluster *v1alpha1.KafkaCluster) (client KafkaClient, err error) {
+	opts, err := ClusterConfig(k8sclient, cluster)
+	if err != nil {
+		return
+	}
+	return New(opts)
 }
 
 func (k *kafkaClient) ResolveBrokerID(ID int32) string {

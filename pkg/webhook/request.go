@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -30,7 +31,38 @@ import (
 var (
 	codecs       = serializer.NewCodecFactory(runtimeScheme)
 	deserializer = codecs.UniversalDeserializer()
+
+	kafkaTopic = reflect.TypeOf(v1alpha1.KafkaTopic{}).Name()
 )
+
+func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissionv1beta1.AdmissionResponse {
+	req := ar.Request
+
+	log.Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
+		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo))
+
+	switch req.Kind.Kind {
+
+	case kafkaTopic:
+		var topic v1alpha1.KafkaTopic
+		if err := json.Unmarshal(req.Object.Raw, &topic); err != nil {
+			log.Error(err, "Could not unmarshal raw object")
+			return &admissionv1beta1.AdmissionResponse{
+				Result: &metav1.Status{
+					Message: err.Error(),
+				},
+			}
+		}
+		return s.validateKafkaTopic(topic)
+
+	default:
+		return &admissionv1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: fmt.Sprintf("Unexpected resource kind: %s", req.Kind.Kind),
+			},
+		}
+	}
+}
 
 func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
@@ -89,33 +121,4 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)
 	}
 
-}
-
-func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissionv1beta1.AdmissionResponse {
-	req := ar.Request
-
-	log.Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
-		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo))
-
-	switch req.Kind.Kind {
-
-	case "KafkaTopic":
-		var topic v1alpha1.KafkaTopic
-		if err := json.Unmarshal(req.Object.Raw, &topic); err != nil {
-			log.Error(err, "Could not unmarshal raw object")
-			return &admissionv1beta1.AdmissionResponse{
-				Result: &metav1.Status{
-					Message: err.Error(),
-				},
-			}
-		}
-		return s.validateKafkaTopic(topic)
-
-	default:
-		return &admissionv1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: fmt.Sprintf("Unexpected resource kind: %s", req.Kind.Kind),
-			},
-		}
-	}
 }

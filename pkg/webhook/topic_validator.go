@@ -37,18 +37,19 @@ func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admi
 
 	var cluster *v1alpha1.KafkaCluster
 	var err error
+
+	// Check if the cluster being referenced actually exists
 	if cluster, err = k8sutil.LookupKafkaCluster(s.client, topic.Spec.ClusterRef); err != nil {
-		log.Error(err, "Failed to lookup referenced cluster")
-		return notAllowed(fmt.Sprintf("KafkaCluster '%s' in the namespace '%s' does not exist", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace))
+		if apierrors.IsNotFound(err) {
+			log.Error(err, "Referenced kafka cluster does not exist")
+			return notAllowed(fmt.Sprintf("KafkaCluster '%s' in the namespace '%s' does not exist", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace))
+		}
+		log.Error(err, "API failure while running topic validation")
+		return notAllowed("API failure while validating topic, please try again")
 	}
 
-	conf, err := kafkautil.ClusterConfig(s.client, cluster)
-	if err != nil {
-		log.Error(err, "Failed to get a kafka config for the cluster")
-		return notAllowed(fmt.Sprintf("Failed to retrieve kafka configuration for cluster: %s", topic.Spec.ClusterRef.Name))
-	}
-
-	broker, err := kafkautil.New(conf)
+	// retrieve an admin client for the cluster
+	broker, err := kafkautil.NewFromCluster(s.client, cluster)
 	if err != nil {
 		log.Error(err, "Failed to connect to kafka cluster")
 		return notAllowed(fmt.Sprintf("Failed to connect to kafka cluster: %s", topic.Spec.ClusterRef.Name))
@@ -66,11 +67,11 @@ func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admi
 		topicCR := &v1alpha1.KafkaTopic{}
 		if err := s.client.Get(context.TODO(), types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, topicCR); err != nil {
 			if apierrors.IsNotFound(err) {
-				// User is trying to overwrite an existing topic
+				// User is trying to overwrite an existing topic - bad user
 				return notAllowed(fmt.Sprintf("Topic '%s' already exists on kafka cluster '%s'", topic.Spec.Name, topic.Spec.ClusterRef.Name))
-			} else {
-				return notAllowed("API failure while validating topic, please try again")
 			}
+			log.Error(err, "API failure while running topic validation")
+			return notAllowed("API failure while validating topic, please try again")
 		}
 
 		// make sure the user isn't trying to decrease partition count
