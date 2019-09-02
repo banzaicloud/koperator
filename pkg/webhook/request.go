@@ -50,7 +50,7 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 	// verify the content type is accurate
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
-		err = errors.New(fmt.Sprintf("Content-Type=%s, expect application/json", contentType))
+		err = fmt.Errorf("Content-Type=%s, expect application/json", contentType)
 		log.Error(err, "invalid content type")
 		http.Error(w, "invalid Content-Type, expect `application/json`", http.StatusUnsupportedMediaType)
 		return
@@ -83,7 +83,7 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 		log.Error(err, "Can't encode response")
 		http.Error(w, fmt.Sprintf("could not encode response: %v", err), http.StatusInternalServerError)
 	}
-	log.Info("Ready to write reponse ...")
+	log.Info("Ready to write response ...")
 	if _, err := w.Write(resp); err != nil {
 		log.Error(err, "Can't write response")
 		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)
