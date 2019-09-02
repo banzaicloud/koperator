@@ -103,7 +103,7 @@ func main() {
 	}
 
 	if err = controllers.SetupKafkaUserWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "KafkaTopic")
+		setupLog.Error(err, "unable to create controller", "controller", "KafkaUser")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

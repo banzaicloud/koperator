@@ -304,7 +304,7 @@ func (r *KafkaUserReconciler) getUserX509NameAndCredentials(reqLogger logr.Logge
 		return
 	}
 
-	certData, err := certutil.DecodeCertificate(secret.Data["tls.crt"])
+	certData, err := certutil.DecodeCertificate(secret.Data[corev1.TLSCertKey])
 	if err != nil {
 		reqLogger.Error(err, "Failed decoding client certificate")
 		return
