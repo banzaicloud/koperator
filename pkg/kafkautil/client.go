@@ -74,6 +74,7 @@ func New(opts *KafkaConfig) (client KafkaClient, err error) {
 	}
 
 	if kclient.brokers, err = kclient.DescribeCluster(); err != nil {
+		kclient.admin.Close()
 		return
 	}
 
