@@ -14,7 +14,7 @@ spec:
   names:
     kind: KafkaCluster
     plural: kafkaclusters
-  scope: Cluster
+  scope: ""
   subresources:
     status: {}
   validation:
