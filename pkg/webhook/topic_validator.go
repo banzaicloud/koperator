@@ -23,7 +23,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/kafkautil"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -90,13 +89,5 @@ func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admi
 	// everything looks a-okay
 	return &admissionv1beta1.AdmissionResponse{
 		Allowed: true,
-	}
-}
-
-func notAllowed(msg string) *admissionv1beta1.AdmissionResponse {
-	return &admissionv1beta1.AdmissionResponse{
-		Result: &metav1.Status{
-			Message: msg,
-		},
 	}
 }
