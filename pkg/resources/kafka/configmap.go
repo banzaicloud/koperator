@@ -15,9 +15,11 @@
 package kafka
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
+	"text/template"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
@@ -27,19 +29,68 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.BrokerConfig, loadBalancerIP string, log logr.Logger) runtime.Object {
+var kafkaConfigTemplate = `
+{{ .ListenerConfig }}
+
+zookeeper.connect={{ .ZookeeperConnectString }}
+
+{{ if .KafkaCluster.Spec.ListenersConfig.SSLSecrets }}
+
+ssl.keystore.location=/var/run/secrets/java.io/keystores/kafka.server.keystore.jks
+ssl.truststore.location=/var/run/secrets/java.io/keystores/kafka.server.truststore.jks
+ssl.client.auth=required
+
+{{ if .SSLEnabledForInternalCommunication }}
+
+cruise.control.metrics.reporter.security.protocol=SSL
+cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io/keystores/client.truststore.jks
+cruise.control.metrics.reporter.ssl.keystore.location=/var/run/secrets/java.io/keystores/client.keystore.jks
+
+{{ end }}
+{{ end }}
+
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+cruise.control.metrics.reporter.bootstrap.servers={{ .CruiseControlBootstrapServers }}
+broker.id={{ .Broker.Id }}
+
+{{ .StorageConfig }}
+
+{{ .AdvertisedListenersConfig }}
+
+{{ .Broker.Config }}
+super.users={{ .SuperUsers }}
+`
+
+func (r *Reconciler) getConfigString(broker banzaicloudv1alpha1.BrokerConfig, loadBalancerIP string, superUsers []string, log logr.Logger) string {
+	var out bytes.Buffer
+	t := template.Must(template.New("broker-config").Parse(kafkaConfigTemplate))
+	t.Execute(&out, map[string]interface{}{
+		"KafkaCluster":                       r.KafkaCluster,
+		"Broker":                             broker,
+		"ListenerConfig":                     generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, log),
+		"SSLEnabledForInternalCommunication": r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
+		"ZookeeperConnectString":             strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","),
+		"CruiseControlBootstrapServers":      strings.Join(getInternalListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, broker, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled), ","),
+		"StorageConfig":                      generateStorageConfig(broker.StorageConfigs),
+		"AdvertisedListenersConfig":          generateAdvertisedListenerConfig(broker, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIP, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
+		"SuperUsers":                         strings.Join(generateSuperUsers(superUsers), ";"),
+	})
+	return out.String()
+}
+
+func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.BrokerConfig, loadBalancerIP string, superUsers []string, log logr.Logger) runtime.Object {
 	return &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, broker.Id), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
-		Data: map[string]string{"broker-config": generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, log) +
-			fmt.Sprintf("zookeeper.connect=%s\n", strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")) +
-			generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig) +
-			"metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter\n" +
-			fmt.Sprintf("cruise.control.metrics.reporter.bootstrap.servers=%s\n", strings.Join(getInternalListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, broker, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled), ",")) +
-			fmt.Sprintf("broker.id=%d\n", broker.Id) +
-			generateStorageConfig(broker.StorageConfigs) +
-			generateAdvertisedListenerConfig(broker, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIP, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled) +
-			broker.Config},
+		Data:       map[string]string{"broker-config": r.getConfigString(broker, loadBalancerIP, superUsers, log)},
 	}
+}
+
+func generateSuperUsers(users []string) (suStrings []string) {
+	suStrings = make([]string, 0)
+	for _, x := range users {
+		suStrings = append(suStrings, fmt.Sprintf("User:%s", x))
+	}
+	return
 }
 
 func generateAdvertisedListenerConfig(broker banzaicloudv1alpha1.BrokerConfig, l banzaicloudv1alpha1.ListenersConfig, loadBalancerIP, namespace, crName string, headlessServiceEnabled bool) string {
@@ -66,22 +117,6 @@ func generateStorageConfig(sConfig []banzaicloudv1alpha1.StorageConfig) string {
 		mountPaths = append(mountPaths, storage.MountPath+`/kafka`)
 	}
 	return fmt.Sprintf("log.dirs=%s\n", strings.Join(mountPaths, ","))
-}
-
-func generateSSLConfig(l *banzaicloudv1alpha1.ListenersConfig) (res string) {
-	if l.SSLSecrets != nil {
-		res = `ssl.keystore.location=/var/run/secrets/java.io/keystores/kafka.server.keystore.jks
-ssl.truststore.location=/var/run/secrets/java.io/keystores/kafka.server.truststore.jks
-ssl.client.auth=required
-`
-	}
-	if l.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
-		res = res + `cruise.control.metrics.reporter.security.protocol=SSL
-cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io/keystores/client.truststore.jks
-cruise.control.metrics.reporter.ssl.keystore.location=/var/run/secrets/java.io/keystores/client.keystore.jks
-`
-	}
-	return
 }
 
 func generateListenerSpecificConfig(l *banzaicloudv1alpha1.ListenersConfig, log logr.Logger) string {

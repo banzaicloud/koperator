@@ -24,6 +24,7 @@ import (
 
 	"emperror.dev/emperror"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
@@ -215,6 +216,27 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	//TODO remove after testing
 	//lBIp := "192.168.0.1"
 
+	// We need to grab names for servers and client in case user is enabling ACLs
+	// That way we can continue to manage topics and users
+	superUsers := make([]string, 0)
+	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
+		controllerSecret := &corev1.Secret{}
+		err = r.Client.Get(context.TODO(), types.NamespacedName{
+			Name:      r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName,
+			Namespace: r.KafkaCluster.Namespace,
+		}, controllerSecret)
+		if err != nil {
+			return emperror.WrapWith(err, "failed to get controller secret, maybe still creating...")
+		}
+		for _, key := range []string{"clientCert", "peerCert"} {
+			su, err := certutil.DecodeCertificate(controllerSecret.Data[key])
+			if err != nil {
+				return emperror.WrapWith(err, "Failed to decode our client certificate")
+			}
+			superUsers = append(superUsers, su.Subject.String())
+		}
+	}
+
 	for _, broker := range r.KafkaCluster.Spec.BrokerConfigs {
 		for _, storage := range broker.StorageConfigs {
 			for _, res := range []resources.ResourceWithBrokerAndStorage{
@@ -231,7 +253,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			for _, res := range []resources.ResourceWithBrokerAndString{
 				r.configMapPod,
 			} {
-				o := res(broker, lBIp, log)
+				o := res(broker, lBIp, superUsers, log)
 				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 				if err != nil {
 					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -243,7 +265,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					for _, res := range []resources.ResourceWithBrokerAndString{
 						r.configMapPod,
 					} {
-						o := res(broker, lBIp, log)
+						o := res(broker, lBIp, superUsers, log)
 						err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 						if err != nil {
 							return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())

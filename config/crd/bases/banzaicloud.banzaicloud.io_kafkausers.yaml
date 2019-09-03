@@ -45,8 +45,6 @@ spec:
               type: object
             includeJKS:
               type: boolean
-            name:
-              type: string
             secretName:
               type: string
             topicGrants:
@@ -54,6 +52,9 @@ spec:
                 description: UserTopicGrant is the desired permissions for the KafkaUser
                 properties:
                   accessType:
+                    enum:
+                    - read
+                    - write
                     type: string
                   topicName:
                     type: string
@@ -64,15 +65,12 @@ spec:
               type: array
           required:
           - clusterRef
-          - name
           - secretName
           - topicGrants
           type: object
         status:
           description: KafkaUserStatus defines the observed state of KafkaUser
           properties:
-            name:
-              type: string
             secretName:
               type: string
             topicGrants:
@@ -80,6 +78,9 @@ spec:
                 description: UserTopicGrant is the desired permissions for the KafkaUser
                 properties:
                   accessType:
+                    enum:
+                    - read
+                    - write
                     type: string
                   topicName:
                     type: string
@@ -89,7 +90,6 @@ spec:
                 type: object
               type: array
           required:
-          - name
           - secretName
           - topicGrants
           type: object
