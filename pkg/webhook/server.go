@@ -18,25 +18,31 @@ import (
 	"net/http"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var (
-	runtimeScheme = runtime.NewScheme()
-	log           = logf.Log.WithName("webhooks")
+	log = logf.Log.WithName("webhooks")
 )
 
 type webhookServer struct {
-	client client.Client
+	client       client.Client
+	scheme       *runtime.Scheme
+	deserializer runtime.Decoder
 }
 
 func SetupServerHandlers(mgr ctrl.Manager, certDir string) {
 	server := mgr.GetWebhookServer()
 	server.CertDir = certDir
 	mux := http.NewServeMux()
-	whsrv := &webhookServer{client: mgr.GetClient()}
+	whsrv := &webhookServer{
+		client:       mgr.GetClient(),
+		scheme:       mgr.GetScheme(),
+		deserializer: serializer.NewCodecFactory(mgr.GetScheme()).UniversalDeserializer(),
+	}
 	mux.HandleFunc("/validate", whsrv.serve)
 	server.Register("/validate", mux)
 	return
