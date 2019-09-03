@@ -1,0 +1,120 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
+    helm.sh/chart: {{ include "kafka-operator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/component: operator
+  name: kafkausers.banzaicloud.banzaicloud.io
+spec:
+  group: banzaicloud.banzaicloud.io
+  names:
+    kind: KafkaUser
+    plural: kafkausers
+  scope: ""
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: KafkaUser is the Schema for the kafkausers API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: KafkaUserSpec defines the desired state of KafkaUser
+          properties:
+            clusterRef:
+              description: ClusterReference states a reference to a cluster for topic/user
+                provisioning
+              properties:
+                name:
+                  description: 'The name of the KafkaCluster CR where the topic should
+                  be created'
+                  type: string
+                namespace:
+                  description: 'The namespace of the KafkaCluster where the topic should
+                  be created. If ommitted, the namespace of the current CR is assumed.'
+                  type: string
+              required:
+              - name
+              type: object
+            includeJKS:
+              description: 'If true, a keystore and truststore in JKS format will be included
+              with the user secret as well as a generated password.'
+              type: boolean
+            secretName:
+              description: 'The secret where the user credentials should be stored.'
+              type: string
+            topicGrants:
+              items:
+                description: 'UserTopicGrant is the desired permissions for the KafkaUser.
+                Each grant must have a topicName and an accessType. AccessType must be one
+                of "read" or "write".'
+                properties:
+                  accessType:
+                    enum:
+                    - read
+                    - write
+                    type: string
+                  topicName:
+                    type: string
+                required:
+                - accessType
+                - topicName
+                type: object
+              type: array
+          required:
+          - clusterRef
+          - secretName
+          - topicGrants
+          type: object
+        status:
+          description: KafkaUserStatus defines the observed state of KafkaUser
+          properties:
+            secretName:
+              type: string
+            topicGrants:
+              items:
+                description: UserTopicGrant is the desired permissions for the KafkaUser
+                properties:
+                  accessType:
+                    enum:
+                    - read
+                    - write
+                    type: string
+                  topicName:
+                    type: string
+                required:
+                - accessType
+                - topicName
+                type: object
+              type: array
+          required:
+          - secretName
+          - topicGrants
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

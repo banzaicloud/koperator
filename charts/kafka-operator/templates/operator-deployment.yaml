@@ -34,6 +34,10 @@ spec:
       {{- if .Values.rbac.enabled }}
       serviceAccountName: {{ include "kafka-operator.fullname" . }}-operator
       {{- end }}
+      volumes:
+        - name: serving-cert
+          secret:
+            secretName: {{ include "kafka-operator.fullname" . }}-server-cert
       containers:
       {{- if and .Values.prometheusMetrics.enabled .Values.prometheusMetrics.authProxy.enabled }}
         - name: kube-rbac-proxy
@@ -70,6 +74,10 @@ spec:
             - containerPort: 9001
               name: alerts
               protocol: TCP
+          volumeMounts:
+            - mountPath: /etc/webhook/certs
+              name: serving-cert
+              readOnly: true
           resources:
 {{ toYaml .Values.operator.resources | nindent 12 }}
 {{- with .Values.nodeSelector }}
