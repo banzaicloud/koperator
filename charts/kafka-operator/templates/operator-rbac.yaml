@@ -59,6 +59,8 @@ rules:
   - banzaicloud.banzaicloud.io
   resources:
   - kafkaclusters
+  - kafkatopics
+  - kafkausers
   verbs:
   - get
   - list
@@ -71,6 +73,8 @@ rules:
   - banzaicloud.banzaicloud.io
   resources:
   - kafkaclusters/status
+  - kafkatopics/status
+  - kafkausers/status
   verbs:
   - get
   - update
@@ -142,6 +146,20 @@ rules:
   - update
   - patch
   - delete
+- apiGroups:
+  - certmanager.k8s.io
+  resources:
+  - issuers
+  - clusterissuers
+  - certificates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
