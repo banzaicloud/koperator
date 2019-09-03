@@ -21,7 +21,6 @@ import (
 // KafkaUserSpec defines the desired state of KafkaUser
 // +k8s:openapi-gen=true
 type KafkaUserSpec struct {
-	Name        string           `json:"name"`
 	SecretName  string           `json:"secretName"`
 	TopicGrants []UserTopicGrant `json:"topicGrants"`
 	IncludeJKS  bool             `json:"includeJKS,omitempty"`
@@ -30,14 +29,14 @@ type KafkaUserSpec struct {
 
 // UserTopicGrant is the desired permissions for the KafkaUser
 type UserTopicGrant struct {
-	TopicName  string          `json:"topicName"`
+	TopicName string `json:"topicName"`
+	// +kubebuilder:validation:Enum={"read","write"}
 	AccessType KafkaAccessType `json:"accessType"`
 }
 
 // KafkaUserStatus defines the observed state of KafkaUser
 // +k8s:openapi-gen=true
 type KafkaUserStatus struct {
-	Name        string           `json:"name"`
 	SecretName  string           `json:"secretName"`
 	TopicGrants []UserTopicGrant `json:"topicGrants"`
 }

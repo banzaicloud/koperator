@@ -61,7 +61,7 @@ const (
 	// CruiseControlTopicReady states the CC required topic is created
 	CruiseControlTopicReady CruiseControlTopicStatus = "CruiseControlTopicReady"
 	// KafkaAccessTypeRead states that a user wants consume access to a topic
-	KafkaAccessTypeRead KafkaAccessType = "Read"
+	KafkaAccessTypeRead KafkaAccessType = "read"
 	// KafkaAccessTypeWrite states that a user wants produce access to a topic
-	KafkaAccessTypeWrite KafkaAccessType = "Write"
+	KafkaAccessTypeWrite KafkaAccessType = "write"
 )
