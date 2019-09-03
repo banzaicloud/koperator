@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var userFinalizer = "finalizer.kafkausers.kafkautil.cbs-seattle.com"
+var userFinalizer = "finalizer.kafkausers.banzaicloud.banzaicloud.io"
 
 func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
 	// Create a new controller
