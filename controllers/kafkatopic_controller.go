@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var topicFinalizer = "finalizer.kafkatopics.kafka.cbs-seattle.com"
+var topicFinalizer = "finalizer.kafkatopics.banzaicloud.banzaicloud.io"
 var syncRoutines = make(map[string]struct{}, 0)
 
 func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
