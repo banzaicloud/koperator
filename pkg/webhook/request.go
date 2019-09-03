@@ -25,13 +25,9 @@ import (
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
 var (
-	codecs       = serializer.NewCodecFactory(runtimeScheme)
-	deserializer = codecs.UniversalDeserializer()
-
 	kafkaTopic = reflect.TypeOf(v1alpha1.KafkaTopic{}).Name()
 )
 
@@ -82,7 +78,7 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 
 	var admissionResponse *admissionv1beta1.AdmissionResponse
 	ar := admissionv1beta1.AdmissionReview{}
-	if _, _, err := deserializer.Decode(body, nil, &ar); err != nil {
+	if _, _, err := s.deserializer.Decode(body, nil, &ar); err != nil {
 		log.Error(err, "Can't decode body")
 		admissionResponse = notAllowed(err.Error())
 	} else {
