@@ -950,6 +950,8 @@ spec:
         status:
           description: KafkaClusterStatus defines the observed state of KafkaCluster
           properties:
+            alertCount:
+              type: integer
             brokersState:
               additionalProperties:
                 description: BrokerState holds information about broker state
@@ -980,6 +982,23 @@ spec:
               type: object
             cruiseControlTopicStatus:
               type: string
+            rollingUpgradeStatus:
+              properties:
+                errorCount:
+                  type: integer
+                lastSuccess:
+                  type: string
+                status:
+                  type: string
+              required:
+              - lastSuccess
+              type: object
+            state:
+              type: string
+          required:
+          - state
+          - rollingUpgradeStatus
+          - alertCount
           type: object
       type: object
   version: v1alpha1
