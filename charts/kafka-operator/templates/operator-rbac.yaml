@@ -24,6 +24,12 @@ metadata:
     app.kubernetes.io/component: operator
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+- apiGroups:
   - apps
   resources:
   - deployments
