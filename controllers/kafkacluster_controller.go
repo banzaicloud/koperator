@@ -33,6 +33,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -44,7 +45,8 @@ import (
 // KafkaClusterReconciler reconciles a KafkaCluster object
 type KafkaClusterReconciler struct {
 	client.Client
-	Log logr.Logger
+	Log    logr.Logger
+	Scheme *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a KafkaCluster object and makes changes based on the state read
@@ -79,7 +81,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	}
 
 	reconcilers := []resources.ComponentReconciler{
-		pki.New(r.Client, instance),
+		pki.New(r.Client, r.Scheme, instance),
 		envoy.New(r.Client, instance),
 		kafkamonitoring.New(r.Client, instance),
 		cruisecontrolmonitoring.New(r.Client, instance),

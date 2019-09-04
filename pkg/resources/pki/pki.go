@@ -43,11 +43,13 @@ func labelsForKafkaPKI(name string) map[string]string {
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
+	Scheme *runtime.Scheme
 }
 
 // New creates a new reconciler for a PKI
-func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
+func New(client client.Client, scheme *runtime.Scheme, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
 	return &Reconciler{
+		Scheme: scheme,
 		Reconciler: resources.Reconciler{
 			Client:       client,
 			KafkaCluster: cluster,

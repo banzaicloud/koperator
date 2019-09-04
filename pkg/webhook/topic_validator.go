@@ -40,11 +40,26 @@ func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admi
 	// Check if the cluster being referenced actually exists
 	if cluster, err = k8sutil.LookupKafkaCluster(s.client, topic.Spec.ClusterRef); err != nil {
 		if apierrors.IsNotFound(err) {
+			if k8sutil.IsMarkedForDeletion(topic.ObjectMeta) {
+				log.Info("Deleted as a result of a cluster deletion")
+				return &admissionv1beta1.AdmissionResponse{
+					Allowed: true,
+				}
+			}
 			log.Error(err, "Referenced kafka cluster does not exist")
 			return notAllowed(fmt.Sprintf("KafkaCluster '%s' in the namespace '%s' does not exist", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace))
 		}
 		log.Error(err, "API failure while running topic validation")
 		return notAllowed("API failure while validating topic, please try again")
+	}
+
+	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
+		// Let this through, it's a delete topic request from a parent cluster being
+		// deleted
+		log.Info("Cluster is going down for deletion, assuming a delete topic request")
+		return &admissionv1beta1.AdmissionResponse{
+			Allowed: true,
+		}
 	}
 
 	// retrieve an admin client for the cluster

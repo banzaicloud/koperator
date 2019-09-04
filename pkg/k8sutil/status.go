@@ -17,14 +17,25 @@ package k8sutil
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"emperror.dev/emperror"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
+
+func IsAlreadyOwnedError(err interface{}) bool {
+	return reflect.TypeOf(err).Kind() == reflect.TypeOf(controllerutil.AlreadyOwnedError{}).Kind()
+}
+
+func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
+	return m.GetDeletionTimestamp() != nil
+}
 
 func updateRackAwarenessStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1.KafkaCluster, rackstatus banzaicloudv1alpha1.RackAwarenessState, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta

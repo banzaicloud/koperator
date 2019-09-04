@@ -92,6 +92,7 @@ func main() {
 
 	kafkaClusterReconciler := &controllers.KafkaClusterReconciler{
 		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 		Log:    ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
 	}
 

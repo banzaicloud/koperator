@@ -266,6 +266,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			deploy.ResourceVersion = current.(*appsv1.StatefulSet).ResourceVersion
 			desired = deploy
 		}
+
 		if err := client.Update(context.TODO(), desired); err != nil {
 			return emperror.WrapWith(err, "updating resource failed", "kind", desiredType)
 		}
