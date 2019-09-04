@@ -3,7 +3,28 @@
 
 ## Create Topic
 
-Topic creation by default is enabled in Kafka, but if it is configured otherwise, please use the following command to create a sample topic.
+Topic creation by default is enabled in Kafka, but if it is configured otherwise, you'll need to first create a topic.
+
+You can use the `KafkaTopic` CRD to make a topic like this:
+
+```bash
+cat << EOF | kubectl apply -n kafka -f -
+apiVersion: banzaicloud.banzaicloud.io/v1alpha1
+kind: KafkaTopic
+metadata:
+  name: my-topic
+spec:
+  clusterRef:
+    name: kafka
+  name: my-topic
+  partitions: 1
+  replicationFactor: 1
+EOF
+```
+
+*Note: The above will fail if the cluster has not finished provisioning*
+
+To create a sample topic from the CLI you can run the following:
 
 ```bash
 kubectl -n kafka run kafka-topics -it --image=wurstmeister/kafka:2.12-2.1.0 --rm=true --restart=Never -- /opt/kafka/bin/kafka-topics.sh --zookeeper example-zookeepercluster-client.zookeeper:2181 --topic my-topic --create --partitions 1 --replication-factor 1
@@ -70,22 +91,25 @@ kubectl exec -it -n kafka kafka-test bash
 
 ```bash
 kafkacat -P -b kafka-headless:29092 -t my-topic \
--X security.protocol=SSL \ 
--X ssl.key.location=/ssl/certs/clientKey \ 
--X ssl.certificate.location=/ssl/certs/clientCert \ 
+-X security.protocol=SSL \
+-X ssl.key.location=/ssl/certs/clientKey \
+-X ssl.certificate.location=/ssl/certs/clientCert \
 -X ssl.ca.location=/ssl/certs/caCert
 ```
 
 ##### Consume Messages
 
 ```bash
-kafkacat -C -b kafka-headless:29092 -t my-topic \ 
+kafkacat -C -b kafka-headless:29092 -t my-topic \
 -X security.protocol=SSL \
--X ssl.key.location=/ssl/certs/clientKey \ 
--X ssl.certificate.location=/ssl/certs/clientCert \ 
+-X ssl.key.location=/ssl/certs/clientKey \
+-X ssl.certificate.location=/ssl/certs/clientCert \
 -X ssl.ca.location=/ssl/certs/caCert
 
 ```
+
+The above will use the client certificate provisioned with the cluster for connecting to kafka.
+If you'd like to create and use a different user, create a `KafkaUser` CR. An example can be found on the [SSL doc](docs/ssl.md).
 
 ### Outside Kubernetes Cluster
 
