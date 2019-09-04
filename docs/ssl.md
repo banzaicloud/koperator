@@ -70,7 +70,7 @@ spec:
 EOF
 ```
 
-This will create a user and store its credentials in the secret `example-producer-secret`. The secret contains the following fields:
+This will create a user and store its credentials in the secret `example-producer-secret`. The secret contains these fields:
 
 | Key          | Value                |
 |:------------:|:---------------------|
@@ -86,7 +86,7 @@ kubectl get secret example-producer-secret -o jsonpath="{['data']['tls\.crt']}" 
 kubectl get secret example-producer-secret -o jsonpath="{['data']['tls\.key']}" | base64 -d > tls.key
 ```
 
-If you wanted to create a consumer for the topic you could then apply the following:
+If you wanted to create a consumer for the topic you could then run this command:
 
 ```bash
 cat << EOF | kubectl apply -n kafka -f -
