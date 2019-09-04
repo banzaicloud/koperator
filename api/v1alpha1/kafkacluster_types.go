@@ -45,6 +45,16 @@ type KafkaClusterSpec struct {
 type KafkaClusterStatus struct {
 	BrokersState             map[string]BrokerState   `json:"brokersState,omitempty"`
 	CruiseControlTopicStatus CruiseControlTopicStatus `json:"cruiseControlTopicStatus,omitempty"`
+	State                    string                   `json:"state"`
+	RollingUpgrade           RollingUpgradeStatus     `json:"rollingUpgradeStatus"`
+	AlertCount               int                      `json:"alertCount"`
+}
+
+// RollingUpgradeStatus defines status of rolling upgrade
+type RollingUpgradeStatus struct {
+	Status      string `json:"status,omitempty"`
+	LastSuccess string `json:"lastSuccess"`
+	ErrorCount  int    `json:"errorCount,omitempty"`
 }
 
 // RollingUpgradeConfig defines the desired config of the RollingUpgrade
