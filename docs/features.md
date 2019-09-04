@@ -43,7 +43,9 @@ The Banzai Cloud Kafka operator externalizes access to Kafka using a dynamically
 
 #### Communication via SSL
 
-The operator fully automates Kafka's SSL support. Users must provide and install the right certificate as a Kubernetes Secret, however, the Pipeline platform is capable of automating this process, as well.
+The operator fully automates Kafka's SSL support.
+The operator can provision the required secrets and certificates for you, or you can provide your own.
+The Pipeline platform is capable of automating this process, as well.
 
 ![](img/kafka-ssl.png)
 

@@ -10,14 +10,14 @@ Released:
 Under development (next release)
 
 - [ ] - Multi Datacenter Support
+- [ ] - User management via CRD
+- [ ] - Topic management via CRD
 
 Short term roadmap
 
 - [ ] - Rolling Upgrade Kafka Cluster
-- [ ] - User management via CRD
 
 Long term roadmap
 
 - [ ] - Dynamically configure Brokers via CRD
-- [ ] - Topic management via CRD
 - [ ] - Recovery Policy

@@ -62,8 +62,8 @@ Join us as we take a deep dive into some of the details of the most popular pre-
 | Encryption using SSL  | Yes | Yes|Yes|Yes|
 | Rolling Update  | Work in progress | No |No|Yes|
 | Cluster external accesses  | Envoy (single LB) | Nodeport |Nodeport or LB/broker|Yes (N/A)|
-| User Management via CRD  | Work in progress | No |Yes|No|
-| Topic management via CRD  | Work in progress | No |Yes|No|
+| User Management via CRD  | Yes | No |Yes|No|
+| Topic management via CRD  | Yes | No |Yes|No|
 | Reacting to Alerts| Yes (Prometheus + Cruise Control | No |No|No|
 | Graceful Cluster Scaling (up and down)| Yes (using Cruise Control) | No |No|Yes|
 
@@ -124,7 +124,7 @@ volumeBindingMode: WaitForFirstConsumer
 ```
 > Remember to set your Kafka CR properly to use the newly created StorageClass.
 
-1. Set `KUBECONFIG` pointing towards your cluster 
+1. Set `KUBECONFIG` pointing towards your cluster
 2. Run `make deploy` (deploys the operator in the `kafka` namespace into the cluster)
 3. Set your Kafka configurations in a Kubernetes custom resource (sample: `config/samples/banzaicloud_v1alpha1_kafkacluster.yaml`) and run this command to deploy the Kafka components:
 
@@ -151,9 +151,13 @@ kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
 
 > In this case Prometheus will be installed and configured properly for the Kafka-Operator.
 
-## Test Deployment
+## Test Your Deployment
 
 For simple test code please check out the [test docs](docs/test.md)
+
+For a more in-depth view at using SSL and the `KafkaUser` CRD see the [SSL docs](docs/ssl.md)
+
+For information on creating topics via with `KafkaTopic` CRD [topics docs](docs/topics.md)
 
 ## Development
 
