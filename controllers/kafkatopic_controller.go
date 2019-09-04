@@ -26,10 +26,12 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	logr "github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -42,6 +44,7 @@ func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
 	// Create a new controller
 	r := &KafkaTopicReconciler{
 		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 		Log:    ctrl.Log.WithName("controllers").WithName("KafkaTopic"),
 	}
 
@@ -67,6 +70,7 @@ type KafkaTopicReconciler struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	Client client.Client
+	Scheme *runtime.Scheme
 	Log    logr.Logger
 }
 
@@ -77,7 +81,7 @@ type KafkaTopicReconciler struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := r.Log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := r.Log.WithValues("kafkatopic", request.NamespacedName, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KafkaTopic")
 	var err error
 
@@ -100,8 +104,26 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 	var cluster *v1alpha1.KafkaCluster
 	if cluster, err = k8sutil.LookupKafkaCluster(r.Client, instance.Spec.ClusterRef); err != nil {
+		// I think a finalizer on the cluster will keep this check from being necessary
+		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
+			reqLogger.Info("Cluster is going down for deletion, removing finalizers")
+			if err = r.removeFinalizer(instance); err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, nil
+		}
 		reqLogger.Error(err, "Failed to lookup referenced cluster")
 		return reconcile.Result{}, err
+	}
+
+	// If cluster is going down lets just remove finalizers and be on with our lives
+	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
+		reqLogger.Info("Cluster is going down for deletion, removing finalizers")
+		if err = r.removeFinalizer(instance); err != nil {
+			reqLogger.Error(err, "Failed to remove finalizer from kafka topic")
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
 	}
 
 	// Get a kafka connection
@@ -114,8 +136,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	defer broker.Close()
 
 	// Check if marked for deletion and run finalizers
-	isMarkedForDeletion := instance.GetDeletionTimestamp() != nil
-	if isMarkedForDeletion {
+	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
 		return r.checkFinalizers(reqLogger, broker, instance)
 	}
 
@@ -155,13 +176,25 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 			return reconcile.Result{}, err
 		}
 
+		if err = controllerutil.SetControllerReference(cluster, instance, r.Scheme); err != nil {
+			if !k8sutil.IsAlreadyOwnedError(err) {
+				reqLogger.Error(err, "failed to set cluster controller reference on new KafkaTopic")
+				return reconcile.Result{}, err
+			}
+		}
+
 	}
 
 	// ensure a finalizer for cleanup on deletion
 	if !contains(instance.GetFinalizers(), topicFinalizer) {
-		if err = r.addFinalizer(reqLogger, instance); err != nil {
-			return reconcile.Result{}, err
-		}
+		reqLogger.Info("Adding Finalizer for the KafkaTopic")
+		r.addFinalizer(instance)
+	}
+
+	// push any changes
+	if err = r.Client.Update(context.TODO(), instance); err != nil {
+		reqLogger.Error(err, "failed to update KafkaTopic with controller reference")
+		return reconcile.Result{}, err
 	}
 
 	// Do an initial topic status sync
@@ -197,22 +230,27 @@ func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1alpha1.KafkaCluster, i
 }
 
 func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster *v1alpha1.KafkaCluster, instance *v1alpha1.KafkaTopic) (bool, error) {
-	// grab a connection to kafka
-	k, err := kafkautil.NewFromCluster(r.Client, cluster)
-	if err != nil {
-		syncLogger.Error(err, "Failed to get a broker connection to update topic status")
-		// let's still try again later, in case it was just a blip in availability
-		return true, err
-	}
-	defer k.Close()
 
 	// check if the topic still exists
 	topic := &v1alpha1.KafkaTopic{}
 	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, topic); err != nil {
-		syncLogger.Info("Topic has been deleted, stopping sync routine")
-		// return false to stop calling goroutine
-		return false, nil
+		if apierrors.IsNotFound(err) {
+			syncLogger.Info("Topic has been deleted, stopping sync routine")
+			// return false to stop calling goroutine
+			return false, nil
+		}
+		// continue in case blip in api availability.
+		return true, err
 	}
+
+	// grab a connection to kafka
+	k, err := kafkautil.NewFromCluster(r.Client, cluster)
+	if err != nil {
+		syncLogger.Error(err, "Failed to get a broker connection to update topic status")
+		// let's still try again later, in case it was just a blip in cluster availability
+		return true, err
+	}
+	defer k.Close()
 
 	// get topic metadata
 	meta, err := k.DescribeTopic(topic.Spec.Name)
@@ -261,18 +299,23 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster
 
 func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkautil.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {
 	reqLogger.Info("Kafka topic is marked for deletion")
+	var err error
 	if contains(topic.GetFinalizers(), topicFinalizer) {
-		if err := r.finalizeKafkaTopic(reqLogger, broker, topic); err != nil {
+		if err = r.finalizeKafkaTopic(reqLogger, broker, topic); err != nil {
 			reqLogger.Error(err, "Failed to finalize kafka topic")
 			return reconcile.Result{}, err
 		}
-		topic.SetFinalizers(remove(topic.GetFinalizers(), topicFinalizer))
-		if err := r.Client.Update(context.TODO(), topic); err != nil {
+		if err = r.removeFinalizer(topic); err != nil {
 			reqLogger.Error(err, "Failed to update finalizers for kafka topic")
 			return reconcile.Result{}, err
 		}
 	}
 	return reconcile.Result{}, nil
+}
+
+func (r *KafkaTopicReconciler) removeFinalizer(topic *v1alpha1.KafkaTopic) error {
+	topic.SetFinalizers(remove(topic.GetFinalizers(), topicFinalizer))
+	return r.Client.Update(context.TODO(), topic)
 }
 
 func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker kafkautil.KafkaClient, topic *v1alpha1.KafkaTopic) error {
@@ -289,17 +332,9 @@ func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker 
 	return nil
 }
 
-func (r *KafkaTopicReconciler) addFinalizer(reqLogger logr.Logger, topic *v1alpha1.KafkaTopic) error {
-	reqLogger.Info("Adding Finalizer for the KafkaTopic")
+func (r *KafkaTopicReconciler) addFinalizer(topic *v1alpha1.KafkaTopic) {
 	topic.SetFinalizers(append(topic.GetFinalizers(), topicFinalizer))
-
-	// Update CR
-	err := r.Client.Update(context.TODO(), topic)
-	if err != nil {
-		reqLogger.Error(err, "Failed to update KafkaTopic with finalizer")
-		return err
-	}
-	return nil
+	return
 }
 
 func contains(list []string, s string) bool {

@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // A full PKI for Kafka
@@ -33,19 +34,21 @@ import (
 func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 	rootCertMeta := templates.ObjectMeta(fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster)
 	rootCertMeta.Namespace = "cert-manager"
-	var objs []runtime.Object
+
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.Create {
 		// A self-signer for the CA Certificate
-		objs = append(objs, &certv1.ClusterIssuer{
+		selfsigner := &certv1.ClusterIssuer{
 			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerSelfSignerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
 			Spec: certv1.IssuerSpec{
 				IssuerConfig: certv1.IssuerConfig{
 					SelfSigned: &certv1.SelfSignedIssuer{},
 				},
 			},
-		})
+		}
+		controllerutil.SetControllerReference(r.KafkaCluster, selfsigner, r.Scheme)
+
 		// The CA Certificate
-		objs = append(objs, &certv1.Certificate{
+		ca := &certv1.Certificate{
 			ObjectMeta: rootCertMeta,
 			Spec: certv1.CertificateSpec{
 				SecretName: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name),
@@ -56,23 +59,24 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 					Kind: "ClusterIssuer",
 				},
 			},
-		})
+		}
+		controllerutil.SetControllerReference(r.KafkaCluster, ca, r.Scheme)
 		// A cluster issuer backed by the CA certificate - so it can provision secrets
 		// for producers/consumers in other namespaces
-		objs = append(objs,
-			&certv1.ClusterIssuer{
-				ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
-				Spec: certv1.IssuerSpec{
-					IssuerConfig: certv1.IssuerConfig{
-						CA: &certv1.CAIssuer{
-							SecretName: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name),
-						},
+		clusterissuer := &certv1.ClusterIssuer{
+			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+			Spec: certv1.IssuerSpec{
+				IssuerConfig: certv1.IssuerConfig{
+					CA: &certv1.CAIssuer{
+						SecretName: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name),
 					},
 				},
-			})
+			},
+		}
+		controllerutil.SetControllerReference(r.KafkaCluster, clusterissuer, r.Scheme)
 
 		// The broker certificates
-		objs = append(objs, &certv1.Certificate{
+		brokerCert := &certv1.Certificate{
 			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
 			Spec: certv1.CertificateSpec{
 				SecretName:  fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name),
@@ -84,42 +88,47 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 					Kind: "ClusterIssuer",
 				},
 			},
-		})
+		}
+		controllerutil.SetControllerReference(r.KafkaCluster, brokerCert, r.Scheme)
+
 		// And finally one for us so we can manage topics/users
-		objs = append(objs,
-			&certv1.Certificate{
-				ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
-				Spec: certv1.CertificateSpec{
-					SecretName:  fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name),
-					KeyEncoding: certv1.PKCS8,
-					CommonName:  fmt.Sprintf("%s-controller", r.KafkaCluster.Name),
-					IssuerRef: certv1.ObjectReference{
-						Name: fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name),
-						Kind: "ClusterIssuer",
-					},
+		controllerCert := &certv1.Certificate{
+			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+			Spec: certv1.CertificateSpec{
+				SecretName:  fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name),
+				KeyEncoding: certv1.PKCS8,
+				CommonName:  fmt.Sprintf("%s-controller", r.KafkaCluster.Name),
+				IssuerRef: certv1.ObjectReference{
+					Name: fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name),
+					Kind: "ClusterIssuer",
 				},
-			})
+			},
+		}
+		controllerutil.SetControllerReference(r.KafkaCluster, controllerCert, r.Scheme)
+
+		return []runtime.Object{selfsigner, ca, clusterissuer, brokerCert, controllerCert}, nil
 
 	} else if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		// We need a cluster issuer made from the provided secret
 		secret := &corev1.Secret{}
 		err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.KafkaCluster.Namespace, Name: r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
 		if err != nil {
-			return objs, err
+			return []runtime.Object{}, err
 		}
 		caKey := secret.Data["caKey"]
 		caCert := secret.Data["caCert"]
 
-		objs = append(objs, &corev1.Secret{
+		caSecret := &corev1.Secret{
 			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
 			Data: map[string][]byte{
 				"ca.crt":                caCert,
 				corev1.TLSCertKey:       caCert,
 				corev1.TLSPrivateKeyKey: caKey,
 			},
-		})
+		}
+		controllerutil.SetControllerReference(r.KafkaCluster, caSecret, r.Scheme)
 
-		objs = append(objs, &certv1.ClusterIssuer{
+		clusterissuer := &certv1.ClusterIssuer{
 			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
 			Spec: certv1.IssuerSpec{
 				IssuerConfig: certv1.IssuerConfig{
@@ -128,10 +137,14 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 					},
 				},
 			},
-		})
+		}
+		controllerutil.SetControllerReference(r.KafkaCluster, clusterissuer, r.Scheme)
+
+		return []runtime.Object{caSecret, clusterissuer}, nil
+
 	}
 
-	return objs, nil
+	return []runtime.Object{}, nil
 }
 
 func (r *Reconciler) getBootstrapSSLSecret() (certs, passw *corev1.Secret, err error) {
