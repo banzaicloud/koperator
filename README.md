@@ -157,7 +157,7 @@ For simple test code please check out the [test docs](docs/test.md)
 
 For a more in-depth view at using SSL and the `KafkaUser` CRD see the [SSL docs](docs/ssl.md)
 
-For information on creating topics via with `KafkaTopic` CRD [topics docs](docs/topics.md)
+For creating topics via with `KafkaTopic` CRD there is an example and more information in the [topics docs](docs/topics.md)
 
 ## Development
 
