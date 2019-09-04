@@ -107,12 +107,19 @@ func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Cli
 		return &currentAlertStruct{}, errors.New("alert doesn't exist")
 	}
 	if a.alerts[alertFp].Processed != true {
+		// TODO check status of kafka cluster
+		// checking rollingupgrade label on alert
+
+		// if status is rollingupgrade and alert rollingupgrade label is set process alert
+		// if status is rollingupgrade and alert rollingupgrade label is not set skip alert processing
+		// if status is not rollingupgrade and alert rollingupgrade label is set skip alert processing
+		// if status is not rollingupgrade and alert rollingupgrade label is not set process alert
+
 		err := processAlert(a.alerts[alertFp], client)
 		if err != nil {
 			return nil, err
 		}
 		a.alerts[alertFp].Processed = true
 	}
-
 	return a.alerts[alertFp], nil
 }
