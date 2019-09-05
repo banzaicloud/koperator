@@ -79,7 +79,6 @@ spec:
           required:
           - clusterRef
           - secretName
-          - topicGrants
           type: object
         status:
           description: KafkaUserStatus defines the observed state of KafkaUser
