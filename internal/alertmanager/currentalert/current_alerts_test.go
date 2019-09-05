@@ -111,7 +111,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 		t.Error("Listing alerts failed a1")
 	}
 
-	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c)
+	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c, 0)
 	if err != nil {
 		t.Error("Hanlde alert failed a1 with error")
 	}
@@ -146,7 +146,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 		t.Error("1111 alert wasn't deleted")
 	}
 
-	_, err = alerts3.HandleAlert(model.Fingerprint(1111), c)
+	_, err = alerts3.HandleAlert(model.Fingerprint(1111), c, 0)
 	expected := "alert doesn't exist"
 	if err == nil || err.Error() != expected {
 		t.Errorf("alert with 2222 should be %s", err)

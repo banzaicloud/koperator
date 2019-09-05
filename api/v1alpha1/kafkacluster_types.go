@@ -54,7 +54,7 @@ type KafkaClusterStatus struct {
 type RollingUpgradeStatus struct {
 	Status      string `json:"status,omitempty"`
 	LastSuccess string `json:"lastSuccess"`
-	ErrorCount  int    `json:"errorCount,omitempty"`
+	ErrorCount  int    `json:"errorCount"`
 }
 
 // RollingUpgradeConfig defines the desired config of the RollingUpgrade

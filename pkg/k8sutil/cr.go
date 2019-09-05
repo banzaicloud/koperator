@@ -153,3 +153,10 @@ func updateCr(cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client)
 	cr.TypeMeta = typeMeta
 	return nil
 }
+
+// UpdateCrWithRollingUpgrade modifies CR status
+func UpdateCrWithRollingUpgrade(errorCount int, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
+
+	cr.Status.RollingUpgrade.ErrorCount = errorCount
+	return updateCr(cr, client)
+}
