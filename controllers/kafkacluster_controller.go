@@ -16,11 +16,13 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"emperror.dev/errors"
 	"github.com/Shopify/sarama"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrolmonitoring"
@@ -28,6 +30,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/pki"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +43,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 )
+
+var clusterFinalizer = "finalizer.kafkaclusters.banzaicloud.banzaicloud.io"
 
 // KafkaClusterReconciler reconciles a KafkaCluster object
 type KafkaClusterReconciler struct {
@@ -80,6 +86,11 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		return ctrl.Result{}, err
 	}
 
+	// Check if marked for deletion and run finalizers
+	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
+		return r.checkFinalizers(log, instance)
+	}
+
 	reconcilers := []resources.ComponentReconciler{
 		pki.New(r.Client, r.Scheme, instance),
 		envoy.New(r.Client, instance),
@@ -103,7 +114,83 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		}
 	}
 
+	log.Info("ensuring finalizer on kafkacluster")
+	if err = r.ensureFinalizer(instance); err != nil {
+		log.Error(err, "failed to ensure finalizers on kafkacluster instance")
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *v1alpha1.KafkaCluster) (ctrl.Result, error) {
+	log.Info("KafkaCluster is marked for deletion, checking for children")
+	if !util.StringSliceContains(cluster.GetFinalizers(), clusterFinalizer) {
+		return ctrl.Result{}, nil
+	}
+
+	var err error
+
+	// Delete all kafkatopics associated with us
+	var childTopics v1alpha1.KafkaTopicList
+	if err = r.Client.List(context.TODO(), &childTopics); err != nil {
+		log.Error(err, "Failed to list child kafkatopics")
+		return ctrl.Result{}, err
+	}
+	for _, topic := range childTopics.Items {
+		if belongsToCluster(topic.Spec.ClusterRef, cluster) {
+			log.Info(fmt.Sprintf("Deleting associated topic %s", topic.Name))
+			if err = r.Client.Delete(context.TODO(), &topic); err != nil {
+				log.Error(err, "Failed to delete kafkatopic")
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
+	// Delete all kafkausers associated with us
+	var childUsers v1alpha1.KafkaUserList
+	if err = r.Client.List(context.TODO(), &childUsers); err != nil {
+		log.Error(err, "Failed to list child kafkausers")
+		return ctrl.Result{}, err
+	}
+	for _, user := range childUsers.Items {
+		if belongsToCluster(user.Spec.ClusterRef, cluster) {
+			log.Info(fmt.Sprintf("Deleting associated user %s", user.Name))
+			if err = r.Client.Delete(context.TODO(), &user); err != nil {
+				log.Error(err, "Failed to delete kafkauser")
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
+	log.Info("Removing finalizers from kafkacluster instance")
+	if err := r.removeFinalizer(cluster); err != nil {
+		log.Error(err, "failed to remove finalizer from kafkacluster instance")
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *KafkaClusterReconciler) ensureFinalizer(cluster *v1alpha1.KafkaCluster) (err error) {
+	if util.StringSliceContains(cluster.GetFinalizers(), clusterFinalizer) {
+		return
+	}
+	cluster.SetFinalizers(append(cluster.GetFinalizers(), clusterFinalizer))
+	err = r.Client.Update(context.TODO(), cluster)
+	return
+}
+
+func (r *KafkaClusterReconciler) removeFinalizer(cluster *v1alpha1.KafkaCluster) error {
+	cluster.SetFinalizers(util.StringSliceRemove(cluster.GetFinalizers(), clusterFinalizer))
+	return r.Client.Update(context.TODO(), cluster)
+}
+
+func belongsToCluster(ref v1alpha1.ClusterReference, cluster *v1alpha1.KafkaCluster) bool {
+	if ref.Name == cluster.Name && ref.Namespace == cluster.Namespace {
+		return true
+	}
+	return false
 }
 
 func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Builder {

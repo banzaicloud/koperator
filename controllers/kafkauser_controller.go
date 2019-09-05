@@ -22,6 +22,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkautil"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	logr "github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -120,9 +121,9 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	}
 	var cluster *v1alpha1.KafkaCluster
 	if cluster, err = k8sutil.LookupKafkaCluster(r.Client, instance.Spec.ClusterRef); err != nil {
-		// I think a finalizer on the cluster will keep this check from being necessary
+		// This shouldn't trigger anymore, but leaving it here as a safetybelt
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
-			reqLogger.Info("Cluster is going down for deletion, removing finalizers")
+			reqLogger.Info("Cluster is gone already, there is nothing we can do")
 			if err = r.removeFinalizer(instance); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -130,15 +131,6 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		}
 		reqLogger.Error(err, "Failed to lookup referenced cluster")
 		return reconcile.Result{}, err
-	}
-
-	// An extra check to make sure the cluster is not going down
-	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
-		reqLogger.Info("Cluster is going down for deletion, removing finalizers")
-		if err = r.removeFinalizer(instance); err != nil {
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{}, nil
 	}
 
 	// Get a kafka connection
@@ -204,7 +196,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	}
 
 	// ensure a finalizer for cleanup on deletion
-	if !contains(instance.GetFinalizers(), userFinalizer) {
+	if !util.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
 		r.addFinalizer(reqLogger, instance)
 	}
 
@@ -280,7 +272,7 @@ func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, broker kafk
 	// run finalizers
 	reqLogger.Info("Kafka user is marked for deletion")
 	var err error
-	if contains(user.GetFinalizers(), userFinalizer) {
+	if util.StringSliceContains(user.GetFinalizers(), userFinalizer) {
 		if err = r.finalizeKafkaUser(reqLogger, broker, user); err != nil {
 			reqLogger.Error(err, "Failed to finalize kafka user")
 			return reconcile.Result{}, err
@@ -295,7 +287,7 @@ func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, broker kafk
 }
 
 func (r *KafkaUserReconciler) removeFinalizer(user *v1alpha1.KafkaUser) error {
-	user.SetFinalizers(remove(user.GetFinalizers(), userFinalizer))
+	user.SetFinalizers(util.StringSliceRemove(user.GetFinalizers(), userFinalizer))
 	return r.Client.Update(context.TODO(), user)
 }
 
