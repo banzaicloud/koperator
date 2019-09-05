@@ -104,9 +104,9 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 	var cluster *v1alpha1.KafkaCluster
 	if cluster, err = k8sutil.LookupKafkaCluster(r.Client, instance.Spec.ClusterRef); err != nil {
-		// I think a finalizer on the cluster will keep this check from being necessary
+		// This shouldn't trigger anymore, but leaving it here as a safetybelt
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
-			reqLogger.Info("Cluster is going down for deletion, removing finalizers")
+			reqLogger.Info("Cluster is already gone, there is nothing we can do")
 			if err = r.removeFinalizer(instance); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -114,16 +114,6 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		}
 		reqLogger.Error(err, "Failed to lookup referenced cluster")
 		return reconcile.Result{}, err
-	}
-
-	// If cluster is going down lets just remove finalizers and be on with our lives
-	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
-		reqLogger.Info("Cluster is going down for deletion, removing finalizers")
-		if err = r.removeFinalizer(instance); err != nil {
-			reqLogger.Error(err, "Failed to remove finalizer from kafka topic")
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{}, nil
 	}
 
 	// Get a kafka connection
@@ -186,7 +176,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	// ensure a finalizer for cleanup on deletion
-	if !contains(instance.GetFinalizers(), topicFinalizer) {
+	if !util.StringSliceContains(instance.GetFinalizers(), topicFinalizer) {
 		reqLogger.Info("Adding Finalizer for the KafkaTopic")
 		r.addFinalizer(instance)
 	}
@@ -300,7 +290,7 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster
 func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkautil.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {
 	reqLogger.Info("Kafka topic is marked for deletion")
 	var err error
-	if contains(topic.GetFinalizers(), topicFinalizer) {
+	if util.StringSliceContains(topic.GetFinalizers(), topicFinalizer) {
 		if err = r.finalizeKafkaTopic(reqLogger, broker, topic); err != nil {
 			reqLogger.Error(err, "Failed to finalize kafka topic")
 			return reconcile.Result{}, err
@@ -314,7 +304,7 @@ func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kaf
 }
 
 func (r *KafkaTopicReconciler) removeFinalizer(topic *v1alpha1.KafkaTopic) error {
-	topic.SetFinalizers(remove(topic.GetFinalizers(), topicFinalizer))
+	topic.SetFinalizers(util.StringSliceRemove(topic.GetFinalizers(), topicFinalizer))
 	return r.Client.Update(context.TODO(), topic)
 }
 
@@ -335,22 +325,4 @@ func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker 
 func (r *KafkaTopicReconciler) addFinalizer(topic *v1alpha1.KafkaTopic) {
 	topic.SetFinalizers(append(topic.GetFinalizers(), topicFinalizer))
 	return
-}
-
-func contains(list []string, s string) bool {
-	for _, v := range list {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
-func remove(list []string, s string) []string {
-	for i, v := range list {
-		if v == s {
-			list = append(list[:i], list[i+1:]...)
-		}
-	}
-	return list
 }
