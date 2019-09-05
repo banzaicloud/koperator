@@ -15,10 +15,6 @@
 package kafkautil
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"errors"
-	"io/ioutil"
 	"strconv"
 	"time"
 
@@ -112,48 +108,9 @@ func (k *kafkaClient) DescribeCluster() (brokers []*sarama.Broker, err error) {
 func (k *kafkaClient) getSaramaConfig() (config *sarama.Config, err error) {
 	config = sarama.NewConfig()
 	if k.opts.UseSSL {
-		var tlsConfig *tls.Config
 		config.Net.TLS.Enable = true
-		if k.opts.TLSConfig != nil {
-			tlsConfig = k.opts.TLSConfig
-		} else {
-			tlsConfig, err = getTLSConfig(k.opts.SSLKeyFile, k.opts.SSLCertFile, k.opts.SSLCAFile)
-			if err != nil {
-				return config, err
-			}
-		}
-		if k.opts.SSLInsecureSkipVerify {
-			tlsConfig.InsecureSkipVerify = true
-		}
-		config.Net.TLS.Config = tlsConfig
+		config.Net.TLS.Config = k.opts.TLSConfig
 	}
 	config.Version = apiVersion
-	return
-}
-
-func getTLSConfig(keypath, crtpath, capath string) (conf *tls.Config, err error) {
-	conf = &tls.Config{}
-
-	cert, err := tls.LoadX509KeyPair(crtpath, keypath)
-	if err != nil {
-		return
-	}
-	conf.Certificates = []tls.Certificate{cert}
-
-	certPool := x509.NewCertPool()
-
-	cabytes, err := ioutil.ReadFile(capath)
-	if err != nil {
-		return
-	}
-
-	if ok := certPool.AppendCertsFromPEM(cabytes); !ok {
-		err = errors.New("Failed to load CA")
-		return
-	}
-
-	conf.ClientCAs = certPool
-	conf.RootCAs = certPool
-
 	return
 }
