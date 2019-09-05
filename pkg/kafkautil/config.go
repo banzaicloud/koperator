@@ -60,9 +60,9 @@ func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (*Kafka
 		if err != nil {
 			return conf, err
 		}
-		clientCert := tlsKeys.Data["clientCert"]
-		clientKey := tlsKeys.Data["clientKey"]
-		caCert := tlsKeys.Data["caCert"]
+		clientCert := tlsKeys.Data[v1alpha1.ClientCertKey]
+		clientKey := tlsKeys.Data[v1alpha1.ClientPrivateKeyKey]
+		caCert := tlsKeys.Data[v1alpha1.CACertKey]
 		x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
 		if err != nil {
 			return conf, err
