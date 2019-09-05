@@ -115,15 +115,15 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 		if err != nil {
 			return []runtime.Object{}, err
 		}
-		caKey := secret.Data["caKey"]
-		caCert := secret.Data["caCert"]
+		caKey := secret.Data[banzaicloudv1alpha1.CAPrivateKeyKey]
+		caCert := secret.Data[banzaicloudv1alpha1.CACertKey]
 
 		caSecret := &corev1.Secret{
 			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
 			Data: map[string][]byte{
-				"ca.crt":                caCert,
-				corev1.TLSCertKey:       caCert,
-				corev1.TLSPrivateKeyKey: caKey,
+				banzaicloudv1alpha1.CoreCACertKey: caCert,
+				corev1.TLSCertKey:                 caCert,
+				corev1.TLSPrivateKeyKey:           caKey,
 			},
 		}
 		controllerutil.SetControllerReference(r.KafkaCluster, caSecret, r.Scheme)
@@ -168,19 +168,18 @@ func (r *Reconciler) getBootstrapSSLSecret() (certs, passw *corev1.Secret, err e
 	certs = &corev1.Secret{
 		ObjectMeta: templates.ObjectMeta(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName, labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
 		Data: map[string][]byte{
-			// this one doesn't appear to have a constant
-			"caCert":     serverSecret.Data["ca.crt"],
-			"peerCert":   serverSecret.Data[corev1.TLSCertKey],
-			"peerKey":    serverSecret.Data[corev1.TLSPrivateKeyKey],
-			"clientCert": clientSecret.Data[corev1.TLSCertKey],
-			"clientKey":  clientSecret.Data[corev1.TLSPrivateKeyKey],
+			banzaicloudv1alpha1.CACertKey:           serverSecret.Data[banzaicloudv1alpha1.CoreCACertKey],
+			banzaicloudv1alpha1.PeerCertKey:         serverSecret.Data[corev1.TLSCertKey],
+			banzaicloudv1alpha1.PeerPrivateKeyKey:   serverSecret.Data[corev1.TLSPrivateKeyKey],
+			banzaicloudv1alpha1.ClientCertKey:       clientSecret.Data[corev1.TLSCertKey],
+			banzaicloudv1alpha1.ClientPrivateKeyKey: clientSecret.Data[corev1.TLSPrivateKeyKey],
 		},
 	}
 
 	passw = &corev1.Secret{
 		ObjectMeta: templates.ObjectMeta(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
 		Data: map[string][]byte{
-			"password": certutil.GeneratePass(16),
+			banzaicloudv1alpha1.PasswordKey: certutil.GeneratePass(16),
 		},
 	}
 

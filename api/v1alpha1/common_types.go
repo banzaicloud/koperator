@@ -64,4 +64,21 @@ const (
 	KafkaAccessTypeRead KafkaAccessType = "read"
 	// KafkaAccessTypeWrite states that a user wants produce access to a topic
 	KafkaAccessTypeWrite KafkaAccessType = "write"
+
+	// CoreCACertKey is where ca ceritificates are stored in user certificates
+	CoreCACertKey string = "ca.crt"
+	// CACertKey is the key where the CA certificate is stored in the operator secrets
+	CACertKey string = "caCert"
+	// CAPrivateKeyKey stores the private key for the CA
+	CAPrivateKeyKey string = "caKey"
+	// ClientCertKey stores the client certificate (cruisecontrol/operator usage)
+	ClientCertKey string = "clientCert"
+	// ClientPrivateKeyKey stores the client private key
+	ClientPrivateKeyKey string = "clientKey"
+	// PeerCertKey stores the peer certificate (broker certificates)
+	PeerCertKey string = "peerCert"
+	// PeerPrivateKeyKey stores the peer private key
+	PeerPrivateKeyKey string = "caKey"
+	// PasswordKey stores the JKS password
+	PasswordKey string = "password"
 )
