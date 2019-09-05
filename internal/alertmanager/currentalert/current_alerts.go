@@ -28,7 +28,8 @@ type CurrentAlerts interface {
 	AlertGC(AlertState) error
 	DeleteAlert(model.Fingerprint) error
 	ListAlerts() map[model.Fingerprint]*currentAlertStruct
-	HandleAlert(model.Fingerprint, client.Client) (*currentAlertStruct, error)
+	HandleAlert(model.Fingerprint, client.Client, int) (*currentAlertStruct, error)
+	GetRollingUpgradeAlertCount() int
 }
 
 // AlertState current alert state
@@ -100,26 +101,30 @@ func (a *currentAlerts) AlertGC(alert AlertState) error {
 	return nil
 }
 
-func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Client) (*currentAlertStruct, error) {
+func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Client, rollingUpgradeAlertCount int) (*currentAlertStruct, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	if _, ok := a.alerts[alertFp]; !ok {
 		return &currentAlertStruct{}, errors.New("alert doesn't exist")
 	}
 	if a.alerts[alertFp].Processed != true {
-		// TODO check status of kafka cluster
-		// checking rollingupgrade label on alert
-
-		// if status is rollingupgrade and alert rollingupgrade label is set process alert
-		// if status is rollingupgrade and alert rollingupgrade label is not set skip alert processing
-		// if status is not rollingupgrade and alert rollingupgrade label is set skip alert processing
-		// if status is not rollingupgrade and alert rollingupgrade label is not set process alert
-
-		err := processAlert(a.alerts[alertFp], client)
+		err := examineAlert(a.alerts[alertFp], client, rollingUpgradeAlertCount)
 		if err != nil {
 			return nil, err
 		}
 		a.alerts[alertFp].Processed = true
 	}
 	return a.alerts[alertFp], nil
+}
+
+func (a *currentAlerts) GetRollingUpgradeAlertCount() int {
+	alertCount := 0
+	for _, alert := range a.alerts {
+		for key, _ := range alert.Labels {
+			if key == "rollingupgrade" {
+				alertCount++
+			}
+		}
+	}
+	return alertCount
 }
