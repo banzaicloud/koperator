@@ -25,6 +25,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func examineAlert(alert *currentAlertStruct, client client.Client, rollingUpgradeAlertCount int) error {
+
+	cr, err := k8sutil.GetCr(string(alert.Labels["kafka_cr"]), string(alert.Labels["namespace"]), client)
+	if err != nil {
+		return err
+	}
+	k8sutil.UpdateCrWithRollingUpgrade(rollingUpgradeAlertCount, cr, client)
+
+	if cr.Status.State == "rollingupgrade" {
+		return nil
+	}
+	return processAlert(alert, client)
+}
+
 func processAlert(alert *currentAlertStruct, client client.Client) error {
 
 	switch alert.Annotations["command"] {
