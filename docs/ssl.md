@@ -38,6 +38,8 @@ If `sslSecrets.create` is `false`, the operator will look for the secret at `ssl
 
 ## Using Kafka ACLs with SSL
 
+If you choose not to enable ACLs for your kafka cluster, you may still use the `KafkaUser` resource to create new certificates for your applications.
+You can leave the `topicGrants` out as they will not have any effect. 
 
 To enable ACL support for your kafka cluster, pass the following configurations along with your `brokerConfig`:
 

@@ -22,7 +22,7 @@ import (
 // +k8s:openapi-gen=true
 type KafkaUserSpec struct {
 	SecretName  string           `json:"secretName"`
-	TopicGrants []UserTopicGrant `json:"topicGrants"`
+	TopicGrants []UserTopicGrant `json:"topicGrants,omitempty"`
 	IncludeJKS  bool             `json:"includeJKS,omitempty"`
 	ClusterRef  ClusterReference `json:"clusterRef"`
 }
