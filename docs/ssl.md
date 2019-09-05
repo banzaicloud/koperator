@@ -39,7 +39,7 @@ If `sslSecrets.create` is `false`, the operator will look for the secret at `ssl
 ## Using Kafka ACLs with SSL
 
 If you choose not to enable ACLs for your kafka cluster, you may still use the `KafkaUser` resource to create new certificates for your applications.
-You can leave the `topicGrants` out as they will not have any effect. 
+You can leave the `topicGrants` out as they will not have any effect.
 
 To enable ACL support for your kafka cluster, pass the following configurations along with your `brokerConfig`:
 
@@ -101,8 +101,18 @@ spec:
   clusterRef:
     name: kafka
   secretName: example-consumer-secret
+  includeJKS: true
   topicGrants:
     - topicName: test-topic
       accessType: read
 EOF
 ```
+
+The operator can also include a Java keystore format (JKS) with your user secret if you'd like.
+You just need to add `includeJKS: true` to the `spec` like shown above, and then the user-secret will gain these additional fields:
+
+| Key                     | Value                |
+|:-----------------------:|:---------------------|
+| `tls.jks`               | The java keystore containing both the user keys and the CA (use this for your keystore AND truststore) |
+| `pass.txt`              | The password to decrypt the JKS (this will be randomly generated) |
+| `client-ssl.properties` | An example properties file that can be used with a Java application or the `kafka-console-consumer` and `kafka-console-producer` |
