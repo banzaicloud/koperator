@@ -19,9 +19,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
 
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
@@ -31,51 +28,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Should I retain the option to run it as a standalone topic/user controller?
-const (
-	kafkaHostVar      = "KAFKA_BROKER"
-	kafkaUseSSLVar    = "KAFKA_USE_SSL"
-	kafkaSSLKeyVar    = "KAFKA_SSL_KEY_FILE"
-	kafkaSSLCertVar   = "KAFKA_SSL_CERT_FILE"
-	kafkaSSLCAVar     = "KAFKA_SSL_CA_FILE"
-	kafkaSSLVerifyVar = "KAFKA_INSECURE_SKIP_VERIFY"
-	kafkaTimeoutVar   = "KAFKA_OPERATION_TIMEOUT_SECONDS"
+const kafkaDefaultTimeout = int64(10)
 
-	kafkaCAVar     = "KAFKA_ISSUER_CA_NAME"
-	kafkaCATypeVar = "KAFKA_ISSUER_CA_KIND"
-
-	kafkaDefaultTimeout = int64(10)
-)
-
-// KafkaConfig are the options to creating a new ClusterAdmin client
+// KafkaConfig are the opti6ons to creating a new ClusterAdmin client
 type KafkaConfig struct {
-	BrokerURI             string
-	UseSSL                bool
-	TLSConfig             *tls.Config
-	SSLKeyFile            string
-	SSLCertFile           string
-	SSLCAFile             string
-	SSLInsecureSkipVerify bool
+	BrokerURI string
+	UseSSL    bool
+	TLSConfig *tls.Config
 
 	IssueCA     string
 	IssueCAKind string
 
 	OperationTimeout int64
-}
-
-// EnvConfig is from when this was used in a standalone controller
-func EnvConfig() *KafkaConfig {
-	return &KafkaConfig{
-		BrokerURI:             os.Getenv(kafkaHostVar),
-		UseSSL:                parseBool(os.Getenv(kafkaUseSSLVar)),
-		SSLKeyFile:            os.Getenv(kafkaSSLKeyVar),
-		SSLCertFile:           os.Getenv(kafkaSSLCertVar),
-		SSLCAFile:             os.Getenv(kafkaSSLCAVar),
-		SSLInsecureSkipVerify: parseBool(os.Getenv(kafkaSSLVerifyVar)),
-		IssueCA:               os.Getenv(kafkaCAVar),
-		IssueCAKind:           os.Getenv(kafkaCATypeVar),
-		OperationTimeout:      getOperationTimeout(),
-	}
 }
 
 // ClusterConfig creates connection options from a KafkaCluster CR
@@ -87,7 +51,12 @@ func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (*Kafka
 	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
 		var err error
 		tlsKeys := &corev1.Secret{}
-		err = client.Get(context.TODO(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, tlsKeys)
+		err = client.Get(context.TODO(),
+			types.NamespacedName{
+				Namespace: cluster.Namespace,
+				Name:      cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName},
+			tlsKeys,
+		)
 		if err != nil {
 			return conf, err
 		}
@@ -113,29 +82,6 @@ func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (*Kafka
 	}
 
 	return conf, nil
-}
-
-func getOperationTimeout() int64 {
-	var timeout int64
-	var err error
-	reqTimeout := os.Getenv(kafkaTimeoutVar)
-	if reqTimeout == "" {
-		log.Info(fmt.Sprint(kafkaTimeoutVar, " is not set. Assuming defaults."))
-		timeout = kafkaDefaultTimeout
-	} else if timeout, err = strconv.ParseInt(reqTimeout, 10, 64); err != nil {
-		log.Info(fmt.Sprint(reqTimeout, " is not a valid integer for ", kafkaTimeoutVar, " - using default ", kafkaDefaultTimeout))
-		timeout = kafkaDefaultTimeout
-	}
-	return timeout
-}
-
-// parseBool is a no errors ParseBool
-func parseBool(str string) bool {
-	if strings.ToLower(str) == "true" {
-		return true
-	}
-	// if empty or anything else return false
-	return false
 }
 
 func generateKafkaAddress(cluster *v1alpha1.KafkaCluster) string {

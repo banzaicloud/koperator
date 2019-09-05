@@ -28,6 +28,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,7 +67,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		if err != nil {
 			return emperror.With(err, "kind", desiredType)
 		}
-		err = client.Get(context.TODO(), types.NamespacedName{Namespace: "", Name: key.Name}, current)
+		err = client.Get(context.TODO(), types.NamespacedName{Namespace: metav1.NamespaceAll, Name: key.Name}, current)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType, "name", key.Name)
 		}
