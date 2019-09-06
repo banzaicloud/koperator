@@ -12,7 +12,7 @@ listenersConfig:
     - type: "ssl"
       name: "external"
       externalStartingPort: 19090
-      containerPort: 9094
+      containerPort: 29092
   internalListeners:
     - type: "ssl"
       name: "ssl"
