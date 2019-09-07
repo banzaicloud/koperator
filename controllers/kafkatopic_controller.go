@@ -38,7 +38,7 @@ import (
 )
 
 var topicFinalizer = "finalizer.kafkatopics.banzaicloud.banzaicloud.io"
-var syncRoutines = make(map[string]struct{}, 0)
+var syncRoutines = make(map[types.UID]struct{}, 0)
 
 func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
 	// Create a new controller
@@ -194,10 +194,11 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	// Kick off a goroutine to sync topic status every 5 minutes
-	if _, ok := syncRoutines[instance.Name]; !ok {
+	uid := instance.GetUID()
+	if _, ok := syncRoutines[uid]; !ok {
 		reqLogger.Info("Starting status sync routine for topic")
-		syncRoutines[instance.Name] = struct{}{}
-		go r.syncTopicStatus(cluster, instance)
+		syncRoutines[uid] = struct{}{}
+		go r.syncTopicStatus(cluster, instance, uid)
 	}
 
 	reqLogger.Info("Ensured topic")
@@ -205,14 +206,14 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	return reconcile.Result{}, nil
 }
 
-func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1alpha1.KafkaCluster, instance *v1alpha1.KafkaTopic) {
-	syncLogger := r.Log.WithName(fmt.Sprintf("%s_sync", instance.Name))
+func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1alpha1.KafkaCluster, instance *v1alpha1.KafkaTopic, uid types.UID) {
+	syncLogger := r.Log.WithName(fmt.Sprintf("%s/%s_sync", instance.Namespace, instance.Name))
 	ticker := time.NewTicker(time.Duration(5) * time.Minute)
 	for range ticker.C {
 		syncLogger.Info("Syncing topic status")
 		if cont, _ := r.doTopicStatusSync(syncLogger, cluster, instance); !cont {
-			if _, ok := syncRoutines[instance.Name]; ok {
-				delete(syncRoutines, instance.Name)
+			if _, ok := syncRoutines[uid]; ok {
+				delete(syncRoutines, uid)
 			}
 			return
 		}
