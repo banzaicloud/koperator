@@ -78,7 +78,7 @@ const (
 	// PeerCertKey stores the peer certificate (broker certificates)
 	PeerCertKey string = "peerCert"
 	// PeerPrivateKeyKey stores the peer private key
-	PeerPrivateKeyKey string = "caKey"
+	PeerPrivateKeyKey string = "peerKey"
 	// PasswordKey stores the JKS password
 	PasswordKey string = "password"
 )
