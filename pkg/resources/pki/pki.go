@@ -61,6 +61,11 @@ func New(client client.Client, scheme *runtime.Scheme, cluster *banzaicloudv1alp
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 
+	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets == nil {
+		log.V(1).Info("Skipping PKI reconciling due to no SSL config")
+		return nil
+	}
+
 	log.V(1).Info("Reconciling")
 
 	resources, err := r.kafkapki()
