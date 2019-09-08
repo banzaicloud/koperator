@@ -19,7 +19,6 @@ require (
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pavel-v-chernykh/keystore-go v2.1.0+incompatible
-	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
 	github.com/prometheus/common v0.2.0
 	google.golang.org/grpc v1.23.0 // indirect
 	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
