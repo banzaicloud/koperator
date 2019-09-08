@@ -108,41 +108,40 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 
 		return []runtime.Object{selfsigner, ca, clusterissuer, brokerCert, controllerCert}, nil
 
-	} else {
-		// We need a cluster issuer made from the provided secret
-		secret := &corev1.Secret{}
-		err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.KafkaCluster.Namespace, Name: r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
-		if err != nil {
-			return []runtime.Object{}, err
-		}
-		caKey := secret.Data[banzaicloudv1alpha1.CAPrivateKeyKey]
-		caCert := secret.Data[banzaicloudv1alpha1.CACertKey]
+	}
 
-		caSecret := &corev1.Secret{
-			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
-			Data: map[string][]byte{
-				banzaicloudv1alpha1.CoreCACertKey: caCert,
-				corev1.TLSCertKey:                 caCert,
-				corev1.TLSPrivateKeyKey:           caKey,
-			},
-		}
-		controllerutil.SetControllerReference(r.KafkaCluster, caSecret, r.Scheme)
+	// If we aren't creating the secrets we need a cluster issuer made from the provided secret
+	secret := &corev1.Secret{}
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.KafkaCluster.Namespace, Name: r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
+	if err != nil {
+		return []runtime.Object{}, err
+	}
+	caKey := secret.Data[banzaicloudv1alpha1.CAPrivateKeyKey]
+	caCert := secret.Data[banzaicloudv1alpha1.CACertKey]
 
-		clusterissuer := &certv1.ClusterIssuer{
-			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
-			Spec: certv1.IssuerSpec{
-				IssuerConfig: certv1.IssuerConfig{
-					CA: &certv1.CAIssuer{
-						SecretName: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name),
-					},
+	caSecret := &corev1.Secret{
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+		Data: map[string][]byte{
+			banzaicloudv1alpha1.CoreCACertKey: caCert,
+			corev1.TLSCertKey:                 caCert,
+			corev1.TLSPrivateKeyKey:           caKey,
+		},
+	}
+	controllerutil.SetControllerReference(r.KafkaCluster, caSecret, r.Scheme)
+
+	clusterissuer := &certv1.ClusterIssuer{
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+		Spec: certv1.IssuerSpec{
+			IssuerConfig: certv1.IssuerConfig{
+				CA: &certv1.CAIssuer{
+					SecretName: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name),
 				},
 			},
-		}
-		controllerutil.SetControllerReference(r.KafkaCluster, clusterissuer, r.Scheme)
-
-		return []runtime.Object{caSecret, clusterissuer}, nil
-
+		},
 	}
+	controllerutil.SetControllerReference(r.KafkaCluster, clusterissuer, r.Scheme)
+
+	return []runtime.Object{caSecret, clusterissuer}, nil
 
 }
 
