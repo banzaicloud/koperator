@@ -108,7 +108,7 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 
 		return []runtime.Object{selfsigner, ca, clusterissuer, brokerCert, controllerCert}, nil
 
-	} else if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
+	} else {
 		// We need a cluster issuer made from the provided secret
 		secret := &corev1.Secret{}
 		err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.KafkaCluster.Namespace, Name: r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
@@ -144,7 +144,6 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 
 	}
 
-	return []runtime.Object{}, nil
 }
 
 func (r *Reconciler) getBootstrapSSLSecret() (certs, passw *corev1.Secret, err error) {
