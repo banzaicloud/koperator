@@ -101,9 +101,9 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		// Grab ownership of all secrets we created through cert-manager
 		secretNames := []types.NamespacedName{
-			types.NamespacedName{Name: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), Namespace: "cert-manager"},
-			types.NamespacedName{Name: fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace},
-			types.NamespacedName{Name: fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace},
+			{Name: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), Namespace: "cert-manager"},
+			{Name: fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace},
+			{Name: fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace},
 		}
 
 		for _, o := range secretNames {
