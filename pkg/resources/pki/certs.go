@@ -81,7 +81,7 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 			Spec: certv1.CertificateSpec{
 				SecretName:  fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name),
 				KeyEncoding: certv1.PKCS8,
-				CommonName:  fmt.Sprintf("%s.%s.svc.cluster.local", r.KafkaCluster.Name, r.KafkaCluster.Namespace),
+				CommonName:  getCommonName(r.KafkaCluster),
 				DNSNames:    getDNSNames(r.KafkaCluster),
 				IssuerRef: certv1.ObjectReference{
 					Name: fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name),
@@ -184,6 +184,13 @@ func (r *Reconciler) getBootstrapSSLSecret() (certs, passw *corev1.Secret, err e
 	return
 }
 
+func getCommonName(cluster *banzaicloudv1alpha1.KafkaCluster) string {
+	if cluster.Spec.HeadlessServiceEnabled {
+		return fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace)
+	}
+	return fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace)
+}
+
 func getDNSNames(cluster *banzaicloudv1alpha1.KafkaCluster) (dnsNames []string) {
 	dnsNames = make([]string, 0)
 	for _, broker := range cluster.Spec.BrokerConfigs {
@@ -204,8 +211,7 @@ func getDNSNames(cluster *banzaicloudv1alpha1.KafkaCluster) (dnsNames []string) 
 		}
 	}
 	if cluster.Spec.HeadlessServiceEnabled {
-		dnsNames = append(dnsNames,
-			fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
+		dnsNames = append(dnsNames, getCommonName(cluster))
 		dnsNames = append(dnsNames,
 			fmt.Sprintf("%s.%s.svc", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
 		dnsNames = append(dnsNames,
@@ -213,8 +219,7 @@ func getDNSNames(cluster *banzaicloudv1alpha1.KafkaCluster) (dnsNames []string) 
 		dnsNames = append(dnsNames,
 			fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name))
 	} else {
-		dnsNames = append(dnsNames,
-			fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace))
+		dnsNames = append(dnsNames, getCommonName(cluster))
 		dnsNames = append(dnsNames,
 			fmt.Sprintf("%s.%s.svc", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace))
 		dnsNames = append(dnsNames,
