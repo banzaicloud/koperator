@@ -15,6 +15,7 @@
 package pki
 
 import (
+	"context"
 	"fmt"
 
 	"emperror.dev/emperror"
@@ -22,8 +23,11 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -93,6 +97,33 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			if err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster); err != nil {
 				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
+		}
+
+		// Grab ownership of all secrets we created through cert-manager
+		secretNames := []types.NamespacedName{
+			types.NamespacedName{Name: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), Namespace: "cert-manager"},
+			types.NamespacedName{Name: fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace},
+			types.NamespacedName{Name: fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace},
+		}
+
+		for _, o := range secretNames {
+			secret := &corev1.Secret{}
+			if err := r.Client.Get(context.TODO(), o, secret); err != nil {
+				return emperror.WrapWith(err, "pki secret is not ready")
+			}
+
+			if err := controllerutil.SetControllerReference(r.KafkaCluster, secret, r.Scheme); err != nil {
+				if k8sutil.IsAlreadyOwnedError(err) {
+					continue
+				} else {
+					return emperror.WrapWith(err, "failed to set controller reference on secret")
+				}
+			}
+
+			if err := r.Client.Update(context.TODO(), secret); err != nil {
+				return emperror.WrapWith(err, "failed to update secret with controller reference")
+			}
+
 		}
 
 	}

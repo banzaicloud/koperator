@@ -1,3 +1,24 @@
+## Setting up cert-manager
+
+`kafka-operator` assumes you have `cert-manager` set up in your Kubernetes cluster for issuing certificates.
+You can set it up easily with a few commands and their helm chart.
+
+```bash
+# Add the jetstack helm repo
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+
+# pre-create cert-manager namespace and CRDs per their installation instructions
+kubectl create ns cert-manager
+kubectl label namespace cert-manager certmanager.k8s.io/disable-validation=true
+kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.10/deploy/manifests/00-crds.yaml
+
+# Install cert-manager into the cluster
+# --set webhook.enabled=false may not be required for you, but avoids issues with
+# certificates not being able to be issued due to the webhook not working.
+helm install --name cert-manager --namespace cert-manager --version v0.10.0 --set webhook.enabled=false jetstack/cert-manager
+```
+
 ## Securing Kafka With SSL
 
 The `kafka-operator` makes securing your Kafka cluster with SSL simple.
