@@ -86,7 +86,26 @@ The operator installs the 2.1.0 version of Apache Kafka, and can run on Minikube
 
 As a pre-requisite it needs a Kubernetes cluster (you can create one using [Pipeline](https://github.com/banzaicloud/pipeline)). Also, Kafka requires Zookeeper so you need to first have a Zookeeper cluster if you don't already have one.
 
-> We believe in the `separation of concerns` principle, thus the Kafka operator does not install nor manage Zookeeper. If you would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
+The operator also uses `cert-manager` for issuing certificates to users and brokers, so you'll need to have it setup in case you haven't already.
+
+> We believe in the `separation of concerns` principle, thus the Kafka operator does not install nor manage Zookeeper or cert-manager. If you would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
+
+#### Install cert-manager
+
+```bash
+# Add the jetstack helm repo
+helm repo add jetstack https://charts.jetstack.io
+
+# pre-create cert-manager namespace and CRDs per their installation instructions
+kubectl create ns cert-manager
+kubectl label namespace cert-manager certmanager.k8s.io/disable-validation=true
+kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.10/deploy/manifests/00-crds.yaml
+
+# Install cert-manager into the cluster
+# --set webhook.enabled=false may not be required for you, but avoids issues with
+# certificates not being able to be issued due to the webhook not working.
+helm install --name cert-manager --namespace cert-manager --version v0.10.0 --set webhook.enabled=false jetstack/cert-manager
+```
 
 ##### Install Zookeeper
 
