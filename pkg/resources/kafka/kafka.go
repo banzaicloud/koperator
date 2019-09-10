@@ -30,6 +30,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -238,11 +239,12 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 
 	for _, broker := range r.KafkaCluster.Spec.Brokers {
-		for _, storage := range broker.BrokerConfig.StorageConfigs {
-			for _, res := range []resources.ResourceWithBrokerAndStorage{
+		brokerConfig := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
+		for _, storage := range brokerConfig.StorageConfigs {
+			for _, res := range []resources.ResourceWithBrokerIdAndStorage{
 				r.pvc,
 			} {
-				o := res(broker, storage, log)
+				o := res(broker.Id, storage, log)
 				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 				if err != nil {
 					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -250,10 +252,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		}
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			for _, res := range []resources.ResourceWithBrokerAndString{
-				r.configMapPod,
+			for _, res := range []resources.ResourceWithBrokerConfigAndString{
+				r.configMap,
 			} {
-				o := res(broker, lBIp, superUsers, log)
+				o := res(broker.Id, brokerConfig, lBIp, superUsers, log)
 				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 				if err != nil {
 					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -262,10 +264,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		} else {
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 				if brokerState.RackAwarenessState == banzaicloudv1alpha1.Configured {
-					for _, res := range []resources.ResourceWithBrokerAndString{
-						r.configMapPod,
+					for _, res := range []resources.ResourceWithBrokerConfigAndString{
+						r.configMap,
 					} {
-						o := res(broker, lBIp, superUsers, log)
+						o := res(broker.Id, brokerConfig, lBIp, superUsers, log)
 						err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 						if err != nil {
 							return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -282,10 +284,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
 
-			for _, res := range []resources.ResourceWithBrokerAndLog{
+			for _, res := range []resources.ResourceWithBrokerIdAndLog{
 				r.service,
 			} {
-				o := res(broker, log)
+				o := res(broker.Id, log)
 				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 				if err != nil {
 					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -293,10 +295,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		}
 
-		for _, res := range []resources.ResourceWithBrokerAndVolume{
+		for _, res := range []resources.ResourceWithBrokerConfigAndVolume{
 			r.pod,
 		} {
-			o := res(broker, pvcs, log)
+			o := res(broker.Id, brokerConfig, pvcs, log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())

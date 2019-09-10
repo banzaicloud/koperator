@@ -33,7 +33,7 @@ type KafkaClusterSpec struct {
 	ReadOnlyConfig         string                  `json:"readOnlyConfig,omitempty"`
 	ClusterWideConfig      string                  `json:"clusterWideConfig,omitempty"`
 	BrokerConfigGroups     map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
-	Brokers                []Brokers               `json:"brokers"`
+	Brokers                []Broker                `json:"brokers"`
 	RollingUpgradeConfig   RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
 	OneBrokerPerNode       bool                    `json:"oneBrokerPerNode"`
 	CruiseControlConfig    CruiseControlConfig     `json:"cruiseControlConfig"`
@@ -52,11 +52,11 @@ type RollingUpgradeConfig struct {
 	FailureThreshold int `json:"failureThreshold"`
 }
 
-// Brokers defines the broker basic configuration
-type Brokers struct {
-	Id                int32        `json:"id"`
-	BrokerConfigGroup string       `json:"brokerConfigGroup,omitempty"`
-	BrokerConfig      BrokerConfig `json:"brokerConfig,omitempty"`
+// Broker defines the broker basic configuration
+type Broker struct {
+	Id                int32         `json:"id"`
+	BrokerConfigGroup string        `json:"brokerConfigGroup,omitempty"`
+	BrokerConfig      *BrokerConfig `json:"brokerConfig,omitempty"`
 }
 
 // BrokerConfig defines the broker configuration
@@ -66,7 +66,7 @@ type BrokerConfig struct {
 	NodeAffinity     *corev1.NodeAffinity         `json:"nodeAffinity,omitempty"`
 	ReadOnlyConfig   string                       `json:"readOnlyConfig,omitempty"`
 	Config           string                       `json:"config,omitempty"`
-	StorageConfigs   []StorageConfig              `json:"storageConfigs"`
+	StorageConfigs   []StorageConfig              `json:"storageConfigs,omitempty"`
 	Resources        *corev1.ResourceRequirements `json:"resourceReqs,omitempty"`
 	KafkaHeapOpts    string                       `json:"kafkaHeapOpts,omitempty"`
 	KafkaJVMPerfOpts string                       `json:"kafkaJvmPerfOpts,omitempty"`
