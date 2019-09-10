@@ -9,7 +9,9 @@ spec:
   group: banzaicloud.banzaicloud.io
   names:
     kind: KafkaUser
+    listKind: KafkaUserList
     plural: kafkausers
+    singular: kafkauser
   scope: ""
   subresources:
     status: {}

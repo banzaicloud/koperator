@@ -21,13 +21,7 @@ spec:
   subresources:
     status: {}
   conversion:
-    strategy: Webhook
-    webhookClientConfig:
-      caBundle: Cg==
-      service:
-        namespace: {{ .Release.Namespace }}
-        name: "{{ include "kafka-operator.fullname" . }}-operator"
-        path: /validate
+    strategy: None
   validation:
     openAPIV3Schema:
       description: KafkaTopic is the Schema for the kafkatopics API
