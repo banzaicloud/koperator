@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) pod(broker banzaicloudv1alpha1.Brokers, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
+func (r *Reconciler) pod(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
 
 	var kafkaBrokerContainerPorts []corev1.ContainerPort
 
@@ -61,14 +61,14 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.Brokers, pvcs []corev1.Persi
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(broker.BrokerConfig.Image, r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.ListenersConfig.InternalListeners))
+		initContainers = append(initContainers, generateInitContainerForSSL(brokerConfig.Image, r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.ListenersConfig.InternalListeners))
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /mod-config/broker-config")
 	} else {
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /config/broker-config")
 	}
 
 	pod := &corev1.Pod{
-		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)}), util.MonitoringAnnotations(metricsPort), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(r.KafkaCluster.Name, util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}), util.MonitoringAnnotations(metricsPort), r.KafkaCluster),
 		Spec: corev1.PodSpec{
 			InitContainers: append(initContainers, []corev1.Container{
 				{
@@ -98,7 +98,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.Brokers, pvcs []corev1.Persi
 			Containers: []corev1.Container{
 				{
 					Name:  "kafka",
-					Image: getBrokerImage(broker, r.KafkaCluster.Spec.ClusterImage),
+					Image: getBrokerImage(brokerConfig, r.KafkaCluster.Spec.ClusterImage),
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.Handler{
 							Exec: &corev1.ExecAction{
@@ -117,11 +117,11 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.Brokers, pvcs []corev1.Persi
 						},
 						{
 							Name:  "KAFKA_HEAP_OPTS",
-							Value: broker.BrokerConfig.GetKafkaHeapOpts(),
+							Value: brokerConfig.GetKafkaHeapOpts(),
 						},
 						{
 							Name:  "KAFKA_JVM_PERFORMANCE_OPTS",
-							Value: broker.BrokerConfig.GetKafkaPerfJmvOpts(),
+							Value: brokerConfig.GetKafkaPerfJmvOpts(),
 						},
 					},
 					Command: command,
@@ -149,7 +149,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.Brokers, pvcs []corev1.Persi
 							MountPath: "/etc/jmx-exporter/",
 						},
 					}...),
-					Resources: *broker.BrokerConfig.GetResources(),
+					Resources: *brokerConfig.GetResources(),
 				},
 			},
 			Volumes: append(volume, []corev1.Volume{
@@ -157,7 +157,7 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.Brokers, pvcs []corev1.Persi
 					Name: brokerConfigMapVolumeMount,
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, broker.Id)},
+							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id)},
 							DefaultMode:          util.Int32Pointer(0644),
 						},
 					},
@@ -195,11 +195,11 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.Brokers, pvcs []corev1.Persi
 		},
 	}
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
-		pod.Spec.Hostname = fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id)
+		pod.Spec.Hostname = fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id)
 		pod.Spec.Subdomain = fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name)
 	}
-	if broker.BrokerConfig.NodeAffinity != nil {
-		pod.Spec.Affinity.NodeAffinity = broker.BrokerConfig.NodeAffinity
+	if brokerConfig.NodeAffinity != nil {
+		pod.Spec.Affinity.NodeAffinity = brokerConfig.NodeAffinity
 	}
 	//if broker.NodeSelector != nil {
 	//	pod.Spec.NodeSelector = broker.NodeSelector
@@ -210,9 +210,9 @@ func (r *Reconciler) pod(broker banzaicloudv1alpha1.Brokers, pvcs []corev1.Persi
 	return pod
 }
 
-func getBrokerImage(broker banzaicloudv1alpha1.Brokers, clusterImage string) string {
-	if broker.BrokerConfig.Image != "" {
-		return broker.BrokerConfig.Image
+func getBrokerImage(brokerConfig *banzaicloudv1alpha1.BrokerConfig, clusterImage string) string {
+	if brokerConfig.Image != "" {
+		return brokerConfig.Image
 	}
 	return clusterImage
 }

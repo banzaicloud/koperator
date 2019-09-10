@@ -84,20 +84,20 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 		}
 	}
 
-	var broker banzaicloudv1alpha1.Brokers
+	var broker banzaicloudv1alpha1.Broker
 
 	brokerConfigGroupName := string(annotations["brokerConfigGroup"])
 
-	if brokerConfigGroup, ok := cr.Spec.BrokerConfigGroups[brokerConfigGroupName]; ok {
+	if _, ok := cr.Spec.BrokerConfigGroups[brokerConfigGroupName]; ok {
 
-		broker.BrokerConfig = brokerConfigGroup
+		broker.BrokerConfigGroup = brokerConfigGroupName
 		broker.Id = biggestId + 1
 
 	} else {
 
-		broker = banzaicloudv1alpha1.Brokers{
+		broker = banzaicloudv1alpha1.Broker{
 			Id: biggestId + 1,
-			BrokerConfig: banzaicloudv1alpha1.BrokerConfig{
+			BrokerConfig: &banzaicloudv1alpha1.BrokerConfig{
 				Image: string(annotations["image"]),
 				StorageConfigs: []banzaicloudv1alpha1.StorageConfig{
 					{

@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/imdario/mergo"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -135,4 +136,17 @@ func ParsePropertiesFormat(properties string) map[string]string {
 	}
 
 	return config
+}
+
+func GetBrokerConfig(broker banzaicloudv1alpha1.Broker, clusterSpec banzaicloudv1alpha1.KafkaClusterSpec) *banzaicloudv1alpha1.BrokerConfig {
+
+	bConfig := &banzaicloudv1alpha1.BrokerConfig{}
+	if broker.BrokerConfigGroup == "" {
+		return broker.BrokerConfig
+	} else if broker.BrokerConfig != nil {
+		bConfig = broker.BrokerConfig
+	}
+	//TODO handle error
+	mergo.Merge(bConfig, clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup])
+	return bConfig
 }
