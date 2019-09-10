@@ -96,26 +96,26 @@ func generateSuperUsers(users []string) (suStrings []string) {
 	return
 }
 
-func (r *Reconciler) configMapPod(broker banzaicloudv1alpha1.Brokers, loadBalancerIP string, superUsers []string, log logr.Logger) runtime.Object {
+func (r *Reconciler) configMap(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, loadBalancerIP string, superUsers []string, log logr.Logger) runtime.Object {
 	return &corev1.ConfigMap{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, broker.Id), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
-		Data:       map[string]string{"broker-config": generateBrokerConfig(broker, r.KafkaCluster.Spec, r.KafkaCluster.Name, r.KafkaCluster.Namespace, loadBalancerIP, log)},
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
+		Data:       map[string]string{"broker-config": generateBrokerConfig(id, brokerConfig, r.KafkaCluster.Spec, r.KafkaCluster.Name, r.KafkaCluster.Namespace, loadBalancerIP, log)},
 	}
 }
 
-func generateAdvertisedListenerConfig(broker banzaicloudv1alpha1.Brokers, l banzaicloudv1alpha1.ListenersConfig, loadBalancerIP, namespace, crName string, headlessServiceEnabled bool) string {
+func generateAdvertisedListenerConfig(id int32, l banzaicloudv1alpha1.ListenersConfig, loadBalancerIP, namespace, crName string, headlessServiceEnabled bool) string {
 	advertisedListenerConfig := []string{}
 	for _, eListener := range l.ExternalListeners {
 		advertisedListenerConfig = append(advertisedListenerConfig,
-			fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIP, eListener.ExternalStartingPort+broker.Id))
+			fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIP, eListener.ExternalStartingPort+id))
 	}
 	for _, iListener := range l.InternalListeners {
 		if headlessServiceEnabled {
 			advertisedListenerConfig = append(advertisedListenerConfig,
-				fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, crName, namespace, iListener.ContainerPort))
+				fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, id, crName, namespace, iListener.ContainerPort))
 		} else {
 			advertisedListenerConfig = append(advertisedListenerConfig,
-				fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, namespace, iListener.ContainerPort))
+				fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, id, namespace, iListener.ContainerPort))
 		}
 	}
 	return strings.Join(advertisedListenerConfig, ",")
@@ -159,36 +159,31 @@ func generateListenerSpecificConfig(l *banzaicloudv1alpha1.ListenersConfig, log 
 		"listeners=" + strings.Join(listenerConfig, ",") + "\n"
 }
 
-func getInternalListeners(iListeners []banzaicloudv1alpha1.InternalListenerConfig, broker banzaicloudv1alpha1.Brokers, namespace, crName string, headlessServiceEnabled bool) []string {
+func getInternalListeners(iListeners []banzaicloudv1alpha1.InternalListenerConfig, id int32, namespace, crName string, headlessServiceEnabled bool) []string {
 
 	listenerConfig := []string{}
 
 	if headlessServiceEnabled {
 		for _, iListener := range iListeners {
 			listenerConfig = append(listenerConfig,
-				fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, crName, namespace, iListener.ContainerPort))
+				fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, id, crName, namespace, iListener.ContainerPort))
 		}
 	} else {
 		for _, iListener := range iListeners {
 			listenerConfig = append(listenerConfig,
-				fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, broker.Id, namespace, iListener.ContainerPort))
+				fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, id, namespace, iListener.ContainerPort))
 		}
 	}
 
 	return listenerConfig
 }
 
-func generateBrokerConfig(broker banzaicloudv1alpha1.Brokers, clusterSpec banzaicloudv1alpha1.KafkaClusterSpec, clusterName, clusterNamespace, loadBalancerIP string, log logr.Logger) string {
+func generateBrokerConfig(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, clusterSpec banzaicloudv1alpha1.KafkaClusterSpec, clusterName, clusterNamespace, loadBalancerIP string, log logr.Logger) string {
 	parsedReadOnlyClusterConfig := util.ParsePropertiesFormat(clusterSpec.ReadOnlyConfig)
 	parsedClusterWideClusterConfig := util.ParsePropertiesFormat(clusterSpec.ClusterWideConfig)
 
-	parsedReadOnlyBrokerConfig := util.ParsePropertiesFormat(broker.BrokerConfig.ReadOnlyConfig)
-	parsedBrokerConfig := map[string]string{}
-	if broker.BrokerConfigGroup != "" {
-		parsedBrokerConfig = util.ParsePropertiesFormat(clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup].Config)
-	} else {
-		parsedBrokerConfig = util.ParsePropertiesFormat(broker.BrokerConfig.Config)
-	}
+	parsedReadOnlyBrokerConfig := util.ParsePropertiesFormat(brokerConfig.ReadOnlyConfig)
+	parsedBrokerConfig := util.ParsePropertiesFormat(brokerConfig.Config)
 
 	parsedGeneratedListenerConfig := util.ParsePropertiesFormat(generateListenerSpecificConfig(&clusterSpec.ListenersConfig, log))
 	//parsedGeneratedSSLConfig := util.ParsePropertiesFormat(generateSSLConfig(&clusterSpec.ListenersConfig))
@@ -199,17 +194,17 @@ func generateBrokerConfig(broker banzaicloudv1alpha1.Brokers, clusterSpec banzai
 
 	// Set emphasized readOnlyConfigs
 	parsedReadOnlyBrokerConfig["zookeeper.connect"] = strings.Join(clusterSpec.ZKAddresses, ",")
-	parsedReadOnlyBrokerConfig["broker.id"] = strconv.Itoa(int(broker.Id))
-	parsedReadOnlyBrokerConfig["log.dirs"] = generateStorageConfig(broker.BrokerConfig.StorageConfigs)
+	parsedReadOnlyBrokerConfig["broker.id"] = strconv.Itoa(int(id))
+	parsedReadOnlyBrokerConfig["log.dirs"] = generateStorageConfig(brokerConfig.StorageConfigs)
 
 	// Set emphasized clusterWideConfigs
 	parsedClusterWideClusterConfig["metric.reporters"] = "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"
 	parsedClusterWideClusterConfig["cruise.control.metrics.reporter.bootstrap.servers"] =
-		strings.Join(getInternalListeners(clusterSpec.ListenersConfig.InternalListeners, broker, clusterNamespace, clusterName, clusterSpec.HeadlessServiceEnabled), ",")
+		strings.Join(getInternalListeners(clusterSpec.ListenersConfig.InternalListeners, id, clusterNamespace, clusterName, clusterSpec.HeadlessServiceEnabled), ",")
 
 	// Set emphasized brokerConfig
 	parsedBrokerConfig["advertised.listeners"] =
-		generateAdvertisedListenerConfig(broker, clusterSpec.ListenersConfig, loadBalancerIP, clusterNamespace, clusterName, clusterSpec.HeadlessServiceEnabled)
+		generateAdvertisedListenerConfig(id, clusterSpec.ListenersConfig, loadBalancerIP, clusterNamespace, clusterName, clusterSpec.HeadlessServiceEnabled)
 
 	//Generate the Complete Configuration for the Broker
 	completeConfigMap := map[string]string{}
