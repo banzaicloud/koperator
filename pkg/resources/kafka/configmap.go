@@ -114,7 +114,7 @@ func generateAdvertisedListenerConfig(id int32, l banzaicloudv1alpha1.ListenersC
 				fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, id, namespace, iListener.ContainerPort))
 		}
 	}
-	return strings.Join(advertisedListenerConfig, ",")
+	return fmt.Sprintf("advertised.listeners=%s\n", strings.Join(advertisedListenerConfig, ","))
 }
 
 func generateStorageConfig(sConfig []banzaicloudv1alpha1.StorageConfig) string {
