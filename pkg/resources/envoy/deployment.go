@@ -80,7 +80,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	}
 }
 
-func getExposedContainerPorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.Brokers) []corev1.ContainerPort {
+func getExposedContainerPorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.Broker) []corev1.ContainerPort {
 	var exposedPorts []corev1.ContainerPort
 
 	for _, eListener := range extListeners {

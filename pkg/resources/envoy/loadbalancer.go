@@ -42,7 +42,7 @@ func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 	return service
 }
 
-func getExposedServicePorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.Brokers) []corev1.ServicePort {
+func getExposedServicePorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.Broker) []corev1.ServicePort {
 	var exposedPorts []corev1.ServicePort
 
 	for _, eListener := range extListeners {

@@ -13,7 +13,6 @@ metadata:
   name: kafkatopics.banzaicloud.banzaicloud.io
 spec:
   group: banzaicloud.banzaicloud.io
-  preserveUnknownFields: false
   names:
     kind: KafkaTopic
     plural: kafkatopics
