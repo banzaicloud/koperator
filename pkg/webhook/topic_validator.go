@@ -30,15 +30,15 @@ func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admi
 	log.Info(fmt.Sprintf("Doing pre-admission validation of kafka topic %s", topic.Spec.Name))
 
 	// Get the referenced kafkacluster
-	if topic.Spec.ClusterRef.Namespace == "" {
-		topic.Spec.ClusterRef.Namespace = topic.Namespace
+	clusterNamespace := topic.Spec.ClusterRef.Namespace
+	if clusterNamespace == "" {
+		clusterNamespace = topic.Namespace
 	}
-
 	var cluster *v1alpha1.KafkaCluster
 	var err error
 
 	// Check if the cluster being referenced actually exists
-	if cluster, err = k8sutil.LookupKafkaCluster(s.client, topic.Spec.ClusterRef); err != nil {
+	if cluster, err = k8sutil.LookupKafkaCluster(s.client, topic.Spec.ClusterRef.Name, clusterNamespace); err != nil {
 		if apierrors.IsNotFound(err) {
 			if k8sutil.IsMarkedForDeletion(topic.ObjectMeta) {
 				log.Info("Deleted as a result of a cluster deletion")

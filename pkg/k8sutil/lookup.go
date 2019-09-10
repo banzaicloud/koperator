@@ -16,23 +16,22 @@ package k8sutil
 
 import (
 	"context"
-	"fmt"
 
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func LookupKafkaCluster(client runtimeClient.Client, ref v1alpha1.ClusterReference) (cluster *v1alpha1.KafkaCluster, err error) {
+func LookupKafkaCluster(client runtimeClient.Client, clusterName, clusterNamespace string) (cluster *v1alpha1.KafkaCluster, err error) {
 	cluster = &v1alpha1.KafkaCluster{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: ref.Name, Namespace: ref.Namespace}, cluster)
+	err = client.Get(context.TODO(), types.NamespacedName{Name: clusterName, Namespace: clusterNamespace}, cluster)
 	return
 }
 
-func LookupControllerSecret(client runtimeClient.Client, ref v1alpha1.ClusterReference, controllerTempl string) (secret *corev1.Secret, err error) {
-	secret = &corev1.Secret{}
-	secretName := fmt.Sprintf(controllerTempl, ref.Name)
-	err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ref.Namespace}, secret)
-	return
-}
+// This could be used if we get rid of the "intermediate" certificate we create for now during cluster creation
+// func LookupControllerSecret(client runtimeClient.Client, clusterName, clusterNamespace, controllerTempl string) (secret *corev1.Secret, err error) {
+// 	secret = &corev1.Secret{}
+// 	secretName := fmt.Sprintf(controllerTempl, clusterName)
+// 	err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: clusterNamespace}, secret)
+// 	return
+// }
