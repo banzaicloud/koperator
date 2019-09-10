@@ -9,7 +9,9 @@ spec:
   group: banzaicloud.banzaicloud.io
   names:
     kind: KafkaCluster
+    listKind: KafkaClusterList
     plural: kafkaclusters
+    singular: kafkacluster
   scope: ""
   subresources:
     status: {}
