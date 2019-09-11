@@ -120,7 +120,7 @@ func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Cli
 func (a *currentAlerts) GetRollingUpgradeAlertCount() int {
 	alertCount := 0
 	for _, alert := range a.alerts {
-		for key, _ := range alert.Labels {
+		for key := range alert.Labels {
 			if key == "rollingupgrade" {
 				alertCount++
 			}
