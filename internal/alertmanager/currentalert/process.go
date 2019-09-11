@@ -31,7 +31,9 @@ func examineAlert(alert *currentAlertStruct, client client.Client, rollingUpgrad
 	if err != nil {
 		return err
 	}
-	k8sutil.UpdateCrWithRollingUpgrade(rollingUpgradeAlertCount, cr, client)
+	if err := k8sutil.UpdateCrWithRollingUpgrade(rollingUpgradeAlertCount, cr, client); err != nil {
+		return err
+	}
 
 	if cr.Status.State == "rollingupgrade" {
 		return nil
