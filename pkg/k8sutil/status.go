@@ -139,44 +139,6 @@ func updateGracefulScaleStatus(c client.Client, brokerId string, cluster *banzai
 	return nil
 }
 
-// CCTopicStatus updates the given CC state in the CR
-func UpdateCCTopicStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, ccTopicStatus banzaicloudv1alpha1.CruiseControlTopicStatus, logger logr.Logger) error {
-	typeMeta := cluster.TypeMeta
-
-	cluster.Status.CruiseControlTopicStatus = ccTopicStatus
-
-	err := c.Status().Update(context.Background(), cluster)
-	if errors.IsNotFound(err) {
-		err = c.Update(context.Background(), cluster)
-	}
-	if err != nil {
-		if !errors.IsConflict(err) {
-			return emperror.Wrapf(err, "could not update CC topic state to '%s'", ccTopicStatus)
-		}
-		err := c.Get(context.TODO(), types.NamespacedName{
-			Namespace: cluster.Namespace,
-			Name:      cluster.Name,
-		}, cluster)
-		if err != nil {
-			return emperror.Wrap(err, "could not get config for updating status")
-		}
-
-		cluster.Status.CruiseControlTopicStatus = ccTopicStatus
-
-		err = c.Status().Update(context.Background(), cluster)
-		if errors.IsNotFound(err) {
-			err = c.Update(context.Background(), cluster)
-		}
-		if err != nil {
-			return emperror.Wrapf(err, "could not update CC topic state to '%s'", ccTopicStatus)
-		}
-	}
-	// update loses the typeMeta of the config that's used later when setting ownerrefs
-	cluster.TypeMeta = typeMeta
-	logger.Info("CC topic status updated", "status", ccTopicStatus)
-	return nil
-}
-
 // DeleteStatus deletes the given broker state from the CR
 func DeleteStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1.KafkaCluster, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
@@ -219,5 +181,52 @@ func DeleteStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1
 	// update loses the typeMeta of the config that's used later when setting ownerrefs
 	cluster.TypeMeta = typeMeta
 	logger.Info(fmt.Sprintf("Kafka broker %s state deleted", brokerId))
+	return nil
+}
+
+// UpdateCRStatus updates the cluster state
+func UpdateCRStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, state interface{}, logger logr.Logger) error {
+	typeMeta := cluster.TypeMeta
+
+	switch state.(type) {
+	case banzaicloudv1alpha1.ClusterState:
+		cluster.Status.State = state.(banzaicloudv1alpha1.ClusterState)
+	case banzaicloudv1alpha1.CruiseControlTopicStatus:
+		cluster.Status.CruiseControlTopicStatus = state.(banzaicloudv1alpha1.CruiseControlTopicStatus)
+	}
+
+	err := c.Status().Update(context.Background(), cluster)
+	if errors.IsNotFound(err) {
+		err = c.Update(context.Background(), cluster)
+	}
+	if err != nil {
+		if !errors.IsConflict(err) {
+			return emperror.Wrap(err, "could not update CR state")
+		}
+		err := c.Get(context.TODO(), types.NamespacedName{
+			Namespace: cluster.Namespace,
+			Name:      cluster.Name,
+		}, cluster)
+		if err != nil {
+			return emperror.Wrap(err, "could not get config for updating status")
+		}
+		switch state.(type) {
+		case banzaicloudv1alpha1.ClusterState:
+			cluster.Status.State = state.(banzaicloudv1alpha1.ClusterState)
+		case banzaicloudv1alpha1.CruiseControlTopicStatus:
+			cluster.Status.CruiseControlTopicStatus = state.(banzaicloudv1alpha1.CruiseControlTopicStatus)
+		}
+
+		err = c.Status().Update(context.Background(), cluster)
+		if errors.IsNotFound(err) {
+			err = c.Update(context.Background(), cluster)
+		}
+		if err != nil {
+			return emperror.Wrap(err, "could not update CR state")
+		}
+	}
+	// update loses the typeMeta of the config that's used later when setting ownerrefs
+	cluster.TypeMeta = typeMeta
+	logger.Info("CR status updated", "status", state)
 	return nil
 }
