@@ -45,7 +45,7 @@ type KafkaClusterSpec struct {
 type KafkaClusterStatus struct {
 	BrokersState             map[string]BrokerState   `json:"brokersState,omitempty"`
 	CruiseControlTopicStatus CruiseControlTopicStatus `json:"cruiseControlTopicStatus,omitempty"`
-	State                    string                   `json:"state"`
+	State                    ClusterState             `json:"state"`
 	RollingUpgrade           RollingUpgradeStatus     `json:"rollingUpgradeStatus,omitempty"`
 	AlertCount               int                      `json:"alertCount"`
 }
