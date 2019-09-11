@@ -983,6 +983,7 @@ spec:
             cruiseControlTopicStatus:
               type: string
             rollingUpgradeStatus:
+              description: RollingUpgradeStatus defines status of rolling upgrade
               properties:
                 errorCount:
                   type: integer
@@ -991,14 +992,14 @@ spec:
                 status:
                   type: string
               required:
+              - errorCount
               - lastSuccess
               type: object
             state:
               type: string
           required:
-          - state
-          - rollingUpgradeStatus
           - alertCount
+          - state
           type: object
       type: object
   version: v1alpha1

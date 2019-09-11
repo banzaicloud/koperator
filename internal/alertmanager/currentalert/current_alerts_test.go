@@ -15,6 +15,7 @@
 package currentalert
 
 import (
+	"context"
 	stdlog "log"
 	"os"
 	"path/filepath"
@@ -22,8 +23,11 @@ import (
 	"testing"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,7 +40,7 @@ var cfg *rest.Config
 
 func TestMain(m *testing.M) {
 	t := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 	}
 	banzaicloudv1alpha1.AddToScheme(scheme.Scheme)
 
@@ -62,10 +66,20 @@ func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) (chan struct{}
 	return stop, wg
 }
 
+func ensureCreated(t *testing.T, object runtime.Object, mgr manager.Manager) func() {
+	err := mgr.GetClient().Create(context.TODO(), object)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	return func() {
+		mgr.GetClient().Delete(context.TODO(), object)
+	}
+}
+
 func TestGetCurrentAlerts(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{Scheme: scheme.Scheme})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	c = mgr.GetClient()
 
@@ -75,6 +89,42 @@ func TestGetCurrentAlerts(t *testing.T) {
 		close(stopMgr)
 		mgrStopped.Wait()
 	}()
+
+	kafkaCluster := &banzaicloudv1alpha1.KafkaCluster{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "kafka",
+			Namespace: "kafka",
+		},
+		Spec: banzaicloudv1alpha1.KafkaClusterSpec{
+			HeadlessServiceEnabled: true,
+			ListenersConfig: banzaicloudv1alpha1.ListenersConfig{
+				InternalListeners: []banzaicloudv1alpha1.InternalListenerConfig{
+					{
+						Type:                            "plaintext",
+						Name:                            "planitext",
+						UsedForInnerBrokerCommunication: true,
+						ContainerPort:                   29092,
+					},
+				},
+			},
+			ZKAddresses: []string{},
+			Brokers: []banzaicloudv1alpha1.Broker{
+				{
+					Id: 1,
+				},
+			},
+			OneBrokerPerNode: true,
+		},
+		Status: banzaicloudv1alpha1.KafkaClusterStatus{
+			State: "Running",
+			RollingUpgrade: banzaicloudv1alpha1.RollingUpgradeStatus{
+				LastSuccess: "00000-00000",
+				ErrorCount:  0,
+			},
+		},
+	}
+
+	ensureCreated(t, kafkaCluster, mgr)
 
 	alerts1 := GetCurrentAlerts()
 	if alerts1 == nil {
@@ -89,6 +139,8 @@ func TestGetCurrentAlerts(t *testing.T) {
 		Labels: model.LabelSet{
 			"alertname": "PodAlert",
 			"test":      "test",
+			"kafka_cr":  "kafka",
+			"namespace": "kafka",
 		},
 	}
 
