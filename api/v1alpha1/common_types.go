@@ -22,6 +22,8 @@ type CruiseControlTopicStatus string
 
 type KafkaAccessType string
 
+type ClusterState string
+
 // GracefulActionState holds information about GracefulAction State
 type GracefulActionState struct {
 	// ErrorMessage holds the information what happened with CC
@@ -64,7 +66,12 @@ const (
 	KafkaAccessTypeRead KafkaAccessType = "read"
 	// KafkaAccessTypeWrite states that a user wants produce access to a topic
 	KafkaAccessTypeWrite KafkaAccessType = "write"
-
+	// KafkaClusterReconciling states that the cluster is still in reconciling stage
+	KafkaClusterReconciling ClusterState = "ClusterReconciling"
+	// KafkaClusterRollingUpgrading states that the cluster is rolling upgrading
+	KafkaClusterRollingUpgrading ClusterState = "ClusterRollingUpgrading"
+	// KafkaClusterRunning states that the cluster is in running state
+	KafkaClusterRunning ClusterState = "ClusterRunning"
 	// CoreCACertKey is where ca ceritificates are stored in user certificates
 	CoreCACertKey string = "ca.crt"
 	// CACertKey is the key where the CA certificate is stored in the operator secrets

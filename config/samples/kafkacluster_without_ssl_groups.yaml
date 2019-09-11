@@ -249,4 +249,3 @@ spec:
       {
         "min.insync.replicas": 3
       }
-  serviceAccount: ""
