@@ -17,6 +17,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
@@ -41,8 +42,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 )
 
 var clusterFinalizer = "finalizer.kafkaclusters.banzaicloud.banzaicloud.io"
@@ -88,6 +89,10 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	// Check if marked for deletion and run finalizers
 	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
 		return r.checkFinalizers(log, instance)
+	}
+
+	if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1alpha1.KafkaClusterReconciling, log); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	reconcilers := []resources.ComponentReconciler{
@@ -136,6 +141,10 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	log.Info("ensuring finalizer on kafkacluster")
 	if err = r.ensureFinalizer(instance); err != nil {
 		return requeueWithError(log, "failed to ensure finalizers on kafkacluster instance", err)
+	}
+
+	if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1alpha1.KafkaClusterRunning, log); err != nil {
+		return requeueWithError(log, err.Error(), err)
 	}
 
 	return reconciled()
@@ -243,6 +252,15 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Build
 					} else if patchResult.IsEmpty() {
 						return false
 					}
+				case *banzaicloudv1alpha1.KafkaCluster:
+					old := e.ObjectOld.(*banzaicloudv1alpha1.KafkaCluster)
+					new := e.ObjectNew.(*banzaicloudv1alpha1.KafkaCluster)
+					if !reflect.DeepEqual(old.Spec, new.Spec) ||
+						old.GetDeletionTimestamp() != new.GetDeletionTimestamp() ||
+						old.GetGeneration() != new.GetGeneration() {
+						return true
+					}
+					return false
 				}
 				return true
 			},

@@ -69,10 +69,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		if r.KafkaCluster.Status.CruiseControlTopicStatus == "" || r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1alpha1.CruiseControlTopicNotReady {
 			err := generateCCTopic(r.KafkaCluster, r.Client, log)
 			if err != nil {
-				k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicNotReady, log)
+				k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicNotReady, log)
 				return err
 			}
-			statusErr := k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicReady, log)
+			statusErr := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicReady, log)
 			if statusErr != nil {
 				return emperror.Wrap(statusErr, "could not update CC topic status")
 			}
