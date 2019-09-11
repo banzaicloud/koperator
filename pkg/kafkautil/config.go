@@ -32,7 +32,7 @@ import (
 
 const kafkaDefaultTimeout = int64(10)
 
-// KafkaConfig are the opti6ons to creating a new ClusterAdmin client
+// KafkaConfig are the options to creating a new ClusterAdmin client
 type KafkaConfig struct {
 	BrokerURI string
 	UseSSL    bool

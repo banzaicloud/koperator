@@ -45,6 +45,8 @@ type KafkaClient interface {
 	DescribeCluster() ([]*sarama.Broker, error)
 	GetCA() (string, string)
 
+	OfflineReplicaCount() (int, error)
+
 	Close() error
 }
 
@@ -52,6 +54,7 @@ type kafkaClient struct {
 	KafkaClient
 	opts    *KafkaConfig
 	admin   sarama.ClusterAdmin
+	client  sarama.Client
 	timeout time.Duration
 	brokers []*sarama.Broker
 }
@@ -75,10 +78,16 @@ func New(opts *KafkaConfig) (client KafkaClient, err error) {
 		return
 	}
 
+	if kclient.client, err = sarama.NewClient([]string{opts.BrokerURI}, config); err != nil {
+		kclient.client.Close()
+		return
+	}
+
 	return kclient, nil
 }
 
 func (k *kafkaClient) Close() error {
+	k.client.Close()
 	return k.admin.Close()
 }
 
