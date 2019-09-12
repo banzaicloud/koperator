@@ -15,10 +15,10 @@
 package kafkautil
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/Shopify/sarama"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 )
 
 type CreateTopicOptions struct {
@@ -63,12 +63,16 @@ func (k *kafkaClient) DescribeTopic(topic string) (meta *sarama.TopicMetadata, e
 }
 
 // CreateTopic creates a topic with the given options
-func (k *kafkaClient) CreateTopic(opts *CreateTopicOptions) error {
-	return k.admin.CreateTopic(opts.Name, &sarama.TopicDetail{
+func (k *kafkaClient) CreateTopic(opts *CreateTopicOptions) (err error) {
+	err = k.admin.CreateTopic(opts.Name, &sarama.TopicDetail{
 		NumPartitions:     opts.Partitions,
 		ReplicationFactor: opts.ReplicationFactor,
 		ConfigEntries:     opts.Config,
 	}, false)
+	if err != nil {
+		err = errorfactory.New(errorfactory.CreateTopicError{}, err, "failed to create topic")
+	}
+	return
 }
 
 // DeleteTopic deletes a topic
@@ -83,10 +87,12 @@ func (k *kafkaClient) EnsurePartitionCount(topic string, desired int32) (changed
 	meta, err := k.admin.DescribeTopics([]string{topic})
 
 	if err != nil {
+		err = errorfactory.New(errorfactory.BrokersRequestError{}, err, "error describing topics")
 		return
 	}
+
 	if len(meta) == 0 {
-		err = errors.New(fmt.Sprint("No topic", topic, "found"))
+		err = errorfactory.New(errorfactory.TopicNotFound{}, err, fmt.Sprintf("could not find topic %s", topic))
 		return
 	}
 

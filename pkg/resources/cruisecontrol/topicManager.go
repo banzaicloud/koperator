@@ -15,35 +15,27 @@
 package cruisecontrol
 
 import (
-	"emperror.dev/emperror"
-	"emperror.dev/errors"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkautil"
 	"github.com/go-logr/logr"
 
-	"github.com/Shopify/sarama"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// This function may be close to being able to be replaced with just submitting a CR
+// to ourselves
 func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Client, log logr.Logger) error {
 
 	broker, err := kafkautil.NewFromCluster(client, cluster)
 	if err != nil {
-		return emperror.Wrap(err, "Failed to connect to kafka cluster")
+		return err
 	}
 	defer broker.Close()
 
-	err = broker.CreateTopic(&kafkautil.CreateTopicOptions{
+	return broker.CreateTopic(&kafkautil.CreateTopicOptions{
 		Name:              "__CruiseControlMetrics",
 		Partitions:        12,
 		ReplicationFactor: 3,
 	})
 
-	var tError *sarama.TopicError
-
-	if err != nil && !(errors.As(err, &tError) && tError.Err == sarama.ErrTopicAlreadyExists) {
-		return emperror.Wrap(err, "Error while creating CC topic")
-	}
-
-	return nil
 }
