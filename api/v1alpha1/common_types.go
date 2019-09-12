@@ -24,6 +24,8 @@ type KafkaAccessType string
 
 type ClusterState string
 
+type ConfigurationState string
+
 // GracefulActionState holds information about GracefulAction State
 type GracefulActionState struct {
 	// ErrorMessage holds the information what happened with CC
@@ -38,6 +40,8 @@ type BrokerState struct {
 	RackAwarenessState RackAwarenessState `json:"rackAwarenessState"`
 	// GracefulActionState holds info about cc action status
 	GracefulActionState GracefulActionState `json:"gracefulActionState"`
+	// ConfigurationState holds info about the config
+	ConfigurationState ConfigurationState `json:"configurationState"`
 }
 
 // ClusterReference states a reference to a cluster for topic/user
@@ -72,6 +76,10 @@ const (
 	KafkaClusterRollingUpgrading ClusterState = "ClusterRollingUpgrading"
 	// KafkaClusterRunning states that the cluster is in running state
 	KafkaClusterRunning ClusterState = "ClusterRunning"
+	// ConfigInSync states that the generated brokerConfig is in sync with the Broker
+	ConfigInSync ConfigurationState = "ConfigInSync"
+	// ConfigOutOfSync states that the generated brokerConfig is out of sync with the Broker
+	ConfigOutOfSync ConfigurationState = "ConfigOutOfSync"
 	// CoreCACertKey is where ca ceritificates are stored in user certificates
 	CoreCACertKey string = "ca.crt"
 	// CACertKey is the key where the CA certificate is stored in the operator secrets

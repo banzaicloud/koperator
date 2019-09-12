@@ -956,6 +956,9 @@ spec:
               additionalProperties:
                 description: BrokerState holds information about broker state
                 properties:
+                  configurationState:
+                    description: ConfigurationState holds info about the config
+                    type: string
                   gracefulActionState:
                     description: GracefulActionState holds info about cc action status
                     properties:
@@ -976,6 +979,7 @@ spec:
                       status
                     type: string
                 required:
+                - configurationState
                 - gracefulActionState
                 - rackAwarenessState
                 type: object
