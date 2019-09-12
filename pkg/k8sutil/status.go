@@ -17,20 +17,20 @@ package k8sutil
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func IsAlreadyOwnedError(err interface{}) bool {
-	return reflect.TypeOf(err).Kind() == reflect.TypeOf(controllerutil.AlreadyOwnedError{}).Kind()
+func IsAlreadyOwnedError(err error) bool {
+	return errors.As(err, controllerutil.AlreadyOwnedError{})
 }
 
 func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
@@ -50,11 +50,11 @@ func updateRackAwarenessStatus(c client.Client, brokerId string, cluster *banzai
 	}
 
 	err := c.Status().Update(context.Background(), cluster)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		err = c.Update(context.Background(), cluster)
 	}
 	if err != nil {
-		if !errors.IsConflict(err) {
+		if !apierrors.IsConflict(err) {
 			return emperror.Wrapf(err, "could not update Kafka broker %s rack state to '%s'", brokerId, rackstatus)
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
@@ -75,7 +75,7 @@ func updateRackAwarenessStatus(c client.Client, brokerId string, cluster *banzai
 		}
 
 		err = c.Status().Update(context.Background(), cluster)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
@@ -101,11 +101,11 @@ func updateGracefulScaleStatus(c client.Client, brokerId string, cluster *banzai
 	}
 
 	err := c.Status().Update(context.Background(), cluster)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		err = c.Update(context.Background(), cluster)
 	}
 	if err != nil {
-		if !errors.IsConflict(err) {
+		if !apierrors.IsConflict(err) {
 			return emperror.Wrapf(err, "could not update Kafka broker %s graceful scale state to '%s'", brokerId, scaleStatus)
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
@@ -126,7 +126,7 @@ func updateGracefulScaleStatus(c client.Client, brokerId string, cluster *banzai
 		}
 
 		err = c.Status().Update(context.Background(), cluster)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
@@ -146,11 +146,11 @@ func UpdateCCTopicStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaClus
 	cluster.Status.CruiseControlTopicStatus = ccTopicStatus
 
 	err := c.Status().Update(context.Background(), cluster)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		err = c.Update(context.Background(), cluster)
 	}
 	if err != nil {
-		if !errors.IsConflict(err) {
+		if !apierrors.IsConflict(err) {
 			return emperror.Wrapf(err, "could not update CC topic state to '%s'", ccTopicStatus)
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
@@ -164,7 +164,7 @@ func UpdateCCTopicStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaClus
 		cluster.Status.CruiseControlTopicStatus = ccTopicStatus
 
 		err = c.Status().Update(context.Background(), cluster)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
@@ -188,11 +188,11 @@ func DeleteStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1
 	cluster.Status.BrokersState = brokerStatus
 
 	err := c.Status().Update(context.Background(), cluster)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		err = c.Update(context.Background(), cluster)
 	}
 	if err != nil {
-		if !errors.IsConflict(err) {
+		if !apierrors.IsConflict(err) {
 			return emperror.Wrapf(err, "could not delete Kafka cluster broker %s state ", brokerId)
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
@@ -208,7 +208,7 @@ func DeleteStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1
 
 		cluster.Status.BrokersState = brokerStatus
 		err = c.Status().Update(context.Background(), cluster)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {

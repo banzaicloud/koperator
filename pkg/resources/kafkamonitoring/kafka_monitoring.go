@@ -15,7 +15,6 @@
 package kafkamonitoring
 
 import (
-	"emperror.dev/emperror"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
@@ -56,7 +55,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		o := res()
 		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 		if err != nil {
-			return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			return err
 		}
 	}
 

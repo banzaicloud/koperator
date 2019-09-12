@@ -60,10 +60,7 @@ func New(opts *KafkaConfig) (client KafkaClient, err error) {
 		timeout: time.Duration(opts.OperationTimeout) * time.Second,
 	}
 
-	var config *sarama.Config
-	if config, err = kclient.getSaramaConfig(); err != nil {
-		return
-	}
+	config := kclient.getSaramaConfig()
 
 	if kclient.admin, err = sarama.NewClusterAdmin([]string{opts.BrokerURI}, config); err != nil {
 		return
@@ -105,7 +102,7 @@ func (k *kafkaClient) DescribeCluster() (brokers []*sarama.Broker, err error) {
 	return
 }
 
-func (k *kafkaClient) getSaramaConfig() (config *sarama.Config, err error) {
+func (k *kafkaClient) getSaramaConfig() (config *sarama.Config) {
 	config = sarama.NewConfig()
 	if k.opts.UseSSL {
 		config.Net.TLS.Enable = true

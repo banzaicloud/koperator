@@ -19,9 +19,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func logErrorAndRequeue(logger logr.Logger, msg string, err error) (ctrl.Result, error) {
+func requeueWithError(logger logr.Logger, msg string, err error) (ctrl.Result, error) {
 	logger.Error(err, msg)
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, err
 }
 
 func reconciled() (ctrl.Result, error) {

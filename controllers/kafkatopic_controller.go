@@ -20,7 +20,9 @@ import (
 	"strconv"
 	"time"
 
+	"emperror.dev/errors"
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkautil"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -95,7 +97,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 			return reconciled()
 		}
 		// Error reading the object - requeue the request.
-		return logErrorAndRequeue(reqLogger, err.Error(), err)
+		return requeueWithError(reqLogger, err.Error(), err)
 	}
 
 	// Get the referenced kafkacluster
@@ -109,18 +111,27 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
 			reqLogger.Info("Cluster is already gone, there is nothing we can do")
 			if err = r.removeFinalizer(instance); err != nil {
-				return logErrorAndRequeue(reqLogger, "failed to remove finalizer", err)
+				return requeueWithError(reqLogger, "failed to remove finalizer", err)
 			}
 			return reconciled()
 		}
-		return logErrorAndRequeue(reqLogger, "failed to lookup referenced cluster", err)
+
+		// the cluster does not exist - should have been caught pre-flight
+		return requeueWithError(reqLogger, "failed to lookup referenced cluster", err)
 	}
 
 	// Get a kafka connection
 	reqLogger.Info("Retrieving kafka admin client")
 	broker, err := kafkautil.NewFromCluster(r.Client, cluster)
 	if err != nil {
-		return logErrorAndRequeue(reqLogger, "failed to connect to kafka cluster", err)
+		if errors.As(err, &errorfactory.ResourceNotReady{}) {
+			reqLogger.Info("Controller secret not found, may not be ready")
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: time.Duration(5) * time.Second,
+			}, nil
+		}
+		return requeueWithError(reqLogger, "failed to connect to kafka cluster", err)
 	}
 	defer broker.Close()
 
@@ -132,7 +143,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	// Check if the topic already exists
 	existing, err := broker.GetTopic(instance.Spec.Name)
 	if err != nil {
-		return logErrorAndRequeue(reqLogger, "failure checking for existing topic", err)
+		return requeueWithError(reqLogger, "failure checking for existing topic", err)
 	}
 
 	// we got a topic back
@@ -142,13 +153,13 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 
 		// Ensure partition count and topic configurations
 		if changed, err := broker.EnsurePartitionCount(instance.Spec.Name, instance.Spec.Partitions); err != nil {
-			return logErrorAndRequeue(reqLogger, "failed to ensure topic partition count", err)
+			return requeueWithError(reqLogger, "failed to ensure topic partition count", err)
 		} else if changed {
 			reqLogger.Info("Increased partition count for topic")
 		}
 
 		if err = broker.EnsureTopicConfig(instance.Spec.Name, util.MapStringStringPointer(instance.Spec.Config)); err != nil {
-			return logErrorAndRequeue(reqLogger, "failure to ensure topic config", err)
+			return requeueWithError(reqLogger, "failure to ensure topic config", err)
 		}
 		reqLogger.Info("Verified partitions and configuration for topic")
 
@@ -161,12 +172,12 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 			ReplicationFactor: int16(instance.Spec.ReplicationFactor),
 			Config:            util.MapStringStringPointer(instance.Spec.Config),
 		}); err != nil {
-			return logErrorAndRequeue(reqLogger, "failed to create kafka topic", err)
+			return requeueWithError(reqLogger, "failed to create kafka topic", err)
 		}
 
 		if err = controllerutil.SetControllerReference(cluster, instance, r.Scheme); err != nil {
 			if !k8sutil.IsAlreadyOwnedError(err) {
-				return logErrorAndRequeue(reqLogger, "failed to set cluster controller reference on new KafkaTopic", err)
+				return requeueWithError(reqLogger, "failed to set cluster controller reference on new KafkaTopic", err)
 			}
 		}
 
@@ -180,12 +191,12 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 
 	// push any changes
 	if err = r.Client.Update(context.TODO(), instance); err != nil {
-		return logErrorAndRequeue(reqLogger, "failed to update KafkaTopic with controller reference", err)
+		return requeueWithError(reqLogger, "failed to update KafkaTopic with controller reference", err)
 	}
 
 	// Do an initial topic status sync
 	if _, err = r.doTopicStatusSync(reqLogger, cluster, instance); err != nil {
-		return logErrorAndRequeue(reqLogger, "failed to update KafkaTopic status", err)
+		return requeueWithError(reqLogger, "failed to update KafkaTopic status", err)
 	}
 
 	// Kick off a goroutine to sync topic status every 5 minutes
@@ -288,10 +299,10 @@ func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kaf
 	var err error
 	if util.StringSliceContains(topic.GetFinalizers(), topicFinalizer) {
 		if err = r.finalizeKafkaTopic(reqLogger, broker, topic); err != nil {
-			return logErrorAndRequeue(reqLogger, "failed to finalize kafkatopic", err)
+			return requeueWithError(reqLogger, "failed to finalize kafkatopic", err)
 		}
 		if err = r.removeFinalizer(topic); err != nil {
-			return logErrorAndRequeue(reqLogger, "failed to remove finalizer from kafkatopic", err)
+			return requeueWithError(reqLogger, "failed to remove finalizer from kafkatopic", err)
 		}
 	}
 	return reconciled()
