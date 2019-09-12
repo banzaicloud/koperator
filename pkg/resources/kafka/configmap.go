@@ -91,7 +91,7 @@ func generateSuperUsers(users []string) (suStrings []string) {
 
 func (r *Reconciler) configMap(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, loadBalancerIP string, superUsers []string, log logr.Logger) runtime.Object {
 	return &corev1.ConfigMap{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id), util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}), r.KafkaCluster),
 		Data:       map[string]string{"broker-config": r.generateBrokerConfig(id, brokerConfig, superUsers, loadBalancerIP, log)},
 	}
 }
