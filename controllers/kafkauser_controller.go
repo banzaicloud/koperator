@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"emperror.dev/errors"
-
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -141,14 +139,26 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	reqLogger.Info("Retrieving kafka admin client")
 	broker, err := kafkautil.NewFromCluster(r.Client, cluster)
 	if err != nil {
-		if errors.As(err, &errorfactory.ResourceNotReady{}) {
-			reqLogger.Info("controller secret not found, may not be ready")
+		switch err.(type) {
+		case errorfactory.BrokersUnreachable:
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: time.Duration(15) * time.Second,
+			}, nil
+		case errorfactory.BrokersNotReady:
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: time.Duration(15) * time.Second,
+			}, nil
+		case errorfactory.ResourceNotReady:
+			reqLogger.Info("Controller secret not found, may not be ready")
 			return ctrl.Result{
 				Requeue:      true,
 				RequeueAfter: time.Duration(5) * time.Second,
 			}, nil
+		default:
+			return requeueWithError(reqLogger, err.Error(), err)
 		}
-		return requeueWithError(reqLogger, "failed to connect to kafka cluster", err)
 	}
 	defer broker.Close()
 
@@ -184,14 +194,16 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	// get the user's distinguished name for kafka acls
 	userName, secret, err := r.getUserX509NameAndCredentials(reqLogger, instance)
 	if err != nil {
-		if errors.As(err, &errorfactory.ResourceNotReady{}) {
-			reqLogger.Info("user secret not found, might not be ready")
+		switch err.(type) {
+		case errorfactory.ResourceNotReady:
+			reqLogger.Info("Controller secret not found, may not be ready")
 			return ctrl.Result{
 				Requeue:      true,
 				RequeueAfter: time.Duration(5) * time.Second,
 			}, nil
+		default:
+			return requeueWithError(reqLogger, "failed to get user secret", err)
 		}
-		return requeueWithError(reqLogger, "failed to get user secret", err)
 	}
 
 	if instance.Spec.IncludeJKS {

@@ -20,6 +20,7 @@ import (
 
 	"github.com/Shopify/sarama"
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -29,6 +30,7 @@ var apiVersion = sarama.V2_1_0_0
 
 // KafkaClient is the exported interface for kafka operations
 type KafkaClient interface {
+	NumBrokers() int
 	ListTopics() (map[string]sarama.TopicDetail, error)
 	CreateTopic(*CreateTopicOptions) error
 	EnsurePartitionCount(string, int32) (bool, error)
@@ -63,11 +65,13 @@ func New(opts *KafkaConfig) (client KafkaClient, err error) {
 	config := kclient.getSaramaConfig()
 
 	if kclient.admin, err = sarama.NewClusterAdmin([]string{opts.BrokerURI}, config); err != nil {
+		err = errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 		return
 	}
 
 	if kclient.brokers, err = kclient.DescribeCluster(); err != nil {
 		kclient.admin.Close()
+		err = errorfactory.New(errorfactory.BrokersNotReady{}, err, "could not describe kafka cluster")
 		return
 	}
 
@@ -95,6 +99,10 @@ func (k *kafkaClient) ResolveBrokerID(ID int32) string {
 	}
 	// fall back to leader ID
 	return strconv.Itoa(int(ID))
+}
+
+func (k *kafkaClient) NumBrokers() int {
+	return len(k.brokers)
 }
 
 func (k *kafkaClient) DescribeCluster() (brokers []*sarama.Broker, err error) {

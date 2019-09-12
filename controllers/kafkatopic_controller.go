@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"time"
 
-	"emperror.dev/errors"
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
@@ -124,14 +123,26 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	reqLogger.Info("Retrieving kafka admin client")
 	broker, err := kafkautil.NewFromCluster(r.Client, cluster)
 	if err != nil {
-		if errors.As(err, &errorfactory.ResourceNotReady{}) {
+		switch err.(type) {
+		case errorfactory.BrokersUnreachable:
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: time.Duration(15) * time.Second,
+			}, nil
+		case errorfactory.BrokersNotReady:
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: time.Duration(15) * time.Second,
+			}, nil
+		case errorfactory.ResourceNotReady:
 			reqLogger.Info("Controller secret not found, may not be ready")
 			return ctrl.Result{
 				Requeue:      true,
 				RequeueAfter: time.Duration(5) * time.Second,
 			}, nil
+		default:
+			return requeueWithError(reqLogger, err.Error(), err)
 		}
-		return requeueWithError(reqLogger, "failed to connect to kafka cluster", err)
 	}
 	defer broker.Close()
 

@@ -20,7 +20,8 @@ import (
 )
 
 func requeueWithError(logger logr.Logger, msg string, err error) (ctrl.Result, error) {
-	logger.Error(err, msg)
+	// Info log the error message and then let the reconciler dump the stacktrace
+	logger.Info(msg)
 	return ctrl.Result{}, err
 }
 

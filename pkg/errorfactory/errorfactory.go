@@ -19,7 +19,11 @@ import "emperror.dev/emperror"
 type ResourceNotReady struct{ error }
 type APIFailure struct{ error }
 type StatusUpdateError struct{ error }
-type BrokerUnreachable struct{ error }
+type BrokersUnreachable struct{ error }
+type BrokersNotReady struct{ error }
+type BrokersRequestError struct{ error }
+type CreateTopicError struct{ error }
+type TopicNotFound struct{ error }
 type GracefulUpscaleFailed struct{ error }
 type TooManyResources struct{ error }
 type InternalError struct{ error }
@@ -34,10 +38,18 @@ func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 		return APIFailure{wrapped}
 	case StatusUpdateError:
 		return StatusUpdateError{wrapped}
-	case BrokerUnreachable:
-		return BrokerUnreachable{wrapped}
+	case BrokersUnreachable:
+		return BrokersUnreachable{wrapped}
+	case BrokersNotReady:
+		return BrokersNotReady{wrapped}
+	case BrokersRequestError:
+		return BrokersRequestError{wrapped}
 	case GracefulUpscaleFailed:
 		return GracefulUpscaleFailed{wrapped}
+	case TopicNotFound:
+		return TopicNotFound{wrapped}
+	case CreateTopicError:
+		return CreateTopicError{wrapped}
 	case TooManyResources:
 		return TooManyResources{wrapped}
 	case InternalError:

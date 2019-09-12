@@ -100,6 +100,14 @@ func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admi
 			log.Info(fmt.Sprintf("Spec is requesting replication factor change from %v to %v, rejecting", existing.ReplicationFactor, topic.Spec.ReplicationFactor))
 			return notAllowed("Kafka does not support changing the replication factor on an existing topic")
 		}
+
+		// the topic does not exist
+	} else {
+		// check if requesting a replication factor larger than the broker size
+		if int(topic.Spec.ReplicationFactor) > broker.NumBrokers() {
+			log.Info(fmt.Sprintf("Spec is requesting replication factor of %v, larger than cluster size of %v", topic.Spec.ReplicationFactor, broker.NumBrokers()))
+			return notAllowed("Replication factor is larger than the number of nodes in the kafka cluster")
+		}
 	}
 
 	// everything looks a-okay

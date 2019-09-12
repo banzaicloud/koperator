@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"emperror.dev/errors"
-	"github.com/Shopify/sarama"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
@@ -104,20 +102,34 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	for _, rec := range reconcilers {
 		err = rec.Reconcile(log)
 		if err != nil {
-			var tError *sarama.TopicError
-			if errors.Is(err, sarama.ErrOutOfBrokers) || errors.As(err, &tError) {
+			switch err.(type) {
+			case errorfactory.BrokersUnreachable:
+				log.Info("Brokers unreachable, may still be starting up")
 				return ctrl.Result{
 					Requeue:      true,
-					RequeueAfter: time.Duration(20) * time.Second,
+					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
-			}
-			if errors.As(err, &errorfactory.ResourceNotReady{}) {
+			case errorfactory.BrokersNotReady:
+				log.Info("Brokers not ready, may still be starting up")
+				return ctrl.Result{
+					Requeue:      true,
+					RequeueAfter: time.Duration(15) * time.Second,
+				}, nil
+			case errorfactory.ResourceNotReady:
+				log.Info("A new resource was not found, may not be ready")
 				return ctrl.Result{
 					Requeue:      true,
 					RequeueAfter: time.Duration(5) * time.Second,
 				}, nil
+			case errorfactory.CreateTopicError:
+				log.Info("Could not create CC topic, either less than 3 brokers or not all are ready")
+				return ctrl.Result{
+					Requeue:      true,
+					RequeueAfter: time.Duration(15) * time.Second,
+				}, nil
+			default:
+				return requeueWithError(log, err.Error(), err)
 			}
-			return requeueWithError(log, err.Error(), err)
 		}
 	}
 
