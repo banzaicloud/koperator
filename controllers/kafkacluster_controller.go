@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 )
 
@@ -92,8 +91,10 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		return r.checkFinalizers(log, instance)
 	}
 
-	if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1alpha1.KafkaClusterReconciling, log); err != nil {
-		return ctrl.Result{}, err
+	if instance.Status.State != banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
+		if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1alpha1.KafkaClusterReconciling, log); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	reconcilers := []resources.ComponentReconciler{
@@ -132,7 +133,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	return ctrl.Result{}, nil
 }
 
-func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *v1alpha1.KafkaCluster) (ctrl.Result, error) {
+func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *banzaicloudv1alpha1.KafkaCluster) (ctrl.Result, error) {
 	log.Info("KafkaCluster is marked for deletion, checking for children")
 	if !util.StringSliceContains(cluster.GetFinalizers(), clusterFinalizer) {
 		return ctrl.Result{}, nil
@@ -141,7 +142,7 @@ func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *v1alp
 	var err error
 
 	// Delete all kafkatopics associated with us
-	var childTopics v1alpha1.KafkaTopicList
+	var childTopics banzaicloudv1alpha1.KafkaTopicList
 	if err = r.Client.List(context.TODO(), &childTopics); err != nil {
 		log.Error(err, "Failed to list child kafkatopics")
 		return ctrl.Result{}, err
@@ -157,7 +158,7 @@ func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *v1alp
 	}
 
 	// Delete all kafkausers associated with us
-	var childUsers v1alpha1.KafkaUserList
+	var childUsers banzaicloudv1alpha1.KafkaUserList
 	if err = r.Client.List(context.TODO(), &childUsers); err != nil {
 		log.Error(err, "Failed to list child kafkausers")
 		return ctrl.Result{}, err
@@ -181,7 +182,7 @@ func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *v1alp
 	return ctrl.Result{}, nil
 }
 
-func (r *KafkaClusterReconciler) ensureFinalizer(cluster *v1alpha1.KafkaCluster) (err error) {
+func (r *KafkaClusterReconciler) ensureFinalizer(cluster *banzaicloudv1alpha1.KafkaCluster) (err error) {
 	if util.StringSliceContains(cluster.GetFinalizers(), clusterFinalizer) {
 		return
 	}
@@ -190,12 +191,12 @@ func (r *KafkaClusterReconciler) ensureFinalizer(cluster *v1alpha1.KafkaCluster)
 	return
 }
 
-func (r *KafkaClusterReconciler) removeFinalizer(cluster *v1alpha1.KafkaCluster) error {
+func (r *KafkaClusterReconciler) removeFinalizer(cluster *banzaicloudv1alpha1.KafkaCluster) error {
 	cluster.SetFinalizers(util.StringSliceRemove(cluster.GetFinalizers(), clusterFinalizer))
 	return r.Client.Update(context.TODO(), cluster)
 }
 
-func belongsToCluster(ref v1alpha1.ClusterReference, cluster *v1alpha1.KafkaCluster) bool {
+func belongsToCluster(ref banzaicloudv1alpha1.ClusterReference, cluster *banzaicloudv1alpha1.KafkaCluster) bool {
 	if ref.Name == cluster.Name && ref.Namespace == cluster.Namespace {
 		return true
 	}
