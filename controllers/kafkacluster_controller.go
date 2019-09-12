@@ -22,6 +22,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/Shopify/sarama"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
@@ -83,7 +84,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 			return reconciled()
 		}
 		// Error reading the object - requeue the request.
-		return logErrorAndRequeue(log, err.Error(), err)
+		return ctrl.Result{}, err
 	}
 
 	// Check if marked for deletion and run finalizers
@@ -110,13 +111,19 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 					RequeueAfter: time.Duration(20) * time.Second,
 				}, nil
 			}
-			return logErrorAndRequeue(log, err.Error(), err)
+			if errors.As(err, &errorfactory.ResourceNotReady{}) {
+				return ctrl.Result{
+					Requeue:      true,
+					RequeueAfter: time.Duration(5) * time.Second,
+				}, nil
+			}
+			return requeueWithError(log, err.Error(), err)
 		}
 	}
 
 	log.Info("ensuring finalizer on kafkacluster")
 	if err = r.ensureFinalizer(instance); err != nil {
-		return logErrorAndRequeue(log, "failed to ensure finalizers on kafkacluster instance", err)
+		return requeueWithError(log, "failed to ensure finalizers on kafkacluster instance", err)
 	}
 
 	return reconciled()
@@ -133,13 +140,13 @@ func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *v1alp
 	// Delete all kafkatopics associated with us
 	var childTopics v1alpha1.KafkaTopicList
 	if err = r.Client.List(context.TODO(), &childTopics); err != nil {
-		return logErrorAndRequeue(log, "failed to list kafkatopics", err)
+		return requeueWithError(log, "failed to list kafkatopics", err)
 	}
 	for _, topic := range childTopics.Items {
 		if belongsToCluster(topic.Spec.ClusterRef, cluster) {
 			log.Info(fmt.Sprintf("Deleting associated topic %s", topic.Name))
 			if err = r.Client.Delete(context.TODO(), &topic); err != nil {
-				return logErrorAndRequeue(log, "failed to delete kafkatopic", err)
+				return requeueWithError(log, "failed to delete kafkatopic", err)
 			}
 		}
 	}
@@ -147,20 +154,20 @@ func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *v1alp
 	// Delete all kafkausers associated with us
 	var childUsers v1alpha1.KafkaUserList
 	if err = r.Client.List(context.TODO(), &childUsers); err != nil {
-		return logErrorAndRequeue(log, "failed to list kafkausers", err)
+		return requeueWithError(log, "failed to list kafkausers", err)
 	}
 	for _, user := range childUsers.Items {
 		if belongsToCluster(user.Spec.ClusterRef, cluster) {
 			log.Info(fmt.Sprintf("Deleting associated user %s", user.Name))
 			if err = r.Client.Delete(context.TODO(), &user); err != nil {
-				return logErrorAndRequeue(log, "failed to delete kafkauser", err)
+				return requeueWithError(log, "failed to delete kafkauser", err)
 			}
 		}
 	}
 
 	log.Info("Removing finalizers from kafkacluster instance")
 	if err := r.removeFinalizer(cluster); err != nil {
-		return logErrorAndRequeue(log, "failed to remove finalizer", err)
+		return requeueWithError(log, "failed to remove finalizer", err)
 	}
 
 	return ctrl.Result{}, nil

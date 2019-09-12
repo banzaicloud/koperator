@@ -21,9 +21,11 @@ import (
 	"fmt"
 
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/pki"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -58,6 +60,9 @@ func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (*Kafka
 			tlsKeys,
 		)
 		if err != nil {
+			if apierrors.IsNotFound(err) {
+				err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "controller secret not found")
+			}
 			return conf, err
 		}
 		clientCert := tlsKeys.Data[v1alpha1.ClientCertKey]
@@ -65,6 +70,7 @@ func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (*Kafka
 		caCert := tlsKeys.Data[v1alpha1.CACertKey]
 		x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
 		if err != nil {
+			err = errorfactory.New(errorfactory.InternalError{}, err, "could not decode controller certificate")
 			return conf, err
 		}
 

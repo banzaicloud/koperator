@@ -20,10 +20,12 @@ import (
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -114,6 +116,11 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 	secret := &corev1.Secret{}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.KafkaCluster.Namespace, Name: r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "could not find provided tls secret")
+		} else {
+			err = errorfactory.New(errorfactory.APIFailure{}, err, "could not lookup provided tls secret")
+		}
 		return []runtime.Object{}, err
 	}
 	caKey := secret.Data[banzaicloudv1alpha1.CAPrivateKeyKey]
@@ -152,6 +159,11 @@ func (r *Reconciler) getBootstrapSSLSecret() (certs, passw *corev1.Secret, err e
 		Name:      fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name),
 		Namespace: r.KafkaCluster.Namespace,
 	}, serverSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "server secret not ready")
+			return
+		}
+		err = errorfactory.New(errorfactory.APIFailure{}, err, "could not get server cert")
 		return
 	}
 
@@ -160,6 +172,11 @@ func (r *Reconciler) getBootstrapSSLSecret() (certs, passw *corev1.Secret, err e
 		Name:      fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name),
 		Namespace: r.KafkaCluster.Namespace,
 	}, clientSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")
+			return
+		}
+		err = errorfactory.New(errorfactory.APIFailure{}, err, "could not get client cert")
 		return
 	}
 

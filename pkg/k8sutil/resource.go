@@ -22,6 +22,7 @@ import (
 	"emperror.dev/emperror"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
@@ -51,12 +52,22 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 
 		err = client.Get(context.TODO(), key, current)
 		if err != nil && !apierrors.IsNotFound(err) {
-			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType, "name", key.Name)
+			return errorfactory.New(
+				errorfactory.APIFailure{},
+				err,
+				"getting resource failed",
+				"kind", desiredType, "name", key.Name,
+			)
 		}
 		if apierrors.IsNotFound(err) {
 			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
-				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType, "name", key.Name)
+				return errorfactory.New(
+					errorfactory.APIFailure{},
+					err,
+					"creating resource failed",
+					"kind", desiredType, "name", key.Name,
+				)
 			}
 			log.Info("resource created")
 			return nil
@@ -69,12 +80,22 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		}
 		err = client.Get(context.TODO(), types.NamespacedName{Namespace: metav1.NamespaceAll, Name: key.Name}, current)
 		if err != nil && !apierrors.IsNotFound(err) {
-			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType, "name", key.Name)
+			return errorfactory.New(
+				errorfactory.APIFailure{},
+				err,
+				"getting resource failed",
+				"kind", desiredType, "name", key.Name,
+			)
 		}
 		if apierrors.IsNotFound(err) {
 			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
-				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType, "name", key.Name)
+				return errorfactory.New(
+					errorfactory.APIFailure{},
+					err,
+					"creating resource failed",
+					"kind", desiredType, "name", key.Name,
+				)
 			}
 			log.Info("resource created")
 			return nil
@@ -91,7 +112,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		err = client.List(context.TODO(), pvcList,
 			runtimeClient.ListOption(runtimeClient.InNamespace(current.(*corev1.PersistentVolumeClaim).Namespace)), runtimeClient.ListOption(matchingLabels))
 		if err != nil && len(pvcList.Items) == 0 {
-			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType)
+			return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
 		}
 		mountPath := current.(*corev1.PersistentVolumeClaim).Annotations["mountPath"]
 
@@ -99,7 +120,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		if len(pvcList.Items) == 0 {
 			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
-				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
+				return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 			}
 			log.Info("resource created")
 			return nil
@@ -116,7 +137,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			// Creating the 2+ PersistentVolumes for Pod
 			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
-				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
+				return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 			}
 			return nil
 		}
@@ -131,12 +152,12 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		}
 		err = client.List(context.TODO(), podList, runtimeClient.ListOption(runtimeClient.InNamespace(current.(*corev1.Pod).Namespace)), runtimeClient.ListOption(matchingLabels))
 		if err != nil && len(podList.Items) == 0 {
-			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType)
+			return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
 		}
 		if len(podList.Items) == 0 {
 			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
-				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
+				return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 			}
 			log.Info("resource created")
 			return nil
@@ -147,11 +168,11 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				if cr.Spec.RackAwareness != nil && (brokerState.RackAwarenessState == banzaicloudv1alpha1.WaitingForRackAwareness || brokerState.RackAwarenessState == "") {
 					err := updateCrWithRackAwarenessConfig(current.(*corev1.Pod), cr, client)
 					if err != nil {
-						return emperror.Wrap(err, "updating cr with rack awareness info failed")
+						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with rack awareness info failed")
 					}
 					statusErr := updateRackAwarenessStatus(client, brokerId, cr, banzaicloudv1alpha1.Configured, log)
 					if statusErr != nil {
-						return emperror.WrapWith(err, "updating status for resource failed", "kind", desiredType)
+						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
 					}
 				}
 				if current.(*corev1.Pod).Status.Phase == corev1.PodRunning && brokerState.GracefulActionState.CruiseControlState == banzaicloudv1alpha1.GracefulUpdateRequired {
@@ -161,13 +182,13 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 						statusErr := updateGracefulScaleStatus(client, brokerId, cr,
 							banzaicloudv1alpha1.GracefulActionState{ErrorMessage: scaleErr.Error(), CruiseControlState: banzaicloudv1alpha1.GracefulUpdateFailed}, log)
 						if statusErr != nil {
-							return emperror.Wrap(statusErr, "could not update broker graceful action state")
+							return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
 						}
 					} else {
 						statusErr := updateGracefulScaleStatus(client, brokerId, cr,
 							banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateSucceeded}, log)
 						if statusErr != nil {
-							return emperror.Wrap(statusErr, "could not update broker graceful action state")
+							return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
 						}
 					}
 				}
@@ -175,18 +196,18 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				statusErr := updateGracefulScaleStatus(client, brokerId, cr,
 					banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateRequired}, log)
 				if statusErr != nil {
-					return emperror.Wrap(statusErr, "could not update broker graceful action state")
+					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
 				}
 				if cr.Spec.RackAwareness != nil {
 					statusErr := updateRackAwarenessStatus(client, brokerId, cr, banzaicloudv1alpha1.WaitingForRackAwareness, log)
 					if statusErr != nil {
-						return emperror.Wrap(statusErr, "could not update broker rack state")
+						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker rack state")
 					}
 				}
 			}
 
 		} else {
-			return emperror.WrapWith(errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
+			return errorfactory.New(errorfactory.TooManyResources{}, errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
 		}
 	}
 	if err == nil {
@@ -247,11 +268,11 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		case *corev1.Pod:
 			err := updateCrWithNodeAffinity(current.(*corev1.Pod), cr, client)
 			if err != nil {
-				return emperror.WrapWith(err, "updating cr failed")
+				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with node affinity failed")
 			}
 			err = client.Delete(context.TODO(), current)
 			if err != nil {
-				return emperror.WrapWith(err, "deleting resource failed", "kind", desiredType)
+				return errorfactory.New(errorfactory.APIFailure{}, err, "deleting resource failed", "kind", desiredType)
 			}
 			return nil
 
@@ -269,7 +290,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		}
 
 		if err := client.Update(context.TODO(), desired); err != nil {
-			return emperror.WrapWith(err, "updating resource failed", "kind", desiredType)
+			return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
 		}
 		log.Info("resource updated")
 	}

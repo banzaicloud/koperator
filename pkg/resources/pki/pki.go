@@ -18,8 +18,8 @@ import (
 	"context"
 	"fmt"
 
-	"emperror.dev/emperror"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/go-logr/logr"
@@ -79,7 +79,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	for _, o := range resources {
 		if err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster); err != nil {
-			return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			return err
 		}
 	}
 
@@ -89,13 +89,12 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		bootSecret, passSecret, err := r.getBootstrapSSLSecret()
 		if err != nil {
-			// our secret may not be ready, we can come back to it
-			return emperror.WrapWith(err, "failed to retrieve bootstrap secret from pki")
+			return err
 		}
 
 		for _, o := range []runtime.Object{bootSecret, passSecret} {
 			if err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster); err != nil {
-				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				return err
 			}
 		}
 
@@ -109,19 +108,19 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		for _, o := range secretNames {
 			secret := &corev1.Secret{}
 			if err := r.Client.Get(context.TODO(), o, secret); err != nil {
-				return emperror.WrapWith(err, "pki secret is not ready")
+				return errorfactory.New(errorfactory.ResourceNotReady{}, err, "pki secret not ready")
 			}
 
 			if err := controllerutil.SetControllerReference(r.KafkaCluster, secret, r.Scheme); err != nil {
 				if k8sutil.IsAlreadyOwnedError(err) {
 					continue
 				} else {
-					return emperror.WrapWith(err, "failed to set controller reference on secret")
+					return errorfactory.New(errorfactory.InternalError{}, err, "failed to set controller reference on secret")
 				}
 			}
 
 			if err := r.Client.Update(context.TODO(), secret); err != nil {
-				return emperror.WrapWith(err, "failed to update secret with controller reference")
+				return errorfactory.New(errorfactory.APIFailure{}, err, "failed to set controller reference on secret")
 			}
 
 		}
