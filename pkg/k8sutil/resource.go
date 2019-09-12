@@ -61,6 +61,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			log.Info("resource created")
 			return nil
 		}
+		// TODO check if this ClusterIssuer part here is necessary or can be handled in default (baluchicken)
 	case *certv1.ClusterIssuer:
 		var key runtimeClient.ObjectKey
 		key, err = runtimeClient.ObjectKeyFromObject(current)
@@ -89,7 +90,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			"brokerId": desired.(*corev1.PersistentVolumeClaim).Labels["brokerId"],
 		}
 		err = client.List(context.TODO(), pvcList,
-			runtimeClient.ListOption(runtimeClient.InNamespace(current.(*corev1.PersistentVolumeClaim).Namespace)), runtimeClient.ListOption(matchingLabels))
+			runtimeClient.InNamespace(current.(*corev1.PersistentVolumeClaim).Namespace), matchingLabels)
 		if err != nil && len(pvcList.Items) == 0 {
 			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType)
 		}
@@ -129,7 +130,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			"kafka_cr": cr.Name,
 			"brokerId": desired.(*corev1.Pod).Labels["brokerId"],
 		}
-		err = client.List(context.TODO(), podList, runtimeClient.ListOption(runtimeClient.InNamespace(current.(*corev1.Pod).Namespace)), runtimeClient.ListOption(matchingLabels))
+		err = client.List(context.TODO(), podList, runtimeClient.InNamespace(current.(*corev1.Pod).Namespace), matchingLabels)
 		if err != nil && len(podList.Items) == 0 {
 			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType)
 		}
@@ -137,6 +138,11 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
+			}
+			// Update status to Config InSync because broker is configured to go
+			statusErr := updateBrokerStatus(client, desired.(*corev1.Pod).Labels["brokerId"], cr, banzaicloudv1alpha1.ConfigInSync, log)
+			if statusErr != nil {
+				return emperror.WrapWith(err, "updating status for resource failed", "kind", desiredType)
 			}
 			log.Info("resource created")
 			return nil
@@ -149,7 +155,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 					if err != nil {
 						return emperror.Wrap(err, "updating cr with rack awareness info failed")
 					}
-					statusErr := updateRackAwarenessStatus(client, brokerId, cr, banzaicloudv1alpha1.Configured, log)
+					statusErr := updateBrokerStatus(client, brokerId, cr, banzaicloudv1alpha1.Configured, log)
 					if statusErr != nil {
 						return emperror.WrapWith(err, "updating status for resource failed", "kind", desiredType)
 					}
@@ -158,13 +164,13 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 					scaleErr := scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"], desired.(*corev1.Pod).Namespace, cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)
 					if scaleErr != nil {
 						log.Error(err, "graceful upscale failed, or cluster just started")
-						statusErr := updateGracefulScaleStatus(client, brokerId, cr,
+						statusErr := updateBrokerStatus(client, brokerId, cr,
 							banzaicloudv1alpha1.GracefulActionState{ErrorMessage: scaleErr.Error(), CruiseControlState: banzaicloudv1alpha1.GracefulUpdateFailed}, log)
 						if statusErr != nil {
 							return emperror.Wrap(statusErr, "could not update broker graceful action state")
 						}
 					} else {
-						statusErr := updateGracefulScaleStatus(client, brokerId, cr,
+						statusErr := updateBrokerStatus(client, brokerId, cr,
 							banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateSucceeded}, log)
 						if statusErr != nil {
 							return emperror.Wrap(statusErr, "could not update broker graceful action state")
@@ -172,13 +178,13 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 					}
 				}
 			} else {
-				statusErr := updateGracefulScaleStatus(client, brokerId, cr,
+				statusErr := updateBrokerStatus(client, brokerId, cr,
 					banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateRequired}, log)
 				if statusErr != nil {
 					return emperror.Wrap(statusErr, "could not update broker graceful action state")
 				}
 				if cr.Spec.RackAwareness != nil {
-					statusErr := updateRackAwarenessStatus(client, brokerId, cr, banzaicloudv1alpha1.WaitingForRackAwareness, log)
+					statusErr := updateBrokerStatus(client, brokerId, cr, banzaicloudv1alpha1.WaitingForRackAwareness, log)
 					if statusErr != nil {
 						return emperror.Wrap(statusErr, "could not update broker rack state")
 					}
@@ -197,7 +203,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			switch current.(type) {
 			case *corev1.Pod:
 				{
-					if current.(*corev1.Pod).Status.Phase != corev1.PodFailed {
+					if current.(*corev1.Pod).Status.Phase != corev1.PodFailed && cr.Status.BrokersState[current.(*corev1.Pod).Labels["brokerId"]].ConfigurationState == banzaicloudv1alpha1.ConfigInSync {
 						log.V(1).Info("resource is in sync")
 						return nil
 					}
@@ -270,6 +276,16 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 
 		if err := client.Update(context.TODO(), desired); err != nil {
 			return emperror.WrapWith(err, "updating resource failed", "kind", desiredType)
+		}
+		switch desired.(type) {
+		case *corev1.ConfigMap:
+			// Only update status when configmap belongs to broker
+			if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
+				statusErr := updateBrokerStatus(client, id, cr, banzaicloudv1alpha1.ConfigOutOfSync, log)
+				if statusErr != nil {
+					return emperror.WrapWith(err, "updating status for resource failed", "kind", desiredType)
+				}
+			}
 		}
 		log.Info("resource updated")
 	}
