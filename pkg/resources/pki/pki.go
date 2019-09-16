@@ -24,6 +24,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -92,9 +93,16 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			return err
 		}
 
-		for _, o := range []runtime.Object{bootSecret, passSecret} {
-			if err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster); err != nil {
-				return err
+		for _, o := range []*corev1.Secret{bootSecret, passSecret} {
+			secret := &corev1.Secret{}
+			if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: o.Name, Namespace: o.Namespace}, secret); err != nil {
+				if apierrors.IsNotFound(err) {
+					if err := r.Client.Create(context.TODO(), o); err != nil {
+						return errorfactory.New(errorfactory.APIFailure{}, err, "could not create bootstrap secret")
+					}
+				} else {
+					return errorfactory.New(errorfactory.APIFailure{}, err, "could not check existence of bootstrap secret")
+				}
 			}
 		}
 
