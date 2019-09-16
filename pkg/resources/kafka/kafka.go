@@ -391,7 +391,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 	} else {
 		return errorfactory.New(errorfactory.TooManyResources{}, errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
 	}
-	// TODO check if this err == nil check neccessary (baluchicken)
+	// TODO check if this err == nil check necessary (baluchicken)
 	if err == nil {
 		// Check if the resource actually updated
 		patchResult, err := patch.DefaultPatchMaker.Calculate(currentPod, desiredPod)
@@ -432,7 +432,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 					return emperror.Wrap(err, "failed to reconcile resource")
 				}
 				for _, pod := range podList.Items {
-					if pod.Status.Phase != corev1.PodRunning {
+					if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {
 						return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("clusterNotHealthy"), "rolling upgrade in progress")
 					}
 				}

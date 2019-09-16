@@ -186,7 +186,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfi
 				},
 			}...),
 			RestartPolicy:                 corev1.RestartPolicyNever,
-			TerminationGracePeriodSeconds: util.Int64Pointer(60),
+			TerminationGracePeriodSeconds: util.Int64Pointer(120),
 			DNSPolicy:                     corev1.DNSClusterFirst,
 			//ImagePullSecrets:              r.KafkaCluster.Spec.GetImagePullSecrets(),
 			//ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
