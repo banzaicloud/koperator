@@ -37,7 +37,7 @@ func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 	return m.GetDeletionTimestamp() != nil
 }
 
-func updateBrokerStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1.KafkaCluster, state interface{}, logger logr.Logger) error {
+func UpdateBrokerStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1.KafkaCluster, state interface{}, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
 	if cluster.Status.BrokersState == nil {

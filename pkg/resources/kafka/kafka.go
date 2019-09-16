@@ -18,13 +18,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"emperror.dev/emperror"
+	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
@@ -245,7 +248,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				r.pvc,
 			} {
 				o := res(broker.Id, storage, log)
-				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+				err := r.reconcileKafkaPVC(log, o.(*corev1.PersistentVolumeClaim))
 				if err != nil {
 					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 				}
@@ -299,7 +302,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			r.pod,
 		} {
 			o := res(broker.Id, brokerConfig, pvcs, log)
-			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+			err := r.reconcileKafkaPod(log, o.(*corev1.Pod))
 			if err != nil {
 				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
@@ -308,5 +311,179 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	log.V(1).Info("Reconciled")
 
+	return nil
+}
+
+func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) error {
+	currentPod := desiredPod.DeepCopy()
+	desiredType := reflect.TypeOf(desiredPod)
+
+	log = log.WithValues("kind", desiredType)
+	log.V(1).Info("searching with label because name is empty")
+
+	podList := &corev1.PodList{}
+	matchingLabels := client.MatchingLabels{
+		"kafka_cr": r.KafkaCluster.Name,
+		"brokerId": desiredPod.Labels["brokerId"],
+	}
+	err := r.Client.List(context.TODO(), podList, client.InNamespace(currentPod.Namespace), matchingLabels)
+	if err != nil && len(podList.Items) == 0 {
+		return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
+	}
+	if len(podList.Items) == 0 {
+		patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPod)
+		if err := r.Client.Create(context.TODO(), desiredPod); err != nil {
+			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
+		}
+		// Update status to Config InSync because broker is configured to go
+		statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, banzaicloudv1alpha1.ConfigInSync, log)
+		if statusErr != nil {
+			return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
+		}
+		log.Info("resource created")
+		return nil
+	} else if len(podList.Items) == 1 {
+		currentPod = podList.Items[0].DeepCopy()
+		brokerId := currentPod.Labels["brokerId"]
+		if brokerState, ok := r.KafkaCluster.Status.BrokersState[brokerId]; ok {
+			if r.KafkaCluster.Spec.RackAwareness != nil && (brokerState.RackAwarenessState == banzaicloudv1alpha1.WaitingForRackAwareness || brokerState.RackAwarenessState == "") {
+				err := k8sutil.UpdateCrWithRackAwarenessConfig(currentPod, r.KafkaCluster, r.Client)
+				if err != nil {
+					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with rack awareness info failed")
+				}
+				statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster, banzaicloudv1alpha1.Configured, log)
+				if statusErr != nil {
+					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
+				}
+			}
+			if currentPod.Status.Phase == corev1.PodRunning && brokerState.GracefulActionState.CruiseControlState == banzaicloudv1alpha1.GracefulUpdateRequired {
+				scaleErr := scale.UpScaleCluster(desiredPod.Labels["brokerId"], desiredPod.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+				if scaleErr != nil {
+					log.Error(err, "graceful upscale failed, or cluster just started")
+					statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
+						banzaicloudv1alpha1.GracefulActionState{ErrorMessage: scaleErr.Error(), CruiseControlState: banzaicloudv1alpha1.GracefulUpdateFailed}, log)
+					if statusErr != nil {
+						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
+					}
+				} else {
+					statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
+						banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateSucceeded}, log)
+					if statusErr != nil {
+						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
+					}
+				}
+			}
+		} else {
+			statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
+				banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateRequired}, log)
+			if statusErr != nil {
+				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
+			}
+			if r.KafkaCluster.Spec.RackAwareness != nil {
+				statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster, banzaicloudv1alpha1.WaitingForRackAwareness, log)
+				if statusErr != nil {
+					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker rack state")
+				}
+			}
+		}
+
+	} else {
+		return errorfactory.New(errorfactory.TooManyResources{}, errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
+	}
+	// TODO check if this err == nil check neccessary (baluchicken)
+	if err == nil {
+		// Check if the resource actually updated
+		patchResult, err := patch.DefaultPatchMaker.Calculate(currentPod, desiredPod)
+		if err != nil {
+			log.Error(err, "could not match objects", "kind", desiredType)
+		} else if patchResult.IsEmpty() {
+			if currentPod.Status.Phase != corev1.PodFailed && r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == banzaicloudv1alpha1.ConfigInSync {
+				log.V(1).Info("resource is in sync")
+				return nil
+			}
+		} else {
+			log.V(1).Info("resource diffs",
+				"patch", string(patchResult.Patch),
+				"current", string(patchResult.Current),
+				"modified", string(patchResult.Modified),
+				"original", string(patchResult.Original))
+		}
+
+		patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPod)
+
+		//if cr.Status.State != banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
+		//	if err := UpdateCRStatus(client, cr, banzaicloudv1alpha1.KafkaClusterRollingUpgrading, log); err != nil {
+		//		return errorfactory.New(errorfactory.StatusUpdateError{}, err, "setting state to rolling upgrade failed")
+		//	}
+		//	return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("rolling upgrade starting"), "")
+		//}
+		err = k8sutil.UpdateCrWithNodeAffinity(currentPod, r.KafkaCluster, r.Client)
+		if err != nil {
+			return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with node affinity failed")
+		}
+		err = r.Client.Delete(context.TODO(), currentPod)
+		if err != nil {
+			return errorfactory.New(errorfactory.APIFailure{}, err, "deleting resource failed", "kind", desiredType)
+		}
+	}
+	return nil
+
+}
+
+func (r *Reconciler) reconcileKafkaPVC(log logr.Logger, desiredPVC *corev1.PersistentVolumeClaim) error {
+	var currentPVC = desiredPVC.DeepCopy()
+	desiredType := reflect.TypeOf(desiredPVC)
+	log = log.WithValues("kind", desiredType)
+	log.V(1).Info("searching with label because name is empty")
+
+	pvcList := &corev1.PersistentVolumeClaimList{}
+	matchingLabels := client.MatchingLabels{
+		"kafka_cr": r.KafkaCluster.Name,
+		"brokerId": desiredPVC.Labels["brokerId"],
+	}
+	err := r.Client.List(context.TODO(), pvcList,
+		client.InNamespace(currentPVC.Namespace), matchingLabels)
+	if err != nil && len(pvcList.Items) == 0 {
+		return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
+	}
+	mountPath := currentPVC.Annotations["mountPath"]
+
+	// Creating the first PersistentVolume For Pod
+	if len(pvcList.Items) == 0 {
+		patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC)
+		if err := r.Client.Create(context.TODO(), desiredPVC); err != nil {
+			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
+		}
+		log.Info("resource created")
+		return nil
+	}
+	alreadyCreated := false
+	for _, pvc := range pvcList.Items {
+		if mountPath == pvc.Annotations["mountPath"] {
+			currentPVC = pvc.DeepCopy()
+			alreadyCreated = true
+			break
+		}
+	}
+	if !alreadyCreated {
+		// Creating the 2+ PersistentVolumes for Pod
+		patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC)
+		if err := r.Client.Create(context.TODO(), desiredPVC); err != nil {
+			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
+		}
+		return nil
+	}
+	if err == nil {
+		if k8sutil.CheckIfObjectUpdated(log, desiredType, currentPVC, desiredPVC) {
+
+			patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC)
+			desiredPVC = currentPVC
+
+			if err := r.Client.Update(context.TODO(), desiredPVC); err != nil {
+				return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
+			}
+			log.Info("resource updated")
+		}
+	}
 	return nil
 }

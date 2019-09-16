@@ -27,7 +27,7 @@ import (
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
+func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
 	failureDomainSelectors, err := failureDomainSelectors(current.Spec.NodeName, client)
 	if err != nil {
 		return emperror.WrapWith(err, "determining Node selector failed")
@@ -55,7 +55,7 @@ func updateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 	return updateCr(cr, client)
 }
 
-func updateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
+func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
 
 	rackConfigMap, err := getSpecificNodeLabels(pod.Spec.NodeName, client, cr.Spec.RackAwareness.Labels)
 	if err != nil {
