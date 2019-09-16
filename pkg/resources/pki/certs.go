@@ -26,6 +26,7 @@ import (
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -39,8 +40,10 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.Create {
 		// A self-signer for the CA Certificate
+		selfSignerMeta := templates.ObjectMeta(fmt.Sprintf(brokerSelfSignerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster)
+		selfSignerMeta.Namespace = metav1.NamespaceAll
 		selfsigner := &certv1.ClusterIssuer{
-			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerSelfSignerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+			ObjectMeta: selfSignerMeta,
 			Spec: certv1.IssuerSpec{
 				IssuerConfig: certv1.IssuerConfig{
 					SelfSigned: &certv1.SelfSignedIssuer{},
@@ -65,8 +68,10 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 		controllerutil.SetControllerReference(r.KafkaCluster, ca, r.Scheme)
 		// A cluster issuer backed by the CA certificate - so it can provision secrets
 		// for producers/consumers in other namespaces
+		clusterIssuerMeta := templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster)
+		clusterIssuerMeta.Namespace = metav1.NamespaceAll
 		clusterissuer := &certv1.ClusterIssuer{
-			ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+			ObjectMeta: clusterIssuerMeta,
 			Spec: certv1.IssuerSpec{
 				IssuerConfig: certv1.IssuerConfig{
 					CA: &certv1.CAIssuer{
@@ -136,8 +141,10 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 	}
 	controllerutil.SetControllerReference(r.KafkaCluster, caSecret, r.Scheme)
 
+	clusterIssuerMeta := templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster)
+	clusterIssuerMeta.Namespace = metav1.NamespaceAll
 	clusterissuer := &certv1.ClusterIssuer{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster),
+		ObjectMeta: clusterIssuerMeta,
 		Spec: certv1.IssuerSpec{
 			IssuerConfig: certv1.IssuerConfig{
 				CA: &certv1.CAIssuer{
