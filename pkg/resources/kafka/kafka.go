@@ -29,6 +29,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkautil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
@@ -304,7 +305,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			o := res(broker.Id, brokerConfig, pvcs, log)
 			err := r.reconcileKafkaPod(log, o.(*corev1.Pod))
 			if err != nil {
-				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				return err
 			}
 		}
 	}
@@ -411,12 +412,55 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 
 		patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPod)
 
-		//if cr.Status.State != banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
-		//	if err := UpdateCRStatus(client, cr, banzaicloudv1alpha1.KafkaClusterRollingUpgrading, log); err != nil {
-		//		return errorfactory.New(errorfactory.StatusUpdateError{}, err, "setting state to rolling upgrade failed")
-		//	}
-		//	return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("rolling upgrade starting"), "")
-		//}
+		if currentPod.Status.Phase != corev1.PodFailed {
+
+			if r.KafkaCluster.Status.State != banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
+				if err := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.KafkaClusterRollingUpgrading, log); err != nil {
+					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "setting state to rolling upgrade failed")
+				}
+			}
+
+			if r.KafkaCluster.Status.State == banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
+				// Check if any kafka pod is in terminating state
+				podList := &corev1.PodList{}
+				matchingLabels := client.MatchingLabels{
+					"kafka_cr": r.KafkaCluster.Name,
+					"app":      "kafka",
+				}
+				err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
+				if err != nil {
+					return emperror.Wrap(err, "failed to reconcile resource")
+				}
+				for _, pod := range podList.Items {
+					if pod.Status.Phase != corev1.PodRunning {
+						return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("clusterNotHealthy"), "rolling upgrade in progress")
+					}
+				}
+
+				kClient, err := kafkautil.NewFromCluster(r.Client, r.KafkaCluster)
+				if err != nil {
+					return err
+				}
+				defer kClient.Close()
+				offlineReplicaCount, err := kClient.OfflineReplicaCount()
+				if err != nil {
+					//TODO fix error handling (baluchicken)
+					return err
+				}
+				if offlineReplicaCount > 0 {
+					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("clusterNotHealthy"), "rolling upgrade in progress")
+				}
+				replicasInSync, err := kClient.AllReplicaInSync()
+				if err != nil {
+					//TODO fix error handling (baluchicken)
+					return err
+				}
+				if !replicasInSync {
+					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("clusterNotHealthy"), "rolling upgrade in progress")
+				}
+			}
+		}
+
 		err = k8sutil.UpdateCrWithNodeAffinity(currentPod, r.KafkaCluster, r.Client)
 		if err != nil {
 			return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with node affinity failed")
