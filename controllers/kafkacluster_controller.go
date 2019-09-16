@@ -95,26 +95,6 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 			return requeueWithError(log, err.Error(), err)
 		}
 	}
-	//
-	//if instance.Status.State == banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
-	//	kClient, err := kafkautil.NewFromCluster(r.Client, instance)
-	//	if err != nil {
-	//		return requeueWithError(log, err.Error(), err)
-	//	}
-	//	defer kClient.Close()
-	//
-	//	offlineReplicaCount, err := kClient.OfflineReplicaCount()
-	//	if err != nil {
-	//		//TODO check error handling
-	//		return requeueWithError(log, err.Error(), err)
-	//	}
-	//	if offlineReplicaCount > 0 {
-	//		return ctrl.Result{
-	//			Requeue: true,
-	//			RequeueAfter: time.Duration(15) * time.Second,
-	//		}, nil
-	//	}
-	//}
 
 	reconcilers := []resources.ComponentReconciler{
 		pki.New(r.Client, r.Scheme, instance),

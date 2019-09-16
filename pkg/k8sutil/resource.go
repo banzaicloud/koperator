@@ -138,10 +138,6 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				deploy := desired.(*appsv1.Deployment)
 				deploy.ResourceVersion = current.(*appsv1.Deployment).ResourceVersion
 				desired = deploy
-			case *appsv1.StatefulSet:
-				deploy := desired.(*appsv1.StatefulSet)
-				deploy.ResourceVersion = current.(*appsv1.StatefulSet).ResourceVersion
-				desired = deploy
 			}
 
 			if err := client.Update(context.TODO(), desired); err != nil {

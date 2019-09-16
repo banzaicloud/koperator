@@ -46,6 +46,7 @@ type KafkaClient interface {
 	GetCA() (string, string)
 
 	OfflineReplicaCount() (int, error)
+	AllReplicaInSync() (bool, error)
 
 	Close() error
 }

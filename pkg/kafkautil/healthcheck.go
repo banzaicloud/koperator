@@ -14,7 +14,9 @@
 
 package kafkautil
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func (k *kafkaClient) OfflineReplicaCount() (int, error) {
 	availableTopics, err := k.client.Topics()
@@ -37,4 +39,33 @@ func (k *kafkaClient) OfflineReplicaCount() (int, error) {
 	}
 	log.Info(fmt.Sprintf("offline Replica Count is %d", offlineReplicaCount))
 	return offlineReplicaCount, nil
+}
+
+func (k *kafkaClient) AllReplicaInSync() (bool, error) {
+	availableTopics, err := k.client.Topics()
+	if err != nil {
+		return false, err
+	}
+	for _, topic := range availableTopics {
+		partitions, err := k.client.Partitions(topic)
+		if err != nil {
+			return false, err
+		}
+		for _, partition := range partitions {
+			replicas, err := k.client.Replicas(topic, partition)
+			if err != nil {
+				return false, err
+			}
+			isrreplicas, err := k.client.InSyncReplicas(topic, partition)
+			if err != nil {
+				return false, err
+			}
+			if len(replicas) != len(isrreplicas) {
+				log.Info("not all replicas are in sync")
+				return false, nil
+			}
+		}
+	}
+	log.Info("all replicas are in sync")
+	return true, nil
 }
