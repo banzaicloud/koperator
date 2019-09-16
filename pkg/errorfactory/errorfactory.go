@@ -28,6 +28,7 @@ type GracefulUpscaleFailed struct{ error }
 type TooManyResources struct{ error }
 type InternalError struct{ error }
 type FatalReconcileError struct{ error }
+type ReconcileRollingUpgrade struct{ error }
 
 func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 	wrapped := emperror.WrapWith(err, msg, wrapArgs)
@@ -56,6 +57,8 @@ func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 		return InternalError{wrapped}
 	case FatalReconcileError:
 		return FatalReconcileError{wrapped}
+	case ReconcileRollingUpgrade:
+		return ReconcileRollingUpgrade{wrapped}
 	}
 	return nil
 }
