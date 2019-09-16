@@ -20,10 +20,8 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/pki"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -83,16 +81,18 @@ func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (*Kafka
 
 		conf.UseSSL = true
 		conf.TLSConfig = t
-		conf.IssueCA = fmt.Sprintf(pki.BrokerIssuerTemplate, cluster.Name)
+		//TODO refactor use pki.BrokerIssuerTemplate (baluchicken)
+		conf.IssueCA = fmt.Sprintf("%s-issuer", cluster.Name)
 		conf.IssueCAKind = "ClusterIssuer"
 	}
 
 	return conf, nil
 }
 
+//TODO refactor kafka.headlessServiceTemplate and AllBrokerServiceTemplate (baluchicken)
 func generateKafkaAddress(cluster *v1alpha1.KafkaCluster) string {
 	if cluster.Spec.HeadlessServiceEnabled {
-		return fmt.Sprintf("%s.%s:%d", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
+		return fmt.Sprintf("%s.%s:%d", fmt.Sprintf("%s-headless", cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
 	}
-	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
+	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", fmt.Sprintf("%s-all-broker", cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
 }

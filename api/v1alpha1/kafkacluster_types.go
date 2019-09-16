@@ -192,12 +192,12 @@ func (bConfig *BrokerConfig) GetResources() *corev1.ResourceRequirements {
 	}
 	return &corev1.ResourceRequirements{
 		Limits: corev1.ResourceList{
-			"cpu":    resource.MustParse("500m"),
-			"memory": resource.MustParse("1Gi"),
+			"cpu":    resource.MustParse("1500m"),
+			"memory": resource.MustParse("3Gi"),
 		},
 		Requests: corev1.ResourceList{
-			"cpu":    resource.MustParse("200m"),
-			"memory": resource.MustParse("500Mi"),
+			"cpu":    resource.MustParse("1000m"),
+			"memory": resource.MustParse("2Gi"),
 		},
 	}
 }
