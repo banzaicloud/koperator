@@ -82,7 +82,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 			return reconciled()
 		}
 		// Error reading the object - requeue the request.
-		return ctrl.Result{}, err
+		return requeueWithError(log, err.Error(), err)
 	}
 
 	// Check if marked for deletion and run finalizers
@@ -92,9 +92,29 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 
 	if instance.Status.State != banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
 		if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1alpha1.KafkaClusterReconciling, log); err != nil {
-			return ctrl.Result{}, err
+			return requeueWithError(log, err.Error(), err)
 		}
 	}
+	//
+	//if instance.Status.State == banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
+	//	kClient, err := kafkautil.NewFromCluster(r.Client, instance)
+	//	if err != nil {
+	//		return requeueWithError(log, err.Error(), err)
+	//	}
+	//	defer kClient.Close()
+	//
+	//	offlineReplicaCount, err := kClient.OfflineReplicaCount()
+	//	if err != nil {
+	//		//TODO check error handling
+	//		return requeueWithError(log, err.Error(), err)
+	//	}
+	//	if offlineReplicaCount > 0 {
+	//		return ctrl.Result{
+	//			Requeue: true,
+	//			RequeueAfter: time.Duration(15) * time.Second,
+	//		}, nil
+	//	}
+	//}
 
 	reconcilers := []resources.ComponentReconciler{
 		pki.New(r.Client, r.Scheme, instance),
@@ -129,6 +149,12 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 				}, nil
 			case errorfactory.CreateTopicError:
 				log.Info("Could not create CC topic, either less than 3 brokers or not all are ready")
+				return ctrl.Result{
+					Requeue:      true,
+					RequeueAfter: time.Duration(15) * time.Second,
+				}, nil
+			case errorfactory.ReconcileRollingUpgrade:
+				log.Info("Rolling Upgrade in Progress")
 				return ctrl.Result{
 					Requeue:      true,
 					RequeueAfter: time.Duration(15) * time.Second,
