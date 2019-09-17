@@ -16,7 +16,6 @@ package k8sutil
 
 import (
 	"context"
-	"errors"
 	"reflect"
 
 	"emperror.dev/emperror"
@@ -25,7 +24,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -106,38 +104,14 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 
 			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 
-			switch desired.(type) {
+			switch d := desired.(type) {
 			default:
-				return emperror.With(errors.New("unexpected resource type"), "kind", desiredType)
-			case *certv1.ClusterIssuer:
-				cm := desired.(*certv1.ClusterIssuer)
-				cm.ResourceVersion = current.(*certv1.ClusterIssuer).ResourceVersion
-				desired = cm
-			case *certv1.Issuer:
-				cm := desired.(*certv1.Issuer)
-				cm.ResourceVersion = current.(*certv1.Issuer).ResourceVersion
-				desired = cm
-			case *certv1.Certificate:
-				cm := desired.(*certv1.Certificate)
-				cm.ResourceVersion = current.(*certv1.Certificate).ResourceVersion
-				desired = cm
-			case *corev1.ConfigMap:
-				cm := desired.(*corev1.ConfigMap)
-				cm.ResourceVersion = current.(*corev1.ConfigMap).ResourceVersion
-				desired = cm
-			case *corev1.Secret:
-				cm := desired.(*corev1.Secret)
-				cm.ResourceVersion = current.(*corev1.Secret).ResourceVersion
-				desired = cm
+				d.(metav1.ObjectMetaAccessor).GetObjectMeta().SetResourceVersion(current.(metav1.ObjectMetaAccessor).GetObjectMeta().GetResourceVersion())
 			case *corev1.Service:
 				svc := desired.(*corev1.Service)
 				svc.ResourceVersion = current.(*corev1.Service).ResourceVersion
 				svc.Spec.ClusterIP = current.(*corev1.Service).Spec.ClusterIP
 				desired = svc
-			case *appsv1.Deployment:
-				deploy := desired.(*appsv1.Deployment)
-				deploy.ResourceVersion = current.(*appsv1.Deployment).ResourceVersion
-				desired = deploy
 			}
 
 			if err := client.Update(context.TODO(), desired); err != nil {
