@@ -60,9 +60,6 @@ const (
 	jmxVolumePath                 = "/opt/jmx-exporter/"
 	jmxVolumeName                 = "jmx-jar-data"
 	metricsPort                   = 9020
-
-	//jaasConfig  = "jaas-config"
-	//scramSecret = "scram-secret"
 )
 
 // Reconciler implements the Component Reconciler
@@ -433,9 +430,10 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				}
 				for _, pod := range podList.Items {
 					if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {
-						return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("clusterNotHealthy"), "rolling upgrade in progress")
+						return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating"), "rolling upgrade in progress")
 					}
 				}
+				errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
 
 				kClient, err := kafkautil.NewFromCluster(r.Client, r.KafkaCluster)
 				if err != nil {
@@ -447,16 +445,17 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 					//TODO fix error handling (baluchicken)
 					return err
 				}
-				if offlineReplicaCount > 0 {
-					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("clusterNotHealthy"), "rolling upgrade in progress")
-				}
 				replicasInSync, err := kClient.AllReplicaInSync()
 				if err != nil {
 					//TODO fix error handling (baluchicken)
 					return err
 				}
-				if !replicasInSync {
-					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("clusterNotHealthy"), "rolling upgrade in progress")
+
+				if offlineReplicaCount > 0 && !replicasInSync {
+					errorCount++
+				}
+				if errorCount >= r.KafkaCluster.Spec.RollingUpgradeConfig.FailureThreshold {
+					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("cluster is not healthy"), "rolling upgrade in progress")
 				}
 			}
 		}

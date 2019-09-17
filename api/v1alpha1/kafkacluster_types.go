@@ -52,7 +52,6 @@ type KafkaClusterStatus struct {
 
 // RollingUpgradeStatus defines status of rolling upgrade
 type RollingUpgradeStatus struct {
-	Status      string `json:"status,omitempty"`
 	LastSuccess string `json:"lastSuccess"`
 	ErrorCount  int    `json:"errorCount"`
 }
