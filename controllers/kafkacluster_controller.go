@@ -150,6 +150,13 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		return requeueWithError(log, "failed to ensure finalizers on kafkacluster instance", err)
 	}
 
+	//Update rolling upgrade last successful state
+	if instance.Status.State == banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
+		if err := k8sutil.UpdateRollingUpgradeState(r.Client, instance, time.Now().Format("2006-01-02 15:04:05"), log); err != nil {
+			return requeueWithError(log, err.Error(), err)
+		}
+	}
+
 	if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1alpha1.KafkaClusterRunning, log); err != nil {
 		return requeueWithError(log, err.Error(), err)
 	}
