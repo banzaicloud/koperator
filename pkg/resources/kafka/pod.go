@@ -129,6 +129,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfi
 						{
 							ContainerPort: 9020,
 							Protocol:      corev1.ProtocolTCP,
+							Name:          "metrics",
 						},
 					}...),
 					VolumeMounts: append(volumeMount, []corev1.VolumeMount{
