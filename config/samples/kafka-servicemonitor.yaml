@@ -1,0 +1,39 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kafka-servicemonitor
+  labels:
+    app: kafka
+    kafka_cr: kafka
+spec:
+  selector:
+    matchLabels:
+      app: kafka
+      kafka_cr: kafka
+  namespaceSelector:
+    matchNames:
+    - kafka
+  endpoints:
+  - interval: 10s
+    port: metrics
+    path: /metrics
+    honorLabels: true
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_ip]
+      separator: ;
+      regex: (.*)
+      targetLabel: pod_ip
+      replacement: $1
+      action: replace
+    - sourceLabels: [__meta_kubernetes_pod_label_brokerId]
+      separator: ;
+      regex: (.*)
+      targetLabel: brokerId
+      replacement: $1
+      action: replace
+    - sourceLabels: [__meta_kubernetes_pod_label_kafka_cr]
+      separator: ;
+      regex: (.*)
+      targetLabel: kafka_cr
+      replacement: $1
+      action: replace
