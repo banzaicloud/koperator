@@ -145,7 +145,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 	}
 
 	testAlert2 := AlertState{
-		FingerPrint: model.Fingerprint(1111),
+		FingerPrint: model.Fingerprint(2222),
 		Status:      model.AlertStatus("resolved"),
 		Labels: model.LabelSet{
 			"alertname": "PodAlert",
@@ -195,10 +195,10 @@ func TestGetCurrentAlerts(t *testing.T) {
 
 	list3 := alerts3.ListAlerts()
 	if list3 == nil || list3[testAlert2.FingerPrint] != nil {
-		t.Error("1111 alert wasn't deleted")
+		t.Error("2222 alert wasn't deleted")
 	}
 
-	_, err = alerts3.HandleAlert(model.Fingerprint(1111), c, 0)
+	_, err = alerts3.HandleAlert(model.Fingerprint(2222), c, 0)
 	expected := "alert doesn't exist"
 	if err == nil || err.Error() != expected {
 		t.Errorf("alert with 2222 should be %s", err)
