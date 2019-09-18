@@ -71,12 +71,13 @@ func GetCurrentAlerts() CurrentAlerts {
 func (a *currentAlerts) AddAlert(alert AlertState) *currentAlertStruct {
 	a.lock.Lock()
 	defer a.lock.Unlock()
-	a.alerts[alert.FingerPrint] = &currentAlertStruct{
-		Status:      alert.Status,
-		Labels:      alert.Labels,
-		Annotations: alert.Annotations,
+	if _, ok := a.alerts[alert.FingerPrint]; !ok {
+		a.alerts[alert.FingerPrint] = &currentAlertStruct{
+			Status:      alert.Status,
+			Labels:      alert.Labels,
+			Annotations: alert.Annotations,
+		}
 	}
-
 	return a.alerts[alert.FingerPrint]
 }
 
@@ -119,10 +120,12 @@ func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Cli
 
 func (a *currentAlerts) GetRollingUpgradeAlertCount() int {
 	alertCount := 0
-	for _, alert := range a.alerts {
-		for key := range alert.Labels {
-			if key == "rollingupgrade" {
-				alertCount++
+	if len(a.alerts) > 0 {
+		for _, alert := range a.alerts {
+			for key := range alert.Labels {
+				if key == "rollingupgrade" {
+					alertCount++
+				}
 			}
 		}
 	}
