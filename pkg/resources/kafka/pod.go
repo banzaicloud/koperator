@@ -277,7 +277,7 @@ openssl pkcs12 -export -in /var/run/secrets/pemfiles/clientCert -inkey /var/run/
 keytool -importkeystore -deststorepass ${SSL_PASSWORD} -destkeypass ${SSL_PASSWORD} -destkeystore /var/run/secrets/java.io/keystores/client.keystore.jks -srckeystore client.p12 -srcstoretype PKCS12 -srcstorepass ${SSL_PASSWORD} -alias localhost &&
 keytool -keystore /var/run/secrets/java.io/keystores/client.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
 keytool -keystore /var/run/secrets/java.io/keystores/client.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-cat /config/broker-config > /mod-config/broker-config && echo "ssl.keystore.password=${SSL_PASSWORD}" >> /mod-config/broker-config && echo "ssl.truststore.password=${SSL_PASSWORD}" >> /mod-config/broker-config`
+cat /config/broker-config > /mod-config/broker-config && echo -e "\nssl.keystore.password=${SSL_PASSWORD}" >> /mod-config/broker-config && echo -e "\nssl.truststore.password=${SSL_PASSWORD}" >> /mod-config/broker-config`
 
 	if util.IsSSLEnabledForInternalCommunication(l) {
 		genScript = genScript + ` && 
