@@ -175,10 +175,8 @@ func getInternalListeners(iListeners []banzaicloudv1alpha1.InternalListenerConfi
 
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, superUsers []string, loadBalancerIP string, log logr.Logger) string {
 	parsedReadOnlyClusterConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ReadOnlyConfig)
-	parsedClusterWideClusterConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ClusterWideConfig)
 
 	parsedReadOnlyBrokerConfig := util.ParsePropertiesFormat(brokerConfig.ReadOnlyConfig)
-	parsedBrokerConfig := util.ParsePropertiesFormat(brokerConfig.Config)
 
 	if err := mergo.Merge(&parsedReadOnlyBrokerConfig, parsedReadOnlyClusterConfig); err != nil {
 		log.Error(err, "error occurred during merging readonly configs")
@@ -193,12 +191,6 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *banzaicloudv1al
 
 	if err := mergo.Merge(&completeConfigMap, parsedReadOnlyBrokerConfig); err != nil {
 		log.Error(err, "error occurred during merging readOnly config to complete configs")
-	}
-	if err := mergo.Merge(&completeConfigMap, parsedBrokerConfig); err != nil {
-		log.Error(err, "error occurred during merging broker config to complete configs")
-	}
-	if err := mergo.Merge(&completeConfigMap, parsedClusterWideClusterConfig); err != nil {
-		log.Error(err, "error occurred during merging cluster wide config to complete configs")
 	}
 
 	completeConfig := []string{}
