@@ -86,37 +86,7 @@ auto.create.topics.enable=true
 `,
 			expectedConfig: `advertised.listeners=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
 auto.create.topics.enable=true
-background.threads=20
 broker.id=0
-compression.type=snappy
-control.plane.listener.name=thisisatest
-cruise.control.metrics.reporter.bootstrap.servers=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
-listener.security.protocol.map=PLAINTEXT:PLAINTEXT
-listeners=PLAINTEXT://:9092
-metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-security.inter.broker.protocol=PLAINTEXT
-super.users=
-zookeeper.connect=example.zk:2181`,
-		},
-		{
-			testName: "readOnlyRedefinedInOneBroker",
-			readOnlyConfig: `
-auto.create.topics.enable=false
-control.plane.listener.name=thisisatest
-`,
-			clusterWideConfig: `
-background.threads=20
-compression.type=snappy
-`,
-			perBrokerConfig: `compression.type=default`,
-			perBrokerReadOnlyConfig: `
-auto.create.topics.enable=true
-`,
-			expectedConfig: `advertised.listeners=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
-auto.create.topics.enable=true
-background.threads=20
-broker.id=0
-compression.type=default
 control.plane.listener.name=thisisatest
 cruise.control.metrics.reporter.bootstrap.servers=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
 listener.security.protocol.map=PLAINTEXT:PLAINTEXT
