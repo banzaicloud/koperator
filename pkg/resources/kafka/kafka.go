@@ -334,7 +334,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	if parsedBrokerConfig != nil {
 
 		brokerConfigKeys := []string{}
-		for key, _ := range parsedBrokerConfig {
+		for key := range parsedBrokerConfig {
 			brokerConfigKeys = append(brokerConfigKeys, key)
 		}
 		configIdentical := true
