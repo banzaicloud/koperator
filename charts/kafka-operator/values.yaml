@@ -6,8 +6,8 @@ replicaCount: 1
 
 operator:
   image:
-    repository: banzaicloud/kafka-operator
-    tag: 0.5.4
+    repository: anzaicloud/kafka-operator
+    tag: 0.6.0
     pullPolicy: IfNotPresent
   resources:
     limits:
@@ -17,19 +17,8 @@ operator:
       cpu: 100m
       memory: 128Mi
 
-prometheus:
-  enabled: true
-  nodeExporter:
-    enabled: false
-  kubeStateMetrics:
-    enabled: false
-  pushgateway:
-    enabled: false
-  alertmanager:
-    enabled: false
-
-  server:
-    configMapOverrideName: prometheus-cm-kafka-opertor
+alertManager:
+  enable: true
 
 prometheusMetrics:
   enabled: true

@@ -1,0 +1,28 @@
+{{- if .Values.alertManager.enable -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ include "kafka-operator.fullname" . }}-alertmanager"
+  {{- if and .Values.prometheusMetrics.enabled (not .Values.prometheusMetrics.authProxy.enabled) }}
+  annotations:
+  {{- end }}
+  labels:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+    app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
+    helm.sh/chart: {{ include "kafka-operator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/component: alertmanager
+spec:
+  selector:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+    app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: operator
+  ports:
+  - name: alerts
+    port: 9001
+{{- end -}}
