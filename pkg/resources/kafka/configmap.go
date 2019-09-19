@@ -119,7 +119,7 @@ func generateStorageConfig(sConfig []banzaicloudv1alpha1.StorageConfig) string {
 	for _, storage := range sConfig {
 		mountPaths = append(mountPaths, storage.MountPath+`/kafka`)
 	}
-	return strings.Join(mountPaths, ",")
+	return fmt.Sprintf("log.dirs=%s\n", strings.Join(mountPaths, ","))
 }
 
 func generateListenerSpecificConfig(l *banzaicloudv1alpha1.ListenersConfig, log logr.Logger) string {
