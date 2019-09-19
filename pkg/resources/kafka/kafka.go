@@ -305,9 +305,89 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				return err
 			}
 		}
+		if err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, log); err != nil {
+			//TODO handle error properly (baluchicken)
+			return err
+		}
+	}
+
+	if err = r.reconcileClusterWideDynamicConfig(log); err != nil {
+		//TODO handle error properly (baluchicken)
+		return err
 	}
 
 	log.V(1).Info("Reconciled")
+
+	return nil
+}
+
+func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, log logr.Logger) error {
+	kClient, err := kafkautil.NewFromCluster(r.Client, r.KafkaCluster)
+	if err != nil {
+		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
+	}
+	defer kClient.Close()
+
+	parsedBrokerConfig := util.ParsePropertiesFormat(brokerConfig.Config)
+
+	// Calling DescribePerBrokerConfig with empty slice will return all config for that broker including the default ones
+	if parsedBrokerConfig != nil {
+
+		brokerConfigKeys := []string{}
+		for key, _ := range parsedBrokerConfig {
+			brokerConfigKeys = append(brokerConfigKeys, key)
+		}
+		configIdentical := true
+
+		response, err := kClient.DescribePerBrokerConfig(brokerId, brokerConfigKeys)
+		if err != nil {
+			//TODO handle error properly (baluchicken)
+			return err
+		}
+
+		if len(response) == 0 {
+			configIdentical = false
+		}
+		for _, conf := range response {
+			if val, ok := parsedBrokerConfig[conf.Name]; ok {
+				if val != conf.Value {
+					configIdentical = false
+					break
+				}
+			}
+		}
+		if !configIdentical {
+			err := kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(parsedBrokerConfig))
+			if err != nil {
+				//TODO handle error properly (baluchicken)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
+	kClient, err := kafkautil.NewFromCluster(r.Client, r.KafkaCluster)
+	if err != nil {
+		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
+	}
+	defer kClient.Close()
+
+	currentConfig, err := kClient.DescribeClusterWideConfig()
+	if err != nil {
+		//TODO handle error properly (baluchicken)
+		return err
+	}
+	parsedClusterWideConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ClusterWideConfig)
+
+	if len(currentConfig) != len(parsedClusterWideConfig) {
+		err = kClient.AlterClusterWideConfig(util.ConvertMapStringToMapStringPointer(parsedClusterWideConfig))
+		if err != nil {
+			//TODO handle error properly (baluchicken)
+			return err
+		}
+	}
 
 	return nil
 }

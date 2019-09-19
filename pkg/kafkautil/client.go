@@ -44,9 +44,16 @@ type KafkaClient interface {
 	ResolveBrokerID(int32) string
 	DescribeCluster() ([]*sarama.Broker, error)
 	GetCA() (string, string)
+	GetBroker(int32) *sarama.Broker
 
 	OfflineReplicaCount() (int, error)
 	AllReplicaInSync() (bool, error)
+
+	AlterPerBrokerConfig(int32, map[string]*string) error
+	DescribePerBrokerConfig(int32, []string) ([]*sarama.ConfigEntry, error)
+
+	AlterClusterWideConfig(map[string]*string) error
+	DescribeClusterWideConfig() ([]sarama.ConfigEntry, error)
 
 	Close() error
 }
@@ -74,13 +81,11 @@ func New(opts *KafkaConfig) (client KafkaClient, err error) {
 	}
 
 	if kclient.brokers, err = kclient.DescribeCluster(); err != nil {
-		kclient.admin.Close()
 		err = errorfactory.New(errorfactory.BrokersNotReady{}, err, "could not describe kafka cluster")
 		return
 	}
 
 	if kclient.client, err = sarama.NewClient([]string{opts.BrokerURI}, config); err != nil {
-		kclient.client.Close()
 		return
 	}
 
@@ -113,6 +118,15 @@ func (k *kafkaClient) ResolveBrokerID(ID int32) string {
 
 func (k *kafkaClient) NumBrokers() int {
 	return len(k.brokers)
+}
+
+func (k *kafkaClient) GetBroker(id int32) (broker *sarama.Broker) {
+	for _, x := range k.brokers {
+		if x.ID() == id {
+			broker = x
+		}
+	}
+	return
 }
 
 func (k *kafkaClient) DescribeCluster() (brokers []*sarama.Broker, err error) {

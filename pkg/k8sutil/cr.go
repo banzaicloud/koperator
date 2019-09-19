@@ -71,12 +71,12 @@ func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *banzaicloudv1alpha1.Ka
 		if strconv.Itoa(int(broker.Id)) == pod.Labels["brokerId"] {
 			if broker.BrokerConfig == nil {
 				bConfig := &banzaicloudv1alpha1.BrokerConfig{
-					Config: fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ",")),
+					ReadOnlyConfig: fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ",")),
 				}
 				broker.BrokerConfig = bConfig
-			} else if !strings.Contains(broker.BrokerConfig.Config, "broker.rack=") {
-				config := broker.BrokerConfig.Config + fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
-				broker.BrokerConfig.Config = config
+			} else if !strings.Contains(broker.BrokerConfig.ReadOnlyConfig, "broker.rack=") {
+				config := broker.BrokerConfig.ReadOnlyConfig + fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
+				broker.BrokerConfig.ReadOnlyConfig = config
 			}
 		}
 		brokerConfigs = append(brokerConfigs, broker)
