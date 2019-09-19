@@ -19,6 +19,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"math/rand"
 	"strings"
 	"text/template"
@@ -49,6 +50,9 @@ ssl.key.password={{ .Password }}
 
 func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 	block, _ := pem.Decode(raw)
+	if block == nil {
+		return nil, errors.New("failed to decode PEM block")
+	}
 	var keytype certv1.KeyEncoding
 	var key interface{}
 	if key, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
@@ -70,6 +74,9 @@ func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 
 func DecodeCertificate(raw []byte) (cert *x509.Certificate, err error) {
 	block, _ := pem.Decode(raw)
+	if block == nil {
+		return nil, errors.New("failed to decode PEM block")
+	}
 	cert, err = x509.ParseCertificate(block.Bytes)
 	return
 }
