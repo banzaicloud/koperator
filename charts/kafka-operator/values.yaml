@@ -6,7 +6,7 @@ replicaCount: 1
 
 operator:
   image:
-    repository: anzaicloud/kafka-operator
+    repository: banzaicloud/kafka-operator
     tag: 0.6.0
     pullPolicy: IfNotPresent
   resources:
