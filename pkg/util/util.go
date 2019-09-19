@@ -150,3 +150,10 @@ func GetBrokerConfig(broker banzaicloudv1alpha1.Broker, clusterSpec banzaicloudv
 	mergo.Merge(bConfig, clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup])
 	return bConfig
 }
+
+func GetBrokerImage(brokerConfig *banzaicloudv1alpha1.BrokerConfig, clusterImage string) string {
+	if brokerConfig.Image != "" {
+		return brokerConfig.Image
+	}
+	return clusterImage
+}

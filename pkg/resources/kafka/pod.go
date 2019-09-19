@@ -61,7 +61,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfi
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(getBrokerImage(brokerConfig, r.KafkaCluster.Spec.ClusterImage), r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.ListenersConfig.InternalListeners))
+		initContainers = append(initContainers, generateInitContainerForSSL(util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.ClusterImage), r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.ListenersConfig.InternalListeners))
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /mod-config/broker-config")
 	} else {
 		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /config/broker-config")
@@ -98,7 +98,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfi
 			Containers: []corev1.Container{
 				{
 					Name:  "kafka",
-					Image: getBrokerImage(brokerConfig, r.KafkaCluster.Spec.ClusterImage),
+					Image: util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.ClusterImage),
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.Handler{
 							Exec: &corev1.ExecAction{
@@ -209,13 +209,6 @@ func (r *Reconciler) pod(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfi
 	//	pod.Spec.Tolerations = broker.Tolerations
 	//}
 	return pod
-}
-
-func getBrokerImage(brokerConfig *banzaicloudv1alpha1.BrokerConfig, clusterImage string) string {
-	if brokerConfig.Image != "" {
-		return brokerConfig.Image
-	}
-	return clusterImage
 }
 
 func generatePodAntiAffinity(clusterName string, hardRuleEnabled bool) *corev1.PodAntiAffinity {
