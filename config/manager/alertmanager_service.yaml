@@ -3,7 +3,7 @@ kind: Service
 metadata:
   labels:
     control-plane: controller-manager
-  name: operator-alertmanager-manager
+  name: alertmanager
   namespace: kafka
 spec:
   ports:
