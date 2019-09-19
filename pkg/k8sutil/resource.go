@@ -107,11 +107,6 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			switch d := desired.(type) {
 			default:
 				d.(metav1.ObjectMetaAccessor).GetObjectMeta().SetResourceVersion(current.(metav1.ObjectMetaAccessor).GetObjectMeta().GetResourceVersion())
-			case *corev1.Service:
-				svc := desired.(*corev1.Service)
-				svc.ResourceVersion = current.(*corev1.Service).ResourceVersion
-				svc.Spec.ClusterIP = current.(*corev1.Service).Spec.ClusterIP
-				desired = svc
 			}
 
 			if err := client.Update(context.TODO(), desired); err != nil {

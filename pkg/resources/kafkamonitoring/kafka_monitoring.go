@@ -49,14 +49,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	log.V(1).Info("Reconciling")
 
-	for _, res := range []resources.Resource{
-		r.configMap,
-	} {
-		o := res()
-		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-		if err != nil {
-			return err
-		}
+	o := r.configMap()
+	err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+	if err != nil {
+		return err
 	}
 
 	log.V(1).Info("Reconciled")
