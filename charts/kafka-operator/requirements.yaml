@@ -1,5 +1,0 @@
-dependencies:
-- name: prometheus
-  version: "8.11.1"
-  repository: "https://kubernetes-charts.storage.googleapis.com/"
-  condition: prometheus.enabled
