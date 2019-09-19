@@ -30,6 +30,7 @@ func TestGenerateBrokerConfig(t *testing.T) {
 		perBrokerReadOnlyConfig string
 		perBrokerConfig         string
 		expectedConfig          string
+		perBrokerStorageConfig  []v1alpha1.StorageConfig
 	}{
 		{
 			testName:                "basicConfig",
@@ -42,6 +43,28 @@ broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
 listener.security.protocol.map=PLAINTEXT:PLAINTEXT
 listeners=PLAINTEXT://:9092
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+security.inter.broker.protocol=PLAINTEXT
+super.users=
+zookeeper.connect=example.zk:2181`,
+		},
+		{
+			testName:                "basicConfigWithCustomStorage",
+			readOnlyConfig:          ``,
+			clusterWideConfig:       ``,
+			perBrokerConfig:         ``,
+			perBrokerReadOnlyConfig: ``,
+			perBrokerStorageConfig: []v1alpha1.StorageConfig{
+				{
+					MountPath: "/kafka-logs",
+				},
+			},
+			expectedConfig: `advertised.listeners=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
+listener.security.protocol.map=PLAINTEXT:PLAINTEXT
+listeners=PLAINTEXT://:9092
+log.dirs=/kafka-logs/kafka
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 security.inter.broker.protocol=PLAINTEXT
 super.users=
@@ -137,6 +160,7 @@ zookeeper.connect=example.zk:2181`,
 								BrokerConfig: &v1alpha1.BrokerConfig{
 									ReadOnlyConfig: test.perBrokerReadOnlyConfig,
 									Config:         test.perBrokerConfig,
+									StorageConfigs: test.perBrokerStorageConfig,
 								},
 							},
 							},

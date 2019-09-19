@@ -55,7 +55,9 @@ metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlM
 cruise.control.metrics.reporter.bootstrap.servers={{ .CruiseControlBootstrapServers }}
 broker.id={{ .Id }}
 
-{{ .StorageConfig }}
+{{ if .StorageConfig }}
+log.dirs={{ .StorageConfig }}
+{{ end }}
 
 {{ .AdvertisedListenersConfig }}
 
@@ -119,7 +121,7 @@ func generateStorageConfig(sConfig []banzaicloudv1alpha1.StorageConfig) string {
 	for _, storage := range sConfig {
 		mountPaths = append(mountPaths, storage.MountPath+`/kafka`)
 	}
-	return fmt.Sprintf("log.dirs=%s\n", strings.Join(mountPaths, ","))
+	return strings.Join(mountPaths, ",")
 }
 
 func generateListenerSpecificConfig(l *banzaicloudv1alpha1.ListenersConfig, log logr.Logger) string {
