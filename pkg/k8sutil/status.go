@@ -17,6 +17,7 @@ package k8sutil
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
@@ -222,9 +223,10 @@ func UpdateCRStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, 
 	return nil
 }
 
-func UpdateRollingUpgradeState(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, timeStamp string, logger logr.Logger) error {
+func UpdateRollingUpgradeState(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, time time.Time, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
+	timeStamp := time.Format("2006-01-02 15:04:05")
 	cluster.Status.RollingUpgrade.LastSuccess = timeStamp
 
 	err := c.Status().Update(context.Background(), cluster)
