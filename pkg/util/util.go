@@ -97,6 +97,16 @@ func IsSSLEnabledForInternalCommunication(l []banzaicloudv1alpha1.InternalListen
 	return enabled
 }
 
+// ConvertMapStringToMapStringPointer converts a simple map[string]string to map[string]*string
+func ConvertMapStringToMapStringPointer(inputMap map[string]string) map[string]*string {
+
+	result := map[string]*string{}
+	for key, value := range inputMap {
+		result[key] = StringPointer(value)
+	}
+	return result
+}
+
 // StringSliceContains returns true if list contains s
 func StringSliceContains(list []string, s string) bool {
 	for _, v := range list {
@@ -146,7 +156,7 @@ func GetBrokerConfig(broker banzaicloudv1alpha1.Broker, clusterSpec banzaicloudv
 	} else if broker.BrokerConfig != nil {
 		bConfig = broker.BrokerConfig
 	}
-	//TODO handle error
+	//TODO handle error (baluchicken)
 	mergo.Merge(bConfig, clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup])
 	return bConfig
 }
