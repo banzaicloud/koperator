@@ -30,6 +30,7 @@ ignored = [
   "github.com/prometheus/procfs",
   "github.com/google/uuid",
   "github.com/pborman/uuid",
+  "github.com/prometheus/client_golang",
 
   "github.com/davecgh/go-spew", # ISC license
 ]
