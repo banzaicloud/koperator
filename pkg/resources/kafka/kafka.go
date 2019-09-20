@@ -106,12 +106,12 @@ func getLoadBalancerIP(client client.Client, namespace string, log logr.Logger) 
 	}
 
 	if len(foundLBService.Status.LoadBalancer.Ingress) == 0 {
-		return "", errors.New("loadbalancer is not created waiting")
+		return "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("loadbalancer is not created waiting"), "trying")
 	}
 
 	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" && foundLBService.Status.LoadBalancer.Ingress[0].IP == "" {
 		time.Sleep(20 * time.Second)
-		return "", errors.New("loadbalancer is not ready waiting")
+		return "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("loadbalancer is not created waiting"), "trying")
 	}
 	var loadBalancerExternalAddress string
 	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" {
@@ -203,7 +203,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
 		lBIp, err = getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
 		if err != nil {
-			return errors.WrapIfWithDetails(err, "failed to get loadbalancerIP maybe still creating...")
+			return err
 		}
 	}
 	//TODO remove after testing
@@ -413,7 +413,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			if r.KafkaCluster.Spec.RackAwareness != nil && (brokerState.RackAwarenessState == banzaicloudv1alpha1.WaitingForRackAwareness || brokerState.RackAwarenessState == "") {
 				err := k8sutil.UpdateCrWithRackAwarenessConfig(currentPod, r.KafkaCluster, r.Client)
 				if err != nil {
-					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with rack awareness info failed")
+					return err
 				}
 				statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster, banzaicloudv1alpha1.Configured, log)
 				if statusErr != nil {
