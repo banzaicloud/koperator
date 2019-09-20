@@ -43,7 +43,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 }
 
 func generateEnvoyConfig(kc *banzaicloudv1alpha1.KafkaCluster, log logr.Logger) string {
-	//TODO support multiple external listener by removing [0]
+	//TODO support multiple external listener by removing [0] (baluchicken)
 	adminConfig := envoybootstrap.Admin{
 		AccessLogPath: "/tmp/admin_access.log",
 		Address: &core.Address{
