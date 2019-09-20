@@ -154,7 +154,7 @@ func GetBrokerConfig(broker banzaicloudv1alpha1.Broker, clusterSpec banzaicloudv
 	if broker.BrokerConfigGroup == "" {
 		return broker.BrokerConfig
 	} else if broker.BrokerConfig != nil {
-		bConfig = broker.BrokerConfig
+		bConfig = broker.BrokerConfig.DeepCopy()
 	}
 	//TODO handle error (baluchicken)
 	mergo.Merge(bConfig, clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup])

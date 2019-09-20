@@ -233,7 +233,7 @@ func (cConfig *CruiseControlConfig) GetCCImage() string {
 	if cConfig.Image != "" {
 		return cConfig.Image
 	}
-	return "solsson/kafka-cruise-control@sha256:c70eae329b4ececba58e8cf4fa6e774dd2e0205988d8e5be1a70e622fcc46716"
+	return "solsson/kafka-cruise-control@sha256:f3f3775f3b5e2a5ae2da6fdae60ed118793ac32c80f13fba31be8f025a57f6ac"
 }
 
 // GetImage returns the used image for Prometheus JMX exporter
