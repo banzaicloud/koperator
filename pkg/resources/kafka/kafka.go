@@ -389,6 +389,22 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		if statusErr != nil {
 			return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
 		}
+		gracefulActionState := banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateNotRequired}
+
+		if r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1alpha1.CruiseControlTopicReady {
+			gracefulActionState = banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateRequired}
+		}
+		statusErr = k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, gracefulActionState, log)
+		if statusErr != nil {
+			return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
+		}
+		if r.KafkaCluster.Spec.RackAwareness != nil {
+			statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, banzaicloudv1alpha1.WaitingForRackAwareness, log)
+			if statusErr != nil {
+				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker rack state")
+			}
+		}
+
 		log.Info("resource created")
 		return nil
 	} else if len(podList.Items) == 1 {
@@ -423,19 +439,8 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				}
 			}
 		} else {
-			statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
-				banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateRequired}, log)
-			if statusErr != nil {
-				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
-			}
-			if r.KafkaCluster.Spec.RackAwareness != nil {
-				statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster, banzaicloudv1alpha1.WaitingForRackAwareness, log)
-				if statusErr != nil {
-					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker rack state")
-				}
-			}
+			return errorfactory.New(errorfactory.InternalError{}, errors.New("reconcile failed"), fmt.Sprintf("could not find status for the given broker id, %s", brokerId))
 		}
-
 	} else {
 		return errorfactory.New(errorfactory.TooManyResources{}, errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
 	}
