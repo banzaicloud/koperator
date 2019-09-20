@@ -17,7 +17,7 @@ package cruisecontrol
 import (
 	"fmt"
 
-	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
@@ -74,7 +74,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 			statusErr := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicReady, log)
 			if statusErr != nil {
-				return emperror.Wrap(statusErr, "could not update CC topic status")
+				return errors.WrapIf(statusErr, "could not update CC topic status")
 			}
 		}
 
@@ -87,7 +87,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				o := res(log)
 				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 				if err != nil {
-					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+					return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 				}
 			}
 		}
