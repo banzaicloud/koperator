@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,7 +30,7 @@ import (
 func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
 	failureDomainSelectors, err := failureDomainSelectors(current.Spec.NodeName, client)
 	if err != nil {
-		return emperror.WrapWith(err, "determining Node selector failed")
+		return errors.WrapIfWithDetails(err, "determining Node selector failed")
 	}
 
 	// don't set node affinity when none of the selector labels are available for the node
@@ -59,7 +59,7 @@ func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *banzaicloudv1alpha1.Ka
 
 	rackConfigMap, err := getSpecificNodeLabels(pod.Spec.NodeName, client, cr.Spec.RackAwareness.Labels)
 	if err != nil {
-		return emperror.WrapWith(err, "fetching Node rack awareness labels failed")
+		return errors.WrapIfWithDetails(err, "fetching Node rack awareness labels failed")
 	}
 	rackConfigValues := make([]string, 0, len(rackConfigMap))
 	for _, value := range rackConfigMap {
@@ -138,7 +138,7 @@ func GetCr(name, namespace string, client runtimeClient.Client) (*banzaicloudv1a
 
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr)
 	if err != nil {
-		return nil, emperror.WrapWith(err, "could not get cr from k8s", "crName", name, "namespace", namespace)
+		return nil, errors.WrapIfWithDetails(err, "could not get cr from k8s", "crName", name, "namespace", namespace)
 	}
 	return cr, nil
 }

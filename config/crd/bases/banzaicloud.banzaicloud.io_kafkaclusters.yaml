@@ -993,8 +993,6 @@ spec:
                   type: integer
                 lastSuccess:
                   type: string
-                status:
-                  type: string
               required:
               - errorCount
               - lastSuccess

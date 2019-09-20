@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
@@ -77,14 +76,14 @@ func UpdateBrokerStatus(c client.Client, brokerId string, cluster *banzaicloudv1
 	}
 	if err != nil {
 		if !apierrors.IsConflict(err) {
-			return emperror.Wrapf(err, "could not update Kafka broker %s state", brokerId)
+			return errors.WrapIff(err, "could not update Kafka broker %s state", brokerId)
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
 			Namespace: cluster.Namespace,
 			Name:      cluster.Name,
 		}, cluster)
 		if err != nil {
-			return emperror.Wrap(err, "could not get config for updating status")
+			return errors.WrapIf(err, "could not get config for updating status")
 		}
 
 		if cluster.Status.BrokersState == nil {
@@ -122,7 +121,7 @@ func UpdateBrokerStatus(c client.Client, brokerId string, cluster *banzaicloudv1
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
-			return emperror.Wrapf(err, "could not update Kafka clusters broker %s state", brokerId)
+			return errors.WrapIff(err, "could not update Kafka clusters broker %s state", brokerId)
 		}
 	}
 	// update loses the typeMeta of the config that's used later when setting ownerrefs
@@ -147,14 +146,14 @@ func DeleteStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1
 	}
 	if err != nil {
 		if !apierrors.IsConflict(err) {
-			return emperror.Wrapf(err, "could not delete Kafka cluster broker %s state ", brokerId)
+			return errors.WrapIff(err, "could not delete Kafka cluster broker %s state ", brokerId)
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
 			Namespace: cluster.Namespace,
 			Name:      cluster.Name,
 		}, cluster)
 		if err != nil {
-			return emperror.Wrap(err, "could not get config for updating status")
+			return errors.WrapIf(err, "could not get config for updating status")
 		}
 		brokerStatus = cluster.Status.BrokersState
 
@@ -166,7 +165,7 @@ func DeleteStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
-			return emperror.Wrapf(err, "could not delete Kafka clusters broker %s state ", brokerId)
+			return errors.WrapIff(err, "could not delete Kafka clusters broker %s state ", brokerId)
 		}
 	}
 
@@ -193,14 +192,14 @@ func UpdateCRStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, 
 	}
 	if err != nil {
 		if !apierrors.IsConflict(err) {
-			return emperror.Wrap(err, "could not update CR state")
+			return errors.WrapIf(err, "could not update CR state")
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
 			Namespace: cluster.Namespace,
 			Name:      cluster.Name,
 		}, cluster)
 		if err != nil {
-			return emperror.Wrap(err, "could not get config for updating status")
+			return errors.WrapIf(err, "could not get config for updating status")
 		}
 		switch s := state.(type) {
 		case banzaicloudv1alpha1.ClusterState:
@@ -214,7 +213,7 @@ func UpdateCRStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, 
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
-			return emperror.Wrap(err, "could not update CR state")
+			return errors.WrapIf(err, "could not update CR state")
 		}
 	}
 	// update loses the typeMeta of the config that's used later when setting ownerrefs
@@ -235,14 +234,14 @@ func UpdateRollingUpgradeState(c client.Client, cluster *banzaicloudv1alpha1.Kaf
 	}
 	if err != nil {
 		if !apierrors.IsConflict(err) {
-			return emperror.Wrap(err, "could not update rolling upgrade state")
+			return errors.WrapIf(err, "could not update rolling upgrade state")
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
 			Namespace: cluster.Namespace,
 			Name:      cluster.Name,
 		}, cluster)
 		if err != nil {
-			return emperror.Wrap(err, "could not get config for updating status")
+			return errors.WrapIf(err, "could not get config for updating status")
 		}
 
 		cluster.Status.RollingUpgrade.LastSuccess = timeStamp
@@ -252,7 +251,7 @@ func UpdateRollingUpgradeState(c client.Client, cluster *banzaicloudv1alpha1.Kaf
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
-			return emperror.Wrap(err, "could not update rolling upgrade state")
+			return errors.WrapIf(err, "could not update rolling upgrade state")
 		}
 	}
 	// update loses the typeMeta of the config that's used later when setting ownerrefs
