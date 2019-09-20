@@ -36,8 +36,8 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
     # The Kafka cluster to control.
     bootstrap.servers=%s:%d
     # The zookeeper connect of the Kafka cluster
-    zookeeper.connect=%s/
-`, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")) +
+    zookeeper.connect=%s
+`, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, prepareZookeeperAddress(r.KafkaCluster.Spec.ZKAddresses)) +
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig),
 			"capacity.json":       r.KafkaCluster.Spec.CruiseControlConfig.CapacityConfig,
 			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfigs,
@@ -84,4 +84,16 @@ func generateBootstrapServer(headlessEnabled bool, clusterName string) string {
 		return fmt.Sprintf(kafka.HeadlessServiceTemplate, clusterName)
 	}
 	return fmt.Sprintf(kafka.AllBrokerServiceTemplate, clusterName)
+}
+
+func prepareZookeeperAddress(zkAddresses []string) string {
+	preparedAddress := []string{}
+	for _, addr := range zkAddresses {
+		if strings.Contains(addr, "/") {
+			preparedAddress = append(preparedAddress, addr)
+		} else {
+			preparedAddress = append(preparedAddress, addr+"/")
+		}
+	}
+	return strings.Join(preparedAddress, ",")
 }
