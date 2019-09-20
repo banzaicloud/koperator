@@ -16,14 +16,13 @@ package kafka
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
-	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
@@ -133,13 +132,13 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		o := r.headlessService()
 		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 		if err != nil {
-			return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 		}
 	} else {
 		o := r.allBrokerService()
 		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 		if err != nil {
-			return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 		}
 	}
 	// Handle Pod delete
@@ -150,7 +149,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
 	if err != nil {
-		return emperror.Wrap(err, "failed to reconcile resource")
+		return errors.WrapIf(err, "failed to reconcile resource")
 	}
 	if len(podList.Items) > len(r.KafkaCluster.Spec.Brokers) {
 		deletedBrokers := make([]corev1.Pod, 0)
@@ -170,16 +169,16 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 			err = r.Client.Delete(context.TODO(), &broker)
 			if err != nil {
-				return emperror.WrapWith(err, "could not delete broker", "id", broker.Labels["brokerId"])
+				return errors.WrapIfWithDetails(err, "could not delete broker", "id", broker.Labels["brokerId"])
 			}
 			err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 			if err != nil {
-				return emperror.WrapWith(err, "could not delete configmap for broker", "id", broker.Labels["brokerId"])
+				return errors.WrapIfWithDetails(err, "could not delete configmap for broker", "id", broker.Labels["brokerId"])
 			}
 			if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
 				err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 				if err != nil {
-					return emperror.WrapWith(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
+					return errors.WrapIfWithDetails(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
 				}
 			}
 			for _, volume := range broker.Spec.Volumes {
@@ -189,13 +188,13 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 						Namespace: r.KafkaCluster.Namespace,
 					}})
 					if err != nil {
-						return emperror.WrapWith(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
+						return errors.WrapIfWithDetails(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
 					}
 				}
 			}
 			err = k8sutil.DeleteStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster, log)
 			if err != nil {
-				return emperror.WrapWith(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
+				return errors.WrapIfWithDetails(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
 			}
 		}
 	}
@@ -204,7 +203,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
 		lBIp, err = getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
 		if err != nil {
-			return emperror.WrapWith(err, "failed to get loadbalancerIP maybe still creating...")
+			return errors.WrapIfWithDetails(err, "failed to get loadbalancerIP maybe still creating...")
 		}
 	}
 	//TODO remove after testing
@@ -220,12 +219,12 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			Namespace: r.KafkaCluster.Namespace,
 		}, controllerSecret)
 		if err != nil {
-			return emperror.WrapWith(err, "failed to get controller secret, maybe still creating...")
+			return errors.WrapIfWithDetails(err, "failed to get controller secret, maybe still creating...")
 		}
 		for _, key := range []string{"clientCert", "peerCert"} {
 			su, err := certutil.DecodeCertificate(controllerSecret.Data[key])
 			if err != nil {
-				return emperror.WrapWith(err, "Failed to decode our client certificate")
+				return errors.WrapIfWithDetails(err, "Failed to decode our client certificate")
 			}
 			superUsers = append(superUsers, su.Subject.String())
 		}
@@ -237,7 +236,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			o := r.pvc(broker.Id, storage, log)
 			err := r.reconcileKafkaPVC(log, o.(*corev1.PersistentVolumeClaim))
 			if err != nil {
-				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 
 		}
@@ -245,7 +244,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			o := r.configMap(broker.Id, brokerConfig, lBIp, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
-				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 		} else {
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
@@ -253,7 +252,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					o := r.configMap(broker.Id, brokerConfig, lBIp, superUsers, log)
 					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 					if err != nil {
-						return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+						return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 					}
 				}
 			}
@@ -261,14 +260,14 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		pvcs, err := getCreatedPVCForBroker(r.Client, broker.Id, r.KafkaCluster.Namespace, r.KafkaCluster.Name)
 		if err != nil {
-			return emperror.WrapWith(err, "failed to list PVC's")
+			return errors.WrapIfWithDetails(err, "failed to list PVC's")
 		}
 
 		if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
 			o := r.service(broker.Id, log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
-				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 		}
 		o := r.pod(broker.Id, brokerConfig, pvcs, log)
@@ -482,7 +481,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				}
 				err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
 				if err != nil {
-					return emperror.Wrap(err, "failed to reconcile resource")
+					return errors.WrapIf(err, "failed to reconcile resource")
 				}
 				for _, pod := range podList.Items {
 					if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {

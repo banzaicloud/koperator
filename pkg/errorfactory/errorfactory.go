@@ -14,7 +14,7 @@
 
 package errorfactory
 
-import "emperror.dev/emperror"
+import "emperror.dev/errors"
 
 type ResourceNotReady struct{ error }
 type APIFailure struct{ error }
@@ -31,7 +31,7 @@ type FatalReconcileError struct{ error }
 type ReconcileRollingUpgrade struct{ error }
 
 func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
-	wrapped := emperror.WrapWith(err, msg, wrapArgs)
+	wrapped := errors.WrapIfWithDetails(err, msg, wrapArgs)
 	switch t.(type) {
 	case ResourceNotReady:
 		return ResourceNotReady{wrapped}

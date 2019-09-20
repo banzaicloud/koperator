@@ -18,7 +18,7 @@ import (
 	"context"
 	"reflect"
 
-	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -43,7 +43,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		var key runtimeClient.ObjectKey
 		key, err = runtimeClient.ObjectKeyFromObject(current)
 		if err != nil {
-			return emperror.With(err, "kind", desiredType)
+			return errors.WithDetails(err, "kind", desiredType)
 		}
 		log = log.WithValues("kind", desiredType, "name", key.Name)
 
@@ -74,7 +74,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		var key runtimeClient.ObjectKey
 		key, err = runtimeClient.ObjectKeyFromObject(current)
 		if err != nil {
-			return emperror.With(err, "kind", desiredType)
+			return errors.WithDetails(err, "kind", desiredType)
 		}
 		err = client.Get(context.TODO(), types.NamespacedName{Namespace: metav1.NamespaceAll, Name: key.Name}, current)
 		if err != nil && !apierrors.IsNotFound(err) {
@@ -118,7 +118,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
 					statusErr := UpdateBrokerStatus(client, id, cr, banzaicloudv1alpha1.ConfigOutOfSync, log)
 					if statusErr != nil {
-						return emperror.WrapWith(err, "updating status for resource failed", "kind", desiredType)
+						return errors.WrapIfWithDetails(err, "updating status for resource failed", "kind", desiredType)
 					}
 				}
 			}

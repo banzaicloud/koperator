@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"github.com/Shopify/sarama"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -39,7 +38,7 @@ func (k *kafkaClient) AlterPerBrokerConfig(brokerId int32, configChange map[stri
 	}
 	err := broker.Open(k.getSaramaConfig())
 	if err != nil {
-		return emperror.Wrap(err, "could not open connection to broker")
+		return errors.WrapIf(err, "could not open connection to broker")
 	}
 	defer broker.Close()
 
@@ -63,7 +62,7 @@ func (k *kafkaClient) DescribePerBrokerConfig(brokerId int32, config []string) (
 	}
 	err := broker.Open(k.getSaramaConfig())
 	if err != nil {
-		return nil, emperror.Wrap(err, "could not open connection to broker")
+		return nil, errors.WrapIf(err, "could not open connection to broker")
 	}
 	defer broker.Close()
 

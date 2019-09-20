@@ -3,7 +3,6 @@ module github.com/banzaicloud/kafka-operator
 go 1.12
 
 require (
-	emperror.dev/emperror v0.21.3
 	emperror.dev/errors v0.4.2
 	github.com/Shopify/sarama v1.23.1
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
