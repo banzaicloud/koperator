@@ -46,7 +46,7 @@ func (k *kafkaClient) AlterPerBrokerConfig(brokerId int32, configChange map[stri
 		ValidateOnly: false,
 		Resources: []*sarama.AlterConfigsResource{
 			{
-				Type:          sarama.BrokerResource,
+				Type:          sarama.ClusterResource,
 				Name:          strconv.Itoa(int(brokerId)),
 				ConfigEntries: configChange,
 			},

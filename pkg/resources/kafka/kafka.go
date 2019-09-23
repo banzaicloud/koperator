@@ -301,7 +301,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	parsedBrokerConfig := util.ParsePropertiesFormat(brokerConfig.Config)
 
 	// Calling DescribePerBrokerConfig with empty slice will return all config for that broker including the default ones
-	if parsedBrokerConfig != nil {
+	if len(parsedBrokerConfig) > 0 {
 
 		brokerConfigKeys := []string{}
 		for key := range parsedBrokerConfig {
