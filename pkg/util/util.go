@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 
+	"emperror.dev/errors"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/imdario/mergo"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -148,17 +149,20 @@ func ParsePropertiesFormat(properties string) map[string]string {
 	return config
 }
 
-func GetBrokerConfig(broker banzaicloudv1alpha1.Broker, clusterSpec banzaicloudv1alpha1.KafkaClusterSpec) *banzaicloudv1alpha1.BrokerConfig {
+func GetBrokerConfig(broker banzaicloudv1alpha1.Broker, clusterSpec banzaicloudv1alpha1.KafkaClusterSpec) (*banzaicloudv1alpha1.BrokerConfig, error) {
 
 	bConfig := &banzaicloudv1alpha1.BrokerConfig{}
 	if broker.BrokerConfigGroup == "" {
-		return broker.BrokerConfig
+		return broker.BrokerConfig, nil
 	} else if broker.BrokerConfig != nil {
 		bConfig = broker.BrokerConfig.DeepCopy()
 	}
-	//TODO handle error (baluchicken)
-	mergo.Merge(bConfig, clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup])
-	return bConfig
+
+	err := mergo.Merge(bConfig, clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup])
+	if err != nil {
+		return nil, errors.WrapIf(err, "could not merge brokerConfig with ConfigGroup")
+	}
+	return bConfig, nil
 }
 
 func GetBrokerImage(brokerConfig *banzaicloudv1alpha1.BrokerConfig, clusterImage string) string {
