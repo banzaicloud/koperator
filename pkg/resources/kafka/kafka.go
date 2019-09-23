@@ -231,7 +231,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 
 	for _, broker := range r.KafkaCluster.Spec.Brokers {
-		brokerConfig := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
+		brokerConfig, err := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
+		if err != nil {
+			return errors.WrapIf(err, "failed to reconcile resource")
+		}
 		for _, storage := range brokerConfig.StorageConfigs {
 			o := r.pvc(broker.Id, storage, log)
 			err := r.reconcileKafkaPVC(log, o.(*corev1.PersistentVolumeClaim))
@@ -276,13 +279,11 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			return err
 		}
 		if err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, log); err != nil {
-			//TODO handle error properly (baluchicken)
 			return err
 		}
 	}
 
 	if err = r.reconcileClusterWideDynamicConfig(log); err != nil {
-		//TODO handle error properly (baluchicken)
 		return err
 	}
 
@@ -311,8 +312,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 
 		response, err := kClient.DescribePerBrokerConfig(brokerId, brokerConfigKeys)
 		if err != nil {
-			//TODO handle error properly (baluchicken)
-			return err
+			return errors.WrapIfWithDetails(err, "could not describe broker config", "brokerId", brokerId)
 		}
 
 		if len(response) == 0 {
@@ -329,8 +329,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 		if !configIdentical {
 			err := kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(parsedBrokerConfig))
 			if err != nil {
-				//TODO handle error properly (baluchicken)
-				return err
+				return errors.WrapIfWithDetails(err, "could not alter broker config", "brokerId", brokerId)
 			}
 		}
 	}
@@ -346,16 +345,14 @@ func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
 
 	currentConfig, err := kClient.DescribeClusterWideConfig()
 	if err != nil {
-		//TODO handle error properly (baluchicken)
-		return err
+		return errors.WrapIf(err, "could not describe cluster wide broker config")
 	}
 	parsedClusterWideConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ClusterWideConfig)
 
 	if len(currentConfig) != len(parsedClusterWideConfig) {
 		err = kClient.AlterClusterWideConfig(util.ConvertMapStringToMapStringPointer(parsedClusterWideConfig))
 		if err != nil {
-			//TODO handle error properly (baluchicken)
-			return err
+			return errors.WrapIf(err, "could not alter cluster wide broker config")
 		}
 	}
 
@@ -497,18 +494,16 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 
 				kClient, err := kafkautil.NewFromCluster(r.Client, r.KafkaCluster)
 				if err != nil {
-					return err
+					return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 				}
 				defer kClient.Close()
 				offlineReplicaCount, err := kClient.OfflineReplicaCount()
 				if err != nil {
-					//TODO fix error handling (baluchicken)
-					return err
+					return errors.WrapIf(err, "health check failed")
 				}
 				replicasInSync, err := kClient.AllReplicaInSync()
 				if err != nil {
-					//TODO fix error handling (baluchicken)
-					return err
+					return errors.WrapIf(err, "health check failed")
 				}
 
 				if offlineReplicaCount > 0 && !replicasInSync {
