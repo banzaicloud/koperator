@@ -23,7 +23,6 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -59,8 +58,10 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					Annotations: util.MonitoringAnnotations(metricsPort),
 				},
 				Spec: corev1.PodSpec{
-					//ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
-					//ImagePullSecrets:              r.KafkaCluster.Spec.GetImagePullSecrets(),
+					ServiceAccountName:            r.KafkaCluster.Spec.CruiseControlConfig.GetServiceAccount(),
+					ImagePullSecrets:              r.KafkaCluster.Spec.CruiseControlConfig.GetImagePullSecrets(),
+					Tolerations:                   r.KafkaCluster.Spec.CruiseControlConfig.GetTolerations(),
+					NodeSelector:                  r.KafkaCluster.Spec.CruiseControlConfig.GetNodeSelector(),
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),
 					InitContainers: append(initContainers, []corev1.Container{
 						{
@@ -95,12 +96,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"cpu":    resource.MustParse("100m"),
-									"memory": resource.MustParse("512Mi"),
-								},
-							},
+							Resources: *r.KafkaCluster.Spec.CruiseControlConfig.GetResources(),
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									TCPSocket: &corev1.TCPSocketAction{
