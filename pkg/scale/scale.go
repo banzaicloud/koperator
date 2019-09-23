@@ -65,7 +65,7 @@ func postCruiseControl(action, namespace string, options map[string]string, ccEn
 		log.Error(err, "error during talking to cruise-control")
 		return nil, err
 	}
-	if rsp.StatusCode != 200 {
+	if rsp.StatusCode != 200 || rsp.StatusCode != 202 {
 		log.Error(errors.New("Non 200 response from cruise-control: "+rsp.Status), "error during talking to cruise-control")
 		return nil, errCruiseControlNotReturned200
 	}

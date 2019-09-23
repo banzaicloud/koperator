@@ -81,6 +81,7 @@ func New(opts *KafkaConfig) (client KafkaClient, err error) {
 	}
 
 	if kclient.brokers, err = kclient.DescribeCluster(); err != nil {
+		kclient.admin.Close()
 		err = errorfactory.New(errorfactory.BrokersNotReady{}, err, "could not describe kafka cluster")
 		return
 	}
