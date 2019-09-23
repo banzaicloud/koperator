@@ -62,8 +62,10 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					Labels: labelSelector,
 				},
 				Spec: corev1.PodSpec{
-					//ServiceAccountName: r.KafkaCluster.Spec.GetServiceAccount(),
-					//ImagePullSecrets:   r.KafkaCluster.Spec.GetImagePullSecrets(),
+					ServiceAccountName: r.KafkaCluster.Spec.EnvoyConfig.GetServiceAccount(),
+					ImagePullSecrets:   r.KafkaCluster.Spec.EnvoyConfig.GetImagePullSecrets(),
+					Tolerations:        r.KafkaCluster.Spec.EnvoyConfig.GetTolerations(),
+					NodeSelector:       r.KafkaCluster.Spec.EnvoyConfig.GetNodeSelector(),
 					Containers: []corev1.Container{
 						{
 							Name:  "envoy",
@@ -71,6 +73,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 							Ports: append(exposedPorts, []corev1.ContainerPort{
 								{Name: "envoy-admin", ContainerPort: 9901, Protocol: corev1.ProtocolTCP}}...),
 							VolumeMounts: volumeMounts,
+							Resources:    *r.KafkaCluster.Spec.EnvoyConfig.GetResources(),
 						},
 					},
 					Volumes: volumes,

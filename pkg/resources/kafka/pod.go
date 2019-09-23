@@ -188,11 +188,13 @@ func (r *Reconciler) pod(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfi
 			RestartPolicy:                 corev1.RestartPolicyNever,
 			TerminationGracePeriodSeconds: util.Int64Pointer(120),
 			DNSPolicy:                     corev1.DNSClusterFirst,
-			//ImagePullSecrets:              r.KafkaCluster.Spec.GetImagePullSecrets(),
-			//ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
-			SecurityContext: &corev1.PodSecurityContext{},
-			Priority:        util.Int32Pointer(0),
-			SchedulerName:   "default-scheduler",
+			ImagePullSecrets:              brokerConfig.GetImagePullSecrets(),
+			ServiceAccountName:            brokerConfig.GetServiceAccount(),
+			SecurityContext:               &corev1.PodSecurityContext{},
+			Priority:                      util.Int32Pointer(0),
+			SchedulerName:                 "default-scheduler",
+			Tolerations:                   brokerConfig.GetTolerations(),
+			NodeSelector:                  brokerConfig.GetNodeSelector(),
 		},
 	}
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
@@ -202,12 +204,6 @@ func (r *Reconciler) pod(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfi
 	if brokerConfig.NodeAffinity != nil {
 		pod.Spec.Affinity.NodeAffinity = brokerConfig.NodeAffinity
 	}
-	//if broker.NodeSelector != nil {
-	//	pod.Spec.NodeSelector = broker.NodeSelector
-	//}
-	//if broker.Tolerations != nil {
-	//	pod.Spec.Tolerations = broker.Tolerations
-	//}
 	return pod
 }
 

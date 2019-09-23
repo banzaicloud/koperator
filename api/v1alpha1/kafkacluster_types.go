@@ -70,15 +70,18 @@ type Broker struct {
 
 // BrokerConfig defines the broker configuration
 type BrokerConfig struct {
-	Image string `json:"image,omitempty"`
-	//PodSpec          *corev1.PodSpec              `json:"podsSpec,omitempty"`
-	NodeAffinity     *corev1.NodeAffinity         `json:"nodeAffinity,omitempty"`
-	ReadOnlyConfig   string                       `json:"readOnlyConfig,omitempty"`
-	Config           string                       `json:"config,omitempty"`
-	StorageConfigs   []StorageConfig              `json:"storageConfigs,omitempty"`
-	Resources        *corev1.ResourceRequirements `json:"resourceReqs,omitempty"`
-	KafkaHeapOpts    string                       `json:"kafkaHeapOpts,omitempty"`
-	KafkaJVMPerfOpts string                       `json:"kafkaJvmPerfOpts,omitempty"`
+	Image              string                        `json:"image,omitempty"`
+	NodeAffinity       *corev1.NodeAffinity          `json:"nodeAffinity,omitempty"`
+	ReadOnlyConfig     string                        `json:"readOnlyConfig,omitempty"`
+	Config             string                        `json:"config,omitempty"`
+	StorageConfigs     []StorageConfig               `json:"storageConfigs,omitempty"`
+	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`
+	Resources          *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
+	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	NodeSelector       map[string]string             `json:"nodeSelector,omitempty"`
+	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
+	KafkaHeapOpts      string                        `json:"kafkaHeapOpts,omitempty"`
+	KafkaJVMPerfOpts   string                        `json:"kafkaJvmPerfOpts,omitempty"`
 }
 
 // RackAwareness defines the required fields to enable kafka's rack aware feature
@@ -88,18 +91,26 @@ type RackAwareness struct {
 
 // CruiseControlConfig defines the config for Cruise Control
 type CruiseControlConfig struct {
-	CruiseControlEndpoint string `json:"cruiseControlEndpoint,omitempty"`
-	//PodSpec               *corev1.PodSpec `json:"podsSpec,omitempty"`
-	Config         string `json:"config,omitempty"`
-	CapacityConfig string `json:"capacityConfig,omitempty"`
-	ClusterConfigs string `json:"clusterConfigs,omitempty"`
-	Image          string `json:"image,omitempty"`
+	CruiseControlEndpoint string                        `json:"cruiseControlEndpoint,omitempty"`
+	Resources             *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
+	ServiceAccountName    string                        `json:"serviceAccountName,omitempty"`
+	ImagePullSecrets      []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	NodeSelector          map[string]string             `json:"nodeSelector,omitempty"`
+	Tolerations           []corev1.Toleration           `json:"tolerations,omitempty"`
+	Config                string                        `json:"config,omitempty"`
+	CapacityConfig        string                        `json:"capacityConfig,omitempty"`
+	ClusterConfigs        string                        `json:"clusterConfigs,omitempty"`
+	Image                 string                        `json:"image,omitempty"`
 }
 
 // EnvoyConfig defines the config for Envoy
 type EnvoyConfig struct {
-	Image string `json:"image"`
-	//PodSpec *corev1.PodSpec `json:"podsSpec,omitempty"`
+	Image              string                        `json:"image"`
+	Resources          *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
+	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`
+	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	NodeSelector       map[string]string             `json:"nodeSelector,omitempty"`
+	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
 }
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
@@ -172,17 +183,107 @@ func init() {
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
-//func (spec *KafkaClusterSpec) GetServiceAccount() string {
-//	if spec.ServiceAccount != "" {
-//		return spec.ServiceAccount
-//	}
-//	return "default"
-//}
-//
-////GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
-//func (spec *KafkaClusterSpec) GetImagePullSecrets() []corev1.LocalObjectReference {
-//	return spec.ImagePullSecrets
-//}
+func (bConfig *BrokerConfig) GetServiceAccount() string {
+	if bConfig.ServiceAccountName != "" {
+		return bConfig.ServiceAccountName
+	}
+	return "default"
+}
+
+//GetServiceAccount returns the Kubernetes Service Account to use for EnvoyConfig
+func (eConfig *EnvoyConfig) GetServiceAccount() string {
+	if eConfig.ServiceAccountName != "" {
+		return eConfig.ServiceAccountName
+	}
+	return "default"
+}
+
+//GetServiceAccount returns the Kubernetes Service Account to use for CruiseControl
+func (cConfig *CruiseControlConfig) GetServiceAccount() string {
+	if cConfig.ServiceAccountName != "" {
+		return cConfig.ServiceAccountName
+	}
+	return "default"
+}
+
+//GetTolerations returns the tolerations for the given broker
+func (bConfig *BrokerConfig) GetTolerations() []corev1.Toleration {
+	return bConfig.Tolerations
+}
+
+//GetTolerations returns the tolerations for envoy
+func (eConfig *EnvoyConfig) GetTolerations() []corev1.Toleration {
+	return eConfig.Tolerations
+}
+
+//GetTolerations returns the tolerations for cruise control
+func (cConfig *CruiseControlConfig) GetTolerations() []corev1.Toleration {
+	return cConfig.Tolerations
+}
+
+//GetNodeSelector returns the node selector for cruise control
+func (cConfig *CruiseControlConfig) GetNodeSelector() map[string]string {
+	return cConfig.NodeSelector
+}
+
+//GetNodeSelector returns the node selector for envoy
+func (eConfig *EnvoyConfig) GetNodeSelector() map[string]string {
+	return eConfig.NodeSelector
+}
+
+//GetNodeSelector returns the node selector for the given broker
+func (bConfig *BrokerConfig) GetNodeSelector() map[string]string {
+	return bConfig.NodeSelector
+}
+
+//GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
+func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference {
+	return bConfig.ImagePullSecrets
+}
+
+//GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
+func (eConfig *EnvoyConfig) GetImagePullSecrets() []corev1.LocalObjectReference {
+	return eConfig.ImagePullSecrets
+}
+
+//GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
+func (cConfig *CruiseControlConfig) GetImagePullSecrets() []corev1.LocalObjectReference {
+	return cConfig.ImagePullSecrets
+}
+
+// GetResources returns the envoy specific Kubernetes resource
+func (eConfig *EnvoyConfig) GetResources() *corev1.ResourceRequirements {
+	if eConfig.Resources != nil {
+		return eConfig.Resources
+	}
+	return &corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse("100m"),
+			"memory": resource.MustParse("100Mi"),
+		},
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("100m"),
+			"memory": resource.MustParse("100Mi"),
+		},
+	}
+}
+
+// GetResources returns the CC specific Kubernetes resource
+func (cConfig *CruiseControlConfig) GetResources() *corev1.ResourceRequirements {
+	if cConfig.Resources != nil {
+		return cConfig.Resources
+	}
+	return &corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse("200m"),
+			"memory": resource.MustParse("512Mi"),
+		},
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("200m"),
+			"memory": resource.MustParse("512Mi"),
+		},
+	}
+}
 
 // GetResources returns the broker specific Kubernetes resource
 func (bConfig *BrokerConfig) GetResources() *corev1.ResourceRequirements {
