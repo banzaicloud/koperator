@@ -105,12 +105,14 @@ type CruiseControlConfig struct {
 
 // EnvoyConfig defines the config for Envoy
 type EnvoyConfig struct {
-	Image              string                        `json:"image"`
-	Resources          *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
-	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`
-	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	NodeSelector       map[string]string             `json:"nodeSelector,omitempty"`
-	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
+	Image                    string                        `json:"image"`
+	Resources                *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
+	ServiceAccountName       string                        `json:"serviceAccountName,omitempty"`
+	ImagePullSecrets         []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	NodeSelector             map[string]string             `json:"nodeSelector,omitempty"`
+	Tolerations              []corev1.Toleration           `json:"tolerations,omitempty"`
+	Annotations              map[string]string             `json:"annotations,omitempty"`
+	LoadBalancerSourceRanges []string                      `json:"loadBalancerSourceRanges,omitempty"`
 }
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
@@ -180,6 +182,16 @@ type KafkaClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&KafkaCluster{}, &KafkaClusterList{})
+}
+
+//GetLoadBalancerSourceRanges returns LoadBalancerSourceRanges to use for Envoy generated LoadBalancer
+func (eConfig *EnvoyConfig) GetLoadBalancerSourceRanges() []string {
+	return eConfig.LoadBalancerSourceRanges
+}
+
+//GetAnnotations returns Annotations to use for Envoy generated LoadBalancer
+func (eConfig *EnvoyConfig) GetAnnotations() map[string]string {
+	return eConfig.Annotations
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
