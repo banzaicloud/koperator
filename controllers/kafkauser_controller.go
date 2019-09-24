@@ -23,7 +23,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkautil"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	logr "github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
@@ -137,7 +137,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 
 	// Get a kafka connection
 	reqLogger.Info("Retrieving kafka admin client")
-	broker, err := kafkautil.NewFromCluster(r.Client, cluster)
+	broker, err := kafkaclient.NewFromCluster(r.Client, cluster)
 	if err != nil {
 		switch err.(type) {
 		case errorfactory.BrokersUnreachable:
@@ -275,7 +275,7 @@ func (r *KafkaUserReconciler) updateAndEnsureClusterOwnershipChain(logger logr.L
 	return
 }
 
-func (r *KafkaUserReconciler) clusterCertificateForUser(cluster *v1alpha1.KafkaCluster, broker kafkautil.KafkaClient, user *v1alpha1.KafkaUser) *certv1.Certificate {
+func (r *KafkaUserReconciler) clusterCertificateForUser(cluster *v1alpha1.KafkaCluster, broker kafkaclient.KafkaClient, user *v1alpha1.KafkaUser) *certv1.Certificate {
 	caName, caKind := broker.GetCA()
 	cert := &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -295,7 +295,7 @@ func (r *KafkaUserReconciler) clusterCertificateForUser(cluster *v1alpha1.KafkaC
 	return cert
 }
 
-func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkautil.KafkaClient, user *v1alpha1.KafkaUser) (reconcile.Result, error) {
+func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkaclient.KafkaClient, user *v1alpha1.KafkaUser) (reconcile.Result, error) {
 	// run finalizers
 	reqLogger.Info("Kafka user is marked for deletion")
 	var err error
@@ -316,7 +316,7 @@ func (r *KafkaUserReconciler) removeFinalizer(user *v1alpha1.KafkaUser) error {
 	return r.Client.Update(context.TODO(), user)
 }
 
-func (r *KafkaUserReconciler) finalizeKafkaUser(reqLogger logr.Logger, broker kafkautil.KafkaClient, user *v1alpha1.KafkaUser) error {
+func (r *KafkaUserReconciler) finalizeKafkaUser(reqLogger logr.Logger, broker kafkaclient.KafkaClient, user *v1alpha1.KafkaUser) error {
 	var err error
 
 	// get the user's distinguished name to delete matching kafka acls

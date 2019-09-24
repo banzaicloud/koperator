@@ -20,7 +20,7 @@ import (
 
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkautil"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -63,7 +63,7 @@ func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admi
 	}
 
 	// retrieve an admin client for the cluster
-	broker, err := kafkautil.NewFromCluster(s.client, cluster)
+	broker, err := kafkaclient.NewFromCluster(s.client, cluster)
 	if err != nil {
 		log.Error(err, "Failed to connect to kafka cluster")
 		return notAllowed(fmt.Sprintf("Failed to connect to kafka cluster: %s", topic.Spec.ClusterRef.Name))

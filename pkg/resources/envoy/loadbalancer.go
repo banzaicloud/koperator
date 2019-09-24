@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -32,7 +33,7 @@ func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 	exposedPorts := getExposedServicePorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.Brokers)
 
 	service := &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(EnvoyServiceName, map[string]string{}, r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(envoyutils.EnvoyServiceName, map[string]string{}, r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{"app": "envoy"},
 			Type:     corev1.ServiceTypeLoadBalancer,
