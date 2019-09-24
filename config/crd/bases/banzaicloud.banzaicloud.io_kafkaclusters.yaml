@@ -263,8 +263,6 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
-                  readOnlyConfig:
-                    type: string
                   resourceRequirements:
                     description: ResourceRequirements describes the compute resource
                       requirements.
@@ -705,8 +703,6 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
-                      readOnlyConfig:
-                        type: string
                       resourceRequirements:
                         description: ResourceRequirements describes the compute resource
                           requirements.
@@ -917,6 +913,8 @@ spec:
                   id:
                     format: int32
                     type: integer
+                  readOnlyConfig:
+                    type: string
                 required:
                 - id
                 type: object
