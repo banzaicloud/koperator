@@ -28,12 +28,12 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkautil"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,13 +42,9 @@ import (
 )
 
 const (
-	componentName = "kafka"
-	// AllBrokerServiceTemplate template for Kafka headless service
-	AllBrokerServiceTemplate = "%s-all-broker"
-	// HeadlessServiceTemplate template for Kafka headless service
-	HeadlessServiceTemplate = "%s-headless"
-	brokerConfigTemplate    = "%s-config"
-	brokerStorageTemplate   = "%s-storage"
+	componentName         = "kafka"
+	brokerConfigTemplate  = "%s-config"
+	brokerStorageTemplate = "%s-storage"
 
 	brokerConfigMapVolumeMount    = "broker-config"
 	modbrokerConfigMapVolumeMount = "broker-modconfig"
@@ -100,7 +96,7 @@ func getCreatedPVCForBroker(c client.Client, brokerID int32, namespace, crName s
 
 func getLoadBalancerIP(client client.Client, namespace string, log logr.Logger) (string, error) {
 	foundLBService := &corev1.Service{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: envoy.EnvoyServiceName, Namespace: namespace}, foundLBService)
+	err := client.Get(context.TODO(), types.NamespacedName{Name: envoyutils.EnvoyServiceName, Namespace: namespace}, foundLBService)
 	if err != nil {
 		return "", err
 	}
@@ -293,7 +289,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 }
 
 func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, log logr.Logger) error {
-	kClient, err := kafkautil.NewFromCluster(r.Client, r.KafkaCluster)
+	kClient, err := kafkaclient.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 	}
@@ -337,7 +333,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 }
 
 func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
-	kClient, err := kafkautil.NewFromCluster(r.Client, r.KafkaCluster)
+	kClient, err := kafkaclient.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 	}
@@ -492,7 +488,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				}
 				errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
 
-				kClient, err := kafkautil.NewFromCluster(r.Client, r.KafkaCluster)
+				kClient, err := kafkaclient.NewFromCluster(r.Client, r.KafkaCluster)
 				if err != nil {
 					return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 				}

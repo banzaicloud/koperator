@@ -16,7 +16,7 @@ package cruisecontrol
 
 import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkautil"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/go-logr/logr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,13 +26,13 @@ import (
 // to ourselves
 func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Client, log logr.Logger) error {
 
-	broker, err := kafkautil.NewFromCluster(client, cluster)
+	broker, err := kafkaclient.NewFromCluster(client, cluster)
 	if err != nil {
 		return err
 	}
 	defer broker.Close()
 
-	return broker.CreateTopic(&kafkautil.CreateTopicOptions{
+	return broker.CreateTopic(&kafkaclient.CreateTopicOptions{
 		Name:              "__CruiseControlMetrics",
 		Partitions:        12,
 		ReplicationFactor: 3,

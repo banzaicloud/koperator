@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -81,9 +81,9 @@ ssl.keystore.location=/var/run/secrets/java.io/keystores/client.keystore.jks
 
 func generateBootstrapServer(headlessEnabled bool, clusterName string) string {
 	if headlessEnabled {
-		return fmt.Sprintf(kafka.HeadlessServiceTemplate, clusterName)
+		return fmt.Sprintf(kafkautils.HeadlessServiceTemplate, clusterName)
 	}
-	return fmt.Sprintf(kafka.AllBrokerServiceTemplate, clusterName)
+	return fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, clusterName)
 }
 
 func prepareZookeeperAddress(zkAddresses []string) string {
