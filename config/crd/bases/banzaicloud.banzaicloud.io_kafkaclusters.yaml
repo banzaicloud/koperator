@@ -1017,6 +1017,10 @@ spec:
             envoyConfig:
               description: EnvoyConfig defines the config for Envoy
               properties:
+                annotations:
+                  additionalProperties:
+                    type: string
+                  type: object
                 image:
                   type: string
                 imagePullSecrets:
@@ -1029,6 +1033,10 @@ spec:
                           TODO: Add other useful fields. apiVersion, kind, uid?'
                         type: string
                     type: object
+                  type: array
+                loadBalancerSourceRanges:
+                  items:
+                    type: string
                   type: array
                 nodeSelector:
                   additionalProperties:
