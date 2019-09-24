@@ -23,9 +23,7 @@ import (
 )
 
 const (
-	componentName = "envoy"
-	// EnvoyServiceName name for loadbalancer service
-	EnvoyServiceName         = "envoy-loadbalancer"
+	componentName            = "envoy"
 	envoyVolumeAndConfigName = "envoy-config"
 	envoyDeploymentName      = "envoy"
 )

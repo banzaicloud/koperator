@@ -22,6 +22,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
+	pkiutils "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,13 +37,10 @@ const (
 	brokerSelfSignerTemplate = "%s-self-signer"
 	brokerCACertTemplate     = "%s-ca-certificate"
 	brokerServerCertTemplate = "%s-server-certificate"
-	BrokerIssuerTemplate     = "%s-issuer"
-	// exported for lookups
-	BrokerControllerTemplate = "%s-crd-controller"
 )
 
 func labelsForKafkaPKI(name string) map[string]string {
-	return map[string]string{"app": "kafka", "kafka_issuer": fmt.Sprintf(BrokerIssuerTemplate, name)}
+	return map[string]string{"app": "kafka", "kafka_issuer": fmt.Sprintf(pkiutils.BrokerIssuerTemplate, name)}
 }
 
 // Reconciler implements the Component Reconciler
@@ -110,7 +108,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		secretNames := []types.NamespacedName{
 			{Name: fmt.Sprintf(brokerCACertTemplate, r.KafkaCluster.Name), Namespace: "cert-manager"},
 			{Name: fmt.Sprintf(brokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace},
-			{Name: fmt.Sprintf(BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace},
+			{Name: fmt.Sprintf(pkiutils.BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace},
 		}
 
 		for _, o := range secretNames {

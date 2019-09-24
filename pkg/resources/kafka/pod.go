@@ -22,6 +22,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -199,7 +200,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfi
 	}
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
 		pod.Spec.Hostname = fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id)
-		pod.Spec.Subdomain = fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name)
+		pod.Spec.Subdomain = fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.Name)
 	}
 	if brokerConfig.NodeAffinity != nil {
 		pod.Spec.Affinity.NodeAffinity = brokerConfig.NodeAffinity

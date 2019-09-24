@@ -23,7 +23,7 @@ import (
 	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkautil"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	logr "github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -121,7 +121,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 
 	// Get a kafka connection
 	reqLogger.Info("Retrieving kafka admin client")
-	broker, err := kafkautil.NewFromCluster(r.Client, cluster)
+	broker, err := kafkaclient.NewFromCluster(r.Client, cluster)
 	if err != nil {
 		switch err.(type) {
 		case errorfactory.BrokersUnreachable:
@@ -177,7 +177,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	} else {
 
 		// Create the topic
-		if err = broker.CreateTopic(&kafkautil.CreateTopicOptions{
+		if err = broker.CreateTopic(&kafkaclient.CreateTopicOptions{
 			Name:              instance.Spec.Name,
 			Partitions:        instance.Spec.Partitions,
 			ReplicationFactor: int16(instance.Spec.ReplicationFactor),
@@ -252,7 +252,7 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster
 	}
 
 	// grab a connection to kafka
-	k, err := kafkautil.NewFromCluster(r.Client, cluster)
+	k, err := kafkaclient.NewFromCluster(r.Client, cluster)
 	if err != nil {
 		syncLogger.Error(err, "Failed to get a broker connection to update topic status")
 		// let's still try again later, in case it was just a blip in cluster availability
@@ -305,7 +305,7 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster
 
 }
 
-func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkautil.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {
+func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {
 	reqLogger.Info("Kafka topic is marked for deletion")
 	var err error
 	if util.StringSliceContains(topic.GetFinalizers(), topicFinalizer) {
@@ -324,7 +324,7 @@ func (r *KafkaTopicReconciler) removeFinalizer(topic *v1alpha1.KafkaTopic) error
 	return r.Client.Update(context.TODO(), topic)
 }
 
-func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker kafkautil.KafkaClient, topic *v1alpha1.KafkaTopic) error {
+func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) error {
 	exists, err := broker.GetTopic(topic.Spec.Name)
 	if err != nil {
 		return err
