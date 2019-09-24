@@ -33,11 +33,12 @@ func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 	exposedPorts := getExposedServicePorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.Brokers)
 
 	service := &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(envoyutils.EnvoyServiceName, map[string]string{}, r.KafkaCluster),
+		ObjectMeta: templates.ObjectMetaWithAnnotations(envoyutils.EnvoyServiceName, map[string]string{}, r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations(), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{"app": "envoy"},
-			Type:     corev1.ServiceTypeLoadBalancer,
-			Ports:    exposedPorts,
+			Selector:                 map[string]string{"app": "envoy"},
+			Type:                     corev1.ServiceTypeLoadBalancer,
+			Ports:                    exposedPorts,
+			LoadBalancerSourceRanges: r.KafkaCluster.Spec.EnvoyConfig.GetLoadBalancerSourceRanges(),
 		},
 	}
 	return service
