@@ -40,7 +40,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 `, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, prepareZookeeperAddress(r.KafkaCluster.Spec.ZKAddresses)) +
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig),
 			"capacity.json":       r.KafkaCluster.Spec.CruiseControlConfig.CapacityConfig,
-			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfigs,
+			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,
 			"log4j.properties": `
 log4j.rootLogger = INFO, FILE
     log4j.appender.FILE=org.apache.log4j.FileAppender
