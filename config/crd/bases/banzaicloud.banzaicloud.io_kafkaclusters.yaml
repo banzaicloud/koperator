@@ -930,7 +930,7 @@ spec:
               properties:
                 capacityConfig:
                   type: string
-                clusterConfigs:
+                clusterConfig:
                   type: string
                 config:
                   type: string

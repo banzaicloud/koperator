@@ -99,7 +99,7 @@ type CruiseControlConfig struct {
 	Tolerations           []corev1.Toleration           `json:"tolerations,omitempty"`
 	Config                string                        `json:"config,omitempty"`
 	CapacityConfig        string                        `json:"capacityConfig,omitempty"`
-	ClusterConfigs        string                        `json:"clusterConfigs,omitempty"`
+	ClusterConfig         string                        `json:"clusterConfig,omitempty"`
 	Image                 string                        `json:"image,omitempty"`
 }
 
