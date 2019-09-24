@@ -339,13 +339,25 @@ func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
 	}
 	defer kClient.Close()
 
+	configIdentical := true
+
 	currentConfig, err := kClient.DescribeClusterWideConfig()
 	if err != nil {
 		return errors.WrapIf(err, "could not describe cluster wide broker config")
 	}
 	parsedClusterWideConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ClusterWideConfig)
-
 	if len(currentConfig) != len(parsedClusterWideConfig) {
+		configIdentical = false
+	}
+	for _, conf := range currentConfig {
+		if val, ok := parsedClusterWideConfig[conf.Name]; ok {
+			if val != conf.Value {
+				configIdentical = false
+				break
+			}
+		}
+	}
+	if !configIdentical {
 		err = kClient.AlterClusterWideConfig(util.ConvertMapStringToMapStringPointer(parsedClusterWideConfig))
 		if err != nil {
 			return errors.WrapIf(err, "could not alter cluster wide broker config")
