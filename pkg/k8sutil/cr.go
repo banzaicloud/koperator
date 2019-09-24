@@ -41,16 +41,23 @@ func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 
 	brokers := []banzaicloudv1alpha1.Broker{}
 
-	for _, brokerConfig := range cr.Spec.Brokers {
-		if strconv.Itoa(int(brokerConfig.Id)) == current.Labels["brokerId"] {
+	for _, broker := range cr.Spec.Brokers {
+		if strconv.Itoa(int(broker.Id)) == current.Labels["brokerId"] {
 			nodeAffinity := &corev1.NodeAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
 					NodeSelectorTerms: failureDomainSelectors,
 				},
 			}
-			brokerConfig.BrokerConfig.NodeAffinity = nodeAffinity
+			if broker.BrokerConfig != nil {
+				broker.BrokerConfig.NodeAffinity = nodeAffinity
+			} else {
+				bConfig := &banzaicloudv1alpha1.BrokerConfig{
+					NodeAffinity: nodeAffinity,
+				}
+				broker.BrokerConfig = bConfig
+			}
 		}
-		brokers = append(brokers, brokerConfig)
+		brokers = append(brokers, broker)
 	}
 	cr.Spec.Brokers = brokers
 	return updateCr(cr, client)
@@ -73,14 +80,12 @@ func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *banzaicloudv1alpha1.Ka
 
 	for _, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) == pod.Labels["brokerId"] {
-			if broker.BrokerConfig == nil {
-				bConfig := &banzaicloudv1alpha1.BrokerConfig{
-					ReadOnlyConfig: fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ",")),
-				}
-				broker.BrokerConfig = bConfig
-			} else if !strings.Contains(broker.BrokerConfig.ReadOnlyConfig, "broker.rack=") {
-				config := broker.BrokerConfig.ReadOnlyConfig + fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
-				broker.BrokerConfig.ReadOnlyConfig = config
+			if broker.ReadOnlyConfig == "" {
+				readOnlyConfig := fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
+				broker.ReadOnlyConfig = readOnlyConfig
+			} else if !strings.Contains(broker.ReadOnlyConfig, "broker.rack=") {
+				readOnlyConfig := broker.ReadOnlyConfig + fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
+				broker.ReadOnlyConfig = readOnlyConfig
 			}
 		}
 		brokerConfigs = append(brokerConfigs, broker)

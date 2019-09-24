@@ -65,6 +65,7 @@ type RollingUpgradeConfig struct {
 type Broker struct {
 	Id                int32         `json:"id"`
 	BrokerConfigGroup string        `json:"brokerConfigGroup,omitempty"`
+	ReadOnlyConfig    string        `json:"readOnlyConfig,omitempty"`
 	BrokerConfig      *BrokerConfig `json:"brokerConfig,omitempty"`
 }
 
@@ -72,7 +73,6 @@ type Broker struct {
 type BrokerConfig struct {
 	Image              string                        `json:"image,omitempty"`
 	NodeAffinity       *corev1.NodeAffinity          `json:"nodeAffinity,omitempty"`
-	ReadOnlyConfig     string                        `json:"readOnlyConfig,omitempty"`
 	Config             string                        `json:"config,omitempty"`
 	StorageConfigs     []StorageConfig               `json:"storageConfigs,omitempty"`
 	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`

@@ -126,9 +126,9 @@ zookeeper.connect=example.zk:2181`,
 							ReadOnlyConfig:    test.readOnlyConfig,
 							ClusterWideConfig: test.clusterWideConfig,
 							Brokers: []v1alpha1.Broker{{
-								Id: 0,
+								Id:             0,
+								ReadOnlyConfig: test.perBrokerReadOnlyConfig,
 								BrokerConfig: &v1alpha1.BrokerConfig{
-									ReadOnlyConfig: test.perBrokerReadOnlyConfig,
 									Config:         test.perBrokerConfig,
 									StorageConfigs: test.perBrokerStorageConfig,
 								},
