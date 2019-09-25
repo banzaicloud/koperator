@@ -2,6 +2,6 @@ version: "2"
 domain: banzaicloud.io
 repo: github.com/banzaicloud/kafka-operator
 resources:
-- group: banzaicloud
+- group: kafka
   version: v1beta1
   kind: KafkaCluster
