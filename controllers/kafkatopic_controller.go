@@ -42,6 +42,7 @@ import (
 var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
 var syncRoutines = make(map[types.UID]struct{}, 0)
 
+// SetupKafkaTopicWithManager registers kafka topic controller with manager
 func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
 	// Create a new controller
 	r := &KafkaTopicReconciler{
@@ -79,6 +80,7 @@ type KafkaTopicReconciler struct {
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics/status,verbs=get;update;patch
 
+// Reconcile reconciles the kafka topic
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.

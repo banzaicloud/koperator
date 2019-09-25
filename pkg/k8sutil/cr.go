@@ -28,6 +28,7 @@ import (
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// UpdateCrWithNodeAffinity updates the given Cr with NodeAffinity status
 func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 	failureDomainSelectors, err := failureDomainSelectors(current.Spec.NodeName, client)
 	if err != nil {
@@ -63,6 +64,7 @@ func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *v1beta1.KafkaCluster, cli
 	return updateCr(cr, client)
 }
 
+// UpdateCrWithRackAwarenessConfig updates the CR with rack awareness config
 func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 
 	if pod.Spec.NodeName == "" {

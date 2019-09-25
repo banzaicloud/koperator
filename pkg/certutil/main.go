@@ -32,9 +32,13 @@ import (
 )
 
 const (
-	TLSCAKey            = "ca.crt"
-	TLSJKSKey           = "tls.jks"
-	TLSPasswordKey      = "pass.txt"
+	// TLSCAKey constant
+	TLSCAKey = "ca.crt"
+	// TLSJKSKey constant
+	TLSJKSKey = "tls.jks"
+	// TLSPasswordKey constant
+	TLSPasswordKey = "pass.txt"
+	// ClientPropertiesKey constant
 	ClientPropertiesKey = "client-ssl.properties"
 )
 
@@ -48,6 +52,7 @@ ssl.keystore.password={{ .Password }}
 ssl.key.password={{ .Password }}
 `
 
+// DecodeKey decodes pem key to []byte
 func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 	block, _ := pem.Decode(raw)
 	if block == nil {
@@ -72,6 +77,7 @@ func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 	return
 }
 
+// DecodeCertificate decodes pem certs to golang x509.Certificate
 func DecodeCertificate(raw []byte) (cert *x509.Certificate, err error) {
 	block, _ := pem.Decode(raw)
 	if block == nil {
@@ -81,6 +87,7 @@ func DecodeCertificate(raw []byte) (cert *x509.Certificate, err error) {
 	return
 }
 
+// GeneratePass generates a password for keys, certs
 func GeneratePass(length int) (passw []byte) {
 	rand.Seed(time.Now().UnixNano())
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
@@ -94,6 +101,7 @@ func GeneratePass(length int) (passw []byte) {
 	return
 }
 
+// InjectJKS injects JKS to kubernetes secrets
 func InjectJKS(reqLogger logr.Logger, secret *corev1.Secret) (injected *corev1.Secret, err error) {
 	injected = secret.DeepCopy()
 	cert, err := DecodeCertificate(secret.Data[corev1.TLSCertKey])

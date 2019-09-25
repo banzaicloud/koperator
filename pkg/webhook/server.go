@@ -34,6 +34,7 @@ type webhookServer struct {
 	deserializer runtime.Decoder
 }
 
+// SetupServerHandlers sets up a webhook with the manager
 func SetupServerHandlers(mgr ctrl.Manager, certDir string) {
 	server := mgr.GetWebhookServer()
 	server.CertDir = certDir
