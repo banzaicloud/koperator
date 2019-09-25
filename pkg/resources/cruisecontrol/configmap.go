@@ -18,13 +18,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -68,7 +68,7 @@ log4j.rootLogger = INFO, FILE
 	return configMap
 }
 
-func generateSSLConfig(l *banzaicloudv1alpha1.ListenersConfig) (res string) {
+func generateSSLConfig(l *v1beta1.ListenersConfig) (res string) {
 	if l.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
 		res = `
 security.protocol=SSL

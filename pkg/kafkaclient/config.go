@@ -20,7 +20,8 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	pkiutils "github.com/banzaicloud/kafka-operator/pkg/util/pki"
@@ -45,7 +46,7 @@ type KafkaConfig struct {
 }
 
 // ClusterConfig creates connection options from a KafkaCluster CR
-func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (*KafkaConfig, error) {
+func ClusterConfig(client client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (*KafkaConfig, error) {
 	conf := &KafkaConfig{}
 	conf.BrokerURI = generateKafkaAddress(cluster)
 	conf.OperationTimeout = kafkaDefaultTimeout
@@ -65,9 +66,9 @@ func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (*Kafka
 			}
 			return conf, err
 		}
-		clientCert := tlsKeys.Data[v1alpha1.ClientCertKey]
-		clientKey := tlsKeys.Data[v1alpha1.ClientPrivateKeyKey]
-		caCert := tlsKeys.Data[v1alpha1.CACertKey]
+		clientCert := tlsKeys.Data[banzaicloudv1alpha1.ClientCertKey]
+		clientKey := tlsKeys.Data[banzaicloudv1alpha1.ClientPrivateKeyKey]
+		caCert := tlsKeys.Data[banzaicloudv1alpha1.CACertKey]
 		x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
 		if err != nil {
 			err = errorfactory.New(errorfactory.InternalError{}, err, "could not decode controller certificate")
@@ -90,7 +91,7 @@ func ClusterConfig(client client.Client, cluster *v1alpha1.KafkaCluster) (*Kafka
 	return conf, nil
 }
 
-func generateKafkaAddress(cluster *v1alpha1.KafkaCluster) string {
+func generateKafkaAddress(cluster *banzaicloudv1beta1.KafkaCluster) string {
 	if cluster.Spec.HeadlessServiceEnabled {
 		return fmt.Sprintf("%s.%s:%d", fmt.Sprintf(kafkautils.HeadlessServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
 	}

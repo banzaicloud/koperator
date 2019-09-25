@@ -17,13 +17,13 @@ package k8sutil
 import (
 	"context"
 
-	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func LookupKafkaCluster(client runtimeClient.Client, clusterName, clusterNamespace string) (cluster *v1alpha1.KafkaCluster, err error) {
-	cluster = &v1alpha1.KafkaCluster{}
+func LookupKafkaCluster(client runtimeClient.Client, clusterName, clusterNamespace string) (cluster *v1beta1.KafkaCluster, err error) {
+	cluster = &v1beta1.KafkaCluster{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: clusterName, Namespace: clusterNamespace}, cluster)
 	return
 }

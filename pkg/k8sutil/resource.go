@@ -20,7 +20,8 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
@@ -33,7 +34,7 @@ import (
 )
 
 // Reconcile reconciles K8S resources
-func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Object, cr *banzaicloudv1alpha1.KafkaCluster) error {
+func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Object, cr *v1beta1.KafkaCluster) error {
 	desiredType := reflect.TypeOf(desired)
 	var current = desired.DeepCopyObject()
 	var err error
@@ -127,7 +128,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			case *corev1.ConfigMap:
 				// Only update status when configmap belongs to broker
 				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
-					statusErr := UpdateBrokerStatus(client, id, cr, banzaicloudv1alpha1.ConfigOutOfSync, log)
+					statusErr := UpdateBrokerStatus(client, id, cr, banzaicloudv1beta1.ConfigOutOfSync, log)
 					if statusErr != nil {
 						return errors.WrapIfWithDetails(err, "updating status for resource failed", "kind", desiredType)
 					}

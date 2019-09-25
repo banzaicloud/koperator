@@ -18,7 +18,8 @@ import (
 	"context"
 	"fmt"
 
-	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -26,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admissionv1beta1.AdmissionResponse) {
+func (s *webhookServer) validateKafkaTopic(topic banzaicloudv1alpha1.KafkaTopic) (res *admissionv1beta1.AdmissionResponse) {
 	log.Info(fmt.Sprintf("Doing pre-admission validation of kafka topic %s", topic.Spec.Name))
 
 	// Get the referenced kafkacluster
@@ -34,7 +35,7 @@ func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admi
 	if clusterNamespace == "" {
 		clusterNamespace = topic.Namespace
 	}
-	var cluster *v1alpha1.KafkaCluster
+	var cluster *banzaicloudv1beta1.KafkaCluster
 	var err error
 
 	// Check if the cluster being referenced actually exists
@@ -78,7 +79,7 @@ func (s *webhookServer) validateKafkaTopic(topic v1alpha1.KafkaTopic) (res *admi
 	// The topic exists
 	if existing != nil {
 		// Check if this is the correct CR for this topic
-		topicCR := &v1alpha1.KafkaTopic{}
+		topicCR := &banzaicloudv1alpha1.KafkaTopic{}
 		if err := s.client.Get(context.TODO(), types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, topicCR); err != nil {
 			if apierrors.IsNotFound(err) {
 				// User is trying to overwrite an existing topic - bad user
