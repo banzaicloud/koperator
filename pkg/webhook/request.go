@@ -22,13 +22,13 @@ import (
 	"net/http"
 	"reflect"
 
-	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	kafkaTopic = reflect.TypeOf(v1alpha1.KafkaTopic{}).Name()
+	kafkaTopic = reflect.TypeOf(banzaicloudv1alpha1.KafkaTopic{}).Name()
 )
 
 func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissionv1beta1.AdmissionResponse {
@@ -40,7 +40,7 @@ func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissio
 	switch req.Kind.Kind {
 
 	case kafkaTopic:
-		var topic v1alpha1.KafkaTopic
+		var topic banzaicloudv1alpha1.KafkaTopic
 		if err := json.Unmarshal(req.Object.Raw, &topic); err != nil {
 			log.Error(err, "Could not unmarshal raw object")
 			return notAllowed(err.Error())

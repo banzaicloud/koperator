@@ -19,7 +19,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
@@ -60,7 +61,7 @@ func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Watch for changes to primary resource KafkaUser
-	err = c.Watch(&source.Kind{Type: &v1alpha1.KafkaUser{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &banzaicloudv1alpha1.KafkaUser{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -68,7 +69,7 @@ func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
 	// Watch for changes to secondary certificates and requeue the owner KafkaUser
 	err = c.Watch(&source.Kind{Type: &certv1.Certificate{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &v1alpha1.KafkaUser{},
+		OwnerType:    &banzaicloudv1alpha1.KafkaUser{},
 	})
 	if err != nil {
 		return err
@@ -105,7 +106,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	reqLogger.Info("Reconciling KafkaUser")
 	var err error
 	// Fetch the KafkaUser instance
-	instance := &v1alpha1.KafkaUser{}
+	instance := &banzaicloudv1alpha1.KafkaUser{}
 	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -122,7 +123,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	if clusterNamespace == "" {
 		clusterNamespace = instance.Namespace
 	}
-	var cluster *v1alpha1.KafkaCluster
+	var cluster *banzaicloudv1beta1.KafkaCluster
 	if cluster, err = k8sutil.LookupKafkaCluster(r.Client, instance.Spec.ClusterRef.Name, clusterNamespace); err != nil {
 		// This shouldn't trigger anymore, but leaving it here as a safetybelt
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
@@ -243,7 +244,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	return reconciled()
 }
 
-func (r *KafkaUserReconciler) updateAndEnsureClusterOwnershipChain(logger logr.Logger, cluster *v1alpha1.KafkaCluster, user *v1alpha1.KafkaUser, cert *certv1.Certificate, secret *corev1.Secret) (err error) {
+func (r *KafkaUserReconciler) updateAndEnsureClusterOwnershipChain(logger logr.Logger, cluster *banzaicloudv1beta1.KafkaCluster, user *banzaicloudv1alpha1.KafkaUser, cert *certv1.Certificate, secret *corev1.Secret) (err error) {
 	// Give cluster ownership over user
 	err = controllerutil.SetControllerReference(cluster, user, r.Scheme)
 	if err != nil && !k8sutil.IsAlreadyOwnedError(err) {
@@ -283,7 +284,7 @@ func (r *KafkaUserReconciler) updateAndEnsureClusterOwnershipChain(logger logr.L
 	return
 }
 
-func (r *KafkaUserReconciler) clusterCertificateForUser(cluster *v1alpha1.KafkaCluster, broker kafkaclient.KafkaClient, user *v1alpha1.KafkaUser) *certv1.Certificate {
+func (r *KafkaUserReconciler) clusterCertificateForUser(cluster *banzaicloudv1beta1.KafkaCluster, broker kafkaclient.KafkaClient, user *banzaicloudv1alpha1.KafkaUser) *certv1.Certificate {
 	caName, caKind := broker.GetCA()
 	cert := &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -303,7 +304,7 @@ func (r *KafkaUserReconciler) clusterCertificateForUser(cluster *v1alpha1.KafkaC
 	return cert
 }
 
-func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkaclient.KafkaClient, user *v1alpha1.KafkaUser) (reconcile.Result, error) {
+func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkaclient.KafkaClient, user *banzaicloudv1alpha1.KafkaUser) (reconcile.Result, error) {
 	// run finalizers
 	reqLogger.Info("Kafka user is marked for deletion")
 	var err error
@@ -319,12 +320,12 @@ func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, broker kafk
 	return reconciled()
 }
 
-func (r *KafkaUserReconciler) removeFinalizer(user *v1alpha1.KafkaUser) error {
+func (r *KafkaUserReconciler) removeFinalizer(user *banzaicloudv1alpha1.KafkaUser) error {
 	user.SetFinalizers(util.StringSliceRemove(user.GetFinalizers(), userFinalizer))
 	return r.Client.Update(context.TODO(), user)
 }
 
-func (r *KafkaUserReconciler) finalizeKafkaUser(reqLogger logr.Logger, broker kafkaclient.KafkaClient, user *v1alpha1.KafkaUser) error {
+func (r *KafkaUserReconciler) finalizeKafkaUser(reqLogger logr.Logger, broker kafkaclient.KafkaClient, user *banzaicloudv1alpha1.KafkaUser) error {
 	var err error
 
 	// get the user's distinguished name to delete matching kafka acls
@@ -363,13 +364,13 @@ func (r *KafkaUserReconciler) finalizeKafkaUser(reqLogger logr.Logger, broker ka
 	return nil
 }
 
-func (r *KafkaUserReconciler) addFinalizer(reqLogger logr.Logger, user *v1alpha1.KafkaUser) {
+func (r *KafkaUserReconciler) addFinalizer(reqLogger logr.Logger, user *banzaicloudv1alpha1.KafkaUser) {
 	reqLogger.Info("Adding Finalizer for the KafkaUser")
 	user.SetFinalizers(append(user.GetFinalizers(), userFinalizer))
 	return
 }
 
-func (r *KafkaUserReconciler) getUserX509NameAndCredentials(reqLogger logr.Logger, user *v1alpha1.KafkaUser) (dn string, secret *corev1.Secret, err error) {
+func (r *KafkaUserReconciler) getUserX509NameAndCredentials(reqLogger logr.Logger, user *banzaicloudv1alpha1.KafkaUser) (dn string, secret *corev1.Secret, err error) {
 	// retrieve user secret to get common name
 	secret, err = r.getUserSecret(user)
 	if err != nil {
@@ -391,13 +392,13 @@ func (r *KafkaUserReconciler) getUserX509NameAndCredentials(reqLogger logr.Logge
 	return
 }
 
-func (r *KafkaUserReconciler) getUserSecret(user *v1alpha1.KafkaUser) (*corev1.Secret, error) {
+func (r *KafkaUserReconciler) getUserSecret(user *banzaicloudv1alpha1.KafkaUser) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: user.Spec.SecretName, Namespace: user.Namespace}, secret)
 	return secret, err
 }
 
-func (r *KafkaUserReconciler) getUserCertificate(user *v1alpha1.KafkaUser) (*certv1.Certificate, error) {
+func (r *KafkaUserReconciler) getUserCertificate(user *banzaicloudv1alpha1.KafkaUser) (*certv1.Certificate, error) {
 	cert := &certv1.Certificate{}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: user.Name, Namespace: user.Namespace}, cert)
 	return cert, err

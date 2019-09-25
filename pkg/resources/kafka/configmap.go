@@ -22,7 +22,7 @@ import (
 	"strings"
 	"text/template"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
@@ -64,7 +64,7 @@ log.dirs={{ .StorageConfig }}
 super.users={{ .SuperUsers }}
 `
 
-func (r *Reconciler) getConfigString(bConfig *banzaicloudv1alpha1.BrokerConfig, id int32, loadBalancerIP string, superUsers []string, log logr.Logger) string {
+func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, loadBalancerIP string, superUsers []string, log logr.Logger) string {
 	var out bytes.Buffer
 	t := template.Must(template.New("bConfig-config").Parse(kafkaConfigTemplate))
 	if err := t.Execute(&out, map[string]interface{}{
@@ -91,14 +91,14 @@ func generateSuperUsers(users []string) (suStrings []string) {
 	return
 }
 
-func (r *Reconciler) configMap(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, loadBalancerIP string, superUsers []string, log logr.Logger) runtime.Object {
+func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIP string, superUsers []string, log logr.Logger) runtime.Object {
 	return &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id), util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}), r.KafkaCluster),
 		Data:       map[string]string{"broker-config": r.generateBrokerConfig(id, brokerConfig, superUsers, loadBalancerIP, log)},
 	}
 }
 
-func generateAdvertisedListenerConfig(id int32, l banzaicloudv1alpha1.ListenersConfig, loadBalancerIP, namespace, crName string, headlessServiceEnabled bool) string {
+func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig, loadBalancerIP, namespace, crName string, headlessServiceEnabled bool) string {
 	advertisedListenerConfig := []string{}
 	for _, eListener := range l.ExternalListeners {
 		advertisedListenerConfig = append(advertisedListenerConfig,
@@ -116,7 +116,7 @@ func generateAdvertisedListenerConfig(id int32, l banzaicloudv1alpha1.ListenersC
 	return fmt.Sprintf("advertised.listeners=%s\n", strings.Join(advertisedListenerConfig, ","))
 }
 
-func generateStorageConfig(sConfig []banzaicloudv1alpha1.StorageConfig) string {
+func generateStorageConfig(sConfig []v1beta1.StorageConfig) string {
 	mountPaths := []string{}
 	for _, storage := range sConfig {
 		mountPaths = append(mountPaths, storage.MountPath+`/kafka`)
@@ -124,7 +124,7 @@ func generateStorageConfig(sConfig []banzaicloudv1alpha1.StorageConfig) string {
 	return strings.Join(mountPaths, ",")
 }
 
-func generateListenerSpecificConfig(l *banzaicloudv1alpha1.ListenersConfig, log logr.Logger) string {
+func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger) string {
 
 	var interBrokerListenerType string
 	var securityProtocolMapConfig []string
@@ -154,7 +154,7 @@ func generateListenerSpecificConfig(l *banzaicloudv1alpha1.ListenersConfig, log 
 		"listeners=" + strings.Join(listenerConfig, ",") + "\n"
 }
 
-func getInternalListeners(iListeners []banzaicloudv1alpha1.InternalListenerConfig, id int32, namespace, crName string, headlessServiceEnabled bool) []string {
+func getInternalListeners(iListeners []v1beta1.InternalListenerConfig, id int32, namespace, crName string, headlessServiceEnabled bool) []string {
 
 	listenerConfig := []string{}
 
@@ -173,7 +173,7 @@ func getInternalListeners(iListeners []banzaicloudv1alpha1.InternalListenerConfi
 	return listenerConfig
 }
 
-func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, superUsers []string, loadBalancerIP string, log logr.Logger) string {
+func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, superUsers []string, loadBalancerIP string, log logr.Logger) string {
 	parsedReadOnlyClusterConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ReadOnlyConfig)
 
 	parsedReadOnlyBrokerConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.Brokers[id].ReadOnlyConfig)

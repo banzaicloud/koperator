@@ -20,12 +20,13 @@ import (
 	"strconv"
 	"time"
 
-	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
-	logr "github.com/go-logr/logr"
+	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -55,7 +56,7 @@ func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Watch for changes to primary resource KafkaTopic
-	err = c.Watch(&source.Kind{Type: &v1alpha1.KafkaTopic{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &banzaicloudv1alpha1.KafkaTopic{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -87,7 +88,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	var err error
 
 	// Fetch the KafkaTopic instance
-	instance := &v1alpha1.KafkaTopic{}
+	instance := &banzaicloudv1alpha1.KafkaTopic{}
 	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -104,7 +105,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	if clusterNamespace == "" {
 		clusterNamespace = instance.Namespace
 	}
-	var cluster *v1alpha1.KafkaCluster
+	var cluster *banzaicloudv1beta1.KafkaCluster
 	if cluster, err = k8sutil.LookupKafkaCluster(r.Client, instance.Spec.ClusterRef.Name, clusterNamespace); err != nil {
 		// This shouldn't trigger anymore, but leaving it here as a safetybelt
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
@@ -223,7 +224,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	return reconciled()
 }
 
-func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1alpha1.KafkaCluster, instance *v1alpha1.KafkaTopic, uid types.UID) {
+func (r *KafkaTopicReconciler) syncTopicStatus(cluster *banzaicloudv1beta1.KafkaCluster, instance *banzaicloudv1alpha1.KafkaTopic, uid types.UID) {
 	syncLogger := r.Log.WithName(fmt.Sprintf("%s/%s_sync", instance.Namespace, instance.Name))
 	ticker := time.NewTicker(time.Duration(5) * time.Minute)
 	for range ticker.C {
@@ -237,10 +238,10 @@ func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1alpha1.KafkaCluster, i
 	}
 }
 
-func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster *v1alpha1.KafkaCluster, instance *v1alpha1.KafkaTopic) (bool, error) {
+func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster *banzaicloudv1beta1.KafkaCluster, instance *banzaicloudv1alpha1.KafkaTopic) (bool, error) {
 
 	// check if the topic still exists
-	topic := &v1alpha1.KafkaTopic{}
+	topic := &banzaicloudv1alpha1.KafkaTopic{}
 	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, topic); err != nil {
 		if apierrors.IsNotFound(err) {
 			syncLogger.Info("Topic has been deleted, stopping sync routine")
@@ -290,7 +291,7 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster
 	}
 	// finally update status
 	updated := topic.DeepCopy()
-	updated.Status = v1alpha1.KafkaTopicStatus{
+	updated.Status = banzaicloudv1alpha1.KafkaTopicStatus{
 		PartitionCount:  int32(len(meta.Partitions)),
 		Leaders:         leaders,
 		ReplicaCounts:   replicaCounts,
@@ -305,7 +306,7 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster
 
 }
 
-func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {
+func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *banzaicloudv1alpha1.KafkaTopic) (reconcile.Result, error) {
 	reqLogger.Info("Kafka topic is marked for deletion")
 	var err error
 	if util.StringSliceContains(topic.GetFinalizers(), topicFinalizer) {
@@ -319,12 +320,12 @@ func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kaf
 	return reconciled()
 }
 
-func (r *KafkaTopicReconciler) removeFinalizer(topic *v1alpha1.KafkaTopic) error {
+func (r *KafkaTopicReconciler) removeFinalizer(topic *banzaicloudv1alpha1.KafkaTopic) error {
 	topic.SetFinalizers(util.StringSliceRemove(topic.GetFinalizers(), topicFinalizer))
 	return r.Client.Update(context.TODO(), topic)
 }
 
-func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) error {
+func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *banzaicloudv1alpha1.KafkaTopic) error {
 	exists, err := broker.GetTopic(topic.Spec.Name)
 	if err != nil {
 		return err
@@ -338,7 +339,7 @@ func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker 
 	return nil
 }
 
-func (r *KafkaTopicReconciler) addFinalizer(topic *v1alpha1.KafkaTopic) {
+func (r *KafkaTopicReconciler) addFinalizer(topic *banzaicloudv1alpha1.KafkaTopic) {
 	topic.SetFinalizers(append(topic.GetFinalizers(), topicFinalizer))
 	return
 }

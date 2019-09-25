@@ -24,7 +24,8 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
@@ -69,7 +70,7 @@ func labelsForKafka(name string) map[string]string {
 }
 
 // New creates a new reconciler for Kafka
-func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
+func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
 			Client:       client,
@@ -247,7 +248,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		} else {
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
-				if brokerState.RackAwarenessState == banzaicloudv1alpha1.Configured {
+				if brokerState.RackAwarenessState == banzaicloudv1beta1.Configured {
 					o := r.configMap(broker.Id, brokerConfig, lBIp, superUsers, log)
 					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 					if err != nil {
@@ -288,7 +289,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	return nil
 }
 
-func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, log logr.Logger) error {
+func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, log logr.Logger) error {
 	kClient, err := kafkaclient.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
@@ -399,15 +400,15 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 		}
 		// Update status to Config InSync because broker is configured to go
-		statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, banzaicloudv1alpha1.ConfigInSync, log)
+		statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, banzaicloudv1beta1.ConfigInSync, log)
 		if statusErr != nil {
 			return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
 		}
-		if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.GracefulActionState.CruiseControlState != banzaicloudv1alpha1.GracefulUpdateNotRequired {
-			gracefulActionState := banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateNotRequired}
+		if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.GracefulActionState.CruiseControlState != banzaicloudv1beta1.GracefulUpdateNotRequired {
+			gracefulActionState := banzaicloudv1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1beta1.GracefulUpdateNotRequired}
 
-			if r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1alpha1.CruiseControlTopicReady {
-				gracefulActionState = banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateRequired}
+			if r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1beta1.CruiseControlTopicReady {
+				gracefulActionState = banzaicloudv1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1beta1.GracefulUpdateRequired}
 			}
 			statusErr = k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, gracefulActionState, log)
 			if statusErr != nil {
@@ -415,10 +416,10 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			}
 		}
 		if r.KafkaCluster.Spec.RackAwareness != nil {
-			if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.RackAwarenessState == banzaicloudv1alpha1.Configured {
+			if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.RackAwarenessState == banzaicloudv1beta1.Configured {
 				return nil
 			}
-			statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, banzaicloudv1alpha1.WaitingForRackAwareness, log)
+			statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, banzaicloudv1beta1.WaitingForRackAwareness, log)
 			if statusErr != nil {
 				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker rack state")
 			}
@@ -430,28 +431,28 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		currentPod = podList.Items[0].DeepCopy()
 		brokerId := currentPod.Labels["brokerId"]
 		if brokerState, ok := r.KafkaCluster.Status.BrokersState[brokerId]; ok {
-			if r.KafkaCluster.Spec.RackAwareness != nil && (brokerState.RackAwarenessState == banzaicloudv1alpha1.WaitingForRackAwareness || brokerState.RackAwarenessState == "") {
+			if r.KafkaCluster.Spec.RackAwareness != nil && (brokerState.RackAwarenessState == banzaicloudv1beta1.WaitingForRackAwareness || brokerState.RackAwarenessState == "") {
 				err := k8sutil.UpdateCrWithRackAwarenessConfig(currentPod, r.KafkaCluster, r.Client)
 				if err != nil {
 					return err
 				}
-				statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster, banzaicloudv1alpha1.Configured, log)
+				statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster, banzaicloudv1beta1.Configured, log)
 				if statusErr != nil {
 					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
 				}
 			}
-			if currentPod.Status.Phase == corev1.PodRunning && brokerState.GracefulActionState.CruiseControlState == banzaicloudv1alpha1.GracefulUpdateRequired {
+			if currentPod.Status.Phase == corev1.PodRunning && brokerState.GracefulActionState.CruiseControlState == banzaicloudv1beta1.GracefulUpdateRequired {
 				scaleErr := scale.UpScaleCluster(desiredPod.Labels["brokerId"], desiredPod.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 				if scaleErr != nil {
 					log.Error(err, "graceful upscale failed, or cluster just started")
 					statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
-						banzaicloudv1alpha1.GracefulActionState{ErrorMessage: scaleErr.Error(), CruiseControlState: banzaicloudv1alpha1.GracefulUpdateFailed}, log)
+						banzaicloudv1beta1.GracefulActionState{ErrorMessage: scaleErr.Error(), CruiseControlState: banzaicloudv1beta1.GracefulUpdateFailed}, log)
 					if statusErr != nil {
 						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
 					}
 				} else {
 					statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
-						banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateSucceeded}, log)
+						banzaicloudv1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1beta1.GracefulUpdateSucceeded}, log)
 					if statusErr != nil {
 						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
 					}
@@ -470,7 +471,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		if err != nil {
 			log.Error(err, "could not match objects", "kind", desiredType)
 		} else if patchResult.IsEmpty() {
-			if currentPod.Status.Phase != corev1.PodFailed && r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == banzaicloudv1alpha1.ConfigInSync {
+			if currentPod.Status.Phase != corev1.PodFailed && r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == banzaicloudv1beta1.ConfigInSync {
 				log.V(1).Info("resource is in sync")
 				return nil
 			}
@@ -488,13 +489,13 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 
 		if currentPod.Status.Phase != corev1.PodFailed {
 
-			if r.KafkaCluster.Status.State != banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
-				if err := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.KafkaClusterRollingUpgrading, log); err != nil {
+			if r.KafkaCluster.Status.State != banzaicloudv1beta1.KafkaClusterRollingUpgrading {
+				if err := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, banzaicloudv1beta1.KafkaClusterRollingUpgrading, log); err != nil {
 					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "setting state to rolling upgrade failed")
 				}
 			}
 
-			if r.KafkaCluster.Status.State == banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
+			if r.KafkaCluster.Status.State == banzaicloudv1beta1.KafkaClusterRollingUpgrading {
 				// Check if any kafka pod is in terminating state
 				podList := &corev1.PodList{}
 				matchingLabels := client.MatchingLabels{

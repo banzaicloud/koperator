@@ -34,6 +34,7 @@ import (
 	"os"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/controllers"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
@@ -54,6 +55,8 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = banzaicloudv1alpha1.AddToScheme(scheme)
+
+	_ = banzaicloudv1beta1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

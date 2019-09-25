@@ -15,13 +15,13 @@
 package templates
 
 import (
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ObjectMeta returns a metav1.ObjectMeta object with labels, ownerReference and name
-func ObjectMeta(name string, labels map[string]string, cluster *banzaicloudv1alpha1.KafkaCluster) metav1.ObjectMeta {
+func ObjectMeta(name string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      name,
 		Namespace: cluster.Namespace,
@@ -40,7 +40,7 @@ func ObjectMeta(name string, labels map[string]string, cluster *banzaicloudv1alp
 }
 
 // ObjectMetaWithGeneratedName returns a metav1.ObjectMeta object with labels, ownerReference and generatedname
-func ObjectMetaWithGeneratedName(namePrefix string, labels map[string]string, cluster *banzaicloudv1alpha1.KafkaCluster) metav1.ObjectMeta {
+func ObjectMetaWithGeneratedName(namePrefix string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		GenerateName: namePrefix,
 		Namespace:    cluster.Namespace,
@@ -59,21 +59,21 @@ func ObjectMetaWithGeneratedName(namePrefix string, labels map[string]string, cl
 }
 
 // ObjectMetaWithAnnotations returns a metav1.ObjectMeta object with labels, ownerReference, name and annotations
-func ObjectMetaWithAnnotations(name string, labels map[string]string, annotations map[string]string, cluster *banzaicloudv1alpha1.KafkaCluster) metav1.ObjectMeta {
+func ObjectMetaWithAnnotations(name string, labels map[string]string, annotations map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	o := ObjectMeta(name, labels, cluster)
 	o.Annotations = annotations
 	return o
 }
 
 // ObjectMetaWithGeneratedNameAndAnnotations returns a metav1.ObjectMeta object with labels, ownerReference, generatedname and annotations
-func ObjectMetaWithGeneratedNameAndAnnotations(namePrefix string, labels map[string]string, annotations map[string]string, cluster *banzaicloudv1alpha1.KafkaCluster) metav1.ObjectMeta {
+func ObjectMetaWithGeneratedNameAndAnnotations(namePrefix string, labels map[string]string, annotations map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	o := ObjectMetaWithGeneratedName(namePrefix, labels, cluster)
 	o.Annotations = annotations
 	return o
 }
 
 // ObjectMetaClusterScope returns a metav1.ObjectMeta object with labels, ownerReference, name and annotations
-func ObjectMetaClusterScope(name string, labels map[string]string, cluster *banzaicloudv1alpha1.KafkaCluster) metav1.ObjectMeta {
+func ObjectMetaClusterScope(name string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:   name,
 		Labels: labels,

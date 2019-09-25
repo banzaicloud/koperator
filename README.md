@@ -145,12 +145,12 @@ volumeBindingMode: WaitForFirstConsumer
 
 1. Set `KUBECONFIG` pointing towards your cluster
 2. Run `make deploy` (deploys the operator in the `kafka` namespace into the cluster)
-3. Set your Kafka configurations in a Kubernetes custom resource (sample: `config/samples/banzaicloud_v1alpha1_kafkacluster.yaml`) and run this command to deploy the Kafka components:
+3. Set your Kafka configurations in a Kubernetes custom resource (sample: `config/samples/banzaicloud_v1beta1_kafkacluster.yaml`) and run this command to deploy the Kafka components:
 
 ```bash
 # Add your zookeeper svc name to the configuration
 kubectl create -n kafka -f config/samples/example-secret.yaml
-kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
+kubectl create -n kafka -f config/samples/banzaicloud_v1beta1_kafkacluster.yaml
 ```
 
 > In this case you have to install Prometheus with proper configuration if you want the Kafka-Operator to react to alerts. Again, if you need Prometheus and would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
@@ -165,7 +165,7 @@ helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml
 # Add your zookeeper svc name to the configuration
 kubectl create -n kafka -f config/samples/example-secret.yaml
-kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
+kubectl create -n kafka -f config/samples/banzaicloud_v1beta1_kafkacluster.yaml
 ```
 
 > In this case Prometheus will be installed and configured properly for the Kafka-Operator.

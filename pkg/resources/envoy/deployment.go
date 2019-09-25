@@ -17,12 +17,12 @@ package envoy
 import (
 	"fmt"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,7 +83,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	}
 }
 
-func getExposedContainerPorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.Broker) []corev1.ContainerPort {
+func getExposedContainerPorts(extListeners []v1beta1.ExternalListenerConfig, brokers []v1beta1.Broker) []corev1.ContainerPort {
 	var exposedPorts []corev1.ContainerPort
 
 	for _, eListener := range extListeners {
