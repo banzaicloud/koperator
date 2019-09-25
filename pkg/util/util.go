@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/imdario/mergo"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -87,7 +87,7 @@ func ConvertStringToInt32(s string) int32 {
 }
 
 // IsSSLEnabledForInternalCommunication checks if ssl is enabled for internal communication
-func IsSSLEnabledForInternalCommunication(l []banzaicloudv1alpha1.InternalListenerConfig) (enabled bool) {
+func IsSSLEnabledForInternalCommunication(l []v1beta1.InternalListenerConfig) (enabled bool) {
 
 	for _, listener := range l {
 		if strings.ToLower(listener.Type) == "ssl" {
@@ -149,9 +149,9 @@ func ParsePropertiesFormat(properties string) map[string]string {
 	return config
 }
 
-func GetBrokerConfig(broker banzaicloudv1alpha1.Broker, clusterSpec banzaicloudv1alpha1.KafkaClusterSpec) (*banzaicloudv1alpha1.BrokerConfig, error) {
+func GetBrokerConfig(broker v1beta1.Broker, clusterSpec v1beta1.KafkaClusterSpec) (*v1beta1.BrokerConfig, error) {
 
-	bConfig := &banzaicloudv1alpha1.BrokerConfig{}
+	bConfig := &v1beta1.BrokerConfig{}
 	if broker.BrokerConfigGroup == "" {
 		return broker.BrokerConfig, nil
 	} else if broker.BrokerConfig != nil {
@@ -165,7 +165,7 @@ func GetBrokerConfig(broker banzaicloudv1alpha1.Broker, clusterSpec banzaicloudv
 	return bConfig, nil
 }
 
-func GetBrokerImage(brokerConfig *banzaicloudv1alpha1.BrokerConfig, clusterImage string) string {
+func GetBrokerImage(brokerConfig *v1beta1.BrokerConfig, clusterImage string) string {
 	if brokerConfig.Image != "" {
 		return brokerConfig.Image
 	}

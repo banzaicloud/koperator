@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
@@ -43,6 +44,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 var clusterFinalizer = "finalizer.kafkaclusters.kafka.banzaicloud.io"
@@ -73,7 +75,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	log := r.Log.WithValues("kafkacluster", request.NamespacedName, "Request.Name", request.Name)
 	log.Info("Reconciling KafkaCluster")
 	// Fetch the KafkaCluster instance
-	instance := &banzaicloudv1alpha1.KafkaCluster{}
+	instance := &v1beta1.KafkaCluster{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
@@ -90,8 +92,8 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		return r.checkFinalizers(log, instance)
 	}
 
-	if instance.Status.State != banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
-		if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1alpha1.KafkaClusterReconciling, log); err != nil {
+	if instance.Status.State != banzaicloudv1beta1.KafkaClusterRollingUpgrading {
+		if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1beta1.KafkaClusterReconciling, log); err != nil {
 			return requeueWithError(log, err.Error(), err)
 		}
 	}
@@ -151,20 +153,20 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	}
 
 	//Update rolling upgrade last successful state
-	if instance.Status.State == banzaicloudv1alpha1.KafkaClusterRollingUpgrading {
+	if instance.Status.State == banzaicloudv1beta1.KafkaClusterRollingUpgrading {
 		if err := k8sutil.UpdateRollingUpgradeState(r.Client, instance, time.Now(), log); err != nil {
 			return requeueWithError(log, err.Error(), err)
 		}
 	}
 
-	if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1alpha1.KafkaClusterRunning, log); err != nil {
+	if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1beta1.KafkaClusterRunning, log); err != nil {
 		return requeueWithError(log, err.Error(), err)
 	}
 
 	return reconciled()
 }
 
-func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *banzaicloudv1alpha1.KafkaCluster) (ctrl.Result, error) {
+func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *v1beta1.KafkaCluster) (ctrl.Result, error) {
 	log.Info("KafkaCluster is marked for deletion, checking for children")
 	if !util.StringSliceContains(cluster.GetFinalizers(), clusterFinalizer) {
 		return reconciled()
@@ -208,7 +210,7 @@ func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *banza
 	return ctrl.Result{}, nil
 }
 
-func (r *KafkaClusterReconciler) ensureFinalizer(cluster *banzaicloudv1alpha1.KafkaCluster) (err error) {
+func (r *KafkaClusterReconciler) ensureFinalizer(cluster *v1beta1.KafkaCluster) (err error) {
 	if util.StringSliceContains(cluster.GetFinalizers(), clusterFinalizer) {
 		return
 	}
@@ -217,12 +219,12 @@ func (r *KafkaClusterReconciler) ensureFinalizer(cluster *banzaicloudv1alpha1.Ka
 	return
 }
 
-func (r *KafkaClusterReconciler) removeFinalizer(cluster *banzaicloudv1alpha1.KafkaCluster) error {
+func (r *KafkaClusterReconciler) removeFinalizer(cluster *v1beta1.KafkaCluster) error {
 	cluster.SetFinalizers(util.StringSliceRemove(cluster.GetFinalizers(), clusterFinalizer))
 	return r.Client.Update(context.TODO(), cluster)
 }
 
-func belongsToCluster(ref banzaicloudv1alpha1.ClusterReference, cluster *banzaicloudv1alpha1.KafkaCluster) bool {
+func belongsToCluster(ref banzaicloudv1alpha1.ClusterReference, cluster *v1beta1.KafkaCluster) bool {
 	if ref.Name == cluster.Name && ref.Namespace == cluster.Namespace {
 		return true
 	}
@@ -232,7 +234,7 @@ func belongsToCluster(ref banzaicloudv1alpha1.ClusterReference, cluster *banzaic
 func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Builder {
 
 	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&banzaicloudv1alpha1.KafkaCluster{})
+		For(&v1beta1.KafkaCluster{})
 
 	kafkaWatches(builder)
 	envoyWatches(builder)
@@ -245,7 +247,7 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Build
 				if err != nil {
 					return false
 				}
-				if _, ok := object.(*banzaicloudv1alpha1.KafkaCluster); ok {
+				if _, ok := object.(*v1beta1.KafkaCluster); ok {
 					return true
 				}
 				return false
@@ -266,9 +268,9 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Build
 					} else if patchResult.IsEmpty() {
 						return false
 					}
-				case *banzaicloudv1alpha1.KafkaCluster:
-					old := e.ObjectOld.(*banzaicloudv1alpha1.KafkaCluster)
-					new := e.ObjectNew.(*banzaicloudv1alpha1.KafkaCluster)
+				case *v1beta1.KafkaCluster:
+					old := e.ObjectOld.(*v1beta1.KafkaCluster)
+					new := e.ObjectNew.(*v1beta1.KafkaCluster)
 					if !reflect.DeepEqual(old.Spec, new.Spec) ||
 						old.GetDeletionTimestamp() != new.GetDeletionTimestamp() ||
 						old.GetGeneration() != new.GetGeneration() {

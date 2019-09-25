@@ -15,18 +15,18 @@
 package resources
 
 import (
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
 // Reconciler holds client and CR for Kafka
 type Reconciler struct {
 	client.Client
-	KafkaCluster *banzaicloudv1alpha1.KafkaCluster
+	KafkaCluster *v1beta1.KafkaCluster
 }
 
 // ComponentReconciler describes the Reconcile method
@@ -41,13 +41,13 @@ type Resource func() runtime.Object
 type ResourceWithLogs func(log logr.Logger) runtime.Object
 
 // ResourceWithBrokerConfigAndVolume function with brokerConfig, persistenVolumeClaims and log parameters
-type ResourceWithBrokerConfigAndVolume func(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object
+type ResourceWithBrokerConfigAndVolume func(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object
 
 // ResourceWithBrokerConfigAndString function with brokerConfig, string and log parameters
-type ResourceWithBrokerConfigAndString func(id int32, brokerConfig *banzaicloudv1alpha1.BrokerConfig, t string, su []string, log logr.Logger) runtime.Object
+type ResourceWithBrokerConfigAndString func(id int32, brokerConfig *v1beta1.BrokerConfig, t string, su []string, log logr.Logger) runtime.Object
 
 // ResourceWithBrokerIdAndStorage function with brokerConfig, storageConfig and log parameters
-type ResourceWithBrokerIdAndStorage func(id int32, storage banzaicloudv1alpha1.StorageConfig, log logr.Logger) runtime.Object
+type ResourceWithBrokerIdAndStorage func(id int32, storage v1beta1.StorageConfig, log logr.Logger) runtime.Object
 
 // ResourceWithBrokerIdAndLog function with brokerConfig and log parameters
 type ResourceWithBrokerIdAndLog func(id int32, log logr.Logger) runtime.Object

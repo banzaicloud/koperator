@@ -21,14 +21,14 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
+func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 	failureDomainSelectors, err := failureDomainSelectors(current.Spec.NodeName, client)
 	if err != nil {
 		return errors.WrapIfWithDetails(err, "determining Node selector failed")
@@ -39,7 +39,7 @@ func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 		return nil
 	}
 
-	brokers := []banzaicloudv1alpha1.Broker{}
+	brokers := []v1beta1.Broker{}
 
 	for _, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) == current.Labels["brokerId"] {
@@ -51,7 +51,7 @@ func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 			if broker.BrokerConfig != nil {
 				broker.BrokerConfig.NodeAffinity = nodeAffinity
 			} else {
-				bConfig := &banzaicloudv1alpha1.BrokerConfig{
+				bConfig := &v1beta1.BrokerConfig{
 					NodeAffinity: nodeAffinity,
 				}
 				broker.BrokerConfig = bConfig
@@ -63,7 +63,7 @@ func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *banzaicloudv1alpha1.Kafka
 	return updateCr(cr, client)
 }
 
-func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
+func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 
 	if pod.Spec.NodeName == "" {
 		return errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("pod does not scheduled to node yet"), "trying")
@@ -76,7 +76,7 @@ func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *banzaicloudv1alpha1.Ka
 	for _, value := range rackConfigMap {
 		rackConfigValues = append(rackConfigValues, value)
 	}
-	brokerConfigs := []banzaicloudv1alpha1.Broker{}
+	brokerConfigs := []v1beta1.Broker{}
 
 	for _, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) == pod.Labels["brokerId"] {
@@ -95,7 +95,7 @@ func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *banzaicloudv1alpha1.Ka
 }
 
 // AddNewBrokerToCr modifies the CR and adds a new broker
-func AddNewBrokerToCr(broker banzaicloudv1alpha1.Broker, crName, namespace string, client runtimeClient.Client) error {
+func AddNewBrokerToCr(broker v1beta1.Broker, crName, namespace string, client runtimeClient.Client) error {
 	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
 		return err
@@ -124,7 +124,7 @@ func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient
 }
 
 // AddPvToSpecificBroker adds a new PV to a specific broker
-func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *banzaicloudv1alpha1.StorageConfig, client runtimeClient.Client) error {
+func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *v1beta1.StorageConfig, client runtimeClient.Client) error {
 	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
 		return err
@@ -142,8 +142,8 @@ func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *ba
 }
 
 // GetCr returns the given cr object
-func GetCr(name, namespace string, client runtimeClient.Client) (*banzaicloudv1alpha1.KafkaCluster, error) {
-	cr := &banzaicloudv1alpha1.KafkaCluster{}
+func GetCr(name, namespace string, client runtimeClient.Client) (*v1beta1.KafkaCluster, error) {
+	cr := &v1beta1.KafkaCluster{}
 
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr)
 	if err != nil {
@@ -152,7 +152,7 @@ func GetCr(name, namespace string, client runtimeClient.Client) (*banzaicloudv1a
 	return cr, nil
 }
 
-func updateCr(cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
+func updateCr(cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 	typeMeta := cr.TypeMeta
 	err := client.Update(context.TODO(), cr)
 	if err != nil {
@@ -164,7 +164,7 @@ func updateCr(cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client)
 }
 
 // UpdateCrWithRollingUpgrade modifies CR status
-func UpdateCrWithRollingUpgrade(errorCount int, cr *banzaicloudv1alpha1.KafkaCluster, client runtimeClient.Client) error {
+func UpdateCrWithRollingUpgrade(errorCount int, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 
 	cr.Status.RollingUpgrade.ErrorCount = errorCount
 	return updateCr(cr, client)

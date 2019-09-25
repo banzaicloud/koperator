@@ -20,6 +20,7 @@ import (
 
 	"emperror.dev/errors"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
@@ -231,14 +232,14 @@ func (r *Reconciler) getBootstrapSSLSecret() (certs, passw *corev1.Secret, err e
 	return
 }
 
-func getCommonName(cluster *banzaicloudv1alpha1.KafkaCluster) string {
+func getCommonName(cluster *v1beta1.KafkaCluster) string {
 	if cluster.Spec.HeadlessServiceEnabled {
 		return fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(kafkautils.HeadlessServiceTemplate, cluster.Name), cluster.Namespace)
 	}
 	return fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace)
 }
 
-func getDNSNames(cluster *banzaicloudv1alpha1.KafkaCluster) (dnsNames []string) {
+func getDNSNames(cluster *v1beta1.KafkaCluster) (dnsNames []string) {
 	dnsNames = make([]string, 0)
 	for _, broker := range cluster.Spec.Brokers {
 		if cluster.Spec.HeadlessServiceEnabled {

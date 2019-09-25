@@ -17,7 +17,7 @@ package kafka
 import (
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,7 +30,7 @@ func TestGenerateBrokerConfig(t *testing.T) {
 		perBrokerReadOnlyConfig string
 		perBrokerConfig         string
 		expectedConfig          string
-		perBrokerStorageConfig  []v1alpha1.StorageConfig
+		perBrokerStorageConfig  []v1beta1.StorageConfig
 	}{
 		{
 			testName:                "basicConfig",
@@ -54,7 +54,7 @@ zookeeper.connect=example.zk:2181`,
 			clusterWideConfig:       ``,
 			perBrokerConfig:         ``,
 			perBrokerReadOnlyConfig: ``,
-			perBrokerStorageConfig: []v1alpha1.StorageConfig{
+			perBrokerStorageConfig: []v1beta1.StorageConfig{
 				{
 					MountPath: "/kafka-logs",
 				},
@@ -106,15 +106,15 @@ zookeeper.connect=example.zk:2181`,
 		t.Run(test.testName, func(t *testing.T) {
 			r := Reconciler{
 				resources.Reconciler{
-					KafkaCluster: &v1alpha1.KafkaCluster{
+					KafkaCluster: &v1beta1.KafkaCluster{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "kafka",
 							Namespace: "kafka",
 						},
-						Spec: v1alpha1.KafkaClusterSpec{
+						Spec: v1beta1.KafkaClusterSpec{
 							ZKAddresses: []string{"example.zk:2181"},
-							ListenersConfig: v1alpha1.ListenersConfig{
-								InternalListeners: []v1alpha1.InternalListenerConfig{
+							ListenersConfig: v1beta1.ListenersConfig{
+								InternalListeners: []v1beta1.InternalListenerConfig{
 									{
 										Type:                            "plaintext",
 										Name:                            "plaintext",
@@ -125,10 +125,10 @@ zookeeper.connect=example.zk:2181`,
 							},
 							ReadOnlyConfig:    test.readOnlyConfig,
 							ClusterWideConfig: test.clusterWideConfig,
-							Brokers: []v1alpha1.Broker{{
+							Brokers: []v1beta1.Broker{{
 								Id:             0,
 								ReadOnlyConfig: test.perBrokerReadOnlyConfig,
-								BrokerConfig: &v1alpha1.BrokerConfig{
+								BrokerConfig: &v1beta1.BrokerConfig{
 									Config:         test.perBrokerConfig,
 									StorageConfigs: test.perBrokerStorageConfig,
 								},

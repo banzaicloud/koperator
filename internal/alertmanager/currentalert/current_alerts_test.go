@@ -22,7 +22,8 @@ import (
 	"sync"
 	"testing"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
@@ -42,7 +43,7 @@ func TestMain(m *testing.M) {
 	t := &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 	}
-	banzaicloudv1alpha1.AddToScheme(scheme.Scheme)
+	banzaicloudv1beta1.AddToScheme(scheme.Scheme)
 
 	var err error
 	if cfg, err = t.Start(); err != nil {
@@ -90,15 +91,15 @@ func TestGetCurrentAlerts(t *testing.T) {
 		mgrStopped.Wait()
 	}()
 
-	kafkaCluster := &banzaicloudv1alpha1.KafkaCluster{
+	kafkaCluster := &v1beta1.KafkaCluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "kafka",
 			Namespace: "kafka",
 		},
-		Spec: banzaicloudv1alpha1.KafkaClusterSpec{
+		Spec: v1beta1.KafkaClusterSpec{
 			HeadlessServiceEnabled: true,
-			ListenersConfig: banzaicloudv1alpha1.ListenersConfig{
-				InternalListeners: []banzaicloudv1alpha1.InternalListenerConfig{
+			ListenersConfig: v1beta1.ListenersConfig{
+				InternalListeners: []v1beta1.InternalListenerConfig{
 					{
 						Type:                            "plaintext",
 						Name:                            "planitext",
@@ -108,16 +109,16 @@ func TestGetCurrentAlerts(t *testing.T) {
 				},
 			},
 			ZKAddresses: []string{},
-			Brokers: []banzaicloudv1alpha1.Broker{
+			Brokers: []v1beta1.Broker{
 				{
 					Id: 1,
 				},
 			},
 			OneBrokerPerNode: true,
 		},
-		Status: banzaicloudv1alpha1.KafkaClusterStatus{
+		Status: v1beta1.KafkaClusterStatus{
 			State: "Running",
-			RollingUpgrade: banzaicloudv1alpha1.RollingUpgradeStatus{
+			RollingUpgrade: v1beta1.RollingUpgradeStatus{
 				LastSuccess: "00000-00000",
 				ErrorCount:  0,
 			},

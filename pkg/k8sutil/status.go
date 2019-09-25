@@ -20,7 +20,8 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,36 +38,36 @@ func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 	return m.GetDeletionTimestamp() != nil
 }
 
-func UpdateBrokerStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1.KafkaCluster, state interface{}, logger logr.Logger) error {
+func UpdateBrokerStatus(c client.Client, brokerId string, cluster *v1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
 	if cluster.Status.BrokersState == nil {
 		switch s := state.(type) {
-		case banzaicloudv1alpha1.RackAwarenessState:
-			cluster.Status.BrokersState = map[string]banzaicloudv1alpha1.BrokerState{brokerId: {RackAwarenessState: s}}
-		case banzaicloudv1alpha1.GracefulActionState:
-			cluster.Status.BrokersState = map[string]banzaicloudv1alpha1.BrokerState{brokerId: {GracefulActionState: s}}
-		case banzaicloudv1alpha1.ConfigurationState:
-			cluster.Status.BrokersState = map[string]banzaicloudv1alpha1.BrokerState{brokerId: {ConfigurationState: s}}
+		case banzaicloudv1beta1.RackAwarenessState:
+			cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {RackAwarenessState: s}}
+		case banzaicloudv1beta1.GracefulActionState:
+			cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: s}}
+		case banzaicloudv1beta1.ConfigurationState:
+			cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {ConfigurationState: s}}
 		}
 	} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
 		switch s := state.(type) {
-		case banzaicloudv1alpha1.RackAwarenessState:
+		case banzaicloudv1beta1.RackAwarenessState:
 			val.RackAwarenessState = s
-		case banzaicloudv1alpha1.GracefulActionState:
+		case banzaicloudv1beta1.GracefulActionState:
 			val.GracefulActionState = s
-		case banzaicloudv1alpha1.ConfigurationState:
+		case banzaicloudv1beta1.ConfigurationState:
 			val.ConfigurationState = s
 		}
 		cluster.Status.BrokersState[brokerId] = val
 	} else {
 		switch s := state.(type) {
-		case banzaicloudv1alpha1.RackAwarenessState:
-			cluster.Status.BrokersState[brokerId] = banzaicloudv1alpha1.BrokerState{RackAwarenessState: s}
-		case banzaicloudv1alpha1.GracefulActionState:
-			cluster.Status.BrokersState[brokerId] = banzaicloudv1alpha1.BrokerState{GracefulActionState: s}
-		case banzaicloudv1alpha1.ConfigurationState:
-			cluster.Status.BrokersState[brokerId] = banzaicloudv1alpha1.BrokerState{ConfigurationState: s}
+		case banzaicloudv1beta1.RackAwarenessState:
+			cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{RackAwarenessState: s}
+		case banzaicloudv1beta1.GracefulActionState:
+			cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: s}
+		case banzaicloudv1beta1.ConfigurationState:
+			cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{ConfigurationState: s}
 		}
 	}
 
@@ -88,31 +89,31 @@ func UpdateBrokerStatus(c client.Client, brokerId string, cluster *banzaicloudv1
 
 		if cluster.Status.BrokersState == nil {
 			switch s := state.(type) {
-			case banzaicloudv1alpha1.RackAwarenessState:
-				cluster.Status.BrokersState = map[string]banzaicloudv1alpha1.BrokerState{brokerId: {RackAwarenessState: s}}
-			case banzaicloudv1alpha1.GracefulActionState:
-				cluster.Status.BrokersState = map[string]banzaicloudv1alpha1.BrokerState{brokerId: {GracefulActionState: s}}
-			case banzaicloudv1alpha1.ConfigurationState:
-				cluster.Status.BrokersState = map[string]banzaicloudv1alpha1.BrokerState{brokerId: {ConfigurationState: s}}
+			case banzaicloudv1beta1.RackAwarenessState:
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {RackAwarenessState: s}}
+			case banzaicloudv1beta1.GracefulActionState:
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: s}}
+			case banzaicloudv1beta1.ConfigurationState:
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {ConfigurationState: s}}
 			}
 		} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
 			switch s := state.(type) {
-			case banzaicloudv1alpha1.RackAwarenessState:
+			case banzaicloudv1beta1.RackAwarenessState:
 				val.RackAwarenessState = s
-			case banzaicloudv1alpha1.GracefulActionState:
+			case banzaicloudv1beta1.GracefulActionState:
 				val.GracefulActionState = s
-			case banzaicloudv1alpha1.ConfigurationState:
+			case banzaicloudv1beta1.ConfigurationState:
 				val.ConfigurationState = s
 			}
 			cluster.Status.BrokersState[brokerId] = val
 		} else {
 			switch s := state.(type) {
-			case banzaicloudv1alpha1.RackAwarenessState:
-				cluster.Status.BrokersState[brokerId] = banzaicloudv1alpha1.BrokerState{RackAwarenessState: s}
-			case banzaicloudv1alpha1.GracefulActionState:
-				cluster.Status.BrokersState[brokerId] = banzaicloudv1alpha1.BrokerState{GracefulActionState: s}
-			case banzaicloudv1alpha1.ConfigurationState:
-				cluster.Status.BrokersState[brokerId] = banzaicloudv1alpha1.BrokerState{ConfigurationState: s}
+			case banzaicloudv1beta1.RackAwarenessState:
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{RackAwarenessState: s}
+			case banzaicloudv1beta1.GracefulActionState:
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: s}
+			case banzaicloudv1beta1.ConfigurationState:
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{ConfigurationState: s}
 			}
 		}
 
@@ -131,7 +132,7 @@ func UpdateBrokerStatus(c client.Client, brokerId string, cluster *banzaicloudv1
 }
 
 // DeleteStatus deletes the given broker state from the CR
-func DeleteStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1.KafkaCluster, logger logr.Logger) error {
+func DeleteStatus(c client.Client, brokerId string, cluster *v1beta1.KafkaCluster, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
 	brokerStatus := cluster.Status.BrokersState
@@ -176,13 +177,13 @@ func DeleteStatus(c client.Client, brokerId string, cluster *banzaicloudv1alpha1
 }
 
 // UpdateCRStatus updates the cluster state
-func UpdateCRStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, state interface{}, logger logr.Logger) error {
+func UpdateCRStatus(c client.Client, cluster *v1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
 	switch s := state.(type) {
-	case banzaicloudv1alpha1.ClusterState:
+	case banzaicloudv1beta1.ClusterState:
 		cluster.Status.State = s
-	case banzaicloudv1alpha1.CruiseControlTopicStatus:
+	case banzaicloudv1beta1.CruiseControlTopicStatus:
 		cluster.Status.CruiseControlTopicStatus = s
 	}
 
@@ -202,9 +203,9 @@ func UpdateCRStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, 
 			return errors.WrapIf(err, "could not get config for updating status")
 		}
 		switch s := state.(type) {
-		case banzaicloudv1alpha1.ClusterState:
+		case banzaicloudv1beta1.ClusterState:
 			cluster.Status.State = s
-		case banzaicloudv1alpha1.CruiseControlTopicStatus:
+		case banzaicloudv1beta1.CruiseControlTopicStatus:
 			cluster.Status.CruiseControlTopicStatus = s
 		}
 
@@ -222,7 +223,7 @@ func UpdateCRStatus(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, 
 	return nil
 }
 
-func UpdateRollingUpgradeState(c client.Client, cluster *banzaicloudv1alpha1.KafkaCluster, time time.Time, logger logr.Logger) error {
+func UpdateRollingUpgradeState(c client.Client, cluster *v1beta1.KafkaCluster, time time.Time, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
 	timeStamp := time.Format("2006-01-02 15:04:05")

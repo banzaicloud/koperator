@@ -15,7 +15,7 @@
 package cruisecontrol
 
 import (
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/go-logr/logr"
 
@@ -24,7 +24,7 @@ import (
 
 // This function may be close to being able to be replaced with just submitting a CR
 // to ourselves
-func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Client, log logr.Logger) error {
+func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log logr.Logger) error {
 
 	broker, err := kafkaclient.NewFromCluster(client, cluster)
 	if err != nil {

@@ -19,7 +19,8 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
-	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -38,7 +39,7 @@ type KafkaClient interface {
 	DeleteTopic(string) error
 	GetTopic(string) (*sarama.TopicDetail, error)
 	DescribeTopic(string) (*sarama.TopicMetadata, error)
-	CreateUserACLs(v1alpha1.KafkaAccessType, string, string) error
+	CreateUserACLs(banzaicloudv1alpha1.KafkaAccessType, string, string) error
 	DeleteUserACLs(string) error
 
 	ResolveBrokerID(int32) string
@@ -99,7 +100,7 @@ func (k *kafkaClient) Close() error {
 }
 
 // NewFromCluster is a convenience wrapper around New() and ClusterConfig()
-func NewFromCluster(k8sclient client.Client, cluster *v1alpha1.KafkaCluster) (client KafkaClient, err error) {
+func NewFromCluster(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (client KafkaClient, err error) {
 	opts, err := ClusterConfig(k8sclient, cluster)
 	if err != nil {
 		return
