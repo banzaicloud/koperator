@@ -19,13 +19,13 @@ import (
 	"fmt"
 	"time"
 
-	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
-	logr "github.com/go-logr/logr"
+	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -160,7 +160,11 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 			return requeueWithError(reqLogger, err.Error(), err)
 		}
 	}
-	defer broker.Close()
+	defer func() {
+		if err := broker.Close(); err != nil {
+			reqLogger.Error(err, "could not close client")
+		}
+	}()
 
 	// check if marked for deletion
 	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
@@ -177,8 +181,12 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		if err = r.Client.Create(context.TODO(), cert); err != nil {
 			return requeueWithError(reqLogger, "failed to create certificate for user", err)
 		}
-		controllerutil.SetControllerReference(instance, cert, r.Scheme)
-		controllerutil.SetControllerReference(cluster, instance, r.Scheme)
+		if err := controllerutil.SetControllerReference(instance, cert, r.Scheme); err != nil {
+			return requeueWithError(reqLogger, "could not set controller reference to cert", err)
+		}
+		if err := controllerutil.SetControllerReference(cluster, instance, r.Scheme); err != nil {
+			return requeueWithError(reqLogger, "could not set controller reference to instance", err)
+		}
 
 	} else if err != nil {
 		// API failure, requeue

@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	"emperror.dev/errors"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -51,7 +52,10 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 				},
 			},
 		}
-		controllerutil.SetControllerReference(r.KafkaCluster, selfsigner, r.Scheme)
+		err := controllerutil.SetControllerReference(r.KafkaCluster, selfsigner, r.Scheme)
+		if err != nil {
+			return []runtime.Object{}, errors.WrapIf(err, "could not set controller reference")
+		}
 
 		// The CA Certificate
 		ca := &certv1.Certificate{
@@ -66,7 +70,10 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 				},
 			},
 		}
-		controllerutil.SetControllerReference(r.KafkaCluster, ca, r.Scheme)
+		err = controllerutil.SetControllerReference(r.KafkaCluster, ca, r.Scheme)
+		if err != nil {
+			return []runtime.Object{}, errors.WrapIf(err, "could not set controller reference")
+		}
 		// A cluster issuer backed by the CA certificate - so it can provision secrets
 		// for producers/consumers in other namespaces
 		clusterIssuerMeta := templates.ObjectMeta(fmt.Sprintf(pkiutils.BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster)
@@ -81,7 +88,10 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 				},
 			},
 		}
-		controllerutil.SetControllerReference(r.KafkaCluster, clusterissuer, r.Scheme)
+		err = controllerutil.SetControllerReference(r.KafkaCluster, clusterissuer, r.Scheme)
+		if err != nil {
+			return []runtime.Object{}, errors.WrapIf(err, "could not set controller reference")
+		}
 
 		// The broker certificates
 		brokerCert := &certv1.Certificate{
@@ -97,7 +107,10 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 				},
 			},
 		}
-		controllerutil.SetControllerReference(r.KafkaCluster, brokerCert, r.Scheme)
+		err = controllerutil.SetControllerReference(r.KafkaCluster, brokerCert, r.Scheme)
+		if err != nil {
+			return []runtime.Object{}, errors.WrapIf(err, "could not set controller reference")
+		}
 
 		// And finally one for us so we can manage topics/users
 		controllerCert := &certv1.Certificate{
@@ -112,7 +125,10 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 				},
 			},
 		}
-		controllerutil.SetControllerReference(r.KafkaCluster, controllerCert, r.Scheme)
+		err = controllerutil.SetControllerReference(r.KafkaCluster, controllerCert, r.Scheme)
+		if err != nil {
+			return []runtime.Object{}, errors.WrapIf(err, "could not set controller reference")
+		}
 
 		return []runtime.Object{selfsigner, ca, clusterissuer, brokerCert, controllerCert}, nil
 
@@ -140,7 +156,10 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 			corev1.TLSPrivateKeyKey:           caKey,
 		},
 	}
-	controllerutil.SetControllerReference(r.KafkaCluster, caSecret, r.Scheme)
+	err = controllerutil.SetControllerReference(r.KafkaCluster, caSecret, r.Scheme)
+	if err != nil {
+		return []runtime.Object{}, errors.WrapIf(err, "could not set controller reference")
+	}
 
 	clusterIssuerMeta := templates.ObjectMeta(fmt.Sprintf(pkiutils.BrokerIssuerTemplate, r.KafkaCluster.Name), labelsForKafkaPKI(r.KafkaCluster.Name), r.KafkaCluster)
 	clusterIssuerMeta.Namespace = metav1.NamespaceAll
@@ -154,7 +173,10 @@ func (r *Reconciler) kafkapki() ([]runtime.Object, error) {
 			},
 		},
 	}
-	controllerutil.SetControllerReference(r.KafkaCluster, clusterissuer, r.Scheme)
+	err = controllerutil.SetControllerReference(r.KafkaCluster, clusterissuer, r.Scheme)
+	if err != nil {
+		return []runtime.Object{}, errors.WrapIf(err, "could not set controller reference")
+	}
 
 	return []runtime.Object{caSecret, clusterissuer}, nil
 

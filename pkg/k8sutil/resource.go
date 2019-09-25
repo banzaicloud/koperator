@@ -57,7 +57,9 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			)
 		}
 		if apierrors.IsNotFound(err) {
-			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
+			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desired); err != nil {
+				return errors.WrapIf(err, "could not apply last state to annotation")
+			}
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return errorfactory.New(
 					errorfactory.APIFailure{},
@@ -86,7 +88,9 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			)
 		}
 		if apierrors.IsNotFound(err) {
-			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
+			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desired); err != nil {
+				return errors.WrapIf(err, "could not apply last state to annotation")
+			}
 			if err := client.Create(context.TODO(), desired); err != nil {
 				return errorfactory.New(
 					errorfactory.APIFailure{},
@@ -102,7 +106,9 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 	if err == nil {
 		if CheckIfObjectUpdated(log, desiredType, current, desired) {
 
-			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
+			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desired); err != nil {
+				return errors.WrapIf(err, "could not apply last state to annotation")
+			}
 
 			switch d := desired.(type) {
 			default:
