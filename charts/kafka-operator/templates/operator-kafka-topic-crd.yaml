@@ -10,9 +10,9 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     app.kubernetes.io/component: operator
-  name: kafkatopics.banzaicloud.banzaicloud.io
+  name: kafkatopics.kafka.banzaicloud.io
 spec:
-  group: banzaicloud.banzaicloud.io
+  group: kafka.banzaicloud.io
   names:
     kind: KafkaTopic
     plural: kafkatopics

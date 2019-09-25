@@ -8,9 +8,9 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     app.kubernetes.io/component: operator
-  name: kafkausers.banzaicloud.banzaicloud.io
+  name: kafkausers.kafka.banzaicloud.io
 spec:
-  group: banzaicloud.banzaicloud.io
+  group: kafka.banzaicloud.io
   names:
     kind: KafkaUser
     plural: kafkausers

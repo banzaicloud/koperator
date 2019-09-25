@@ -43,7 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var userFinalizer = "finalizer.kafkausers.banzaicloud.banzaicloud.io"
+var userFinalizer = "finalizer.kafkausers.kafka.banzaicloud.io"
 
 func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
 	// Create a new controller
@@ -89,8 +89,8 @@ type KafkaUserReconciler struct {
 	Log    logr.Logger
 }
 
-// +kubebuilder:rbac:groups=banzaicloud.banzaicloud.io,resources=kafkausers,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=banzaicloud.banzaicloud.io,resources=kafkausers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkausers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkausers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=certmanager.k8s.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=certmanager.k8s.io,resources=issuers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=certmanager.k8s.io,resources=clusterissuers,verbs=get;list;watch;create;update;patch;delete
