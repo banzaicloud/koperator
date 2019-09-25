@@ -94,66 +94,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - banzaicloud.banzaicloud.io
-  resources:
-  - kafkaclusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - banzaicloud.banzaicloud.io
-  resources:
-  - kafkaclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - banzaicloud.banzaicloud.io
-  resources:
-  - kafkatopics
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - banzaicloud.banzaicloud.io
-  resources:
-  - kafkatopics/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - banzaicloud.banzaicloud.io
-  resources:
-  - kafkausers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - banzaicloud.banzaicloud.io
-  resources:
-  - kafkausers/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - certmanager.k8s.io
   resources:
   - certificates
@@ -189,3 +129,63 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - kafkaclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - kafkaclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - kafkatopics
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - kafkatopics/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - kafkausers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - kafkausers/status
+  verbs:
+  - get
+  - patch
+  - update

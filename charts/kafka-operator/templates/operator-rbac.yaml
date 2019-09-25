@@ -62,7 +62,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - banzaicloud.banzaicloud.io
+  - kafka.banzaicloud.io
   resources:
   - kafkaclusters
   - kafkatopics
@@ -76,7 +76,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - banzaicloud.banzaicloud.io
+  - kafka.banzaicloud.io
   resources:
   - kafkaclusters/status
   - kafkatopics/status

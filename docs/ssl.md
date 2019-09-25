@@ -57,7 +57,7 @@ For example, to create a new producer for the topic `test-topic` against the Kaf
 
 ```bash
 cat << EOF | kubectl apply -n kafka -f -
-apiVersion: banzaicloud.banzaicloud.io/v1alpha1
+apiVersion: kafka.banzaicloud.io/v1alpha1
 kind: KafkaUser
 metadata:
   name: example-producer
@@ -92,7 +92,7 @@ If you wanted to create a consumer for the topic you could then run this command
 
 ```bash
 cat << EOF | kubectl apply -n kafka -f -
-apiVersion: banzaicloud.banzaicloud.io/v1alpha1
+apiVersion: kafka.banzaicloud.io/v1alpha1
 kind: KafkaUser
 metadata:
   name: example-consumer

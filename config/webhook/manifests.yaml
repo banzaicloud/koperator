@@ -13,10 +13,10 @@ webhooks:
       namespace: system
       path: /validate
   failurePolicy: Fail
-  name: kafkatopics.banzaicloud.banzaicloud.io
+  name: kafkatopics.kafka.banzaicloud.io
   rules:
   - apiGroups:
-    - banzaicloud.banzaicloud.io
+    - kafka.banzaicloud.io
     apiVersions:
     - v1alpha1
     operations:

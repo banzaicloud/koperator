@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var topicFinalizer = "finalizer.kafkatopics.banzaicloud.banzaicloud.io"
+var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
 var syncRoutines = make(map[types.UID]struct{}, 0)
 
 func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
@@ -75,8 +75,8 @@ type KafkaTopicReconciler struct {
 	Log    logr.Logger
 }
 
-// +kubebuilder:rbac:groups=banzaicloud.banzaicloud.io,resources=kafkatopics,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=banzaicloud.banzaicloud.io,resources=kafkatopics/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics/status,verbs=get;update;patch
 
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or

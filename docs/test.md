@@ -9,7 +9,7 @@ You can use the `KafkaTopic` CRD to make a topic like this:
 
 ```bash
 cat << EOF | kubectl apply -n kafka -f -
-apiVersion: banzaicloud.banzaicloud.io/v1alpha1
+apiVersion: kafka.banzaicloud.io/v1alpha1
 kind: KafkaTopic
 metadata:
   name: my-topic
