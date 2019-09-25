@@ -7,7 +7,7 @@ Below is an example `KafkaTopic` CR.
 ```yaml
 # topic.yaml
 ---
-apiVersion: banzaicloud.banzaicloud.io/v1alpha1
+apiVersion: kafka.banzaicloud.io/v1alpha1
 kind: KafkaTopic
 metadata:
   name: example-topic
@@ -30,7 +30,7 @@ You can apply the above topic with kubectl
 ```shell
 banzai@cloud:~$ kubectl apply -n kafka -f topic.yaml
 
-kafkatopic.banzaicloud.banzaicloud.io/example-topic created
+kafkatopic.kafka.banzaicloud.io/example-topic created
 ```
 
 If you want to update the configuration of the topic after it's been created you can edit the manifest
@@ -42,7 +42,7 @@ You can increase the partition count for a topic the same way, or for a one-line
 ```shell
 banzai@cloud:~$ kubectl patch -n kafka kafkatopic example-topic --patch '{"spec": {"partitions": 5}}' --type=merge
 
-kafkatopic.banzaicloud.banzaicloud.io/example-topic patched
+kafkatopic.kafka.banzaicloud.io/example-topic patched
 ```
 
 The operator will periodically poll kafka for the topic's status and post the data to the CR status.
@@ -55,23 +55,23 @@ Name:         example-topic
 Namespace:    kafka
 Labels:       <none>
 Annotations:  kubectl.kubernetes.io/last-applied-configuration:
-                {"apiVersion":"banzaicloud.banzaicloud.io/v1alpha1","kind":"KafkaTopic","metadata":{"annotations":{},"name":"example-topic","namespace":"k...
-API Version:  banzaicloud.banzaicloud.io/v1alpha1
+                {"apiVersion":"kafka.banzaicloud.io/v1alpha1","kind":"KafkaTopic","metadata":{"annotations":{},"name":"example-topic","namespace":"k...
+API Version:  kafka.banzaicloud.io/v1alpha1
 Kind:         KafkaTopic
 Metadata:
   Creation Timestamp:  2019-09-04T22:13:34Z
   Finalizers:
-    finalizer.kafkatopics.banzaicloud.banzaicloud.io
+    finalizer.kafkatopics.kafka.banzaicloud.io
   Generation:  3
   Owner References:
-    API Version:           banzaicloud.banzaicloud.io/v1alpha1
+    API Version:           kafka.banzaicloud.io/v1alpha1
     Block Owner Deletion:  true
     Controller:            true
     Kind:                  KafkaCluster
     Name:                  kafka
     UID:                   a64f4e80-d88b-4f21-9e08-c141f80fde07
   Resource Version:        8184847
-  Self Link:               /apis/banzaicloud.banzaicloud.io/v1alpha1/namespaces/kafka/kafkatopics/example-topic
+  Self Link:               /apis/kafka.banzaicloud.io/v1alpha1/namespaces/kafka/kafkatopics/example-topic
   UID:                     407964fa-4c45-4431-9478-278045f9ed53
 Spec:
   Cluster Ref:
