@@ -293,7 +293,11 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 	}
-	defer kClient.Close()
+	defer func() {
+		if err := kClient.Close(); err != nil {
+			log.Error(err, "could not close client")
+		}
+	}()
 
 	parsedBrokerConfig := util.ParsePropertiesFormat(brokerConfig.Config)
 
@@ -337,7 +341,11 @@ func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 	}
-	defer kClient.Close()
+	defer func() {
+		if err := kClient.Close(); err != nil {
+			log.Error(err, "could not close client")
+		}
+	}()
 
 	configIdentical := true
 
@@ -384,7 +392,9 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
 	}
 	if len(podList.Items) == 0 {
-		patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPod)
+		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPod); err != nil {
+			return errors.WrapIf(err, "could not apply last state to annotation")
+		}
 		if err := r.Client.Create(context.TODO(), desiredPod); err != nil {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 		}
@@ -472,7 +482,9 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				"original", string(patchResult.Original))
 		}
 
-		patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPod)
+		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPod); err != nil {
+			return errors.WrapIf(err, "could not apply last state to annotation")
+		}
 
 		if currentPod.Status.Phase != corev1.PodFailed {
 
@@ -504,7 +516,11 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				if err != nil {
 					return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 				}
-				defer kClient.Close()
+				defer func() {
+					if err := kClient.Close(); err != nil {
+						log.Error(err, "could not close client")
+					}
+				}()
 				offlineReplicaCount, err := kClient.OfflineReplicaCount()
 				if err != nil {
 					return errors.WrapIf(err, "health check failed")
@@ -556,7 +572,9 @@ func (r *Reconciler) reconcileKafkaPVC(log logr.Logger, desiredPVC *corev1.Persi
 
 	// Creating the first PersistentVolume For Pod
 	if len(pvcList.Items) == 0 {
-		patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC)
+		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC); err != nil {
+			return errors.WrapIf(err, "could not apply last state to annotation")
+		}
 		if err := r.Client.Create(context.TODO(), desiredPVC); err != nil {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 		}
@@ -573,7 +591,9 @@ func (r *Reconciler) reconcileKafkaPVC(log logr.Logger, desiredPVC *corev1.Persi
 	}
 	if !alreadyCreated {
 		// Creating the 2+ PersistentVolumes for Pod
-		patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC)
+		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC); err != nil {
+			return errors.WrapIf(err, "could not apply last state to annotation")
+		}
 		if err := r.Client.Create(context.TODO(), desiredPVC); err != nil {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 		}
@@ -582,7 +602,9 @@ func (r *Reconciler) reconcileKafkaPVC(log logr.Logger, desiredPVC *corev1.Persi
 	if err == nil {
 		if k8sutil.CheckIfObjectUpdated(log, desiredType, currentPVC, desiredPVC) {
 
-			patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC)
+			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC); err != nil {
+				return errors.WrapIf(err, "could not apply last state to annotation")
+			}
 			desiredPVC = currentPVC
 
 			if err := r.Client.Update(context.TODO(), desiredPVC); err != nil {
