@@ -69,7 +69,6 @@ type KafkaClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
-
 func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	log := r.Log.WithValues("kafkacluster", request.NamespacedName, "Request.Name", request.Name)
@@ -231,6 +230,7 @@ func belongsToCluster(ref banzaicloudv1alpha1.ClusterReference, cluster *v1beta1
 	return false
 }
 
+// SetupKafkaClusterWithManager registers kafka cluster controller to the manager
 func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Builder {
 
 	builder := ctrl.NewControllerManagedBy(mgr).

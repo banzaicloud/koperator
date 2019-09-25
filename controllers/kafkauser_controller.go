@@ -46,6 +46,7 @@ import (
 
 var userFinalizer = "finalizer.kafkausers.kafka.banzaicloud.io"
 
+// SetupKafkaUserWithManager registers KafkaUser controller to the manager
 func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
 	// Create a new controller
 	r := &KafkaUserReconciler{

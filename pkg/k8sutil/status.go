@@ -30,14 +30,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// IsAlreadyOwnedError checks if a controller already own the instance
 func IsAlreadyOwnedError(err error) bool {
 	return errors.As(err, controllerutil.AlreadyOwnedError{})
 }
 
+// IsMarkedForDeletion determines if the object is marked for deletion
 func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 	return m.GetDeletionTimestamp() != nil
 }
 
+// UpdateBrokerStatus updates the broker status with rack and configuration infos
 func UpdateBrokerStatus(c client.Client, brokerId string, cluster *v1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
@@ -223,6 +226,7 @@ func UpdateCRStatus(c client.Client, cluster *v1beta1.KafkaCluster, state interf
 	return nil
 }
 
+// UpdateRollingUpgradeState updates the state of the cluster with rolling upgrade info
 func UpdateRollingUpgradeState(c client.Client, cluster *v1beta1.KafkaCluster, time time.Time, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 

@@ -14,6 +14,7 @@
 
 package v1alpha1
 
+// KafkaAccessType hold info about Kafka ACL
 type KafkaAccessType string
 
 // ClusterReference states a reference to a cluster for topic/user

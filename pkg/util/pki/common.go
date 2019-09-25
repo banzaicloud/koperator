@@ -15,7 +15,8 @@
 package pki
 
 const (
+	// BrokerIssuerTemplate template for the issuer
 	BrokerIssuerTemplate = "%s-issuer"
-	// exported for lookups
+	// BrokerControllerTemplate template for controller
 	BrokerControllerTemplate = "%s-crd-controller"
 )

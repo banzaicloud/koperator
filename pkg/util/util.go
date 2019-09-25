@@ -78,6 +78,7 @@ func MonitoringAnnotations(port int) map[string]string {
 	}
 }
 
+// ConvertStringToInt32 converts the given string to int32
 func ConvertStringToInt32(s string) int32 {
 	i, err := strconv.ParseInt(s, 10, 32)
 	if err != nil {
@@ -149,6 +150,7 @@ func ParsePropertiesFormat(properties string) map[string]string {
 	return config
 }
 
+// GetBrokerConfig compose the brokerConfig for a given broker
 func GetBrokerConfig(broker v1beta1.Broker, clusterSpec v1beta1.KafkaClusterSpec) (*v1beta1.BrokerConfig, error) {
 
 	bConfig := &v1beta1.BrokerConfig{}
@@ -165,6 +167,7 @@ func GetBrokerConfig(broker v1beta1.Broker, clusterSpec v1beta1.KafkaClusterSpec
 	return bConfig, nil
 }
 
+// GetBrokerImage returns the used broker image
 func GetBrokerImage(brokerConfig *v1beta1.BrokerConfig, clusterImage string) string {
 	if brokerConfig.Image != "" {
 		return brokerConfig.Image

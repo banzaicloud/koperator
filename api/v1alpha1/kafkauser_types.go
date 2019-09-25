@@ -41,11 +41,11 @@ type KafkaUserStatus struct {
 	TopicGrants []UserTopicGrant `json:"topicGrants"`
 }
 
+//KafkaUser is the Schema for the kafka users API
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// KafkaUser is the Schema for the kafkausers API
 type KafkaUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

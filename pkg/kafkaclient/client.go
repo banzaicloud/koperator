@@ -68,6 +68,7 @@ type kafkaClient struct {
 	brokers []*sarama.Broker
 }
 
+// New creates a new KafkaClient instance
 func New(opts *KafkaConfig) (client KafkaClient, err error) {
 	kclient := &kafkaClient{
 		opts:    opts,
