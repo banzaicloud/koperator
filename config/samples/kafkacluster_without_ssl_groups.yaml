@@ -245,7 +245,7 @@ spec:
           }
         ]
       }
-    clusterConfigs: |
+    clusterConfig: |
       {
         "min.insync.replicas": 3
       }

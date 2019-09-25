@@ -15,7 +15,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: KafkaUser is the Schema for the kafkausers API
+      description: KafkaUser is the Schema for the kafka users API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -52,6 +52,7 @@ spec:
                 description: UserTopicGrant is the desired permissions for the KafkaUser
                 properties:
                   accessType:
+                    description: KafkaAccessType hold info about Kafka ACL
                     enum:
                     - read
                     - write
@@ -77,6 +78,7 @@ spec:
                 description: UserTopicGrant is the desired permissions for the KafkaUser
                 properties:
                   accessType:
+                    description: KafkaAccessType hold info about Kafka ACL
                     enum:
                     - read
                     - write

@@ -16,20 +16,46 @@ package errorfactory
 
 import "emperror.dev/errors"
 
+// ResourceNotReady states that resource is not ready
 type ResourceNotReady struct{ error }
+
+// APIFailure states that something went wrong with the api
 type APIFailure struct{ error }
+
+// StatusUpdateError states that the operator failed to update the Status
 type StatusUpdateError struct{ error }
+
+// BrokersUnreachable states that the given broker is unreachable
 type BrokersUnreachable struct{ error }
+
+// BrokersNotReady states that the broker is not ready
 type BrokersNotReady struct{ error }
+
+// BrokersRequestError states that the broker could not understand the request
 type BrokersRequestError struct{ error }
+
+// CreateTopicError states that the operator could not create the topic
 type CreateTopicError struct{ error }
+
+// TopicNotFound states that the given topic is not found
 type TopicNotFound struct{ error }
+
+// GracefulUpscaleFailed states that the operator failed to update the cluster gracefully
 type GracefulUpscaleFailed struct{ error }
+
+// TooManyResources states that too many resource found
 type TooManyResources struct{ error }
+
+// InternalError states that internal error happened
 type InternalError struct{ error }
+
+// FatalReconcileError states that a fatal error happened
 type FatalReconcileError struct{ error }
+
+// ReconcileRollingUpgrade states that rolling upgrade is reconciling
 type ReconcileRollingUpgrade struct{ error }
 
+// New creates a new error factory error
 func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 	wrapped := errors.WrapIfWithDetails(err, msg, wrapArgs)
 	switch t.(type) {

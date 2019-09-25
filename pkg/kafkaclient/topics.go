@@ -21,6 +21,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 )
 
+// CreateTopicOptions holds info about topic configuration
 type CreateTopicOptions struct {
 	Name              string
 	Partitions        int32

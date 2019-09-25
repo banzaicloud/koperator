@@ -14,14 +14,19 @@
 
 package v1beta1
 
+// RackAwarenessState stores info about rack awareness status
 type RackAwarenessState string
 
+// CruiseControlState holds info about the state of Cruise Control
 type CruiseControlState string
 
+// CruiseControlTopicStatus holds info about the CC topic status
 type CruiseControlTopicStatus string
 
+// ClusterState holds info about the cluster state
 type ClusterState string
 
+// ConfigurationState holds info about the configuration state
 type ConfigurationState string
 
 // GracefulActionState holds information about GracefulAction State

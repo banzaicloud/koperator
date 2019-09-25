@@ -43,9 +43,9 @@ type KafkaTopicStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:webhook:failurePolicy="fail",name="kafkatopics.kafka.banzaicloud.io",path="/validate",mutating=false,resources={"kafkatopics"},verbs={"create","update"},groups={"kafka.banzaicloud.io"},versions={"v1alpha1"}
 
+// KafkaTopic is the Schema for the kafkatopics API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// KafkaTopic is the Schema for the kafkatopics API
 type KafkaTopic struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
