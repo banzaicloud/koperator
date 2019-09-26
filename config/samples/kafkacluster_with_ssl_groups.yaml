@@ -17,8 +17,6 @@ spec:
   clusterImage: "wurstmeister/kafka:2.12-2.1.0"
   readOnlyConfig: |
     auto.create.topics.enable=false
-  clusterWideConfig: |
-    background.threads=10
   brokerConfigGroups:
     default:
       storageConfigs:
@@ -250,7 +248,7 @@ spec:
           }
         ]
       }
-    clusterConfigs: |
+    clusterConfig: |
       {
         "min.insync.replicas": 3
       }

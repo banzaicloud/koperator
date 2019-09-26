@@ -12,8 +12,6 @@ spec:
   clusterImage: "wurstmeister/kafka:2.12-2.1.0"
   readOnlyConfig: |
     auto.create.topics.enable=false
-  clusterWideConfig: |
-    background.threads=10
   brokers:
     - id: 0
       brokerConfig:
@@ -48,6 +46,11 @@ spec:
   rollingUpgradeConfig:
     failureThreshold: 1
   listenersConfig:
+    externalListeners:
+      - type: "plaintext"
+        name: "external"
+        externalStartingPort: 19090
+        containerPort: 9094
     internalListeners:
       - type: "plaintext"
         name: "plaintext"
@@ -254,8 +257,7 @@ spec:
           }
         ]
       }
-    clusterConfigs: |
+    clusterConfig: |
       {
         "min.insync.replicas": 3
       }
-  serviceAccount: ""
