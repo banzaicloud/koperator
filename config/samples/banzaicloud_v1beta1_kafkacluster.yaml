@@ -22,56 +22,92 @@ spec:
   # but if the node number is insufficient the brokers will be scheduled to a node where a broker is already running.
   oneBrokerPerNode: false
   # Specify the Kafka Broker related settings
-  # All Broker requires an image, unique id, and storageConfigs settings
-  brokerConfigs:
-    # Docker image used by the operator to create the Broker with id 0
-    - image: "wurstmeister/kafka:2.12-2.1.0"
-      # Unique broker id which is used as kafka config broker.id
-      id: 0
-      # ResourceReqs works exactly like Container resources, the user can specify the limit and the requests
-      # through this property
-      #resourceReqs:
-      #  limits:
-      #    memory: "300Mi"
-      #    cpu: "200m"
-      #  requests:
-      #    memory: "300Mi"
-      #    cpu: "200m"
-      # nodeAffinity can be specified, operator populates this value if new pvc added later to brokers
-      # nodeAffinity:
-      # nodeSelector can be specified, which set the pod to fit on a node
-      # nodeSelector:
-      # tolerations can be specified, which set the pod's tolerations
-      # tolerations:
-      # config parameter can be used to pass any Kafka config https://kafka.apache.org/documentation/#brokerconfigs
-      # expect listener specific configs, security based configs, log dir related configs
-      # we recommend to disable automatic topic creation, enabling it may result ineffective CC topic
-      config: |
-        auto.create.topics.enable=false
-      # storageConfigs specifies the broker log related configs
-      # kafkaHeapOpts specifies the jvm heap size for the broker
-      # kafkaHeapOpts: "-Xmx4G -Xms4G"
-      # kafkaJvmPerfOpts specifies the jvm performance configs for the broker
-      # kafkaJvmPerfOpts: "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true -Dsun.net.inetaddr.ttl=60"
+  # clusterImage can specify the whole kafkacluster image in one place
+  #clusterImage: "wurstmeister/kafka:2.12-2.1.0"
+  # readOnlyConfig specifies the read-only type kafka config cluster wide, all these will be merged with broker specified
+  # readOnly configurations, so it can be overwritten per broker.
+  #clusterWideConfig specifies the cluster-wide kafka config cluster wide, all these can be overridden per-broker
+  #clusterWideConfig: |
+  #  background.threads=10
+  #readOnlyConfig: |
+  #  auto.create.topics.enable=false
+  # brokerConfigGroups specifies multiple broker configs with unique name
+  #rollingUpgradeConfig specifies the rolling upgrade config for the cluster
+  #rollingUpgradeConfig:
+  #failureThreshold states that how many errors can the cluster tolerate during rolling upgrade
+  #  failureThreshold: 1
+  brokerConfigGroups:
+    # Specify desired group name (eg., 'default_group')
+    default_group:
+      # all the brokerConfig settings are available here
       storageConfigs:
-        # mountPath will be used in kafka config log.dirs so it must be unique
         - mountPath: "/kafka-logs"
-          # pvcSpec describes the PVC used for the mountPath described above
-          # it requires a kubernetes PVC spec
           pvcSpec:
             accessModes:
               - ReadWriteOnce
-            # storageClassName: standard
             resources:
               requests:
                 storage: 10Gi
-        #- mountPath: "/kafka-second-log-volume"
-        #    pvcSpec:
-        #      accessModes:
-        #        - ReadWriteOnce
-        #      resources:
-        #        requests:
-        #          storage: 3Gi
+  # All Broker requires an image, unique id, and storageConfigs settings
+  brokers:
+      # Unique broker id which is used as kafka config broker.id
+    - id: 0
+      # brokerConfigGroup can be used to ease the broker configuration, if set no only the id is required
+      #brokerConfigGroup: "default_group"
+      # readOnlyConfig can be used to pass Kafka config https://kafka.apache.org/documentation/#brokerconfigs
+      # which has type read-only these config changes will trigger rolling upgrade
+      readOnlyConfig: |
+        auto.create.topics.enable=false
+      brokerConfig:
+        # Docker image used by the operator to create the Broker with id 0
+        #image: "wurstmeister/kafka:2.12-2.1.0"
+        # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
+        # through this property
+        #resourceRequirements:
+        #  limits:
+        #    memory: "300Mi"
+        #    cpu: "200m"
+        #  requests:
+        #    memory: "300Mi"
+        #    cpu: "200m"
+        # nodeAffinity can be specified, operator populates this value if new pvc added later to brokers
+        # nodeAffinity:
+        # nodeSelector can be specified, which set the pod to fit on a node
+        # nodeSelector:
+        # tolerations can be specified, which set the pod's tolerations
+        # tolerations:
+        # config parameter can be used to pass Kafka config https://kafka.apache.org/documentation/#brokerconfigs
+        # which has type per-broker
+        config: |
+          sasl.enabled.mechanisms=PLAIN
+        # serviceAccountName specifies the serviceAccount used for this specific broker
+        #serviceAccountName: "kafka"
+        # imagePullSecrets specifies the secret to use when using private registry
+        #imagePullSecrets: "k8ssecret"
+        # kafkaHeapOpts specifies the jvm heap size for the broker
+        #kafkaHeapOpts: "-Xmx4G -Xms4G"
+        # kafkaJvmPerfOpts specifies the jvm performance configs for the broker
+        #kafkaJvmPerfOpts: "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true -Dsun.net.inetaddr.ttl=60"
+        # storageConfigs specifies the broker log related configs
+        storageConfigs:
+          # mountPath will be used in kafka config log.dirs so it must be unique
+          - mountPath: "/kafka-logs"
+            # pvcSpec describes the PVC used for the mountPath described above
+            # it requires a kubernetes PVC spec
+            pvcSpec:
+              accessModes:
+                - ReadWriteOnce
+              # storageClassName: standard
+              resources:
+                requests:
+                  storage: 10Gi
+          #- mountPath: "/kafka-second-log-volume"
+          #    pvcSpec:
+          #      accessModes:
+          #        - ReadWriteOnce
+          #      resources:
+          #        requests:
+          #          storage: 3Gi
     - image: "wurstmeister/kafka:2.12-2.1.0"
       id: 1
       config: |
@@ -84,46 +120,19 @@ spec:
             resources:
               requests:
                 storage: 10Gi
-    - image: "wurstmeister/kafka:2.12-2.1.0"
-      id: 2
-      config: |
+    - id: 2
+      readOnlyConfig: |
         auto.create.topics.enable=false
-      storageConfigs:
-        - mountPath: "/kafka-logs"
-          pvcSpec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 10Gi
-    - image: "wurstmeister/kafka:2.12-2.1.0"
-      id: 3
-      config: |
-        auto.create.topics.enable=false
-      storageConfigs:
-        - mountPath: "/kafka-logs"
-          pvcSpec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 10Gi
-  # brokerConfigGroups specifies multiple broker configs with unique name
-  brokerConfigGroups:
-    # Specify desired group name (eg., 'default_group')
-    default_group:
-      # brokerConfig spec
-      image: "wurstmeister/kafka:2.12-2.1.0"
-      config: |
-        auto.create.topics.enable=false
-      storageConfigs:
-        - mountPath: "/kafka-logs"
-          pvcSpec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 10Gi
+      brokerConfig:
+        image: "wurstmeister/kafka:2.12-2.1.0"
+        storageConfigs:
+          - mountPath: "/kafka-logs"
+            pvcSpec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 10Gi
   # listenersConfig specifies kafka's listener specific configs
   listenersConfig:
     # externalListeners specifies settings required to access kafka externally
@@ -159,10 +168,33 @@ spec:
       tlsSecretName: "test-kafka-operator"
       # jksPasswordName should contain a password field which contains the jks password
       jksPasswordName: "test-kafka-operator-pass"
+      # create tells the installed cert manager to create the required certs keys
+      create: true
   # envoyConfig defines the envoy specific config used for externalListeners
   #envoyConfig:
   # image describes the Envoy docker image
   #  image: "banzaicloud/envoy:0.1.0"
+  # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
+  # through this property
+  #resourceRequirements:
+  #  limits:
+  #    memory: "300Mi"
+  #    cpu: "200m"
+  #  requests:
+  #    memory: "300Mi"
+  #    cpu: "200m"
+  # serviceAccountName specifies the serviceAccount used for envoy
+  #serviceAccountName: "envoy"
+  # imagePullSecrets specifies the secret to use when using private registry
+  #imagePullSecrets: "k8ssecret"
+  # nodeSelector can be specified, which set the pod to fit on a node
+  #nodeSelector:
+  # tolerations can be specified, which set the pod's tolerations
+  #tolerations:
+  # annotations can be used to place annotation to the envoy created loadbalancer
+  #annotations:
+  # loadBalancerSourceRanges refers to the k8s resource used in loadbalancer type services
+  #loadBalancerSourceRanges:
   # cruiseControlConfig describes the cruise control related configuration
   cruiseControlConfig:
     # image describes the CC docker image
@@ -170,6 +202,23 @@ spec:
     # CruiseControlEndpoint describes the endpoint where the already running CC is accessable. If set the Operator will not
     # try to install one
     #cruiseControlEndpoint: "localhost:8090"
+    # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
+    # through this property
+    #resourceRequirements:
+    #  limits:
+    #    memory: "300Mi"
+    #    cpu: "200m"
+    #  requests:
+    #    memory: "300Mi"
+    #    cpu: "200m"
+    # serviceAccountName specifies the serviceAccount used for cc
+    #serviceAccountName: "envoy"
+    # imagePullSecrets specifies the secret to use when using private registry
+    #imagePullSecrets: "k8ssecret"
+    # nodeSelector can be specified, which set the pod to fit on a node
+    #nodeSelector:
+    # tolerations can be specified, which set the pod's tolerations
+    #tolerations:
     # Config describes the main configuration file called cruisecontrol.properties bootsrap.server and zookeeper.connect must left out
     # because those values are generated
     config: |
@@ -374,12 +423,10 @@ spec:
         ]
       }
     # ClusterConfigs describes Cruise Control config clusterConfigs.json
-    clusterConfigs: |
+    clusterConfig: |
       {
         "min.insync.replicas": 2
       }
-  # Specify the ServiceAccount where the Kafka Pods and the Cruise Control is running
-  serviceAccount: ""
   # monitoringConfig describes the monitoring related configs
   #monitoringConfig:
   # jmxImage describes the used prometheus jmx exporter agent container

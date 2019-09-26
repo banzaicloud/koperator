@@ -32,11 +32,6 @@ spec:
   rollingUpgradeConfig:
     failureThreshold: 1
   listenersConfig:
-    externalListeners:
-      - type: "plaintext"
-        name: "external"
-        externalStartingPort: 19090
-        containerPort: 9094
     internalListeners:
       - type: "plaintext"
         name: "plaintext"
