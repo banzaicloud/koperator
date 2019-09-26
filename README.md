@@ -35,6 +35,8 @@ Apache Kafka is an open-source distributed streaming platform, and some of the m
 - monitoring via **Prometheus**
 - encrypted communication using SSL
 - automatic reaction and self healing based on alerts (plugin system, with meaningful default alert plugins) using **Cruise Control**
+- graceful rolling upgrade
+- advanced topic and user management via CRD
 
 ![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
 
@@ -60,7 +62,7 @@ Join us as we take a deep dive into some of the details of the most popular pre-
 | Fine grained broker volume support  | Yes (learn more) | Limited via StatefulSet|Limited via StatefulSet|Limited via StatefulSet|
 | Monitoring  | Yes | Yes|Yes|Yes|
 | Encryption using SSL  | Yes | Yes|Yes|Yes|
-| Rolling Update  | Work in progress | No |No|Yes|
+| Rolling Update  | Yes | No |No|Yes|
 | Cluster external accesses  | Envoy (single LB) | Nodeport |Nodeport or LB/broker|Yes (N/A)|
 | User Management via CRD  | Yes | No |Yes|No|
 | Topic management via CRD  | Yes | No |Yes|No|
@@ -145,12 +147,11 @@ volumeBindingMode: WaitForFirstConsumer
 
 1. Set `KUBECONFIG` pointing towards your cluster
 2. Run `make deploy` (deploys the operator in the `kafka` namespace into the cluster)
-3. Set your Kafka configurations in a Kubernetes custom resource (sample: `config/samples/banzaicloud_v1beta1_kafkacluster.yaml`) and run this command to deploy the Kafka components:
+3. Set your Kafka configurations in a Kubernetes custom resource (sample: `config/samples/simplekafkacluster.yaml`) and run this command to deploy the Kafka components:
 
 ```bash
 # Add your zookeeper svc name to the configuration
-kubectl create -n kafka -f config/samples/example-secret.yaml
-kubectl create -n kafka -f config/samples/banzaicloud_v1beta1_kafkacluster.yaml
+kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
 ```
 
 > In this case you have to install Prometheus with proper configuration if you want the Kafka-Operator to react to alerts. Again, if you need Prometheus and would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
@@ -164,8 +165,7 @@ Alternatively, if you are using Helm, you can deploy the operator using a Helm c
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml
 # Add your zookeeper svc name to the configuration
-kubectl create -n kafka -f config/samples/example-secret.yaml
-kubectl create -n kafka -f config/samples/banzaicloud_v1beta1_kafkacluster.yaml
+kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
 ```
 
 > In this case Prometheus will be installed and configured properly for the Kafka-Operator.
