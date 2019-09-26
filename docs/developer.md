@@ -28,7 +28,7 @@ Create CR and let the operator set up Kafka in your cluster (you can change the 
 
 > Remember you need Zookeeper server to run Kafka
 
-`kubectl create -n kafka -f config/samples/banzaicloud_v1beta1_kafkacluster.yaml`
+`kubectl create -n kafka -f config/samples/simplekafkacluster.yaml`
 
 #### Limitations on minikube
 
