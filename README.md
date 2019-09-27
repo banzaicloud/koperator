@@ -95,14 +95,24 @@ The operator also uses `cert-manager` for issuing certificates to users and brok
 #### Install cert-manager
 
 ```bash
-# Add the jetstack helm repo
-helm repo add jetstack https://charts.jetstack.io
-
 # pre-create cert-manager namespace and CRDs per their installation instructions
 kubectl create ns cert-manager
 kubectl label namespace cert-manager certmanager.k8s.io/disable-validation=true
+```
+
+Install cert-manager and CustomResourceDefinitions
+```bash
+# Install the CustomResourceDefinitions and cert-manager itself
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.10.0/cert-manager.yaml
+```
+
+Or install with helm
+```bash
+# Install only the CustomResourceDefinitions
 kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.10/deploy/manifests/00-crds.yaml
 
+# Add the jetstack helm repo
+helm repo add jetstack https://charts.jetstack.io
 # Install cert-manager into the cluster
 # --set webhook.enabled=false may not be required for you, but avoids issues with
 # certificates not being able to be issued due to the webhook not working.
@@ -126,7 +136,41 @@ metadata:
 spec:
   replicas: 3
 EOF
+```
 
+##### Install Prometheus-operator
+
+You can instal the operator to the `default` namespace using bundle
+```bash
+# Install Prometheus-operator and CustomResourceDefinitions
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/bundle.yaml
+```
+
+Or install with helm
+```bash
+# Install CustomResourceDefinitions
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/alertmanager.crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/prometheus.crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/prometheusrule.crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/servicemonitor.crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/podmonitor.crd.yaml
+
+# Install only the Prometheus-operator
+helm install --name test  stable/prometheus-operator \
+--set prometheusOperator.createCustomResource=false \
+--set defaultRules.enabled=false \
+--set alertmanager.enabled=false \
+--set grafana.enabled=false \
+--set kubeApiServer.enabled=false \
+--set kubelet.enabled=false \
+--set kubeControllerManager.enabled=false \
+--set coreDNS.enabled=false \
+--set kubeEtcd.enabled=false \
+--set kubeScheduler.enabled=false \
+--set kubeProxy.enabled=false \
+--set kubeStateMetrics.enabled=false \
+--set nodeExporter.enabled=false \
+--set prometheus.enabled=false
 ```
 
 ### Installation
