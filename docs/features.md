@@ -79,6 +79,6 @@ Kafka operates with three type of configs:
 - ClusterWide
 - PerBroker
 
-Read only configs requires broker restart to update all the others may be updated dynamically.
+Read only config requires broker restart to update all the others may be updated dynamically.
 Operator CRD distinguishes these fields, and proceed with the right action. It can be a rolling upgrade, or
 a dynamic reconfiguration.
