@@ -101,6 +101,7 @@ type CruiseControlConfig struct {
 	CapacityConfig        string                        `json:"capacityConfig,omitempty"`
 	ClusterConfig         string                        `json:"clusterConfig,omitempty"`
 	Image                 string                        `json:"image,omitempty"`
+	InitContainerImage    string                        `json:"initContainerImage,omitempty"`
 }
 
 // EnvoyConfig defines the config for Envoy
@@ -182,6 +183,14 @@ type KafkaClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&KafkaCluster{}, &KafkaClusterList{})
+}
+
+//GetInitContainerImage returns the Init container image to use for CruiseControl
+func (cConfig *CruiseControlConfig) GetInitContainerImage() string {
+	if cConfig.InitContainerImage != "" {
+		return cConfig.InitContainerImage
+	}
+	return "wurstmeister/kafka:2.12-2.1.0"
 }
 
 //GetLoadBalancerSourceRanges returns LoadBalancerSourceRanges to use for Envoy generated LoadBalancer
