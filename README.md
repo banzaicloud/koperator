@@ -140,7 +140,7 @@ EOF
 
 ##### Install Prometheus-operator
 
-You can instal the operator to the `default` namespace using bundle
+Install the Operator and CustomResourceDefinitions to the `default` namespace
 ```bash
 # Install Prometheus-operator and CustomResourceDefinitions
 kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/bundle.yaml
