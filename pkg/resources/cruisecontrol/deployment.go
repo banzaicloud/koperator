@@ -33,15 +33,10 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	volumeMount := []corev1.VolumeMount{}
 	initContainers := []corev1.Container{}
 
-	brokerConfig, err := util.GetBrokerConfig(r.KafkaCluster.Spec.Brokers[0], r.KafkaCluster.Spec)
-	if err != nil {
-		log.Error(err, "could not merge broker config properly")
-	}
-
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.ClusterImage), r.KafkaCluster.Name))
+		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.CruiseControlConfig.GetInitContainerImage(), r.KafkaCluster.Name))
 	} else {
 		volumeMount = append(volumeMount, []corev1.VolumeMount{
 			{

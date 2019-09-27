@@ -17,6 +17,8 @@ spec:
   clusterImage: "wurstmeister/kafka:2.12-2.1.0"
   readOnlyConfig: |
     auto.create.topics.enable=false
+    authorizer.class.name=kafka.security.auth.SimpleAclAuthorizer
+    allow.everyone.if.no.acl.found=false
   brokerConfigGroups:
     default:
       storageConfigs:
@@ -34,7 +36,6 @@ spec:
       brokerConfigGroup: "default"
     - id: 2
       brokerConfigGroup: "default"
-      brokeConfig:
   rollingUpgradeConfig:
     failureThreshold: 1
   listenersConfig:
