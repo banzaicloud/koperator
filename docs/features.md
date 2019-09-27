@@ -61,3 +61,24 @@ Currently, there are three default actions (which can be extended):
 - upscale cluster (add a new Broker)
 - downscale cluster (remove a Broker)
 - add additional disk to a Broker
+
+#### Graceful Rolling Upgrade
+
+Operator supports graceful rolling upgrade, It means the operator will check if the cluster is healthy.
+It basically checks if the cluster has offline partitions, and all the replicas are in sync.
+It proceeds only when the failure threshold is smaller than the configured one.
+
+The operator also allows to create special alerts on Prometheus, which affects the rolling upgrade state, by
+increasing the error rate.
+
+#### Dynamic Configuration Support
+
+Kafka operates with three type of configs:
+
+- Read-only
+- ClusterWide
+- PerBroker
+
+Read only configs requires broker restart to update all the others may be updated dynamically.
+Operator CRD distinguishes these fields, and proceed with the right action. It can be a rolling upgrade, or
+a dynamic reconfiguration.

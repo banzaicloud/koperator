@@ -14,6 +14,8 @@ Released:
 
 Under development (next release)
 
+- [] - Introduce compatibility with PKI engines e.g.: Vault 
+
 Short term roadmap
 
 Long term roadmap
