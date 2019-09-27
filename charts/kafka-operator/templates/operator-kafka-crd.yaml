@@ -951,6 +951,8 @@ spec:
                         type: string
                     type: object
                   type: array
+                initContainerImage:
+                  type: string
                 nodeSelector:
                   additionalProperties:
                     type: string
