@@ -15,77 +15,27 @@
 package cruisecontrol
 
 import (
-	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"fmt"
-
-	"emperror.dev/emperror"
-	"emperror.dev/errors"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/go-logr/logr"
 
-	"github.com/Shopify/sarama"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func generateCCTopic(cluster *banzaicloudv1alpha1.KafkaCluster, client client.Client, log logr.Logger) error {
+// This function may be close to being able to be replaced with just submitting a CR
+// to ourselves
+func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log logr.Logger) error {
 
-	conf := sarama.NewConfig()
-	conf.Version = sarama.V2_1_0_0
-
-	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
-		tlsKeys := &corev1.Secret{}
-		err := client.Get(context.TODO(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, tlsKeys)
-		if err != nil {
-			return emperror.Wrap(err, "could not get TLS secret to create CC topic")
-		}
-		clientCert := tlsKeys.Data["clientCert"]
-		clientKey := tlsKeys.Data["clientKey"]
-		caCert := tlsKeys.Data["caCert"]
-
-		x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
-		if err != nil {
-			return err
-		}
-
-		rootCAs := x509.NewCertPool()
-		rootCAs.AppendCertsFromPEM(caCert)
-
-		t := &tls.Config{
-			Certificates: []tls.Certificate{x509ClientCert},
-			RootCAs:      rootCAs,
-		}
-		conf.Net.TLS.Enable = true
-		conf.Net.TLS.Config = t
-	}
-
-	adminClient, err := sarama.NewClusterAdmin([]string{generateKafkaAddress(cluster)}, conf)
+	broker, err := kafkaclient.NewFromCluster(client, cluster)
 	if err != nil {
-		return emperror.Wrap(err, "Error while creating admin client to create CC topic")
+		return err
 	}
-	defer func() { _ = adminClient.Close() }()
+	defer broker.Close()
 
-	err = adminClient.CreateTopic("__CruiseControlMetrics", &sarama.TopicDetail{
-		NumPartitions:     12,
+	return broker.CreateTopic(&kafkaclient.CreateTopicOptions{
+		Name:              "__CruiseControlMetrics",
+		Partitions:        12,
 		ReplicationFactor: 3,
-	}, false)
+	})
 
-	var tError *sarama.TopicError
-
-	if err != nil && !(errors.As(err, &tError) && tError.Err == sarama.ErrTopicAlreadyExists) {
-		return emperror.Wrap(err, "Error while creating CC topic")
-	}
-
-	return nil
-}
-
-func generateKafkaAddress(cluster *banzaicloudv1alpha1.KafkaCluster) string {
-	if cluster.Spec.HeadlessServiceEnabled {
-		return fmt.Sprintf("%s.%s:%d", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
-	}
-	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)
 }

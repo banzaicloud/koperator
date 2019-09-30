@@ -17,32 +17,34 @@ package envoy
 import (
 	"fmt"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
 // loadBalancer return a Loadbalancer service for Envoy
 func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 
-	exposedPorts := getExposedServicePorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.BrokerConfigs)
+	exposedPorts := getExposedServicePorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.Brokers)
 
 	service := &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(EnvoyServiceName, map[string]string{}, r.KafkaCluster),
+		ObjectMeta: templates.ObjectMetaWithAnnotations(envoyutils.EnvoyServiceName, map[string]string{}, r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations(), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{"app": "envoy"},
-			Type:     corev1.ServiceTypeLoadBalancer,
-			Ports:    exposedPorts,
+			Selector:                 map[string]string{"app": "envoy"},
+			Type:                     corev1.ServiceTypeLoadBalancer,
+			Ports:                    exposedPorts,
+			LoadBalancerSourceRanges: r.KafkaCluster.Spec.EnvoyConfig.GetLoadBalancerSourceRanges(),
 		},
 	}
 	return service
 }
 
-func getExposedServicePorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.BrokerConfig) []corev1.ServicePort {
+func getExposedServicePorts(extListeners []v1beta1.ExternalListenerConfig, brokers []v1beta1.Broker) []corev1.ServicePort {
 	var exposedPorts []corev1.ServicePort
 
 	for _, eListener := range extListeners {

@@ -16,23 +16,25 @@ package k8sutil
 
 import (
 	"context"
-	"errors"
 	"reflect"
 
-	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/scale"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/go-logr/logr"
-	appsv1 "k8s.io/api/apps/v1"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Reconcile reconciles K8S resources
-func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Object, cr *banzaicloudv1alpha1.KafkaCluster) error {
+func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Object, cr *v1beta1.KafkaCluster) error {
 	desiredType := reflect.TypeOf(desired)
 	var current = desired.DeepCopyObject()
 	var err error
@@ -42,197 +44,117 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		var key runtimeClient.ObjectKey
 		key, err = runtimeClient.ObjectKeyFromObject(current)
 		if err != nil {
-			return emperror.With(err, "kind", desiredType)
+			return errors.WithDetails(err, "kind", desiredType)
 		}
 		log = log.WithValues("kind", desiredType, "name", key.Name)
 
 		err = client.Get(context.TODO(), key, current)
 		if err != nil && !apierrors.IsNotFound(err) {
-			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType, "name", key.Name)
+			return errorfactory.New(
+				errorfactory.APIFailure{},
+				err,
+				"getting resource failed",
+				"kind", desiredType, "name", key.Name,
+			)
 		}
 		if apierrors.IsNotFound(err) {
-			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
+			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desired); err != nil {
+				return errors.WrapIf(err, "could not apply last state to annotation")
+			}
 			if err := client.Create(context.TODO(), desired); err != nil {
-				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType, "name", key.Name)
+				return errorfactory.New(
+					errorfactory.APIFailure{},
+					err,
+					"creating resource failed",
+					"kind", desiredType, "name", key.Name,
+				)
 			}
 			log.Info("resource created")
 			return nil
 		}
-	case *corev1.PersistentVolumeClaim:
-		log = log.WithValues("kind", desiredType)
-		log.V(1).Info("searching with label because name is empty")
-
-		pvcList := &corev1.PersistentVolumeClaimList{}
-		matchingLabels := runtimeClient.MatchingLabels{
-			"kafka_cr": cr.Name,
-			"brokerId": desired.(*corev1.PersistentVolumeClaim).Labels["brokerId"],
+		// TODO check if this ClusterIssuer part here is necessary or can be handled in default (baluchicken)
+	case *certv1.ClusterIssuer:
+		var key runtimeClient.ObjectKey
+		key, err = runtimeClient.ObjectKeyFromObject(current)
+		if err != nil {
+			return errors.WithDetails(err, "kind", desiredType)
 		}
-		err = client.List(context.TODO(), pvcList,
-			runtimeClient.ListOption(runtimeClient.InNamespace(current.(*corev1.PersistentVolumeClaim).Namespace)), runtimeClient.ListOption(matchingLabels))
-		if err != nil && len(pvcList.Items) == 0 {
-			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType)
+		err = client.Get(context.TODO(), types.NamespacedName{Namespace: metav1.NamespaceAll, Name: key.Name}, current)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return errorfactory.New(
+				errorfactory.APIFailure{},
+				err,
+				"getting resource failed",
+				"kind", desiredType, "name", key.Name,
+			)
 		}
-		mountPath := current.(*corev1.PersistentVolumeClaim).Annotations["mountPath"]
-
-		// Creating the first PersistentVolume For Pod
-		if len(pvcList.Items) == 0 {
-			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
+		if apierrors.IsNotFound(err) {
+			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desired); err != nil {
+				return errors.WrapIf(err, "could not apply last state to annotation")
+			}
 			if err := client.Create(context.TODO(), desired); err != nil {
-				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
+				return errorfactory.New(
+					errorfactory.APIFailure{},
+					err,
+					"creating resource failed",
+					"kind", desiredType, "name", key.Name,
+				)
 			}
 			log.Info("resource created")
 			return nil
-		}
-		alreadyCreated := false
-		for _, pvc := range pvcList.Items {
-			if mountPath == pvc.Annotations["mountPath"] {
-				current = pvc.DeepCopyObject()
-				alreadyCreated = true
-				break
-			}
-		}
-		if !alreadyCreated {
-			// Creating the 2+ PersistentVolumes for Pod
-			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
-			if err := client.Create(context.TODO(), desired); err != nil {
-				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
-			}
-			return nil
-		}
-	case *corev1.Pod:
-		log = log.WithValues("kind", desiredType)
-		log.V(1).Info("searching with label because name is empty")
-
-		podList := &corev1.PodList{}
-		matchingLabels := runtimeClient.MatchingLabels{
-			"kafka_cr": cr.Name,
-			"brokerId": desired.(*corev1.Pod).Labels["brokerId"],
-		}
-		err = client.List(context.TODO(), podList, runtimeClient.ListOption(runtimeClient.InNamespace(current.(*corev1.Pod).Namespace)), runtimeClient.ListOption(matchingLabels))
-		if err != nil && len(podList.Items) == 0 {
-			return emperror.WrapWith(err, "getting resource failed", "kind", desiredType)
-		}
-		if len(podList.Items) == 0 {
-			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
-			if err := client.Create(context.TODO(), desired); err != nil {
-				return emperror.WrapWith(err, "creating resource failed", "kind", desiredType)
-			}
-			log.Info("resource created")
-			return nil
-		} else if len(podList.Items) == 1 {
-			current = podList.Items[0].DeepCopyObject()
-			brokerId := current.(*corev1.Pod).Labels["brokerId"]
-			if brokerState, ok := cr.Status.BrokersState[brokerId]; ok {
-				if cr.Spec.RackAwareness != nil && (brokerState.RackAwarenessState == banzaicloudv1alpha1.WaitingForRackAwareness || brokerState.RackAwarenessState == "") {
-					err := updateCrWithRackAwarenessConfig(current.(*corev1.Pod), cr, client)
-					if err != nil {
-						return emperror.Wrap(err, "updating cr with rack awareness info failed")
-					}
-					statusErr := updateRackAwarenessStatus(client, brokerId, cr, banzaicloudv1alpha1.Configured, log)
-					if statusErr != nil {
-						return emperror.WrapWith(err, "updating status for resource failed", "kind", desiredType)
-					}
-				}
-				if current.(*corev1.Pod).Status.Phase == corev1.PodRunning && brokerState.GracefulActionState.CruiseControlState == banzaicloudv1alpha1.GracefulUpdateRequired {
-					scaleErr := scale.UpScaleCluster(desired.(*corev1.Pod).Labels["brokerId"], desired.(*corev1.Pod).Namespace, cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)
-					if scaleErr != nil {
-						log.Error(err, "graceful upscale failed, or cluster just started")
-						statusErr := updateGracefulScaleStatus(client, brokerId, cr,
-							banzaicloudv1alpha1.GracefulActionState{ErrorMessage: scaleErr.Error(), CruiseControlState: banzaicloudv1alpha1.GracefulUpdateFailed}, log)
-						if statusErr != nil {
-							return emperror.Wrap(statusErr, "could not update broker graceful action state")
-						}
-					} else {
-						statusErr := updateGracefulScaleStatus(client, brokerId, cr,
-							banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateSucceeded}, log)
-						if statusErr != nil {
-							return emperror.Wrap(statusErr, "could not update broker graceful action state")
-						}
-					}
-				}
-			} else {
-				statusErr := updateGracefulScaleStatus(client, brokerId, cr,
-					banzaicloudv1alpha1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1alpha1.GracefulUpdateRequired}, log)
-				if statusErr != nil {
-					return emperror.Wrap(statusErr, "could not update broker graceful action state")
-				}
-				if cr.Spec.RackAwareness != nil {
-					statusErr := updateRackAwarenessStatus(client, brokerId, cr, banzaicloudv1alpha1.WaitingForRackAwareness, log)
-					if statusErr != nil {
-						return emperror.Wrap(statusErr, "could not update broker rack state")
-					}
-				}
-			}
-
-		} else {
-			return emperror.WrapWith(errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
 		}
 	}
 	if err == nil {
-		patchResult, err := patch.DefaultPatchMaker.Calculate(current, desired)
-		if err != nil {
-			log.Error(err, "could not match objects", "kind", desiredType)
-		} else if patchResult.IsEmpty() {
-			switch current.(type) {
-			case *corev1.Pod:
-				{
-					if current.(*corev1.Pod).Status.Phase != corev1.PodFailed {
-						log.V(1).Info("resource is in sync")
-						return nil
+		if CheckIfObjectUpdated(log, desiredType, current, desired) {
+
+			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desired); err != nil {
+				return errors.WrapIf(err, "could not apply last state to annotation")
+			}
+
+			switch d := desired.(type) {
+			default:
+				d.(metav1.ObjectMetaAccessor).GetObjectMeta().SetResourceVersion(current.(metav1.ObjectMetaAccessor).GetObjectMeta().GetResourceVersion())
+			case *corev1.Service:
+				svc := desired.(*corev1.Service)
+				svc.ResourceVersion = current.(*corev1.Service).ResourceVersion
+				svc.Spec.ClusterIP = current.(*corev1.Service).Spec.ClusterIP
+				desired = svc
+			}
+
+			if err := client.Update(context.TODO(), desired); err != nil {
+				return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
+			}
+			switch desired.(type) {
+			case *corev1.ConfigMap:
+				// Only update status when configmap belongs to broker
+				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
+					statusErr := UpdateBrokerStatus(client, id, cr, banzaicloudv1beta1.ConfigOutOfSync, log)
+					if statusErr != nil {
+						return errors.WrapIfWithDetails(err, "updating status for resource failed", "kind", desiredType)
 					}
 				}
-			default:
-				log.V(1).Info("resource is in sync")
-				return nil
 			}
-		} else {
-			log.V(1).Info("resource diffs",
-				"patch", string(patchResult.Patch),
-				"current", string(patchResult.Current),
-				"modified", string(patchResult.Modified),
-				"original", string(patchResult.Original))
+			log.Info("resource updated")
 		}
-
-		patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
-
-		switch desired.(type) {
-		default:
-			return emperror.With(errors.New("unexpected resource type"), "kind", desiredType)
-		case *corev1.ConfigMap:
-			cm := desired.(*corev1.ConfigMap)
-			cm.ResourceVersion = current.(*corev1.ConfigMap).ResourceVersion
-			desired = cm
-		case *corev1.Service:
-			svc := desired.(*corev1.Service)
-			svc.ResourceVersion = current.(*corev1.Service).ResourceVersion
-			svc.Spec.ClusterIP = current.(*corev1.Service).Spec.ClusterIP
-			desired = svc
-		case *corev1.Pod:
-			err := updateCrWithNodeAffinity(current.(*corev1.Pod), cr, client)
-			if err != nil {
-				return emperror.WrapWith(err, "updating cr failed")
-			}
-			err = client.Delete(context.TODO(), current)
-			if err != nil {
-				return emperror.WrapWith(err, "deleting resource failed", "kind", desiredType)
-			}
-			return nil
-		case *corev1.PersistentVolumeClaim:
-			//TODO
-			desired = current
-		case *appsv1.Deployment:
-			deploy := desired.(*appsv1.Deployment)
-			deploy.ResourceVersion = current.(*appsv1.Deployment).ResourceVersion
-			desired = deploy
-		case *appsv1.StatefulSet:
-			deploy := desired.(*appsv1.StatefulSet)
-			deploy.ResourceVersion = current.(*appsv1.StatefulSet).ResourceVersion
-			desired = deploy
-		}
-		if err := client.Update(context.TODO(), desired); err != nil {
-			return emperror.WrapWith(err, "updating resource failed", "kind", desiredType)
-		}
-		log.Info("resource updated")
 	}
 	return nil
+}
+
+// CheckIfObjectUpdated checks if the given object is updated using K8sObjectMatcher
+func CheckIfObjectUpdated(log logr.Logger, desiredType reflect.Type, current, desired runtime.Object) bool {
+	patchResult, err := patch.DefaultPatchMaker.Calculate(current, desired)
+	if err != nil {
+		log.Error(err, "could not match objects", "kind", desiredType)
+		return true
+	} else if patchResult.IsEmpty() {
+		log.V(1).Info("resource is in sync")
+		return false
+	} else {
+		log.V(1).Info("resource diffs",
+			"patch", string(patchResult.Patch),
+			"current", string(patchResult.Current),
+			"modified", string(patchResult.Modified),
+			"original", string(patchResult.Original))
+		return true
+	}
 }

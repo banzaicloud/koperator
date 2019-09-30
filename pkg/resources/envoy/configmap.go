@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -27,7 +28,6 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	envoyapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	ptypes "github.com/gogo/protobuf/types"
@@ -42,8 +42,8 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 	return configMap
 }
 
-func generateEnvoyConfig(kc *banzaicloudv1alpha1.KafkaCluster, log logr.Logger) string {
-	//TODO support multiple external listener by removing [0]
+func generateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
+	//TODO support multiple external listener by removing [0] (baluchicken)
 	adminConfig := envoybootstrap.Admin{
 		AccessLogPath: "/tmp/admin_access.log",
 		Address: &core.Address{
@@ -61,7 +61,7 @@ func generateEnvoyConfig(kc *banzaicloudv1alpha1.KafkaCluster, log logr.Logger) 
 	var listeners []envoyapi.Listener
 	var clusters []envoyapi.Cluster
 
-	for _, broker := range kc.Spec.BrokerConfigs {
+	for _, broker := range kc.Spec.Brokers {
 		listeners = append(listeners, envoyapi.Listener{
 			Address: core.Address{
 				Address: &core.Address_SocketAddress{

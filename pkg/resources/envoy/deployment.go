@@ -17,12 +17,12 @@ package envoy
 import (
 	"fmt"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,7 +30,7 @@ import (
 
 func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 
-	exposedPorts := getExposedContainerPorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.BrokerConfigs)
+	exposedPorts := getExposedContainerPorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.Brokers)
 	volumes := []corev1.Volume{
 		{
 			Name: envoyVolumeAndConfigName,
@@ -62,8 +62,10 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					Labels: labelSelector,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: r.KafkaCluster.Spec.GetServiceAccount(),
-					ImagePullSecrets:   r.KafkaCluster.Spec.GetImagePullSecrets(),
+					ServiceAccountName: r.KafkaCluster.Spec.EnvoyConfig.GetServiceAccount(),
+					ImagePullSecrets:   r.KafkaCluster.Spec.EnvoyConfig.GetImagePullSecrets(),
+					Tolerations:        r.KafkaCluster.Spec.EnvoyConfig.GetTolerations(),
+					NodeSelector:       r.KafkaCluster.Spec.EnvoyConfig.GetNodeSelector(),
 					Containers: []corev1.Container{
 						{
 							Name:  "envoy",
@@ -71,6 +73,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 							Ports: append(exposedPorts, []corev1.ContainerPort{
 								{Name: "envoy-admin", ContainerPort: 9901, Protocol: corev1.ProtocolTCP}}...),
 							VolumeMounts: volumeMounts,
+							Resources:    *r.KafkaCluster.Spec.EnvoyConfig.GetResources(),
 						},
 					},
 					Volumes: volumes,
@@ -80,7 +83,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	}
 }
 
-func getExposedContainerPorts(extListeners []banzaicloudv1alpha1.ExternalListenerConfig, brokers []banzaicloudv1alpha1.BrokerConfig) []corev1.ContainerPort {
+func getExposedContainerPorts(extListeners []v1beta1.ExternalListenerConfig, brokers []v1beta1.Broker) []corev1.ContainerPort {
 	var exposedPorts []corev1.ContainerPort
 
 	for _, eListener := range extListeners {

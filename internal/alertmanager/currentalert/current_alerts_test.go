@@ -15,15 +15,20 @@
 package currentalert
 
 import (
+	"context"
 	stdlog "log"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,9 +41,9 @@ var cfg *rest.Config
 
 func TestMain(m *testing.M) {
 	t := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 	}
-	banzaicloudv1alpha1.AddToScheme(scheme.Scheme)
+	banzaicloudv1beta1.AddToScheme(scheme.Scheme)
 
 	var err error
 	if cfg, err = t.Start(); err != nil {
@@ -62,10 +67,20 @@ func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) (chan struct{}
 	return stop, wg
 }
 
+func ensureCreated(t *testing.T, object runtime.Object, mgr manager.Manager) func() {
+	err := mgr.GetClient().Create(context.TODO(), object)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	return func() {
+		mgr.GetClient().Delete(context.TODO(), object)
+	}
+}
+
 func TestGetCurrentAlerts(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{Scheme: scheme.Scheme})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	c = mgr.GetClient()
 
@@ -75,6 +90,42 @@ func TestGetCurrentAlerts(t *testing.T) {
 		close(stopMgr)
 		mgrStopped.Wait()
 	}()
+
+	kafkaCluster := &v1beta1.KafkaCluster{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "kafka",
+			Namespace: "kafka",
+		},
+		Spec: v1beta1.KafkaClusterSpec{
+			HeadlessServiceEnabled: true,
+			ListenersConfig: v1beta1.ListenersConfig{
+				InternalListeners: []v1beta1.InternalListenerConfig{
+					{
+						Type:                            "plaintext",
+						Name:                            "planitext",
+						UsedForInnerBrokerCommunication: true,
+						ContainerPort:                   29092,
+					},
+				},
+			},
+			ZKAddresses: []string{},
+			Brokers: []v1beta1.Broker{
+				{
+					Id: 1,
+				},
+			},
+			OneBrokerPerNode: true,
+		},
+		Status: v1beta1.KafkaClusterStatus{
+			State: "Running",
+			RollingUpgrade: v1beta1.RollingUpgradeStatus{
+				LastSuccess: "00000-00000",
+				ErrorCount:  0,
+			},
+		},
+	}
+
+	ensureCreated(t, kafkaCluster, mgr)
 
 	alerts1 := GetCurrentAlerts()
 	if alerts1 == nil {
@@ -89,11 +140,13 @@ func TestGetCurrentAlerts(t *testing.T) {
 		Labels: model.LabelSet{
 			"alertname": "PodAlert",
 			"test":      "test",
+			"kafka_cr":  "kafka",
+			"namespace": "kafka",
 		},
 	}
 
 	testAlert2 := AlertState{
-		FingerPrint: model.Fingerprint(1111),
+		FingerPrint: model.Fingerprint(2222),
 		Status:      model.AlertStatus("resolved"),
 		Labels: model.LabelSet{
 			"alertname": "PodAlert",
@@ -111,7 +164,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 		t.Error("Listing alerts failed a1")
 	}
 
-	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c)
+	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c, 0)
 	if err != nil {
 		t.Error("Hanlde alert failed a1 with error")
 	}
@@ -143,10 +196,10 @@ func TestGetCurrentAlerts(t *testing.T) {
 
 	list3 := alerts3.ListAlerts()
 	if list3 == nil || list3[testAlert2.FingerPrint] != nil {
-		t.Error("1111 alert wasn't deleted")
+		t.Error("2222 alert wasn't deleted")
 	}
 
-	_, err = alerts3.HandleAlert(model.Fingerprint(1111), c)
+	_, err = alerts3.HandleAlert(model.Fingerprint(2222), c, 0)
 	expected := "alert doesn't exist"
 	if err == nil || err.Error() != expected {
 		t.Errorf("alert with 2222 should be %s", err)

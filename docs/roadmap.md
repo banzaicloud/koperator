@@ -6,18 +6,18 @@ Released:
 - [x] - Process and React on custom Prometheus Alerts
 - [x] - User managed Cruise Control Configuration
 - [x] - Rack awareness deployment
+- [x] - User management via CRD
+- [x] - Topic management via CRD
+- [x] - Rolling Upgrade Kafka Cluster
+- [x] - Multi Datacenter Support
+- [x] - Dynamically configure Brokers via CRD
 
 Under development (next release)
 
-- [ ] - Multi Datacenter Support
+- [] - Introduce compatibility with PKI engines e.g.: Vault 
 
 Short term roadmap
 
-- [ ] - Rolling Upgrade Kafka Cluster
-- [ ] - User management via CRD
-
 Long term roadmap
 
-- [ ] - Dynamically configure Brokers via CRD
-- [ ] - Topic management via CRD
 - [ ] - Recovery Policy

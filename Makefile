@@ -11,8 +11,9 @@ RELEASE_MSG ?= "operator release"
 REL_TAG = $(shell ./scripts/increment_version.sh -${RELEASE_TYPE} ${TAG})
 
 GO111MODULE=on
-GOLANGCI_VERSION = 1.17.1
+GOLANGCI_VERSION = 1.18.0
 LICENSEI_VERSION = 0.1.0
+GOPROXY=https://proxy.golang.org
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -129,4 +130,3 @@ check_release:
 release: check_release
 	git tag -a ${REL_TAG} -m ${RELEASE_MSG}
 	git push origin ${REL_TAG}
-

@@ -23,7 +23,6 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -37,7 +36,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.BrokerConfigs[0].Image, r.KafkaCluster.Name))
+		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.CruiseControlConfig.GetInitContainerImage(), r.KafkaCluster.Name))
 	} else {
 		volumeMount = append(volumeMount, []corev1.VolumeMount{
 			{
@@ -59,8 +58,10 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 					Annotations: util.MonitoringAnnotations(metricsPort),
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName:            r.KafkaCluster.Spec.GetServiceAccount(),
-					ImagePullSecrets:              r.KafkaCluster.Spec.GetImagePullSecrets(),
+					ServiceAccountName:            r.KafkaCluster.Spec.CruiseControlConfig.GetServiceAccount(),
+					ImagePullSecrets:              r.KafkaCluster.Spec.CruiseControlConfig.GetImagePullSecrets(),
+					Tolerations:                   r.KafkaCluster.Spec.CruiseControlConfig.GetTolerations(),
+					NodeSelector:                  r.KafkaCluster.Spec.CruiseControlConfig.GetNodeSelector(),
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),
 					InitContainers: append(initContainers, []corev1.Container{
 						{
@@ -95,12 +96,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"cpu":    resource.MustParse("100m"),
-									"memory": resource.MustParse("512Mi"),
-								},
-							},
+							Resources: *r.KafkaCluster.Spec.CruiseControlConfig.GetResources(),
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									TCPSocket: &corev1.TCPSocketAction{
@@ -182,7 +178,7 @@ func generateInitContainerForSSL(secretName, image, clusterName string) corev1.C
 		keytool -keystore /var/run/secrets/java.io/keystores/client.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
 		cat /config/cruisecontrol.properties > /opt/cruise-control/config/cruisecontrol.properties && cat /config/capacity.json > /opt/cruise-control/config/capacity.json &&
 		cat /config/clusterConfigs.json > /opt/cruise-control/config/clusterConfigs.json && cat /config/log4j.properties > /opt/cruise-control/config/log4j.properties && cat /config/log4j2.xml > /opt/cruise-control/config/log4j2.xml &&
-		echo "ssl.keystore.password=${SSL_PASSWORD}" >> /opt/cruise-control/config/cruisecontrol.properties && echo "ssl.truststore.password=${SSL_PASSWORD}" >> /opt/cruise-control/config/cruisecontrol.properties
+		echo -e "\nssl.keystore.password=${SSL_PASSWORD}" >> /opt/cruise-control/config/cruisecontrol.properties && echo -e "\nssl.truststore.password=${SSL_PASSWORD}" >> /opt/cruise-control/config/cruisecontrol.properties
 		`,
 		},
 		VolumeMounts: []corev1.VolumeMount{

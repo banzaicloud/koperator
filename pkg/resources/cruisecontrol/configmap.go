@@ -18,13 +18,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -36,11 +36,11 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
     # The Kafka cluster to control.
     bootstrap.servers=%s:%d
     # The zookeeper connect of the Kafka cluster
-    zookeeper.connect=%s/
-`, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, strings.Join(r.KafkaCluster.Spec.ZKAddresses, ",")) +
+    zookeeper.connect=%s
+`, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, prepareZookeeperAddress(r.KafkaCluster.Spec.ZKAddresses)) +
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig),
 			"capacity.json":       r.KafkaCluster.Spec.CruiseControlConfig.CapacityConfig,
-			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfigs,
+			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,
 			"log4j.properties": `
 log4j.rootLogger = INFO, FILE
     log4j.appender.FILE=org.apache.log4j.FileAppender
@@ -68,7 +68,7 @@ log4j.rootLogger = INFO, FILE
 	return configMap
 }
 
-func generateSSLConfig(l *banzaicloudv1alpha1.ListenersConfig) (res string) {
+func generateSSLConfig(l *v1beta1.ListenersConfig) (res string) {
 	if l.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
 		res = `
 security.protocol=SSL
@@ -81,7 +81,19 @@ ssl.keystore.location=/var/run/secrets/java.io/keystores/client.keystore.jks
 
 func generateBootstrapServer(headlessEnabled bool, clusterName string) string {
 	if headlessEnabled {
-		return fmt.Sprintf(kafka.HeadlessServiceTemplate, clusterName)
+		return fmt.Sprintf(kafkautils.HeadlessServiceTemplate, clusterName)
 	}
-	return fmt.Sprintf(kafka.AllBrokerServiceTemplate, clusterName)
+	return fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, clusterName)
+}
+
+func prepareZookeeperAddress(zkAddresses []string) string {
+	preparedAddress := []string{}
+	for _, addr := range zkAddresses {
+		if strings.Contains(addr, "/") {
+			preparedAddress = append(preparedAddress, addr)
+		} else {
+			preparedAddress = append(preparedAddress, addr+"/")
+		}
+	}
+	return strings.Join(preparedAddress, ",")
 }

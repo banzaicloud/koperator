@@ -28,7 +28,8 @@ type CurrentAlerts interface {
 	AlertGC(AlertState) error
 	DeleteAlert(model.Fingerprint) error
 	ListAlerts() map[model.Fingerprint]*currentAlertStruct
-	HandleAlert(model.Fingerprint, client.Client) (*currentAlertStruct, error)
+	HandleAlert(model.Fingerprint, client.Client, int) (*currentAlertStruct, error)
+	GetRollingUpgradeAlertCount() int
 }
 
 // AlertState current alert state
@@ -70,12 +71,13 @@ func GetCurrentAlerts() CurrentAlerts {
 func (a *currentAlerts) AddAlert(alert AlertState) *currentAlertStruct {
 	a.lock.Lock()
 	defer a.lock.Unlock()
-	a.alerts[alert.FingerPrint] = &currentAlertStruct{
-		Status:      alert.Status,
-		Labels:      alert.Labels,
-		Annotations: alert.Annotations,
+	if _, ok := a.alerts[alert.FingerPrint]; !ok {
+		a.alerts[alert.FingerPrint] = &currentAlertStruct{
+			Status:      alert.Status,
+			Labels:      alert.Labels,
+			Annotations: alert.Annotations,
+		}
 	}
-
 	return a.alerts[alert.FingerPrint]
 }
 
@@ -100,19 +102,30 @@ func (a *currentAlerts) AlertGC(alert AlertState) error {
 	return nil
 }
 
-func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Client) (*currentAlertStruct, error) {
+func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Client, rollingUpgradeAlertCount int) (*currentAlertStruct, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	if _, ok := a.alerts[alertFp]; !ok {
 		return &currentAlertStruct{}, errors.New("alert doesn't exist")
 	}
 	if a.alerts[alertFp].Processed != true {
-		err := processAlert(a.alerts[alertFp], client)
+		err := examineAlert(a.alerts[alertFp], client, rollingUpgradeAlertCount)
 		if err != nil {
 			return nil, err
 		}
 		a.alerts[alertFp].Processed = true
 	}
-
 	return a.alerts[alertFp], nil
+}
+
+func (a *currentAlerts) GetRollingUpgradeAlertCount() int {
+	alertCount := 0
+	for _, alert := range a.alerts {
+		for key := range alert.Labels {
+			if key == "rollingupgrade" {
+				alertCount++
+			}
+		}
+	}
+	return alertCount
 }

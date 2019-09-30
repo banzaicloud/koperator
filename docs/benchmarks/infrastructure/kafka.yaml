@@ -1,4 +1,4 @@
-apiVersion: banzaicloud.banzaicloud.io/v1alpha1
+apiVersion: kafka.banzaicloud.io/v1beta1
 kind: KafkaCluster
 metadata:
   labels:

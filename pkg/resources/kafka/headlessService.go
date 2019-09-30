@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -37,8 +38,16 @@ func (r *Reconciler) headlessService() runtime.Object {
 		})
 	}
 
+	// prometheus metrics port for servicemonitor
+	usedPorts = append(usedPorts, corev1.ServicePort{
+		Name:       "metrics",
+		Port:       metricsPort,
+		TargetPort: intstr.FromInt(metricsPort),
+		Protocol:   corev1.ProtocolTCP,
+	})
+
 	return &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(HeadlessServiceTemplate, r.KafkaCluster.Name), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.Name), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
 			SessionAffinity: corev1.ServiceAffinityNone,

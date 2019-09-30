@@ -35,6 +35,8 @@ Apache Kafka is an open-source distributed streaming platform, and some of the m
 - monitoring via **Prometheus**
 - encrypted communication using SSL
 - automatic reaction and self healing based on alerts (plugin system, with meaningful default alert plugins) using **Cruise Control**
+- graceful rolling upgrade
+- advanced topic and user management via CRD
 
 ![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
 
@@ -60,10 +62,10 @@ Join us as we take a deep dive into some of the details of the most popular pre-
 | Fine grained broker volume support  | Yes (learn more) | Limited via StatefulSet|Limited via StatefulSet|Limited via StatefulSet|
 | Monitoring  | Yes | Yes|Yes|Yes|
 | Encryption using SSL  | Yes | Yes|Yes|Yes|
-| Rolling Update  | Work in progress | No |No|Yes|
+| Rolling Update  | Yes | No |No|Yes|
 | Cluster external accesses  | Envoy (single LB) | Nodeport |Nodeport or LB/broker|Yes (N/A)|
-| User Management via CRD  | Work in progress | No |Yes|No|
-| Topic management via CRD  | Work in progress | No |Yes|No|
+| User Management via CRD  | Yes | No |Yes|No|
+| Topic management via CRD  | Yes | No |Yes|No|
 | Reacting to Alerts| Yes (Prometheus + Cruise Control | No |No|No|
 | Graceful Cluster Scaling (up and down)| Yes (using Cruise Control) | No |No|Yes|
 
@@ -86,7 +88,36 @@ The operator installs the 2.1.0 version of Apache Kafka, and can run on Minikube
 
 As a pre-requisite it needs a Kubernetes cluster (you can create one using [Pipeline](https://github.com/banzaicloud/pipeline)). Also, Kafka requires Zookeeper so you need to first have a Zookeeper cluster if you don't already have one.
 
-> We believe in the `separation of concerns` principle, thus the Kafka operator does not install nor manage Zookeeper. If you would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
+The operator also uses `cert-manager` for issuing certificates to users and brokers, so you'll need to have it setup in case you haven't already.
+
+> We believe in the `separation of concerns` principle, thus the Kafka operator does not install nor manage Zookeeper or cert-manager. If you would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
+
+#### Install cert-manager
+
+```bash
+# pre-create cert-manager namespace and CRDs per their installation instructions
+kubectl create ns cert-manager
+kubectl label namespace cert-manager certmanager.k8s.io/disable-validation=true
+```
+
+Install cert-manager and CustomResourceDefinitions
+```bash
+# Install the CustomResourceDefinitions and cert-manager itself
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.10.0/cert-manager.yaml
+```
+
+Or install with helm
+```bash
+# Install only the CustomResourceDefinitions
+kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.10/deploy/manifests/00-crds.yaml
+
+# Add the jetstack helm repo
+helm repo add jetstack https://charts.jetstack.io
+# Install cert-manager into the cluster
+# --set webhook.enabled=false may not be required for you, but avoids issues with
+# certificates not being able to be issued due to the webhook not working.
+helm install --name cert-manager --namespace cert-manager --version v0.10.0 --set webhook.enabled=false jetstack/cert-manager
+```
 
 ##### Install Zookeeper
 
@@ -105,7 +136,41 @@ metadata:
 spec:
   replicas: 3
 EOF
+```
 
+##### Install Prometheus-operator
+
+Install the Operator and CustomResourceDefinitions to the `default` namespace
+```bash
+# Install Prometheus-operator and CustomResourceDefinitions
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/bundle.yaml
+```
+
+Or install with helm
+```bash
+# Install CustomResourceDefinitions
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/alertmanager.crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/prometheus.crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/prometheusrule.crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/servicemonitor.crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/podmonitor.crd.yaml
+
+# Install only the Prometheus-operator
+helm install --name test  stable/prometheus-operator \
+--set prometheusOperator.createCustomResource=false \
+--set defaultRules.enabled=false \
+--set alertmanager.enabled=false \
+--set grafana.enabled=false \
+--set kubeApiServer.enabled=false \
+--set kubelet.enabled=false \
+--set kubeControllerManager.enabled=false \
+--set coreDNS.enabled=false \
+--set kubeEtcd.enabled=false \
+--set kubeScheduler.enabled=false \
+--set kubeProxy.enabled=false \
+--set kubeStateMetrics.enabled=false \
+--set nodeExporter.enabled=false \
+--set prometheus.enabled=false
 ```
 
 ### Installation
@@ -124,14 +189,15 @@ volumeBindingMode: WaitForFirstConsumer
 ```
 > Remember to set your Kafka CR properly to use the newly created StorageClass.
 
-1. Set `KUBECONFIG` pointing towards your cluster 
+1. Set `KUBECONFIG` pointing towards your cluster
 2. Run `make deploy` (deploys the operator in the `kafka` namespace into the cluster)
-3. Set your Kafka configurations in a Kubernetes custom resource (sample: `config/samples/banzaicloud_v1alpha1_kafkacluster.yaml`) and run this command to deploy the Kafka components:
+3. Set your Kafka configurations in a Kubernetes custom resource (sample: `config/samples/simplekafkacluster.yaml`) and run this command to deploy the Kafka components:
 
 ```bash
 # Add your zookeeper svc name to the configuration
-kubectl create -n kafka -f config/samples/example-secret.yaml
-kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
+kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
+# If prometheus operator installed create the ServiceMonitors
+kubectl create -n kafka -f config/sample/kafkacluster-prometheus.yaml
 ```
 
 > In this case you have to install Prometheus with proper configuration if you want the Kafka-Operator to react to alerts. Again, if you need Prometheus and would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
@@ -145,15 +211,20 @@ Alternatively, if you are using Helm, you can deploy the operator using a Helm c
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml
 # Add your zookeeper svc name to the configuration
-kubectl create -n kafka -f config/samples/example-secret.yaml
-kubectl create -n kafka -f config/samples/banzaicloud_v1alpha1_kafkacluster.yaml
+kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
+# If prometheus operator installed create the ServiceMonitors
+kubectl create -n kafka -f config/sample/kafkacluster-prometheus.yaml
 ```
 
 > In this case Prometheus will be installed and configured properly for the Kafka-Operator.
 
-## Test Deployment
+## Test Your Deployment
 
 For simple test code please check out the [test docs](docs/test.md)
+
+For a more in-depth view at using SSL and the `KafkaUser` CRD see the [SSL docs](docs/ssl.md)
+
+For creating topics via with `KafkaTopic` CRD there is an example and more information in the [topics docs](docs/topics.md)
 
 ## Development
 

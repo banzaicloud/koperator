@@ -33,7 +33,7 @@ type AController struct {
 	Client client.Client
 }
 
-// Add creates a new Alertmanager Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// SetAlertManagerWithManager creates a new Alertmanager Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func SetAlertManagerWithManager(mgr manager.Manager) error {
 	return mgr.Add(AController{Client: mgr.GetClient()})

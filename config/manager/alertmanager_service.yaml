@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: alertmanager
+  namespace: kafka
+spec:
+  ports:
+  - name: alerts
+    port: 9001
+    targetPort: alerts
+  selector:
+    control-plane: controller-manager

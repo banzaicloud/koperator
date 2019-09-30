@@ -37,9 +37,10 @@ func Dispatcher(promAlerts []model.Alert, log logr.Logger, client client.Client)
 			log.Error(err, "alerts garbage collection failed")
 		}
 	}
+	rollingUpgradeAlertCount := storedAlerts.GetRollingUpgradeAlertCount()
 	for key, value := range storedAlerts.ListAlerts() {
-		log.Info("Stored Alert", "key", key, "status", value.Status, "labels", value.Labels, "annotations", value.Annotations)
-		_, err := storedAlerts.HandleAlert(key, client)
+		log.Info("Stored Alert", "key", key, "status", value.Status, "labels", value.Labels, "annotations", value.Annotations, "processed", value.Processed)
+		_, err := storedAlerts.HandleAlert(key, client, rollingUpgradeAlertCount)
 		if err != nil {
 			log.Error(err, "failed to handle alert", "fingerprint", key)
 		}

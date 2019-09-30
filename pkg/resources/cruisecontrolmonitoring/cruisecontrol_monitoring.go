@@ -15,8 +15,7 @@
 package cruisecontrolmonitoring
 
 import (
-	"emperror.dev/emperror"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/go-logr/logr"
@@ -35,7 +34,7 @@ type Reconciler struct {
 }
 
 // New creates a new reconciler for CC Monitoring
-func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
+func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
 			Client:       client,
@@ -51,15 +50,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciling")
 
 	if r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint == "" {
-
-		for _, res := range []resources.Resource{
-			r.configMap,
-		} {
-			o := res()
-			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-			if err != nil {
-				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
-			}
+		o := r.configMap()
+		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+		if err != nil {
+			return err
 		}
 	}
 

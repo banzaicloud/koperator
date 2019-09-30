@@ -17,8 +17,9 @@ package cruisecontrol
 import (
 	"fmt"
 
-	"emperror.dev/emperror"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"emperror.dev/errors"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/go-logr/logr"
@@ -49,7 +50,7 @@ type Reconciler struct {
 }
 
 // New creates a new reconciler for CC
-func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
+func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
 			Client:       client,
@@ -66,19 +67,19 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	if r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint == "" {
 
-		if r.KafkaCluster.Status.CruiseControlTopicStatus == "" || r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1alpha1.CruiseControlTopicNotReady {
+		if r.KafkaCluster.Status.CruiseControlTopicStatus == "" || r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1beta1.CruiseControlTopicNotReady {
 			err := generateCCTopic(r.KafkaCluster, r.Client, log)
 			if err != nil {
-				k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicNotReady, log)
+				k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, banzaicloudv1beta1.CruiseControlTopicNotReady, log)
 				return err
 			}
-			statusErr := k8sutil.UpdateCCTopicStatus(r.Client, r.KafkaCluster, banzaicloudv1alpha1.CruiseControlTopicReady, log)
+			statusErr := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, banzaicloudv1beta1.CruiseControlTopicReady, log)
 			if statusErr != nil {
-				return emperror.Wrap(statusErr, "could not update CC topic status")
+				return errors.WrapIf(statusErr, "could not update CC topic status")
 			}
 		}
 
-		if r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1alpha1.CruiseControlTopicReady {
+		if r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1beta1.CruiseControlTopicReady {
 			for _, res := range []resources.ResourceWithLogs{
 				r.service,
 				r.configMap,
@@ -87,7 +88,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				o := res(log)
 				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 				if err != nil {
-					return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+					return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 				}
 			}
 		}

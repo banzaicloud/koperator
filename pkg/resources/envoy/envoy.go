@@ -15,8 +15,7 @@
 package envoy
 
 import (
-	"emperror.dev/emperror"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/go-logr/logr"
@@ -24,9 +23,7 @@ import (
 )
 
 const (
-	componentName = "envoy"
-	// EnvoyServiceName name for loadbalancer service
-	EnvoyServiceName         = "envoy-loadbalancer"
+	componentName            = "envoy"
 	envoyVolumeAndConfigName = "envoy-config"
 	envoyDeploymentName      = "envoy"
 )
@@ -41,7 +38,7 @@ type Reconciler struct {
 }
 
 // New creates a new reconciler for Envoy
-func New(client client.Client, cluster *banzaicloudv1alpha1.KafkaCluster) *Reconciler {
+func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
 			Client:       client,
@@ -65,7 +62,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			o := res(log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
-				return emperror.WrapWith(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				return err
 			}
 		}
 	}

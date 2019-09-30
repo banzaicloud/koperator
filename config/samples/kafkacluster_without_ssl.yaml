@@ -1,4 +1,4 @@
-apiVersion: banzaicloud.banzaicloud.io/v1alpha1
+apiVersion: kafka.banzaicloud.io/v1beta1
 kind: KafkaCluster
 metadata:
   labels:
@@ -9,47 +9,42 @@ spec:
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
   oneBrokerPerNode: false
-  brokerConfigs:
-    - image: "wurstmeister/kafka:2.12-2.1.0"
-      id: 0
-      storageConfigs:
-        - mountPath: "/kafka-logs"
-          pvcSpec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 10Gi
-    - image: "wurstmeister/kafka:2.12-2.1.0"
-      id: 1
-      storageConfigs:
-        - mountPath: "/kafka-logs"
-          pvcSpec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 10Gi
-    - image: "wurstmeister/kafka:2.12-2.1.0"
-      id: 2
-      storageConfigs:
-        - mountPath: "/kafka-logs"
-          pvcSpec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 10Gi
-    - image: "wurstmeister/kafka:2.12-2.1.0"
-      id: 3
-      storageConfigs:
-        - mountPath: "/kafka-logs"
-          pvcSpec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 10Gi
+  clusterImage: "wurstmeister/kafka:2.12-2.1.0"
+  readOnlyConfig: |
+    auto.create.topics.enable=false
+  brokers:
+    - id: 0
+      brokerConfig:
+        storageConfigs:
+          - mountPath: "/kafka-logs"
+            pvcSpec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 10Gi
+    - id: 1
+      brokerConfig:
+        storageConfigs:
+          - mountPath: "/kafka-logs"
+            pvcSpec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 10Gi
+    - id: 2
+      brokerConfig:
+        storageConfigs:
+          - mountPath: "/kafka-logs"
+            pvcSpec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 10Gi
+  rollingUpgradeConfig:
+    failureThreshold: 1
   listenersConfig:
     externalListeners:
       - type: "plaintext"
@@ -262,8 +257,7 @@ spec:
           }
         ]
       }
-    clusterConfigs: |
+    clusterConfig: |
       {
         "min.insync.replicas": 3
       }
-  serviceAccount: ""
