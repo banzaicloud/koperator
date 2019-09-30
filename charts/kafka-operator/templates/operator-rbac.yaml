@@ -36,6 +36,14 @@ rules:
   verbs:
   - create
 - apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - apps
   resources:
   - deployments
@@ -81,6 +89,7 @@ rules:
   - update
   - patch
   - delete
+  - deletecollection
 - apiGroups:
   - kafka.banzaicloud.io
   resources:

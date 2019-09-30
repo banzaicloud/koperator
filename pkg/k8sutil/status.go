@@ -32,7 +32,7 @@ import (
 
 // IsAlreadyOwnedError checks if a controller already own the instance
 func IsAlreadyOwnedError(err error) bool {
-	return errors.As(err, controllerutil.AlreadyOwnedError{})
+	return errors.Is(err, &controllerutil.AlreadyOwnedError{})
 }
 
 // IsMarkedForDeletion determines if the object is marked for deletion

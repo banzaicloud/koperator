@@ -22,6 +22,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -38,15 +39,18 @@ zookeeper.connect={{ .ZookeeperConnectString }}
 
 {{ if .KafkaCluster.Spec.ListenersConfig.SSLSecrets }}
 
-ssl.keystore.location=/var/run/secrets/java.io/keystores/kafka.server.keystore.jks
-ssl.truststore.location=/var/run/secrets/java.io/keystores/kafka.server.truststore.jks
+ssl.keystore.location={{ .ServerKeystorePath }}/{{ .KeystoreFile }}
+ssl.truststore.location={{ .ServerKeystorePath }}/{{ .KeystoreFile }}
+ssl.keystore.password={{ .ServerKeystorePassword }}
+ssl.truststore.password={{ .ServerKeystorePassword }}
 ssl.client.auth=required
 
 {{ if .SSLEnabledForInternalCommunication }}
 
 cruise.control.metrics.reporter.security.protocol=SSL
-cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io/keystores/client.truststore.jks
-cruise.control.metrics.reporter.ssl.keystore.location=/var/run/secrets/java.io/keystores/client.keystore.jks
+cruise.control.metrics.reporter.ssl.truststore.location={{ .ClientKeystorePath }}/{{ .KeystoreFile }}
+cruise.control.metrics.reporter.ssl.keystore.location={{ .ClientKeystorePath }}/{{ .KeystoreFile }}
+cruise.control.metrics.reporter.ssl.keystore.password={{ .ClientKeystorePassword }}
 
 {{ end }}
 {{ end }}
@@ -64,7 +68,7 @@ log.dirs={{ .StorageConfig }}
 super.users={{ .SuperUsers }}
 `
 
-func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, loadBalancerIP string, superUsers []string, log logr.Logger) string {
+func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, loadBalancerIP, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
 	var out bytes.Buffer
 	t := template.Must(template.New("bConfig-config").Parse(kafkaConfigTemplate))
 	if err := t.Execute(&out, map[string]interface{}{
@@ -77,6 +81,11 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 		"StorageConfig":                      generateStorageConfig(bConfig.StorageConfigs),
 		"AdvertisedListenersConfig":          generateAdvertisedListenerConfig(id, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIP, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
 		"SuperUsers":                         strings.Join(generateSuperUsers(superUsers), ";"),
+		"ServerKeystorePath":                 serverKeystorePath,
+		"ClientKeystorePath":                 clientKeystorePath,
+		"KeystoreFile":                       v1alpha1.TLSJKSKey,
+		"ServerKeystorePassword":             serverPass,
+		"ClientKeystorePassword":             clientPass,
 	}); err != nil {
 		log.Error(err, "error occurred during parsing the config template")
 	}
@@ -91,10 +100,10 @@ func generateSuperUsers(users []string) (suStrings []string) {
 	return
 }
 
-func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIP string, superUsers []string, log logr.Logger) runtime.Object {
+func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIP, serverPass, clientPass string, superUsers []string, log logr.Logger) runtime.Object {
 	return &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id), util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}), r.KafkaCluster),
-		Data:       map[string]string{"broker-config": r.generateBrokerConfig(id, brokerConfig, superUsers, loadBalancerIP, log)},
+		Data:       map[string]string{"broker-config": r.generateBrokerConfig(id, brokerConfig, loadBalancerIP, serverPass, clientPass, superUsers, log)},
 	}
 }
 
@@ -173,7 +182,7 @@ func getInternalListeners(iListeners []v1beta1.InternalListenerConfig, id int32,
 	return listenerConfig
 }
 
-func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, superUsers []string, loadBalancerIP string, log logr.Logger) string {
+func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIP, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
 	parsedReadOnlyClusterConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ReadOnlyConfig)
 
 	parsedReadOnlyBrokerConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.Brokers[id].ReadOnlyConfig)
@@ -185,7 +194,7 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 	//Generate the Complete Configuration for the Broker
 	completeConfigMap := map[string]string{}
 
-	if err := mergo.Merge(&completeConfigMap, util.ParsePropertiesFormat(r.getConfigString(brokerConfig, id, loadBalancerIP, superUsers, log))); err != nil {
+	if err := mergo.Merge(&completeConfigMap, util.ParsePropertiesFormat(r.getConfigString(brokerConfig, id, loadBalancerIP, serverPass, clientPass, superUsers, log))); err != nil {
 		log.Error(err, "error occurred during merging operator generated configs")
 	}
 

@@ -17,9 +17,11 @@ package cruisecontrol
 import (
 	"fmt"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrolmonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,24 +29,22 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
+func (r *Reconciler) deployment(log logr.Logger, clientPass string) runtime.Object {
 
 	volume := []corev1.Volume{}
 	volumeMount := []corev1.VolumeMount{}
 	initContainers := []corev1.Container{}
 
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
-		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
+		volume = append(volume, generateVolumesForSSL(r.KafkaCluster)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.CruiseControlConfig.GetInitContainerImage(), r.KafkaCluster.Name))
-	} else {
-		volumeMount = append(volumeMount, []corev1.VolumeMount{
-			{
-				Name:      fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
-				MountPath: "/opt/cruise-control/config",
-			},
-		}...)
 	}
+	volumeMount = append(volumeMount, []corev1.VolumeMount{
+		{
+			Name:      fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
+			MountPath: "/opt/cruise-control/config",
+		},
+	}...)
 
 	return &appsv1.Deployment{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(deploymentNameTemplate, r.KafkaCluster.Name), labelSelector, r.KafkaCluster),
@@ -153,77 +153,15 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	}
 }
 
-func generateInitContainerForSSL(secretName, image, clusterName string) corev1.Container {
-	// Keystore generator
-	initPemToKeyStore := corev1.Container{
-		Name:  "pem-to-jks",
-		Image: image,
-		Env: []corev1.EnvVar{
-			{
-				Name: "SSL_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
-						},
-						Key: "password",
-					},
-				},
-			},
-		},
-		Command: []string{"bash", "-c", `
-		apk update && apk add openssl && openssl pkcs12 -export -in /var/run/secrets/pemfiles/clientCert -inkey /var/run/secrets/pemfiles/clientKey -out client.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:${SSL_PASSWORD} &&
-		keytool -importkeystore -deststorepass ${SSL_PASSWORD} -destkeypass ${SSL_PASSWORD} -destkeystore /var/run/secrets/java.io/keystores/client.keystore.jks -srckeystore client.p12 -srcstoretype PKCS12 -srcstorepass ${SSL_PASSWORD} -alias localhost &&
-		keytool -keystore /var/run/secrets/java.io/keystores/client.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-		keytool -keystore /var/run/secrets/java.io/keystores/client.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-		cat /config/cruisecontrol.properties > /opt/cruise-control/config/cruisecontrol.properties && cat /config/capacity.json > /opt/cruise-control/config/capacity.json &&
-		cat /config/clusterConfigs.json > /opt/cruise-control/config/clusterConfigs.json && cat /config/log4j.properties > /opt/cruise-control/config/log4j.properties && cat /config/log4j2.xml > /opt/cruise-control/config/log4j2.xml &&
-		echo -e "\nssl.keystore.password=${SSL_PASSWORD}" >> /opt/cruise-control/config/cruisecontrol.properties && echo -e "\nssl.truststore.password=${SSL_PASSWORD}" >> /opt/cruise-control/config/cruisecontrol.properties
-		`,
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      keystoreVolume,
-				MountPath: keystoreVolumePath,
-			},
-			{
-				Name:      pemFilesVolume,
-				MountPath: "/var/run/secrets/pemfiles",
-			},
-			{
-				Name:      fmt.Sprintf(configAndVolumeNameTemplate, clusterName),
-				MountPath: "/config",
-			},
-			{
-				Name:      modconfigAndVolumeName,
-				MountPath: "/opt/cruise-control/config",
-			},
-		},
-	}
-	return initPemToKeyStore
-}
-
-func generateVolumesForSSL(tlsSecretName string) []corev1.Volume {
+func generateVolumesForSSL(cluster *v1beta1.KafkaCluster) []corev1.Volume {
 	return []corev1.Volume{
 		{
 			Name: keystoreVolume,
 			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
-		},
-		{
-			Name: pemFilesVolume,
-			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName:  tlsSecretName,
+					SecretName:  fmt.Sprintf(pkicommon.BrokerControllerTemplate, cluster.Name),
 					DefaultMode: util.Int32Pointer(0644),
 				},
-			},
-		},
-		{
-			Name: modconfigAndVolumeName,
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
 	}
@@ -234,10 +172,6 @@ func generateVolumeMountForSSL() []corev1.VolumeMount {
 		{
 			Name:      keystoreVolume,
 			MountPath: keystoreVolumePath,
-		},
-		{
-			Name:      modconfigAndVolumeName,
-			MountPath: "/opt/cruise-control/config",
 		},
 	}
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,18 +55,14 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 	volume := []corev1.Volume{}
 	volumeMount := []corev1.VolumeMount{}
 	initContainers := []corev1.Container{}
-	command := []string{"bash", "-c"}
+	command := []string{"bash", "-c", "/opt/kafka/bin/kafka-server-start.sh /config/broker-config"}
 
 	volume = append(volume, dataVolume...)
 	volumeMount = append(volumeMount, dataVolumeMount...)
 
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
-		volume = append(volume, generateVolumesForSSL(r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName)...)
+		volume = append(volume, generateVolumesForSSL(r.KafkaCluster)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-		initContainers = append(initContainers, generateInitContainerForSSL(util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.ClusterImage), r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.JKSPasswordName, r.KafkaCluster.Spec.ListenersConfig.InternalListeners))
-		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /mod-config/broker-config")
-	} else {
-		command = append(command, "/opt/kafka/bin/kafka-server-start.sh /config/broker-config")
 	}
 
 	pod := &corev1.Pod{
@@ -257,84 +254,24 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volu
 	return
 }
 
-func generateInitContainerForSSL(image, secretName string, l []v1beta1.InternalListenerConfig) corev1.Container {
-
-	genScript := `apk update && apk add openssl && openssl pkcs12 -export -in /var/run/secrets/pemfiles/peerCert -inkey /var/run/secrets/pemfiles/peerKey -out server.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:${SSL_PASSWORD} &&
-keytool -importkeystore -deststorepass ${SSL_PASSWORD} -destkeypass ${SSL_PASSWORD} -destkeystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -srckeystore server.p12 -srcstoretype PKCS12 -srcstorepass ${SSL_PASSWORD} -alias localhost &&
-keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-keytool -keystore /var/run/secrets/java.io/keystores/kafka.server.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-openssl pkcs12 -export -in /var/run/secrets/pemfiles/clientCert -inkey /var/run/secrets/pemfiles/clientKey -out client.p12 -name localhost -CAfile /var/run/secrets/pemfiles/caCert -caname root -chain -password pass:${SSL_PASSWORD} &&
-keytool -importkeystore -deststorepass ${SSL_PASSWORD} -destkeypass ${SSL_PASSWORD} -destkeystore /var/run/secrets/java.io/keystores/client.keystore.jks -srckeystore client.p12 -srcstoretype PKCS12 -srcstorepass ${SSL_PASSWORD} -alias localhost &&
-keytool -keystore /var/run/secrets/java.io/keystores/client.truststore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-keytool -keystore /var/run/secrets/java.io/keystores/client.keystore.jks -alias CARoot -import -file /var/run/secrets/pemfiles/caCert --deststorepass ${SSL_PASSWORD} -noprompt &&
-cat /config/broker-config > /mod-config/broker-config && echo -e "\nssl.keystore.password=${SSL_PASSWORD}" >> /mod-config/broker-config && echo -e "\nssl.truststore.password=${SSL_PASSWORD}" >> /mod-config/broker-config`
-
-	if util.IsSSLEnabledForInternalCommunication(l) {
-		genScript = genScript + ` && 
-echo "cruise.control.metrics.reporter.ssl.keystore.password=${SSL_PASSWORD}" >> /mod-config/broker-config && echo "cruise.control.metrics.reporter.truststore.password=${SSL_PASSWORD}" >> /mod-config/broker-config
-`
-	}
-	// Keystore generator
-	initPemToKeyStore := corev1.Container{
-		Name:  "pem-to-jks",
-		Image: image,
-		Env: []corev1.EnvVar{
-			{
-				Name: "SSL_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
-						},
-						Key: "password",
-					},
-				},
-			},
-		},
-		Command: []string{"bash", "-c", genScript},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      keystoreVolume,
-				MountPath: keystoreVolumePath,
-			},
-			{
-				Name:      pemFilesVolume,
-				MountPath: "/var/run/secrets/pemfiles",
-			},
-			{
-				Name:      brokerConfigMapVolumeMount,
-				MountPath: "/config",
-			},
-			{
-				Name:      modbrokerConfigMapVolumeMount,
-				MountPath: "/mod-config",
-			},
-		},
-	}
-	return initPemToKeyStore
-}
-
-func generateVolumesForSSL(tlsSecretName string) []corev1.Volume {
+func generateVolumesForSSL(cluster *v1beta1.KafkaCluster) []corev1.Volume {
 	return []corev1.Volume{
 		{
-			Name: keystoreVolume,
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
-		},
-		{
-			Name: pemFilesVolume,
+			Name: serverKeystoreVolume,
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName:  tlsSecretName,
+					SecretName:  fmt.Sprintf(pkicommon.BrokerServerCertTemplate, cluster.Name),
 					DefaultMode: util.Int32Pointer(0644),
 				},
 			},
 		},
 		{
-			Name: modbrokerConfigMapVolumeMount,
+			Name: clientKeystoreVolume,
 			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
+				Secret: &corev1.SecretVolumeSource{
+					SecretName:  fmt.Sprintf(pkicommon.BrokerControllerTemplate, cluster.Name),
+					DefaultMode: util.Int32Pointer(0644),
+				},
 			},
 		},
 	}
@@ -343,12 +280,12 @@ func generateVolumesForSSL(tlsSecretName string) []corev1.Volume {
 func generateVolumeMountForSSL() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
-			Name:      keystoreVolume,
-			MountPath: keystoreVolumePath,
+			Name:      serverKeystoreVolume,
+			MountPath: serverKeystorePath,
 		},
 		{
-			Name:      modbrokerConfigMapVolumeMount,
-			MountPath: "/mod-config",
+			Name:      clientKeystoreVolume,
+			MountPath: clientKeystorePath,
 		},
 	}
 }

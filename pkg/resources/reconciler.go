@@ -40,6 +40,9 @@ type Resource func() runtime.Object
 // ResourceWithLogs function with log parameter
 type ResourceWithLogs func(log logr.Logger) runtime.Object
 
+// ResourceWithLogsAndClientPassowrd function with log and password parameter
+type ResourceWithLogsAndClientPassowrd func(log logr.Logger, clientPass string) runtime.Object
+
 // ResourceWithBrokerConfigAndVolume function with brokerConfig, persistenVolumeClaims and log parameters
 type ResourceWithBrokerConfigAndVolume func(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object
 

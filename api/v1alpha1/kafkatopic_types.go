@@ -31,12 +31,14 @@ type KafkaTopicSpec struct {
 // KafkaTopicStatus defines the observed state of KafkaTopic
 // +k8s:openapi-gen=true
 type KafkaTopicStatus struct {
-	PartitionCount  int32             `json:"partitionCount"`
-	Leaders         map[string]string `json:"leaders"`
-	ReplicaCounts   map[string]string `json:"replicaCounts"`
-	InSyncReplicas  map[string]string `json:"inSyncReplicas"`
-	OfflineReplicas map[string]string `json:"offlineReplicas"`
+	PartitionCount  int32                   `json:"partitionCount"`
+	Leaders         map[string]string       `json:"leaders"`
+	ReplicaCounts   map[string]int          `json:"replicaCounts"`
+	InSyncReplicas  map[string]SyncReplicas `json:"inSyncReplicas"`
+	OfflineReplicas map[string]SyncReplicas `json:"offlineReplicas"`
 }
+
+type SyncReplicas []string
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

@@ -1,0 +1,130 @@
+---
+# A KafkaTopic called 'test-topic' with a single partition and
+# a replication factor of 2.
+apiVersion: kafka.banzaicloud.io/v1alpha1
+kind: KafkaTopic
+metadata:
+  name: test-topic
+spec:
+  clusterRef:
+    name: kafka
+    namespace: kafka
+  name: test-topic
+  partitions: 1
+  replicationFactor: 2
+---
+# A KafkaUser with permission to read from 'test-topic'
+apiVersion: kafka.banzaicloud.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: test-kafka-consumer
+spec:
+  clusterRef:
+    name: kafka
+    namespace: kafka
+  secretName: test-kafka-consumer
+  topicGrants:
+    - topicName: test-topic
+      accessType: read
+---
+# A KafkaUser with permission to write to 'test-topic'
+apiVersion: kafka.banzaicloud.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: test-kafka-producer
+spec:
+  clusterRef:
+    name: kafka
+    namespace: kafka
+  secretName: test-kafka-producer
+  topicGrants:
+    - topicName: test-topic
+      accessType: write
+---
+# A pod containing a producer and consumer using the above credentials
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kafka-test-pod
+spec:
+
+  volumes:
+
+    # The consumer secret
+    - name: consumer-credentials
+      secret:
+        defaultMode: 420
+        secretName: test-kafka-consumer
+
+    # The producer secret
+    - name: producer-credentials
+      secret:
+        defaultMode: 420
+        secretName: test-kafka-producer
+
+  containers:
+
+    # Container reading from topic with the consumer credentials
+    - name: consumer
+      image: tinyzimmer/kafka-test:latest
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: KAFKA_MODE
+          value: consumer
+      volumeMounts:
+        - mountPath: /etc/secrets/certs
+          name: consumer-credentials
+          readOnly: true
+
+    # Container writing to topic with the producer credentials
+    - name: producer
+      image: tinyzimmer/kafka-test:latest
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: KAFKA_MODE
+          value: producer
+      volumeMounts:
+        - mountPath: /etc/secrets/certs
+          name: producer-credentials
+          readOnly: true
+
+# ---
+# # A pod containing a producer and consumer using the above credentials
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: kafka-test-pod
+#   annotations:
+#     vault.security.banzaicloud.io/vault-addr: "https://vault:8200"
+#     vault.security.banzaicloud.io/vault-tls-secret: "vault-tls"
+# spec:
+#
+#   containers:
+#
+#     # Container reading from topic with the consumer credentials
+#     - name: consumer
+#       image: tinyzimmer/kafka-test:latest
+#       imagePullPolicy: IfNotPresent
+#       env:
+#         - name: KAFKA_MODE
+#           value: consumer
+#         - name: KAFKA_TLS_CERT
+#           value: "vault:secret/data/test-kafka-consumer#tls.crt"
+#         - name: KAFKA_TLS_KEY
+#           value: "vault:secret/data/test-kafka-consumer#tls.key"
+#         - name: KAFKA_TLS_CA
+#           value: "vault:secret/data/test-kafka-consumer#ca.crt"
+#
+#     # Container writing to topic with the producer credentials
+#     - name: producer
+#       image: tinyzimmer/kafka-test:latest
+#       imagePullPolicy: IfNotPresent
+#       env:
+#         - name: KAFKA_MODE
+#           value: producer
+#         - name: KAFKA_TLS_CERT
+#           value: "vault:secret/data/test-kafka-producer#tls.crt"
+#         - name: KAFKA_TLS_KEY
+#           value: "vault:secret/data/test-kafka-producer#tls.key"
+#         - name: KAFKA_TLS_CA
+#           value: "vault:secret/data/test-kafka-producer#ca.crt"

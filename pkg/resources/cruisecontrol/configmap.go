@@ -28,7 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
+func (r *Reconciler) configMap(log logr.Logger, clientPass string) runtime.Object {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name), labelSelector, r.KafkaCluster),
 		Data: map[string]string{
@@ -38,7 +38,7 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
     # The zookeeper connect of the Kafka cluster
     zookeeper.connect=%s
 `, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, prepareZookeeperAddress(r.KafkaCluster.Spec.ZKAddresses)) +
-				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig),
+				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass),
 			"capacity.json":       r.KafkaCluster.Spec.CruiseControlConfig.CapacityConfig,
 			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,
 			"log4j.properties": `
@@ -68,13 +68,15 @@ log4j.rootLogger = INFO, FILE
 	return configMap
 }
 
-func generateSSLConfig(l *v1beta1.ListenersConfig) (res string) {
+func generateSSLConfig(l *v1beta1.ListenersConfig, clientPass string) (res string) {
 	if l.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
-		res = `
+		res = fmt.Sprintf(`
 security.protocol=SSL
-ssl.truststore.location=/var/run/secrets/java.io/keystores/client.truststore.jks
-ssl.keystore.location=/var/run/secrets/java.io/keystores/client.keystore.jks
-`
+ssl.truststore.location=/var/run/secrets/java.io/keystores/tls.jks
+ssl.keystore.location=/var/run/secrets/java.io/keystores/tls.jks
+ssl.keystore.password=%s
+ssl.truststore.password=%s
+`, clientPass, clientPass)
 	}
 	return
 }

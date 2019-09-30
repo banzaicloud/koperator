@@ -21,8 +21,7 @@ type ResourceNotReady struct{ error }
 
 // APIFailure states that something went wrong with the api
 type APIFailure struct{ error }
-
-// StatusUpdateError states that the operator failed to update the Status
+type VaultAPIFailure struct{ error }
 type StatusUpdateError struct{ error }
 
 // BrokersUnreachable states that the given broker is unreachable
@@ -63,6 +62,8 @@ func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 		return ResourceNotReady{wrapped}
 	case APIFailure:
 		return APIFailure{wrapped}
+	case VaultAPIFailure:
+		return VaultAPIFailure{wrapped}
 	case StatusUpdateError:
 		return StatusUpdateError{wrapped}
 	case BrokersUnreachable:
@@ -86,5 +87,5 @@ func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 	case ReconcileRollingUpgrade:
 		return ReconcileRollingUpgrade{wrapped}
 	}
-	return nil
+	panic("Invalid error type")
 }

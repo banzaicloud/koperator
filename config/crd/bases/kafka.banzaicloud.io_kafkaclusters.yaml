@@ -1160,6 +1160,13 @@ spec:
                       type: boolean
                     jksPasswordName:
                       type: string
+                    pkiBackend:
+                      description: PKIBackend represents an interface implementing
+                        the PKIManager
+                      enum:
+                      - cert-manager
+                      - vault
+                      type: string
                     tlsSecretName:
                       type: string
                   required:

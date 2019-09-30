@@ -29,6 +29,9 @@ const (
 	KafkaAccessTypeRead KafkaAccessType = "read"
 	// KafkaAccessTypeWrite states that a user wants produce access to a topic
 	KafkaAccessTypeWrite KafkaAccessType = "write"
+
+	// TLSJKSKey is where a JKS is stored in a user secret when requested
+	TLSJKSKey string = "tls.jks"
 	// CoreCACertKey is where ca ceritificates are stored in user certificates
 	CoreCACertKey string = "ca.crt"
 	// CACertKey is the key where the CA certificate is stored in the operator secrets

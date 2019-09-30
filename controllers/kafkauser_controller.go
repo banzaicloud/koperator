@@ -17,22 +17,20 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/certutil"
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
+	"github.com/banzaicloud/kafka-operator/pkg/pki"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -48,7 +46,7 @@ var userFinalizer = "finalizer.kafkausers.kafka.banzaicloud.io"
 
 // SetupKafkaUserWithManager registers KafkaUser controller to the manager
 func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
-	// Create a new controller
+	// Create a new reconciler
 	r := &KafkaUserReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -62,15 +60,23 @@ func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Watch for changes to primary resource KafkaUser
-	err = c.Watch(&source.Kind{Type: &banzaicloudv1alpha1.KafkaUser{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &v1alpha1.KafkaUser{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// Watch for changes to secondary certificates and requeue the owner KafkaUser
+	// TODO (tinyzimmer): With supporting a second backend, we can reasonably allow the user to not
+	// have cert-manager installed in the cluster - therefore we don't need to watch.
+	//
+	// Maybe only set this watch up if a cluster is built using cert-manager backend
+	// via a once.Do or something.
+	//
+	// NOTE: To fully remove the cert-manager hard-dependency, we'd need to generate
+	// our own webhook certs either internally or from vault.
 	err = c.Watch(&source.Kind{Type: &certv1.Certificate{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &banzaicloudv1alpha1.KafkaUser{},
+		OwnerType:    &v1alpha1.KafkaUser{},
 	})
 	if err != nil {
 		return err
@@ -91,7 +97,7 @@ type KafkaUserReconciler struct {
 	Log    logr.Logger
 }
 
-// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkausers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkausers,verbs=get;list;watch;create;update;patch;delete;deletecollection
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkausers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=certmanager.k8s.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=certmanager.k8s.io,resources=issuers,verbs=get;list;watch;create;update;patch;delete
@@ -99,20 +105,15 @@ type KafkaUserReconciler struct {
 
 // Reconcile reads that state of the cluster for a KafkaUser object and makes changes based on the state read
 // and what is in the KafkaUser.Spec
-// Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := r.Log.WithValues("kafkauser", request.NamespacedName, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KafkaUser")
 	var err error
 	// Fetch the KafkaUser instance
-	instance := &banzaicloudv1alpha1.KafkaUser{}
+	instance := &v1alpha1.KafkaUser{}
 	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
 			return reconciled()
 		}
 		// Error reading the object - requeue the request.
@@ -120,11 +121,8 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	}
 
 	// Get the referenced kafkacluster
-	clusterNamespace := instance.Spec.ClusterRef.Namespace
-	if clusterNamespace == "" {
-		clusterNamespace = instance.Namespace
-	}
-	var cluster *banzaicloudv1beta1.KafkaCluster
+	clusterNamespace := getClusterRefNamespace(instance.Namespace, instance.Spec.ClusterRef)
+	var cluster *v1beta1.KafkaCluster
 	if cluster, err = k8sutil.LookupKafkaCluster(r.Client, instance.Spec.ClusterRef.Name, clusterNamespace); err != nil {
 		// This shouldn't trigger anymore, but leaving it here as a safetybelt
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
@@ -137,270 +135,161 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		return requeueWithError(reqLogger, "failed to lookup referenced cluster", err)
 	}
 
-	// Get a kafka connection
-	reqLogger.Info("Retrieving kafka admin client")
-	broker, err := kafkaclient.NewFromCluster(r.Client, cluster)
+	pkiManager := pki.GetPKIManager(r.Client, cluster)
+
+	// Reconcile no matter what to get a user certificate instance for ACL management
+	// TODO (tinyzimmer): This can go wrong if the user made a mistake in their secret path
+	// using the vault backend, then tried to delete and fix it. Should probably
+	// have the PKIManager export a GetUserCertificate specifically for deletions
+	// that will allow the error to fall through if the certificate doesn't exist.
+	user, err := pkiManager.ReconcileUserCertificate(instance, r.Scheme)
 	if err != nil {
 		switch err.(type) {
-		case errorfactory.BrokersUnreachable:
-			return ctrl.Result{
-				Requeue:      true,
-				RequeueAfter: time.Duration(15) * time.Second,
-			}, nil
-		case errorfactory.BrokersNotReady:
-			return ctrl.Result{
-				Requeue:      true,
-				RequeueAfter: time.Duration(15) * time.Second,
-			}, nil
 		case errorfactory.ResourceNotReady:
-			reqLogger.Info("Controller secret not found, may not be ready")
+			reqLogger.Info("generated secret not found, may not be ready")
 			return ctrl.Result{
 				Requeue:      true,
 				RequeueAfter: time.Duration(5) * time.Second,
 			}, nil
 		default:
-			return requeueWithError(reqLogger, err.Error(), err)
+			return requeueWithError(reqLogger, "failed to reconcile user secret", err)
 		}
 	}
-	defer func() {
-		if err := broker.Close(); err != nil {
-			reqLogger.Error(err, "could not close client")
-		}
-	}()
 
 	// check if marked for deletion
 	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
-		return r.checkFinalizers(reqLogger, broker, instance)
+		reqLogger.Info("Kafka user is marked for deletion, revoking certificates")
+		if err = pkiManager.FinalizeUserCertificate(instance); err != nil {
+			return requeueWithError(reqLogger, "failed to finalize user certificate", err)
+		}
+		return r.checkFinalizers(reqLogger, cluster, instance, user)
 	}
 
-	// See if we have an existing certificate for this user already
-	var cert *certv1.Certificate
-	cert, err = r.getUserCertificate(instance)
-	if err != nil && apierrors.IsNotFound(err) {
-		// the certificate does not exist, let's make one
-		cert = r.clusterCertificateForUser(cluster, broker, instance)
-		reqLogger.Info("Creating new certificate for user")
-		if err = r.Client.Create(context.TODO(), cert); err != nil {
-			return requeueWithError(reqLogger, "failed to create certificate for user", err)
-		}
-		if err := controllerutil.SetControllerReference(instance, cert, r.Scheme); err != nil {
-			return requeueWithError(reqLogger, "could not set controller reference to cert", err)
-		}
-		if err := controllerutil.SetControllerReference(cluster, instance, r.Scheme); err != nil {
-			return requeueWithError(reqLogger, "could not set controller reference to instance", err)
-		}
-
-	} else if err != nil {
-		// API failure, requeue
-		return requeueWithError(reqLogger, "failed to get user certificate", err)
-
-	} else {
-		// certificate exists
-		reqLogger.Info("User certificate already exists, verifying finalizers and grants")
+	// ensure a controller reference on the user
+	if instance, err = r.ensureControllerReference(cluster, instance); err != nil {
+		return requeueWithError(reqLogger, "failed to ensure controller reference on user", err)
 	}
 
-	// do topic grants
-
-	// get the user's distinguished name for kafka acls
-	userName, secret, err := r.getUserX509NameAndCredentials(reqLogger, instance)
-	if err != nil {
-		switch err.(type) {
-		case errorfactory.ResourceNotReady:
-			reqLogger.Info("Controller secret not found, may not be ready")
-			return ctrl.Result{
-				Requeue:      true,
-				RequeueAfter: time.Duration(5) * time.Second,
-			}, nil
-		default:
-			return requeueWithError(reqLogger, "failed to get user secret", err)
-		}
+	// ensure a kafkaCluster label
+	if instance, err = r.ensureClusterLabel(cluster, instance); err != nil {
+		return requeueWithError(reqLogger, "failed to ensure kafkacluster label on user", err)
 	}
 
-	if instance.Spec.IncludeJKS {
-		reqLogger.Info("Injecting JKS format into user secret")
-		if secret, err = certutil.InjectJKS(reqLogger, secret); err != nil {
-			return requeueWithError(reqLogger, "failed to add JKS to user secret", err)
+	// If topic grants supplied, grab a broker connection and set ACLs
+	if len(instance.Spec.TopicGrants) > 0 {
+		broker, close, err := newBrokerConnection(reqLogger, r.Client, cluster)
+		if err != nil {
+			return checkBrokerConnectionError(reqLogger, err)
 		}
-	}
+		defer close()
 
-	// ensure ACLs - CreateUserACLs returns no error if the ACLs already exist
-	// TODO: Should probably take this opportunity to see if we are removing any ACLs
-	for _, grant := range instance.Spec.TopicGrants {
-		reqLogger.Info(fmt.Sprintf("Ensuring %s ACLs for User: %s -> Topic: %s", grant.AccessType, userName, grant.TopicName))
-		if err = broker.CreateUserACLs(grant.AccessType, userName, grant.TopicName); err != nil {
-			return requeueWithError(reqLogger, "failed to ensure ACLs for kafkauser", err)
+		// TODO (tinyzimmer): Should probably take this opportunity to see if we are removing any ACLs
+		for _, grant := range instance.Spec.TopicGrants {
+			reqLogger.Info(fmt.Sprintf("Ensuring %s ACLs for User: %s -> Topic: %s", grant.AccessType, user.DN(), grant.TopicName))
+			// CreateUserACLs returns no error if the ACLs already exist
+			if err = broker.CreateUserACLs(grant.AccessType, user.DN(), grant.TopicName); err != nil {
+				return requeueWithError(reqLogger, "failed to ensure ACLs for kafkauser", err)
+			}
 		}
 	}
 
 	// ensure a finalizer for cleanup on deletion
 	if !util.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
 		r.addFinalizer(reqLogger, instance)
-	}
-
-	// This pushes any and all updates we made earlier
-	if err = r.updateAndEnsureClusterOwnershipChain(reqLogger, cluster, instance, cert, secret); err != nil {
-		return requeueWithError(reqLogger, "failed to update kafkauser CR", err)
+		if err = r.Client.Update(context.TODO(), instance); err != nil {
+			return requeueWithError(reqLogger, "failed to update kafkauser with finalizer", err)
+		}
 	}
 
 	return reconciled()
 }
 
-func (r *KafkaUserReconciler) updateAndEnsureClusterOwnershipChain(logger logr.Logger, cluster *banzaicloudv1beta1.KafkaCluster, user *banzaicloudv1alpha1.KafkaUser, cert *certv1.Certificate, secret *corev1.Secret) (err error) {
-	// Give cluster ownership over user
-	err = controllerutil.SetControllerReference(cluster, user, r.Scheme)
-	if err != nil && !k8sutil.IsAlreadyOwnedError(err) {
-		logger.Error(err, "Failed to set controller reference cluster -> user")
-		return
-	} else if err == nil {
-		if err = r.Client.Update(context.TODO(), user); err != nil {
-			logger.Error(err, "Failed to update cluster user")
-			return err
+func (r *KafkaUserReconciler) ensureControllerReference(cluster *v1beta1.KafkaCluster, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
+	if err := controllerutil.SetControllerReference(cluster, user, r.Scheme); err != nil {
+		if !k8sutil.IsAlreadyOwnedError(err) {
+			return nil, err
 		}
+	} else {
+		return r.updateAndFetchLatest(user)
 	}
-
-	// Give user ownership over certificate
-	err = controllerutil.SetControllerReference(user, cert, r.Scheme)
-	if err != nil && !k8sutil.IsAlreadyOwnedError(err) {
-		logger.Error(err, "Failed to set controller reference user -> certificate")
-		return
-	} else if err == nil {
-		if err = r.Client.Update(context.TODO(), cert); err != nil {
-			logger.Error(err, "Failed to update user certificate")
-			return err
-		}
-	}
-
-	// Give user ownership over secret produced by certificate (certmanager doesn't clean up after itself)
-	err = controllerutil.SetControllerReference(user, secret, r.Scheme)
-	if err != nil && !k8sutil.IsAlreadyOwnedError(err) {
-		logger.Error(err, "Failed to set controller reference user -> secret")
-		return
-	} else if err == nil {
-		if err = r.Client.Update(context.TODO(), secret); err != nil {
-			logger.Error(err, "Failed to update user secret")
-			return err
-		}
-	}
-
-	return
+	return user, nil
 }
 
-func (r *KafkaUserReconciler) clusterCertificateForUser(cluster *banzaicloudv1beta1.KafkaCluster, broker kafkaclient.KafkaClient, user *banzaicloudv1alpha1.KafkaUser) *certv1.Certificate {
-	caName, caKind := broker.GetCA()
-	cert := &certv1.Certificate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      user.Name,
-			Namespace: user.Namespace,
-		},
-		Spec: certv1.CertificateSpec{
-			SecretName:  user.Spec.SecretName,
-			KeyEncoding: certv1.PKCS8,
-			CommonName:  user.Name,
-			IssuerRef: certv1.ObjectReference{
-				Name: caName,
-				Kind: caKind,
-			},
-		},
+func (r *KafkaUserReconciler) ensureClusterLabel(cluster *v1beta1.KafkaCluster, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
+	labelValue := clusterLabelString(cluster)
+	var labels map[string]string
+	if labels = user.GetLabels(); labels == nil {
+		labels = make(map[string]string, 0)
 	}
-	return cert
+	if label, ok := labels[clusterRefLabel]; ok {
+		if label != labelValue {
+			labels[clusterRefLabel] = labelValue
+		}
+	} else {
+		labels[clusterRefLabel] = labelValue
+	}
+	if !reflect.DeepEqual(labels, user.GetLabels()) {
+		user.SetLabels(labels)
+		return r.updateAndFetchLatest(user)
+	}
+	return user, nil
 }
 
-func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkaclient.KafkaClient, user *banzaicloudv1alpha1.KafkaUser) (reconcile.Result, error) {
+func (r *KafkaUserReconciler) updateAndFetchLatest(user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
+	if err := r.Client.Update(context.TODO(), user); err != nil {
+		return nil, err
+	}
+	return r.fetchMostRecent(user)
+}
+
+func (r *KafkaUserReconciler) fetchMostRecent(user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
+	updated := &v1alpha1.KafkaUser{}
+	err := r.Client.Get(context.TODO(), client.ObjectKey{Name: user.Name, Namespace: user.Namespace}, updated)
+	return updated, err
+}
+
+func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaUser, user *pkicommon.UserCertificate) (reconcile.Result, error) {
 	// run finalizers
-	reqLogger.Info("Kafka user is marked for deletion")
 	var err error
-	if util.StringSliceContains(user.GetFinalizers(), userFinalizer) {
-		if err = r.finalizeKafkaUser(reqLogger, broker, user); err != nil {
-			return requeueWithError(reqLogger, "failed to finalize kafkauser", err)
+	if util.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
+		if len(instance.Spec.TopicGrants) > 0 {
+			if err = r.finalizeKafkaUserACLs(reqLogger, cluster, user); err != nil {
+				return requeueWithError(reqLogger, "failed to finalize kafkauser", err)
+			}
 		}
 		// remove finalizer
-		if err = r.removeFinalizer(user); err != nil {
+		if err = r.removeFinalizer(instance); err != nil {
 			return requeueWithError(reqLogger, "failed to remove finalizer from kafkauser", err)
 		}
 	}
 	return reconciled()
 }
 
-func (r *KafkaUserReconciler) removeFinalizer(user *banzaicloudv1alpha1.KafkaUser) error {
+func (r *KafkaUserReconciler) removeFinalizer(user *v1alpha1.KafkaUser) error {
 	user.SetFinalizers(util.StringSliceRemove(user.GetFinalizers(), userFinalizer))
 	return r.Client.Update(context.TODO(), user)
 }
 
-func (r *KafkaUserReconciler) finalizeKafkaUser(reqLogger logr.Logger, broker kafkaclient.KafkaClient, user *banzaicloudv1alpha1.KafkaUser) error {
+func (r *KafkaUserReconciler) finalizeKafkaUserACLs(reqLogger logr.Logger, cluster *v1beta1.KafkaCluster, user *pkicommon.UserCertificate) error {
+	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
+		reqLogger.Info("Cluster is being deleted, skipping ACL deletion")
+		return nil
+	}
 	var err error
-
-	// get the user's distinguished name to delete matching kafka acls
-	userName, secret, err := r.getUserX509NameAndCredentials(reqLogger, user)
+	reqLogger.Info("Deleting user ACLs from kafka")
+	broker, close, err := newBrokerConnection(reqLogger, r.Client, cluster)
 	if err != nil {
 		return err
 	}
-	reqLogger.Info("Deleting user ACLs from kafka")
-	if err = broker.DeleteUserACLs(userName); err != nil {
+	defer close()
+	if err = broker.DeleteUserACLs(user.DN()); err != nil {
 		return err
 	}
-
-	// cleanup certificate
-	cert, err := r.getUserCertificate(user)
-	if err != nil && !apierrors.IsNotFound(err) {
-		return err
-	} else if err == nil {
-		reqLogger.Info("Deleting certificate for user")
-		err = r.Client.Delete(context.TODO(), cert)
-		if err != nil {
-			return err
-		}
-	}
-
-	// cleanup the secret
-	if err != nil && !apierrors.IsNotFound(err) {
-		return err
-	} else if err == nil {
-		reqLogger.Info("Deleting secret for user")
-		err = r.Client.Delete(context.TODO(), secret)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
-func (r *KafkaUserReconciler) addFinalizer(reqLogger logr.Logger, user *banzaicloudv1alpha1.KafkaUser) {
+func (r *KafkaUserReconciler) addFinalizer(reqLogger logr.Logger, user *v1alpha1.KafkaUser) {
 	reqLogger.Info("Adding Finalizer for the KafkaUser")
 	user.SetFinalizers(append(user.GetFinalizers(), userFinalizer))
 	return
-}
-
-func (r *KafkaUserReconciler) getUserX509NameAndCredentials(reqLogger logr.Logger, user *banzaicloudv1alpha1.KafkaUser) (dn string, secret *corev1.Secret, err error) {
-	// retrieve user secret to get common name
-	secret, err = r.getUserSecret(user)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "user secret not ready")
-		} else {
-			err = errorfactory.New(errorfactory.APIFailure{}, err, "failed to get user secret")
-		}
-		return
-	}
-
-	certData, err := certutil.DecodeCertificate(secret.Data[corev1.TLSCertKey])
-	if err != nil {
-		err = errorfactory.New(errorfactory.InternalError{}, err, "failed to decode user certificate")
-		return
-	}
-
-	dn = certData.Subject.String()
-	return
-}
-
-func (r *KafkaUserReconciler) getUserSecret(user *banzaicloudv1alpha1.KafkaUser) (*corev1.Secret, error) {
-	secret := &corev1.Secret{}
-	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: user.Spec.SecretName, Namespace: user.Namespace}, secret)
-	return secret, err
-}
-
-func (r *KafkaUserReconciler) getUserCertificate(user *banzaicloudv1alpha1.KafkaUser) (*certv1.Certificate, error) {
-	cert := &certv1.Certificate{}
-	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: user.Name, Namespace: user.Namespace}, cert)
-	return cert, err
 }

@@ -142,6 +142,8 @@ type SSLSecrets struct {
 	TLSSecretName   string `json:"tlsSecretName"`
 	JKSPasswordName string `json:"jksPasswordName"`
 	Create          bool   `json:"create,omitempty"`
+	// +kubebuilder:validation:Enum={"cert-manager","vault"}
+	PKIBackend PKIBackend `json:"pkiBackend,omitempty"`
 }
 
 // ExternalListenerConfig defines the external listener config for Kafka

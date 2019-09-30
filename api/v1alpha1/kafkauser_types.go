@@ -22,9 +22,10 @@ import (
 // +k8s:openapi-gen=true
 type KafkaUserSpec struct {
 	SecretName  string           `json:"secretName"`
+	ClusterRef  ClusterReference `json:"clusterRef"`
+	DNSNames    []string         `json:"dnsNames,omitempty"`
 	TopicGrants []UserTopicGrant `json:"topicGrants,omitempty"`
 	IncludeJKS  bool             `json:"includeJKS,omitempty"`
-	ClusterRef  ClusterReference `json:"clusterRef"`
 }
 
 // UserTopicGrant is the desired permissions for the KafkaUser

@@ -5,15 +5,15 @@ go 1.12
 require (
 	emperror.dev/errors v0.4.2
 	github.com/Shopify/sarama v1.23.1
-	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
-	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4 // indirect
 	github.com/banzaicloud/k8s-objectmatcher v1.0.0
-	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/envoyproxy/go-control-plane v0.8.6
-	github.com/ghodss/yaml v1.0.0
+	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
 	github.com/gogo/googleapis v1.2.0 // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190730201129-28a6bbf47e48
+	github.com/hashicorp/vault v1.2.3
+	github.com/hashicorp/vault/api v1.0.5-0.20190909201928-35325e2c3262
+	github.com/hashicorp/vault/sdk v0.1.14-0.20190909201848-e0fbf9b652e2
 	github.com/imdario/mergo v0.3.7
 	github.com/jetstack/cert-manager v0.9.1
 	github.com/lestrrat-go/backoff v0.0.0-20190107202757-0bc2a4274cd0

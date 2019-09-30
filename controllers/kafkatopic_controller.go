@@ -17,12 +17,11 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strconv"
+	"reflect"
 	"time"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -40,6 +39,10 @@ import (
 )
 
 var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
+
+// TODO (tinyzimmer): Should this maybe just be one master sync routine
+// checking ALL known topics at an interval - or is it better to just have one
+// per topic
 var syncRoutines = make(map[types.UID]struct{}, 0)
 
 // SetupKafkaTopicWithManager registers kafka topic controller with manager
@@ -57,7 +60,7 @@ func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Watch for changes to primary resource KafkaTopic
-	err = c.Watch(&source.Kind{Type: &banzaicloudv1alpha1.KafkaTopic{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &v1alpha1.KafkaTopic{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -77,7 +80,7 @@ type KafkaTopicReconciler struct {
 	Log    logr.Logger
 }
 
-// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics,verbs=get;list;watch;create;update;patch;delete;deletecollection
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics/status,verbs=get;update;patch
 
 // Reconcile reconciles the kafka topic
@@ -90,12 +93,10 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	var err error
 
 	// Fetch the KafkaTopic instance
-	instance := &banzaicloudv1alpha1.KafkaTopic{}
+	instance := &v1alpha1.KafkaTopic{}
 	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
 			return reconciled()
 		}
 		// Error reading the object - requeue the request.
@@ -103,11 +104,8 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	// Get the referenced kafkacluster
-	clusterNamespace := instance.Spec.ClusterRef.Namespace
-	if clusterNamespace == "" {
-		clusterNamespace = instance.Namespace
-	}
-	var cluster *banzaicloudv1beta1.KafkaCluster
+	clusterNamespace := getClusterRefNamespace(instance.Namespace, instance.Spec.ClusterRef)
+	var cluster *v1beta1.KafkaCluster
 	if cluster, err = k8sutil.LookupKafkaCluster(r.Client, instance.Spec.ClusterRef.Name, clusterNamespace); err != nil {
 		// This shouldn't trigger anymore, but leaving it here as a safetybelt
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
@@ -123,33 +121,13 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	// Get a kafka connection
-	reqLogger.Info("Retrieving kafka admin client")
-	broker, err := kafkaclient.NewFromCluster(r.Client, cluster)
+	broker, close, err := newBrokerConnection(reqLogger, r.Client, cluster)
 	if err != nil {
-		switch err.(type) {
-		case errorfactory.BrokersUnreachable:
-			return ctrl.Result{
-				Requeue:      true,
-				RequeueAfter: time.Duration(15) * time.Second,
-			}, nil
-		case errorfactory.BrokersNotReady:
-			return ctrl.Result{
-				Requeue:      true,
-				RequeueAfter: time.Duration(15) * time.Second,
-			}, nil
-		case errorfactory.ResourceNotReady:
-			reqLogger.Info("Controller secret not found, may not be ready")
-			return ctrl.Result{
-				Requeue:      true,
-				RequeueAfter: time.Duration(5) * time.Second,
-			}, nil
-		default:
-			return requeueWithError(reqLogger, err.Error(), err)
-		}
+		return checkBrokerConnectionError(reqLogger, err)
 	}
-	defer broker.Close()
+	defer close()
 
-	// Check if marked for deletion and run finalizers
+	// Check if marked for deletion and if so run finalizers
 	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
 		return r.checkFinalizers(reqLogger, broker, instance)
 	}
@@ -162,16 +140,14 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 
 	// we got a topic back
 	if existing != nil {
-		// check if requesting a partition decrease, we can't do this
 		reqLogger.Info("Topic already exists, verifying configuration")
-
-		// Ensure partition count and topic configurations
+		// Ensure partition count
 		if changed, err := broker.EnsurePartitionCount(instance.Spec.Name, instance.Spec.Partitions); err != nil {
 			return requeueWithError(reqLogger, "failed to ensure topic partition count", err)
 		} else if changed {
 			reqLogger.Info("Increased partition count for topic")
 		}
-
+		// Ensure topic configurations
 		if err = broker.EnsureTopicConfig(instance.Spec.Name, util.MapStringStringPointer(instance.Spec.Config)); err != nil {
 			return requeueWithError(reqLogger, "failure to ensure topic config", err)
 		}
@@ -189,23 +165,36 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 			return requeueWithError(reqLogger, "failed to create kafka topic", err)
 		}
 
-		if err = controllerutil.SetControllerReference(cluster, instance, r.Scheme); err != nil {
-			if !k8sutil.IsAlreadyOwnedError(err) {
-				return requeueWithError(reqLogger, "failed to set cluster controller reference on new KafkaTopic", err)
-			}
-		}
+	}
 
+	// set controller reference to parent cluster
+	if instance, err = r.ensureControllerReference(cluster, instance); err != nil {
+		return requeueWithError(reqLogger, "failed to ensure controller reference", err)
+	}
+
+	// ensure kafkaCluster label
+	if instance, err = r.ensureClusterLabel(cluster, instance); err != nil {
+		return requeueWithError(reqLogger, "failed to ensure kafkacluster label on topic", err)
 	}
 
 	// ensure a finalizer for cleanup on deletion
 	if !util.StringSliceContains(instance.GetFinalizers(), topicFinalizer) {
 		reqLogger.Info("Adding Finalizer for the KafkaTopic")
-		r.addFinalizer(instance)
+		instance.SetFinalizers(append(instance.GetFinalizers(), topicFinalizer))
 	}
 
 	// push any changes
+	// TODO (tinyzimmer): This is sometimes failing the first reconcile attempt
+	// still with an "object already modified" error. It's benign, but should dig
+	// deeper at some point.
 	if err = r.Client.Update(context.TODO(), instance); err != nil {
-		return requeueWithError(reqLogger, "failed to update KafkaTopic with controller reference", err)
+		return requeueWithError(reqLogger, "failed to update KafkaTopic", err)
+	}
+
+	// Fetch the updated object
+	instance = &v1alpha1.KafkaTopic{}
+	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
+		return requeueWithError(reqLogger, "failed to retrieve updated topic instance", err)
 	}
 
 	// Do an initial topic status sync
@@ -226,7 +215,51 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	return reconciled()
 }
 
-func (r *KafkaTopicReconciler) syncTopicStatus(cluster *banzaicloudv1beta1.KafkaCluster, instance *banzaicloudv1alpha1.KafkaTopic, uid types.UID) {
+func (r *KafkaTopicReconciler) ensureClusterLabel(cluster *v1beta1.KafkaCluster, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
+	labelValue := clusterLabelString(cluster)
+	var labels map[string]string
+	if labels = topic.GetLabels(); labels == nil {
+		labels = make(map[string]string, 0)
+	}
+	if label, ok := labels[clusterRefLabel]; ok {
+		if label != labelValue {
+			labels[clusterRefLabel] = labelValue
+		}
+	} else {
+		labels[clusterRefLabel] = labelValue
+	}
+	if !reflect.DeepEqual(labels, topic.GetLabels()) {
+		topic.SetLabels(labels)
+		return r.updateAndFetchLatest(topic)
+	}
+	return topic, nil
+}
+
+func (r *KafkaTopicReconciler) ensureControllerReference(cluster *v1beta1.KafkaCluster, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
+	if err := controllerutil.SetControllerReference(cluster, topic, r.Scheme); err != nil {
+		if !k8sutil.IsAlreadyOwnedError(err) {
+			return nil, err
+		}
+	} else {
+		return r.updateAndFetchLatest(topic)
+	}
+	return topic, nil
+}
+
+func (r *KafkaTopicReconciler) updateAndFetchLatest(topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
+	if err := r.Client.Update(context.TODO(), topic); err != nil {
+		return nil, err
+	}
+	return r.fetchMostRecent(topic)
+}
+
+func (r *KafkaTopicReconciler) fetchMostRecent(topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
+	updated := &v1alpha1.KafkaTopic{}
+	err := r.Client.Get(context.TODO(), client.ObjectKey{Name: topic.Name, Namespace: topic.Namespace}, updated)
+	return updated, err
+}
+
+func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaTopic, uid types.UID) {
 	syncLogger := r.Log.WithName(fmt.Sprintf("%s/%s_sync", instance.Namespace, instance.Name))
 	ticker := time.NewTicker(time.Duration(5) * time.Minute)
 	for range ticker.C {
@@ -240,75 +273,54 @@ func (r *KafkaTopicReconciler) syncTopicStatus(cluster *banzaicloudv1beta1.Kafka
 	}
 }
 
-func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster *banzaicloudv1beta1.KafkaCluster, instance *banzaicloudv1alpha1.KafkaTopic) (bool, error) {
+func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaTopic) (bool, error) {
 
 	// check if the topic still exists
-	topic := &banzaicloudv1alpha1.KafkaTopic{}
+	topic := &v1alpha1.KafkaTopic{}
 	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, topic); err != nil {
 		if apierrors.IsNotFound(err) {
 			syncLogger.Info("Topic has been deleted, stopping sync routine")
 			// return false to stop calling goroutine
 			return false, nil
 		}
-		// continue in case blip in api availability.
 		return true, err
 	}
 
-	// grab a connection to kafka
-	k, err := kafkaclient.NewFromCluster(r.Client, cluster)
+	// get topic status
+	status, err := r.getKafkaTopicStatus(syncLogger, cluster, topic)
 	if err != nil {
-		syncLogger.Error(err, "Failed to get a broker connection to update topic status")
-		// let's still try again later, in case it was just a blip in cluster availability
-		return true, err
-	}
-	defer k.Close()
-
-	// get topic metadata
-	meta, err := k.DescribeTopic(topic.Spec.Name)
-	if err != nil {
-		syncLogger.Error(err, "Failed to describe topic to update its status")
+		syncLogger.Error(err, "Failed to get current kafka topic status")
 		return true, err
 	}
 
-	// iterate topic partitions and populate maps with their values
-	leaders := make(map[string]string, 0)
-	replicaCounts := make(map[string]string, 0)
-	isr := make(map[string]string, 0)
-	offlineReplicas := make(map[string]string, 0)
-
-	for _, part := range meta.Partitions {
-		ID := strconv.Itoa(int(part.ID))
-
-		leaders[ID] = fmt.Sprintf("%s/%s", strconv.Itoa(int(part.Leader)), k.ResolveBrokerID(part.Leader))
-		replicaCounts[ID] = strconv.Itoa(len(part.Replicas))
-
-		if len(part.Isr) > 0 {
-			isr[ID] = fmt.Sprintf("%+v", part.Isr)
-		}
-
-		if len(part.OfflineReplicas) > 0 {
-			offlineReplicas[ID] = fmt.Sprintf("%+v", part.OfflineReplicas)
-		}
-
-	}
-	// finally update status
+	// update status
 	updated := topic.DeepCopy()
-	updated.Status = banzaicloudv1alpha1.KafkaTopicStatus{
-		PartitionCount:  int32(len(meta.Partitions)),
-		Leaders:         leaders,
-		ReplicaCounts:   replicaCounts,
-		InSyncReplicas:  isr,
-		OfflineReplicas: offlineReplicas,
-	}
+	updated.Status = *status
 	if err = r.Client.Status().Update(context.TODO(), updated); err != nil {
 		syncLogger.Error(err, "Failed to update KafkaTopic status")
 		return true, err
 	}
 	return true, nil
-
 }
 
-func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *banzaicloudv1alpha1.KafkaTopic) (reconcile.Result, error) {
+func (r *KafkaTopicReconciler) getKafkaTopicStatus(log logr.Logger, cluster *v1beta1.KafkaCluster, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopicStatus, error) {
+	// grab a connection to kafka
+	k, close, err := newBrokerConnection(log, r.Client, cluster)
+	if err != nil {
+		return nil, err
+	}
+	defer close()
+
+	// get topic metadata
+	meta, err := k.DescribeTopic(topic.Spec.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return kafkaclient.TopicMetaToStatus(k.Brokers(), meta), nil
+}
+
+func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {
 	reqLogger.Info("Kafka topic is marked for deletion")
 	var err error
 	if util.StringSliceContains(topic.GetFinalizers(), topicFinalizer) {
@@ -322,26 +334,27 @@ func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kaf
 	return reconciled()
 }
 
-func (r *KafkaTopicReconciler) removeFinalizer(topic *banzaicloudv1alpha1.KafkaTopic) error {
+func (r *KafkaTopicReconciler) removeFinalizer(topic *v1alpha1.KafkaTopic) error {
 	topic.SetFinalizers(util.StringSliceRemove(topic.GetFinalizers(), topicFinalizer))
 	return r.Client.Update(context.TODO(), topic)
 }
 
-func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *banzaicloudv1alpha1.KafkaTopic) error {
+func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) error {
 	exists, err := broker.GetTopic(topic.Spec.Name)
 	if err != nil {
 		return err
 	}
 	if exists != nil {
-		if err = broker.DeleteTopic(topic.Spec.Name); err != nil {
+		// DeleteTopic with wait to make sure it goes down fully in case of cluster
+		// deletion.
+		// TODO (tinyzimmer): Perhaps this should only wait when it's the cluster
+		// being deleted, and use false when it's just the topic itself. Also,
+		// if delete.topic.enable=false this may hang forever, so should maybe
+		// check if that's the case during a wait.
+		if err = broker.DeleteTopic(topic.Spec.Name, true); err != nil {
 			return err
 		}
 		reqLogger.Info("Deleted topic")
 	}
 	return nil
-}
-
-func (r *KafkaTopicReconciler) addFinalizer(topic *banzaicloudv1alpha1.KafkaTopic) {
-	topic.SetFinalizers(append(topic.GetFinalizers(), topicFinalizer))
-	return
 }

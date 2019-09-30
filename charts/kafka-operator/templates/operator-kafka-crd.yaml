@@ -1166,6 +1166,13 @@ spec:
                       type: string
                     tlsSecretName:
                       type: string
+                    create:
+                      type: boolean
+                    pkiBackend:
+                      enum:
+                      - cert-manager
+                      - vault
+                      type: string
                   required:
                     - jksPasswordName
                     - tlsSecretName

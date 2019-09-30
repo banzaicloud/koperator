@@ -21,16 +21,17 @@ import (
 	"time"
 
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/kafka-operator/pkg/pki"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrolmonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/pki"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -42,12 +43,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 var clusterFinalizer = "finalizer.kafkaclusters.kafka.banzaicloud.io"
+var clusterTopicsFinalizer = "topics.kafkaclusters.kafka.banzaicloud.io"
+var clusterUsersFinalizer = "users.kafkaclusters.kafka.banzaicloud.io"
 
 // KafkaClusterReconciler reconciles a KafkaCluster object
 type KafkaClusterReconciler struct {
@@ -67,6 +67,7 @@ type KafkaClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
 
@@ -92,18 +93,17 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		return r.checkFinalizers(log, instance)
 	}
 
-	if instance.Status.State != banzaicloudv1beta1.KafkaClusterRollingUpgrading {
-		if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1beta1.KafkaClusterReconciling, log); err != nil {
+	if instance.Status.State != v1beta1.KafkaClusterRollingUpgrading {
+		if err := k8sutil.UpdateCRStatus(r.Client, instance, v1beta1.KafkaClusterReconciling, log); err != nil {
 			return requeueWithError(log, err.Error(), err)
 		}
 	}
 
 	reconcilers := []resources.ComponentReconciler{
-		pki.New(r.Client, r.Scheme, instance),
 		envoy.New(r.Client, instance),
 		kafkamonitoring.New(r.Client, instance),
 		cruisecontrolmonitoring.New(r.Client, instance),
-		kafka.New(r.Client, instance),
+		kafka.New(r.Client, r.Scheme, instance),
 		cruisecontrol.New(r.Client, instance),
 	}
 
@@ -124,16 +124,11 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
 			case errorfactory.ResourceNotReady:
-				log.Info("A new resource was not found, may not be ready")
+				log.Info("A new resource was not found or may not be ready")
+				log.Info(err.Error())
 				return ctrl.Result{
 					Requeue:      true,
-					RequeueAfter: time.Duration(5) * time.Second,
-				}, nil
-			case errorfactory.CreateTopicError:
-				log.Info("Could not create CC topic, either less than 3 brokers or not all are ready")
-				return ctrl.Result{
-					Requeue:      true,
-					RequeueAfter: time.Duration(15) * time.Second,
+					RequeueAfter: time.Duration(7) * time.Second,
 				}, nil
 			case errorfactory.ReconcileRollingUpgrade:
 				log.Info("Rolling Upgrade in Progress")
@@ -147,19 +142,24 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		}
 	}
 
-	log.Info("ensuring finalizer on kafkacluster")
-	if err = r.ensureFinalizer(instance); err != nil {
+	// Fetch the most recent cluster instance and ensure finalizer
+	if instance, err = r.fetchMostRecent(instance); err != nil {
+		return requeueWithError(log, "failed to fetch latest kafkacluster instance", err)
+	}
+
+	log.Info("ensuring finalizers on kafkacluster")
+	if instance, err = r.ensureFinalizers(instance); err != nil {
 		return requeueWithError(log, "failed to ensure finalizers on kafkacluster instance", err)
 	}
 
 	//Update rolling upgrade last successful state
-	if instance.Status.State == banzaicloudv1beta1.KafkaClusterRollingUpgrading {
+	if instance.Status.State == v1beta1.KafkaClusterRollingUpgrading {
 		if err := k8sutil.UpdateRollingUpgradeState(r.Client, instance, time.Now(), log); err != nil {
 			return requeueWithError(log, err.Error(), err)
 		}
 	}
 
-	if err := k8sutil.UpdateCRStatus(r.Client, instance, banzaicloudv1beta1.KafkaClusterRunning, log); err != nil {
+	if err := k8sutil.UpdateCRStatus(r.Client, instance, v1beta1.KafkaClusterRunning, log); err != nil {
 		return requeueWithError(log, err.Error(), err)
 	}
 
@@ -168,63 +168,141 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 
 func (r *KafkaClusterReconciler) checkFinalizers(log logr.Logger, cluster *v1beta1.KafkaCluster) (ctrl.Result, error) {
 	log.Info("KafkaCluster is marked for deletion, checking for children")
+
+	// If the main finalizer is gone then we've already finished up
 	if !util.StringSliceContains(cluster.GetFinalizers(), clusterFinalizer) {
 		return reconciled()
 	}
 
 	var err error
 
-	// Delete all kafkatopics associated with us
-	var childTopics banzaicloudv1alpha1.KafkaTopicList
+	var namespaces corev1.NamespaceList
+	if err := r.Client.List(context.TODO(), &namespaces); err != nil {
+		return requeueWithError(log, "failed to get namespace list", err)
+	}
+
+	// If we haven't deleted all kafkatopics yet, iterate namespaces and delete all kafkatopics
+	// with the matching label.
+	if util.StringSliceContains(cluster.GetFinalizers(), clusterTopicsFinalizer) {
+		log.Info(fmt.Sprintf("Sending delete kafkatopics request to all namespaces for cluster %s/%s", cluster.Namespace, cluster.Name))
+		for _, ns := range namespaces.Items {
+			if err := r.Client.DeleteAllOf(
+				context.TODO(),
+				&v1alpha1.KafkaTopic{},
+				client.InNamespace(ns.Name),
+				client.MatchingLabels{clusterRefLabel: clusterLabelString(cluster)},
+			); err != nil {
+				if client.IgnoreNotFound(err) != nil {
+					return requeueWithError(log, "failed to send delete request for children kafkatopics", err)
+				}
+				log.Info(fmt.Sprintf("No matching kafkatopics in namespace: %s", ns.Name))
+			}
+
+		}
+		if cluster, err = r.removeFinalizer(cluster, clusterTopicsFinalizer); err != nil {
+			return requeueWithError(log, "failed to remove topics finalizer from kafkacluster", err)
+		}
+	}
+
+	// If any of the topics still exist, it means their finalizer is still running.
+	// Wait to make sure we have fully cleaned up zookeeper. Also if we delete
+	// our kafkausers before all topics are finished cleaning up, we will lose
+	// our controller certificate.
+	log.Info("Ensuring all topics have finished cleaning up")
+	var childTopics v1alpha1.KafkaTopicList
 	if err = r.Client.List(context.TODO(), &childTopics); err != nil {
 		return requeueWithError(log, "failed to list kafkatopics", err)
 	}
 	for _, topic := range childTopics.Items {
 		if belongsToCluster(topic.Spec.ClusterRef, cluster) {
-			log.Info(fmt.Sprintf("Deleting associated topic %s", topic.Name))
-			if err = r.Client.Delete(context.TODO(), &topic); err != nil {
-				return requeueWithError(log, "failed to delete kafkatopic", err)
-			}
+			log.Info(fmt.Sprintf("Still waiting for topic %s/%s to be deleted", topic.Namespace, topic.Name))
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: time.Duration(3) * time.Second,
+			}, nil
 		}
 	}
 
-	// Delete all kafkausers associated with us
-	var childUsers banzaicloudv1alpha1.KafkaUserList
-	if err = r.Client.List(context.TODO(), &childUsers); err != nil {
-		return requeueWithError(log, "failed to list kafkausers", err)
-	}
-	for _, user := range childUsers.Items {
-		if belongsToCluster(user.Spec.ClusterRef, cluster) {
-			log.Info(fmt.Sprintf("Deleting associated user %s", user.Name))
-			if err = r.Client.Delete(context.TODO(), &user); err != nil {
-				return requeueWithError(log, "failed to delete kafkauser", err)
+	// If we haven't deleted all kafkausers yet, iterate namespaces and delete all kafkausers
+	// with the matching label.
+	if util.StringSliceContains(cluster.GetFinalizers(), clusterUsersFinalizer) {
+		log.Info(fmt.Sprintf("Sending delete kafkausers request to all namespaces for cluster %s/%s", cluster.Namespace, cluster.Name))
+		for _, ns := range namespaces.Items {
+			if err := r.Client.DeleteAllOf(
+				context.TODO(),
+				&v1alpha1.KafkaUser{},
+				client.InNamespace(ns.Name),
+				client.MatchingLabels{clusterRefLabel: clusterLabelString(cluster)},
+			); err != nil {
+				if client.IgnoreNotFound(err) != nil {
+					return requeueWithError(log, "failed to send delete request for children kafkausers", err)
+				}
+				log.Info(fmt.Sprintf("No matching kafkausers in namespace: %s", ns.Name))
 			}
+		}
+		if cluster, err = r.removeFinalizer(cluster, clusterUsersFinalizer); err != nil {
+			return requeueWithError(log, "failed to remove users finalizer from kafkacluster", err)
 		}
 	}
 
-	log.Info("Removing finalizers from kafkacluster instance")
-	if err := r.removeFinalizer(cluster); err != nil {
-		return requeueWithError(log, "failed to remove finalizer", err)
+	// Do any necessary PKI cleanup - a PKI backend should make sure any
+	// user finalizations are done before it does its final cleanup
+	log.Info("Tearing down any PKI resources for the kafkacluster")
+	if err = pki.GetPKIManager(r.Client, cluster).FinalizePKI(log); err != nil {
+		switch err.(type) {
+		case errorfactory.ResourceNotReady:
+			log.Info("The PKI is not ready to be torn down")
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: time.Duration(5) * time.Second,
+			}, nil
+		default:
+			return requeueWithError(log, "failed to finalize PKI", err)
+		}
+	}
+
+	log.Info("Finalizing deletion of kafkacluster instance")
+	if _, err = r.removeFinalizer(cluster, clusterFinalizer); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			// We may have been a requeue from earlier with all conditions met - but with
+			// the state of the finalizer not yet reflected in the response we got.
+			return reconciled()
+		}
+		return requeueWithError(log, "failed to remove main finalizer", err)
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *KafkaClusterReconciler) ensureFinalizer(cluster *v1beta1.KafkaCluster) (err error) {
-	if util.StringSliceContains(cluster.GetFinalizers(), clusterFinalizer) {
-		return
+func (r *KafkaClusterReconciler) ensureFinalizers(cluster *v1beta1.KafkaCluster) (updated *v1beta1.KafkaCluster, err error) {
+	for _, finalizer := range []string{clusterFinalizer, clusterTopicsFinalizer, clusterUsersFinalizer} {
+		if util.StringSliceContains(cluster.GetFinalizers(), finalizer) {
+			continue
+		}
+		cluster.SetFinalizers(append(cluster.GetFinalizers(), finalizer))
 	}
-	cluster.SetFinalizers(append(cluster.GetFinalizers(), clusterFinalizer))
-	err = r.Client.Update(context.TODO(), cluster)
-	return
+	return r.updateAndFetchLatest(cluster)
 }
 
-func (r *KafkaClusterReconciler) removeFinalizer(cluster *v1beta1.KafkaCluster) error {
-	cluster.SetFinalizers(util.StringSliceRemove(cluster.GetFinalizers(), clusterFinalizer))
-	return r.Client.Update(context.TODO(), cluster)
+func (r *KafkaClusterReconciler) removeFinalizer(cluster *v1beta1.KafkaCluster, finalizer string) (updated *v1beta1.KafkaCluster, err error) {
+	cluster.SetFinalizers(util.StringSliceRemove(cluster.GetFinalizers(), finalizer))
+	return r.updateAndFetchLatest(cluster)
 }
 
-func belongsToCluster(ref banzaicloudv1alpha1.ClusterReference, cluster *v1beta1.KafkaCluster) bool {
+func (r *KafkaClusterReconciler) updateAndFetchLatest(cluster *v1beta1.KafkaCluster) (*v1beta1.KafkaCluster, error) {
+	if err := r.Client.Update(context.TODO(), cluster); err != nil {
+		return nil, err
+	}
+	return r.fetchMostRecent(cluster)
+}
+
+func (r *KafkaClusterReconciler) fetchMostRecent(cluster *v1beta1.KafkaCluster) (*v1beta1.KafkaCluster, error) {
+	updated := &v1beta1.KafkaCluster{}
+	err := r.Client.Get(context.TODO(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, updated)
+	return updated, err
+}
+
+func belongsToCluster(ref v1alpha1.ClusterReference, cluster *v1beta1.KafkaCluster) bool {
 	if ref.Name == cluster.Name && ref.Namespace == cluster.Namespace {
 		return true
 	}

@@ -51,6 +51,10 @@ spec:
               required:
               - name
               type: object
+            dnsNames:
+              items:
+                type: string
+              type: array
             includeJKS:
               description: 'If true, a keystore and truststore in JKS format will be included
               with the user secret as well as a generated password.'

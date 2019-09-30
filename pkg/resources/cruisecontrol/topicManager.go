@@ -15,27 +15,72 @@
 package cruisecontrol
 
 import (
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
-	"github.com/go-logr/logr"
+	"context"
+	"fmt"
 
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/webhook"
+	"github.com/go-logr/logr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// This function may be close to being able to be replaced with just submitting a CR
-// to ourselves
-func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log logr.Logger) error {
+const (
+	cruiseControlTopicFormat            = "%s-cruise-control-topic"
+	cruiseControlTopicName              = "__CruiseControlMetrics"
+	cruiseControlTopicPartitions        = 12
+	cruiseControlTopicReplicationFactor = 3
+)
 
-	broker, err := kafkaclient.NewFromCluster(client, cluster)
-	if err != nil {
-		return err
+func newCruiseControlTopic(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaTopic {
+	return &v1alpha1.KafkaTopic{
+		ObjectMeta: templates.ObjectMeta(
+			fmt.Sprintf(cruiseControlTopicFormat, cluster.Name),
+			map[string]string{
+				"app":              "kafka",
+				"clusterName":      cluster.Name,
+				"clusterNamespace": cluster.Namespace,
+			},
+			cluster,
+		),
+		Spec: v1alpha1.KafkaTopicSpec{
+			Name:              cruiseControlTopicName,
+			Partitions:        cruiseControlTopicPartitions,
+			ReplicationFactor: cruiseControlTopicReplicationFactor,
+			ClusterRef: v1alpha1.ClusterReference{
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
+			},
+		},
 	}
-	defer broker.Close()
+}
 
-	return broker.CreateTopic(&kafkaclient.CreateTopicOptions{
-		Name:              "__CruiseControlMetrics",
-		Partitions:        12,
-		ReplicationFactor: 3,
-	})
+func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log logr.Logger) error {
+	existing := &v1alpha1.KafkaTopic{}
+	topic := newCruiseControlTopic(cluster)
+	if err := client.Get(context.TODO(), types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			// Attempt to create the topic
+			if err := client.Create(context.TODO(), topic); err != nil {
+				// If webhook was unable to connect to kafka - return not ready
+				if webhook.IsAdmissionCantConnect(err) {
+					return errorfactory.New(errorfactory.ResourceNotReady{}, err, "topic admission failed to connect to kafka cluster")
+				}
+				// If less than three brokers are available - return not ready
+				if webhook.IsInvalidReplicationFactor(err) {
+					return errorfactory.New(errorfactory.ResourceNotReady{}, err, "not enough brokers available (at least three needed) for CC topic")
+				}
+				return errorfactory.New(errorfactory.APIFailure{}, err, "could not create cruise control topic")
+			}
 
+		} else {
+			// pass though any other api failure
+			return errorfactory.New(errorfactory.APIFailure{}, err, "failed to lookup cruise control topic")
+		}
+	}
+	return nil
 }

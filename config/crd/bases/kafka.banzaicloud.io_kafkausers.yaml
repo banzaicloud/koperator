@@ -43,6 +43,10 @@ spec:
               required:
               - name
               type: object
+            dnsNames:
+              items:
+                type: string
+              type: array
             includeJKS:
               type: boolean
             secretName:

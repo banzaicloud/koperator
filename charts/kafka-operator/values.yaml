@@ -13,6 +13,8 @@ operator:
     repository: banzaicloud/kafka-operator
     tag: 0.6.0
     pullPolicy: IfNotPresent
+  vaultAddress: ""
+  vaultSecret: ""
   resources:
     limits:
       cpu: 200m

@@ -66,7 +66,9 @@ spec:
           properties:
             inSyncReplicas:
               additionalProperties:
-                type: string
+                items:
+                  type: string
+                type: array
               type: object
             leaders:
               additionalProperties:
@@ -74,14 +76,16 @@ spec:
               type: object
             offlineReplicas:
               additionalProperties:
-                type: string
+                items:
+                  type: string
+                type: array
               type: object
             partitionCount:
               format: int32
               type: integer
             replicaCounts:
               additionalProperties:
-                type: string
+                type: integer
               type: object
           required:
           - inSyncReplicas

@@ -15,7 +15,9 @@
 package kafkaclient
 
 import (
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Shopify/sarama"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -55,6 +57,9 @@ func (k *kafkaClient) DescribeTopic(topic string) (meta *sarama.TopicMetadata, e
 	if err != nil {
 		return
 	}
+	if len(res) == 0 {
+		return nil, errors.New("not found")
+	}
 	if res[0].Err != sarama.ErrNoError {
 		err = res[0].Err
 		return
@@ -76,9 +81,27 @@ func (k *kafkaClient) CreateTopic(opts *CreateTopicOptions) (err error) {
 	return
 }
 
-// DeleteTopic deletes a topic
-func (k *kafkaClient) DeleteTopic(topic string) error {
-	return k.admin.DeleteTopic(topic)
+// DeleteTopic deletes a topic - when wait is specified, the method will not
+// return until the topic doesn't appear in the cluster topic list.
+func (k *kafkaClient) DeleteTopic(topicName string, wait bool) error {
+	err := k.admin.DeleteTopic(topicName)
+	if err != nil {
+		return err
+	}
+	if wait {
+		ticker := time.NewTicker(time.Duration(1) * time.Second)
+		select {
+		case <-ticker.C:
+			if topic, err := k.GetTopic(topicName); err != nil {
+				return err
+			} else if topic == nil {
+				return nil
+			} else {
+				log.Info(fmt.Sprintf("Topic %s still going down for deletion", topicName))
+			}
+		}
+	}
+	return nil
 }
 
 // EnsurePartitionCount will check if a partition increase is requested and apply
@@ -98,7 +121,7 @@ func (k *kafkaClient) EnsurePartitionCount(topic string, desired int32) (changed
 	}
 
 	if desired != int32(len(meta[0].Partitions)) {
-		// TODO: maybe let the user specify partition assignments
+		// TODO (tinyzimmer): maybe let the user specify partition assignments
 		assn := make([][]int32, 0)
 		changed = true
 		err = k.admin.CreatePartitions(topic, desired, assn, false)
