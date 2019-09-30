@@ -19,7 +19,7 @@ spec:
       app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
       app.kubernetes.io/component: operator
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   template:
     metadata:
       labels:
