@@ -15,6 +15,7 @@
 package vaultpki
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"reflect"
@@ -113,6 +114,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
+	ctx := context.Background()
 	mock, ln, client := newVaultMock(t)
 	defer ln.Close()
 
@@ -125,7 +127,7 @@ func TestAll(t *testing.T) {
 		t.Fatal("Failed to convert test cert to JKS")
 	}
 
-	if err := mock.ReconcilePKI(log, scheme.Scheme); err == nil {
+	if err := mock.ReconcilePKI(ctx, log, scheme.Scheme); err == nil {
 		t.Error("Expected resource not ready, got nil")
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 		t.Error("Expected resource not ready, got:", err)
@@ -149,16 +151,16 @@ func TestAll(t *testing.T) {
 	}))
 
 	// Should be safe to do multiple times
-	if err := mock.ReconcilePKI(log, scheme.Scheme); err != nil {
+	if err := mock.ReconcilePKI(ctx, log, scheme.Scheme); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
 	// Tear down PKI
-	if err := mock.FinalizePKI(log); err != nil {
+	if err := mock.FinalizePKI(ctx, log); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
-	if err := mock.ReconcilePKI(log, scheme.Scheme); err != nil {
+	if err := mock.ReconcilePKI(ctx, log, scheme.Scheme); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
@@ -166,28 +168,28 @@ func TestAll(t *testing.T) {
 		t.Error("Expected no error, got:", err)
 	}
 
-	if _, err := mock.ReconcileUserCertificate(newMockUser(), scheme.Scheme); err != nil {
+	if _, err := mock.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
 	// Safe to do multiple times
-	if _, err := mock.ReconcileUserCertificate(newMockUser(), scheme.Scheme); err != nil {
+	if _, err := mock.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
 	// Finalize PKI should block with an existing user
-	if err := mock.FinalizePKI(log); err == nil {
+	if err := mock.FinalizePKI(ctx, log); err == nil {
 		t.Error("Expected error trying to tear down non-empty PKI, got nil")
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 		t.Error("Expected resource not read err, got:", reflect.TypeOf(err))
 	}
 
-	if err := mock.FinalizeUserCertificate(newMockUser()); err != nil {
+	if err := mock.FinalizeUserCertificate(ctx, newMockUser()); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
 	// Tear down PKI should go through now
-	if err := mock.FinalizePKI(log); err != nil {
+	if err := mock.FinalizePKI(ctx, log); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 }

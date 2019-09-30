@@ -218,7 +218,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	// That way we can continue to manage topics and users
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		// reconcile the PKI
-		if err := pki.GetPKIManager(r.Client, r.KafkaCluster).ReconcilePKI(log, r.Scheme); err != nil {
+		if err := pki.GetPKIManager(r.Client, r.KafkaCluster).ReconcilePKI(context.TODO(), log, r.Scheme); err != nil {
 			return err
 		}
 	}

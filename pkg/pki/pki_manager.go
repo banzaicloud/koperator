@@ -15,6 +15,7 @@
 package pki
 
 import (
+	"context"
 	"crypto/tls"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
@@ -65,19 +66,19 @@ func newMockPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pkic
 	return &mockPKIManager{client: client, cluster: cluster}
 }
 
-func (m *mockPKIManager) ReconcilePKI(logger logr.Logger, scheme *runtime.Scheme) error {
+func (m *mockPKIManager) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme) error {
 	return nil
 }
 
-func (m *mockPKIManager) FinalizePKI(logger logr.Logger) error {
+func (m *mockPKIManager) FinalizePKI(ctx context.Context, logger logr.Logger) error {
 	return nil
 }
 
-func (m *mockPKIManager) ReconcileUserCertificate(user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pkicommon.UserCertificate, error) {
+func (m *mockPKIManager) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pkicommon.UserCertificate, error) {
 	return &pkicommon.UserCertificate{}, nil
 }
 
-func (m *mockPKIManager) FinalizeUserCertificate(user *v1alpha1.KafkaUser) error {
+func (m *mockPKIManager) FinalizeUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser) error {
 	return nil
 }
 

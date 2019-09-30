@@ -37,7 +37,7 @@ import (
 
 const namespaceCertManager = "cert-manager"
 
-func (c *certManager) FinalizePKI(logger logr.Logger) error {
+func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error {
 	logger.Info("Removing cert-manager certificates and secrets")
 
 	// Safety check that we are actually doing something
@@ -56,28 +56,28 @@ func (c *certManager) FinalizePKI(logger logr.Logger) error {
 			// Delete the certificates first so we don't accidentally recreate the
 			// secret after it gets deleted
 			cert := &certv1.Certificate{}
-			if err := c.client.Get(context.TODO(), obj, cert); err != nil {
+			if err := c.client.Get(ctx, obj, cert); err != nil {
 				if apierrors.IsNotFound(err) {
 					continue
 				} else {
 					return err
 				}
 			}
-			if err := c.client.Delete(context.TODO(), cert); err != nil {
+			if err := c.client.Delete(ctx, cert); err != nil {
 				return err
 			}
 
 			// Might as well delete the secret and leave the controller reference earlier
 			// as a safety belt
 			secret := &corev1.Secret{}
-			if err := c.client.Get(context.TODO(), obj, secret); err != nil {
+			if err := c.client.Get(ctx, obj, secret); err != nil {
 				if apierrors.IsNotFound(err) {
 					continue
 				} else {
 					return err
 				}
 			}
-			if err := c.client.Delete(context.TODO(), secret); err != nil {
+			if err := c.client.Delete(ctx, secret); err != nil {
 				return err
 			}
 		}
@@ -86,23 +86,23 @@ func (c *certManager) FinalizePKI(logger logr.Logger) error {
 	return nil
 }
 
-func (c *certManager) ReconcilePKI(logger logr.Logger, scheme *runtime.Scheme) (err error) {
+func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme) (err error) {
 	logger.Info("Reconciling cert-manager PKI")
 
-	resources, err := c.kafkapki(scheme)
+	resources, err := c.kafkapki(ctx, scheme)
 	if err != nil {
 		return err
 	}
 
 	for _, o := range resources {
-		if err := reconcile(logger, c.client, o, c.cluster); err != nil {
+		if err := reconcile(ctx, logger, c.client, o, c.cluster); err != nil {
 			return err
 		}
 	}
 
 	if c.cluster.Spec.ListenersConfig.SSLSecrets.Create {
 		// Grab ownership of CA secret for garbage collection
-		if err := ensureCASecretOwnership(c.client, c.cluster, scheme); err != nil {
+		if err := ensureCASecretOwnership(ctx, c.client, c.cluster, scheme); err != nil {
 			return err
 		}
 	}
@@ -110,11 +110,11 @@ func (c *certManager) ReconcilePKI(logger logr.Logger, scheme *runtime.Scheme) (
 	return nil
 }
 
-func (c *certManager) kafkapki(scheme *runtime.Scheme) ([]runtime.Object, error) {
+func (c *certManager) kafkapki(ctx context.Context, scheme *runtime.Scheme) ([]runtime.Object, error) {
 	if c.cluster.Spec.ListenersConfig.SSLSecrets.Create {
 		return fullPKI(c.cluster, scheme), nil
 	}
-	return userProvidedPKI(c.client, c.cluster, scheme)
+	return userProvidedPKI(ctx, c.client, c.cluster, scheme)
 }
 
 func fullPKI(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) []runtime.Object {
@@ -133,9 +133,9 @@ func fullPKI(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) []runtime.Ob
 	}
 }
 
-func userProvidedPKI(client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) ([]runtime.Object, error) {
+func userProvidedPKI(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) ([]runtime.Object, error) {
 	// If we aren't creating the secrets we need a cluster issuer made from the provided secret
-	caSecret, err := caSecretForProvidedCert(client, cluster, scheme)
+	caSecret, err := caSecretForProvidedCert(ctx, client, cluster, scheme)
 	if err != nil {
 		return nil, err
 	}
@@ -153,9 +153,9 @@ func userProvidedPKI(client client.Client, cluster *v1beta1.KafkaCluster, scheme
 	}, nil
 }
 
-func ensureCASecretOwnership(client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) error {
+func ensureCASecretOwnership(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) error {
 	secret := &corev1.Secret{}
-	if err := client.Get(context.TODO(), types.NamespacedName{
+	if err := client.Get(ctx, types.NamespacedName{
 		Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
 		Namespace: namespaceCertManager,
 	}, secret); err != nil {
@@ -170,15 +170,15 @@ func ensureCASecretOwnership(client client.Client, cluster *v1beta1.KafkaCluster
 		}
 		return errorfactory.New(errorfactory.InternalError{}, err, "failed to set controller reference on secret")
 	}
-	if err := client.Update(context.TODO(), secret); err != nil {
+	if err := client.Update(ctx, secret); err != nil {
 		return errorfactory.New(errorfactory.APIFailure{}, err, "failed to set controller reference on secret")
 	}
 	return nil
 }
 
-func caSecretForProvidedCert(client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) (*corev1.Secret, error) {
+func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
-	err := client.Get(context.TODO(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
+	err := client.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "could not find provided tls secret")

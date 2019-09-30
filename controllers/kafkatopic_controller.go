@@ -92,9 +92,12 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	reqLogger.Info("Reconciling KafkaTopic")
 	var err error
 
+	// Get a context for the request
+	ctx := context.Background()
+
 	// Fetch the KafkaTopic instance
 	instance := &v1alpha1.KafkaTopic{}
-	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
+	if err = r.Client.Get(ctx, request.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			return reconciled()
@@ -110,7 +113,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		// This shouldn't trigger anymore, but leaving it here as a safetybelt
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
 			reqLogger.Info("Cluster is already gone, there is nothing we can do")
-			if err = r.removeFinalizer(instance); err != nil {
+			if err = r.removeFinalizer(ctx, instance); err != nil {
 				return requeueWithError(reqLogger, "failed to remove finalizer", err)
 			}
 			return reconciled()
@@ -129,7 +132,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 
 	// Check if marked for deletion and if so run finalizers
 	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
-		return r.checkFinalizers(reqLogger, broker, instance)
+		return r.checkFinalizers(ctx, reqLogger, broker, instance)
 	}
 
 	// Check if the topic already exists
@@ -168,12 +171,12 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	// set controller reference to parent cluster
-	if instance, err = r.ensureControllerReference(cluster, instance); err != nil {
+	if instance, err = r.ensureControllerReference(ctx, cluster, instance); err != nil {
 		return requeueWithError(reqLogger, "failed to ensure controller reference", err)
 	}
 
 	// ensure kafkaCluster label
-	if instance, err = r.ensureClusterLabel(cluster, instance); err != nil {
+	if instance, err = r.ensureClusterLabel(ctx, cluster, instance); err != nil {
 		return requeueWithError(reqLogger, "failed to ensure kafkacluster label on topic", err)
 	}
 
@@ -187,13 +190,13 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	// TODO (tinyzimmer): This is sometimes failing the first reconcile attempt
 	// still with an "object already modified" error. It's benign, but should dig
 	// deeper at some point.
-	if err = r.Client.Update(context.TODO(), instance); err != nil {
+	if err = r.Client.Update(ctx, instance); err != nil {
 		return requeueWithError(reqLogger, "failed to update KafkaTopic", err)
 	}
 
 	// Fetch the updated object
 	instance = &v1alpha1.KafkaTopic{}
-	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
+	if err = r.Client.Get(ctx, request.NamespacedName, instance); err != nil {
 		return requeueWithError(reqLogger, "failed to retrieve updated topic instance", err)
 	}
 
@@ -215,7 +218,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	return reconciled()
 }
 
-func (r *KafkaTopicReconciler) ensureClusterLabel(cluster *v1beta1.KafkaCluster, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
+func (r *KafkaTopicReconciler) ensureClusterLabel(ctx context.Context, cluster *v1beta1.KafkaCluster, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
 	labelValue := clusterLabelString(cluster)
 	var labels map[string]string
 	if labels = topic.GetLabels(); labels == nil {
@@ -230,32 +233,32 @@ func (r *KafkaTopicReconciler) ensureClusterLabel(cluster *v1beta1.KafkaCluster,
 	}
 	if !reflect.DeepEqual(labels, topic.GetLabels()) {
 		topic.SetLabels(labels)
-		return r.updateAndFetchLatest(topic)
+		return r.updateAndFetchLatest(ctx, topic)
 	}
 	return topic, nil
 }
 
-func (r *KafkaTopicReconciler) ensureControllerReference(cluster *v1beta1.KafkaCluster, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
+func (r *KafkaTopicReconciler) ensureControllerReference(ctx context.Context, cluster *v1beta1.KafkaCluster, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
 	if err := controllerutil.SetControllerReference(cluster, topic, r.Scheme); err != nil {
 		if !k8sutil.IsAlreadyOwnedError(err) {
 			return nil, err
 		}
 	} else {
-		return r.updateAndFetchLatest(topic)
+		return r.updateAndFetchLatest(ctx, topic)
 	}
 	return topic, nil
 }
 
-func (r *KafkaTopicReconciler) updateAndFetchLatest(topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
-	if err := r.Client.Update(context.TODO(), topic); err != nil {
+func (r *KafkaTopicReconciler) updateAndFetchLatest(ctx context.Context, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
+	if err := r.Client.Update(ctx, topic); err != nil {
 		return nil, err
 	}
-	return r.fetchMostRecent(topic)
+	return r.fetchMostRecent(ctx, topic)
 }
 
-func (r *KafkaTopicReconciler) fetchMostRecent(topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
+func (r *KafkaTopicReconciler) fetchMostRecent(ctx context.Context, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
 	updated := &v1alpha1.KafkaTopic{}
-	err := r.Client.Get(context.TODO(), client.ObjectKey{Name: topic.Name, Namespace: topic.Namespace}, updated)
+	err := r.Client.Get(ctx, client.ObjectKey{Name: topic.Name, Namespace: topic.Namespace}, updated)
 	return updated, err
 }
 
@@ -275,9 +278,12 @@ func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1beta1.KafkaCluster, in
 
 func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaTopic) (bool, error) {
 
+	// get a context
+	ctx := context.Background()
+
 	// check if the topic still exists
 	topic := &v1alpha1.KafkaTopic{}
-	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, topic); err != nil {
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, topic); err != nil {
 		if apierrors.IsNotFound(err) {
 			syncLogger.Info("Topic has been deleted, stopping sync routine")
 			// return false to stop calling goroutine
@@ -296,7 +302,7 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster
 	// update status
 	updated := topic.DeepCopy()
 	updated.Status = *status
-	if err = r.Client.Status().Update(context.TODO(), updated); err != nil {
+	if err = r.Client.Status().Update(ctx, updated); err != nil {
 		syncLogger.Error(err, "Failed to update KafkaTopic status")
 		return true, err
 	}
@@ -320,23 +326,23 @@ func (r *KafkaTopicReconciler) getKafkaTopicStatus(log logr.Logger, cluster *v1b
 	return kafkaclient.TopicMetaToStatus(k.Brokers(), meta), nil
 }
 
-func (r *KafkaTopicReconciler) checkFinalizers(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {
+func (r *KafkaTopicReconciler) checkFinalizers(ctx context.Context, reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {
 	reqLogger.Info("Kafka topic is marked for deletion")
 	var err error
 	if util.StringSliceContains(topic.GetFinalizers(), topicFinalizer) {
 		if err = r.finalizeKafkaTopic(reqLogger, broker, topic); err != nil {
 			return requeueWithError(reqLogger, "failed to finalize kafkatopic", err)
 		}
-		if err = r.removeFinalizer(topic); err != nil {
+		if err = r.removeFinalizer(ctx, topic); err != nil {
 			return requeueWithError(reqLogger, "failed to remove finalizer from kafkatopic", err)
 		}
 	}
 	return reconciled()
 }
 
-func (r *KafkaTopicReconciler) removeFinalizer(topic *v1alpha1.KafkaTopic) error {
+func (r *KafkaTopicReconciler) removeFinalizer(ctx context.Context, topic *v1alpha1.KafkaTopic) error {
 	topic.SetFinalizers(util.StringSliceRemove(topic.GetFinalizers(), topicFinalizer))
-	return r.Client.Update(context.TODO(), topic)
+	return r.Client.Update(ctx, topic)
 }
 
 func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) error {

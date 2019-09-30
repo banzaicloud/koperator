@@ -15,6 +15,7 @@ operator:
     pullPolicy: IfNotPresent
   vaultAddress: ""
   vaultSecret: ""
+  verboseLogging: false
   resources:
     limits:
       cpu: 200m

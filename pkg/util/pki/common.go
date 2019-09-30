@@ -15,6 +15,7 @@
 package pki
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 
@@ -48,16 +49,16 @@ const (
 type PKIManager interface {
 	// ReconcilePKI ensures a PKI for a kafka cluster - should be idempotent.
 	// This method should at least setup any issuer needed for user certificates
-	ReconcilePKI(logger logr.Logger, scheme *runtime.Scheme) error
+	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme) error
 
 	// FinalizePKI performs any cleanup steps necessary for a PKI backend
-	FinalizePKI(logger logr.Logger) error
+	FinalizePKI(ctx context.Context, logger logr.Logger) error
 
 	// ReconcileUserCertificate ensures and returns a user certificate - should be idempotent
-	ReconcileUserCertificate(user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*UserCertificate, error)
+	ReconcileUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*UserCertificate, error)
 
 	// FinalizeUserCertificate removes/revokes a user certificate
-	FinalizeUserCertificate(user *v1alpha1.KafkaUser) error
+	FinalizeUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser) error
 
 	// GetControllerTLSConfig retrieves a TLS configuration for a controller kafka client
 	GetControllerTLSConfig() (*tls.Config, error)

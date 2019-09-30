@@ -15,6 +15,7 @@
 package pki
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -52,22 +53,23 @@ func TestGetPKIManager(t *testing.T) {
 	if reflect.TypeOf(mock) != reflect.TypeOf(&mockPKIManager{}) {
 		t.Error("Expected mock client got:", reflect.TypeOf(mock))
 	}
+	ctx := context.Background()
 
 	// Test mock functions
 	var err error
-	if err = mock.ReconcilePKI(log, scheme.Scheme); err != nil {
+	if err = mock.ReconcilePKI(ctx, log, scheme.Scheme); err != nil {
 		t.Error("Expected nil error got:", err)
 	}
 
-	if err = mock.FinalizePKI(log); err != nil {
+	if err = mock.FinalizePKI(ctx, log); err != nil {
 		t.Error("Expected nil error got:", err)
 	}
 
-	if _, err = mock.ReconcileUserCertificate(&v1alpha1.KafkaUser{}, scheme.Scheme); err != nil {
+	if _, err = mock.ReconcileUserCertificate(ctx, &v1alpha1.KafkaUser{}, scheme.Scheme); err != nil {
 		t.Error("Expected nil error got:", err)
 	}
 
-	if err = mock.FinalizeUserCertificate(&v1alpha1.KafkaUser{}); err != nil {
+	if err = mock.FinalizeUserCertificate(ctx, &v1alpha1.KafkaUser{}); err != nil {
 		t.Error("Expected nil error got:", err)
 	}
 

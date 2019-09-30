@@ -49,22 +49,23 @@ func newMockUserSecret() *corev1.Secret {
 
 func TestFinalizeUserCertificate(t *testing.T) {
 	manager := newMock(newMockCluster())
-	if err := manager.FinalizeUserCertificate(&v1alpha1.KafkaUser{}); err != nil {
+	if err := manager.FinalizeUserCertificate(context.Background(), &v1alpha1.KafkaUser{}); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 }
 
 func TestReconcileUserCertificate(t *testing.T) {
 	manager := newMock(newMockCluster())
+	ctx := context.Background()
 
 	manager.client.Create(context.TODO(), newMockUser())
-	if _, err := manager.ReconcileUserCertificate(newMockUser(), scheme.Scheme); err == nil {
+	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err == nil {
 		t.Error("Expected resource not ready error, got nil")
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 		t.Error("Expected resource not ready error, got:", reflect.TypeOf(err))
 	}
 	manager.client.Create(context.TODO(), newMockUserSecret())
-	if _, err := manager.ReconcileUserCertificate(newMockUser(), scheme.Scheme); err != nil {
+	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
@@ -72,7 +73,7 @@ func TestReconcileUserCertificate(t *testing.T) {
 	manager = newMock(newMockCluster())
 	manager.client.Create(context.TODO(), newMockUser())
 	manager.client.Create(context.TODO(), manager.clusterCertificateForUser(newMockUser(), scheme.Scheme))
-	if _, err := manager.ReconcileUserCertificate(newMockUser(), scheme.Scheme); err == nil {
+	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err == nil {
 		t.Error("Expected  error, got nil")
 	}
 }

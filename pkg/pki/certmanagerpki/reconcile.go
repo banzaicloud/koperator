@@ -30,69 +30,69 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func reconcile(log logr.Logger, client client.Client, object runtime.Object, cluster *v1beta1.KafkaCluster) (err error) {
+func reconcile(ctx context.Context, log logr.Logger, client client.Client, object runtime.Object, cluster *v1beta1.KafkaCluster) (err error) {
 	switch object.(type) {
 	case *certv1.ClusterIssuer:
 		issuer, _ := object.(*certv1.ClusterIssuer)
-		return reconcileClusterIssuer(log, client, issuer, cluster)
+		return reconcileClusterIssuer(ctx, log, client, issuer, cluster)
 	case *certv1.Certificate:
 		cert, _ := object.(*certv1.Certificate)
-		return reconcileCertificate(log, client, cert, cluster)
+		return reconcileCertificate(ctx, log, client, cert, cluster)
 	case *corev1.Secret:
 		secret, _ := object.(*corev1.Secret)
-		return reconcileSecret(log, client, secret, cluster)
+		return reconcileSecret(ctx, log, client, secret, cluster)
 	case *v1alpha1.KafkaUser:
 		user, _ := object.(*v1alpha1.KafkaUser)
-		return reconcileUser(log, client, user, cluster)
+		return reconcileUser(ctx, log, client, user, cluster)
 	default:
 		panic(fmt.Sprintf("Invalid object type: %v", reflect.TypeOf(object)))
 	}
 }
 
-func reconcileClusterIssuer(log logr.Logger, client client.Client, issuer *certv1.ClusterIssuer, cluster *v1beta1.KafkaCluster) error {
+func reconcileClusterIssuer(ctx context.Context, log logr.Logger, client client.Client, issuer *certv1.ClusterIssuer, cluster *v1beta1.KafkaCluster) error {
 	obj := &certv1.ClusterIssuer{}
 	var err error
-	if err = client.Get(context.TODO(), types.NamespacedName{Name: issuer.Name, Namespace: issuer.Namespace}, obj); err != nil {
+	if err = client.Get(ctx, types.NamespacedName{Name: issuer.Name, Namespace: issuer.Namespace}, obj); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
-		return client.Create(context.TODO(), issuer)
+		return client.Create(ctx, issuer)
 	}
 	return nil
 }
 
-func reconcileCertificate(log logr.Logger, client client.Client, cert *certv1.Certificate, cluster *v1beta1.KafkaCluster) error {
+func reconcileCertificate(ctx context.Context, log logr.Logger, client client.Client, cert *certv1.Certificate, cluster *v1beta1.KafkaCluster) error {
 	obj := &certv1.Certificate{}
 	var err error
-	if err = client.Get(context.TODO(), types.NamespacedName{Name: cert.Name, Namespace: cert.Namespace}, obj); err != nil {
+	if err = client.Get(ctx, types.NamespacedName{Name: cert.Name, Namespace: cert.Namespace}, obj); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
-		return client.Create(context.TODO(), cert)
+		return client.Create(ctx, cert)
 	}
 	return nil
 }
 
-func reconcileSecret(log logr.Logger, client client.Client, secret *corev1.Secret, cluster *v1beta1.KafkaCluster) error {
+func reconcileSecret(ctx context.Context, log logr.Logger, client client.Client, secret *corev1.Secret, cluster *v1beta1.KafkaCluster) error {
 	obj := &corev1.Secret{}
 	var err error
-	if err = client.Get(context.TODO(), types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, obj); err != nil {
+	if err = client.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, obj); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
-		return client.Create(context.TODO(), secret)
+		return client.Create(ctx, secret)
 	}
 	return nil
 }
 
-func reconcileUser(log logr.Logger, client client.Client, user *v1alpha1.KafkaUser, cluster *v1beta1.KafkaCluster) error {
+func reconcileUser(ctx context.Context, log logr.Logger, client client.Client, user *v1alpha1.KafkaUser, cluster *v1beta1.KafkaCluster) error {
 	obj := &v1alpha1.KafkaUser{}
 	var err error
-	if err = client.Get(context.TODO(), types.NamespacedName{Name: user.Name, Namespace: user.Namespace}, obj); err != nil {
+	if err = client.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: user.Namespace}, obj); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
-		return client.Create(context.TODO(), user)
+		return client.Create(ctx, user)
 	}
 	return nil
 }

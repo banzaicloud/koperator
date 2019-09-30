@@ -109,9 +109,13 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	reqLogger := r.Log.WithValues("kafkauser", request.NamespacedName, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KafkaUser")
 	var err error
+
+	// create a context for the request
+	ctx := context.Background()
+
 	// Fetch the KafkaUser instance
 	instance := &v1alpha1.KafkaUser{}
-	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
+	if err = r.Client.Get(ctx, request.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			return reconciled()
@@ -127,7 +131,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		// This shouldn't trigger anymore, but leaving it here as a safetybelt
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
 			reqLogger.Info("Cluster is gone already, there is nothing we can do")
-			if err = r.removeFinalizer(instance); err != nil {
+			if err = r.removeFinalizer(ctx, instance); err != nil {
 				return requeueWithError(reqLogger, "failed to remove finalizer from kafkauser", err)
 			}
 			return reconciled()
@@ -142,7 +146,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	// using the vault backend, then tried to delete and fix it. Should probably
 	// have the PKIManager export a GetUserCertificate specifically for deletions
 	// that will allow the error to fall through if the certificate doesn't exist.
-	user, err := pkiManager.ReconcileUserCertificate(instance, r.Scheme)
+	user, err := pkiManager.ReconcileUserCertificate(ctx, instance, r.Scheme)
 	if err != nil {
 		switch err.(type) {
 		case errorfactory.ResourceNotReady:
@@ -159,19 +163,19 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	// check if marked for deletion
 	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
 		reqLogger.Info("Kafka user is marked for deletion, revoking certificates")
-		if err = pkiManager.FinalizeUserCertificate(instance); err != nil {
+		if err = pkiManager.FinalizeUserCertificate(ctx, instance); err != nil {
 			return requeueWithError(reqLogger, "failed to finalize user certificate", err)
 		}
-		return r.checkFinalizers(reqLogger, cluster, instance, user)
+		return r.checkFinalizers(ctx, reqLogger, cluster, instance, user)
 	}
 
 	// ensure a controller reference on the user
-	if instance, err = r.ensureControllerReference(cluster, instance); err != nil {
+	if instance, err = r.ensureControllerReference(ctx, cluster, instance); err != nil {
 		return requeueWithError(reqLogger, "failed to ensure controller reference on user", err)
 	}
 
 	// ensure a kafkaCluster label
-	if instance, err = r.ensureClusterLabel(cluster, instance); err != nil {
+	if instance, err = r.ensureClusterLabel(ctx, cluster, instance); err != nil {
 		return requeueWithError(reqLogger, "failed to ensure kafkacluster label on user", err)
 	}
 
@@ -196,7 +200,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	// ensure a finalizer for cleanup on deletion
 	if !util.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
 		r.addFinalizer(reqLogger, instance)
-		if err = r.Client.Update(context.TODO(), instance); err != nil {
+		if err = r.Client.Update(ctx, instance); err != nil {
 			return requeueWithError(reqLogger, "failed to update kafkauser with finalizer", err)
 		}
 	}
@@ -204,18 +208,18 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	return reconciled()
 }
 
-func (r *KafkaUserReconciler) ensureControllerReference(cluster *v1beta1.KafkaCluster, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
+func (r *KafkaUserReconciler) ensureControllerReference(ctx context.Context, cluster *v1beta1.KafkaCluster, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
 	if err := controllerutil.SetControllerReference(cluster, user, r.Scheme); err != nil {
 		if !k8sutil.IsAlreadyOwnedError(err) {
 			return nil, err
 		}
 	} else {
-		return r.updateAndFetchLatest(user)
+		return r.updateAndFetchLatest(ctx, user)
 	}
 	return user, nil
 }
 
-func (r *KafkaUserReconciler) ensureClusterLabel(cluster *v1beta1.KafkaCluster, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
+func (r *KafkaUserReconciler) ensureClusterLabel(ctx context.Context, cluster *v1beta1.KafkaCluster, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
 	labelValue := clusterLabelString(cluster)
 	var labels map[string]string
 	if labels = user.GetLabels(); labels == nil {
@@ -230,25 +234,25 @@ func (r *KafkaUserReconciler) ensureClusterLabel(cluster *v1beta1.KafkaCluster, 
 	}
 	if !reflect.DeepEqual(labels, user.GetLabels()) {
 		user.SetLabels(labels)
-		return r.updateAndFetchLatest(user)
+		return r.updateAndFetchLatest(ctx, user)
 	}
 	return user, nil
 }
 
-func (r *KafkaUserReconciler) updateAndFetchLatest(user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
-	if err := r.Client.Update(context.TODO(), user); err != nil {
+func (r *KafkaUserReconciler) updateAndFetchLatest(ctx context.Context, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
+	if err := r.Client.Update(ctx, user); err != nil {
 		return nil, err
 	}
-	return r.fetchMostRecent(user)
+	return r.fetchMostRecent(ctx, user)
 }
 
-func (r *KafkaUserReconciler) fetchMostRecent(user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
+func (r *KafkaUserReconciler) fetchMostRecent(ctx context.Context, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
 	updated := &v1alpha1.KafkaUser{}
-	err := r.Client.Get(context.TODO(), client.ObjectKey{Name: user.Name, Namespace: user.Namespace}, updated)
+	err := r.Client.Get(ctx, client.ObjectKey{Name: user.Name, Namespace: user.Namespace}, updated)
 	return updated, err
 }
 
-func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaUser, user *pkicommon.UserCertificate) (reconcile.Result, error) {
+func (r *KafkaUserReconciler) checkFinalizers(ctx context.Context, reqLogger logr.Logger, cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaUser, user *pkicommon.UserCertificate) (reconcile.Result, error) {
 	// run finalizers
 	var err error
 	if util.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
@@ -258,16 +262,16 @@ func (r *KafkaUserReconciler) checkFinalizers(reqLogger logr.Logger, cluster *v1
 			}
 		}
 		// remove finalizer
-		if err = r.removeFinalizer(instance); err != nil {
+		if err = r.removeFinalizer(ctx, instance); err != nil {
 			return requeueWithError(reqLogger, "failed to remove finalizer from kafkauser", err)
 		}
 	}
 	return reconciled()
 }
 
-func (r *KafkaUserReconciler) removeFinalizer(user *v1alpha1.KafkaUser) error {
+func (r *KafkaUserReconciler) removeFinalizer(ctx context.Context, user *v1alpha1.KafkaUser) error {
 	user.SetFinalizers(util.StringSliceRemove(user.GetFinalizers(), userFinalizer))
-	return r.Client.Update(context.TODO(), user)
+	return r.Client.Update(ctx, user)
 }
 
 func (r *KafkaUserReconciler) finalizeKafkaUserACLs(reqLogger logr.Logger, cluster *v1beta1.KafkaCluster, user *pkicommon.UserCertificate) error {

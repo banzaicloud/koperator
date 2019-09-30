@@ -15,6 +15,7 @@
 package vaultpki
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -26,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (v *vaultPKI) ReconcileUserCertificate(user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pkicommon.UserCertificate, error) {
+func (v *vaultPKI) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pkicommon.UserCertificate, error) {
 	client, err := v.getClient()
 	if err != nil {
 		return nil, err
@@ -150,7 +151,7 @@ func certificatesMatch(cert1, cert2 *pkicommon.UserCertificate) bool {
 	return true
 }
 
-func (v *vaultPKI) FinalizeUserCertificate(user *v1alpha1.KafkaUser) (err error) {
+func (v *vaultPKI) FinalizeUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser) (err error) {
 	client, err := v.getClient()
 	if err != nil {
 		return

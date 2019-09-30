@@ -61,6 +61,9 @@ spec:
             - /manager
           args:
             - --enable-leader-election
+          {{- if .Values.operator.verboseLogging }}
+            - --verbose
+          {{- end }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           name: manager

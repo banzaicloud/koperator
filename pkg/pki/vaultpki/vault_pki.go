@@ -34,7 +34,7 @@ import (
 
 const pkiOU = "vault-pki"
 
-func (v *vaultPKI) FinalizePKI(logger logr.Logger) error {
+func (v *vaultPKI) FinalizePKI(ctx context.Context, logger logr.Logger) error {
 	vault, err := v.getClient()
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func (v *vaultPKI) FinalizePKI(logger logr.Logger) error {
 	return nil
 }
 
-func (v *vaultPKI) ReconcilePKI(logger logr.Logger, scheme *runtime.Scheme) (err error) {
+func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme) (err error) {
 	log := logger.WithName("vault_pki")
 
 	vault, err := v.getClient()
@@ -100,20 +100,20 @@ func (v *vaultPKI) ReconcilePKI(logger logr.Logger, scheme *runtime.Scheme) (err
 		}
 	}
 
-	brokerCert, err := v.reconcileBrokerCert(vault)
+	brokerCert, err := v.reconcileBrokerCert(ctx, vault)
 	if err != nil {
 		return
 	}
 
-	controllerCert, err := v.reconcileControllerCert(vault)
+	controllerCert, err := v.reconcileControllerCert(ctx, vault)
 	if err != nil {
 		return
 	}
 
-	return v.reconcileBootstrapSecrets(scheme, brokerCert, controllerCert)
+	return v.reconcileBootstrapSecrets(ctx, scheme, brokerCert, controllerCert)
 }
 
-func (v *vaultPKI) reconcileBootstrapSecrets(scheme *runtime.Scheme, brokerCert, controllerCert *pkicommon.UserCertificate) (err error) {
+func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtime.Scheme, brokerCert, controllerCert *pkicommon.UserCertificate) (err error) {
 	serverSecret := &corev1.Secret{}
 	clientSecret := &corev1.Secret{}
 
@@ -172,7 +172,7 @@ func (v *vaultPKI) reconcileBootstrapSecrets(scheme *runtime.Scheme, brokerCert,
 	}
 
 	for _, o := range toCreate {
-		if err = v.client.Create(context.TODO(), o); err != nil {
+		if err = v.client.Create(ctx, o); err != nil {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "failed to create bootstrap secret", "secret", o.Name)
 		}
 	}
@@ -180,19 +180,19 @@ func (v *vaultPKI) reconcileBootstrapSecrets(scheme *runtime.Scheme, brokerCert,
 	return
 }
 
-func (v *vaultPKI) reconcileBrokerCert(vault *vaultapi.Client) (*pkicommon.UserCertificate, error) {
-	return v.reconcileStartupUser(vault, pkicommon.BrokerUserForCluster(v.cluster))
+func (v *vaultPKI) reconcileBrokerCert(ctx context.Context, vault *vaultapi.Client) (*pkicommon.UserCertificate, error) {
+	return v.reconcileStartupUser(ctx, vault, pkicommon.BrokerUserForCluster(v.cluster))
 }
 
-func (v *vaultPKI) reconcileControllerCert(vault *vaultapi.Client) (*pkicommon.UserCertificate, error) {
-	return v.reconcileStartupUser(vault, pkicommon.ControllerUserForCluster(v.cluster))
+func (v *vaultPKI) reconcileControllerCert(ctx context.Context, vault *vaultapi.Client) (*pkicommon.UserCertificate, error) {
+	return v.reconcileStartupUser(ctx, vault, pkicommon.ControllerUserForCluster(v.cluster))
 }
 
-func (v *vaultPKI) reconcileStartupUser(vault *vaultapi.Client, user *v1alpha1.KafkaUser) (cert *pkicommon.UserCertificate, err error) {
+func (v *vaultPKI) reconcileStartupUser(ctx context.Context, vault *vaultapi.Client, user *v1alpha1.KafkaUser) (cert *pkicommon.UserCertificate, err error) {
 	existing := &v1alpha1.KafkaUser{}
-	if err := v.client.Get(context.TODO(), types.NamespacedName{Name: user.Name, Namespace: user.Namespace}, existing); err != nil {
+	if err := v.client.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: user.Namespace}, existing); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err = v.client.Create(context.TODO(), user); err != nil {
+			if err = v.client.Create(ctx, user); err != nil {
 				return nil, err
 			}
 		}

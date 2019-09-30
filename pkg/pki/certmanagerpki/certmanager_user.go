@@ -33,19 +33,21 @@ import (
 )
 
 // FinalizeUserCertificate for cert-manager backend auto returns because controller references handle cleanup
-func (c *certManager) FinalizeUserCertificate(user *v1alpha1.KafkaUser) (err error) { return }
+func (c *certManager) FinalizeUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser) (err error) {
+	return
+}
 
 // ReconcileUserCertificate ensures a certificate/secret combination using cert-manager
-func (c *certManager) ReconcileUserCertificate(user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pkicommon.UserCertificate, error) {
+func (c *certManager) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pkicommon.UserCertificate, error) {
 	var err error
 	var secret *corev1.Secret
 	// See if we have an existing certificate for this user already
-	_, err = c.getUserCertificate(user)
+	_, err = c.getUserCertificate(ctx, user)
 
 	if err != nil && apierrors.IsNotFound(err) {
 		// the certificate does not exist, let's make one
 		cert := c.clusterCertificateForUser(user, scheme)
-		if err = c.client.Create(context.TODO(), cert); err != nil {
+		if err = c.client.Create(ctx, cert); err != nil {
 			return nil, errorfactory.New(errorfactory.APIFailure{}, err, "could not create user certificate")
 		}
 
@@ -55,19 +57,19 @@ func (c *certManager) ReconcileUserCertificate(user *v1alpha1.KafkaUser, scheme 
 	}
 
 	// Get the secret created from the certificate
-	secret, err = c.getUserSecret(user)
+	secret, err = c.getUserSecret(ctx, user)
 	if err != nil {
 		return nil, err
 	}
 
 	if user.Spec.IncludeJKS {
-		if secret, err = c.injectJKS(user, secret); err != nil {
+		if secret, err = c.injectJKS(ctx, user, secret); err != nil {
 			return nil, err
 		}
 	}
 
 	// Ensure controller reference on user secret
-	if err = c.ensureControllerReference(user, secret, scheme); err != nil {
+	if err = c.ensureControllerReference(ctx, user, secret, scheme); err != nil {
 		return nil, err
 	}
 
@@ -79,25 +81,25 @@ func (c *certManager) ReconcileUserCertificate(user *v1alpha1.KafkaUser, scheme 
 }
 
 // injectJKS ensures that a secret contains JKS format when requested
-func (c *certManager) injectJKS(user *v1alpha1.KafkaUser, secret *corev1.Secret) (*corev1.Secret, error) {
+func (c *certManager) injectJKS(ctx context.Context, user *v1alpha1.KafkaUser, secret *corev1.Secret) (*corev1.Secret, error) {
 	var err error
 	if secret, err = certutil.EnsureSecretJKS(secret); err != nil {
 		return nil, errorfactory.New(errorfactory.InternalError{}, err, "could not inject secret with jks")
 	}
-	if err = c.client.Update(context.TODO(), secret); err != nil {
+	if err = c.client.Update(ctx, secret); err != nil {
 		return nil, errorfactory.New(errorfactory.APIFailure{}, err, "could not update secret with jks")
 	}
 	// Fetch the updated secret
-	return c.getUserSecret(user)
+	return c.getUserSecret(ctx, user)
 }
 
 // ensureControllerReference ensures that a KafkaUser owns a given Secret
-func (c *certManager) ensureControllerReference(user *v1alpha1.KafkaUser, secret *corev1.Secret, scheme *runtime.Scheme) error {
+func (c *certManager) ensureControllerReference(ctx context.Context, user *v1alpha1.KafkaUser, secret *corev1.Secret, scheme *runtime.Scheme) error {
 	err := controllerutil.SetControllerReference(user, secret, scheme)
 	if err != nil && !k8sutil.IsAlreadyOwnedError(err) {
 		return errorfactory.New(errorfactory.InternalError{}, err, "error checking controller reference on user secret")
 	} else if err == nil {
-		if err = c.client.Update(context.TODO(), secret); err != nil {
+		if err = c.client.Update(ctx, secret); err != nil {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "could not update secret with controller reference")
 		}
 	}
@@ -105,16 +107,16 @@ func (c *certManager) ensureControllerReference(user *v1alpha1.KafkaUser, secret
 }
 
 // getUserCertificate fetches the cert-manager Certificate for a user
-func (c *certManager) getUserCertificate(user *v1alpha1.KafkaUser) (*certv1.Certificate, error) {
+func (c *certManager) getUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser) (*certv1.Certificate, error) {
 	cert := &certv1.Certificate{}
-	err := c.client.Get(context.TODO(), types.NamespacedName{Name: user.Name, Namespace: user.Namespace}, cert)
+	err := c.client.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: user.Namespace}, cert)
 	return cert, err
 }
 
 // getUserSecret fetches the secret created from a cert-manager Certificate for a user
-func (c *certManager) getUserSecret(user *v1alpha1.KafkaUser) (secret *corev1.Secret, err error) {
+func (c *certManager) getUserSecret(ctx context.Context, user *v1alpha1.KafkaUser) (secret *corev1.Secret, err error) {
 	secret = &corev1.Secret{}
-	err = c.client.Get(context.TODO(), types.NamespacedName{Name: user.Spec.SecretName, Namespace: user.Namespace}, secret)
+	err = c.client.Get(ctx, types.NamespacedName{Name: user.Spec.SecretName, Namespace: user.Namespace}, secret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "user secret not ready")
