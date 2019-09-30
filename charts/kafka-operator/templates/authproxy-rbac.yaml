@@ -1,6 +1,12 @@
 {{- if and .Values.rbac.enabled .Values.prometheusMetrics.enabled .Values.prometheusMetrics.authProxy.enabled }}
 apiVersion: v1
 kind: ServiceAccount
+{{- if .Values.imagePullSecrets }}
+imagePullSecrets:
+{{- range .Values.imagePullSecrets }}
+  - name: {{ . }}
+{{- end }}
+{{- end }}
 metadata:
   name: {{ include "kafka-operator.fullname" . }}-authproxy
   labels:

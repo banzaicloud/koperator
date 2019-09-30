@@ -1,6 +1,12 @@
 {{- if .Values.rbac.enabled }}
 apiVersion: v1
 kind: ServiceAccount
+{{- if .Values.imagePullSecrets }}
+imagePullSecrets:
+{{- range .Values.imagePullSecrets }}
+  - name: {{ . }}
+{{- end }}
+{{- end }}
 metadata:
   name: {{ include "kafka-operator.fullname" . }}-operator
   labels:

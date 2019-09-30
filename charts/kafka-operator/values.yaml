@@ -4,6 +4,10 @@
 
 replicaCount: 1
 
+# Lists the secrets you need to use to pull kafka-operator image from a private registry.
+imagePullSecrets: []
+  # - private-registry-key
+
 operator:
   image:
     repository: banzaicloud/kafka-operator
