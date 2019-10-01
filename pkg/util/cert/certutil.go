@@ -33,6 +33,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// passChars are the characters used when generating passwords
+var passChars []rune = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+	"abcdefghijklmnopqrstuvwxyz" +
+	"0123456789")
+
 // DecodeKey will take a PEM encoded Private Key and convert to raw der bytes
 func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 	block, _ := pem.Decode(raw)
@@ -73,12 +78,9 @@ func DecodeCertificate(raw []byte) (cert *x509.Certificate, err error) {
 // GeneratePass generates a random password
 func GeneratePass(length int) (passw []byte) {
 	mathrand.Seed(time.Now().UnixNano())
-	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-		"abcdefghijklmnopqrstuvwxyz" +
-		"0123456789")
 	var b strings.Builder
 	for i := 0; i < length; i++ {
-		b.WriteRune(chars[mathrand.Intn(len(chars))])
+		b.WriteRune(passChars[mathrand.Intn(len(passChars))])
 	}
 	passw = []byte(b.String())
 	return

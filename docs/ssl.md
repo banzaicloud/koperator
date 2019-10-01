@@ -115,4 +115,108 @@ You just need to add `includeJKS: true` to the `spec` like shown above, and then
 |:-----------------------:|:---------------------|
 | `tls.jks`               | The java keystore containing both the user keys and the CA (use this for your keystore AND truststore) |
 | `pass.txt`              | The password to decrypt the JKS (this will be randomly generated) |
-| `client-ssl.properties` | An example properties file that can be used with a Java application or the `kafka-console-consumer` and `kafka-console-producer` |
+
+## Using different secret/PKI backends
+
+The operator supports using a back-end other than `cert-manager` for the PKI and user secrets.
+For now there is just an additional option of using `vault`.
+An easy way to get up and running quickly with `vault` on your Kubernetes cluster is to use [`bank-vaults`](https://github.com/banzaicloud/bank-vaults).
+To set up `bank-vaults`, a `vault` instance, and the `vault-secrets-webhook`, you can run the following:
+
+```bash
+git clone https://github.com/banzaicloud/bank-vaults
+cd bank-vaults
+
+# setup the operator and a vault instance
+kubectl apply -f operator/deploy/rbac.yaml
+kubectl apply -f operator/deploy/operator-rbac.yaml
+kubectl apply -f operator/deploy/operator.yaml
+kubectl apply -f operator/deploy/cr.yaml
+
+# install the pod injector webhook (optional)
+helm install --namespace vault-infra --name vault-secrets-webhook banzaicloud-stable/vault-secrets-webhook
+```
+
+With a vault instance in the cluster, you can deploy the operator with vault credentials.
+First create a secret with the vault token and CA certificate by running:
+
+```bash
+# These values match the manifests applied above, they may be different for you
+VAULT_TOKEN=$(kubectl get secrets vault-unseal-keys -o jsonpath={.data.vault-root} | base64 --decode)
+VAULT_CACERT=$(kubectl get secret vault-tls -o jsonpath="{.data.ca\.crt}" | base64 --decode)
+
+# create the kafka namespace if you haven't already
+kubectl create ns kafka
+
+# Create a Kubernetes secret with the token and CA cert
+kubectl -n kafka create secret generic vault-keys --from-literal=vault.token=${VAULT_TOKEN} --from-literal=ca.crt="${VAULT_CACERT}"
+```
+
+Then, if using the `kafka-operator` helm chart:
+
+```bash
+helm install \
+  --name kafka-operator \
+  --namespace kafka \
+  --set operator.vaultAddress=https://vault.default.svc.cluster.local:8200 \
+  --set operator.vaultSecret=vault-keys \
+  banzaicloud-stable/kafka-operator
+```
+
+You will now be able to specify the `vault` back-end when using the managed PKI. Your `sslSecrets` would look like this:
+
+```yaml
+sslSecrets:
+  tlsSecretName: "test-kafka-operator"
+  jksPasswordName: "test-kafka-operator-pass"
+  create: true
+  pkiBackend: vault
+```
+
+When a cluster is using the `vault` back-end the `KafkaUser` CRs will store their secrets in `vault` instead of Kubernetes secrets.
+For example, if you installed the `vault-secrets-webhook` above, you could create a `KafkaUser` and ingest the keys like so:
+
+```yaml
+# A KafkaUser with permission to read from 'test-topic'
+apiVersion: kafka.banzaicloud.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: test-kafka-consumer
+spec:
+  clusterRef:
+    name: kafka
+    namespace: kafka
+  secretName: test-kafka-consumer
+  topicGrants:
+    - topicName: test-topic
+      accessType: read
+---
+# A pod containing a consumer using the above credentials
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kafka-test-pod
+  annotations:
+    # annotations for the vault-secrets-webhook
+    vault.security.banzaicloud.io/vault-addr: "https://vault:8200"
+    vault.security.banzaicloud.io/vault-tls-secret: "vault-tls"
+spec:
+
+  containers:
+
+    # Container reading from topic with the consumer credentials
+    - name: consumer
+      image: banzaicloud/kafka-test:latest
+      env:
+        - name: KAFKA_MODE
+          value: consumer
+        - name: KAFKA_TLS_CERT
+          value: "vault:secret/data/test-kafka-consumer#tls.crt"
+        - name: KAFKA_TLS_KEY
+          value: "vault:secret/data/test-kafka-consumer#tls.key"
+        - name: KAFKA_TLS_CA
+          value: "vault:secret/data/test-kafka-consumer#ca.crt"
+```
+
+When no `kv` mount is supplied for `secretName` like in the user above, the operator will assume the default `kv` mount at `secret/`.
+You can pass the `secretName` as a full `vault` path to specify a different secrets mount to store your user certificates.

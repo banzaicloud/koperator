@@ -113,12 +113,14 @@ func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme 
 	return v.reconcileBootstrapSecrets(ctx, scheme, brokerCert, controllerCert)
 }
 
+// reconcileBootstrapSecrets creates the secret mounts for cruise control and the kafka brokers
 func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtime.Scheme, brokerCert, controllerCert *pkicommon.UserCertificate) (err error) {
 	serverSecret := &corev1.Secret{}
 	clientSecret := &corev1.Secret{}
 
 	toCreate := make([]*corev1.Secret, 0)
 
+	// The server keystore volume
 	if err = v.client.Get(
 		context.TODO(),
 		types.NamespacedName{
@@ -145,6 +147,7 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 		}
 	}
 
+	// the cruise control keystore volume
 	if err = v.client.Get(
 		context.TODO(),
 		types.NamespacedName{

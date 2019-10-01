@@ -146,6 +146,11 @@ type SSLSecrets struct {
 	PKIBackend PKIBackend `json:"pkiBackend,omitempty"`
 }
 
+// TODO (tinyzimmer): The above are all optional now in one way or another.
+// Would be another good use-case for a pre-admission hook
+// E.g. TLSSecretName and JKSPasswordName are only required if Create is false
+// Or heck, do we even want to bother supporting an imported PKI?
+
 // ExternalListenerConfig defines the external listener config for Kafka
 type ExternalListenerConfig struct {
 	Type                 string `json:"type"`

@@ -22,11 +22,11 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 )
 
-// TopicMetaToStatus takes the output of KafkaClient.Brokers() and the output
-// of KafkaClient.DescribeTopic() and converts it to a v1alpha1.KafkaTopicStatus
-func TopicMetaToStatus(brokers map[int32]string, meta *sarama.TopicMetadata) *v1alpha1.KafkaTopicStatus {
+// TopicMetaToStatus takes the output of KafkaClient.DescribeTopic() and converts it to a v1alpha1.KafkaTopicStatus
+func (k *kafkaClient) TopicMetaToStatus(meta *sarama.TopicMetadata) *v1alpha1.KafkaTopicStatus {
 	status := newKafkaTopicStatus()
 	status.PartitionCount = int32(len(meta.Partitions))
+	brokers := k.Brokers()
 	for _, partMeta := range meta.Partitions {
 		status = appendPartMetaToStatus(status, brokers, partMeta)
 	}

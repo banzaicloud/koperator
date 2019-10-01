@@ -39,6 +39,9 @@ func reconciled() (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
+// getClusterRefNamespace returns the expected namespace for a kafka cluster
+// referenced by a user/topic CR. It takes the namespace of the CR as the first
+// argument and the reference itself as the second.
 func getClusterRefNamespace(ns string, ref v1alpha1.ClusterReference) string {
 	clusterNamespace := ref.Namespace
 	if clusterNamespace == "" {
@@ -47,10 +50,13 @@ func getClusterRefNamespace(ns string, ref v1alpha1.ClusterReference) string {
 	return clusterNamespace
 }
 
+// clusterLabelString returns the label value for a cluster reference
 func clusterLabelString(cluster *v1beta1.KafkaCluster) string {
 	return fmt.Sprintf("%s.%s", cluster.Name, cluster.Namespace)
 }
 
+// newBrokerConnection is a convenience wrapper for creating a broker connection
+// and creating a safer close function
 func newBrokerConnection(log logr.Logger, client client.Client, cluster *v1beta1.KafkaCluster) (broker kafkaclient.KafkaClient, close func(), err error) {
 
 	// Get a kafka connection
@@ -69,6 +75,8 @@ func newBrokerConnection(log logr.Logger, client client.Client, cluster *v1beta1
 	return
 }
 
+// checkBrokerConnectionError is a convenience wrapper for returning from common
+// broker connection errors
 func checkBrokerConnectionError(logger logr.Logger, err error) (ctrl.Result, error) {
 	switch err.(type) {
 	case errorfactory.BrokersUnreachable:
@@ -90,4 +98,20 @@ func checkBrokerConnectionError(logger logr.Logger, err error) (ctrl.Result, err
 	default:
 		return requeueWithError(logger, err.Error(), err)
 	}
+}
+
+// applyClusterRefLabel ensures a map of labels contains a reference to a parent kafka cluster
+func applyClusterRefLabel(cluster *v1beta1.KafkaCluster, labels map[string]string) map[string]string {
+	labelValue := clusterLabelString(cluster)
+	if labels == nil {
+		labels = make(map[string]string, 0)
+	}
+	if label, ok := labels[clusterRefLabel]; ok {
+		if label != labelValue {
+			labels[clusterRefLabel] = labelValue
+		}
+	} else {
+		labels[clusterRefLabel] = labelValue
+	}
+	return labels
 }

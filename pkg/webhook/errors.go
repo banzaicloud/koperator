@@ -20,6 +20,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
+// TODO (tinyzimmer): This may be better suited for the errorfactory package
+
 func IsAdmissionCantConnect(err error) bool {
 	if apierrors.IsServiceUnavailable(err) && strings.Contains(err.Error(), cantConnectErrorMsg) {
 		return true

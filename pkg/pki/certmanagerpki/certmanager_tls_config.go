@@ -28,6 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// GetControllerTLSConfig creates a TLS config from the user secret created for
+// cruise control and manager operations
 func (c *certManager) GetControllerTLSConfig() (config *tls.Config, err error) {
 	config = &tls.Config{}
 	tlsKeys := &corev1.Secret{}

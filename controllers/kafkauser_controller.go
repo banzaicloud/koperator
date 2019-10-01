@@ -220,18 +220,7 @@ func (r *KafkaUserReconciler) ensureControllerReference(ctx context.Context, clu
 }
 
 func (r *KafkaUserReconciler) ensureClusterLabel(ctx context.Context, cluster *v1beta1.KafkaCluster, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
-	labelValue := clusterLabelString(cluster)
-	var labels map[string]string
-	if labels = user.GetLabels(); labels == nil {
-		labels = make(map[string]string, 0)
-	}
-	if label, ok := labels[clusterRefLabel]; ok {
-		if label != labelValue {
-			labels[clusterRefLabel] = labelValue
-		}
-	} else {
-		labels[clusterRefLabel] = labelValue
-	}
+	labels := applyClusterRefLabel(cluster, user.GetLabels())
 	if !reflect.DeepEqual(labels, user.GetLabels()) {
 		user.SetLabels(labels)
 		return r.updateAndFetchLatest(ctx, user)

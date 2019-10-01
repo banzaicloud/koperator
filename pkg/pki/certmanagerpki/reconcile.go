@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// reconcile ensures the given kubernetes object
 func reconcile(ctx context.Context, log logr.Logger, client client.Client, object runtime.Object, cluster *v1beta1.KafkaCluster) (err error) {
 	switch object.(type) {
 	case *certv1.ClusterIssuer:
@@ -49,6 +50,7 @@ func reconcile(ctx context.Context, log logr.Logger, client client.Client, objec
 	}
 }
 
+// reconcileClusterIssuer ensures a cert-manager ClusterIssuer
 func reconcileClusterIssuer(ctx context.Context, log logr.Logger, client client.Client, issuer *certv1.ClusterIssuer, cluster *v1beta1.KafkaCluster) error {
 	obj := &certv1.ClusterIssuer{}
 	var err error
@@ -61,6 +63,7 @@ func reconcileClusterIssuer(ctx context.Context, log logr.Logger, client client.
 	return nil
 }
 
+// reconcileCertificate ensures a cert-manager certificate
 func reconcileCertificate(ctx context.Context, log logr.Logger, client client.Client, cert *certv1.Certificate, cluster *v1beta1.KafkaCluster) error {
 	obj := &certv1.Certificate{}
 	var err error
@@ -73,6 +76,7 @@ func reconcileCertificate(ctx context.Context, log logr.Logger, client client.Cl
 	return nil
 }
 
+// reconcileSecret ensures a Kubernetes secret
 func reconcileSecret(ctx context.Context, log logr.Logger, client client.Client, secret *corev1.Secret, cluster *v1beta1.KafkaCluster) error {
 	obj := &corev1.Secret{}
 	var err error
@@ -85,6 +89,7 @@ func reconcileSecret(ctx context.Context, log logr.Logger, client client.Client,
 	return nil
 }
 
+// reconcileUser ensures a v1alpha1.KafkaUser
 func reconcileUser(ctx context.Context, log logr.Logger, client client.Client, user *v1alpha1.KafkaUser, cluster *v1beta1.KafkaCluster) error {
 	obj := &v1alpha1.KafkaUser{}
 	var err error

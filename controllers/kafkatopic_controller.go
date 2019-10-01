@@ -84,9 +84,6 @@ type KafkaTopicReconciler struct {
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics/status,verbs=get;update;patch
 
 // Reconcile reconciles the kafka topic
-// Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := r.Log.WithValues("kafkatopic", request.NamespacedName, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KafkaTopic")
@@ -219,18 +216,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 }
 
 func (r *KafkaTopicReconciler) ensureClusterLabel(ctx context.Context, cluster *v1beta1.KafkaCluster, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
-	labelValue := clusterLabelString(cluster)
-	var labels map[string]string
-	if labels = topic.GetLabels(); labels == nil {
-		labels = make(map[string]string, 0)
-	}
-	if label, ok := labels[clusterRefLabel]; ok {
-		if label != labelValue {
-			labels[clusterRefLabel] = labelValue
-		}
-	} else {
-		labels[clusterRefLabel] = labelValue
-	}
+	labels := applyClusterRefLabel(cluster, topic.GetLabels())
 	if !reflect.DeepEqual(labels, topic.GetLabels()) {
 		topic.SetLabels(labels)
 		return r.updateAndFetchLatest(ctx, topic)
@@ -323,7 +309,7 @@ func (r *KafkaTopicReconciler) getKafkaTopicStatus(log logr.Logger, cluster *v1b
 		return nil, err
 	}
 
-	return kafkaclient.TopicMetaToStatus(k.Brokers(), meta), nil
+	return k.TopicMetaToStatus(meta), nil
 }
 
 func (r *KafkaTopicReconciler) checkFinalizers(ctx context.Context, reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {

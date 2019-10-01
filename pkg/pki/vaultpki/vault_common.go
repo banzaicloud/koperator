@@ -63,6 +63,45 @@ const (
 	vaultUseCSRSANS       = "use_csr_sans"
 )
 
+// getCAPath returns the path to the pki mount for a cluster
+func (v *vaultPKI) getCAPath() string {
+	return fmt.Sprintf("pki_%s", v.cluster.GetUID())
+}
+
+// getUserStorePath returns the path to where issued keys/certificates are
+// held persistently for use within the operator
+func (v *vaultPKI) getUserStorePath() string {
+	return fmt.Sprintf("pki_users_%s", v.cluster.GetUID())
+}
+
+// getIssuePath returns the path for issuing certificates for the cluster
+func (v *vaultPKI) getIssuePath() string {
+	return fmt.Sprintf("%s/issue/operator", v.getCAPath())
+}
+
+// getRevokePath returns the revocation path for a cluster
+func (v *vaultPKI) getRevokePath() string {
+	return fmt.Sprintf("%s/revoke", v.getCAPath())
+}
+
+// getStorePathForUser returns the persistent storage path for a user
+func (v *vaultPKI) getStorePathForUser(user *v1alpha1.KafkaUser) string {
+	return fmt.Sprintf("%s/%s", v.getUserStorePath(), user.GetUID())
+}
+
+// checkSecretPath checks if the provided path is a full vault path and
+// returns a modified path for the default backend if not
+func checkSecretPath(path string) string {
+	if len(strings.Split(path, "/")) == 1 {
+		return fmt.Sprintf("secret/%s", path)
+	}
+	return path
+}
+
+// getClient retrieves a vault client using the environment configuration
+// TODO (tinyzimmer): Allow for kubernetes service account authentication
+// to vault - also probably better to just use the secrets the same way the
+// vault-secrets-webhook does
 func getClient() (client *vaultapi.Client, err error) {
 	config := vaultapi.DefaultConfig()
 	if err = config.ReadEnvironment(); err != nil {
@@ -76,6 +115,26 @@ func getClient() (client *vaultapi.Client, err error) {
 	return
 }
 
+// newVaultSecretData returns raw POST data for a user certificate object
+func newVaultSecretData(isV2 bool, cert *pkicommon.UserCertificate) map[string]interface{} {
+	if isV2 {
+		return map[string]interface{}{
+			"data":    dataForUserCert(cert),
+			"options": map[string]interface{}{},
+		}
+	}
+	return dataForUserCert(cert)
+}
+
+// certificatesMatch checks if two certificate objects are identical
+func certificatesMatch(cert1, cert2 *pkicommon.UserCertificate) bool {
+	if string(cert1.CA) != string(cert2.CA) || string(cert1.Certificate) != string(cert2.Certificate) || string(cert1.Key) != string(cert2.Key) {
+		return false
+	}
+	return true
+}
+
+// list is a convenience wrapper for getting a list of objects at a path in vault
 func (v *vaultPKI) list(vault *vaultapi.Client, path string) (res []string, err error) {
 	res = make([]string, 0)
 	if path[len(path)-1:] != "/" {
@@ -102,6 +161,7 @@ func (v *vaultPKI) list(vault *vaultapi.Client, path string) (res []string, err 
 	return
 }
 
+// getCA returns the PEM encoded CA certificate for the cluster
 func (v *vaultPKI) getCA(vault *vaultapi.Client) (string, error) {
 	ca, err := vault.Logical().Read(
 		fmt.Sprintf("%s/cert/ca", v.getCAPath()),
@@ -122,6 +182,8 @@ func (v *vaultPKI) getCA(vault *vaultapi.Client) (string, error) {
 	return caCert, nil
 }
 
+// getSecret is a convenience wrapper for reading a vault path
+// It takes care of checking kv version pre-flight
 func getSecret(vault *vaultapi.Client, storePath string) (secret *vaultapi.Secret, v2 bool, err error) {
 	mountPath, v2, err := isKVv2(storePath, vault)
 	if err != nil {
@@ -134,6 +196,7 @@ func getSecret(vault *vaultapi.Client, storePath string) (secret *vaultapi.Secre
 	return
 }
 
+// rawToCertificate converts the response from an issue request to a UserCertificate object
 func rawToCertificate(data map[string]interface{}) *pkicommon.UserCertificate {
 	caCert, _ := data[vaultIssuerKey].(string)
 	clientCert, _ := data[vaultCertificateKey].(string)
@@ -148,6 +211,7 @@ func rawToCertificate(data map[string]interface{}) *pkicommon.UserCertificate {
 	}
 }
 
+// dataForUserCert converts a UserCertificate to data for writing to the persistent back-end
 func dataForUserCert(cert *pkicommon.UserCertificate) map[string]interface{} {
 	data := map[string]interface{}{
 		corev1.TLSCertKey:       string(cert.Certificate),
@@ -161,6 +225,7 @@ func dataForUserCert(cert *pkicommon.UserCertificate) map[string]interface{} {
 	return data
 }
 
+// userCertForData returns a UserCertificate object for data read from the persistent back-end
 func userCertForData(isV2 bool, data map[string]interface{}) (*pkicommon.UserCertificate, error) {
 	if isV2 {
 		var ok bool
@@ -199,29 +264,8 @@ func userCertForData(isV2 bool, data map[string]interface{}) (*pkicommon.UserCer
 	return cert, nil
 }
 
-func contains(vals []string, val string) bool {
-	for _, x := range vals {
-		if x == val {
-			return true
-		}
-	}
-	return false
-}
-
-func (v *vaultPKI) getCAPath() string {
-	return fmt.Sprintf("pki_%s", v.cluster.GetUID())
-}
-
-func (v *vaultPKI) getUserStorePath() string {
-	return fmt.Sprintf("pki_users_%s", v.cluster.GetUID())
-}
-
-func (v *vaultPKI) getIssuePath() string {
-	return fmt.Sprintf("%s/issue/operator", v.getCAPath())
-}
-
 // Below functions are pulled from github.com/hashicorp/vault/command/kv_helpers.go
-// Unfortunately they are not exported - but are useful for determining how to store
+// Unfortunately they are not exported - but are useful for determining how to read/store
 // a user's secret.
 // We use them to simulate `vault kv put`
 

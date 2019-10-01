@@ -54,7 +54,7 @@ func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pkicommo
 	}
 }
 
-// Mock types
+// Mock types and functions
 
 type mockPKIManager struct {
 	pkicommon.PKIManager

@@ -53,6 +53,8 @@ type KafkaClient interface {
 	AlterClusterWideConfig(map[string]*string) error
 	DescribeClusterWideConfig() ([]sarama.ConfigEntry, error)
 
+	TopicMetaToStatus(meta *sarama.TopicMetadata) *v1alpha1.KafkaTopicStatus
+
 	Open() error
 	Close() error
 }
