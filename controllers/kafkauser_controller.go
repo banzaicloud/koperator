@@ -212,9 +212,8 @@ func (r *KafkaUserReconciler) ensureControllerReference(ctx context.Context, clu
 	if err := controllerutil.SetControllerReference(cluster, user, r.Scheme); err != nil {
 		if !k8sutil.IsAlreadyOwnedError(err) {
 			return nil, err
-		} else {
-			return user, nil
 		}
+		return user, nil
 	}
 	return r.updateAndFetchLatest(ctx, user)
 }

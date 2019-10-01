@@ -228,9 +228,8 @@ func (r *KafkaTopicReconciler) ensureControllerReference(ctx context.Context, cl
 	if err := controllerutil.SetControllerReference(cluster, topic, r.Scheme); err != nil {
 		if !k8sutil.IsAlreadyOwnedError(err) {
 			return nil, err
-		} else {
-			return topic, nil
 		}
+		return topic, nil
 	}
 	return r.updateAndFetchLatest(ctx, topic)
 }
