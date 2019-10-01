@@ -33,6 +33,13 @@ ignored = [
   "github.com/prometheus/client_model",
   "github.com/prometheus/",
   "github.com/prometheus/client_golang",
-
+  "gopkg.in/square/go-jose.v2",
+  "github.com/hashicorp/vault/api",
+  "github.com/hashicorp/golang-lru",
+  "github.com/golang/groupcache",
+  "github.com/beorn7/perks",
+  "github.com/lyft/protoc-gen-validate",
+  "github.com/envoyproxy/go-control-plane",
+  "github.com/gogo/googleapis",
   "github.com/davecgh/go-spew", # ISC license
 ]
