@@ -27,14 +27,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// clusterRefLabel is the label key used for referencing KafkaUsers/KafkaTopics
+// to a KafkaCluster
 var clusterRefLabel = "kafkaCluster"
 
+// newKafkaFromCluster points to the function for retrieving kafka clients,
+// use as var so it can be overwritten from unit tests
+var newKafkaFromCluster = kafkaclient.NewFromCluster
+
+// requeueWithError is a convenience wrapper around logging an error message
+// separate from the stacktrace and then passing the error through to the controller
+// manager
 func requeueWithError(logger logr.Logger, msg string, err error) (ctrl.Result, error) {
 	// Info log the error message and then let the reconciler dump the stacktrace
 	logger.Info(msg)
 	return ctrl.Result{}, err
 }
 
+// reconciled returns an empty result with nil error to signal a successful reconcile
+// to the controller manager
 func reconciled() (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
@@ -61,7 +72,7 @@ func newBrokerConnection(log logr.Logger, client client.Client, cluster *v1beta1
 
 	// Get a kafka connection
 	log.Info(fmt.Sprintf("Retrieving Kafka client for %s/%s", cluster.Namespace, cluster.Name))
-	broker, err = kafkaclient.NewFromCluster(client, cluster)
+	broker, err = newKafkaFromCluster(client, cluster)
 	if err != nil {
 		return
 	}
