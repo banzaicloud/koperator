@@ -175,8 +175,14 @@ func getInternalListeners(iListeners []v1beta1.InternalListenerConfig, id int32,
 
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, superUsers []string, loadBalancerIP string, log logr.Logger) string {
 	parsedReadOnlyClusterConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ReadOnlyConfig)
+	var parsedReadOnlyBrokerConfig = map[string]string{}
 
-	parsedReadOnlyBrokerConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.Brokers[id].ReadOnlyConfig)
+	for _, broker := range r.KafkaCluster.Spec.Brokers {
+		if broker.Id == id {
+			parsedReadOnlyBrokerConfig = util.ParsePropertiesFormat(broker.ReadOnlyConfig)
+			break
+		}
+	}
 
 	if err := mergo.Merge(&parsedReadOnlyBrokerConfig, parsedReadOnlyClusterConfig); err != nil {
 		log.Error(err, "error occurred during merging readonly configs")
