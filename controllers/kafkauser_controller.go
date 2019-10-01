@@ -212,11 +212,11 @@ func (r *KafkaUserReconciler) ensureControllerReference(ctx context.Context, clu
 	if err := controllerutil.SetControllerReference(cluster, user, r.Scheme); err != nil {
 		if !k8sutil.IsAlreadyOwnedError(err) {
 			return nil, err
+		} else {
+			return user, nil
 		}
-	} else {
-		return r.updateAndFetchLatest(ctx, user)
 	}
-	return user, nil
+	return r.updateAndFetchLatest(ctx, user)
 }
 
 func (r *KafkaUserReconciler) ensureClusterLabel(ctx context.Context, cluster *v1beta1.KafkaCluster, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
