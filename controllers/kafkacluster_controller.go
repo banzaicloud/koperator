@@ -38,6 +38,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -74,7 +75,9 @@ type KafkaClusterReconciler struct {
 func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("kafkacluster", request.NamespacedName, "Request.Name", request.Name)
+
 	log.Info("Reconciling KafkaCluster")
+
 	// Fetch the KafkaCluster instance
 	instance := &v1beta1.KafkaCluster{}
 	err := r.Get(ctx, request.NamespacedName, instance)
@@ -143,7 +146,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	}
 
 	// Fetch the most recent cluster instance and ensure finalizer
-	if instance, err = r.fetchMostRecent(ctx, instance); err != nil {
+	if err = r.Client.Get(ctx, request.NamespacedName, instance); err != nil {
 		return requeueWithError(log, "failed to fetch latest kafkacluster instance", err)
 	}
 
@@ -176,6 +179,7 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 
 	var err error
 
+	// Fetch a list of all namespaces for DeleteAllOf requests
 	var namespaces corev1.NamespaceList
 	if err := r.Client.List(ctx, &namespaces); err != nil {
 		return requeueWithError(log, "failed to get namespace list", err)
@@ -210,55 +214,61 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 	// our controller certificate.
 	log.Info("Ensuring all topics have finished cleaning up")
 	var childTopics v1alpha1.KafkaTopicList
-	if err = r.Client.List(ctx, &childTopics); err != nil {
+	if err = r.Client.List(
+		ctx,
+		&childTopics,
+		client.InNamespace(metav1.NamespaceAll),
+		client.MatchingLabels{clusterRefLabel: clusterLabelString(cluster)},
+	); err != nil {
 		return requeueWithError(log, "failed to list kafkatopics", err)
 	}
-	for _, topic := range childTopics.Items {
-		if belongsToCluster(topic.Spec.ClusterRef, cluster) {
-			log.Info(fmt.Sprintf("Still waiting for topic %s/%s to be deleted", topic.Namespace, topic.Name))
-			return ctrl.Result{
-				Requeue:      true,
-				RequeueAfter: time.Duration(3) * time.Second,
-			}, nil
-		}
+	if len(childTopics.Items) > 0 {
+		log.Info(fmt.Sprintf("Still waiting for the following topics to be deleted: %v", topicListToStrSlice(childTopics)))
+		return ctrl.Result{
+			Requeue:      true,
+			RequeueAfter: time.Duration(3) * time.Second,
+		}, nil
 	}
 
-	// If we haven't deleted all kafkausers yet, iterate namespaces and delete all kafkausers
-	// with the matching label.
-	if util.StringSliceContains(cluster.GetFinalizers(), clusterUsersFinalizer) {
-		log.Info(fmt.Sprintf("Sending delete kafkausers request to all namespaces for cluster %s/%s", cluster.Namespace, cluster.Name))
-		for _, ns := range namespaces.Items {
-			if err := r.Client.DeleteAllOf(
-				ctx,
-				&v1alpha1.KafkaUser{},
-				client.InNamespace(ns.Name),
-				client.MatchingLabels{clusterRefLabel: clusterLabelString(cluster)},
-			); err != nil {
-				if client.IgnoreNotFound(err) != nil {
-					return requeueWithError(log, "failed to send delete request for children kafkausers", err)
+	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
+		// If we haven't deleted all kafkausers yet, iterate namespaces and delete all kafkausers
+		// with the matching label.
+		if util.StringSliceContains(cluster.GetFinalizers(), clusterUsersFinalizer) {
+			log.Info(fmt.Sprintf("Sending delete kafkausers request to all namespaces for cluster %s/%s", cluster.Namespace, cluster.Name))
+			for _, ns := range namespaces.Items {
+				if err := r.Client.DeleteAllOf(
+					ctx,
+					&v1alpha1.KafkaUser{},
+					client.InNamespace(ns.Name),
+					client.MatchingLabels{clusterRefLabel: clusterLabelString(cluster)},
+				); err != nil {
+					if client.IgnoreNotFound(err) != nil {
+						return requeueWithError(log, "failed to send delete request for children kafkausers", err)
+					}
+					log.Info(fmt.Sprintf("No matching kafkausers in namespace: %s", ns.Name))
 				}
-				log.Info(fmt.Sprintf("No matching kafkausers in namespace: %s", ns.Name))
+			}
+			if cluster, err = r.removeFinalizer(ctx, cluster, clusterUsersFinalizer); err != nil {
+				return requeueWithError(log, "failed to remove users finalizer from kafkacluster", err)
 			}
 		}
-		if cluster, err = r.removeFinalizer(ctx, cluster, clusterUsersFinalizer); err != nil {
-			return requeueWithError(log, "failed to remove users finalizer from kafkacluster", err)
-		}
-	}
 
-	// Do any necessary PKI cleanup - a PKI backend should make sure any
-	// user finalizations are done before it does its final cleanup
-	log.Info("Tearing down any PKI resources for the kafkacluster")
-	if err = pki.GetPKIManager(r.Client, cluster).FinalizePKI(ctx, log); err != nil {
-		switch err.(type) {
-		case errorfactory.ResourceNotReady:
-			log.Info("The PKI is not ready to be torn down")
-			return ctrl.Result{
-				Requeue:      true,
-				RequeueAfter: time.Duration(5) * time.Second,
-			}, nil
-		default:
-			return requeueWithError(log, "failed to finalize PKI", err)
+		// Do any necessary PKI cleanup - a PKI backend should make sure any
+		// user finalizations are done before it does its final cleanup
+		log.Info("Tearing down any PKI resources for the kafkacluster")
+		if err = pki.GetPKIManager(r.Client, cluster).FinalizePKI(ctx, log); err != nil {
+			switch err.(type) {
+			case errorfactory.ResourceNotReady:
+				log.Info("The PKI is not ready to be torn down")
+				return ctrl.Result{
+					Requeue:      true,
+					RequeueAfter: time.Duration(5) * time.Second,
+				}, nil
+			default:
+				return requeueWithError(log, "failed to finalize PKI", err)
+			}
 		}
+
 	}
 
 	log.Info("Finalizing deletion of kafkacluster instance")
@@ -272,6 +282,14 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func topicListToStrSlice(list v1alpha1.KafkaTopicList) []string {
+	names := make([]string, 0)
+	for _, topic := range list.Items {
+		names = append(names, fmt.Sprintf("%s/%s", topic.Namespace, topic.Name))
+	}
+	return names
 }
 
 func (r *KafkaClusterReconciler) ensureFinalizers(ctx context.Context, cluster *v1beta1.KafkaCluster) (updated *v1beta1.KafkaCluster, err error) {
@@ -290,23 +308,13 @@ func (r *KafkaClusterReconciler) removeFinalizer(ctx context.Context, cluster *v
 }
 
 func (r *KafkaClusterReconciler) updateAndFetchLatest(ctx context.Context, cluster *v1beta1.KafkaCluster) (*v1beta1.KafkaCluster, error) {
-	if err := r.Client.Update(ctx, cluster); err != nil {
+	typeMeta := cluster.TypeMeta
+	err := r.Client.Update(ctx, cluster)
+	if err != nil {
 		return nil, err
 	}
-	return r.fetchMostRecent(ctx, cluster)
-}
-
-func (r *KafkaClusterReconciler) fetchMostRecent(ctx context.Context, cluster *v1beta1.KafkaCluster) (*v1beta1.KafkaCluster, error) {
-	updated := &v1beta1.KafkaCluster{}
-	err := r.Client.Get(ctx, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, updated)
-	return updated, err
-}
-
-func belongsToCluster(ref v1alpha1.ClusterReference, cluster *v1beta1.KafkaCluster) bool {
-	if ref.Name == cluster.Name && ref.Namespace == cluster.Namespace {
-		return true
-	}
-	return false
+	cluster.TypeMeta = typeMeta
+	return cluster, nil
 }
 
 // SetupKafkaClusterWithManager registers kafka cluster controller to the manager

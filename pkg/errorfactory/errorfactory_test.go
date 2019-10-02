@@ -18,6 +18,8 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+
+	emperrors "emperror.dev/errors"
 )
 
 var errorTypes = []error{
@@ -44,7 +46,7 @@ func TestNew(t *testing.T) {
 		if got != expected {
 			t.Error("Expected:", expected, "got:", got)
 		}
-		if reflect.TypeOf(err) != reflect.TypeOf(errType) {
+		if !emperrors.As(err, &errType) {
 			t.Error("Expected:", reflect.TypeOf(errType), "got:", reflect.TypeOf(err))
 		}
 	}

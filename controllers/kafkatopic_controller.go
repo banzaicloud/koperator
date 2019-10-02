@@ -235,16 +235,13 @@ func (r *KafkaTopicReconciler) ensureControllerReference(ctx context.Context, cl
 }
 
 func (r *KafkaTopicReconciler) updateAndFetchLatest(ctx context.Context, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
-	if err := r.Client.Update(ctx, topic); err != nil {
+	typeMeta := topic.TypeMeta
+	err := r.Client.Update(ctx, topic)
+	if err != nil {
 		return nil, err
 	}
-	return r.fetchMostRecent(ctx, topic)
-}
-
-func (r *KafkaTopicReconciler) fetchMostRecent(ctx context.Context, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
-	updated := &v1alpha1.KafkaTopic{}
-	err := r.Client.Get(ctx, client.ObjectKey{Name: topic.Name, Namespace: topic.Namespace}, updated)
-	return updated, err
+	topic.TypeMeta = typeMeta
+	return topic, nil
 }
 
 func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaTopic, uid types.UID) {

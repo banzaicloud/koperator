@@ -228,16 +228,13 @@ func (r *KafkaUserReconciler) ensureClusterLabel(ctx context.Context, cluster *v
 }
 
 func (r *KafkaUserReconciler) updateAndFetchLatest(ctx context.Context, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
-	if err := r.Client.Update(ctx, user); err != nil {
+	typeMeta := user.TypeMeta
+	err := r.Client.Update(ctx, user)
+	if err != nil {
 		return nil, err
 	}
-	return r.fetchMostRecent(ctx, user)
-}
-
-func (r *KafkaUserReconciler) fetchMostRecent(ctx context.Context, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
-	updated := &v1alpha1.KafkaUser{}
-	err := r.Client.Get(ctx, client.ObjectKey{Name: user.Name, Namespace: user.Namespace}, updated)
-	return updated, err
+	user.TypeMeta = typeMeta
+	return user, nil
 }
 
 func (r *KafkaUserReconciler) checkFinalizers(ctx context.Context, reqLogger logr.Logger, cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaUser, user *pkicommon.UserCertificate) (reconcile.Result, error) {
