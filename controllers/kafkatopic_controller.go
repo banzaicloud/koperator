@@ -184,17 +184,8 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	// push any changes
-	// TODO (tinyzimmer): This is sometimes failing the first reconcile attempt
-	// still with an "object already modified" error. It's benign, but should dig
-	// deeper at some point.
-	if err = r.Client.Update(ctx, instance); err != nil {
+	if instance, err = r.updateAndFetchLatest(ctx, instance); err != nil {
 		return requeueWithError(reqLogger, "failed to update KafkaTopic", err)
-	}
-
-	// Fetch the updated object
-	instance = &v1alpha1.KafkaTopic{}
-	if err = r.Client.Get(ctx, request.NamespacedName, instance); err != nil {
-		return requeueWithError(reqLogger, "failed to retrieve updated topic instance", err)
 	}
 
 	// Do an initial topic status sync
@@ -282,9 +273,8 @@ func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster
 	}
 
 	// update status
-	updated := topic.DeepCopy()
-	updated.Status = *status
-	if err = r.Client.Status().Update(ctx, updated); err != nil {
+	topic.Status = *status
+	if err = r.Client.Status().Update(ctx, topic); err != nil {
 		syncLogger.Error(err, "Failed to update KafkaTopic status")
 		return true, err
 	}
@@ -324,7 +314,8 @@ func (r *KafkaTopicReconciler) checkFinalizers(ctx context.Context, reqLogger lo
 
 func (r *KafkaTopicReconciler) removeFinalizer(ctx context.Context, topic *v1alpha1.KafkaTopic) error {
 	topic.SetFinalizers(util.StringSliceRemove(topic.GetFinalizers(), topicFinalizer))
-	return r.Client.Update(ctx, topic)
+	_, err := r.updateAndFetchLatest(ctx, topic)
+	return err
 }
 
 func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) error {
