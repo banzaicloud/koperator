@@ -32,6 +32,13 @@ func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log lo
 	}
 	defer broker.Close()
 
+	topic, err := broker.GetTopic("__CruiseControlMetrics")
+
+	// topic exists
+	if err == nil && topic != nil {
+		return nil
+	}
+
 	return broker.CreateTopic(&kafkaclient.CreateTopicOptions{
 		Name:              "__CruiseControlMetrics",
 		Partitions:        12,
