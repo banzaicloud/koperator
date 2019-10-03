@@ -38,8 +38,8 @@ type UserTopicGrant struct {
 // KafkaUserStatus defines the observed state of KafkaUser
 // +k8s:openapi-gen=true
 type KafkaUserStatus struct {
-	SecretName  string           `json:"secretName"`
-	TopicGrants []UserTopicGrant `json:"topicGrants"`
+	State UserState `json:"state"`
+	ACLs  []string  `json:"acls,omitempty"`
 }
 
 //KafkaUser is the Schema for the kafka users API

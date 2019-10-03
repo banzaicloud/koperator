@@ -26,6 +26,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/pki"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	kafkautil "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
@@ -200,9 +201,20 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	// ensure a finalizer for cleanup on deletion
 	if !util.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
 		r.addFinalizer(reqLogger, instance)
-		if err = r.Client.Update(ctx, instance); err != nil {
+		if instance, err = r.updateAndFetchLatest(ctx, instance); err != nil {
 			return requeueWithError(reqLogger, "failed to update kafkauser with finalizer", err)
 		}
+	}
+
+	// set user status
+	instance.Status = v1alpha1.KafkaUserStatus{
+		State: v1alpha1.UserStateCreated,
+	}
+	if len(instance.Spec.TopicGrants) > 0 {
+		instance.Status.ACLs = kafkautil.GrantsToACLStrings(user.DN(), instance.Spec.TopicGrants)
+	}
+	if err := r.Client.Status().Update(ctx, instance); err != nil {
+		return requeueWithError(reqLogger, "failed to update kafkauser status", err)
 	}
 
 	return reconciled()
@@ -256,7 +268,8 @@ func (r *KafkaUserReconciler) checkFinalizers(ctx context.Context, reqLogger log
 
 func (r *KafkaUserReconciler) removeFinalizer(ctx context.Context, user *v1alpha1.KafkaUser) error {
 	user.SetFinalizers(util.StringSliceRemove(user.GetFinalizers(), userFinalizer))
-	return r.Client.Update(ctx, user)
+	_, err := r.updateAndFetchLatest(ctx, user)
+	return err
 }
 
 func (r *KafkaUserReconciler) finalizeKafkaUserACLs(reqLogger logr.Logger, cluster *v1beta1.KafkaCluster, user *pkicommon.UserCertificate) error {

@@ -16,9 +16,7 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -28,7 +26,6 @@ import (
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -39,11 +36,6 @@ import (
 )
 
 var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
-
-// TODO (tinyzimmer): Should this maybe just be one master sync routine
-// checking ALL known topics at an interval - or is it better to just have one
-// per topic
-var syncRoutines = make(map[types.UID]struct{}, 0)
 
 // SetupKafkaTopicWithManager registers kafka topic controller with manager
 func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
@@ -188,17 +180,10 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		return requeueWithError(reqLogger, "failed to update KafkaTopic", err)
 	}
 
-	// Do an initial topic status sync
-	if _, err = r.doTopicStatusSync(reqLogger, cluster, instance); err != nil {
-		return requeueWithError(reqLogger, "failed to update KafkaTopic status", err)
-	}
-
-	// Kick off a goroutine to sync topic status every 5 minutes
-	uid := instance.GetUID()
-	if _, ok := syncRoutines[uid]; !ok {
-		reqLogger.Info("Starting status sync routine for topic")
-		syncRoutines[uid] = struct{}{}
-		go r.syncTopicStatus(cluster, instance, uid)
+	// set topic status as created
+	instance.Status = v1alpha1.KafkaTopicStatus{State: v1alpha1.TopicStateCreated}
+	if err := r.Client.Status().Update(ctx, instance); err != nil {
+		return requeueWithError(reqLogger, "failed to update kafkatopic status", err)
 	}
 
 	reqLogger.Info("Ensured topic")
@@ -233,69 +218,6 @@ func (r *KafkaTopicReconciler) updateAndFetchLatest(ctx context.Context, topic *
 	}
 	topic.TypeMeta = typeMeta
 	return topic, nil
-}
-
-func (r *KafkaTopicReconciler) syncTopicStatus(cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaTopic, uid types.UID) {
-	syncLogger := r.Log.WithName(fmt.Sprintf("%s/%s_sync", instance.Namespace, instance.Name))
-	ticker := time.NewTicker(time.Duration(5) * time.Minute)
-	for range ticker.C {
-		syncLogger.Info("Syncing topic status")
-		if cont, _ := r.doTopicStatusSync(syncLogger, cluster, instance); !cont {
-			if _, ok := syncRoutines[uid]; ok {
-				delete(syncRoutines, uid)
-			}
-			return
-		}
-	}
-}
-
-func (r *KafkaTopicReconciler) doTopicStatusSync(syncLogger logr.Logger, cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaTopic) (bool, error) {
-
-	// get a context
-	ctx := context.Background()
-
-	// check if the topic still exists
-	topic := &v1alpha1.KafkaTopic{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, topic); err != nil {
-		if apierrors.IsNotFound(err) {
-			syncLogger.Info("Topic has been deleted, stopping sync routine")
-			// return false to stop calling goroutine
-			return false, nil
-		}
-		return true, err
-	}
-
-	// get topic status
-	status, err := r.getKafkaTopicStatus(syncLogger, cluster, topic)
-	if err != nil {
-		syncLogger.Error(err, "Failed to get current kafka topic status")
-		return true, err
-	}
-
-	// update status
-	topic.Status = *status
-	if err = r.Client.Status().Update(ctx, topic); err != nil {
-		syncLogger.Error(err, "Failed to update KafkaTopic status")
-		return true, err
-	}
-	return true, nil
-}
-
-func (r *KafkaTopicReconciler) getKafkaTopicStatus(log logr.Logger, cluster *v1beta1.KafkaCluster, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopicStatus, error) {
-	// grab a connection to kafka
-	k, close, err := newBrokerConnection(log, r.Client, cluster)
-	if err != nil {
-		return nil, err
-	}
-	defer close()
-
-	// get topic metadata
-	meta, err := k.DescribeTopic(topic.Spec.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	return k.TopicMetaToStatus(meta), nil
 }
 
 func (r *KafkaTopicReconciler) checkFinalizers(ctx context.Context, reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {

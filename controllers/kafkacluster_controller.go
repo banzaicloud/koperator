@@ -145,11 +145,6 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		}
 	}
 
-	// Fetch the most recent cluster instance and ensure finalizer
-	if err = r.Client.Get(ctx, request.NamespacedName, instance); err != nil {
-		return requeueWithError(log, "failed to fetch latest kafkacluster instance", err)
-	}
-
 	log.Info("ensuring finalizers on kafkacluster")
 	if instance, err = r.ensureFinalizers(ctx, instance); err != nil {
 		return requeueWithError(log, "failed to ensure finalizers on kafkacluster instance", err)
