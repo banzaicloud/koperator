@@ -29,3 +29,10 @@ empty.config=
 	}
 
 }
+
+func TestMonitoringAnnotations(t *testing.T) {
+	annotations := MonitoringAnnotations(8888)
+	if annotations["prometheus.io/port"] != "8888" {
+		t.Error("Error port not converted correctly")
+	}
+}
