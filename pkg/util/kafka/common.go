@@ -28,12 +28,23 @@ const (
 	HeadlessServiceTemplate = "%s-headless"
 )
 
+// commonAclString is the raw representation of an ACL allowing Describe on a Topic
 var commonAclString = "User:%s,Topic,LITERAL,%s,Describe,Allow,*"
+
+// createAclString is the raw representation of an ACL allowing Create on a Topic
 var createAclString = "User:%s,Topic,LITERAL,%s,Create,Allow,*"
+
+// writeAclString is the raw representation of an ACL allowing Write on a Topic
 var writeAclString = "User:%s,Topic,LITERAL,%s,Write,Allow,*"
+
+// reacAclString is the raw representation of an ACL allowing Read on a Topic
 var readAclString = "User:%s,Topic,LITERAL,%s,Read,Allow,*"
+
+// readGroupAclString is the raw representation of an ACL allowing Read on ConsumerGroups
 var readGroupAclString = "User:%s,Group,LITERAL,*,Read,Allow,*"
 
+// GrantsToACLStrings converts a user DN and a list of topic grants to raw strings
+// for a CR status
 func GrantsToACLStrings(dn string, grants []v1alpha1.UserTopicGrant) []string {
 	acls := make([]string, 0)
 	for _, x := range grants {
