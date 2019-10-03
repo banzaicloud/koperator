@@ -143,7 +143,7 @@ EOF
 Install the Operator and CustomResourceDefinitions to the `default` namespace
 ```bash
 # Install Prometheus-operator and CustomResourceDefinitions
-kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/bundle.yaml
+kubectl apply -n default -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/bundle.yaml
 ```
 
 Or install with helm
@@ -156,7 +156,7 @@ kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/ma
 kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/podmonitor.crd.yaml
 
 # Install only the Prometheus-operator
-helm install --name test  stable/prometheus-operator \
+helm install --name test --namespace default stable/prometheus-operator \
 --set prometheusOperator.createCustomResource=false \
 --set defaultRules.enabled=false \
 --set alertmanager.enabled=false \
@@ -197,7 +197,7 @@ volumeBindingMode: WaitForFirstConsumer
 # Add your zookeeper svc name to the configuration
 kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
 # If prometheus operator installed create the ServiceMonitors
-kubectl create -n kafka -f config/sample/kafkacluster-prometheus.yaml
+kubectl create -n default -f config/sample/kafkacluster-prometheus.yaml
 ```
 
 > In this case you have to install Prometheus with proper configuration if you want the Kafka-Operator to react to alerts. Again, if you need Prometheus and would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).

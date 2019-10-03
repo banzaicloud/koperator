@@ -23,8 +23,9 @@ import (
 
 // Dispatcher calls actioners based on alert annotations
 func Dispatcher(promAlerts []model.Alert, log logr.Logger, client client.Client) {
+
 	storedAlerts := currentalert.GetCurrentAlerts()
-	for _, promAlert := range promAlerts {
+	for _, promAlert := range alertFilter(promAlerts) {
 		store := currentalert.AlertState{
 			FingerPrint: promAlert.Fingerprint(),
 			Status:      promAlert.Status(),
@@ -45,4 +46,17 @@ func Dispatcher(promAlerts []model.Alert, log logr.Logger, client client.Client)
 			log.Error(err, "failed to handle alert", "fingerprint", key)
 		}
 	}
+}
+
+func alertFilter(promAlerts []model.Alert) []model.Alert {
+
+	filteredAlerts := []model.Alert{}
+	for _, alert := range promAlerts {
+		if _, labelOK := alert.Labels["kafka_cr"]; labelOK {
+			if _, annotationOK := alert.Annotations["command"]; annotationOK {
+				filteredAlerts = append(filteredAlerts, alert)
+			}
+		}
+	}
+	return filteredAlerts
 }
