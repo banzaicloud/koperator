@@ -50,12 +50,4 @@ func TestNew(t *testing.T) {
 			t.Error("Expected:", reflect.TypeOf(errType), "got:", reflect.TypeOf(err))
 		}
 	}
-
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("The code did not panic")
-		}
-	}()
-
-	New(nil, errors.New("test"), "test")
 }
