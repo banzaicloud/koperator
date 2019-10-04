@@ -160,10 +160,13 @@ type InternalListenerConfig struct {
 	ContainerPort                   int32  `json:"containerPort"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // KafkaCluster is the Schema for the kafkaclusters API
+// +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:object:root=true
 type KafkaCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -172,9 +175,10 @@ type KafkaCluster struct {
 	Status KafkaClusterStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // KafkaClusterList contains a list of KafkaCluster
+// +kubebuilder:object:root=true
 type KafkaClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

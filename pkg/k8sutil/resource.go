@@ -20,8 +20,8 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"

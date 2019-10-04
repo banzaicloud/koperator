@@ -20,8 +20,8 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/kafka/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	pkiutils "github.com/banzaicloud/kafka-operator/pkg/util/pki"

@@ -33,8 +33,8 @@ import (
 	"flag"
 	"os"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/kafka/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
 	"github.com/banzaicloud/kafka-operator/controllers"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"

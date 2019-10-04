@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"

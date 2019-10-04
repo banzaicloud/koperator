@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/kafka/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"

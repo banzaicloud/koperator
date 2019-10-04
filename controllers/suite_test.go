@@ -36,8 +36,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/kafka/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"

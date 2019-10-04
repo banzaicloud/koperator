@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"reflect"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/kafka/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

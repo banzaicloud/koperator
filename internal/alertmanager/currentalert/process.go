@@ -15,7 +15,7 @@
 package currentalert
 
 import (
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"

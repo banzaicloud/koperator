@@ -103,8 +103,14 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen
+generate: controller-gen code-gen
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths="./..."
+	bash $(shell go env GOPATH)/pkg/mod/k8s.io/code-generator@v0.0.0-20190612205613-18da4a14b22b/generate-groups.sh \
+		client,lister,informer \
+		github.com/banzaicloud/kafka-operator/pkg/client \
+		github.com/banzaicloud/kafka-operator/api \
+		kafka:v1alpha1,v1beta1 \
+		--go-header-file ./hack/boilerplate.go.txt
 
 # Build the docker image
 docker-build:
@@ -123,6 +129,9 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+code-gen:
+	go get -d -u k8s.io/code-generator@v0.0.0-20190612205613-18da4a14b22b
 
 check_release:
 	@echo "A new tag (${REL_TAG}) will be pushed to Github, and a new Docker image will be released. Are you sure? [y/N] " && read ans && [ $${ans:-N} == y ]

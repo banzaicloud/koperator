@@ -5,8 +5,6 @@ go 1.12
 require (
 	emperror.dev/errors v0.4.2
 	github.com/Shopify/sarama v1.23.1
-	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
-	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4 // indirect
 	github.com/banzaicloud/k8s-objectmatcher v1.0.0
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/envoyproxy/go-control-plane v0.8.6
@@ -35,6 +33,6 @@ replace (
 	k8s.io/api => k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
 
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8
-	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
-	k8s.io/client-go => k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
+	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
+	k8s.io/client-go => k8s.io/client-go v12.0.0+incompatible
 )

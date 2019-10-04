@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
 	"github.com/imdario/mergo"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )

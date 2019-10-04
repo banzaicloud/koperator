@@ -38,12 +38,12 @@ type KafkaTopicStatus struct {
 	OfflineReplicas map[string]string `json:"offlineReplicas"`
 }
 
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// KafkaTopic is the Schema for the kafkatopics API
 // +k8s:openapi-gen=true
 // +kubebuilder:webhook:failurePolicy="fail",name="kafkatopics.kafka.banzaicloud.io",path="/validate",mutating=false,resources={"kafkatopics"},verbs={"create","update"},groups={"kafka.banzaicloud.io"},versions={"v1alpha1"}
-
-// KafkaTopic is the Schema for the kafkatopics API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 type KafkaTopic struct {

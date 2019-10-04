@@ -22,8 +22,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
 
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"

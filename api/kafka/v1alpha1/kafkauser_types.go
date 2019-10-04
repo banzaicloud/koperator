@@ -41,8 +41,10 @@ type KafkaUserStatus struct {
 	TopicGrants []UserTopicGrant `json:"topicGrants"`
 }
 
-//KafkaUser is the Schema for the kafka users API
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+//KafkaUser is the Schema for the kafka users API
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status

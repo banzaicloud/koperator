@@ -28,6 +28,10 @@ limitations under the License.
 */
 
 // Package v1beta1 contains API Schema definitions for the banzaicloud v1beta1 API group
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=package,register
+// +k8s:conversion-gen=github.com/banzaicloud/kafka-operator/api/kafka
+// +k8s:defaulter-gen=TypeMeta
 // +kubebuilder:object:generate=true
 // +groupName=kafka.banzaicloud.io
 package v1beta1
@@ -39,11 +43,16 @@ import (
 
 var (
 	// GroupVersion is group version used to register these objects
-	GroupVersion = schema.GroupVersion{Group: "kafka.banzaicloud.io", Version: "v1beta1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "kafka.banzaicloud.io", Version: "v1beta1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
-	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
+	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
 )
+
+// Resource is required by pkg/client/listers/...
+func Resource(resource string) schema.GroupResource {
+	return SchemeGroupVersion.WithResource(resource).GroupResource()
+}

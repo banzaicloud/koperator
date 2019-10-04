@@ -17,7 +17,7 @@ package envoy
 import (
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/api/kafka/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	"github.com/go-logr/logr"

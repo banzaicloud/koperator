@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/Shopify/sarama"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/kafka/v1alpha1"
 )
 
 func (k *kafkaClient) GetCA() (name string, cakind string) {
