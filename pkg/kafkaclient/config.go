@@ -51,7 +51,7 @@ func ClusterConfig(client client.Client, cluster *banzaicloudv1beta1.KafkaCluste
 	conf.BrokerURI = generateKafkaAddress(cluster)
 	conf.OperationTimeout = kafkaDefaultTimeout
 
-	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
+	if cluster.Spec.ListenersConfig.SSLSecrets != nil && cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].Type != "plaintext" {
 		var err error
 		tlsKeys := &corev1.Secret{}
 		err = client.Get(context.TODO(),
@@ -89,6 +89,15 @@ func ClusterConfig(client client.Client, cluster *banzaicloudv1beta1.KafkaCluste
 	}
 
 	return conf, nil
+}
+
+func determineInternalListenerForInnerCom(internalListeners []banzaicloudv1beta1.InternalListenerConfig) int {
+	for id, val := range internalListeners {
+		if val.UsedForInnerBrokerCommunication {
+			return id
+		}
+	}
+	return 0
 }
 
 func generateKafkaAddress(cluster *banzaicloudv1beta1.KafkaCluster) string {
