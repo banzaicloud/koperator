@@ -91,5 +91,5 @@ func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 	case ReconcileRollingUpgrade:
 		return ReconcileRollingUpgrade{wrapped}
 	}
-	return errors.New("Invalid error type")
+	return wrapped
 }
