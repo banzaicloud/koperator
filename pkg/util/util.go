@@ -78,6 +78,17 @@ func MonitoringAnnotations(port int) map[string]string {
 	}
 }
 
+func MergeAnnotations(annotations ...map[string]string) map[string]string {
+	rtn := make(map[string]string)
+	for _, a := range annotations {
+		for k, v := range a {
+			rtn[k] = v
+		}
+	}
+
+	return rtn
+}
+
 // ConvertStringToInt32 converts the given string to int32
 func ConvertStringToInt32(s string) int32 {
 	i, err := strconv.ParseInt(s, 10, 32)
