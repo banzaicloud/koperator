@@ -159,6 +159,7 @@ type InternalListenerConfig struct {
 	Name                            string `json:"name"`
 	UsedForInnerBrokerCommunication bool   `json:"usedForInnerBrokerCommunication"`
 	ContainerPort                   int32  `json:"containerPort"`
+	UsedForControllerCommunication  bool   `json:"usedForControllerCommunication,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -191,7 +192,7 @@ func (cConfig *CruiseControlConfig) GetInitContainerImage() string {
 	if cConfig.InitContainerImage != "" {
 		return cConfig.InitContainerImage
 	}
-	return "wurstmeister/kafka:2.12-2.1.0"
+	return "wurstmeister/kafka:2.12-2.3.0"
 }
 
 //GetLoadBalancerSourceRanges returns LoadBalancerSourceRanges to use for Envoy generated LoadBalancer

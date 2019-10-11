@@ -40,6 +40,10 @@ spec:
               additionalProperties:
                 description: BrokerConfig defines the broker configuration
                 properties:
+                  brokerAnnotations:
+                    additionalProperties:
+                      type: string
+                    type: object
                   config:
                     type: string
                   image:
@@ -470,6 +474,10 @@ spec:
                   brokerConfig:
                     description: BrokerConfig defines the broker configuration
                     properties:
+                      brokerAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
                       config:
                         type: string
                       image:
@@ -1148,6 +1156,8 @@ spec:
                         type: string
                       type:
                         type: string
+                      usedForControllerCommunication:
+                        type: boolean
                       usedForInnerBrokerCommunication:
                         type: boolean
                     required:

@@ -17,7 +17,7 @@ prometheus:
             storageClass: 'standard'
             mountPath: '/kafkalog'
             diskSize: '2G'
-            image: 'wurstmeister/kafka:2.12-2.1.0'
+            image: 'wurstmeister/kafka:2.12-2.3.0'
             command: 'upScale'
         - alert: BrokerUnderReplicated
           expr: kafka_server_replicamanager_underreplicatedpartitions > 0
@@ -30,7 +30,7 @@ prometheus:
             storageClass: 'standard'
             mountPath: '/kafkalog'
             diskSize: '2G'
-            image: 'wurstmeister/kafka:2.12-2.1.0'
+            image: 'wurstmeister/kafka:2.12-2.3.0'
             command: 'upScale'
         - alert: PartitionCountHigh
           expr: max(kafka_server_replicamanager_partitioncount)  by (kubernetes_namespace, kafka_cr) > 100
@@ -43,7 +43,7 @@ prometheus:
             storageClass: 'standard'
             mountPath: '/kafkalog'
             diskSize: '2G'
-            image: 'wurstmeister/kafka:2.12-2.1.0'
+            image: 'wurstmeister/kafka:2.12-2.3.0'
             command: 'upScale'
         - alert: PartitionCountLow
           expr: min(kafka_server_replicamanager_partitioncount)  by (kubernetes_namespace, kafka_cr) < 40
