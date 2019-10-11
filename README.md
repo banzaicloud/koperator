@@ -84,7 +84,7 @@ If you are willing to kickstart your managed Apache Kafka experience on 5 cloud 
 
 ## Installation
 
-The operator installs the 2.1.0 version of Apache Kafka, and can run on Minikube v0.33.1+ and Kubernetes 1.12.0+.
+The operator installs the 2.3.0 version of Apache Kafka, and can run on Minikube v0.33.1+ and Kubernetes 1.12.0+.
 
 As a pre-requisite it needs a Kubernetes cluster (you can create one using [Pipeline](https://github.com/banzaicloud/pipeline)). Also, Kafka requires Zookeeper so you need to first have a Zookeeper cluster if you don't already have one.
 
