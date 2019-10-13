@@ -121,6 +121,10 @@ func TestMonitoringAnnotations(t *testing.T) {
 	if !reflect.DeepEqual(expected, anntns) {
 		t.Error("Expected:", expected, "Got:", anntns)
 	}
+	annotations := MonitoringAnnotations(8888)
+	if annotations["prometheus.io/port"] != "8888" {
+		t.Error("Error port not converted correctly")
+	}
 }
 
 func TestConvertStringToInt32(t *testing.T) {
@@ -165,13 +169,6 @@ func TestStringSliceRemove(t *testing.T) {
 	expected := []string{"1", "2"}
 	if !reflect.DeepEqual(removed, expected) {
 		t.Error("Expected:", expected, "got:", removed)
-	}
-}
-
-func TestMonitoringAnnotations(t *testing.T) {
-	annotations := MonitoringAnnotations(8888)
-	if annotations["prometheus.io/port"] != "8888" {
-		t.Error("Error port not converted correctly")
 	}
 }
 
