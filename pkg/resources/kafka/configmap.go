@@ -34,6 +34,9 @@ import (
 
 var kafkaConfigTemplate = `
 {{ .ListenerConfig }}
+{{ if .ControlPlaneListener }}
+control.plane.listener.name={{ .ControlPlaneListener }}
+{{ end }}
 
 zookeeper.connect={{ .ZookeeperConnectString }}
 
@@ -77,7 +80,7 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 		"ListenerConfig":                     generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, log),
 		"SSLEnabledForInternalCommunication": r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
 		"ZookeeperConnectString":             strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","),
-		"CruiseControlBootstrapServers":      strings.Join(getInternalListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, id, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled), ","),
+		"CruiseControlBootstrapServers":      getInternalListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, id, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
 		"StorageConfig":                      generateStorageConfig(bConfig.StorageConfigs),
 		"AdvertisedListenersConfig":          generateAdvertisedListenerConfig(id, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIP, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
 		"SuperUsers":                         strings.Join(generateSuperUsers(superUsers), ";"),
@@ -86,6 +89,7 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 		"KeystoreFile":                       v1alpha1.TLSJKSKey,
 		"ServerKeystorePassword":             serverPass,
 		"ClientKeystorePassword":             clientPass,
+		"ControlPlaneListener":               generateControlPlaneListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
 	}); err != nil {
 		log.Error(err, "error occurred during parsing the config template")
 	}
@@ -133,16 +137,28 @@ func generateStorageConfig(sConfig []v1beta1.StorageConfig) string {
 	return strings.Join(mountPaths, ",")
 }
 
+func generateControlPlaneListener(iListeners []v1beta1.InternalListenerConfig) string {
+	controlPlaneListener := ""
+
+	for _, iListener := range iListeners {
+		if iListener.UsedForControllerCommunication {
+			controlPlaneListener = strings.ToUpper(iListener.Name)
+		}
+	}
+
+	return controlPlaneListener
+}
+
 func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger) string {
 
-	var interBrokerListenerType string
+	var interBrokerListenerName string
 	var securityProtocolMapConfig []string
 	var listenerConfig []string
 
 	for _, iListener := range l.InternalListeners {
 		if iListener.UsedForInnerBrokerCommunication {
-			if interBrokerListenerType == "" {
-				interBrokerListenerType = strings.ToUpper(iListener.Type)
+			if interBrokerListenerName == "" {
+				interBrokerListenerName = strings.ToUpper(iListener.Name)
 			} else {
 				log.Error(errors.New("inter broker listener name already set"), "config error")
 			}
@@ -159,33 +175,37 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger)
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
 	}
 	return "listener.security.protocol.map=" + strings.Join(securityProtocolMapConfig, ",") + "\n" +
-		"security.inter.broker.protocol=" + interBrokerListenerType + "\n" +
+		"inter.broker.listener.name=" + interBrokerListenerName + "\n" +
 		"listeners=" + strings.Join(listenerConfig, ",") + "\n"
 }
 
-func getInternalListeners(iListeners []v1beta1.InternalListenerConfig, id int32, namespace, crName string, headlessServiceEnabled bool) []string {
+func getInternalListener(iListeners []v1beta1.InternalListenerConfig, id int32, namespace, crName string, headlessServiceEnabled bool) string {
 
-	listenerConfig := []string{}
+	internalListener := ""
 
-	if headlessServiceEnabled {
-		for _, iListener := range iListeners {
-			listenerConfig = append(listenerConfig,
-				fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, id, crName, namespace, iListener.ContainerPort))
-		}
-	} else {
-		for _, iListener := range iListeners {
-			listenerConfig = append(listenerConfig,
-				fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, id, namespace, iListener.ContainerPort))
+	for _, iListener := range iListeners {
+		if iListener.UsedForInnerBrokerCommunication {
+			if headlessServiceEnabled {
+				internalListener = fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, id, crName, namespace, iListener.ContainerPort)
+			} else {
+				internalListener = fmt.Sprintf("%s://%s-%d.%s.svc.cluster.local:%d", strings.ToUpper(iListener.Name), crName, id, namespace, iListener.ContainerPort)
+			}
 		}
 	}
 
-	return listenerConfig
+	return internalListener
 }
 
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIP, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
 	parsedReadOnlyClusterConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ReadOnlyConfig)
+	var parsedReadOnlyBrokerConfig = map[string]string{}
 
-	parsedReadOnlyBrokerConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.Brokers[id].ReadOnlyConfig)
+	for _, broker := range r.KafkaCluster.Spec.Brokers {
+		if broker.Id == id {
+			parsedReadOnlyBrokerConfig = util.ParsePropertiesFormat(broker.ReadOnlyConfig)
+			break
+		}
+	}
 
 	if err := mergo.Merge(&parsedReadOnlyBrokerConfig, parsedReadOnlyClusterConfig); err != nil {
 		log.Error(err, "error occurred during merging readonly configs")

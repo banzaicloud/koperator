@@ -52,6 +52,15 @@ func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaC
 	return conf, nil
 }
 
+func determineInternalListenerForInnerCom(internalListeners []v1beta1.InternalListenerConfig) int {
+	for id, val := range internalListeners {
+		if val.UsedForInnerBrokerCommunication {
+			return id
+		}
+	}
+	return 0
+}
+
 func generateKafkaAddress(cluster *v1beta1.KafkaCluster) string {
 	if cluster.Spec.HeadlessServiceEnabled {
 		return fmt.Sprintf("%s.%s:%d",

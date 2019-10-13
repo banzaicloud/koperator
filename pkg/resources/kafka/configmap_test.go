@@ -39,13 +39,13 @@ func TestGenerateBrokerConfig(t *testing.T) {
 			clusterWideConfig:       ``,
 			perBrokerConfig:         ``,
 			perBrokerReadOnlyConfig: ``,
-			expectedConfig: `advertised.listeners=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
-cruise.control.metrics.reporter.bootstrap.servers=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
-listener.security.protocol.map=PLAINTEXT:PLAINTEXT
-listeners=PLAINTEXT://:9092
+cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT
+listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-security.inter.broker.protocol=PLAINTEXT
 super.users=
 zookeeper.connect=example.zk:2181`,
 		},
@@ -60,14 +60,14 @@ zookeeper.connect=example.zk:2181`,
 					MountPath: "/kafka-logs",
 				},
 			},
-			expectedConfig: `advertised.listeners=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
-cruise.control.metrics.reporter.bootstrap.servers=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
-listener.security.protocol.map=PLAINTEXT:PLAINTEXT
-listeners=PLAINTEXT://:9092
+cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT
+listeners=INTERNAL://:9092
 log.dirs=/kafka-logs/kafka
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-security.inter.broker.protocol=PLAINTEXT
 super.users=
 zookeeper.connect=example.zk:2181`,
 		},
@@ -85,15 +85,15 @@ compression.type=snappy
 			perBrokerReadOnlyConfig: `
 auto.create.topics.enable=true
 `,
-			expectedConfig: `advertised.listeners=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 auto.create.topics.enable=true
 broker.id=0
 control.plane.listener.name=thisisatest
-cruise.control.metrics.reporter.bootstrap.servers=PLAINTEXT://kafka-0.kafka.svc.cluster.local:9092
-listener.security.protocol.map=PLAINTEXT:PLAINTEXT
-listeners=PLAINTEXT://:9092
+cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT
+listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-security.inter.broker.protocol=PLAINTEXT
 super.users=
 zookeeper.connect=example.zk:2181`,
 		},
@@ -119,7 +119,7 @@ zookeeper.connect=example.zk:2181`,
 								InternalListeners: []v1beta1.InternalListenerConfig{
 									{
 										Type:                            "plaintext",
-										Name:                            "plaintext",
+										Name:                            "internal",
 										UsedForInnerBrokerCommunication: true,
 										ContainerPort:                   9092,
 									},

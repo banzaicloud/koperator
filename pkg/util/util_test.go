@@ -167,3 +167,21 @@ func TestStringSliceRemove(t *testing.T) {
 		t.Error("Expected:", expected, "got:", removed)
 	}
 }
+
+func TestMonitoringAnnotations(t *testing.T) {
+	annotations := MonitoringAnnotations(8888)
+	if annotations["prometheus.io/port"] != "8888" {
+		t.Error("Error port not converted correctly")
+	}
+}
+
+func TestMergeAnnotations(t *testing.T) {
+	annotations := MonitoringAnnotations(8888)
+	annotations2 := map[string]string{"thing": "1", "other_thing": "2"}
+
+	combined := MergeAnnotations(annotations, annotations2)
+
+	if len(combined) != 4 {
+		t.Error("Annotations didn't combine correctly")
+	}
+}

@@ -83,6 +83,7 @@ type BrokerConfig struct {
 	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
 	KafkaHeapOpts      string                        `json:"kafkaHeapOpts,omitempty"`
 	KafkaJVMPerfOpts   string                        `json:"kafkaJvmPerfOpts,omitempty"`
+	BrokerAnnotations  map[string]string             `json:"brokerAnnotations,omitempty"`
 }
 
 // RackAwareness defines the required fields to enable kafka's rack aware feature
@@ -175,6 +176,7 @@ type InternalListenerConfig struct {
 	Name                            string `json:"name"`
 	UsedForInnerBrokerCommunication bool   `json:"usedForInnerBrokerCommunication"`
 	ContainerPort                   int32  `json:"containerPort"`
+	UsedForControllerCommunication  bool   `json:"usedForControllerCommunication,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -207,7 +209,7 @@ func (cConfig *CruiseControlConfig) GetInitContainerImage() string {
 	if cConfig.InitContainerImage != "" {
 		return cConfig.InitContainerImage
 	}
-	return "wurstmeister/kafka:2.12-2.1.0"
+	return "wurstmeister/kafka:2.12-2.3.0"
 }
 
 //GetLoadBalancerSourceRanges returns LoadBalancerSourceRanges to use for Envoy generated LoadBalancer
@@ -277,6 +279,10 @@ func (bConfig *BrokerConfig) GetNodeSelector() map[string]string {
 //GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
 func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference {
 	return bConfig.ImagePullSecrets
+}
+
+func (bConfig *BrokerConfig) GetBrokerAnnotations() map[string]string {
+	return bConfig.BrokerAnnotations
 }
 
 //GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
