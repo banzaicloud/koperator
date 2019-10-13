@@ -14,6 +14,7 @@ operator:
     tag: 0.6.0
     pullPolicy: IfNotPresent
   vaultAddress: ""
+  # vaultSecret containing a `ca.crt` key with the Vault CA Certificate
   vaultSecret: ""
   verboseLogging: false
   resources:

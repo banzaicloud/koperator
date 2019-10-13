@@ -77,11 +77,6 @@ spec:
               value: {{ .Values.operator.vaultAddress }}
           {{- end }}
           {{- if .Values.operator.vaultSecret }}
-            - name: VAULT_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.operator.vaultSecret }}
-                  key: vault.token
             - name: VAULT_CACERT
               value: /etc/vault/certs/ca.crt
           {{- end }}

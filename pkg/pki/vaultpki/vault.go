@@ -30,14 +30,16 @@ type vaultPKI struct {
 	client  client.Client
 	cluster *v1beta1.KafkaCluster
 
-	// for mocking
+	// Set as attribute for mocking
 	getClient func() (*vaultapi.Client, error)
 }
 
 func New(client client.Client, cluster *v1beta1.KafkaCluster) VaultPKI {
 	return &vaultPKI{
-		client:    client,
-		cluster:   cluster,
-		getClient: getClient,
+		client:  client,
+		cluster: cluster,
+		getClient: func() (*vaultapi.Client, error) {
+			return getKubernetesClient(cluster.GetUID(), cluster.Spec.VaultConfig.AuthRole)
+		},
 	}
 }

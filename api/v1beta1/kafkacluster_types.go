@@ -39,6 +39,7 @@ type KafkaClusterSpec struct {
 	CruiseControlConfig    CruiseControlConfig     `json:"cruiseControlConfig"`
 	EnvoyConfig            EnvoyConfig             `json:"envoyConfig,omitempty"`
 	MonitoringConfig       MonitoringConfig        `json:"monitoringConfig,omitempty"`
+	VaultConfig            VaultConfig             `json:"vaultConfig,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -142,6 +143,7 @@ type SSLSecrets struct {
 	TLSSecretName   string `json:"tlsSecretName"`
 	JKSPasswordName string `json:"jksPasswordName"`
 	Create          bool   `json:"create,omitempty"`
+
 	// +kubebuilder:validation:Enum={"cert-manager","vault"}
 	PKIBackend PKIBackend `json:"pkiBackend,omitempty"`
 }
@@ -150,6 +152,14 @@ type SSLSecrets struct {
 // Would be another good use-case for a pre-admission hook
 // E.g. TLSSecretName and JKSPasswordName are only required if Create is false
 // Or heck, do we even want to bother supporting an imported PKI?
+
+// VaultConfig defines the configuration for a vault PKI backend
+type VaultConfig struct {
+	AuthRole  string `json:"authRole"`
+	PKIPath   string `json:"pkiPath"`
+	IssuePath string `json:"issuePath"`
+	UserStore string `json:"userStore"`
+}
 
 // ExternalListenerConfig defines the external listener config for Kafka
 type ExternalListenerConfig struct {

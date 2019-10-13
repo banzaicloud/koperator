@@ -32,8 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const pkiOU = "vault-pki"
-
 func (v *vaultPKI) FinalizePKI(ctx context.Context, logger logr.Logger) error {
 	vault, err := v.getClient()
 	if err != nil {
@@ -53,58 +51,26 @@ func (v *vaultPKI) FinalizePKI(ctx context.Context, logger logr.Logger) error {
 		}
 	}
 
-	// List the currently mounted backends
-	presentMounts, err := vault.Sys().ListMounts()
-	if err != nil {
-		return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "could not list system mounts in vault")
-	}
-
-	checkMounts := []string{
-		fmt.Sprintf("%s/", v.getUserStorePath()),
-		fmt.Sprintf("%s/", v.getCAPath()),
-	}
-
-	// Iterate our mounts and unmount if present
-	for _, mount := range checkMounts {
-		if _, ok := presentMounts[mount]; ok {
-			logger.Info("Unmounting vault path", "mount", mount)
-			if err := vault.Sys().Unmount(mount[:len(mount)-1]); err != nil {
-				return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "could not unmount vault path", "path", mount)
-			}
-		}
-	}
-
 	return nil
 }
 
+// ReconcilePKI will use the user-provided paths to ensure broker/operator users for a new KafkaCluster
 func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme) (err error) {
 	log := logger.WithName("vault_pki")
 
+	log.Info("Retrieving vault client")
 	vault, err := v.getClient()
 	if err != nil {
 		return
 	}
 
-	// List the currently mounted backends
-	mounts, err := vault.Sys().ListMounts()
-	if err != nil {
-		return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "could not list system mounts in vault")
-	}
-
-	// Assume that if our CA doesn't exist we need to do an initial setup
-	// TODO: (tinyzimmer) There might be a safer way to do this
-	if _, ok := mounts[fmt.Sprintf("%s/", v.getCAPath())]; !ok {
-		log.Info("Creating new vault PKI", "vault_addr", vault.Address())
-		if err = v.initVaultPKI(vault); err != nil {
-			return
-		}
-	}
-
+	log.Info("Reconciling broker user in vault")
 	brokerCert, err := v.reconcileBrokerCert(ctx, vault)
 	if err != nil {
 		return
 	}
 
+	log.Info("Reconciling controller user in vault")
 	controllerCert, err := v.reconcileControllerCert(ctx, vault)
 	if err != nil {
 		return
@@ -208,80 +174,4 @@ func (v *vaultPKI) reconcileStartupUser(ctx context.Context, vault *vaultapi.Cli
 	}
 	cert, err = userCertForData(v2, userSecret.Data)
 	return
-}
-
-func (v *vaultPKI) initVaultPKI(vault *vaultapi.Client) error {
-	caPath := v.getCAPath()
-	// intermediatePath := v.getIntermediatePath()
-	userPath := v.getUserStorePath()
-	var err error
-
-	// Setup a PKI mount for the ca
-	if err = vault.Sys().Mount(
-		caPath,
-		&vaultapi.MountInput{
-			Type: vaultBackendPKI,
-			Config: vaultapi.MountConfigInput{
-				MaxLeaseTTL: "219000h",
-			},
-		},
-	); err != nil {
-		return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to setup mount for root pki")
-	}
-
-	// Setup a KV mount for user certificates
-	if err = vault.Sys().Mount(
-		userPath,
-		&vaultapi.MountInput{
-			Type: vaultBackendKV,
-		},
-	); err != nil {
-		return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to setup kv mount for user certificate store")
-	}
-
-	// Create a root CA
-	if _, err = vault.Logical().Write(
-		fmt.Sprintf("%s/root/generate/internal", caPath),
-		map[string]interface{}{
-			vaultCommonNameArg:        fmt.Sprintf(pkicommon.CAFQDNTemplate, v.cluster.Name, v.cluster.Namespace),
-			vaultOUArg:                pkiOU,
-			vaultExcludeCNFromSANSArg: true,
-			vaultTTLArg:               "215000h",
-		},
-	); err != nil {
-		return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to generate root certificate")
-	}
-
-	// set information about distribution points and so on
-	_, err = vault.Logical().Write(
-		fmt.Sprintf("%s/config/urls", caPath),
-		map[string]interface{}{
-			vaultIssuingCertificates:   fmt.Sprintf("%s/v1/%s/ca", vault.Address(), caPath),
-			vaultCRLDistributionPoints: fmt.Sprintf("%s/v1/%s/crl", vault.Address(), caPath),
-		},
-	)
-	if err != nil {
-		return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to write config for root pki")
-	}
-
-	// Create a role that can issue certificates
-	if _, err = vault.Logical().Write(
-		fmt.Sprintf("%s/roles/operator", caPath),
-		map[string]interface{}{
-			vaultAllowLocalhost:   true,
-			vaultAllowedDomains:   "*",
-			vaultAllowSubdomains:  true,
-			vaultMaxTTL:           "60000h",
-			vaultAllowAnyName:     true,
-			vaultAllowIPSANS:      true,
-			vaultAllowGlobDomains: true,
-			vaultOrganization:     pkiOU,
-			vaultUseCSRCommonName: false,
-			vaultUseCSRSANS:       false,
-		},
-	); err != nil {
-		return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to create issuer role for intermediate pki")
-	}
-
-	return nil
 }

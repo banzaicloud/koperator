@@ -32,7 +32,6 @@ func (v *vaultPKI) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.
 	if err != nil {
 		return nil, err
 	}
-
 	// get a list of all currently issued certificates for the cluster
 	certs, err := v.list(client, v.getUserStorePath())
 	if err != nil {
@@ -52,10 +51,17 @@ func (v *vaultPKI) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.
 		}
 		userCert = rawToCertificate(userSecret.Data)
 	} else {
+
+		// get max ttl allowed for role
+		ttl, err := v.getMaxTTL(client)
+		if err != nil {
+			return nil, err
+		}
+
 		// args for a new certificate for the user
 		args := map[string]interface{}{
 			vaultCommonNameArg:        user.Name,
-			vaultTTLArg:               "60000h",
+			vaultTTLArg:               ttl,
 			vaultPrivateKeyFormatArg:  "pkcs8",
 			vaultExcludeCNFromSANSArg: true,
 		}
@@ -66,7 +72,7 @@ func (v *vaultPKI) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.
 		// issue the certificate
 		userSecret, err = client.Logical().Write(v.getIssuePath(), args)
 		if err != nil {
-			return nil, errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to create user certificate")
+			return nil, errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to create user certificate, does the issue role exist?")
 		}
 		userCert = rawToCertificate(userSecret.Data)
 		// write the issue response back to our storage for this user
@@ -75,7 +81,7 @@ func (v *vaultPKI) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.
 			userSecret.Data,
 		)
 		if err != nil {
-			return nil, errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to store user certificate")
+			return nil, errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to store user certificate, does the user path exist?")
 		}
 	}
 

@@ -1216,6 +1216,23 @@ spec:
               required:
               - failureThreshold
               type: object
+            vaultConfig:
+              description: VaultConfig defines the configuration for a vault PKI backend
+              properties:
+                authRole:
+                  type: string
+                issuePath:
+                  type: string
+                pkiPath:
+                  type: string
+                userStore:
+                  type: string
+              required:
+              - authRole
+              - issuePath
+              - pkiPath
+              - userStore
+              type: object
             zkAddresses:
               items:
                 type: string

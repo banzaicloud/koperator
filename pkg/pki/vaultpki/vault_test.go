@@ -56,6 +56,12 @@ func newMockCluster() *v1beta1.KafkaCluster {
 		PKIBackend:      v1beta1.PKIBackendVault,
 		Create:          true,
 	}
+	cluster.Spec.VaultConfig = v1beta1.VaultConfig{
+		AuthRole:  "", // will be mocked
+		PKIPath:   "pki_kafka/",
+		IssuePath: "pki_kafka/issue/operator",
+		UserStore: "kafka_users/",
+	}
 	return cluster
 }
 
@@ -99,6 +105,36 @@ func createTestVault(t *testing.T) (net.Listener, *api.Client) {
 	}
 	client.SetToken(rootToken)
 
+	client.Sys().Mount(
+		"pki_kafka/",
+		&api.MountInput{
+			Type: "pki",
+		},
+	)
+
+	client.Sys().Mount(
+		"kafka_users/",
+		&api.MountInput{
+			Type: "kv",
+		},
+	)
+
+	client.Logical().Write(
+		"pki_kafka/root/generate/internal",
+		map[string]interface{}{
+			vaultCommonNameArg: "kafkaca.kafka.svc.cluster.local",
+			vaultTTLArg:        "215000h",
+		},
+	)
+
+	client.Logical().Write(
+		"pki_kafka/roles/operator",
+		map[string]interface{}{
+			"allow_localhost": true,
+			"allowed_domains": "*",
+			"allow_any_name":  true,
+		},
+	)
 	return ln, client
 }
 

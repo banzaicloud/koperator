@@ -66,7 +66,7 @@ spec:
 
     # Container reading from topic with the consumer credentials
     - name: consumer
-      image: banzaicloud/kafka-test:latest
+      image: tinyzimmer/kafka-test:latest
       imagePullPolicy: IfNotPresent
       env:
         - name: KAFKA_MODE
@@ -78,7 +78,7 @@ spec:
 
     # Container writing to topic with the producer credentials
     - name: producer
-      image: banzaicloud/kafka-test:latest
+      image: tinyzimmer/kafka-test:latest
       imagePullPolicy: IfNotPresent
       env:
         - name: KAFKA_MODE
@@ -87,44 +87,3 @@ spec:
         - mountPath: /etc/secrets/certs
           name: producer-credentials
           readOnly: true
-
-# ---
-# # A pod containing a producer and consumer using the above credentials
-# apiVersion: v1
-# kind: Pod
-# metadata:
-#   name: kafka-test-pod
-#   annotations:
-#     vault.security.banzaicloud.io/vault-addr: "https://vault:8200"
-#     vault.security.banzaicloud.io/vault-tls-secret: "vault-tls"
-# spec:
-#
-#   containers:
-#
-#     # Container reading from topic with the consumer credentials
-#     - name: consumer
-#       image: banzaicloud/kafka-test:latest
-#       imagePullPolicy: IfNotPresent
-#       env:
-#         - name: KAFKA_MODE
-#           value: consumer
-#         - name: KAFKA_TLS_CERT
-#           value: "vault:secret/data/test-kafka-consumer#tls.crt"
-#         - name: KAFKA_TLS_KEY
-#           value: "vault:secret/data/test-kafka-consumer#tls.key"
-#         - name: KAFKA_TLS_CA
-#           value: "vault:secret/data/test-kafka-consumer#ca.crt"
-#
-#     # Container writing to topic with the producer credentials
-#     - name: producer
-#       image: banzaicloud/kafka-test:latest
-#       imagePullPolicy: IfNotPresent
-#       env:
-#         - name: KAFKA_MODE
-#           value: producer
-#         - name: KAFKA_TLS_CERT
-#           value: "vault:secret/data/test-kafka-producer#tls.crt"
-#         - name: KAFKA_TLS_KEY
-#           value: "vault:secret/data/test-kafka-producer#tls.key"
-#         - name: KAFKA_TLS_CA
-#           value: "vault:secret/data/test-kafka-producer#ca.crt"

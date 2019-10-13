@@ -60,7 +60,7 @@ type ReconcileRollingUpgrade struct{ error }
 
 // New creates a new error factory error
 func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
-	wrapped := errors.WrapIfWithDetails(err, msg, wrapArgs)
+	wrapped := errors.WrapIfWithDetails(err, msg, wrapArgs...)
 	switch t.(type) {
 	case ResourceNotReady:
 		return ResourceNotReady{wrapped}

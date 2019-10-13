@@ -19,18 +19,21 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/vault"
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	vaultapi "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
-	vaultBackendPKI = "pki"
-	vaultBackendKV  = "kv"
 
 	// Fields in a vault PKI certificate
 	vaultCertificateKey = "certificate"
@@ -42,46 +45,39 @@ const (
 	vaultCommonNameArg        = "common_name"
 	vaultAltNamesArg          = "alt_names"
 	vaultTTLArg               = "ttl"
-	vaultOUArg                = "ou"
 	vaultPrivateKeyFormatArg  = "private_key_format"
 	vaultExcludeCNFromSANSArg = "exclude_cn_from_sans"
-
-	// Arguments to issuer config
-	vaultIssuingCertificates   = "issuing_certificates"
-	vaultCRLDistributionPoints = "crl_distribution_points"
-
-	// Arguments to create issue role
-	vaultAllowLocalhost   = "allow_localhost"
-	vaultAllowedDomains   = "allowed_domains"
-	vaultAllowSubdomains  = "allow_subdomains"
-	vaultMaxTTL           = "max_ttl"
-	vaultAllowAnyName     = "allow_any_name"
-	vaultAllowIPSANS      = "allow_ip_sans"
-	vaultAllowGlobDomains = "allow_glob_domains"
-	vaultOrganization     = "organization"
-	vaultUseCSRCommonName = "use_csr_common_name"
-	vaultUseCSRSANS       = "use_csr_sans"
 )
+
+// vaultClients are cached in memory for each cluster since they handle token
+// renewal internally and creating a new one every reconcile will flood the logs
+// Also, without this - we quickly hit the max file descriptors in the container
+var vaultClients = make(map[types.UID]*vault.Client)
 
 // getCAPath returns the path to the pki mount for a cluster
 func (v *vaultPKI) getCAPath() string {
-	return fmt.Sprintf("pki_%s", v.cluster.GetUID())
+	return v.cluster.Spec.VaultConfig.PKIPath
 }
 
 // getUserStorePath returns the path to where issued keys/certificates are
 // held persistently for use within the operator
 func (v *vaultPKI) getUserStorePath() string {
-	return fmt.Sprintf("pki_users_%s", v.cluster.GetUID())
+	return v.cluster.Spec.VaultConfig.UserStore
 }
 
 // getIssuePath returns the path for issuing certificates for the cluster
 func (v *vaultPKI) getIssuePath() string {
-	return fmt.Sprintf("%s/issue/operator", v.getCAPath())
+	return v.cluster.Spec.VaultConfig.IssuePath
 }
 
 // getRevokePath returns the revocation path for a cluster
 func (v *vaultPKI) getRevokePath() string {
 	return fmt.Sprintf("%s/revoke", v.getCAPath())
+}
+
+// getCACertPath returns the path to read the raw CA certificate from
+func (v *vaultPKI) getCACertPath() string {
+	return fmt.Sprintf("%s/cert/ca", v.getCAPath())
 }
 
 // getStorePathForUser returns the persistent storage path for a user
@@ -98,21 +94,19 @@ func checkSecretPath(path string) string {
 	return path
 }
 
-// getClient retrieves a vault client using the environment configuration
-// TODO (tinyzimmer): Allow for kubernetes service account authentication
-// to vault - also probably better to just use the secrets the same way the
-// vault-secrets-webhook does
-func getClient() (client *vaultapi.Client, err error) {
-	config := vaultapi.DefaultConfig()
-	if err = config.ReadEnvironment(); err != nil {
-		err = errorfactory.New(errorfactory.InternalError{}, err, "could not read vault environment")
-		return
+// getClient retrieves a vault client using the role specified in the cluster configuration
+func getKubernetesClient(clusterUID types.UID, role string) (client *vaultapi.Client, err error) {
+	// return a cached one for the cluster if we have it
+	// otherwise we'll constantly log new token acquisitions
+	if vaultClient, ok := vaultClients[clusterUID]; ok {
+		return vaultClient.RawClient(), nil
 	}
-	client, err = vaultapi.NewClient(config)
+	vaultClient, err := vault.NewClient(role)
 	if err != nil {
-		err = errorfactory.New(errorfactory.VaultAPIFailure{}, err, "could not create a vault client")
+		return nil, err
 	}
-	return
+	vaultClients[clusterUID] = vaultClient
+	return vaultClient.RawClient(), nil
 }
 
 // newVaultSecretData returns raw POST data for a user certificate object
@@ -140,11 +134,12 @@ func (v *vaultPKI) list(vault *vaultapi.Client, path string) (res []string, err 
 	if path[len(path)-1:] != "/" {
 		path = path + "/"
 	}
-
 	vaultRes, err := vault.Logical().List(path)
 	if err != nil {
 		err = errorfactory.New(errorfactory.VaultAPIFailure{}, err, "could not list vault path", "path", path)
+		return
 	} else if vaultRes == nil {
+		// path is empty
 		return
 	}
 
@@ -161,6 +156,22 @@ func (v *vaultPKI) list(vault *vaultapi.Client, path string) (res []string, err 
 	return
 }
 
+// getMaxTTL returns the maximum TTL allowed for the provided issue role
+func (v *vaultPKI) getMaxTTL(vault *vaultapi.Client) (string, error) {
+	res, err := v.getCA(vault)
+	if err != nil {
+		return "", err
+	}
+	cert, err := certutil.DecodeCertificate([]byte(res))
+	if err != nil {
+		return "", err
+	}
+	// return one hour before the CA expires
+	caExpiry := cert.NotAfter.Sub(time.Now())
+	caExpiryHours := (caExpiry / time.Hour) - 1
+	return strconv.Itoa(int(caExpiryHours)) + "h", nil
+}
+
 // getCA returns the PEM encoded CA certificate for the cluster
 func (v *vaultPKI) getCA(vault *vaultapi.Client) (string, error) {
 	ca, err := vault.Logical().Read(
@@ -170,13 +181,16 @@ func (v *vaultPKI) getCA(vault *vaultapi.Client) (string, error) {
 		err = errorfactory.New(errorfactory.VaultAPIFailure{}, err, "could not retrieve vault CA certificate")
 		return "", err
 	}
+
+	// The below two error conditions would be a show-stopper, but also signify
+	// that we may not have the correct permissions.
 	if ca == nil {
-		err = errorfactory.New(errorfactory.InternalError{}, err, "our CA has dissappeared!")
+		err = errorfactory.New(errorfactory.FatalReconcileError{}, errors.New("got nil back for CA"), "our CA has dissappeared!")
 		return "", err
 	}
 	caCert, ok := ca.Data[vaultCertificateKey].(string)
 	if !ok {
-		err = errorfactory.New(errorfactory.InternalError{}, err, "could not find certificate data in ca secret")
+		err = errorfactory.New(errorfactory.FatalReconcileError{}, errors.New("no certificate key in ca"), "could not find certificate data in ca secret")
 		return "", err
 	}
 	return caCert, nil
