@@ -40,8 +40,7 @@ func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaC
 	conf := &KafkaConfig{}
 	conf.BrokerURI = generateKafkaAddress(cluster)
 	conf.OperationTimeout = kafkaDefaultTimeout
-
-	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
+	if cluster.Spec.ListenersConfig.SSLSecrets != nil && useSSL(cluster) {
 		tlsConfig, err := pki.GetPKIManager(client, cluster).GetControllerTLSConfig()
 		if err != nil {
 			return conf, err
@@ -50,6 +49,10 @@ func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaC
 		conf.TLSConfig = tlsConfig
 	}
 	return conf, nil
+}
+
+func useSSL(cluster *v1beta1.KafkaCluster) bool {
+	return cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].Type != "plaintext"
 }
 
 func determineInternalListenerForInnerCom(internalListeners []v1beta1.InternalListenerConfig) int {
@@ -66,12 +69,12 @@ func generateKafkaAddress(cluster *v1beta1.KafkaCluster) string {
 		return fmt.Sprintf("%s.%s:%d",
 			fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name),
 			cluster.Namespace,
-			cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort,
+			cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].ContainerPort,
 		)
 	}
 	return fmt.Sprintf("%s.%s.svc.cluster.local:%d",
 		fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name),
 		cluster.Namespace,
-		cluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort,
+		cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].ContainerPort,
 	)
 }
