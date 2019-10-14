@@ -1170,6 +1170,13 @@ spec:
                       type: boolean
                     jksPasswordName:
                       type: string
+                    pkiBackend:
+                      description: PKIBackend represents an interface implementing
+                        the PKIManager
+                      enum:
+                      - cert-manager
+                      - vault
+                      type: string
                     tlsSecretName:
                       type: string
                   required:
@@ -1218,6 +1225,23 @@ spec:
                   type: integer
               required:
               - failureThreshold
+              type: object
+            vaultConfig:
+              description: VaultConfig defines the configuration for a vault PKI backend
+              properties:
+                authRole:
+                  type: string
+                issuePath:
+                  type: string
+                pkiPath:
+                  type: string
+                userStore:
+                  type: string
+              required:
+              - authRole
+              - issuePath
+              - pkiPath
+              - userStore
               type: object
             zkAddresses:
               items:

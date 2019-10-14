@@ -22,9 +22,10 @@ import (
 // +k8s:openapi-gen=true
 type KafkaUserSpec struct {
 	SecretName  string           `json:"secretName"`
+	ClusterRef  ClusterReference `json:"clusterRef"`
+	DNSNames    []string         `json:"dnsNames,omitempty"`
 	TopicGrants []UserTopicGrant `json:"topicGrants,omitempty"`
 	IncludeJKS  bool             `json:"includeJKS,omitempty"`
-	ClusterRef  ClusterReference `json:"clusterRef"`
 }
 
 // UserTopicGrant is the desired permissions for the KafkaUser
@@ -37,8 +38,8 @@ type UserTopicGrant struct {
 // KafkaUserStatus defines the observed state of KafkaUser
 // +k8s:openapi-gen=true
 type KafkaUserStatus struct {
-	SecretName  string           `json:"secretName"`
-	TopicGrants []UserTopicGrant `json:"topicGrants"`
+	State UserState `json:"state"`
+	ACLs  []string  `json:"acls,omitempty"`
 }
 
 //KafkaUser is the Schema for the kafka users API

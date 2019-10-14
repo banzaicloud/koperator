@@ -15,12 +15,11 @@
 package kafkaclient
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/Shopify/sarama"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -36,16 +35,14 @@ type KafkaClient interface {
 	CreateTopic(*CreateTopicOptions) error
 	EnsurePartitionCount(string, int32) (bool, error)
 	EnsureTopicConfig(string, map[string]*string) error
-	DeleteTopic(string) error
+	DeleteTopic(string, bool) error
 	GetTopic(string) (*sarama.TopicDetail, error)
 	DescribeTopic(string) (*sarama.TopicMetadata, error)
-	CreateUserACLs(banzaicloudv1alpha1.KafkaAccessType, string, string) error
+	CreateUserACLs(v1alpha1.KafkaAccessType, string, string) error
 	DeleteUserACLs(string) error
 
-	ResolveBrokerID(int32) string
+	Brokers() map[int32]string
 	DescribeCluster() ([]*sarama.Broker, error)
-	GetCA() (string, string)
-	GetBroker(int32) *sarama.Broker
 
 	OfflineReplicaCount() (int, error)
 	AllReplicaInSync() (bool, error)
@@ -56,6 +53,9 @@ type KafkaClient interface {
 	AlterClusterWideConfig(map[string]*string) error
 	DescribeClusterWideConfig() ([]sarama.ConfigEntry, error)
 
+	TopicMetaToStatus(meta *sarama.TopicMetadata) *v1alpha1.KafkaTopicStatus
+
+	Open() error
 	Close() error
 }
 
@@ -66,33 +66,41 @@ type kafkaClient struct {
 	client  sarama.Client
 	timeout time.Duration
 	brokers []*sarama.Broker
+
+	// client funcs for mocking
+	newClusterAdmin func([]string, *sarama.Config) (sarama.ClusterAdmin, error)
+	newClient       func([]string, *sarama.Config) (sarama.Client, error)
 }
 
-// New creates a new KafkaClient instance
-func New(opts *KafkaConfig) (client KafkaClient, err error) {
+func New(opts *KafkaConfig) KafkaClient {
 	kclient := &kafkaClient{
 		opts:    opts,
 		timeout: time.Duration(opts.OperationTimeout) * time.Second,
 	}
+	kclient.newClusterAdmin = sarama.NewClusterAdmin
+	kclient.newClient = sarama.NewClient
+	return kclient
+}
 
-	config := kclient.getSaramaConfig()
-
-	if kclient.admin, err = sarama.NewClusterAdmin([]string{opts.BrokerURI}, config); err != nil {
+func (k *kafkaClient) Open() error {
+	var err error
+	config := k.getSaramaConfig()
+	if k.admin, err = k.newClusterAdmin([]string{k.opts.BrokerURI}, config); err != nil {
 		err = errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
-		return
+		return err
 	}
 
-	if kclient.brokers, err = kclient.DescribeCluster(); err != nil {
-		kclient.admin.Close()
+	if k.brokers, err = k.DescribeCluster(); err != nil {
+		k.admin.Close()
 		err = errorfactory.New(errorfactory.BrokersNotReady{}, err, "could not describe kafka cluster")
-		return
+		return err
 	}
 
-	if kclient.client, err = sarama.NewClient([]string{opts.BrokerURI}, config); err != nil {
-		return
+	if k.client, err = k.newClient([]string{k.opts.BrokerURI}, config); err != nil {
+		return err
 	}
 
-	return kclient, nil
+	return nil
 }
 
 func (k *kafkaClient) Close() error {
@@ -101,22 +109,24 @@ func (k *kafkaClient) Close() error {
 }
 
 // NewFromCluster is a convenience wrapper around New() and ClusterConfig()
-func NewFromCluster(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (client KafkaClient, err error) {
+func NewFromCluster(k8sclient client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, error) {
+	var client KafkaClient
+	var err error
 	opts, err := ClusterConfig(k8sclient, cluster)
 	if err != nil {
-		return
+		return nil, err
 	}
-	return New(opts)
+	client = New(opts)
+	err = client.Open()
+	return client, err
 }
 
-func (k *kafkaClient) ResolveBrokerID(ID int32) string {
+func (k *kafkaClient) Brokers() map[int32]string {
+	out := make(map[int32]string, 0)
 	for _, broker := range k.brokers {
-		if broker.ID() == ID {
-			return broker.Addr()
-		}
+		out[broker.ID()] = broker.Addr()
 	}
-	// fall back to leader ID
-	return strconv.Itoa(int(ID))
+	return out
 }
 
 func (k *kafkaClient) NumBrokers() int {

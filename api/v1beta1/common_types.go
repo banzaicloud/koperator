@@ -29,6 +29,16 @@ type ClusterState string
 // ConfigurationState holds info about the configuration state
 type ConfigurationState string
 
+// PKIBackend represents an interface implementing the PKIManager
+type PKIBackend string
+
+const (
+	// PKIBackendCertManager invokes cert-manager for user certificate management
+	PKIBackendCertManager PKIBackend = "cert-manager"
+	// PKIBackendVault invokves vault PKI for user certificate management
+	PKIBackendVault PKIBackend = "vault"
+)
+
 // GracefulActionState holds information about GracefulAction State
 type GracefulActionState struct {
 	// ErrorMessage holds the information what happened with CC

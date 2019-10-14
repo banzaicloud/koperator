@@ -96,27 +96,26 @@ The operator also uses `cert-manager` for issuing certificates to users and brok
 
 ```bash
 # pre-create cert-manager namespace and CRDs per their installation instructions
-kubectl create ns cert-manager
-kubectl label namespace cert-manager certmanager.k8s.io/disable-validation=true
+kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/v0.10.1/deploy/manifests/01-namespace.yaml
 ```
 
 Install cert-manager and CustomResourceDefinitions
 ```bash
 # Install the CustomResourceDefinitions and cert-manager itself
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.10.0/cert-manager.yaml
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.10.1/cert-manager.yaml
 ```
 
 Or install with helm
 ```bash
 # Install only the CustomResourceDefinitions
-kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.10/deploy/manifests/00-crds.yaml
+kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/v0.10.1/deploy/manifests/00-crds.yaml
 
 # Add the jetstack helm repo
 helm repo add jetstack https://charts.jetstack.io
 # Install cert-manager into the cluster
 # --set webhook.enabled=false may not be required for you, but avoids issues with
 # certificates not being able to be issued due to the webhook not working.
-helm install --name cert-manager --namespace cert-manager --version v0.10.0 --set webhook.enabled=false jetstack/cert-manager
+helm install --name cert-manager --namespace cert-manager --version v0.10.1 --set webhook.enabled=false jetstack/cert-manager
 ```
 
 ##### Install Zookeeper

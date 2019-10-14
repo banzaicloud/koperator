@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (r *Reconciler) service(log logr.Logger) runtime.Object {
+func (r *Reconciler) service(log logr.Logger, clientPass string) runtime.Object {
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(serviceNameTemplate, r.KafkaCluster.Name), labelSelector, r.KafkaCluster),
 		Spec: corev1.ServiceSpec{

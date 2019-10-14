@@ -13,6 +13,10 @@ operator:
     repository: banzaicloud/kafka-operator
     tag: 0.6.1
     pullPolicy: IfNotPresent
+  vaultAddress: ""
+  # vaultSecret containing a `ca.crt` key with the Vault CA Certificate
+  vaultSecret: ""
+  verboseLogging: false
   resources:
     limits:
       cpu: 200m

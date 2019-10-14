@@ -51,6 +51,10 @@ spec:
               required:
               - name
               type: object
+            dnsNames:
+              items:
+                type: string
+              type: array
             includeJKS:
               description: 'If true, a keystore and truststore in JKS format will be included
               with the user secret as well as a generated password.'
@@ -83,27 +87,15 @@ spec:
         status:
           description: KafkaUserStatus defines the observed state of KafkaUser
           properties:
-            secretName:
-              type: string
-            topicGrants:
+            acls:
               items:
-                description: UserTopicGrant is the desired permissions for the KafkaUser
-                properties:
-                  accessType:
-                    enum:
-                    - read
-                    - write
-                    type: string
-                  topicName:
-                    type: string
-                required:
-                - accessType
-                - topicName
-                type: object
+                type: string
               type: array
+            state:
+              description: UserState defines the state of a KafkaUser
+              type: string
           required:
-          - secretName
-          - topicGrants
+          - state
           type: object
       type: object
   version: v1alpha1

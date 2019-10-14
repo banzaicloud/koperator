@@ -22,13 +22,13 @@ import (
 	"net/http"
 	"reflect"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	kafkaTopic = reflect.TypeOf(banzaicloudv1alpha1.KafkaTopic{}).Name()
+	kafkaTopic = reflect.TypeOf(v1alpha1.KafkaTopic{}).Name()
 )
 
 func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissionv1beta1.AdmissionResponse {
@@ -40,15 +40,15 @@ func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissio
 	switch req.Kind.Kind {
 
 	case kafkaTopic:
-		var topic banzaicloudv1alpha1.KafkaTopic
+		var topic v1alpha1.KafkaTopic
 		if err := json.Unmarshal(req.Object.Raw, &topic); err != nil {
 			log.Error(err, "Could not unmarshal raw object")
-			return notAllowed(err.Error())
+			return notAllowed(err.Error(), metav1.StatusReasonBadRequest)
 		}
-		return s.validateKafkaTopic(topic)
+		return s.validateKafkaTopic(&topic)
 
 	default:
-		return notAllowed(fmt.Sprintf("Unexpected resource kind: %s", req.Kind.Kind))
+		return notAllowed(fmt.Sprintf("Unexpected resource kind: %s", req.Kind.Kind), metav1.StatusReasonBadRequest)
 	}
 }
 
@@ -57,7 +57,7 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Error(err, "Failed to read request body")
-		http.Error(w, "bad body", http.StatusBadRequest)
+		http.Error(w, "could not read request body", http.StatusBadRequest)
 		return
 	}
 
@@ -80,9 +80,8 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 	ar := admissionv1beta1.AdmissionReview{}
 	if _, _, err := s.deserializer.Decode(body, nil, &ar); err != nil {
 		log.Error(err, "Can't decode body")
-		admissionResponse = notAllowed(err.Error())
+		admissionResponse = notAllowed(err.Error(), metav1.StatusReasonBadRequest)
 	} else {
-		log.Info(fmt.Sprintf("%s %s", r.Method, r.URL.Path))
 		admissionResponse = s.validate(&ar)
 	}
 
@@ -99,7 +98,6 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 		log.Error(err, "Can't encode response")
 		http.Error(w, fmt.Sprintf("could not encode response: %v", err), http.StatusInternalServerError)
 	}
-	log.Info("Ready to write response ...")
 	if _, err := w.Write(resp); err != nil {
 		log.Error(err, "Can't write response")
 		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)
@@ -107,10 +105,11 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func notAllowed(msg string) *admissionv1beta1.AdmissionResponse {
+func notAllowed(msg string, reason metav1.StatusReason) *admissionv1beta1.AdmissionResponse {
 	return &admissionv1beta1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: msg,
+			Reason:  reason,
 		},
 	}
 }

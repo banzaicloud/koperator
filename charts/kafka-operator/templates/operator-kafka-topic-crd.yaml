@@ -88,31 +88,11 @@ spec:
         status:
           description: KafkaTopicStatus defines the observed state of KafkaTopic
           properties:
-            inSyncReplicas:
-              additionalProperties:
-                type: string
-              type: object
-            leaders:
-              additionalProperties:
-                type: string
-              type: object
-            offlineReplicas:
-              additionalProperties:
-                type: string
-              type: object
-            partitionCount:
-              format: int32
-              type: integer
-            replicaCounts:
-              additionalProperties:
-                type: string
-              type: object
+            state:
+              description: TopicState defines the state of a KafkaTopic
+              type: string
           required:
-          - inSyncReplicas
-          - leaders
-          - offlineReplicas
-          - partitionCount
-          - replicaCounts
+          - state
           type: object
       type: object
   version: v1alpha1

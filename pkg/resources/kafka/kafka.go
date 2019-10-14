@@ -24,20 +24,24 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/certutil"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
+	"github.com/banzaicloud/kafka-operator/pkg/pki"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
+	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -47,20 +51,23 @@ const (
 	brokerConfigTemplate  = "%s-config"
 	brokerStorageTemplate = "%s-storage"
 
-	brokerConfigMapVolumeMount    = "broker-config"
-	modbrokerConfigMapVolumeMount = "broker-modconfig"
-	kafkaDataVolumeMount          = "kafka-data"
-	keystoreVolume                = "ks-files"
-	keystoreVolumePath            = "/var/run/secrets/java.io/keystores"
-	pemFilesVolume                = "pem-files"
-	jmxVolumePath                 = "/opt/jmx-exporter/"
-	jmxVolumeName                 = "jmx-jar-data"
-	metricsPort                   = 9020
+	brokerConfigMapVolumeMount = "broker-config"
+	kafkaDataVolumeMount       = "kafka-data"
+
+	serverKeystoreVolume = "server-ks-files"
+	serverKeystorePath   = "/var/run/secrets/java.io/keystores/server"
+	clientKeystoreVolume = "client-ks-files"
+	clientKeystorePath   = "/var/run/secrets/java.io/keystores/client"
+
+	jmxVolumePath = "/opt/jmx-exporter/"
+	jmxVolumeName = "jmx-jar-data"
+	metricsPort   = 9020
 )
 
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
+	Scheme *runtime.Scheme
 }
 
 // labelsForKafka returns the labels for selecting the resources
@@ -70,8 +77,9 @@ func labelsForKafka(name string) map[string]string {
 }
 
 // New creates a new reconciler for Kafka
-func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
+func New(client client.Client, scheme *runtime.Scheme, cluster *v1beta1.KafkaCluster) *Reconciler {
 	return &Reconciler{
+		Scheme: scheme,
 		Reconciler: resources.Reconciler{
 			Client:       client,
 			KafkaCluster: cluster,
@@ -208,23 +216,16 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	// We need to grab names for servers and client in case user is enabling ACLs
 	// That way we can continue to manage topics and users
-	superUsers := make([]string, 0)
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
-		controllerSecret := &corev1.Secret{}
-		err = r.Client.Get(context.TODO(), types.NamespacedName{
-			Name:      r.KafkaCluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName,
-			Namespace: r.KafkaCluster.Namespace,
-		}, controllerSecret)
-		if err != nil {
-			return errors.WrapIfWithDetails(err, "failed to get controller secret, maybe still creating...")
+		// reconcile the PKI
+		if err := pki.GetPKIManager(r.Client, r.KafkaCluster).ReconcilePKI(context.TODO(), log, r.Scheme); err != nil {
+			return err
 		}
-		for _, key := range []string{"clientCert", "peerCert"} {
-			su, err := certutil.DecodeCertificate(controllerSecret.Data[key])
-			if err != nil {
-				return errors.WrapIfWithDetails(err, "Failed to decode our client certificate")
-			}
-			superUsers = append(superUsers, su.Subject.String())
-		}
+	}
+
+	serverPass, clientPass, superUsers, err := r.getServerAndClientDetails()
+	if err != nil {
+		return err
 	}
 
 	for _, broker := range r.KafkaCluster.Spec.Brokers {
@@ -241,15 +242,15 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		}
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			o := r.configMap(broker.Id, brokerConfig, lBIp, superUsers, log)
+			o := r.configMap(broker.Id, brokerConfig, lBIp, serverPass, clientPass, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 		} else {
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
-				if brokerState.RackAwarenessState == banzaicloudv1beta1.Configured {
-					o := r.configMap(broker.Id, brokerConfig, lBIp, superUsers, log)
+				if brokerState.RackAwarenessState == v1beta1.Configured {
+					o := r.configMap(broker.Id, brokerConfig, lBIp, serverPass, clientPass, superUsers, log)
 					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 					if err != nil {
 						return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -287,6 +288,42 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciled")
 
 	return nil
+}
+
+func (r *Reconciler) getServerAndClientDetails() (string, string, []string, error) {
+	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets == nil {
+		return "", "", []string{}, nil
+	}
+	serverName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
+	serverSecret := &corev1.Secret{}
+	if err := r.Client.Get(context.TODO(), serverName, serverSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", "", nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "server secret not ready")
+		}
+		return "", "", nil, errors.WrapIfWithDetails(err, "failed to get server secret")
+	}
+	serverPass := string(serverSecret.Data[v1alpha1.PasswordKey])
+
+	clientName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
+	clientSecret := &corev1.Secret{}
+	if err := r.Client.Get(context.TODO(), clientName, clientSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", "", nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")
+		}
+		return "", "", nil, errors.WrapIfWithDetails(err, "failed to get client secret")
+	}
+	clientPass := string(clientSecret.Data[v1alpha1.PasswordKey])
+
+	superUsers := make([]string, 0)
+	for _, secret := range []*corev1.Secret{serverSecret, clientSecret} {
+		cert, err := certutil.DecodeCertificate(secret.Data[corev1.TLSCertKey])
+		if err != nil {
+			return "", "", nil, errors.WrapIfWithDetails(err, "failed to decode certificate")
+		}
+		superUsers = append(superUsers, cert.Subject.String())
+	}
+
+	return serverPass, clientPass, superUsers, nil
 }
 
 func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, log logr.Logger) error {
@@ -400,15 +437,15 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 		}
 		// Update status to Config InSync because broker is configured to go
-		statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, banzaicloudv1beta1.ConfigInSync, log)
+		statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, v1beta1.ConfigInSync, log)
 		if statusErr != nil {
 			return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
 		}
-		if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.GracefulActionState.CruiseControlState != banzaicloudv1beta1.GracefulUpdateNotRequired {
-			gracefulActionState := banzaicloudv1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1beta1.GracefulUpdateNotRequired}
+		if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.GracefulActionState.CruiseControlState != v1beta1.GracefulUpdateNotRequired {
+			gracefulActionState := v1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: v1beta1.GracefulUpdateNotRequired}
 
-			if r.KafkaCluster.Status.CruiseControlTopicStatus == banzaicloudv1beta1.CruiseControlTopicReady {
-				gracefulActionState = banzaicloudv1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1beta1.GracefulUpdateRequired}
+			if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
+				gracefulActionState = v1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: v1beta1.GracefulUpdateRequired}
 			}
 			statusErr = k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, gracefulActionState, log)
 			if statusErr != nil {
@@ -416,10 +453,10 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			}
 		}
 		if r.KafkaCluster.Spec.RackAwareness != nil {
-			if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.RackAwarenessState == banzaicloudv1beta1.Configured {
+			if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.RackAwarenessState == v1beta1.Configured {
 				return nil
 			}
-			statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, banzaicloudv1beta1.WaitingForRackAwareness, log)
+			statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, v1beta1.WaitingForRackAwareness, log)
 			if statusErr != nil {
 				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker rack state")
 			}
@@ -431,28 +468,28 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		currentPod = podList.Items[0].DeepCopy()
 		brokerId := currentPod.Labels["brokerId"]
 		if brokerState, ok := r.KafkaCluster.Status.BrokersState[brokerId]; ok {
-			if r.KafkaCluster.Spec.RackAwareness != nil && (brokerState.RackAwarenessState == banzaicloudv1beta1.WaitingForRackAwareness || brokerState.RackAwarenessState == "") {
+			if r.KafkaCluster.Spec.RackAwareness != nil && (brokerState.RackAwarenessState == v1beta1.WaitingForRackAwareness || brokerState.RackAwarenessState == "") {
 				err := k8sutil.UpdateCrWithRackAwarenessConfig(currentPod, r.KafkaCluster, r.Client)
 				if err != nil {
 					return err
 				}
-				statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster, banzaicloudv1beta1.Configured, log)
+				statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster, v1beta1.Configured, log)
 				if statusErr != nil {
 					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
 				}
 			}
-			if currentPod.Status.Phase == corev1.PodRunning && brokerState.GracefulActionState.CruiseControlState == banzaicloudv1beta1.GracefulUpdateRequired {
+			if currentPod.Status.Phase == corev1.PodRunning && brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRequired {
 				scaleErr := scale.UpScaleCluster(desiredPod.Labels["brokerId"], desiredPod.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 				if scaleErr != nil {
 					log.Error(err, "graceful upscale failed, or cluster just started")
 					statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
-						banzaicloudv1beta1.GracefulActionState{ErrorMessage: scaleErr.Error(), CruiseControlState: banzaicloudv1beta1.GracefulUpdateFailed}, log)
+						v1beta1.GracefulActionState{ErrorMessage: scaleErr.Error(), CruiseControlState: v1beta1.GracefulUpdateFailed}, log)
 					if statusErr != nil {
 						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
 					}
 				} else {
 					statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
-						banzaicloudv1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: banzaicloudv1beta1.GracefulUpdateSucceeded}, log)
+						v1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: v1beta1.GracefulUpdateSucceeded}, log)
 					if statusErr != nil {
 						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
 					}
@@ -471,7 +508,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		if err != nil {
 			log.Error(err, "could not match objects", "kind", desiredType)
 		} else if patchResult.IsEmpty() {
-			if currentPod.Status.Phase != corev1.PodFailed && r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == banzaicloudv1beta1.ConfigInSync {
+			if currentPod.Status.Phase != corev1.PodFailed && r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync {
 				log.V(1).Info("resource is in sync")
 				return nil
 			}
@@ -489,13 +526,13 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 
 		if currentPod.Status.Phase != corev1.PodFailed {
 
-			if r.KafkaCluster.Status.State != banzaicloudv1beta1.KafkaClusterRollingUpgrading {
-				if err := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, banzaicloudv1beta1.KafkaClusterRollingUpgrading, log); err != nil {
+			if r.KafkaCluster.Status.State != v1beta1.KafkaClusterRollingUpgrading {
+				if err := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, v1beta1.KafkaClusterRollingUpgrading, log); err != nil {
 					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "setting state to rolling upgrade failed")
 				}
 			}
 
-			if r.KafkaCluster.Status.State == banzaicloudv1beta1.KafkaClusterRollingUpgrading {
+			if r.KafkaCluster.Status.State == v1beta1.KafkaClusterRollingUpgrading {
 				// Check if any kafka pod is in terminating state
 				podList := &corev1.PodList{}
 				matchingLabels := client.MatchingLabels{

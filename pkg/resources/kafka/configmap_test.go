@@ -20,6 +20,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 func TestGenerateBrokerConfig(t *testing.T) {
@@ -105,7 +106,8 @@ zookeeper.connect=example.zk:2181`,
 
 		t.Run(test.testName, func(t *testing.T) {
 			r := Reconciler{
-				resources.Reconciler{
+				Scheme: scheme.Scheme,
+				Reconciler: resources.Reconciler{
 					KafkaCluster: &v1beta1.KafkaCluster{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "kafka",
@@ -138,7 +140,7 @@ zookeeper.connect=example.zk:2181`,
 					},
 				},
 			}
-			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, []string{}, "", nil)
+			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, "", "", "", []string{}, nil)
 
 			if generatedConfig != test.expectedConfig {
 				t.Errorf("the expected config is %s, received: %s", test.expectedConfig, generatedConfig)
