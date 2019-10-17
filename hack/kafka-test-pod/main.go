@@ -37,7 +37,7 @@ const certEnvVar = "KAFKA_TLS_CERT"
 const keyEnvVar = "KAFKA_TLS_KEY"
 const caEnvVar = "KAFKA_TLS_CA"
 
-var brokerAddrs = []string{"kafka-headless.kafka.svc.cluster.local:9092"}
+var brokerAddrs = []string{"kafka-headless.kafka.svc.cluster.local:29092"}
 
 func main() {
 
