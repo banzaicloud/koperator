@@ -288,7 +288,11 @@ func topicListToStrSlice(list v1alpha1.KafkaTopicList) []string {
 }
 
 func (r *KafkaClusterReconciler) ensureFinalizers(ctx context.Context, cluster *v1beta1.KafkaCluster) (updated *v1beta1.KafkaCluster, err error) {
-	for _, finalizer := range []string{clusterFinalizer, clusterTopicsFinalizer, clusterUsersFinalizer} {
+	finalizers := []string{clusterFinalizer, clusterTopicsFinalizer}
+	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
+		finalizers = append(finalizers, clusterUsersFinalizer)
+	}
+	for _, finalizer := range finalizers {
 		if util.StringSliceContains(cluster.GetFinalizers(), finalizer) {
 			continue
 		}
