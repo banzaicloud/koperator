@@ -181,6 +181,7 @@ We recommend to use a **custom StorageClass** to leverage the volume binding mod
 ```bash
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
+metadata:
   name: exampleStorageclass
 parameters:
   type: pd-standard
