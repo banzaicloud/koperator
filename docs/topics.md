@@ -45,65 +45,7 @@ banzai@cloud:~$ kubectl patch -n kafka kafkatopic example-topic --patch '{"spec"
 kafkatopic.kafka.banzaicloud.io/example-topic patched
 ```
 
-The operator will periodically poll kafka for the topic's status and post the data to the CR status.
-You can view the status with `describe`.
-
-```shell
-banzai@cloud:~$ kubectl describe -n kafka kafkatopic example-topic
-
-Name:         example-topic
-Namespace:    kafka
-Labels:       <none>
-Annotations:  kubectl.kubernetes.io/last-applied-configuration:
-                {"apiVersion":"kafka.banzaicloud.io/v1alpha1","kind":"KafkaTopic","metadata":{"annotations":{},"name":"example-topic","namespace":"k...
-API Version:  kafka.banzaicloud.io/v1alpha1
-Kind:         KafkaTopic
-Metadata:
-  Creation Timestamp:  2019-09-04T22:13:34Z
-  Finalizers:
-    finalizer.kafkatopics.kafka.banzaicloud.io
-  Generation:  3
-  Owner References:
-    API Version:           kafka.banzaicloud.io/v1alpha1
-    Block Owner Deletion:  true
-    Controller:            true
-    Kind:                  KafkaCluster
-    Name:                  kafka
-    UID:                   a64f4e80-d88b-4f21-9e08-c141f80fde07
-  Resource Version:        8184847
-  Self Link:               /apis/kafka.banzaicloud.io/v1alpha1/namespaces/kafka/kafkatopics/example-topic
-  UID:                     407964fa-4c45-4431-9478-278045f9ed53
-Spec:
-  Cluster Ref:
-    Name:       kafka
-    Namespace:  kafka
-  Config:
-    cleanup.policy:    delete
-    retention.ms:      604800000
-  Name:                example-topic
-  Partitions:          5
-  Replication Factor:  2
-Status:
-  In Sync Replicas:
-    0:  [1 0]
-    1:  [0 2]
-    2:  [2 1]
-    3:  [1 2]
-    4:  [2 0]
-  Leaders:
-    0:  1/kafka-1.kafka.svc.cluster.local:9092
-    1:  0/kafka-0.kafka.svc.cluster.local:9092
-    2:  2/kafka-2.kafka.svc.cluster.local:9092
-    3:  1/kafka-1.kafka.svc.cluster.local:9092
-    4:  2/kafka-2.kafka.svc.cluster.local:9092
-  Offline Replicas:
-  Partition Count:  5
-  Replica Counts:
-    0:   2
-    1:   2
-    2:   2
-    3:   2
-    4:   2
-```
-
-The keys in the `Status` maps refer to the partition ID.
+Operator created Topics are not enforced in any way. From the Kubernetes perspective Kafka Topics are external resources.
+We removed the logic which periodically checks the topics state from the operator in release 0.7.0. 
+So the operator will not receive any event in case of modification.
+It can cause some unwanted actions like if the user deletes a topic created through CR the operator will recreate it once an update happens on the related CR.
