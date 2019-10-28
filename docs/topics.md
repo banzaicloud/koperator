@@ -48,4 +48,4 @@ kafkatopic.kafka.banzaicloud.io/example-topic patched
 Operator created Topics are not enforced in any way. From the Kubernetes perspective Kafka Topics are external resources.
 We removed the logic which periodically checks the topics state from the operator in release 0.7.0. 
 So the operator will not receive any event in case of modification.
-It can cause some unwanted actions like if the user deletes a topic created through CR the operator will recreate it once an update happens on the related CR.
+It can have unwanted side effects. E.g. if the user deletes a topic created through the CR the operator will recreate it once an update happens on the related CR.
