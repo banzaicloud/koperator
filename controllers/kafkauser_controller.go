@@ -29,7 +29,7 @@ import (
 	kafkautil "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"

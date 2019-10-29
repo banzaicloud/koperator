@@ -23,7 +23,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"

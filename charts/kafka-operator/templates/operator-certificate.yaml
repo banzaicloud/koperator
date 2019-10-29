@@ -1,4 +1,4 @@
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   labels:
@@ -13,7 +13,7 @@ metadata:
 spec:
   selfSigned: {}
 ---
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   labels:
@@ -28,6 +28,7 @@ metadata:
 spec:
   commonName: {{ include "kafka-operator.fullname" . }}-operator.{{ .Release.Namespace }}.svc
   dnsNames:
+  - {{ include "kafka-operator.fullname" . }}-operator.{{ .Release.Namespace }}.svc
   - {{ include "kafka-operator.fullname" . }}-operator.{{ .Release.Namespace }}.svc.cluster.local
   issuerRef:
     kind: Issuer

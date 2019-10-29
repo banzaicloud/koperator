@@ -23,7 +23,8 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -139,7 +140,7 @@ func (c *certManager) clusterCertificateForUser(user *v1alpha1.KafkaUser, scheme
 			SecretName:  user.Spec.SecretName,
 			KeyEncoding: certv1.PKCS8,
 			CommonName:  user.Name,
-			IssuerRef: certv1.ObjectReference{
+			IssuerRef: certmeta.ObjectReference{
 				Name: caName,
 				Kind: caKind,
 			},

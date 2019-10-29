@@ -102,32 +102,10 @@ rules:
   - patch
   - update
 - apiGroups:
-  - certmanager.k8s.io
+  - cert-manager.io
   resources:
   - certificates
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - certmanager.k8s.io
-  resources:
   - clusterissuers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - certmanager.k8s.io
-  resources:
   - issuers
   verbs:
   - create
