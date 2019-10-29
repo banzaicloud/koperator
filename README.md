@@ -199,7 +199,7 @@ volumeBindingMode: WaitForFirstConsumer
 # Add your zookeeper svc name to the configuration
 kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
 # If prometheus operator installed create the ServiceMonitors
-kubectl create -n default -f config/sample/kafkacluster-prometheus.yaml
+kubectl create -n default -f config/samples/kafkacluster-prometheus.yaml
 ```
 
 > In this case you have to install Prometheus with proper configuration if you want the Kafka-Operator to react to alerts. Again, if you need Prometheus and would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
@@ -215,7 +215,7 @@ helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-op
 # Add your zookeeper svc name to the configuration
 kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
 # If prometheus operator installed create the ServiceMonitors
-kubectl create -n kafka -f config/sample/kafkacluster-prometheus.yaml
+kubectl create -n kafka -f config/samples/kafkacluster-prometheus.yaml
 ```
 
 > In this case Prometheus will be installed and configured properly for the Kafka-Operator.
