@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     app.kubernetes.io/component: webhook
   annotations:
-    certmanager.k8s.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "kafka-operator.fullname" . }}-server-cert
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "kafka-operator.fullname" . }}-server-cert
   name: {{ include "kafka-operator.name" . }}-validating-webhook
 webhooks:
 - clientConfig:

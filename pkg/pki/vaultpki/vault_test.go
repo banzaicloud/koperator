@@ -30,7 +30,6 @@ import (
 	"github.com/hashicorp/vault/http"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/hashicorp/vault/vault"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -68,7 +67,6 @@ func newMockCluster() *v1beta1.KafkaCluster {
 func newVaultMock(t *testing.T) (*vaultPKI, net.Listener, *api.Client) {
 	t.Helper()
 
-	certv1.AddToScheme(scheme.Scheme)
 	v1beta1.AddToScheme(scheme.Scheme)
 
 	ln, client := createTestVault(t)
