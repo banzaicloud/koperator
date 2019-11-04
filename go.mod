@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	emperror.dev/errors v0.4.2
+	github.com/Azure/go-autorest/autorest/azure/auth v0.4.0 // indirect
 	github.com/Shopify/sarama v1.23.1
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.2.0
@@ -47,6 +48,7 @@ require (
 )
 
 replace (
+	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.0.0+incompatible
 	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.6.7
 	k8s.io/api => k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
 
