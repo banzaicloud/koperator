@@ -15,10 +15,18 @@
 package certmanagerpki
 
 import (
+	"flag"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var namespaceCertManager string
+
+func init() {
+	flag.StringVar(&namespaceCertManager, "cert-manager-namespace", "cert-manager", "The namespace where cert-manager is running")
+}
 
 type CertManager interface {
 	pkicommon.PKIManager
