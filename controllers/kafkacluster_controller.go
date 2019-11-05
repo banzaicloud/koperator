@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"time"
 
+	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -113,7 +114,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	for _, rec := range reconcilers {
 		err = rec.Reconcile(log)
 		if err != nil {
-			switch err.(type) {
+			switch errors.Cause(err).(type) {
 			case errorfactory.BrokersUnreachable:
 				log.Info("Brokers unreachable, may still be starting up")
 				return ctrl.Result{
