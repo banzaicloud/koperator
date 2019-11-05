@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"time"
 
+	"emperror.dev/errors"
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -89,7 +90,7 @@ func newBrokerConnection(log logr.Logger, client client.Client, cluster *v1beta1
 // checkBrokerConnectionError is a convenience wrapper for returning from common
 // broker connection errors
 func checkBrokerConnectionError(logger logr.Logger, err error) (ctrl.Result, error) {
-	switch err.(type) {
+	switch errors.Cause(err).(type) {
 	case errorfactory.BrokersUnreachable:
 		return ctrl.Result{
 			Requeue:      true,
