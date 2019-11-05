@@ -36,6 +36,7 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/controllers"
+	"github.com/banzaicloud/kafka-operator/pkg/pki/certmanagerpki"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -71,6 +72,7 @@ func main() {
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&webhookCertDir, "tls-cert-dir", "/etc/webhook/certs", "The directory with a tls.key and tls.crt for serving HTTPS requests")
 	flag.BoolVar(&verboseLogging, "verbose", false, "Enable verbose logging")
+	flag.StringVar(&certmanagerpki.NamespaceCertManager, "cert-manager-namespace", "cert-manager", "The namespace where cert-manager is running")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.Logger(verboseLogging))
