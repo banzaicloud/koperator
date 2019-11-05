@@ -25,6 +25,9 @@ operator:
       cpu: 100m
       memory: 128Mi
 
+certManager:
+  namespace: "cert-manager"
+
 alertManager:
   enable: true
 
