@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"time"
 
+	"emperror.dev/errors"
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -148,7 +149,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	// that will allow the error to fall through if the certificate doesn't exist.
 	user, err := pkiManager.ReconcileUserCertificate(ctx, instance, r.Scheme)
 	if err != nil {
-		switch err.(type) {
+		switch errors.Cause(err).(type) {
 		case errorfactory.ResourceNotReady:
 			reqLogger.Info("generated secret not found, may not be ready")
 			return ctrl.Result{
