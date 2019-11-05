@@ -61,6 +61,7 @@ spec:
             - /manager
           args:
             - --enable-leader-election
+            - --cert-manager-namespace={{ .Values.certManager.namespace }}
           {{- if .Values.operator.verboseLogging }}
             - --verbose
           {{- end }}

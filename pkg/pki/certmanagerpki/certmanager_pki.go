@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const namespaceCertManager = "cert-manager"
+var NamespaceCertManager = "cert-manager"
 
 func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error {
 	logger.Info("Removing cert-manager certificates and secrets")
@@ -49,7 +49,7 @@ func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error
 	if c.cluster.Spec.ListenersConfig.SSLSecrets.Create {
 		// Names of our certificates and secrets
 		objNames := []types.NamespacedName{
-			{Name: fmt.Sprintf(pkicommon.BrokerCACertTemplate, c.cluster.Name), Namespace: "cert-manager"},
+			{Name: fmt.Sprintf(pkicommon.BrokerCACertTemplate, c.cluster.Name), Namespace: NamespaceCertManager},
 			{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, c.cluster.Name), Namespace: c.cluster.Namespace},
 			{Name: fmt.Sprintf(pkicommon.BrokerControllerTemplate, c.cluster.Name), Namespace: c.cluster.Namespace},
 		}
@@ -158,7 +158,7 @@ func ensureCASecretOwnership(ctx context.Context, client client.Client, cluster 
 	secret := &corev1.Secret{}
 	if err := client.Get(ctx, types.NamespacedName{
 		Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
-		Namespace: namespaceCertManager,
+		Namespace: NamespaceCertManager,
 	}, secret); err != nil {
 		if apierrors.IsNotFound(err) {
 			return errorfactory.New(errorfactory.ResourceNotReady{}, err, "pki secret not ready")
@@ -220,7 +220,7 @@ func selfSignerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme)
 
 func caCertForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *certv1.Certificate {
 	rootCertMeta := templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name), pkicommon.LabelsForKafkaPKI(cluster.Name), cluster)
-	rootCertMeta.Namespace = namespaceCertManager
+	rootCertMeta.Namespace = NamespaceCertManager
 	ca := &certv1.Certificate{
 		ObjectMeta: rootCertMeta,
 		Spec: certv1.CertificateSpec{
