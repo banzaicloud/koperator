@@ -36,8 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-var NamespaceCertManager = "cert-manager"
-
 func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error {
 	logger.Info("Removing cert-manager certificates and secrets")
 
@@ -49,7 +47,7 @@ func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error
 	if c.cluster.Spec.ListenersConfig.SSLSecrets.Create {
 		// Names of our certificates and secrets
 		objNames := []types.NamespacedName{
-			{Name: fmt.Sprintf(pkicommon.BrokerCACertTemplate, c.cluster.Name), Namespace: NamespaceCertManager},
+			{Name: fmt.Sprintf(pkicommon.BrokerCACertTemplate, c.cluster.Name), Namespace: namespaceCertManager},
 			{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, c.cluster.Name), Namespace: c.cluster.Namespace},
 			{Name: fmt.Sprintf(pkicommon.BrokerControllerTemplate, c.cluster.Name), Namespace: c.cluster.Namespace},
 		}
@@ -158,7 +156,7 @@ func ensureCASecretOwnership(ctx context.Context, client client.Client, cluster 
 	secret := &corev1.Secret{}
 	if err := client.Get(ctx, types.NamespacedName{
 		Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
-		Namespace: NamespaceCertManager,
+		Namespace: namespaceCertManager,
 	}, secret); err != nil {
 		if apierrors.IsNotFound(err) {
 			return errorfactory.New(errorfactory.ResourceNotReady{}, err, "pki secret not ready")
@@ -191,8 +189,10 @@ func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster 
 
 	caKey := secret.Data[v1alpha1.CAPrivateKeyKey]
 	caCert := secret.Data[v1alpha1.CACertKey]
+	rootCertMeta := templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name), pkicommon.LabelsForKafkaPKI(cluster.Name), cluster)
+	rootCertMeta.Namespace = namespaceCertManager
 	caSecret := &corev1.Secret{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name), pkicommon.LabelsForKafkaPKI(cluster.Name), cluster),
+		ObjectMeta: rootCertMeta,
 		Data: map[string][]byte{
 			v1alpha1.CoreCACertKey:  caCert,
 			corev1.TLSCertKey:       caCert,
@@ -220,7 +220,7 @@ func selfSignerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme)
 
 func caCertForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *certv1.Certificate {
 	rootCertMeta := templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name), pkicommon.LabelsForKafkaPKI(cluster.Name), cluster)
-	rootCertMeta.Namespace = NamespaceCertManager
+	rootCertMeta.Namespace = namespaceCertManager
 	ca := &certv1.Certificate{
 		ObjectMeta: rootCertMeta,
 		Spec: certv1.CertificateSpec{
