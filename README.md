@@ -96,12 +96,8 @@ The operator also uses `cert-manager` for issuing certificates to users and brok
 
 #### Install cert-manager
 
-```bash
-# Create a namespace to run cert-manager in
-kubectl create namespace cert-manager
-```
-
 Install cert-manager and CustomResourceDefinitions
+
 ```bash
 # Install the CustomResourceDefinitions and cert-manager itself
 kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml
