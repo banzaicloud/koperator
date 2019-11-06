@@ -29,7 +29,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -159,11 +158,6 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 
 	}
 
-	// set controller reference to parent cluster
-	if instance, err = r.ensureControllerReference(ctx, cluster, instance); err != nil {
-		return requeueWithError(reqLogger, "failed to ensure controller reference", err)
-	}
-
 	// ensure kafkaCluster label
 	if instance, err = r.ensureClusterLabel(ctx, cluster, instance); err != nil {
 		return requeueWithError(reqLogger, "failed to ensure kafkacluster label on topic", err)
@@ -198,16 +192,6 @@ func (r *KafkaTopicReconciler) ensureClusterLabel(ctx context.Context, cluster *
 		return r.updateAndFetchLatest(ctx, topic)
 	}
 	return topic, nil
-}
-
-func (r *KafkaTopicReconciler) ensureControllerReference(ctx context.Context, cluster *v1beta1.KafkaCluster, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
-	if err := controllerutil.SetControllerReference(cluster, topic, r.Scheme); err != nil {
-		if !k8sutil.IsAlreadyOwnedError(err) {
-			return nil, err
-		}
-		return topic, nil
-	}
-	return r.updateAndFetchLatest(ctx, topic)
 }
 
 func (r *KafkaTopicReconciler) updateAndFetchLatest(ctx context.Context, topic *v1alpha1.KafkaTopic) (*v1alpha1.KafkaTopic, error) {
