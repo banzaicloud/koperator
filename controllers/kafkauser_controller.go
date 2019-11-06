@@ -35,7 +35,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -186,11 +185,6 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		return r.checkFinalizers(ctx, reqLogger, cluster, instance, user)
 	}
 
-	// ensure a controller reference on the user
-	if instance, err = r.ensureControllerReference(ctx, cluster, instance); err != nil {
-		return requeueWithError(reqLogger, "failed to ensure controller reference on user", err)
-	}
-
 	// ensure a kafkaCluster label
 	if instance, err = r.ensureClusterLabel(ctx, cluster, instance); err != nil {
 		return requeueWithError(reqLogger, "failed to ensure kafkacluster label on user", err)
@@ -234,16 +228,6 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	}
 
 	return reconciled()
-}
-
-func (r *KafkaUserReconciler) ensureControllerReference(ctx context.Context, cluster *v1beta1.KafkaCluster, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
-	if err := controllerutil.SetControllerReference(cluster, user, r.Scheme); err != nil {
-		if !k8sutil.IsAlreadyOwnedError(err) {
-			return nil, err
-		}
-		return user, nil
-	}
-	return r.updateAndFetchLatest(ctx, user)
 }
 
 func (r *KafkaUserReconciler) ensureClusterLabel(ctx context.Context, cluster *v1beta1.KafkaCluster, user *v1alpha1.KafkaUser) (*v1alpha1.KafkaUser, error) {
