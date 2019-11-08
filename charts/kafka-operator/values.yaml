@@ -25,6 +25,11 @@ operator:
       cpu: 100m
       memory: 128Mi
 
+webhook:
+  certs:
+    generate: true
+    secret: "kafka-operator-serving-cert"
+
 certManager:
   namespace: "cert-manager"
 
