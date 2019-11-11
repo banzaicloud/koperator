@@ -577,10 +577,6 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			}
 		}
 
-		err = k8sutil.UpdateCrWithNodeAffinity(currentPod, r.KafkaCluster, r.Client)
-		if err != nil {
-			return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with node affinity failed")
-		}
 		err = r.Client.Delete(context.TODO(), currentPod)
 		if err != nil {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "deleting resource failed", "kind", desiredType)

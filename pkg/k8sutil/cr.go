@@ -28,42 +28,6 @@ import (
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// UpdateCrWithNodeAffinity updates the given Cr with NodeAffinity status
-func UpdateCrWithNodeAffinity(current *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
-	failureDomainSelectors, err := failureDomainSelectors(current.Spec.NodeName, client)
-	if err != nil {
-		return errors.WrapIfWithDetails(err, "determining Node selector failed")
-	}
-
-	// don't set node affinity when none of the selector labels are available for the node
-	if len(failureDomainSelectors) < 1 {
-		return nil
-	}
-
-	brokers := []v1beta1.Broker{}
-
-	for _, broker := range cr.Spec.Brokers {
-		if strconv.Itoa(int(broker.Id)) == current.Labels["brokerId"] {
-			nodeAffinity := &corev1.NodeAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-					NodeSelectorTerms: failureDomainSelectors,
-				},
-			}
-			if broker.BrokerConfig != nil {
-				broker.BrokerConfig.NodeAffinity = nodeAffinity
-			} else {
-				bConfig := &v1beta1.BrokerConfig{
-					NodeAffinity: nodeAffinity,
-				}
-				broker.BrokerConfig = bConfig
-			}
-		}
-		brokers = append(brokers, broker)
-	}
-	cr.Spec.Brokers = brokers
-	return updateCr(cr, client)
-}
-
 // UpdateCrWithRackAwarenessConfig updates the CR with rack awareness config
 func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 

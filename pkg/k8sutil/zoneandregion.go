@@ -22,35 +22,6 @@ import (
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	zoneLabel   = "failure-domain.beta.kubernetes.io/zone"
-	regionLabel = "failure-domain.beta.kubernetes.io/region"
-)
-
-func failureDomainSelectors(nodeName string, client runtimeClient.Client) ([]corev1.NodeSelectorTerm, error) {
-	terms := []corev1.NodeSelectorTerm{}
-
-	labels, err := getSpecificNodeLabels(nodeName, client, []string{zoneLabel, regionLabel})
-	if err != nil {
-		return nil, err
-	}
-
-	if len(labels) > 0 {
-		defaultFailureDomainSelector := corev1.NodeSelectorTerm{}
-
-		for key, val := range labels {
-			defaultFailureDomainSelector.MatchExpressions =
-				append(defaultFailureDomainSelector.MatchExpressions, corev1.NodeSelectorRequirement{
-					Key:      key,
-					Operator: corev1.NodeSelectorOpIn,
-					Values:   []string{val},
-				})
-		}
-		terms = append(terms, defaultFailureDomainSelector)
-	}
-	return terms, nil
-}
-
 func getSpecificNodeLabels(nodeName string, client runtimeClient.Client, filter []string) (map[string]string, error) {
 	node := &corev1.Node{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: nodeName, Namespace: ""}, node)
