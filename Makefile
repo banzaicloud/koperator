@@ -15,6 +15,8 @@ GOLANGCI_VERSION = 1.18.0
 LICENSEI_VERSION = 0.1.0
 GOPROXY=https://proxy.golang.org
 
+KUSTOMIZE_BASE = config/overlays/specific-manager-version
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -82,17 +84,17 @@ run: generate fmt vet manifests
 
 # Install CRDs into a cluster
 install: manifests
-	kustomize build config/crd | kubectl apply -f -
+	kubectl apply -f config/base/crds
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: install-kustomize manifests
-	kubectl apply -f config/manager/namespace.yaml
-	cd config/manager && kustomize edit set image controller=${IMG}
-	kustomize build config/default | kubectl apply -f -
+	bin/kustomize build config | kubectl apply -f -
+	./scripts/image_patch.sh "${KUSTOMIZE_BASE}/manager_image_patch.yaml" ${IMG}
+	kustomize build $(KUSTOMIZE_BASE) | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/base/crds output:rbac:artifacts:config=config/base/rbac output:webhook:artifacts:config=config/base/webhook
 
 # Run go fmt against code
 fmt:

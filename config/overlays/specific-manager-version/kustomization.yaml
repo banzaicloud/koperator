@@ -1,0 +1,10 @@
+bases:
+  - ../certmanager-with-auth-proxy
+
+# Adds namespace to all resources.
+namespace: kafka
+
+namePrefix: kafka-operator-
+
+patchesStrategicMerge:
+  - manager_image_patch.yaml
