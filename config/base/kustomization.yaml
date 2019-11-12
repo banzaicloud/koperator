@@ -1,0 +1,18 @@
+# Adds namespace to all resources.
+namespace: kafka
+
+resources:
+  - crds/kafka.banzaicloud.io_kafkaclusters.yaml
+  - crds/kafka.banzaicloud.io_kafkatopics.yaml
+  - crds/kafka.banzaicloud.io_kafkausers.yaml
+  - rbac/role.yaml
+  - rbac/role_binding.yaml
+  - rbac/leader_election_role.yaml
+  - rbac/leader_election_role_binding.yaml
+  - manager/manager.yaml
+  - alertmanager/service.yaml
+  - webhook/manifests.yaml
+  - webhook/service.yaml
+
+patchesStrategicMerge:
+  - webhook/webhook_in_kafkatopics.yaml

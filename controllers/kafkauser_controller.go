@@ -21,14 +21,6 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/pki"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	kafkautil "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -37,6 +29,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/kafka-operator/pkg/pki"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
+	kafkautil "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
