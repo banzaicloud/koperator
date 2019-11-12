@@ -77,7 +77,7 @@ spec:
   volumes:
   - name: sslcerts
     secret:
-      secretName: test-kafka-operator
+      secretName: kafka-operator-server-cert
 EOF
 ```
 
@@ -92,9 +92,9 @@ kubectl exec -it -n kafka kafka-test bash
 ```bash
 kafkacat -P -b kafka-headless:29092 -t my-topic \
 -X security.protocol=SSL \
--X ssl.key.location=/ssl/certs/clientKey \
--X ssl.certificate.location=/ssl/certs/clientCert \
--X ssl.ca.location=/ssl/certs/caCert
+-X ssl.key.location=/ssl/certs/tls.key \
+-X ssl.certificate.location=/ssl/certs/tls.crt \
+-X ssl.ca.location=/ssl/certs/ca.crt
 ```
 
 ##### Consume Messages
@@ -102,13 +102,13 @@ kafkacat -P -b kafka-headless:29092 -t my-topic \
 ```bash
 kafkacat -C -b kafka-headless:29092 -t my-topic \
 -X security.protocol=SSL \
--X ssl.key.location=/ssl/certs/clientKey \
--X ssl.certificate.location=/ssl/certs/clientCert \
--X ssl.ca.location=/ssl/certs/caCert
+-X ssl.key.location=/ssl/certs/tls.key \
+-X ssl.certificate.location=/ssl/certs/tls.crt \
+-X ssl.ca.location=/ssl/certs/ca.crt
 
 ```
 
-The above will use the client certificate provisioned with the cluster for connecting to kafka.
+The above will use the certificate provisioned with the cluster for connecting to kafka.
 If you'd like to create and use a different user, create a `KafkaUser` CR. An example can be found on the [SSL doc](docs/ssl.md).
 
 ### Outside Kubernetes Cluster
@@ -166,9 +166,9 @@ apt-get install kafkacat
 Extract secrets from the given Kubernetes Secret:
 
 ```bash
-kubectl get secrets -n kafka test-kafka-operator -o jsonpath="{['data']['\clientCert']}" | base64 -D > client.crt.pem
-kubectl get secrets -n kafka test-kafka-operator -o jsonpath="{['data']['\clientKey']}" | base64 -D > client.key.pem
-kubectl get secrets -n kafka test-kafka-operator -o jsonpath="{['data']['\caCert']}" | base64 -D > ca.crt.pem
+kubectl get secrets -n kafka kafka-operator-server-cert -o jsonpath="{['data']['\tls.crt']}" | base64 -D > client.crt.pem
+kubectl get secrets -n kafka kafka-operator-server-cert -o jsonpath="{['data']['\tls.key']}" | base64 -D > client.key.pem
+kubectl get secrets -n kafka kafka-operator-server-cert -o jsonpath="{['data']['\ca.crt']}" | base64 -D > ca.crt.pem
 
 ```
 
