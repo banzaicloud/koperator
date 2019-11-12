@@ -8,8 +8,6 @@ spec:
     spec:
       containers:
       - name: manager
-        args:
-        - "--cert-manager-namespace=cert-manager"
         ports:
         - containerPort: 443
           name: webhook-server

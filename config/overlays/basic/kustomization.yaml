@@ -10,3 +10,10 @@ namespace: kafka
 # Note that it should also match with the prefix (text before '-') of the namespace
 # field above.
 namePrefix: kafka-operator-
+
+resources:
+  - certificate.yaml
+
+patchesStrategicMerge:
+  - manager_webhook_patch.yaml
+  - webhookcainjection_patch.yaml
