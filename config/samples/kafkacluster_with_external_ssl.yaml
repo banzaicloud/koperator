@@ -47,8 +47,8 @@ spec:
     failureThreshold: 1
   listenersConfig:
     externalListeners:
-      - type: "plaintext"
-        name: "ssl"
+      - type: "ssl"
+        name: "external"
         externalStartingPort: 19090
         containerPort: 9094
     internalListeners:
