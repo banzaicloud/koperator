@@ -21,6 +21,16 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+	"github.com/go-logr/logr"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -29,13 +39,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	kafkautil "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
-	"github.com/go-logr/logr"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -65,6 +68,15 @@ func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
+	err = c.Watch(&source.Kind{Type: &certv1.Certificate{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &v1alpha1.KafkaUser{},
+	})
+	if err != nil {
+		if _, ok := err.(*meta.NoKindMatchError); !ok {
+			return err
+		}
+	}
 	return nil
 }
 
