@@ -1,0 +1,53 @@
+bases:
+  - ../../base
+
+# Adds namespace to all resources.
+namespace: kafka
+
+# Value of this field is prepended to the
+# names of all resources, e.g. a deployment named
+# "wordpress" becomes "alices-wordpress".
+# Note that it should also match with the prefix (text before '-') of the namespace
+# field above.
+namePrefix: certman-proxy
+
+resources:
+  - certmanager/certificate.yaml
+  - auth-proxy/rbac/auth_proxy_service.yaml
+  - auth-proxy/rbac/auth_proxy_role.yaml
+  - auth-proxy/rbac/auth_proxy_role_binding.yaml
+
+patchesStrategicMerge:
+  - certmanager/manager_webhook_patch.yaml
+  - certmanager/webhookcainjection_patch.yaml
+  - certmanager/cainjection_in_kafkatopics.yaml
+  - auth-proxy/manager_auth_proxy_patch.yaml
+
+vars:
+# [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER' prefix.
+- name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
+  objref:
+    kind: Certificate
+    group: certmanager.k8s.io
+    version: v1alpha1
+    name: serving-cert # this name should match the one in certificate.yaml
+  fieldref:
+    fieldpath: metadata.namespace
+- name: CERTIFICATE_NAME
+  objref:
+    kind: Certificate
+    group: certmanager.k8s.io
+    version: v1alpha1
+    name: serving-cert # this name should match the one in certificate.yaml
+- name: SERVICE_NAMESPACE # namespace of the service
+  objref:
+    kind: Service
+    version: v1
+    name: webhook-service
+  fieldref:
+    fieldpath: metadata.namespace
+- name: SERVICE_NAME
+  objref:
+    kind: Service
+    version: v1
+    name: webhook-service

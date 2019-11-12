@@ -5,10 +5,12 @@
 
 cat << EOF > ${1}
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: controller-manager
   namespace: system
+  labels:
+    control-plane: controller-manager
 spec:
   template:
     spec:

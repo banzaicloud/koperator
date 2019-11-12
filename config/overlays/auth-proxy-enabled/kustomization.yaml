@@ -1,0 +1,24 @@
+
+# The auth proxy (https://github.com/brancz/kube-rbac-proxy)
+# which protects your /metrics endpoint.
+
+bases:
+  - ../../base
+
+# Adds namespace to all resources.
+namespace: kafka
+
+# Value of this field is prepended to the
+# names of all resources, e.g. a deployment named
+# "wordpress" becomes "alices-wordpress".
+# Note that it should also match with the prefix (text before '-') of the namespace
+# field above.
+namePrefix: authproxy-
+
+resources:
+  - rbac/auth_proxy_service.yaml
+  - rbac/auth_proxy_role.yaml
+  - rbac/auth_proxy_role_binding.yaml
+
+patchesStrategicMerge:
+  - manager_auth_proxy_patch.yaml

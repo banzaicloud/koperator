@@ -1,0 +1,5 @@
+resources:
+  - base/crds/kafka.banzaicloud.io_kafkatopics.yaml
+  - base/crds/kafka.banzaicloud.io_kafkaclusters.yaml
+  - base/crds/kafka.banzaicloud.io_kafkausers.yaml
+  - base/manager/namespace.yaml
