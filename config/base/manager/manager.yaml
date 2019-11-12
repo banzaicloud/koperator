@@ -21,7 +21,7 @@ spec:
         args:
         - --enable-leader-election
         - --cert-manager-namespace=cert-manager
-        image: controller:latest
+        image: banzaicloud/kafka-operator:latest
         name: manager
         ports:
         - containerPort: 9001
