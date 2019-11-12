@@ -20,7 +20,6 @@ spec:
         - /manager
         args:
         - --enable-leader-election
-        - --cert-manager-namespace=cert-manager
         image: banzaicloud/kafka-operator:latest
         name: manager
         ports:
