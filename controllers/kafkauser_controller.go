@@ -133,6 +133,11 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		}
 		return requeueWithError(reqLogger, "failed to lookup referenced cluster", err)
 	}
+	// Avoid panic if the user wants to create a kafka user but the cluster is in plaintext mode
+	// TODO: refactor this and use webhook to validate if the cluster is eligible to create a kafka user
+	if cluster.Spec.ListenersConfig.SSLSecrets == nil {
+		return requeueWithError(reqLogger, "could not create kafka user since cluster does not use ssl", errors.New("failed to create kafka user"))
+	}
 
 	pkiManager := pki.GetPKIManager(r.Client, cluster)
 
