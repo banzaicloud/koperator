@@ -15,6 +15,11 @@ $ helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com
 $ helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator
 ```
 
+To install the operator using an already installed cert-manager
+```bash
+$ helm install --name=kafka-operator --set certManager.namespace=<your cert manager namespace> --namespace=kafka banzaicloud-stable/kafka-operator
+```
+
 ## Uninstalling the Chart
 
 To uninstall/delete the `kafka-operator` release:
@@ -49,3 +54,6 @@ Parameter | Description | Default
 `affinity` | Operator pod affinity can be set | `{}`
 `nameOverride` | Release name can be overwritten | `""`
 `fullnameOverride` | Release full name can be overwritten | `""`
+`certManager.namespace` | Operator will look for the cert manager in this namespace | `cert-manager`
+`webhook.certs.generate` | Helm chart will generate cert for the webhook | `true`
+`webhook.certs.secret` | Helm chart will use the secret name applied here for the cert | `kafka-operator-serving-cert`
