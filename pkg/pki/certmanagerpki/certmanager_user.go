@@ -16,6 +16,7 @@ package certmanagerpki
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
@@ -72,6 +73,13 @@ func (c *certManager) ReconcileUserCertificate(ctx context.Context, user *v1alph
 	// Ensure controller reference on user secret
 	if err = c.ensureControllerReference(ctx, user, secret, scheme); err != nil {
 		return nil, err
+	}
+
+	// Ensure that the secret is populated with the required values.
+	for _, v := range secret.Data {
+		if len(v) == 0 {
+			return nil, errorfactory.New(errorfactory.APIFailure{}, errors.New("not all secret value populated"), "secret is not ready")
+		}
 	}
 
 	return &pkicommon.UserCertificate{
