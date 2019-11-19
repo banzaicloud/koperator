@@ -96,6 +96,11 @@ The operator also uses `cert-manager` for issuing certificates to users and brok
 
 #### Install cert-manager
 
+> Cert-manager 0.11.x introduced some API changes. We did not want to drop the 0.10.x line support so we decided to create two releases for the Operator.
+
+- Operator 0.8.x line supports cert-manager 0.11.x
+- Operator 0.7.x line supports cert-manager 0.10.x
+
 Install cert-manager and CustomResourceDefinitions
 
 ```bash
@@ -205,6 +210,8 @@ kubectl create -n default -f config/samples/kafkacluster-prometheus.yaml
 ### Easy way: installing with Helm
 
 Alternatively, if you are using Helm, you can deploy the operator using a Helm chart [Helm chart](https://github.com/banzaicloud/kafka-operator/tree/master/charts):
+
+> To install the 0.7.x version of the operator use `helm install --name=kafka-operator --namespace=kafka --set operator.image.tag=0.7.x banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml`
 
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
