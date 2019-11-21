@@ -89,9 +89,6 @@ func (u *UserCertificate) DN() string {
 // GetDNSNames returns all potential DNS names for a kafka cluster - including brokers
 func GetDNSNames(cluster *v1beta1.KafkaCluster) (dnsNames []string) {
 	dnsNames = make([]string, 0)
-	for _, broker := range cluster.Spec.Brokers {
-		dnsNames = append(dnsNames, brokerDNSNames(cluster, broker)...)
-	}
 	dnsNames = append(dnsNames, clusterDNSNames(cluster)...)
 	return
 }
@@ -104,44 +101,48 @@ func GetCommonName(cluster *v1beta1.KafkaCluster) string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace)
 }
 
-// brokerDNSNames returns all the possible DNS Names for a Kafka Broker
-func brokerDNSNames(cluster *v1beta1.KafkaCluster, broker v1beta1.Broker) (names []string) {
-	names = make([]string, 0)
-	if cluster.Spec.HeadlessServiceEnabled {
-		names = append(names,
-			fmt.Sprintf("%s-%d.%s.%s.svc.cluster.local", cluster.Name, broker.Id, fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
-		names = append(names,
-			fmt.Sprintf("%s-%d.%s.%s.svc", cluster.Name, broker.Id, fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
-		names = append(names,
-			fmt.Sprintf("%s-%d.%s.%s", cluster.Name, broker.Id, fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
-	} else {
-		names = append(names,
-			fmt.Sprintf("%s-%d.%s.svc.cluster.local", cluster.Name, broker.Id, cluster.Namespace))
-		names = append(names,
-			fmt.Sprintf("%s-%d.%s.svc", cluster.Name, broker.Id, cluster.Namespace))
-		names = append(names,
-			fmt.Sprintf("%s-%d.%s", cluster.Name, broker.Id, cluster.Namespace))
-	}
-	return
-}
-
 // clusterDNSNames returns all the possible DNS Names for a Kafka Cluster
 func clusterDNSNames(cluster *v1beta1.KafkaCluster) (names []string) {
 	names = make([]string, 0)
 	if cluster.Spec.HeadlessServiceEnabled {
+		// FQDN
+		names = append(names, fmt.Sprintf("*.%s", GetCommonName(cluster)))
 		names = append(names, GetCommonName(cluster))
+
+		// SVC notation
 		names = append(names,
-			fmt.Sprintf("%s.%s.svc", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
+			fmt.Sprintf("*.%s.%s.svc", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace),
+			fmt.Sprintf("%s.%s.svc", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace),
+		)
+
+		// Namespace notation
 		names = append(names,
-			fmt.Sprintf("%s.%s", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace))
+			fmt.Sprintf("*.%s.%s", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace),
+			fmt.Sprintf("%s.%s", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace),
+		)
+
+		// service name only
+		// TODO (tinyzimmer): I'm not sure if this one is required
 		names = append(names,
 			fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name))
 	} else {
+		// FQDN
+		names = append(names, fmt.Sprintf("*.%s", GetCommonName(cluster)))
 		names = append(names, GetCommonName(cluster))
+
+		// SVC notation
 		names = append(names,
-			fmt.Sprintf("%s.%s.svc", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace))
+			fmt.Sprintf("*.%s.%s.svc", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace),
+			fmt.Sprintf("%s.%s.svc", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace),
+		)
+
+		// Namespace notation
 		names = append(names,
-			fmt.Sprintf("%s.%s", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace))
+			fmt.Sprintf("*.%s.%s", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace),
+			fmt.Sprintf("%s.%s", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace),
+		)
+
+		// service name only - same TODO as above
 		names = append(names,
 			fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name))
 	}
