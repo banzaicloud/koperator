@@ -122,7 +122,6 @@ func clusterDNSNames(cluster *v1beta1.KafkaCluster) (names []string) {
 		)
 
 		// service name only
-		// TODO (tinyzimmer): I'm not sure if this one is required
 		names = append(names,
 			fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name))
 	} else {
@@ -142,7 +141,7 @@ func clusterDNSNames(cluster *v1beta1.KafkaCluster) (names []string) {
 			fmt.Sprintf("%s.%s", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace),
 		)
 
-		// service name only - same TODO as above
+		// service name only
 		names = append(names,
 			fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name))
 	}
