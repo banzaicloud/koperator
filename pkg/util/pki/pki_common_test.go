@@ -81,11 +81,11 @@ func TestGetDNSNames(t *testing.T) {
 	cluster.Spec.HeadlessServiceEnabled = true
 	headlessNames := GetDNSNames(cluster)
 	expected := []string{
-		"test-cluster-0.test-cluster-headless.test-namespace.svc.cluster.local",
-		"test-cluster-0.test-cluster-headless.test-namespace.svc",
-		"test-cluster-0.test-cluster-headless.test-namespace",
+		"*.test-cluster-headless.test-namespace.svc.cluster.local",
 		"test-cluster-headless.test-namespace.svc.cluster.local",
+		"*.test-cluster-headless.test-namespace.svc",
 		"test-cluster-headless.test-namespace.svc",
+		"*.test-cluster-headless.test-namespace",
 		"test-cluster-headless.test-namespace",
 		"test-cluster-headless",
 	}
@@ -96,11 +96,11 @@ func TestGetDNSNames(t *testing.T) {
 	cluster.Spec.HeadlessServiceEnabled = false
 	allBrokerNames := GetDNSNames(cluster)
 	expected = []string{
-		"test-cluster-0.test-namespace.svc.cluster.local",
-		"test-cluster-0.test-namespace.svc",
-		"test-cluster-0.test-namespace",
+		"*.test-cluster-all-broker.test-namespace.svc.cluster.local",
 		"test-cluster-all-broker.test-namespace.svc.cluster.local",
+		"*.test-cluster-all-broker.test-namespace.svc",
 		"test-cluster-all-broker.test-namespace.svc",
+		"*.test-cluster-all-broker.test-namespace",
 		"test-cluster-all-broker.test-namespace",
 		"test-cluster-all-broker",
 	}
