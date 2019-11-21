@@ -167,9 +167,9 @@ rules:
   - update
   - patch
   - delete
-{{- if contains "0.8." .Values.operator.image.tag }}
+{{- if contains "0.7." .Values.operator.image.tag }}
 - apiGroups:
-  - cert-manager.io
+  - certmanager.k8s.io
   resources:
   - issuers
   - clusterissuers
@@ -184,7 +184,7 @@ rules:
   - watch
 {{- else }}
 - apiGroups:
-  - certmanager.k8s.io
+    - cert-manager.io
   resources:
   - issuers
   - clusterissuers

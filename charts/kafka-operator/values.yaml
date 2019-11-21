@@ -11,7 +11,7 @@ imagePullSecrets: []
 operator:
   image:
     repository: banzaicloud/kafka-operator
-    tag: 0.8.0
+    tag: 0.8.1
     pullPolicy: IfNotPresent
   vaultAddress: ""
   # vaultSecret containing a `ca.crt` key with the Vault CA Certificate
