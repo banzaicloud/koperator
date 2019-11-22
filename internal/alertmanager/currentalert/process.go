@@ -25,12 +25,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func examineAlert(alert *currentAlertStruct, client client.Client, rollingUpgradeAlertCount int) error {
+type ccConfig struct {
+	Name                  string
+	Namespace             string
+	CruiseControlEndpoint string
+}
 
+func getCR(alert *currentAlertStruct, client client.Client) (*v1beta1.KafkaCluster, *ccConfig, error) {
 	cr, err := k8sutil.GetCr(string(alert.Labels["kafka_cr"]), string(alert.Labels["namespace"]), client)
+	if err != nil {
+		return nil, nil, err
+	}
+	cc := &ccConfig{
+		Name:                  cr.Name,
+		Namespace:             cr.Namespace,
+		CruiseControlEndpoint: cr.Spec.CruiseControlConfig.CruiseControlEndpoint,
+	}
+	return cr, cc, nil
+}
+
+func examineAlert(alert *currentAlertStruct, client client.Client, rollingUpgradeAlertCount int) error {
+	cr, cc, err := getCR(alert, client)
 	if err != nil {
 		return err
 	}
+
+	if err := cc.getCruiseControlStatus(); err != nil {
+		return err
+	}
+
 	if err := k8sutil.UpdateCrWithRollingUpgrade(rollingUpgradeAlertCount, cr, client); err != nil {
 		return err
 	}
@@ -137,6 +160,13 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 
 	err = k8sutil.AddNewBrokerToCr(broker, string(labels["kafka_cr"]), string(labels["namespace"]), client)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *ccConfig) getCruiseControlStatus() error {
+	if err := scale.GetCruiseControlStatus(c.Namespace, c.CruiseControlEndpoint, c.Name); err != nil {
 		return err
 	}
 	return nil
