@@ -89,7 +89,7 @@ func getCruiseControl(action, namespace string, options map[string]string, ccEnd
 	return rsp, nil
 }
 
-func getCruiseControlStatus(namespace, ccEndpoint, clusterName string) error {
+func GetCruiseControlStatus(namespace, ccEndpoint, clusterName string) error {
 
 	options := map[string]string{
 		"substates": "ANALYZER",
@@ -169,7 +169,7 @@ func GetBrokerIDWithLeastPartition(namespace, ccEndpoint, clusterName string) (s
 
 	brokerWithLeastPartition := ""
 
-	err := getCruiseControlStatus(namespace, ccEndpoint, clusterName)
+	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
 		return brokerWithLeastPartition, err
 	}
@@ -217,7 +217,7 @@ func GetBrokerIDWithLeastPartition(namespace, ccEndpoint, clusterName string) (s
 // UpScaleCluster upscales Kafka cluster
 func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) error {
 
-	err := getCruiseControlStatus(namespace, ccEndpoint, clusterName)
+	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
 		return err
 	}
@@ -281,7 +281,7 @@ func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) error {
 // DownsizeCluster downscales Kafka cluster
 func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) error {
 
-	err := getCruiseControlStatus(namespace, ccEndpoint, clusterName)
+	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
 		return err
 	}
@@ -332,7 +332,7 @@ func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) error 
 // RebalanceCluster rebalances Kafka cluster using CC
 func RebalanceCluster(namespace, ccEndpoint, clusterName string) error {
 
-	err := getCruiseControlStatus(namespace, ccEndpoint, clusterName)
+	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
 		return err
 	}
@@ -362,7 +362,7 @@ func RebalanceCluster(namespace, ccEndpoint, clusterName string) error {
 // RunPreferedLeaderElectionInCluster runs leader election in  Kafka cluster using CC
 func RunPreferedLeaderElectionInCluster(namespace, ccEndpoint, clusterName string) error {
 
-	err := getCruiseControlStatus(namespace, ccEndpoint, clusterName)
+	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
 		return err
 	}
