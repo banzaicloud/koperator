@@ -1021,6 +1021,21 @@ spec:
                         type: string
                     type: object
                   type: array
+                topicConfig:
+                  description: TopicConfig holds info for topic configuration regarding
+                    partitions and replicationFactor
+                  properties:
+                    partitions:
+                      format: int32
+                      type: integer
+                    replicationFactor:
+                      format: int32
+                      minimum: 2
+                      type: integer
+                  required:
+                  - partitions
+                  - replicationFactor
+                  type: object
               type: object
             envoyConfig:
               description: EnvoyConfig defines the config for Envoy
