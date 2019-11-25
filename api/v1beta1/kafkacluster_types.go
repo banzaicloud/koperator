@@ -104,6 +104,14 @@ type CruiseControlConfig struct {
 	ClusterConfig         string                        `json:"clusterConfig,omitempty"`
 	Image                 string                        `json:"image,omitempty"`
 	InitContainerImage    string                        `json:"initContainerImage,omitempty"`
+	TopicConfig           *TopicConfig                  `json:"topicConfig,omitempty"`
+}
+
+// TopicConfig holds info for topic configuration regarding partitions and replicationFactor
+type TopicConfig struct {
+	Partitions int32 `json:"partitions"`
+	// +kubebuilder:validation:Minimum=2
+	ReplicationFactor int32 `json:"replicationFactor"`
 }
 
 // EnvoyConfig defines the config for Envoy

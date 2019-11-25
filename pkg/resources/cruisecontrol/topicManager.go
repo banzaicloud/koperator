@@ -37,6 +37,14 @@ const (
 )
 
 func newCruiseControlTopic(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaTopic {
+	var topicPartitions, topicReplicationFactor int32
+	if cluster.Spec.CruiseControlConfig.TopicConfig != nil {
+		topicPartitions = cluster.Spec.CruiseControlConfig.TopicConfig.Partitions
+		topicReplicationFactor = cluster.Spec.CruiseControlConfig.TopicConfig.ReplicationFactor
+	} else {
+		topicPartitions = cruiseControlTopicPartitions
+		topicReplicationFactor = cruiseControlTopicReplicationFactor
+	}
 	return &v1alpha1.KafkaTopic{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(cruiseControlTopicFormat, cluster.Name),
@@ -49,8 +57,8 @@ func newCruiseControlTopic(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaTopic {
 		),
 		Spec: v1alpha1.KafkaTopicSpec{
 			Name:              cruiseControlTopicName,
-			Partitions:        cruiseControlTopicPartitions,
-			ReplicationFactor: cruiseControlTopicReplicationFactor,
+			Partitions:        topicPartitions,
+			ReplicationFactor: topicReplicationFactor,
 			ClusterRef: v1alpha1.ClusterReference{
 				Name:      cluster.Name,
 				Namespace: cluster.Namespace,
