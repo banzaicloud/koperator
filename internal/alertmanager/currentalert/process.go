@@ -166,8 +166,5 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 }
 
 func (c *ccConfig) getCruiseControlStatus() error {
-	if err := scale.GetCruiseControlStatus(c.Namespace, c.CruiseControlEndpoint, c.Name); err != nil {
-		return err
-	}
-	return nil
+	return scale.GetCruiseControlStatus(c.Namespace, c.CruiseControlEndpoint, c.Name)
 }
