@@ -66,7 +66,7 @@ func newMockPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pkic
 	return &mockPKIManager{client: client, cluster: cluster}
 }
 
-func (m *mockPKIManager) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme) error {
+func (m *mockPKIManager) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames []string) error {
 	return nil
 }
 

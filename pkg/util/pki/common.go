@@ -49,7 +49,7 @@ const (
 type PKIManager interface {
 	// ReconcilePKI ensures a PKI for a kafka cluster - should be idempotent.
 	// This method should at least setup any issuer needed for user certificates
-	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme) error
+	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames []string) error
 
 	// FinalizePKI performs any cleanup steps necessary for a PKI backend
 	FinalizePKI(ctx context.Context, logger logr.Logger) error
@@ -154,12 +154,12 @@ func LabelsForKafkaPKI(name string) map[string]string {
 }
 
 // BrokerUserForCluster returns a KafkaUser CR for the broker certificates in a KafkaCluster
-func BrokerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser {
+func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, externalHostnames []string) *v1alpha1.KafkaUser {
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster), LabelsForKafkaPKI(cluster.Name), cluster),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerServerCertTemplate, cluster.Name),
-			DNSNames:   GetDNSNames(cluster),
+			DNSNames:   append(GetDNSNames(cluster), externalHostnames...),
 			IncludeJKS: true,
 			ClusterRef: v1alpha1.ClusterReference{
 				Name:      cluster.Name,

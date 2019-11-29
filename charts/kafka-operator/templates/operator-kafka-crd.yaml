@@ -1152,6 +1152,8 @@ spec:
                         type: string
                       type:
                         type: string
+                      hostnameOverride:
+                        type: string
                     required:
                       - containerPort
                       - externalStartingPort

@@ -203,26 +203,36 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		}
 	}
-	lBIp := ""
+
+	lbIPs := make([]string, 0)
 
 	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
-		lBIp, err = getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
+		// TODO: This is a hack that needs to be banished when the time is right.
+		// Currently we only support one external listener but this will be fixed
+		// sometime in the future
+		if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners[0].HostnameOverride != "" {
+			// first element of slice will be used for external advertised listener
+			lbIPs = append(lbIPs, r.KafkaCluster.Spec.ListenersConfig.ExternalListeners[0].HostnameOverride)
+		}
+		lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
 		if err != nil {
 			return err
 		}
+		lbIPs = append(lbIPs, lbIP)
 	}
 	//TODO remove after testing
 	//lBIp := "192.168.0.1"
 
-	// We need to grab names for servers and client in case user is enabling ACLs
-	// That way we can continue to manage topics and users
+	// Setup the PKI if using SSL
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		// reconcile the PKI
-		if err := pki.GetPKIManager(r.Client, r.KafkaCluster).ReconcilePKI(context.TODO(), log, r.Scheme); err != nil {
+		if err := pki.GetPKIManager(r.Client, r.KafkaCluster).ReconcilePKI(context.TODO(), log, r.Scheme, lbIPs); err != nil {
 			return err
 		}
 	}
 
+	// We need to grab names for servers and client in case user is enabling ACLs
+	// That way we can continue to manage topics and users
 	serverPass, clientPass, superUsers, err := r.getServerAndClientDetails()
 	if err != nil {
 		return err
@@ -242,7 +252,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		}
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			o := r.configMap(broker.Id, brokerConfig, lBIp, serverPass, clientPass, superUsers, log)
+			o := r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -250,7 +260,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		} else {
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 				if brokerState.RackAwarenessState == v1beta1.Configured {
-					o := r.configMap(broker.Id, brokerConfig, lBIp, serverPass, clientPass, superUsers, log)
+					o := r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
 					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 					if err != nil {
 						return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
