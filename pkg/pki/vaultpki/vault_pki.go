@@ -55,7 +55,7 @@ func (v *vaultPKI) FinalizePKI(ctx context.Context, logger logr.Logger) error {
 }
 
 // ReconcilePKI will use the user-provided paths to ensure broker/operator users for a new KafkaCluster
-func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme) (err error) {
+func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames []string) (err error) {
 	log := logger.WithName("vault_pki")
 
 	log.Info("Retrieving vault client")
@@ -65,7 +65,7 @@ func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme 
 	}
 
 	log.Info("Reconciling broker user in vault")
-	brokerCert, err := v.reconcileBrokerCert(ctx, vault)
+	brokerCert, err := v.reconcileBrokerCert(ctx, vault, externalHostnames)
 	if err != nil {
 		return
 	}
@@ -149,8 +149,8 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 	return
 }
 
-func (v *vaultPKI) reconcileBrokerCert(ctx context.Context, vault *vaultapi.Client) (*pkicommon.UserCertificate, error) {
-	return v.reconcileStartupUser(ctx, vault, pkicommon.BrokerUserForCluster(v.cluster))
+func (v *vaultPKI) reconcileBrokerCert(ctx context.Context, vault *vaultapi.Client, externalHostnames []string) (*pkicommon.UserCertificate, error) {
+	return v.reconcileStartupUser(ctx, vault, pkicommon.BrokerUserForCluster(v.cluster, externalHostnames))
 }
 
 func (v *vaultPKI) reconcileControllerCert(ctx context.Context, vault *vaultapi.Client) (*pkicommon.UserCertificate, error) {

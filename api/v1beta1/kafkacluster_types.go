@@ -176,6 +176,7 @@ type ExternalListenerConfig struct {
 	Name                 string `json:"name"`
 	ExternalStartingPort int32  `json:"externalStartingPort"`
 	ContainerPort        int32  `json:"containerPort"`
+	HostnameOverride     string `json:"hostnameOverride,omitempty"`
 }
 
 // InternalListenerConfig defines the internal listener config for Kafka

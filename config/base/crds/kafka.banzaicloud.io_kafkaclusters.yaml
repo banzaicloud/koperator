@@ -1144,6 +1144,8 @@ spec:
                       externalStartingPort:
                         format: int32
                         type: integer
+                      hostnameOverride:
+                        type: string
                       name:
                         type: string
                       type:
