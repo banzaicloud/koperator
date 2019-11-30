@@ -45,10 +45,11 @@ const (
 	CAFQDNTemplate = "%s-ca.%s.cluster.local"
 )
 
-// PKIManager is the main interface for performing PKI operations
-type PKIManager interface {
+// Manager is the main interface for objects performing PKI operations
+type Manager interface {
 	// ReconcilePKI ensures a PKI for a kafka cluster - should be idempotent.
 	// This method should at least setup any issuer needed for user certificates
+	// as well as broker/cruise-control secrets
 	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames []string) error
 
 	// FinalizePKI performs any cleanup steps necessary for a PKI backend
@@ -86,8 +87,8 @@ func (u *UserCertificate) DN() string {
 	return cert.Subject.String()
 }
 
-// GetDNSNames returns all potential DNS names for a kafka cluster - including brokers
-func GetDNSNames(cluster *v1beta1.KafkaCluster) (dnsNames []string) {
+// GetInternalDNSNames returns all potential DNS names for a kafka cluster - including brokers
+func GetInternalDNSNames(cluster *v1beta1.KafkaCluster) (dnsNames []string) {
 	dnsNames = make([]string, 0)
 	dnsNames = append(dnsNames, clusterDNSNames(cluster)...)
 	return
@@ -154,12 +155,12 @@ func LabelsForKafkaPKI(name string) map[string]string {
 }
 
 // BrokerUserForCluster returns a KafkaUser CR for the broker certificates in a KafkaCluster
-func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, externalHostnames []string) *v1alpha1.KafkaUser {
+func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, additionalHostnames []string) *v1alpha1.KafkaUser {
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster), LabelsForKafkaPKI(cluster.Name), cluster),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerServerCertTemplate, cluster.Name),
-			DNSNames:   append(GetDNSNames(cluster), externalHostnames...),
+			DNSNames:   append(GetInternalDNSNames(cluster), additionalHostnames...),
 			IncludeJKS: true,
 			ClusterRef: v1alpha1.ClusterReference{
 				Name:      cluster.Name,
@@ -173,7 +174,7 @@ func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, externalHostnames []str
 func ControllerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser {
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf("%s.%s.mgt.cluster.local", fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace),
+			fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace),
 			LabelsForKafkaPKI(cluster.Name), cluster,
 		),
 		Spec: v1alpha1.KafkaUserSpec{

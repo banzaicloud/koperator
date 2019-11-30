@@ -22,6 +22,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/pki/certmanagerpki"
 	"github.com/banzaicloud/kafka-operator/pkg/pki/vaultpki"
+	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,7 +33,7 @@ import (
 var MockBackend = v1beta1.PKIBackend("mock")
 
 // GetPKIManager returns a PKI/User manager interface for a given cluster
-func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pkicommon.PKIManager {
+func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pki.Manager {
 	switch cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend {
 
 	// Use cert-manager for pki backend
@@ -57,12 +58,12 @@ func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pkicommo
 // Mock types and functions
 
 type mockPKIManager struct {
-	pkicommon.PKIManager
+	pki.Manager
 	client  client.Client
 	cluster *v1beta1.KafkaCluster
 }
 
-func newMockPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pkicommon.PKIManager {
+func newMockPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pki.Manager {
 	return &mockPKIManager{client: client, cluster: cluster}
 }
 

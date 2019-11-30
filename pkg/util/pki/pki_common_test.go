@@ -19,9 +19,20 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 )
+
+func testCluster(t *testing.T) *v1beta1.KafkaCluster {
+	t.Helper()
+	cluster := &v1beta1.KafkaCluster{}
+	cluster.Name = "test-cluster"
+	cluster.Namespace = "test-namespace"
+	cluster.Spec = v1beta1.KafkaClusterSpec{}
+	return cluster
+}
 
 func TestDN(t *testing.T) {
 	cert, _, expected, err := certutil.GenerateTestCert()
@@ -68,18 +79,11 @@ func TestLabelsForKafkaPKI(t *testing.T) {
 	}
 }
 
-func TestGetDNSNames(t *testing.T) {
-	cluster := &v1beta1.KafkaCluster{}
-	cluster.Name = "test-cluster"
-	cluster.Namespace = "test-namespace"
-
-	cluster.Spec = v1beta1.KafkaClusterSpec{}
-	cluster.Spec.Brokers = []v1beta1.Broker{
-		{Id: 0},
-	}
+func TestGetInternalDNSNames(t *testing.T) {
+	cluster := testCluster(t)
 
 	cluster.Spec.HeadlessServiceEnabled = true
-	headlessNames := GetDNSNames(cluster)
+	headlessNames := GetInternalDNSNames(cluster)
 	expected := []string{
 		"*.test-cluster-headless.test-namespace.svc.cluster.local",
 		"test-cluster-headless.test-namespace.svc.cluster.local",
@@ -94,7 +98,7 @@ func TestGetDNSNames(t *testing.T) {
 	}
 
 	cluster.Spec.HeadlessServiceEnabled = false
-	allBrokerNames := GetDNSNames(cluster)
+	allBrokerNames := GetInternalDNSNames(cluster)
 	expected = []string{
 		"*.test-cluster-all-broker.test-namespace.svc.cluster.local",
 		"test-cluster-all-broker.test-namespace.svc.cluster.local",
@@ -106,5 +110,51 @@ func TestGetDNSNames(t *testing.T) {
 	}
 	if !reflect.DeepEqual(expected, allBrokerNames) {
 		t.Error("Expected:", expected, "got:", allBrokerNames)
+	}
+}
+
+func TestBrokerUserForCluster(t *testing.T) {
+	cluster := testCluster(t)
+	user := BrokerUserForCluster(cluster, []string{})
+
+	expected := &v1alpha1.KafkaUser{
+		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster), LabelsForKafkaPKI(cluster.Name), cluster),
+		Spec: v1alpha1.KafkaUserSpec{
+			SecretName: fmt.Sprintf(BrokerServerCertTemplate, cluster.Name),
+			DNSNames:   GetInternalDNSNames(cluster),
+			IncludeJKS: true,
+			ClusterRef: v1alpha1.ClusterReference{
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(user, expected) {
+		t.Errorf("Expected %+v\nGot %+v", expected, user)
+	}
+}
+
+func TestControllerUserForCluster(t *testing.T) {
+	cluster := testCluster(t)
+	user := ControllerUserForCluster(cluster)
+
+	expected := &v1alpha1.KafkaUser{
+		ObjectMeta: templates.ObjectMeta(
+			fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace),
+			LabelsForKafkaPKI(cluster.Name), cluster,
+		),
+		Spec: v1alpha1.KafkaUserSpec{
+			SecretName: fmt.Sprintf(BrokerControllerTemplate, cluster.Name),
+			IncludeJKS: true,
+			ClusterRef: v1alpha1.ClusterReference{
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(user, expected) {
+		t.Errorf("Expected %+v\nGot %+v", expected, user)
 	}
 }

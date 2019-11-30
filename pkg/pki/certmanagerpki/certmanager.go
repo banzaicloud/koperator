@@ -18,7 +18,7 @@ import (
 	"flag"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -29,7 +29,7 @@ func init() {
 }
 
 type CertManager interface {
-	pkicommon.PKIManager
+	pki.Manager
 }
 
 // certManager implements a PKIManager using cert-manager as the backend
