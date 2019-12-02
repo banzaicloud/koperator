@@ -39,6 +39,9 @@ const (
 	BrokerIssuerTemplate = "%s-issuer"
 	// BrokerControllerTemplate is the template used for operator certificate resources
 	BrokerControllerTemplate = "%s-controller"
+	// BrokerControllerFQDNTemplate is combined with the above and cluster namespace
+	// to create a 'fake' full-name for the controller user
+	BrokerControllerFQDNTemplate = "%s.%s.mgt.cluster.local"
 	// CAIntermediateTemplate is the template used for intermediate CA resources
 	CAIntermediateTemplate = "%s-intermediate.%s.cluster.local"
 	// CAFQDNTemplate is the template used for the FQDN of a CA
@@ -174,7 +177,7 @@ func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, additionalHostnames []s
 func ControllerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser {
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace),
+			fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace),
 			LabelsForKafkaPKI(cluster.Name), cluster,
 		),
 		Spec: v1alpha1.KafkaUserSpec{

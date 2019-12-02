@@ -141,7 +141,7 @@ func TestControllerUserForCluster(t *testing.T) {
 
 	expected := &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf("%s.%s.svc.cluster.local", fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace),
+			fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace),
 			LabelsForKafkaPKI(cluster.Name), cluster,
 		),
 		Spec: v1alpha1.KafkaUserSpec{
