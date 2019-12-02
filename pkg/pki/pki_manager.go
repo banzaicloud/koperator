@@ -23,7 +23,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/pki/certmanagerpki"
 	"github.com/banzaicloud/kafka-operator/pkg/pki/vaultpki"
 	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -75,8 +74,8 @@ func (m *mockPKIManager) FinalizePKI(ctx context.Context, logger logr.Logger) er
 	return nil
 }
 
-func (m *mockPKIManager) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pkicommon.UserCertificate, error) {
-	return &pkicommon.UserCertificate{}, nil
+func (m *mockPKIManager) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pki.UserCertificate, error) {
+	return &pki.UserCertificate{}, nil
 }
 
 func (m *mockPKIManager) FinalizeUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser) error {
