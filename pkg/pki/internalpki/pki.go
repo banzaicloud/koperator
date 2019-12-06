@@ -30,16 +30,16 @@ import (
 // FinalizePKI returns nil since owner references handle secret cleanup
 func (i *internalPKI) FinalizePKI(ctx context.Context, logger logr.Logger) error { return nil }
 
-func (i *internalPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme) error {
+func (i *internalPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames []string) error {
 	if i.cluster.Spec.ListenersConfig.SSLSecrets.Create {
-		if err := ensureManagedPKI(ctx, i.client, i.cluster, scheme); err != nil {
+		if err := ensureManagedPKI(ctx, i.client, i.cluster, scheme, externalHostnames); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func ensureManagedPKI(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) error {
+func ensureManagedPKI(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, externalHostnames []string) error {
 	// ensure ca secret
 	if _, _, err := getCA(ctx, client, cluster); err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -51,17 +51,17 @@ func ensureManagedPKI(ctx context.Context, client client.Client, cluster *v1beta
 	}
 
 	// ensure broker/controller secrets
-	if err := ensureBrokerAndControllerUsers(ctx, client, cluster); err != nil {
+	if err := ensureBrokerAndControllerUsers(ctx, client, cluster, externalHostnames); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func ensureBrokerAndControllerUsers(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster) error {
+func ensureBrokerAndControllerUsers(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, externalHostnames []string) error {
 	users := []*v1alpha1.KafkaUser{
 		// Broker "user"
-		pkicommon.BrokerUserForCluster(cluster),
+		pkicommon.BrokerUserForCluster(cluster, externalHostnames),
 		// Operator user
 		pkicommon.ControllerUserForCluster(cluster),
 	}

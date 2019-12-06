@@ -16,12 +16,12 @@ package internalpki
 
 import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type InternalPKI interface {
-	pkicommon.PKIManager
+	pki.Manager
 }
 
 type internalPKI struct {
