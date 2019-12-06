@@ -116,8 +116,10 @@ type TopicConfig struct {
 
 // EnvoyConfig defines the config for Envoy
 type EnvoyConfig struct {
-	Image                    string                        `json:"image"`
-	Resources                *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
+	Image     string                       `json:"image,omitempty"`
+	Resources *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
+	// +kubebuilder:validation:Minimum=1
+	Replicas                 int32                         `json:"replicas,omitempty"`
 	ServiceAccountName       string                        `json:"serviceAccountName,omitempty"`
 	ImagePullSecrets         []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	NodeSelector             map[string]string             `json:"nodeSelector,omitempty"`
@@ -228,6 +230,14 @@ func (eConfig *EnvoyConfig) GetLoadBalancerSourceRanges() []string {
 //GetAnnotations returns Annotations to use for Envoy generated LoadBalancer
 func (eConfig *EnvoyConfig) GetAnnotations() map[string]string {
 	return eConfig.Annotations
+}
+
+// GetReplicas returns replicas used by the Envoy deployment
+func (eConfig *EnvoyConfig) GetReplicas() int32 {
+	if eConfig.Replicas == 0 {
+		return 1
+	}
+	return eConfig.Replicas
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster

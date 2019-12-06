@@ -172,6 +172,8 @@ spec:
       create: true
   # envoyConfig defines the envoy specific config used for externalListeners
   #envoyConfig:
+  # replicas describes how many pods will be used for the created envoy proxy
+  #  replicas: 1
   # image describes the Envoy docker image
   #  image: "banzaicloud/envoy:0.1.0"
   # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
