@@ -119,6 +119,10 @@ helm repo add jetstack https://charts.jetstack.io
 helm repo update
 
 # Install cert-manager into the cluster
+# Using helm3
+# You have to create the namespace before executing following command
+helm install cert-manager --namespace cert-manager --version v0.11.0 jetstack/cert-manager
+# Using previous versions of helm
 helm install --name cert-manager --namespace cert-manager --version v0.11.0 jetstack/cert-manager
 ```
 
@@ -129,6 +133,10 @@ You can deploy Zookeeper by using the Helm chart.
 
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
+# Using helm3
+# You have to create the namespace before executing following command
+helm install zookeeper-operator --namespace=zookeeper banzaicloud-stable/zookeeper-operator
+# Using previous versions of helm
 helm install --name zookeeper-operator --namespace=zookeeper banzaicloud-stable/zookeeper-operator
 kubectl create --namespace zookeeper -f - <<EOF
 apiVersion: zookeeper.pravega.io/v1beta1
@@ -159,6 +167,10 @@ kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/ma
 kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/podmonitor.crd.yaml
 
 # Install only the Prometheus-operator
+# Using helm3
+# You have to create the namespace before executing following command
+helm install test --namespace default stable/prometheus-operator \
+# Using previous versions of helm
 helm install --name test --namespace default stable/prometheus-operator \
 --set prometheusOperator.createCustomResource=false \
 --set defaultRules.enabled=false \
@@ -215,6 +227,10 @@ Alternatively, if you are using Helm, you can deploy the operator using a Helm c
 
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
+# Using helm3
+# You have to create the namespace before executing following command
+helm install kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml
+# Using previous versions of helm
 helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml
 # Add your zookeeper svc name to the configuration
 kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
