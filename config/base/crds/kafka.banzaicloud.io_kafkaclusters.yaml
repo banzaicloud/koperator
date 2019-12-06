@@ -1065,6 +1065,10 @@ spec:
                   additionalProperties:
                     type: string
                   type: object
+                replicas:
+                  format: int32
+                  minimum: 1
+                  type: integer
                 resourceRequirements:
                   description: ResourceRequirements describes the compute resource
                     requirements.
@@ -1125,8 +1129,6 @@ spec:
                         type: string
                     type: object
                   type: array
-              required:
-              - image
               type: object
             headlessServiceEnabled:
               type: boolean

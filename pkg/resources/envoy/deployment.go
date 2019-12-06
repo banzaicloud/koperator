@@ -57,6 +57,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labelSelector,
 			},
+			Replicas: util.Int32Pointer(r.KafkaCluster.Spec.EnvoyConfig.GetReplicas()),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labelSelector,
