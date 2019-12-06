@@ -52,12 +52,12 @@ func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaC
 }
 
 func useSSL(cluster *v1beta1.KafkaCluster) bool {
-	return cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].Type != "plaintext"
+	return cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].Type == "ssl"
 }
 
 func determineInternalListenerForInnerCom(internalListeners []v1beta1.InternalListenerConfig) int {
 	for id, val := range internalListeners {
-		if val.UsedForInnerBrokerCommunication {
+		if val.UsedForControllerCommunication {
 			return id
 		}
 	}

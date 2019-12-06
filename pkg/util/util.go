@@ -21,6 +21,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/imdario/mergo"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -184,4 +185,19 @@ func GetBrokerImage(brokerConfig *v1beta1.BrokerConfig, clusterImage string) str
 		return brokerConfig.Image
 	}
 	return clusterImage
+}
+
+// OwnerReference returns a single element slice of owner references for the given
+// meta.
+func OwnerReference(tmeta metav1.TypeMeta, ometa metav1.ObjectMeta) []metav1.OwnerReference {
+	return []metav1.OwnerReference{
+		{
+			APIVersion:         tmeta.APIVersion,
+			Kind:               tmeta.Kind,
+			Name:               ometa.Name,
+			UID:                ometa.UID,
+			Controller:         BoolPointer(true),
+			BlockOwnerDeletion: BoolPointer(true),
+		},
+	}
 }

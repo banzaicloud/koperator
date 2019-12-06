@@ -22,7 +22,6 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"

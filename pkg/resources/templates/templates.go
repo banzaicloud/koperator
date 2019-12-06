@@ -23,38 +23,20 @@ import (
 // ObjectMeta returns a metav1.ObjectMeta object with labels, ownerReference and name
 func ObjectMeta(name string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      name,
-		Namespace: cluster.Namespace,
-		Labels:    labels,
-		OwnerReferences: []metav1.OwnerReference{
-			{
-				APIVersion:         cluster.APIVersion,
-				Kind:               cluster.Kind,
-				Name:               cluster.Name,
-				UID:                cluster.UID,
-				Controller:         util.BoolPointer(true),
-				BlockOwnerDeletion: util.BoolPointer(true),
-			},
-		},
+		Name:            name,
+		Namespace:       cluster.Namespace,
+		Labels:          labels,
+		OwnerReferences: util.OwnerReference(cluster.TypeMeta, cluster.ObjectMeta),
 	}
 }
 
 // ObjectMetaWithGeneratedName returns a metav1.ObjectMeta object with labels, ownerReference and generatedname
 func ObjectMetaWithGeneratedName(namePrefix string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		GenerateName: namePrefix,
-		Namespace:    cluster.Namespace,
-		Labels:       labels,
-		OwnerReferences: []metav1.OwnerReference{
-			{
-				APIVersion:         cluster.APIVersion,
-				Kind:               cluster.Kind,
-				Name:               cluster.Name,
-				UID:                cluster.UID,
-				Controller:         util.BoolPointer(true),
-				BlockOwnerDeletion: util.BoolPointer(true),
-			},
-		},
+		GenerateName:    namePrefix,
+		Namespace:       cluster.Namespace,
+		Labels:          labels,
+		OwnerReferences: util.OwnerReference(cluster.TypeMeta, cluster.ObjectMeta),
 	}
 }
 
@@ -75,17 +57,8 @@ func ObjectMetaWithGeneratedNameAndAnnotations(namePrefix string, labels map[str
 // ObjectMetaClusterScope returns a metav1.ObjectMeta object with labels, ownerReference, name and annotations
 func ObjectMetaClusterScope(name string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:   name,
-		Labels: labels,
-		OwnerReferences: []metav1.OwnerReference{
-			{
-				APIVersion:         cluster.APIVersion,
-				Kind:               cluster.Kind,
-				Name:               cluster.Name,
-				UID:                cluster.UID,
-				Controller:         util.BoolPointer(true),
-				BlockOwnerDeletion: util.BoolPointer(true),
-			},
-		},
+		Name:            name,
+		Labels:          labels,
+		OwnerReferences: util.OwnerReference(cluster.TypeMeta, cluster.ObjectMeta),
 	}
 }

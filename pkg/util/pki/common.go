@@ -25,6 +25,7 @@ import (
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -188,5 +189,13 @@ func ControllerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser
 				Namespace: cluster.Namespace,
 			},
 		},
+	}
+}
+
+func SecretDataForCert(ca, cert, key []byte) map[string][]byte {
+	return map[string][]byte{
+		v1alpha1.CoreCACertKey:  ca,
+		corev1.TLSCertKey:       cert,
+		corev1.TLSPrivateKeyKey: key,
 	}
 }

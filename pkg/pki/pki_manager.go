@@ -21,6 +21,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/pki/certmanagerpki"
+	"github.com/banzaicloud/kafka-operator/pkg/pki/internalpki"
 	"github.com/banzaicloud/kafka-operator/pkg/pki/vaultpki"
 	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
@@ -49,7 +50,7 @@ func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pki.Mana
 
 	// Default use cert-manager - state explicitly for clarity and to make compiler happy
 	default:
-		return certmanagerpki.New(client, cluster)
+		return internalpki.New(client, cluster)
 
 	}
 }
