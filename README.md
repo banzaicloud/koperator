@@ -134,7 +134,7 @@ You can deploy Zookeeper by using the Helm chart.
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 # Using helm3
-# You have to create the namespace before execturing following command
+# You have to create the namespace before executing following command
 helm install zookeeper-operator --namespace=zookeeper banzaicloud-stable/zookeeper-operator
 # Using previous versions of helm
 helm install --name zookeeper-operator --namespace=zookeeper banzaicloud-stable/zookeeper-operator
@@ -168,7 +168,7 @@ kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/ma
 
 # Install only the Prometheus-operator
 # Using helm3
-# You have to create the namespace before execturing following command
+# You have to create the namespace before executing following command
 helm install test --namespace default stable/prometheus-operator \
 # Using previous versions of helm
 helm install --name test --namespace default stable/prometheus-operator \
@@ -228,7 +228,7 @@ Alternatively, if you are using Helm, you can deploy the operator using a Helm c
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 # Using helm3
-# You have to create the namespace before execturing following command
+# You have to create the namespace before executing following command
 helm install kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml
 # Using previous versions of helm
 helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml
