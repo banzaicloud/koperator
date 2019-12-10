@@ -158,10 +158,13 @@ func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster 
 
 	caKey := secret.Data[v1alpha1.CAPrivateKeyKey]
 	caCert := secret.Data[v1alpha1.CACertKey]
-	rootCertMeta := templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name), pkicommon.LabelsForKafkaPKI(cluster.Name), cluster)
-	rootCertMeta.Namespace = namespaceCertManager
+
 	caSecret := &corev1.Secret{
-		ObjectMeta: rootCertMeta,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
+			Namespace: namespaceCertManager,
+			Labels:    pkicommon.LabelsForKafkaPKI(cluster.Name),
+		},
 		Data: map[string][]byte{
 			v1alpha1.CoreCACertKey:  caCert,
 			corev1.TLSCertKey:       caCert,
@@ -187,10 +190,12 @@ func selfSignerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme)
 }
 
 func caCertForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *certv1.Certificate {
-	rootCertMeta := templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name), pkicommon.LabelsForKafkaPKI(cluster.Name), cluster)
-	rootCertMeta.Namespace = namespaceCertManager
-	ca := &certv1.Certificate{
-		ObjectMeta: rootCertMeta,
+	return &certv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
+			Namespace: namespaceCertManager,
+			Labels:    pkicommon.LabelsForKafkaPKI(cluster.Name),
+		},
 		Spec: certv1.CertificateSpec{
 			SecretName: fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
 			CommonName: fmt.Sprintf(pkicommon.CAFQDNTemplate, cluster.Name, cluster.Namespace),
@@ -201,7 +206,6 @@ func caCertForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *ce
 			},
 		},
 	}
-	return ca
 }
 
 func mainIssuerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *certv1.ClusterIssuer {
