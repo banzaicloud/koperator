@@ -95,24 +95,18 @@ func TestReconcilePKI(t *testing.T) {
 	manager := newMock(cluster)
 	ctx := context.Background()
 
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, []string{}); err == nil {
-		t.Error("Expected error got nil")
-	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
-		t.Error("Expected not ready error, got:", reflect.TypeOf(err))
-	}
-
 	manager.client.Create(ctx, newServerSecret())
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, []string{}); err == nil {
-		t.Error("Expected error got nil")
-	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
-		t.Error("Expected not ready error, got:", reflect.TypeOf(err))
+	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, []string{}); err != nil {
+		if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
+			t.Error("Expected not ready error, got:", reflect.TypeOf(err))
+		}
 	}
 
 	manager.client.Create(ctx, newControllerSecret())
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, []string{}); err == nil {
-		t.Error("Expected error got nil")
-	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
-		t.Error("Expected not ready error, got:", reflect.TypeOf(err))
+	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, []string{}); err != nil {
+		if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
+			t.Error("Expected not ready error, got:", reflect.TypeOf(err))
+		}
 	}
 
 	manager.client.Create(ctx, newCASecret())

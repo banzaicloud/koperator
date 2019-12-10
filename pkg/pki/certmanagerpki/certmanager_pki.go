@@ -21,7 +21,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
@@ -99,13 +98,6 @@ func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, sche
 		}
 	}
 
-	if c.cluster.Spec.ListenersConfig.SSLSecrets.Create {
-		// Grab ownership of CA secret for garbage collection
-		if err := ensureCASecretOwnership(ctx, c.client, c.cluster, scheme); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -152,29 +144,6 @@ func userProvidedPKI(ctx context.Context, client client.Client, cluster *v1beta1
 	}, nil
 }
 
-func ensureCASecretOwnership(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) error {
-	secret := &corev1.Secret{}
-	if err := client.Get(ctx, types.NamespacedName{
-		Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
-		Namespace: namespaceCertManager,
-	}, secret); err != nil {
-		if apierrors.IsNotFound(err) {
-			return errorfactory.New(errorfactory.ResourceNotReady{}, err, "pki secret not ready")
-		}
-		return errorfactory.New(errorfactory.APIFailure{}, err, "could not fetch pki secret")
-	}
-	if err := controllerutil.SetControllerReference(cluster, secret, scheme); err != nil {
-		if k8sutil.IsAlreadyOwnedError(err) {
-			return nil
-		}
-		return errorfactory.New(errorfactory.InternalError{}, err, "failed to set controller reference on secret")
-	}
-	if err := client.Update(ctx, secret); err != nil {
-		return errorfactory.New(errorfactory.APIFailure{}, err, "failed to set controller reference on secret")
-	}
-	return nil
-}
-
 func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	err := client.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
@@ -199,7 +168,6 @@ func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster 
 			corev1.TLSPrivateKeyKey: caKey,
 		},
 	}
-	controllerutil.SetControllerReference(cluster, caSecret, scheme)
 	return caSecret, nil
 }
 
@@ -233,7 +201,6 @@ func caCertForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *ce
 			},
 		},
 	}
-	controllerutil.SetControllerReference(cluster, ca, scheme)
 	return ca
 }
 
