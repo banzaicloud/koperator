@@ -9,14 +9,16 @@ spec:
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
   oneBrokerPerNode: true
+  clusterImage: "wurstmeister/kafka:2.12-2.3.0"
+  readOnlyConfig: |
+    auto.create.topics.enable=false
   rackAwareness:
     # operator will use these labels from the nodes to create the rack for Kafka
     labels:
       - "failure-domain.beta.kubernetes.io/region"
       - "failure-domain.beta.kubernetes.io/zone"
-  brokerConfigs:
-    - image: "wurstmeister/kafka:2.12-2.1.1"
-      id: 0
+  brokerConfigGroups:
+    default:
       config: |
         min.insync.replicas=3
         num.io.threads=16
@@ -46,68 +48,15 @@ spec:
             resources:
               requests:
                 storage: 1000Gi
-    - image: "wurstmeister/kafka:2.12-2.1.1"
-      id: 1
-      config: |
-        min.insync.replicas=3
-        num.io.threads=16
-        num.network.threads=6
-      kafkaHeapOpts: "-Xmx10G -Xms10G"
-      resourceReqs:
-        limits:
-          memory: "16Gi"
-          cpu: "7500m"
-        requests:
-          memory: "12Gi"
-          cpu: "4000m"
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: nodepool.banzaicloud.io/name
-                  operator: In
-                  values:
-                    - pool2
-      storageConfigs:
-        - mountPath: "/kafka-logs"
-          pvcSpec:
-            accessModes:
-              - ReadWriteOnce
-            storageClassName: fast-ssd
-            resources:
-              requests:
-                storage: 1000Gi
-    - image: "wurstmeister/kafka:2.12-2.1.1"
-      id: 2
-      config: |
-        min.insync.replicas=3
-        num.io.threads=16
-        num.network.threads=6
-      kafkaHeapOpts: "-Xmx10G -Xms10G"
-      resourceReqs:
-        limits:
-          memory: "16Gi"
-          cpu: "7500m"
-        requests:
-          memory: "12Gi"
-          cpu: "4000m"
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: nodepool.banzaicloud.io/name
-                  operator: In
-                  values:
-                    - pool2
-      storageConfigs:
-        - mountPath: "/kafka-logs"
-          pvcSpec:
-            accessModes:
-              - ReadWriteOnce
-            storageClassName: fast-ssd
-            resources:
-              requests:
-                storage: 1000Gi
+  brokers:
+    - id: 0
+      brokerConfigGroup: "default"
+    - id: 1
+      brokerConfigGroup: "default"
+    - id: 2
+      brokerConfigGroup: "default"
+  rollingUpgradeConfig:
+    failureThreshold: 1
   listenersConfig:
     internalListeners:
       - type: "plaintext"
@@ -319,4 +268,3 @@ spec:
       {
         "min.insync.replicas": 3
       }
-  serviceAccount: ""
