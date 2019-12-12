@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,7 +27,11 @@ import (
 
 func (r *Reconciler) service(log logr.Logger, clientPass string) runtime.Object {
 	return &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(serviceNameTemplate, r.KafkaCluster.Name), labelSelector, r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(
+			fmt.Sprintf(serviceNameTemplate, r.KafkaCluster.Name),
+			util.MergeLabels(labelSelector, r.KafkaCluster.Labels),
+			r.KafkaCluster,
+		),
 		Spec: corev1.ServiceSpec{
 			Selector: labelSelector,
 			Ports: []corev1.ServicePort{
