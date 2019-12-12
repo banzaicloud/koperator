@@ -47,14 +47,18 @@ func (r *Reconciler) deployment(log logr.Logger, clientPass string) runtime.Obje
 	}...)
 
 	return &appsv1.Deployment{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(deploymentNameTemplate, r.KafkaCluster.Name), labelSelector, r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(
+			fmt.Sprintf(deploymentNameTemplate, r.KafkaCluster.Name),
+			util.MergeLabels(labelSelector, r.KafkaCluster.Labels),
+			r.KafkaCluster,
+		),
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labelSelector,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labelSelector,
+					Labels:      util.MergeLabels(labelSelector, r.KafkaCluster.Labels),
 					Annotations: util.MonitoringAnnotations(metricsPort),
 				},
 				Spec: corev1.PodSpec{

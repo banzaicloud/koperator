@@ -60,14 +60,15 @@ func MapStringStringPointer(in map[string]string) (out map[string]*string) {
 }
 
 // MergeLabels merges two given labels
-func MergeLabels(l map[string]string, l2 map[string]string) map[string]string {
-	if l == nil {
-		l = make(map[string]string)
+func MergeLabels(l ...map[string]string) map[string]string {
+	res := make(map[string]string)
+
+	for _, v := range l {
+		for lKey, lValue := range v {
+			res[lKey] = lValue
+		}
 	}
-	for lKey, lValue := range l2 {
-		l[lKey] = lValue
-	}
-	return l
+	return res
 }
 
 // MonitoringAnnotations returns specific prometheus annotations
