@@ -36,6 +36,7 @@ type KafkaClusterSpec struct {
 	Brokers                []Broker                `json:"brokers"`
 	RollingUpgradeConfig   RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
 	OneBrokerPerNode       bool                    `json:"oneBrokerPerNode"`
+	PropagateLabels        bool                    `json:"propagateLabels"`
 	CruiseControlConfig    CruiseControlConfig     `json:"cruiseControlConfig"`
 	EnvoyConfig            EnvoyConfig             `json:"envoyConfig,omitempty"`
 	MonitoringConfig       MonitoringConfig        `json:"monitoringConfig,omitempty"`

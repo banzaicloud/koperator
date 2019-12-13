@@ -25,7 +25,7 @@ func ObjectMeta(name string, labels map[string]string, cluster *v1beta1.KafkaClu
 	return metav1.ObjectMeta{
 		Name:      name,
 		Namespace: cluster.Namespace,
-		Labels:    labels,
+		Labels:    ObjectMetaLabels(cluster, labels),
 		OwnerReferences: []metav1.OwnerReference{
 			{
 				APIVersion:         cluster.APIVersion,
@@ -44,7 +44,7 @@ func ObjectMetaWithGeneratedName(namePrefix string, labels map[string]string, cl
 	return metav1.ObjectMeta{
 		GenerateName: namePrefix,
 		Namespace:    cluster.Namespace,
-		Labels:       labels,
+		Labels:       ObjectMetaLabels(cluster, labels),
 		OwnerReferences: []metav1.OwnerReference{
 			{
 				APIVersion:         cluster.APIVersion,
@@ -56,6 +56,13 @@ func ObjectMetaWithGeneratedName(namePrefix string, labels map[string]string, cl
 			},
 		},
 	}
+}
+
+func ObjectMetaLabels(cluster *v1beta1.KafkaCluster, l map[string]string) map[string]string {
+	if cluster.Spec.PropagateLabels {
+		return util.MergeLabels(cluster.Labels, l)
+	}
+	return l
 }
 
 // ObjectMetaWithAnnotations returns a metav1.ObjectMeta object with labels, ownerReference, name and annotations
@@ -76,7 +83,7 @@ func ObjectMetaWithGeneratedNameAndAnnotations(namePrefix string, labels map[str
 func ObjectMetaClusterScope(name string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:   name,
-		Labels: labels,
+		Labels: ObjectMetaLabels(cluster, labels),
 		OwnerReferences: []metav1.OwnerReference{
 			{
 				APIVersion:         cluster.APIVersion,
