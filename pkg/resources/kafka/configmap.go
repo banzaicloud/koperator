@@ -108,7 +108,10 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 	return &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
-			util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster.Labels, map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
+			util.MergeLabels(
+				labelsForKafka(r.KafkaCluster.Name),
+				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
+			),
 			r.KafkaCluster,
 		),
 		Data: map[string]string{"broker-config": r.generateBrokerConfig(id, brokerConfig, loadBalancerIPs, serverPass, clientPass, superUsers, log)},

@@ -70,7 +70,6 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 			r.KafkaCluster.Name,
 			util.MergeLabels(
 				labelsForKafka(r.KafkaCluster.Name),
-				r.KafkaCluster.Labels,
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			util.MergeAnnotations(

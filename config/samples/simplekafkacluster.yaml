@@ -8,6 +8,7 @@ spec:
   headlessServiceEnabled: true
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
+  propagateLabels: true
   oneBrokerPerNode: false
   clusterImage: "wurstmeister/kafka:2.12-2.3.0"
   readOnlyConfig: |

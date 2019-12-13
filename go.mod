@@ -45,6 +45,7 @@ require (
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
 	k8s.io/client-go v11.0.1-0.20190516230509-ae8359b20417+incompatible
 	sigs.k8s.io/controller-runtime v0.2.0
+	sigs.k8s.io/controller-tools v0.2.0 // indirect
 )
 
 replace (

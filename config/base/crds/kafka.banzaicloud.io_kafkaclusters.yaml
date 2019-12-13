@@ -1223,6 +1223,8 @@ spec:
               type: object
             oneBrokerPerNode:
               type: boolean
+            propagateLabels:
+              type: boolean
             rackAwareness:
               description: RackAwareness defines the required fields to enable kafka's
                 rack aware feature
@@ -1272,6 +1274,7 @@ spec:
           - headlessServiceEnabled
           - listenersConfig
           - oneBrokerPerNode
+          - propagateLabels
           - rollingUpgradeConfig
           - zkAddresses
           type: object

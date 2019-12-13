@@ -50,7 +50,6 @@ func (r *Reconciler) service(id int32, log logr.Logger) runtime.Object {
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id),
 			util.MergeLabels(
 				labelsForKafka(r.KafkaCluster.Name),
-				r.KafkaCluster.Labels,
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			r.KafkaCluster),

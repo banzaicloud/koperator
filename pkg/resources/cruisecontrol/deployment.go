@@ -49,7 +49,7 @@ func (r *Reconciler) deployment(log logr.Logger, clientPass string) runtime.Obje
 	return &appsv1.Deployment{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(deploymentNameTemplate, r.KafkaCluster.Name),
-			util.MergeLabels(labelSelector, r.KafkaCluster.Labels),
+			templates.ObjectMetaLabels(r.KafkaCluster, labelSelector),
 			r.KafkaCluster,
 		),
 		Spec: appsv1.DeploymentSpec{
@@ -58,7 +58,7 @@ func (r *Reconciler) deployment(log logr.Logger, clientPass string) runtime.Obje
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      util.MergeLabels(labelSelector, r.KafkaCluster.Labels),
+					Labels:      templates.ObjectMetaLabels(r.KafkaCluster, labelSelector),
 					Annotations: util.MonitoringAnnotations(metricsPort),
 				},
 				Spec: corev1.PodSpec{
