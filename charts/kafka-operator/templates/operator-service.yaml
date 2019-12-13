@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: "{{ include "kafka-operator.fullname" . }}-operator"
+  namespace: {{ .Release.Namespace | quote }}
   {{- if and .Values.prometheusMetrics.enabled (not .Values.prometheusMetrics.authProxy.enabled) }}
   annotations:
     prometheus.io/scrape: "true"
