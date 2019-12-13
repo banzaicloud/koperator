@@ -1274,7 +1274,6 @@ spec:
           - headlessServiceEnabled
           - listenersConfig
           - oneBrokerPerNode
-          - propagateLabels
           - rollingUpgradeConfig
           - zkAddresses
           type: object
