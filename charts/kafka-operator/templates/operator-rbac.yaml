@@ -9,6 +9,7 @@ imagePullSecrets:
 {{- end }}
 metadata:
   name: {{ include "kafka-operator.fullname" . }}-operator
+  namespace: {{ .Release.Namespace | quote }}
   labels:
     app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
     helm.sh/chart: {{ include "kafka-operator.chart" . }}
