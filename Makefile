@@ -132,3 +132,6 @@ check_release:
 release: check_release
 	git tag -a ${REL_TAG} -m ${RELEASE_MSG}
 	git push origin ${REL_TAG}
+
+test_cluster:
+	bash scripts/test_cluster.sh
