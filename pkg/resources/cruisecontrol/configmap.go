@@ -91,7 +91,7 @@ func generateBootstrapServer(headlessEnabled bool, clusterName string) string {
 func prepareZookeeperAddress(zkAddresses []string) string {
 	preparedAddress := []string{}
 	for _, addr := range zkAddresses {
-		preparedAddress = append(preparedAddress, addr)
+		preparedAddress = append(preparedAddress, strings.TrimSuffix(addr, "/"))
 	}
 	return strings.Join(preparedAddress, ",")
 }
