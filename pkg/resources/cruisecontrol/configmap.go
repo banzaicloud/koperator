@@ -93,5 +93,5 @@ func prepareZookeeperAddress(zkAddresses []string) string {
 	for _, addr := range zkAddresses {
 		preparedAddress = append(preparedAddress, strings.TrimSuffix(addr, "/"))
 	}
-	return strings.Join(preparedAddress, ",")
+	return strings.Join(preparedAddress, ",") + "/"
 }
