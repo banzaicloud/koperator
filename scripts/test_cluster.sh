@@ -2,8 +2,6 @@
 
 # User needs at least the following installed
 DEPS=("kubectl" "make" "docker")
-# Kubernetes version to test against
-KUBERNETES_VERSION="v1.17.0"
 # Make sure to pre-build and install helm from master - until 3.1 is available
 HELM_VERSION="v3.0.1"
 KIND_VERSION="v0.6.1"
@@ -11,7 +9,6 @@ KIND_VERSION="v0.6.1"
 # Manifests, tags, meta, etc.
 K8S_CLUSTER_NAME="kafka"
 NODE_IMAGE="kindest/node:${KUBERNETES_VERSION}"
-OPERATOR_BUILD_TAG="kafka-operator:latest"
 JETSTACK_CHARTS="https://charts.jetstack.io"
 BANZAI_CHARTS="https://kubernetes-charts.banzaicloud.com"
 LB_MANIFEST="https://raw.githubusercontent.com/google/metallb/v0.8.1/manifests/metallb.yaml"
@@ -22,9 +19,6 @@ CERT_MANAGER_CRDS="https://raw.githubusercontent.com/jetstack/cert-manager/relea
 # KAFKA_CLUSTER_MANIFEST.
 REPO_DIR="$( readlink -nf "$( cd "$( dirname "${BASH_SOURCE[0]}" )" > /dev/null 2>&1 && pwd )/.." )"
 KAFKA_CHART="${REPO_DIR}/charts/kafka-operator"
-if [[ -z "${KAFKA_CLUSTER_MANIFEST}" ]] ; then
-  KAFKA_CLUSTER_MANIFEST="${REPO_DIR}/config/samples/kafkacluster_with_external_ssl.yaml"
-fi
 
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 
@@ -93,12 +87,12 @@ EOF
 # Builds and installs the kafka-operator, then applies a cluster manifest
 setup-kafka() {
   create-ns kafka
-  make -C "${REPO_DIR}" docker-build IMG=${OPERATOR_BUILD_TAG}
-  kind load docker-image --name "${K8S_CLUSTER_NAME}" ${OPERATOR_BUILD_TAG}
+  make -C "${REPO_DIR}" docker-build
+  kind load docker-image --name "${K8S_CLUSTER_NAME}" ${IMG}
   helm-install kafka-operator "${KAFKA_CHART}" \
     --namespace kafka \
-    --set operator.image.repository=${OPERATOR_BUILD_TAG%%:*} \
-    --set operator.image.tag=${OPERATOR_BUILD_TAG#*:} \
+    --set operator.image.repository=${IMG%%:*} \
+    --set operator.image.tag=${IMG#*:} \
     --set operator.image.pullPolicy=IfNotPresent \
     --set operator.verboseLogging=true
   kubectl-apply -n kafka -f "${KAFKA_CLUSTER_MANIFEST}"

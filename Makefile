@@ -133,5 +133,9 @@ release: check_release
 	git tag -a ${REL_TAG} -m ${RELEASE_MSG}
 	git push origin ${REL_TAG}
 
+
+KUBERNETES_VERSION ?= v1.17.0
+KAFKA_CLUSTER_MANIFEST ?= config/samples/kafkacluster_with_external_ssl.yaml
 test_cluster:
-	bash scripts/test_cluster.sh
+	IMG=${IMG} KUBERNETES_VERSION=${KUBERNETES_VERSION} KAFKA_CLUSTER_MANIFEST="${KAFKA_CLUSTER_MANIFEST}" \
+	    bash scripts/test_cluster.sh
