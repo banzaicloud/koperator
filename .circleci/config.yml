@@ -11,11 +11,11 @@ jobs:
     steps:
       - checkout
 
-      - restore_cache:
-          name: Restore Go module cache
-          keys:
-            - gomod-v3-{{ checksum "go.sum" }}
-            - gomod-v3
+      #- restore_cache:
+      #    name: Restore Go module cache
+      #    keys:
+      #      - gomod-v3-{{ checksum "go.sum" }}
+      #      - gomod-v3
 
       - run:
           name: Install dependencies
@@ -23,54 +23,54 @@ jobs:
 
       - save_cache:
           name: Save Go module cache
-          key: gomod-v3-{{ checksum "go.sum" }}
+          key: gomod-v3-{{ checksum "go.sum" }}-asd
           paths:
             - /go/pkg/mod
 
-      - restore_cache:
-          name: Restore license cache
-          keys:
-            - licensei-v3-{{ checksum "go.sum" }}
-            - licensei-v3
+      #- restore_cache:
+      #    name: Restore license cache
+      #    keys:
+      #      - licensei-v3-{{ checksum "go.sum" }}
+      #      - licensei-v3
 
-      - run:
-          name: Download license information for dependencies
-          command: make license-cache
+      #- run:
+      #    name: Download license information for dependencies
+      #    command: make license-cache
 
-      - save_cache:
-          name: Save license cache
-          key: licensei-v3-{{ checksum "go.sum" }}
-          paths:
-            - .licensei.cache
+      #- save_cache:
+      #    name: Save license cache
+      #    key: licensei-v3-{{ checksum "go.sum" }}
+      #    paths:
+      #      - .licensei.cache
 
-      - run:
-          name: Check dependency licenses
-          command: make license-check
+      #- run:
+      #    name: Check dependency licenses
+      #    command: make license-check
 
-      - run:
-          name: Build
-          command:
-            make generate
+      #- run:
+      #    name: Build
+      #    command:
+      #      make generate
 
-      - run:
-          name: Run linter
-          command: make lint
+      #- run:
+      #    name: Run linter
+      #    command: make lint
 
-      - run:
-          name: Run unit tests
-          command: make test
-          when: always
+      #- run:
+      #    name: Run unit tests
+      #    command: make test
+      #    when: always
 
-      - save_cache:
-          name: Save build dependencies
-          key: build-deps-v1-{{ .Branch }}-{{ checksum "Makefile" }}
-          paths:
-            - bin/
+      #- save_cache:
+      #    name: Save build dependencies
+      #    key: build-deps-v1-{{ .Branch }}-{{ checksum "Makefile" }}
+      #    paths:
+      #      - bin/
 
-      - store_test_results:
-          path: build/
-      - store_artifacts:
-          path: build/
+      #- store_test_results:
+      #    path: build/
+      #- store_artifacts:
+      #    path: build/
 
 workflows:
     version: 2
