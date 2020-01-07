@@ -45,7 +45,7 @@ func TestGenerateKafkaAddress(t *testing.T) {
 	cluster := newMockCluster()
 	cluster.Spec.HeadlessServiceEnabled = true
 	generatedHeadless := generateKafkaAddress(cluster)
-	expected := "test-headless.test:80"
+	expected := "test-headless.test.svc.cluster.local:80"
 	if generatedHeadless != expected {
 		t.Error("Expected kafka address:", expected, "Got:", generatedHeadless)
 	}

@@ -23,6 +23,8 @@ spec:
   replicas: {{ .Values.replicaCount }}
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/operator-validating-webhook.yaml") . | sha256sum }}
       labels:
         control-plane: controller-manager
         controller-tools.k8s.io: "1.0"

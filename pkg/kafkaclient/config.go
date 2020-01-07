@@ -66,7 +66,7 @@ func determineInternalListenerForInnerCom(internalListeners []v1beta1.InternalLi
 
 func generateKafkaAddress(cluster *v1beta1.KafkaCluster) string {
 	if cluster.Spec.HeadlessServiceEnabled {
-		return fmt.Sprintf("%s.%s:%d",
+		return fmt.Sprintf("%s.%s.svc.cluster.local:%d",
 			fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name),
 			cluster.Namespace,
 			cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].ContainerPort,
