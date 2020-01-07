@@ -30,6 +30,7 @@ type CurrentAlerts interface {
 	ListAlerts() map[model.Fingerprint]*currentAlertStruct
 	HandleAlert(model.Fingerprint, client.Client, int) (*currentAlertStruct, error)
 	GetRollingUpgradeAlertCount() int
+	IgnoreCCStatusCheck(bool)
 }
 
 // AlertState current alert state
@@ -41,8 +42,9 @@ type AlertState struct {
 }
 
 type currentAlerts struct {
-	lock   sync.Mutex
-	alerts map[model.Fingerprint]*currentAlertStruct
+	lock           sync.Mutex
+	alerts         map[model.Fingerprint]*currentAlertStruct
+	IgnoreCCStatus bool
 }
 
 type currentAlertStruct struct {
@@ -50,6 +52,12 @@ type currentAlertStruct struct {
 	Labels      model.LabelSet
 	Annotations model.LabelSet
 	Processed   bool
+}
+
+type examiner struct {
+	Alert          *currentAlertStruct
+	Client         client.Client
+	IgnoreCCStatus bool
 }
 
 var currAlert *currentAlerts
@@ -85,6 +93,10 @@ func (a *currentAlerts) ListAlerts() map[model.Fingerprint]*currentAlertStruct {
 	return a.alerts
 }
 
+func (a *currentAlerts) IgnoreCCStatusCheck(c bool) {
+	a.IgnoreCCStatus = c
+}
+
 func (a *currentAlerts) DeleteAlert(alertFp model.Fingerprint) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
@@ -109,7 +121,12 @@ func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Cli
 		return &currentAlertStruct{}, errors.New("alert doesn't exist")
 	}
 	if a.alerts[alertFp].Processed != true {
-		err := examineAlert(a.alerts[alertFp], client, rollingUpgradeAlertCount)
+		e := &examiner{
+			Alert:          a.alerts[alertFp],
+			Client:         client,
+			IgnoreCCStatus: a.IgnoreCCStatus,
+		}
+		err := e.examineAlert(rollingUpgradeAlertCount)
 		if err != nil {
 			return nil, err
 		}

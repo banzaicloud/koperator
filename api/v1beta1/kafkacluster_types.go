@@ -41,6 +41,7 @@ type KafkaClusterSpec struct {
 	EnvoyConfig            EnvoyConfig             `json:"envoyConfig,omitempty"`
 	MonitoringConfig       MonitoringConfig        `json:"monitoringConfig,omitempty"`
 	VaultConfig            VaultConfig             `json:"vaultConfig,omitempty"`
+	AlertManagerConfig     *AlertManagerConfig     `json:"alertManagerConfig,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -171,6 +172,12 @@ type VaultConfig struct {
 	PKIPath   string `json:"pkiPath"`
 	IssuePath string `json:"issuePath"`
 	UserStore string `json:"userStore"`
+}
+
+// AlertManagerConfig defines configuration for alert manager
+type AlertManagerConfig struct {
+	MinBrokerCount int `json:"minBrokerCount"`
+	MaxBrokerCount int `json:"maxBrokerCount"`
 }
 
 // ExternalListenerConfig defines the external listener config for Kafka
