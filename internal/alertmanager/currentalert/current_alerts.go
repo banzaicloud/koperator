@@ -18,6 +18,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -28,7 +29,7 @@ type CurrentAlerts interface {
 	AlertGC(AlertState) error
 	DeleteAlert(model.Fingerprint) error
 	ListAlerts() map[model.Fingerprint]*currentAlertStruct
-	HandleAlert(model.Fingerprint, client.Client, int) (*currentAlertStruct, error)
+	HandleAlert(model.Fingerprint, client.Client, int, logr.Logger) (*currentAlertStruct, error)
 	GetRollingUpgradeAlertCount() int
 	IgnoreCCStatusCheck(bool)
 }
@@ -58,6 +59,7 @@ type examiner struct {
 	Alert          *currentAlertStruct
 	Client         client.Client
 	IgnoreCCStatus bool
+	Log            logr.Logger
 }
 
 var currAlert *currentAlerts
@@ -114,7 +116,7 @@ func (a *currentAlerts) AlertGC(alert AlertState) error {
 	return nil
 }
 
-func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Client, rollingUpgradeAlertCount int) (*currentAlertStruct, error) {
+func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Client, rollingUpgradeAlertCount int, log logr.Logger) (*currentAlertStruct, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	if _, ok := a.alerts[alertFp]; !ok {
@@ -125,6 +127,7 @@ func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Cli
 			Alert:          a.alerts[alertFp],
 			Client:         client,
 			IgnoreCCStatus: a.IgnoreCCStatus,
+			Log:            log,
 		}
 		err := e.examineAlert(rollingUpgradeAlertCount)
 		if err != nil {
