@@ -15,6 +15,8 @@
 package currentalert
 
 import (
+	"errors"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
@@ -93,8 +95,7 @@ func (e *examiner) processAlert(ds disableScaling) error {
 		}
 	case "downScale":
 		if ds.Down {
-			e.Log.Info("downscale is skipped due to minimum broker count")
-			return nil
+			return errors.New("downscaling is skipped due to minimum broker count")
 		}
 		err := downScale(e.Alert.Labels, e.Client)
 		if err != nil {
@@ -102,8 +103,7 @@ func (e *examiner) processAlert(ds disableScaling) error {
 		}
 	case "upScale":
 		if ds.Up {
-			e.Log.Info("upscale is skipped due to maximum broker count")
-			return nil
+			return errors.New("upscaling is skipped due to maximum broker count")
 		}
 		err := upScale(e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
