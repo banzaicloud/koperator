@@ -80,30 +80,32 @@ func (e *examiner) examineAlert(rollingUpgradeAlertCount int) error {
 		}
 	}
 
-	return processAlert(e.Alert, e.Client, ds)
+	return e.processAlert(ds)
 }
 
-func processAlert(alert *currentAlertStruct, client client.Client, ds disableScaling) error {
+func (e *examiner) processAlert(ds disableScaling) error {
 
-	switch alert.Annotations["command"] {
+	switch e.Alert.Annotations["command"] {
 	case "addPVC":
-		err := addPVC(alert.Labels, alert.Annotations, client)
+		err := addPVC(e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
 			return err
 		}
 	case "downScale":
 		if ds.Down {
-			return nil // TODO
+			e.Log.Info("downscale is skipped due to minimum broker count")
+			return nil
 		}
-		err := downScale(alert.Labels, client)
+		err := downScale(e.Alert.Labels, e.Client)
 		if err != nil {
 			return err
 		}
 	case "upScale":
 		if ds.Up {
-			return nil // TODO
+			e.Log.Info("upscale is skipped due to maximum broker count")
+			return nil
 		}
-		err := upScale(alert.Labels, alert.Annotations, client)
+		err := upScale(e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
 			return err
 		}
