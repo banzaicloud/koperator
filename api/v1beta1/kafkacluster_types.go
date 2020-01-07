@@ -176,8 +176,8 @@ type VaultConfig struct {
 
 // AlertManagerConfig defines configuration for alert manager
 type AlertManagerConfig struct {
-	MinBrokerCount int `json:"minBrokerCount"`
-	MaxBrokerCount int `json:"maxBrokerCount"`
+	DownScaleLimit int `json:"downScaleLimit"`
+	UpScaleLimit   int `json:"upScaleLimit"`
 }
 
 // ExternalListenerConfig defines the external listener config for Kafka
