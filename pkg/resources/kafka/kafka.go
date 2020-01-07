@@ -531,7 +531,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		if err != nil {
 			log.Error(err, "could not match objects", "kind", desiredType)
 		} else if patchResult.IsEmpty() {
-			if currentPod.Status.Phase != corev1.PodFailed && r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync {
+			if isPodHealthy(currentPod) && r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync {
 				log.V(1).Info("resource is in sync")
 				return nil
 			}
@@ -547,7 +547,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			return errors.WrapIf(err, "could not apply last state to annotation")
 		}
 
-		if currentPod.Status.Phase != corev1.PodFailed {
+		if isPodHealthy(currentPod) {
 
 			if r.KafkaCluster.Status.State != v1beta1.KafkaClusterRollingUpgrading {
 				if err := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, v1beta1.KafkaClusterRollingUpgrading, log); err != nil {
@@ -607,6 +607,17 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 	}
 	return nil
 
+}
+
+func isPodHealthy(pod *corev1.Pod) bool {
+	healthy := true
+	for _, containerState := range pod.Status.ContainerStatuses {
+		if containerState.State.Terminated != nil {
+			healthy = false
+			break
+		}
+	}
+	return healthy
 }
 
 func (r *Reconciler) reconcileKafkaPVC(log logr.Logger, desiredPVC *corev1.PersistentVolumeClaim) error {

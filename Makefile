@@ -90,7 +90,7 @@ install: manifests
 deploy: install-kustomize manifests
 	bin/kustomize build config | kubectl apply -f -
 	./scripts/image_patch.sh "${KUSTOMIZE_BASE}/manager_image_patch.yaml" ${IMG}
-	kustomize build $(KUSTOMIZE_BASE) | kubectl apply -f -
+	bin/kustomize build $(KUSTOMIZE_BASE) | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
