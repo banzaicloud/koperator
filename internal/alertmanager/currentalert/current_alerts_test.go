@@ -134,6 +134,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 	if alerts1 == nil {
 		t.Error("expected pointer to Singleton after calling GetCurrentAlerts(), not nil")
 	}
+	alerts1.IgnoreCCStatusCheck(true)
 
 	singleAlerts := alerts1
 
@@ -167,15 +168,15 @@ func TestGetCurrentAlerts(t *testing.T) {
 		t.Error("Listing alerts failed a1")
 	}
 
-	// currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c, 0)
-	// if err != nil {
-	// 	t.Error("Hanlde alert failed a1 with error")
-	// }
-	// t.Log(currAlert)
+	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c, 0)
+	if err != nil {
+		t.Error("Hanlde alert failed a1 with error")
+	}
+	t.Log(currAlert)
 
-	// if list1 == nil || list1[testAlert1.FingerPrint].Status != "firing" || list1[testAlert1.FingerPrint].Processed != true {
-	// 	t.Error("handle alert failed a1")
-	// }
+	if list1 == nil || list1[testAlert1.FingerPrint].Status != "firing" || list1[testAlert1.FingerPrint].Processed != true {
+		t.Error("Process alert failed a1")
+	}
 
 	alerts2 := GetCurrentAlerts()
 	if alerts2 != singleAlerts {

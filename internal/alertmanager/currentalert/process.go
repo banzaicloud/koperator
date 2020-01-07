@@ -31,8 +31,13 @@ type ccConfig struct {
 	CruiseControlEndpoint string
 }
 
-func getCR(alert *currentAlertStruct, client client.Client) (*v1beta1.KafkaCluster, *ccConfig, error) {
-	cr, err := k8sutil.GetCr(string(alert.Labels["kafka_cr"]), string(alert.Labels["namespace"]), client)
+type disableScaling struct {
+	Up   bool
+	Down bool
+}
+
+func (e *examiner) getCR() (*v1beta1.KafkaCluster, *ccConfig, error) {
+	cr, err := k8sutil.GetCr(string(e.Alert.Labels["kafka_cr"]), string(e.Alert.Labels["namespace"]), e.Client)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -44,27 +49,41 @@ func getCR(alert *currentAlertStruct, client client.Client) (*v1beta1.KafkaClust
 	return cr, cc, nil
 }
 
-func examineAlert(alert *currentAlertStruct, client client.Client, rollingUpgradeAlertCount int) error {
-	cr, cc, err := getCR(alert, client)
+func (e *examiner) examineAlert(rollingUpgradeAlertCount int) error {
+
+	cr, cc, err := e.getCR()
 	if err != nil {
 		return err
 	}
 
-	if err := cc.getCruiseControlStatus(); err != nil {
-		return err
+	if !e.IgnoreCCStatus {
+		if err := cc.getCruiseControlStatus(); err != nil {
+			return err
+		}
 	}
 
-	if err := k8sutil.UpdateCrWithRollingUpgrade(rollingUpgradeAlertCount, cr, client); err != nil {
+	if err := k8sutil.UpdateCrWithRollingUpgrade(rollingUpgradeAlertCount, cr, e.Client); err != nil {
 		return err
 	}
 
 	if cr.Status.State == "rollingupgrade" {
 		return nil
 	}
-	return processAlert(alert, client)
+
+	ds := disableScaling{}
+	if cr.Spec.AlertManagerConfig != nil {
+		if len(cr.Spec.Brokers) <= cr.Spec.AlertManagerConfig.MinBrokerCount {
+			ds.Down = true
+		}
+		if len(cr.Spec.Brokers) >= cr.Spec.AlertManagerConfig.MaxBrokerCount {
+			ds.Up = true
+		}
+	}
+
+	return processAlert(e.Alert, e.Client, ds)
 }
 
-func processAlert(alert *currentAlertStruct, client client.Client) error {
+func processAlert(alert *currentAlertStruct, client client.Client, ds disableScaling) error {
 
 	switch alert.Annotations["command"] {
 	case "addPVC":
@@ -73,11 +92,17 @@ func processAlert(alert *currentAlertStruct, client client.Client) error {
 			return err
 		}
 	case "downScale":
+		if ds.Down {
+			return nil // TODO
+		}
 		err := downScale(alert.Labels, client)
 		if err != nil {
 			return err
 		}
 	case "upScale":
+		if ds.Up {
+			return nil // TODO
+		}
 		err := upScale(alert.Labels, alert.Annotations, client)
 		if err != nil {
 			return err

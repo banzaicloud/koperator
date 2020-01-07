@@ -32,6 +32,17 @@ spec:
         spec:
           description: KafkaClusterSpec defines the desired state of KafkaCluster
           properties:
+            alertManagerConfig:
+              description: AlertManagerConfig defines configuration for alert manager
+              properties:
+                maxBrokerCount:
+                  type: integer
+                minBrokerCount:
+                  type: integer
+              required:
+              - maxBrokerCount
+              - minBrokerCount
+              type: object
             brokerConfigGroups:
               additionalProperties:
                 description: BrokerConfig defines the broker configuration
