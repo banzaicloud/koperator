@@ -35,13 +35,13 @@ spec:
             alertManagerConfig:
               description: AlertManagerConfig defines configuration for alert manager
               properties:
-                maxBrokerCount:
+                downScaleLimit:
                   type: integer
-                minBrokerCount:
+                upScaleLimit:
                   type: integer
               required:
-              - maxBrokerCount
-              - minBrokerCount
+              - downScaleLimit
+              - upScaleLimit
               type: object
             brokerConfigGroups:
               additionalProperties:

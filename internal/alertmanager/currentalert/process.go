@@ -74,10 +74,10 @@ func (e *examiner) examineAlert(rollingUpgradeAlertCount int) error {
 
 	ds := disableScaling{}
 	if cr.Spec.AlertManagerConfig != nil {
-		if len(cr.Spec.Brokers) <= cr.Spec.AlertManagerConfig.MinBrokerCount {
+		if len(cr.Spec.Brokers) <= cr.Spec.AlertManagerConfig.DownScaleLimit {
 			ds.Down = true
 		}
-		if len(cr.Spec.Brokers) >= cr.Spec.AlertManagerConfig.MaxBrokerCount {
+		if len(cr.Spec.Brokers) >= cr.Spec.AlertManagerConfig.UpScaleLimit {
 			ds.Up = true
 		}
 	}
@@ -95,7 +95,7 @@ func (e *examiner) processAlert(ds disableScaling) error {
 		}
 	case "downScale":
 		if ds.Down {
-			return errors.New("downscaling is skipped due to minimum broker count")
+			return errors.New("downscaling is skipped due to downscale limit")
 		}
 		err := downScale(e.Alert.Labels, e.Client)
 		if err != nil {
@@ -103,7 +103,7 @@ func (e *examiner) processAlert(ds disableScaling) error {
 		}
 	case "upScale":
 		if ds.Up {
-			return errors.New("upscaling is skipped due to maximum broker count")
+			return errors.New("upscaling is skipped due to upscale limit")
 		}
 		err := upScale(e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {

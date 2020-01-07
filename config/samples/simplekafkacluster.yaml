@@ -5,9 +5,6 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: kafka
 spec:
-  alertManagerConfig:
-    minBrokerCount: 3
-    maxBrokerCount: 4
   headlessServiceEnabled: true
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
