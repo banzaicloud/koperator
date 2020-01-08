@@ -42,7 +42,7 @@ func SetAlertManagerWithManager(mgr manager.Manager) error {
 // Start initiates the alertmanager controller
 func (c AController) Start(<-chan struct{}) error {
 	logf.SetLogger(logf.ZapLogger(false))
-	log := logf.Log.WithName("alertmanager-entrypoint")
+	log := logf.Log.WithName("alertmanager")
 
 	ln, _ := net.Listen("tcp", receiverAddr)
 	httpServer := &http.Server{Handler: alertmanager.NewApp(log, c.Client)}

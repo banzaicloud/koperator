@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var c client.Client
@@ -79,6 +80,8 @@ func ensureCreated(t *testing.T, object runtime.Object, mgr manager.Manager) fun
 
 func TestGetCurrentAlerts(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
+
+	log := logf.Log.WithName("alertmanager")
 
 	mgr, err := manager.New(cfg, manager.Options{Scheme: scheme.Scheme})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -168,7 +171,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 		t.Error("Listing alerts failed a1")
 	}
 
-	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c, 0)
+	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c, 0, log)
 	if err != nil {
 		t.Error("Hanlde alert failed a1 with error")
 	}
@@ -203,7 +206,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 		t.Error("2222 alert wasn't deleted")
 	}
 
-	_, err = alerts3.HandleAlert(model.Fingerprint(2222), c, 0)
+	_, err = alerts3.HandleAlert(model.Fingerprint(2222), c, 0, log)
 	expected := "alert doesn't exist"
 	if err == nil || err.Error() != expected {
 		t.Errorf("alert with 2222 should be %s", err)
