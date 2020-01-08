@@ -173,7 +173,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 
 	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c, 0, log)
 	if err != nil {
-		t.Error("Hanlde alert failed a1 with error")
+		t.Error("Hanlde alert failed a1 with error", err)
 	}
 	t.Log(currAlert)
 
