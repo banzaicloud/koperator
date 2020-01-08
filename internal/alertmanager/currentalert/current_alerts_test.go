@@ -209,6 +209,6 @@ func TestGetCurrentAlerts(t *testing.T) {
 	_, err = alerts3.HandleAlert(model.Fingerprint(2222), c, 0, log)
 	expected := "alert doesn't exist"
 	if err == nil || err.Error() != expected {
-		t.Errorf("alert with 2222 should be %s", err)
+		t.Error("alert with 2222 isn't the expected", err)
 	}
 }
