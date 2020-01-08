@@ -176,8 +176,8 @@ type VaultConfig struct {
 
 // AlertManagerConfig defines configuration for alert manager
 type AlertManagerConfig struct {
-	DownScaleLimit int `json:"downScaleLimit"`
-	UpScaleLimit   int `json:"upScaleLimit"`
+	DownScaleLimit int `json:"downScaleLimit,omitempty"`
+	UpScaleLimit   int `json:"upScaleLimit,omitempty"`
 }
 
 // ExternalListenerConfig defines the external listener config for Kafka

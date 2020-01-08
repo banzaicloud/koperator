@@ -39,9 +39,6 @@ spec:
                   type: integer
                 upScaleLimit:
                   type: integer
-              required:
-              - downScaleLimit
-              - upScaleLimit
               type: object
             brokerConfigGroups:
               additionalProperties:
