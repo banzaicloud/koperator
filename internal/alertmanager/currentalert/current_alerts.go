@@ -129,11 +129,11 @@ func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Cli
 			IgnoreCCStatus: a.IgnoreCCStatus,
 			Log:            log,
 		}
-		skipProcess, err := e.examineAlert(rollingUpgradeAlertCount)
+		alertProcessed, err := e.examineAlert(rollingUpgradeAlertCount)
 		if err != nil {
 			return nil, err
 		}
-		if !skipProcess {
+		if !alertProcessed {
 			a.alerts[alertFp].Processed = true
 		}
 	}

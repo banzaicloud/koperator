@@ -75,7 +75,7 @@ func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 		if len(cr.Spec.Brokers) <= cr.Spec.AlertManagerConfig.DownScaleLimit {
 			ds.Down = true
 		}
-		if cr.Spec.AlertManagerConfig.UpScaleLimit != 0 && len(cr.Spec.Brokers) >= cr.Spec.AlertManagerConfig.UpScaleLimit {
+		if cr.Spec.AlertManagerConfig.UpScaleLimit > 0 && len(cr.Spec.Brokers) >= cr.Spec.AlertManagerConfig.UpScaleLimit {
 			ds.Up = true
 		}
 	}

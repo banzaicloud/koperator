@@ -176,9 +176,13 @@ type VaultConfig struct {
 
 // AlertManagerConfig defines configuration for alert manager
 type AlertManagerConfig struct {
-	// DownScaleLimit defines the minimum number of brokers, the alertmanager doesn't scale down the brokers below the number
+	// DownScaleLimit the limit for auto-downscaling the Kafka cluster.
+	// Once the size of the cluster (number of brokers) reaches or falls below this limit the auto-downscaling triggered by alerts is disabled until the cluster size exceeds this limit.
+	// This limit is not enforced if this field is omitted or is <= 0.
 	DownScaleLimit int `json:"downScaleLimit,omitempty"`
-	// UpScaleLimit defines the maximum number of brokers, the alertmanager doesn't scale up the brokers above the number
+	// UpScaleLimit the limit for auto-upscaling the Kafka cluster.
+	// Once the size of the cluster (number of brokers) reaches or exceeds this limit the auto-upscaling triggered by alerts is disabled until the cluster size falls below this limit.
+	// This limit is not enforced if this field is omitted or is <= 0.
 	UpScaleLimit int `json:"upScaleLimit,omitempty"`
 }
 
