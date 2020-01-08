@@ -40,8 +40,12 @@ spec:
               description: AlertManagerConfig defines configuration for alert manager
               properties:
                 downScaleLimit:
+                  description: DownScaleLimit defines the minimum number of brokers,
+                    the alertmanager doesn't scale down the brokers below the number
                   type: integer
                 upScaleLimit:
+                  description: UpScaleLimit defines the maximum number of brokers,
+                    the alertmanager doesn't scale up the brokers above the number
                   type: integer
               type: object
             brokerConfigGroups:

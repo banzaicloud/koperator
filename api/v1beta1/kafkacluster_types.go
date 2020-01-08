@@ -176,8 +176,10 @@ type VaultConfig struct {
 
 // AlertManagerConfig defines configuration for alert manager
 type AlertManagerConfig struct {
+	// DownScaleLimit defines the minimum number of brokers, the alertmanager doesn't scale down the brokers below the number
 	DownScaleLimit int `json:"downScaleLimit,omitempty"`
-	UpScaleLimit   int `json:"upScaleLimit,omitempty"`
+	// UpScaleLimit defines the maximum number of brokers, the alertmanager doesn't scale up the brokers above the number
+	UpScaleLimit int `json:"upScaleLimit,omitempty"`
 }
 
 // ExternalListenerConfig defines the external listener config for Kafka
