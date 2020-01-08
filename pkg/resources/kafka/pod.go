@@ -55,7 +55,23 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 	volume := []corev1.Volume{}
 	volumeMount := []corev1.VolumeMount{}
 	initContainers := []corev1.Container{}
-	command := []string{"bash", "-c", "/opt/kafka/bin/kafka-server-start.sh /config/broker-config"}
+	//TODO remove this bash envoy sidecar checker script once sidecar precedence becomes available to Kubernetes(baluchicken)
+	command := []string{"bash", "-c", `
+if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then
+  COUNT=0
+  MAXCOUNT=${1:-30}
+  HEALTHYSTATUSCODE="200"
+  while true; do
+    COUNT= $(expr $COUNT + 1)
+    SC=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:15000/ready)
+    echo "waiting for envoy proxy to come up";
+    sleep 1;
+    if (( "$SC" == "$HEALTHYSTATUSCODE" || "$MAXCOUNT" == "$COUNT" )); then
+      break
+    fi
+  done
+fi
+/opt/kafka/bin/kafka-server-start.sh /config/broker-config`}
 
 	volume = append(volume, dataVolume...)
 	volumeMount = append(volumeMount, dataVolumeMount...)
@@ -130,6 +146,14 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 						{
 							Name:  "KAFKA_JVM_PERFORMANCE_OPTS",
 							Value: brokerConfig.GetKafkaPerfJmvOpts(),
+						},
+						{
+							Name:  "ENVOY_SIDECAR_STATUS",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath: `metadata.annotations['sidecar.istio.io/status']`,
+								},
+							},
 						},
 					},
 					Command: command,
