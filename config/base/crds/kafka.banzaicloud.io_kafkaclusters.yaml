@@ -36,12 +36,18 @@ spec:
               description: AlertManagerConfig defines configuration for alert manager
               properties:
                 downScaleLimit:
-                  description: DownScaleLimit defines the minimum number of brokers,
-                    the alertmanager doesn't scale down the brokers below the number
+                  description: DownScaleLimit the limit for auto-downscaling the Kafka
+                    cluster. Once the size of the cluster (number of brokers) reaches
+                    or falls below this limit the auto-downscaling triggered by alerts
+                    is disabled until the cluster size exceeds this limit. This limit
+                    is not enforced if this field is omitted or is <= 0.
                   type: integer
                 upScaleLimit:
-                  description: UpScaleLimit defines the maximum number of brokers,
-                    the alertmanager doesn't scale up the brokers above the number
+                  description: UpScaleLimit the limit for auto-upscaling the Kafka
+                    cluster. Once the size of the cluster (number of brokers) reaches
+                    or exceeds this limit the auto-upscaling triggered by alerts is
+                    disabled until the cluster size falls below this limit. This limit
+                    is not enforced if this field is omitted or is <= 0.
                   type: integer
               type: object
             brokerConfigGroups:
