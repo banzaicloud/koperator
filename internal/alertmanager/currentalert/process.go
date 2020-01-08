@@ -15,8 +15,6 @@
 package currentalert
 
 import (
-	"errors"
-
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
@@ -51,25 +49,25 @@ func (e *examiner) getCR() (*v1beta1.KafkaCluster, *ccConfig, error) {
 	return cr, cc, nil
 }
 
-func (e *examiner) examineAlert(rollingUpgradeAlertCount int) error {
+func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 
 	cr, cc, err := e.getCR()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if !e.IgnoreCCStatus {
 		if err := cc.getCruiseControlStatus(); err != nil {
-			return err
+			return false, err
 		}
 	}
 
 	if err := k8sutil.UpdateCrWithRollingUpgrade(rollingUpgradeAlertCount, cr, e.Client); err != nil {
-		return err
+		return false, err
 	}
 
 	if cr.Status.State == "rollingupgrade" {
-		return nil
+		return false, nil
 	}
 
 	ds := disableScaling{}
@@ -85,32 +83,34 @@ func (e *examiner) examineAlert(rollingUpgradeAlertCount int) error {
 	return e.processAlert(ds)
 }
 
-func (e *examiner) processAlert(ds disableScaling) error {
+func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 
 	switch e.Alert.Annotations["command"] {
 	case "addPVC":
 		err := addPVC(e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
-			return err
+			return false, err
 		}
 	case "downScale":
 		if ds.Down {
-			return errors.New("downscaling is skipped due to downscale limit")
+			e.Log.Info("downscaling is skipped due to downscale limit")
+			return true, nil
 		}
 		err := downScale(e.Alert.Labels, e.Client)
 		if err != nil {
-			return err
+			return false, err
 		}
 	case "upScale":
 		if ds.Up {
-			return errors.New("upscaling is skipped due to upscale limit")
+			e.Log.Info("upscaling is skipped due to upscale limit")
+			return true, nil
 		}
 		err := upScale(e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
-	return nil
+	return false, nil
 }
 
 func addPVC(labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
