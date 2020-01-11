@@ -1150,6 +1150,13 @@ spec:
               type: object
             headlessServiceEnabled:
               type: boolean
+            ingressController:
+              enum:
+              - envoy
+              - istioingress
+              type: string
+            istioIngressConfig:
+              type: object
             listenersConfig:
               description: ListenersConfig defines the Kafka listener types
               properties:

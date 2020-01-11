@@ -148,7 +148,7 @@ fi
 							Value: brokerConfig.GetKafkaPerfJmvOpts(),
 						},
 						{
-							Name:  "ENVOY_SIDECAR_STATUS",
+							Name: "ENVOY_SIDECAR_STATUS",
 							ValueFrom: &corev1.EnvVarSource{
 								FieldRef: &corev1.ObjectFieldSelector{
 									FieldPath: `metadata.annotations['sidecar.istio.io/status']`,

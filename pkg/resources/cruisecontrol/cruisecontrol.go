@@ -89,7 +89,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 
 		if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
-			for _, res := range []resources.ResourceWithLogsAndClientPassowrd{
+			for _, res := range []resources.ResourceWithLogsAndClientPassword{
 				r.service,
 				r.configMap,
 				r.deployment,

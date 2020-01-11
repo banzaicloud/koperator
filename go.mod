@@ -8,12 +8,14 @@ require (
 	github.com/Shopify/sarama v1.23.1
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.2.0
+	github.com/banzaicloud/istio-client-go v0.0.0-20191203163313-928801ec5028
+	github.com/banzaicloud/istio-operator v0.0.0-20191212123221-6e3658721f00
 	github.com/banzaicloud/k8s-objectmatcher v1.0.0
 	github.com/envoyproxy/go-control-plane v0.8.6
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
 	github.com/gogo/googleapis v1.2.0 // indirect
-	github.com/gogo/protobuf v1.2.2-0.20190730201129-28a6bbf47e48
+	github.com/gogo/protobuf v1.3.0
 	github.com/hashicorp/consul/api v1.2.0 // indirect
 	github.com/hashicorp/memberlist v0.1.5 // indirect
 	github.com/hashicorp/nomad/api v0.0.0-20191011173337-85153a5ecf46 // indirect
@@ -45,7 +47,6 @@ require (
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
 	k8s.io/client-go v11.0.1-0.20190516230509-ae8359b20417+incompatible
 	sigs.k8s.io/controller-runtime v0.2.0
-	sigs.k8s.io/controller-tools v0.2.0 // indirect
 )
 
 replace (

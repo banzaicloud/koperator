@@ -31,6 +31,24 @@ metadata:
     app.kubernetes.io/component: operator
 rules:
 - apiGroups:
+  - istio.banzaicloud.io
+  resources:
+  - meshgateways
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
   - ""
   resources:
   - events

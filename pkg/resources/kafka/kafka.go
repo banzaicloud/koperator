@@ -36,6 +36,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
+	istioingressutils "github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -103,9 +104,16 @@ func getCreatedPVCForBroker(c client.Client, brokerID int32, namespace, crName s
 	return foundPVCList.Items, nil
 }
 
-func getLoadBalancerIP(client client.Client, namespace string, log logr.Logger) (string, error) {
+func getLoadBalancerIP(client client.Client, namespace, ingressController, crName string, log logr.Logger) (string, error) {
 	foundLBService := &corev1.Service{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: envoyutils.EnvoyServiceName, Namespace: namespace}, foundLBService)
+	var iControllerServiceName string
+	if ingressController == istioingressutils.IngressControllerName {
+		iControllerServiceName = fmt.Sprintf(istioingressutils.MeshGatewayNameTemplate, crName)
+	} else if ingressController == envoyutils.IngressControllerName {
+		iControllerServiceName = envoyutils.EnvoyServiceName
+	}
+
+	err := client.Get(context.TODO(), types.NamespacedName{Name: iControllerServiceName, Namespace: namespace}, foundLBService)
 	if err != nil {
 		return "", err
 	}
@@ -214,7 +222,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			// first element of slice will be used for external advertised listener
 			lbIPs = append(lbIPs, r.KafkaCluster.Spec.ListenersConfig.ExternalListeners[0].HostnameOverride)
 		}
-		lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, log)
+		lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.Name, log)
 		if err != nil {
 			return err
 		}
