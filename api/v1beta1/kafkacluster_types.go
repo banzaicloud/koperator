@@ -18,6 +18,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -35,13 +37,17 @@ type KafkaClusterSpec struct {
 	BrokerConfigGroups     map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
 	Brokers                []Broker                `json:"brokers"`
 	RollingUpgradeConfig   RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
-	OneBrokerPerNode       bool                    `json:"oneBrokerPerNode"`
-	PropagateLabels        bool                    `json:"propagateLabels,omitempty"`
-	CruiseControlConfig    CruiseControlConfig     `json:"cruiseControlConfig"`
-	EnvoyConfig            EnvoyConfig             `json:"envoyConfig,omitempty"`
-	MonitoringConfig       MonitoringConfig        `json:"monitoringConfig,omitempty"`
-	VaultConfig            VaultConfig             `json:"vaultConfig,omitempty"`
-	AlertManagerConfig     *AlertManagerConfig     `json:"alertManagerConfig,omitempty"`
+	// +kubebuilder:default=envoy
+	// +kubebuilder:validation:Enum=envoy;istioingress
+	IngressController   string              `json:"ingressController,omitempty"`
+	OneBrokerPerNode    bool                `json:"oneBrokerPerNode"`
+	PropagateLabels     bool                `json:"propagateLabels,omitempty"`
+	CruiseControlConfig CruiseControlConfig `json:"cruiseControlConfig"`
+	EnvoyConfig         EnvoyConfig         `json:"envoyConfig,omitempty"`
+	MonitoringConfig    MonitoringConfig    `json:"monitoringConfig,omitempty"`
+	VaultConfig         VaultConfig         `json:"vaultConfig,omitempty"`
+	AlertManagerConfig  *AlertManagerConfig `json:"alertManagerConfig,omitempty"`
+	IstioIngressConfig  IstioIngressConfig  `json:"istioIngressConfig,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -128,6 +134,9 @@ type EnvoyConfig struct {
 	Tolerations              []corev1.Toleration           `json:"tolerations,omitempty"`
 	Annotations              map[string]string             `json:"annotations,omitempty"`
 	LoadBalancerSourceRanges []string                      `json:"loadBalancerSourceRanges,omitempty"`
+}
+
+type IstioIngressConfig struct {
 }
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
@@ -227,6 +236,13 @@ type KafkaClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&KafkaCluster{}, &KafkaClusterList{})
+}
+
+func (kSpec *KafkaClusterSpec) GetIngressController() string {
+	if kSpec.IngressController == "" {
+		return envoyutils.IngressControllerName
+	}
+	return kSpec.IngressController
 }
 
 //GetInitContainerImage returns the Init container image to use for CruiseControl

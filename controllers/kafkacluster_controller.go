@@ -31,6 +31,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrolmonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/envoy"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/istioingress"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -72,6 +73,8 @@ type KafkaClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=istio.banzaicloud.io,resources=meshgateways,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.istio.io,resources=*,verbs=*
 
 func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -105,6 +108,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 
 	reconcilers := []resources.ComponentReconciler{
 		envoy.New(r.Client, instance),
+		istioingress.New(r.Client, instance),
 		kafkamonitoring.New(r.Client, instance),
 		cruisecontrolmonitoring.New(r.Client, instance),
 		kafka.New(r.Client, r.Scheme, instance),

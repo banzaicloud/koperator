@@ -33,16 +33,19 @@ import (
 	"flag"
 	"os"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/controllers"
-	"github.com/banzaicloud/kafka-operator/pkg/webhook"
+	istioclientv1alpha3 "github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	banzaiistiov1beta1 "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/controllers"
+	"github.com/banzaicloud/kafka-operator/pkg/webhook"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -57,6 +60,10 @@ func init() {
 	_ = banzaicloudv1alpha1.AddToScheme(scheme)
 
 	_ = banzaicloudv1beta1.AddToScheme(scheme)
+
+	_ = banzaiistiov1beta1.AddToScheme(scheme)
+
+	_ = istioclientv1alpha3.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

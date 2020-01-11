@@ -1,4 +1,4 @@
-// Copyright © 2019 Banzai Cloud
+// Copyright © 2020 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,26 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package envoy
+package istioingress
 
 import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
-	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
+	"github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	componentName            = "envoy"
-	envoyVolumeAndConfigName = "envoy-config"
-	envoyDeploymentName      = "envoy"
+	componentName          = "istioingress"
+	gatewayNameTemplate    = "%s-%s-gateway"
+	virtualServiceTemplate = "%s-%s-virtualservice"
 )
 
-var labelSelector = map[string]string{
-	"app": "envoy",
+// labelsForIstioIngress returns the labels for selecting the resources
+// belonging to the given kafka CR name.
+func labelsForIstioIngress(crName, eLName string) map[string]string {
+	return map[string]string{"app": "istioingress", "eListenerName": eLName}
 }
 
 // Reconciler implements the Component Reconciler
@@ -39,7 +41,7 @@ type Reconciler struct {
 	resources.Reconciler
 }
 
-// New creates a new reconciler for Envoy
+// New creates a new reconciler for IstioIngress
 func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
@@ -49,22 +51,25 @@ func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 	}
 }
 
-// Reconcile implements the reconcile logic for Envoy
+// Reconcile implements the reconcile logic for IstioIngress
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 
 	log.V(1).Info("Reconciling")
-	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil && r.KafkaCluster.Spec.GetIngressController() == envoyutils.IngressControllerName {
+	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil && r.KafkaCluster.Spec.GetIngressController() == istioingress.IngressControllerName {
 
-		for _, res := range []resources.ResourceWithLogs{
-			r.loadBalancer,
-			r.configMap,
-			r.deployment,
-		} {
-			o := res(log)
-			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-			if err != nil {
-				return err
+		for _, externalListenerConfig := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+
+			for _, res := range []resources.ResourceWithLogAndExternalListenerConfig{
+				r.meshgateway,
+				r.gateway,
+				r.virtualService,
+			} {
+				o := res(log, externalListenerConfig)
+				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

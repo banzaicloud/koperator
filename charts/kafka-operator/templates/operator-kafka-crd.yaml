@@ -1154,6 +1154,13 @@ spec:
               type: object
             headlessServiceEnabled:
               type: boolean
+            ingressController:
+              enum:
+                - envoy
+                - istioingress
+              type: string
+            istioIngressConfig:
+              type: object
             listenersConfig:
               description: ListenersConfig defines the Kafka listener types
               properties:
@@ -1168,11 +1175,11 @@ spec:
                       externalStartingPort:
                         format: int32
                         type: integer
+                      hostnameOverride:
+                        type: string
                       name:
                         type: string
                       type:
-                        type: string
-                      hostnameOverride:
                         type: string
                     required:
                       - containerPort
@@ -1244,6 +1251,8 @@ spec:
                 - pathToJar
               type: object
             oneBrokerPerNode:
+              type: boolean
+            propagateLabels:
               type: boolean
             rackAwareness:
               description: RackAwareness defines the required fields to enable kafka's

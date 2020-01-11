@@ -1,4 +1,4 @@
-// Copyright © 2019 Banzai Cloud
+// Copyright © 2020 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package envoy
+package istioingress
 
 const (
-	// EnvoyServiceName name for loadbalancer service
-	EnvoyServiceName = "envoy-loadbalancer"
-	// IngressControllerName name for envoy ingress service
-	IngressControllerName = "envoy"
+	// IngressControllerName name for istioingress ingress service
+	IngressControllerName = "istioingress"
+	// IngressControllerName name for istioingress gateway service
+	MeshGatewayNameTemplate = "%s-meshgateway"
 )

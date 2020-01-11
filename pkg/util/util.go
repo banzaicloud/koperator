@@ -45,6 +45,11 @@ func BoolPointer(b bool) *bool {
 	return &b
 }
 
+// IntPointer generates int pointer from int
+func IntPointer(i int) *int {
+	return &i
+}
+
 // StringPointer generates string pointer from string
 func StringPointer(s string) *string {
 	return &s
