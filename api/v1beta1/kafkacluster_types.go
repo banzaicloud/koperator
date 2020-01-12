@@ -137,6 +137,11 @@ type EnvoyConfig struct {
 }
 
 type IstioIngressConfig struct {
+	Resources    *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
+	Replicas     int32                        `json:"replicas,omitempty"`
+	NodeSelector map[string]string            `json:"nodeSelector,omitempty"`
+	Tolerations  []corev1.Toleration          `json:"tolerations,omitempty"`
+	Annotations  map[string]string            `json:"annotations,omitempty"`
 }
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
@@ -236,6 +241,31 @@ type KafkaClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&KafkaCluster{}, &KafkaClusterList{})
+}
+
+// GetResources returns the IstioIngress specific Kubernetes resources
+func (iIConfig *IstioIngressConfig) GetResources() *corev1.ResourceRequirements {
+	if iIConfig.Resources != nil {
+		return iIConfig.Resources
+	}
+	return &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("100m"),
+			"memory": resource.MustParse("128Mi"),
+		},
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse("2000m"),
+			"memory": resource.MustParse("1024Mi"),
+		},
+	}
+}
+
+// GetReplicas returns replicas used by the Istio Ingress deployment
+func (iIConfig *IstioIngressConfig) GetReplicas() int32 {
+	if iIConfig.Replicas == 0 {
+		return 1
+	}
+	return iIConfig.Replicas
 }
 
 func (kSpec *KafkaClusterSpec) GetIngressController() string {

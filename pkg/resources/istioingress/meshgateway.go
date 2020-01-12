@@ -19,7 +19,6 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	istioOperatorApi "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
@@ -37,20 +36,14 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 			MeshGatewayConfiguration: istioOperatorApi.MeshGatewayConfiguration{
 				Labels: labelsForIstioIngress(r.KafkaCluster.Name, externalListenerConfig.Name),
 				BaseK8sResourceConfigurationWithHPAWithoutImage: istioOperatorApi.BaseK8sResourceConfigurationWithHPAWithoutImage{
-					ReplicaCount: util.Int32Pointer(1),
-					MinReplicas:  util.Int32Pointer(1),
-					MaxReplicas:  util.Int32Pointer(5),
+					ReplicaCount: util.Int32Pointer(r.KafkaCluster.Spec.IstioIngressConfig.GetReplicas()),
+					MinReplicas:  util.Int32Pointer(r.KafkaCluster.Spec.IstioIngressConfig.GetReplicas()),
+					MaxReplicas:  util.Int32Pointer(r.KafkaCluster.Spec.IstioIngressConfig.GetReplicas()),
 					BaseK8sResourceConfiguration: istioOperatorApi.BaseK8sResourceConfiguration{
-						Resources: &corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"cpu":    resource.MustParse("100m"),
-								"memory": resource.MustParse("128Mi"),
-							},
-							Limits: corev1.ResourceList{
-								"cpu":    resource.MustParse("2000m"),
-								"memory": resource.MustParse("1024Mi"),
-							},
-						},
+						Resources:      r.KafkaCluster.Spec.IstioIngressConfig.GetResources(),
+						NodeSelector:   r.KafkaCluster.Spec.IstioIngressConfig.NodeSelector,
+						Tolerations:    r.KafkaCluster.Spec.IstioIngressConfig.Tolerations,
+						PodAnnotations: r.KafkaCluster.Spec.IstioIngressConfig.Annotations,
 					},
 				},
 				ServiceType: corev1.ServiceTypeLoadBalancer,
