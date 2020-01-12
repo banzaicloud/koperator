@@ -82,3 +82,11 @@ Kafka operates with three type of configs:
 Read only config requires broker restart to update all the others may be updated dynamically.
 Operator CRD distinguishes these fields, and proceed with the right action. It can be a rolling upgrade, or
 a dynamic reconfiguration.
+
+
+#### Seamless Istio mesh support
+
+- Operator allows to use ClusterIP services instead of Headless, which still works better in case of Service meshes.
+- To avoid too early kafka initialization, which might lead to unready sidecar container. The operator uses a small script to
+mitigate this behaviour. All Kafka image can be used the only one requirement is an available **curl** command.
+- To access a Kafka cluster which runs inside the mesh. Operator supports creating Istio ingress gateways.
