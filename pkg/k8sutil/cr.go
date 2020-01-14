@@ -17,15 +17,17 @@ package k8sutil
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 )
 
 // UpdateCrWithRackAwarenessConfig updates the CR with rack awareness config
@@ -42,6 +44,8 @@ func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, 
 	for _, value := range rackConfigMap {
 		rackConfigValues = append(rackConfigValues, value)
 	}
+	sort.Strings(rackConfigValues)
+
 	brokerConfigs := []v1beta1.Broker{}
 
 	for _, broker := range cr.Spec.Brokers {
