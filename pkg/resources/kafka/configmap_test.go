@@ -27,6 +27,8 @@ func TestGenerateBrokerConfig(t *testing.T) {
 	tests := []struct {
 		testName                string
 		readOnlyConfig          string
+		zkAddresses             []string
+		zkPath                  string
 		clusterWideConfig       string
 		perBrokerReadOnlyConfig string
 		perBrokerConfig         string
@@ -36,6 +38,8 @@ func TestGenerateBrokerConfig(t *testing.T) {
 		{
 			testName:                "basicConfig",
 			readOnlyConfig:          ``,
+			zkAddresses:             []string{"example.zk:2181"},
+			zkPath:                  ``,
 			clusterWideConfig:       ``,
 			perBrokerConfig:         ``,
 			perBrokerReadOnlyConfig: ``,
@@ -47,11 +51,67 @@ listener.security.protocol.map=INTERNAL:PLAINTEXT
 listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 super.users=
-zookeeper.connect=example.zk:2181`,
+zookeeper.connect=example.zk:2181/`,
+		},
+		{
+			testName:                "basicConfigWithZKPath",
+			readOnlyConfig:          ``,
+			zkPath:                  `/kafka`,
+			zkAddresses:             []string{"example.zk:2181"},
+			clusterWideConfig:       ``,
+			perBrokerConfig:         ``,
+			perBrokerReadOnlyConfig: ``,
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT
+listeners=INTERNAL://:9092
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+super.users=
+zookeeper.connect=example.zk:2181/kafka`,
+		},
+		{
+			testName:                "basicConfigWithSimpleZkPath",
+			readOnlyConfig:          ``,
+			zkPath:                  `/`,
+			zkAddresses:             []string{"example.zk:2181"},
+			clusterWideConfig:       ``,
+			perBrokerConfig:         ``,
+			perBrokerReadOnlyConfig: ``,
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT
+listeners=INTERNAL://:9092
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+super.users=
+zookeeper.connect=example.zk:2181/`,
+		},
+		{
+			testName:                "basicConfigWithMultipleZKAddressAndPath",
+			readOnlyConfig:          ``,
+			zkPath:                  `/kafka`,
+			zkAddresses:             []string{"example.zk:2181", "example.zk-1:2181"},
+			clusterWideConfig:       ``,
+			perBrokerConfig:         ``,
+			perBrokerReadOnlyConfig: ``,
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT
+listeners=INTERNAL://:9092
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+super.users=
+zookeeper.connect=example.zk:2181/kafka,example.zk-1:2181/kafka`,
 		},
 		{
 			testName:                "basicConfigWithCustomStorage",
 			readOnlyConfig:          ``,
+			zkAddresses:             []string{"example.zk:2181"},
+			zkPath:                  ``,
 			clusterWideConfig:       ``,
 			perBrokerConfig:         ``,
 			perBrokerReadOnlyConfig: ``,
@@ -69,10 +129,12 @@ listeners=INTERNAL://:9092
 log.dirs=/kafka-logs/kafka
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 super.users=
-zookeeper.connect=example.zk:2181`,
+zookeeper.connect=example.zk:2181/`,
 		},
 		{
-			testName: "readOnlyRedefinedInOneBroker",
+			testName:    "readOnlyRedefinedInOneBroker",
+			zkAddresses: []string{"example.zk:2181"},
+			zkPath:      ``,
 			readOnlyConfig: `
 auto.create.topics.enable=false
 control.plane.listener.name=thisisatest
@@ -95,7 +157,7 @@ listener.security.protocol.map=INTERNAL:PLAINTEXT
 listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 super.users=
-zookeeper.connect=example.zk:2181`,
+zookeeper.connect=example.zk:2181/`,
 		},
 	}
 
@@ -114,7 +176,8 @@ zookeeper.connect=example.zk:2181`,
 							Namespace: "kafka",
 						},
 						Spec: v1beta1.KafkaClusterSpec{
-							ZKAddresses: []string{"example.zk:2181"},
+							ZKAddresses: test.zkAddresses,
+							ZKPath:      test.zkPath,
 							ListenersConfig: v1beta1.ListenersConfig{
 								InternalListeners: []v1beta1.InternalListenerConfig{
 									{
