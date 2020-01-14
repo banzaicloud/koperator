@@ -15,6 +15,8 @@
 package v1beta1
 
 import (
+	"strings"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +32,7 @@ type KafkaClusterSpec struct {
 	HeadlessServiceEnabled bool                    `json:"headlessServiceEnabled"`
 	ListenersConfig        ListenersConfig         `json:"listenersConfig"`
 	ZKAddresses            []string                `json:"zkAddresses"`
+	ZKPath                 string                  `json:"zkPath,omitempty"`
 	RackAwareness          *RackAwareness          `json:"rackAwareness,omitempty"`
 	ClusterImage           string                  `json:"clusterImage,omitempty"`
 	ReadOnlyConfig         string                  `json:"readOnlyConfig,omitempty"`
@@ -268,11 +271,24 @@ func (iIConfig *IstioIngressConfig) GetReplicas() int32 {
 	return iIConfig.Replicas
 }
 
+// GetIngressController returns the default Envoy ingress controller if not specified otherwise
 func (kSpec *KafkaClusterSpec) GetIngressController() string {
 	if kSpec.IngressController == "" {
 		return envoyutils.IngressControllerName
 	}
 	return kSpec.IngressController
+}
+
+// GetZkPath returns the default "/" ZkPath if not specified otherwise
+func (kSpec *KafkaClusterSpec) GetZkPath() string {
+	const prefix = "/"
+	if kSpec.ZKPath == "" {
+		return prefix
+	} else if !strings.HasPrefix(kSpec.ZKPath, prefix) {
+		return prefix + kSpec.ZKPath
+	} else {
+		return kSpec.ZKPath
+	}
 }
 
 //GetInitContainerImage returns the Init container image to use for CruiseControl

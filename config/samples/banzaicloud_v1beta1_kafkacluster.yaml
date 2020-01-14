@@ -8,9 +8,14 @@ spec:
   # Specify if the cluster should use headlessService for Kafka or individual services
   # using service/broker may come in handy in case of service mesh
   headlessServiceEnabled: true
+  # Specify the usable ingress controller, only envoy and istioingress supported can be left blank
+  ingressController: "envoy"
   # Specify the zookeeper addresses where the Kafka should store it's metadata
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
+  # Specify the zookeeper path where the Kafka related metadatas should be placed
+  # By default it is bound to "/" and can be left blank
+  zkPath: "/kafka"
   # rackAwareness add support for Kafka rack aware feature
   rackAwareness:
     # operator will use these labels from the nodes to create the rack for Kafka
