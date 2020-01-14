@@ -79,7 +79,7 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 		"Id":                                 id,
 		"ListenerConfig":                     generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, log),
 		"SSLEnabledForInternalCommunication": r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
-		"ZookeeperConnectString":             strings.Join(r.KafkaCluster.Spec.ZKAddresses, ","),
+		"ZookeeperConnectString":             prepareZookeeperAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath()),
 		"CruiseControlBootstrapServers":      getInternalListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, id, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
 		"StorageConfig":                      generateStorageConfig(bConfig.StorageConfigs),
 		"AdvertisedListenersConfig":          generateAdvertisedListenerConfig(id, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIPs, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
@@ -94,6 +94,15 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 		log.Error(err, "error occurred during parsing the config template")
 	}
 	return out.String()
+}
+
+// The required path for Kafka looks 'example-1:2181/kafka,example-2:2181/kafka'
+func prepareZookeeperAddress(zkAddresses []string, zkPath string) string {
+	preparedAddress := make([]string, len(zkAddresses))
+	for _, address := range zkAddresses {
+		preparedAddress = append(preparedAddress, address+zkPath)
+	}
+	return strings.Join(preparedAddress, ",")
 }
 
 func generateSuperUsers(users []string) (suStrings []string) {

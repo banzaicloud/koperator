@@ -1363,6 +1363,8 @@ spec:
               items:
                 type: string
               type: array
+            zkPath:
+              type: string
           required:
           - brokers
           - cruiseControlConfig
