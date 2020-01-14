@@ -98,7 +98,7 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 
 // The required path for Kafka looks 'example-1:2181/kafka,example-2:2181/kafka'
 func prepareZookeeperAddress(zkAddresses []string, zkPath string) string {
-	preparedAddress := make([]string, len(zkAddresses))
+	preparedAddress := make([]string, 0)
 	for _, address := range zkAddresses {
 		preparedAddress = append(preparedAddress, address+zkPath)
 	}
