@@ -26,6 +26,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	zookeeperutils "github.com/banzaicloud/kafka-operator/pkg/util/zookeeper"
 	"github.com/go-logr/logr"
 	"github.com/imdario/mergo"
 	corev1 "k8s.io/api/core/v1"
@@ -79,7 +80,7 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 		"Id":                                 id,
 		"ListenerConfig":                     generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, log),
 		"SSLEnabledForInternalCommunication": r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
-		"ZookeeperConnectString":             prepareZookeeperAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath()),
+		"ZookeeperConnectString":             zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath()),
 		"CruiseControlBootstrapServers":      getInternalListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, id, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
 		"StorageConfig":                      generateStorageConfig(bConfig.StorageConfigs),
 		"AdvertisedListenersConfig":          generateAdvertisedListenerConfig(id, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIPs, r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
@@ -94,15 +95,6 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 		log.Error(err, "error occurred during parsing the config template")
 	}
 	return out.String()
-}
-
-// The required path for Kafka looks 'example-1:2181/kafka,example-2:2181/kafka'
-func prepareZookeeperAddress(zkAddresses []string, zkPath string) string {
-	preparedAddress := make([]string, 0)
-	for _, address := range zkAddresses {
-		preparedAddress = append(preparedAddress, address+zkPath)
-	}
-	return strings.Join(preparedAddress, ",")
 }
 
 func generateSuperUsers(users []string) (suStrings []string) {

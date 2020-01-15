@@ -1160,6 +1160,8 @@ spec:
                 - istioingress
               type: string
             istioIngressConfig:
+              description: IstioIngressConfig defines the config for the Istio Ingress
+                Controller
               properties:
                 annotations:
                   additionalProperties:
@@ -1364,10 +1366,16 @@ spec:
               - userStore
               type: object
             zkAddresses:
+              description: ZKAddresses specifies the ZooKeeper connection string in
+                the form hostname:port where host and port are the host and port of
+                a ZooKeeper server.
               items:
                 type: string
               type: array
             zkPath:
+              description: ZKPath specifies the ZooKeeper chroot path as part of its
+                ZooKeeper connection string which puts its data under some path in
+                the global ZooKeeper namespace.
               type: string
           required:
             - brokers
