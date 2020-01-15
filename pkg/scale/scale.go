@@ -22,9 +22,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/banzaicloud/kafka-operator/pkg/util/backoff"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
@@ -36,6 +34,7 @@ const (
 	getTaskListAction        = "user_tasks"
 	kafkaClusterStateAction  = "kafka_cluster_state"
 	rebalanceAction          = "rebalance"
+	killProposalAction       = "stop_proposal_execution"
 	serviceNameTemplate      = "%s-cruisecontrol-svc"
 )
 
@@ -215,31 +214,19 @@ func GetBrokerIDWithLeastPartition(namespace, ccEndpoint, clusterName string) (s
 }
 
 // UpScaleCluster upscales Kafka cluster
-func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) error {
+func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) (string, error) {
 
 	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	var backoffConfig = backoff.ConstantBackoffConfig{
-		Delay:      10 * time.Second,
-		MaxRetries: 5,
-	}
-	var backoffPolicy = backoff.NewConstantBackoffPolicy(&backoffConfig)
-
-	err = backoff.Retry(func() error {
-		ready, err := isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName)
-		if err != nil {
-			return err
-		}
-		if !ready {
-			return errors.New("broker is not ready yet")
-		}
-		return nil
-	}, backoffPolicy)
+	ready, err := isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName)
 	if err != nil {
-		return err
+		return "", err
+	}
+	if !ready {
+		return "", errors.New("broker is not ready yet")
 	}
 
 	options := map[string]string{
@@ -248,42 +235,29 @@ func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) error {
 		"brokerid": brokerId,
 	}
 
-	var uResp *http.Response
-
-	err = backoff.Retry(func() error {
-		uResp, err = postCruiseControl(addBrokerAction, namespace, options, ccEndpoint, clusterName)
-		if err != nil && err != errCruiseControlNotReturned200 {
-			log.Error(err, "can't upscale cluster gracefully since post to cruise-control failed")
-			return err
-		}
-		if err == errCruiseControlNotReturned200 {
-			log.Info("trying to communicate with cc")
-			return err
-		}
-		return nil
-	}, backoffPolicy)
-
-	if err != nil {
-		return err
+	uResp, err := postCruiseControl(addBrokerAction, namespace, options, ccEndpoint, clusterName)
+	if err != nil && err != errCruiseControlNotReturned200 {
+		log.Error(err, "can't upscale cluster gracefully since post to cruise-control failed")
+		return "", err
+	}
+	if err == errCruiseControlNotReturned200 {
+		log.Info("trying to communicate with cc")
+		return "", err
 	}
 
 	log.Info("Initiated upscale in cruise control")
 
 	uTaskId := uResp.Header.Get("User-Task-Id")
 
-	err = checkIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName)
-	if err != nil {
-		return err
-	}
-	return nil
+	return uTaskId, nil
 }
 
 // DownsizeCluster downscales Kafka cluster
-func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) error {
+func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) (string, error) {
 
 	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	options := map[string]string{
@@ -292,49 +266,30 @@ func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) error 
 		"json":     "true",
 	}
 
-	var backoffConfig = backoff.ConstantBackoffConfig{
-		Delay:      10 * time.Second,
-		MaxRetries: 5,
-	}
-	var backoffPolicy = backoff.NewConstantBackoffPolicy(&backoffConfig)
-
 	var dResp *http.Response
 
-	err = backoff.Retry(func() error {
-
-		dResp, err = postCruiseControl(removeBrokerAction, namespace, options, ccEndpoint, clusterName)
-		if err != nil && err != errCruiseControlNotReturned200 {
-			log.Error(err, "can't downsize cluster gracefully since post to cruise-control failed")
-			return err
-		}
-		if err == errCruiseControlNotReturned200 {
-			log.Info("trying to communicate with cc")
-			return err
-		}
-		return nil
-	}, backoffPolicy)
-
-	if err != nil {
-		return err
+	dResp, err = postCruiseControl(removeBrokerAction, namespace, options, ccEndpoint, clusterName)
+	if err != nil && err != errCruiseControlNotReturned200 {
+		log.Error(err, "downsize cluster gracefully failed since CC returned non 200")
+		return "", err
 	}
-	log.Info("Initiated downsize in cruise control")
+	if err == errCruiseControlNotReturned200 {
+		log.Error(err, "could not communicate with cc")
+		return "", err
+	}
 
+	log.Info("Initiated downsize in cruise control")
 	uTaskId := dResp.Header.Get("User-Task-Id")
 
-	err = checkIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return uTaskId, nil
 }
 
 // RebalanceCluster rebalances Kafka cluster using CC
-func RebalanceCluster(namespace, ccEndpoint, clusterName string) error {
+func RebalanceCluster(namespace, ccEndpoint, clusterName string) (string, error) {
 
 	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	options := map[string]string{
@@ -345,26 +300,21 @@ func RebalanceCluster(namespace, ccEndpoint, clusterName string) error {
 	dResp, err := postCruiseControl(rebalanceAction, namespace, options, ccEndpoint, clusterName)
 	if err != nil {
 		log.Error(err, "can't rebalance cluster gracefully since post to cruise-control failed")
-		return err
+		return "", err
 	}
 	log.Info("Initiated rebalance in cruise control")
 
 	uTaskId := dResp.Header.Get("User-Task-Id")
 
-	err = checkIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return uTaskId, nil
 }
 
 // RunPreferedLeaderElectionInCluster runs leader election in  Kafka cluster using CC
-func RunPreferedLeaderElectionInCluster(namespace, ccEndpoint, clusterName string) error {
+func RunPreferedLeaderElectionInCluster(namespace, ccEndpoint, clusterName string) (string, error) {
 
 	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	options := map[string]string{
@@ -376,58 +326,70 @@ func RunPreferedLeaderElectionInCluster(namespace, ccEndpoint, clusterName strin
 	dResp, err := postCruiseControl(rebalanceAction, namespace, options, ccEndpoint, clusterName)
 	if err != nil {
 		log.Error(err, "can't rebalance cluster gracefully since post to cruise-control failed")
-		return err
+		return "", err
 	}
 	log.Info("Initiated rebalance in cruise control")
 
 	uTaskId := dResp.Header.Get("User-Task-Id")
 
-	err = checkIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName)
+	return uTaskId, nil
+}
+
+// KillCCTask kills the specified CC task
+func KillCCTask(namespace, ccEndpoint, clusterName string) error {
+	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
 		return err
 	}
+	options := map[string]string{
+		"json": "true",
+	}
+
+	_, err = postCruiseControl(killProposalAction, namespace, options, ccEndpoint, clusterName)
+	if err != nil {
+		log.Error(err, "can't kill running tasks since post to cruise-control failed")
+		return err
+	}
+	log.Info("Task killed")
 
 	return nil
 }
 
-func checkIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName string) error {
-	ccRunning := true
+// CheckIfCCTaskFinished checks whether the given CC Task ID finished or not
+func CheckIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName string) (bool, error) {
 
-	for ccRunning {
-
-		gResp, err := getCruiseControl(getTaskListAction, namespace, map[string]string{
-			"json":          "true",
-			"user_task_ids": uTaskId,
-		}, ccEndpoint, clusterName)
-		if err != nil {
-			log.Error(err, "can't get task list from cruise-control")
-			return err
-		}
-
-		var taskLists map[string]interface{}
-
-		body, err := ioutil.ReadAll(gResp.Body)
-		if err != nil {
-			return err
-		}
-
-		err = gResp.Body.Close()
-		if err != nil {
-			return err
-		}
-
-		err = json.Unmarshal(body, &taskLists)
-		if err != nil {
-			return err
-		}
-		// TODO use struct instead of casting things
-		for _, task := range taskLists["userTasks"].([]interface{}) {
-			if task.(map[string]interface{})["Status"].(string) != "Completed" {
-				log.Info("Cruise control task  still running", "taskID", uTaskId)
-				time.Sleep(20 * time.Second)
-			}
-		}
-		ccRunning = false
+	gResp, err := getCruiseControl(getTaskListAction, namespace, map[string]string{
+		"json":          "true",
+		"user_task_ids": uTaskId,
+	}, ccEndpoint, clusterName)
+	if err != nil {
+		log.Error(err, "can't get task list from cruise-control")
+		return false, err
 	}
-	return nil
+
+	var taskLists map[string]interface{}
+
+	body, err := ioutil.ReadAll(gResp.Body)
+	if err != nil {
+		return false, err
+	}
+
+	err = gResp.Body.Close()
+	if err != nil {
+		return false, err
+	}
+
+	err = json.Unmarshal(body, &taskLists)
+	if err != nil {
+		return false, err
+	}
+	// TODO use struct instead of casting things
+	for _, task := range taskLists["userTasks"].([]interface{}) {
+		if task.(map[string]interface{})["Status"].(string) != "Completed" {
+			log.Info("Cruise control task  still running", "taskID", uTaskId)
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

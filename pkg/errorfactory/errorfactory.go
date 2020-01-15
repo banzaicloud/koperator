@@ -58,6 +58,12 @@ type FatalReconcileError struct{ error }
 // ReconcileRollingUpgrade states that rolling upgrade is reconciling
 type ReconcileRollingUpgrade struct{ error }
 
+// CruiseControlNotReady states that CC is not ready to receive connection
+type CruiseControlNotReady struct{ error }
+
+// CruiseControlTaskRunning states that CC task is still running
+type CruiseControlTaskRunning struct{ error }
+
 // New creates a new error factory error
 func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 	wrapped := errors.WrapIfWithDetails(err, msg, wrapArgs...)
@@ -90,6 +96,10 @@ func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 		return FatalReconcileError{wrapped}
 	case ReconcileRollingUpgrade:
 		return ReconcileRollingUpgrade{wrapped}
+	case CruiseControlNotReady:
+		return CruiseControlNotReady{wrapped}
+	case CruiseControlTaskRunning:
+		return CruiseControlTaskRunning{wrapped}
 	}
 	return wrapped
 }

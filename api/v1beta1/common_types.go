@@ -43,6 +43,10 @@ const (
 type GracefulActionState struct {
 	// ErrorMessage holds the information what happened with CC
 	ErrorMessage string `json:"errorMessage"`
+	// CruiseControlTaskId holds info about the task id ran by CC
+	CruiseControlTaskId string `json:"cruiseControlTaskId,omitempty"`
+	// TaskRetried hold info about how many times the Operator checked if the task is still running
+	TaskRetried int `json:"taskRetried,omitempty"`
 	// CruiseControlState holds the information about CC state
 	CruiseControlState CruiseControlState `json:"cruiseControlState"`
 }
@@ -64,6 +68,8 @@ const (
 	WaitingForRackAwareness RackAwarenessState = "WaitingForRackAwareness"
 	// GracefulUpdateSucceeded states the broker is updated gracefully
 	GracefulUpdateSucceeded CruiseControlState = "GracefulUpdateSucceeded"
+	// GracefulUpdateRunning states the broker update task is still running in CC
+	GracefulUpdateRunning CruiseControlState = "GracefulUpdateRunning"
 	// GracefulUpdateFailed states the broker could not be updated gracefully
 	GracefulUpdateFailed CruiseControlState = "GracefulUpdateFailed"
 	// GracefulUpdateRequired states the broker requires an
