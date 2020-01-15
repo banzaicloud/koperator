@@ -24,6 +24,14 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
+	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -38,13 +46,6 @@ import (
 	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	istioingressutils "github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
-	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -176,9 +177,58 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			deletedBrokers = append(deletedBrokers, pod)
 		}
 		for _, broker := range deletedBrokers {
-			err = scale.DownsizeCluster(broker.Labels["brokerId"], broker.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
-			if err != nil {
-				log.Error(err, "graceful downscale failed.")
+			if broker.ObjectMeta.DeletionTimestamp != nil {
+				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
+				continue
+			}
+			if r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.CruiseControlState != v1beta1.GracefulUpdateRunning {
+				uTaskId, err := scale.DownsizeCluster(broker.Labels["brokerId"], r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+				if err != nil {
+					log.Info(fmt.Sprintf("cruise control communication error during downscaling broker id: %s", broker.Labels["brokerId"]))
+					return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker id: %s", broker.Labels["brokerId"]))
+				}
+				err = k8sutil.UpdateBrokerStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster,
+					v1beta1.GracefulActionState{CruiseControlTaskId: uTaskId, CruiseControlState: v1beta1.GracefulUpdateRunning,
+						TaskRetried: 0}, log)
+				if err != nil {
+					return errors.WrapIfWithDetails(err, "could not update status for broker", "id", broker.Labels["brokerId"])
+				}
+			}
+			if r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRunning {
+				if r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.TaskRetried < r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetRetryCount() {
+					finished, err := scale.CheckIfCCTaskFinished(r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.CruiseControlTaskId,
+						r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+					if err != nil {
+						log.Info(fmt.Sprintf("Cruise control communication error checking running task: %s", r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.CruiseControlTaskId))
+						return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
+					}
+					if !finished {
+						err = k8sutil.UpdateBrokerStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster,
+							v1beta1.GracefulActionState{TaskRetried: r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.TaskRetried + 1}, log)
+						if err != nil {
+							return errors.WrapIfWithDetails(err, "could not update status for broker", "id", broker.Labels["brokerId"])
+						}
+						log.Info(fmt.Sprintf("Cruise control task: %s is still running", r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.CruiseControlTaskId))
+						return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("cc task is still running"), fmt.Sprintf("cc task id: %s", r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.CruiseControlTaskId))
+					}
+					err = k8sutil.UpdateBrokerStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster,
+						v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateSucceeded}, log)
+					if err != nil {
+						return errors.WrapIfWithDetails(err, "could not update status for broker", "id", broker.Labels["brokerId"])
+					}
+
+				} else {
+					log.Info(fmt.Sprintf("Killing Cruise control task: %s", r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.CruiseControlTaskId))
+					err = scale.KillCCTask(r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+					if err != nil {
+						return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
+					}
+					err = k8sutil.UpdateBrokerStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster,
+						v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed, ErrorMessage: "Timed out waiting for the task to complete"}, log)
+					if err != nil {
+						return errors.WrapIfWithDetails(err, "could not update status for broker", "id", broker.Labels["brokerId"])
+					}
+				}
 			}
 			err = r.Client.Delete(context.TODO(), &broker)
 			if err != nil {
@@ -497,19 +547,53 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				}
 			}
 			if currentPod.Status.Phase == corev1.PodRunning && brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRequired {
-				scaleErr := scale.UpScaleCluster(desiredPod.Labels["brokerId"], desiredPod.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
-				if scaleErr != nil {
-					log.Error(err, "graceful upscale failed, or cluster just started")
-					statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
-						v1beta1.GracefulActionState{ErrorMessage: scaleErr.Error(), CruiseControlState: v1beta1.GracefulUpdateFailed}, log)
-					if statusErr != nil {
-						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
+				if brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulUpdateRunning {
+					uTaskId, scaleErr := scale.UpScaleCluster(desiredPod.Labels["brokerId"], desiredPod.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+					if scaleErr != nil {
+						log.Info(fmt.Sprintf("cruise control communication error during downscaling broker id: %s", brokerId))
+						return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker id: %s", brokerId))
 					}
-				} else {
 					statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
-						v1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: v1beta1.GracefulUpdateSucceeded}, log)
+						v1beta1.GracefulActionState{CruiseControlTaskId: uTaskId, CruiseControlState: v1beta1.GracefulUpdateRunning,
+							TaskRetried: 0}, log)
 					if statusErr != nil {
-						return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
+						return errors.WrapIfWithDetails(err, "could not update status for broker", "id", brokerId)
+					}
+				}
+			}
+			if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRunning {
+				if brokerState.GracefulActionState.TaskRetried < r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetRetryCount() {
+					finished, err := scale.CheckIfCCTaskFinished(brokerState.GracefulActionState.CruiseControlTaskId,
+						r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+					if err != nil {
+						log.Info(fmt.Sprintf("Cruise control communication error checking running task: %s", brokerState.GracefulActionState.CruiseControlTaskId))
+						return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
+					}
+					if !finished {
+						err = k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
+							v1beta1.GracefulActionState{TaskRetried: brokerState.GracefulActionState.TaskRetried + 1}, log)
+						if err != nil {
+							return errors.WrapIfWithDetails(err, "could not update status for broker", "id", brokerId)
+						}
+						log.Info(fmt.Sprintf("Cruise control task: %s is still running", brokerState.GracefulActionState.CruiseControlTaskId))
+						return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("cc task is still running"), fmt.Sprintf("cc task id: %s", brokerState.GracefulActionState.CruiseControlTaskId))
+					}
+					err = k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
+						v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateSucceeded}, log)
+					if err != nil {
+						return errors.WrapIfWithDetails(err, "could not update status for broker", "id", brokerId)
+					}
+
+				} else {
+					log.Info(fmt.Sprintf("Killing Cruise control task: %s", brokerState.GracefulActionState.CruiseControlTaskId))
+					err = scale.KillCCTask(r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+					if err != nil {
+						return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
+					}
+					err = k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
+						v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed, ErrorMessage: "Timed out waiting for the task to complete"}, log)
+					if err != nil {
+						return errors.WrapIfWithDetails(err, "could not update status for broker", "id", brokerId)
 					}
 				}
 			}

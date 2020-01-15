@@ -108,6 +108,7 @@ type RackAwareness struct {
 
 // CruiseControlConfig defines the config for Cruise Control
 type CruiseControlConfig struct {
+	CruiseControlTaskSpec CruiseControlTaskSpec         `json:"cruiseControlTaskSpec,omitempty"`
 	CruiseControlEndpoint string                        `json:"cruiseControlEndpoint,omitempty"`
 	Resources             *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
 	ServiceAccountName    string                        `json:"serviceAccountName,omitempty"`
@@ -120,6 +121,11 @@ type CruiseControlConfig struct {
 	Image                 string                        `json:"image,omitempty"`
 	InitContainerImage    string                        `json:"initContainerImage,omitempty"`
 	TopicConfig           *TopicConfig                  `json:"topicConfig,omitempty"`
+}
+
+type CruiseControlTaskSpec struct {
+	RetryCount        int `json:"retryCount"`
+	RetrySleepSeconds int `json:"RetrySleepSeconds"`
 }
 
 // TopicConfig holds info for topic configuration regarding partitions and replicationFactor
@@ -294,6 +300,20 @@ func (kSpec *KafkaClusterSpec) GetZkPath() string {
 	} else {
 		return kSpec.ZKPath
 	}
+}
+
+func (cTaskSpec *CruiseControlTaskSpec) GetRetryCount() int {
+	if cTaskSpec.RetryCount == 0 {
+		return 5
+	}
+	return cTaskSpec.RetryCount
+}
+
+func (cTaskSpec *CruiseControlTaskSpec) GetSleepSeconds() int {
+	if cTaskSpec.RetrySleepSeconds == 0 {
+		return 20
+	}
+	return cTaskSpec.RetrySleepSeconds
 }
 
 //GetInitContainerImage returns the Init container image to use for CruiseControl
@@ -478,7 +498,7 @@ func (cConfig *CruiseControlConfig) GetCCImage() string {
 	if cConfig.Image != "" {
 		return cConfig.Image
 	}
-	return "solsson/kafka-cruise-control@sha256:f3f3775f3b5e2a5ae2da6fdae60ed118793ac32c80f13fba31be8f025a57f6ac"
+	return "solsson/kafka-cruise-control@sha256:658c21295a940b4c490aadfb95973b34f27fd9c944c3f11a2a9b89e5948a78bd"
 }
 
 // GetImage returns the used image for Prometheus JMX exporter

@@ -36,6 +36,8 @@ var errorTypes = []error{
 	TooManyResources{},
 	InternalError{},
 	FatalReconcileError{},
+	CruiseControlNotReady{},
+	CruiseControlTaskRunning{},
 }
 
 func TestNew(t *testing.T) {

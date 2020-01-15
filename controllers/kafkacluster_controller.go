@@ -122,27 +122,31 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 			case errorfactory.BrokersUnreachable:
 				log.Info("Brokers unreachable, may still be starting up")
 				return ctrl.Result{
-					Requeue:      true,
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
 			case errorfactory.BrokersNotReady:
 				log.Info("Brokers not ready, may still be starting up")
 				return ctrl.Result{
-					Requeue:      true,
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
 			case errorfactory.ResourceNotReady:
 				log.Info("A new resource was not found or may not be ready")
 				log.Info(err.Error())
 				return ctrl.Result{
-					Requeue:      true,
 					RequeueAfter: time.Duration(7) * time.Second,
 				}, nil
 			case errorfactory.ReconcileRollingUpgrade:
 				log.Info("Rolling Upgrade in Progress")
 				return ctrl.Result{
-					Requeue:      true,
 					RequeueAfter: time.Duration(15) * time.Second,
+				}, nil
+			case errorfactory.CruiseControlNotReady:
+				return ctrl.Result{
+					RequeueAfter: time.Duration(15) * time.Second,
+				}, nil
+			case errorfactory.CruiseControlTaskRunning:
+				return ctrl.Result{
+					RequeueAfter: time.Duration(instance.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetSleepSeconds()) * time.Second,
 				}, nil
 			default:
 				return requeueWithError(log, err.Error(), err)

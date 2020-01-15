@@ -960,6 +960,16 @@ spec:
                   type: string
                 cruiseControlEndpoint:
                   type: string
+                cruiseControlTaskSpec:
+                  properties:
+                    RetrySleepSeconds:
+                      type: integer
+                    retryCount:
+                      type: integer
+                  required:
+                  - RetrySleepSeconds
+                  - retryCount
+                  type: object
                 image:
                   type: string
                 imagePullSecrets:
@@ -1401,10 +1411,18 @@ spec:
                         description: CruiseControlState holds the information about
                           CC state
                         type: string
+                      cruiseControlTaskId:
+                        description: CruiseControlTaskId holds info about the task
+                          id ran by CC
+                        type: string
                       errorMessage:
                         description: ErrorMessage holds the information what happened
                           with CC
                         type: string
+                      taskRetried:
+                        description: TaskRetried hold info about how many times the
+                          Operator checked if the task is still running
+                        type: integer
                     required:
                     - cruiseControlState
                     - errorMessage
