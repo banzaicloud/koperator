@@ -29,17 +29,21 @@ import (
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
-	HeadlessServiceEnabled bool                    `json:"headlessServiceEnabled"`
-	ListenersConfig        ListenersConfig         `json:"listenersConfig"`
-	ZKAddresses            []string                `json:"zkAddresses"`
-	ZKPath                 string                  `json:"zkPath,omitempty"`
-	RackAwareness          *RackAwareness          `json:"rackAwareness,omitempty"`
-	ClusterImage           string                  `json:"clusterImage,omitempty"`
-	ReadOnlyConfig         string                  `json:"readOnlyConfig,omitempty"`
-	ClusterWideConfig      string                  `json:"clusterWideConfig,omitempty"`
-	BrokerConfigGroups     map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
-	Brokers                []Broker                `json:"brokers"`
-	RollingUpgradeConfig   RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
+	HeadlessServiceEnabled bool            `json:"headlessServiceEnabled"`
+	ListenersConfig        ListenersConfig `json:"listenersConfig"`
+	// ZKAddresses specifies the ZooKeeper connection string
+	// in the form hostname:port where host and port are the host and port of a ZooKeeper server.
+	ZKAddresses []string `json:"zkAddresses"`
+	// ZKPath specifies the ZooKeeper chroot path as part
+	// of its ZooKeeper connection string which puts its data under some path in the global ZooKeeper namespace.
+	ZKPath               string                  `json:"zkPath,omitempty"`
+	RackAwareness        *RackAwareness          `json:"rackAwareness,omitempty"`
+	ClusterImage         string                  `json:"clusterImage,omitempty"`
+	ReadOnlyConfig       string                  `json:"readOnlyConfig,omitempty"`
+	ClusterWideConfig    string                  `json:"clusterWideConfig,omitempty"`
+	BrokerConfigGroups   map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
+	Brokers              []Broker                `json:"brokers"`
+	RollingUpgradeConfig RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
 	// +kubebuilder:default=envoy
 	// +kubebuilder:validation:Enum=envoy;istioingress
 	IngressController   string              `json:"ingressController,omitempty"`
@@ -139,6 +143,7 @@ type EnvoyConfig struct {
 	LoadBalancerSourceRanges []string                      `json:"loadBalancerSourceRanges,omitempty"`
 }
 
+// IstioIngressConfig defines the config for the Istio Ingress Controller
 type IstioIngressConfig struct {
 	Resources    *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
 	Replicas     int32                        `json:"replicas,omitempty"`

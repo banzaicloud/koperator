@@ -105,7 +105,7 @@ listener.security.protocol.map=INTERNAL:PLAINTEXT
 listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 super.users=
-zookeeper.connect=example.zk:2181/kafka,example.zk-1:2181/kafka`,
+zookeeper.connect=example.zk:2181,example.zk-1:2181/kafka`,
 		},
 		{
 			testName:                "basicConfigWithCustomStorage",
