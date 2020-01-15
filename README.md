@@ -279,7 +279,7 @@ If you have any questions about the Kafka operator, and would like to talk to us
 If you find this project useful, help us:
 
 - Support the development of this project and star this repo! :star:
-- If you use the Istio operator in a production environment, add yourself to the list of production [adopters](https://github.com/banzaicloud/kafka-operator/blob/master/ADOPTERS.md).:metal: <br> 
+- If you use the Kafka operator in a production environment, add yourself to the list of production [adopters](https://github.com/banzaicloud/kafka-operator/blob/master/ADOPTERS.md).:metal: <br> 
 - Help new users with issues they may encounter :muscle:
 - Send a pull request with your new features and bug fixes :rocket: 
 
