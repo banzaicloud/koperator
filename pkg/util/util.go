@@ -19,9 +19,10 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/imdario/mergo"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 // IntstrPointer generate IntOrString pointer from int

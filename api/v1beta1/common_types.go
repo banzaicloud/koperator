@@ -45,8 +45,8 @@ type GracefulActionState struct {
 	ErrorMessage string `json:"errorMessage"`
 	// CruiseControlTaskId holds info about the task id ran by CC
 	CruiseControlTaskId string `json:"cruiseControlTaskId,omitempty"`
-	// TaskRetried hold info about how many times the Operator checked if the task is still running
-	TaskRetried int `json:"taskRetried,omitempty"`
+	// TaskStarted hold the time when the execution started
+	TaskStarted string `json:"TaskStarted,omitempty"`
 	// CruiseControlState holds the information about CC state
 	CruiseControlState CruiseControlState `json:"cruiseControlState"`
 }

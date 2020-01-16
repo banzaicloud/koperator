@@ -214,19 +214,19 @@ func GetBrokerIDWithLeastPartition(namespace, ccEndpoint, clusterName string) (s
 }
 
 // UpScaleCluster upscales Kafka cluster
-func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) (string, error) {
+func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) (string, string, error) {
 
 	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	ready, err := isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if !ready {
-		return "", errors.New("broker is not ready yet")
+		return "", "", errors.New("broker is not ready yet")
 	}
 
 	options := map[string]string{
@@ -238,26 +238,27 @@ func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) (string
 	uResp, err := postCruiseControl(addBrokerAction, namespace, options, ccEndpoint, clusterName)
 	if err != nil && err != errCruiseControlNotReturned200 {
 		log.Error(err, "can't upscale cluster gracefully since post to cruise-control failed")
-		return "", err
+		return "", "", err
 	}
 	if err == errCruiseControlNotReturned200 {
 		log.Info("trying to communicate with cc")
-		return "", err
+		return "", "", err
 	}
 
 	log.Info("Initiated upscale in cruise control")
 
 	uTaskId := uResp.Header.Get("User-Task-Id")
+	startTimeStamp := uResp.Header.Get("Date")
 
-	return uTaskId, nil
+	return uTaskId, startTimeStamp, nil
 }
 
 // DownsizeCluster downscales Kafka cluster
-func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) (string, error) {
+func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) (string, string, error) {
 
 	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	options := map[string]string{
@@ -271,17 +272,18 @@ func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) (strin
 	dResp, err = postCruiseControl(removeBrokerAction, namespace, options, ccEndpoint, clusterName)
 	if err != nil && err != errCruiseControlNotReturned200 {
 		log.Error(err, "downsize cluster gracefully failed since CC returned non 200")
-		return "", err
+		return "", "", err
 	}
 	if err == errCruiseControlNotReturned200 {
 		log.Error(err, "could not communicate with cc")
-		return "", err
+		return "", "", err
 	}
 
 	log.Info("Initiated downsize in cruise control")
 	uTaskId := dResp.Header.Get("User-Task-Id")
+	startTimeStamp := dResp.Header.Get("Date")
 
-	return uTaskId, nil
+	return uTaskId, startTimeStamp, nil
 }
 
 // RebalanceCluster rebalances Kafka cluster using CC
