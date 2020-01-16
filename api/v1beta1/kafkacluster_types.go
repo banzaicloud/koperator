@@ -125,10 +125,8 @@ type CruiseControlConfig struct {
 
 // CruiseControlTaskSpec specifies the configuration of the CC Tasks
 type CruiseControlTaskSpec struct {
-	// RetryCount describes the amount of time the Operator checks if the CC task is still in running state
-	RetryCount int `json:"retryCount"`
-	// RetrySleepSeconds describes the amount of time the Operator waits between the retry
-	RetrySleepSeconds int `json:"RetrySleepSeconds"`
+	// RetryDurationMinutes describes the amount of time the Operator waits for the task
+	RetryDurationMinutes int `json:"RetryDurationMinutes"`
 }
 
 // TopicConfig holds info for topic configuration regarding partitions and replicationFactor
@@ -305,18 +303,11 @@ func (kSpec *KafkaClusterSpec) GetZkPath() string {
 	}
 }
 
-func (cTaskSpec *CruiseControlTaskSpec) GetRetryCount() int {
-	if cTaskSpec.RetryCount == 0 {
+func (cTaskSpec *CruiseControlTaskSpec) GetDurationMinutes() float64 {
+	if cTaskSpec.RetryDurationMinutes == 0 {
 		return 5
 	}
-	return cTaskSpec.RetryCount
-}
-
-func (cTaskSpec *CruiseControlTaskSpec) GetSleepSeconds() int {
-	if cTaskSpec.RetrySleepSeconds == 0 {
-		return 20
-	}
-	return cTaskSpec.RetrySleepSeconds
+	return float64(cTaskSpec.RetryDurationMinutes)
 }
 
 //GetInitContainerImage returns the Init container image to use for CruiseControl

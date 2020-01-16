@@ -43,6 +43,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
+	ccutils "github.com/banzaicloud/kafka-operator/pkg/util/cruisecontrol"
 	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	istioingressutils "github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
@@ -182,14 +183,14 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				continue
 			}
 			if r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.CruiseControlState != v1beta1.GracefulUpdateRunning {
-				uTaskId, err := scale.DownsizeCluster(broker.Labels["brokerId"], r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+				uTaskId, taskStartTime, err := scale.DownsizeCluster(broker.Labels["brokerId"], r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 				if err != nil {
 					log.Info(fmt.Sprintf("cruise control communication error during downscaling broker id: %s", broker.Labels["brokerId"]))
 					return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker id: %s", broker.Labels["brokerId"]))
 				}
 				err = k8sutil.UpdateBrokerStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster,
 					v1beta1.GracefulActionState{CruiseControlTaskId: uTaskId, CruiseControlState: v1beta1.GracefulUpdateRunning,
-						TaskRetried: 0}, log)
+						TaskStarted: taskStartTime}, log)
 				if err != nil {
 					return errors.WrapIfWithDetails(err, "could not update status for broker", "id", broker.Labels["brokerId"])
 				}
@@ -518,14 +519,14 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			}
 			if currentPod.Status.Phase == corev1.PodRunning && r.KafkaCluster.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRequired {
 				if r.KafkaCluster.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState != v1beta1.GracefulUpdateRunning {
-					uTaskId, scaleErr := scale.UpScaleCluster(desiredPod.Labels["brokerId"], desiredPod.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+					uTaskId, taskStartTime, scaleErr := scale.UpScaleCluster(desiredPod.Labels["brokerId"], desiredPod.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 					if scaleErr != nil {
 						log.Info(fmt.Sprintf("cruise control communication error during upscaling broker id: %s", brokerId))
 						return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker id: %s", brokerId))
 					}
 					statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
 						v1beta1.GracefulActionState{CruiseControlTaskId: uTaskId, CruiseControlState: v1beta1.GracefulUpdateRunning,
-							TaskRetried: 0}, log)
+							TaskStarted: taskStartTime}, log)
 					if statusErr != nil {
 						return errors.WrapIfWithDetails(err, "could not update status for broker", "id", brokerId)
 					}
@@ -642,7 +643,11 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 }
 
 func (r *Reconciler) checkCCTaskState(brokerId string, brokerState v1beta1.BrokerState, log logr.Logger) error {
-	if brokerState.GracefulActionState.TaskRetried < r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetRetryCount() {
+	parsedTime, err := ccutils.ParseTimeStampToUnixTime(brokerState.GracefulActionState.TaskStarted)
+	if err != nil {
+		return errors.WrapIf(err, "could not parse timestamp")
+	}
+	if time.Now().Sub(*parsedTime).Minutes() < r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
 		finished, err := scale.CheckIfCCTaskFinished(brokerState.GracefulActionState.CruiseControlTaskId,
 			r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 		if err != nil {
@@ -651,7 +656,7 @@ func (r *Reconciler) checkCCTaskState(brokerId string, brokerState v1beta1.Broke
 		}
 		if !finished {
 			err = k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
-				v1beta1.GracefulActionState{TaskRetried: brokerState.GracefulActionState.TaskRetried + 1,
+				v1beta1.GracefulActionState{TaskStarted: brokerState.GracefulActionState.TaskStarted,
 					CruiseControlTaskId: brokerState.GracefulActionState.CruiseControlTaskId,
 					CruiseControlState:  brokerState.GracefulActionState.CruiseControlState,
 				}, log)
@@ -663,7 +668,7 @@ func (r *Reconciler) checkCCTaskState(brokerId string, brokerState v1beta1.Broke
 		}
 		err = k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
 			v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateSucceeded,
-				TaskRetried:         brokerState.GracefulActionState.TaskRetried,
+				TaskStarted:         brokerState.GracefulActionState.TaskStarted,
 				CruiseControlTaskId: brokerState.GracefulActionState.CruiseControlTaskId,
 			}, log)
 		if err != nil {
@@ -679,7 +684,7 @@ func (r *Reconciler) checkCCTaskState(brokerId string, brokerState v1beta1.Broke
 		err = k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
 			v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed,
 				ErrorMessage: "Timed out waiting for the task to complete",
-				TaskRetried:  brokerState.GracefulActionState.TaskRetried,
+				TaskStarted:  brokerState.GracefulActionState.TaskStarted,
 			}, log)
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "could not update status for broker", "id", brokerId)

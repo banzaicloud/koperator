@@ -968,17 +968,12 @@ spec:
                   description: CruiseControlTaskSpec specifies the configuration of
                     the CC Tasks
                   properties:
-                    RetrySleepSeconds:
-                      description: RetrySleepSeconds describes the amount of time
-                        the Operator waits between the retry
-                      type: integer
-                    retryCount:
-                      description: RetryCount describes the amount of time the Operator
-                        checks if the CC task is still in running state
+                    RetryDurationMinutes:
+                      description: RetryDurationMinutes describes the amount of time
+                        the Operator waits for the task
                       type: integer
                   required:
-                    - RetrySleepSeconds
-                    - retryCount
+                    - RetryDurationMinutes
                   type: object
                 image:
                   type: string
@@ -1417,6 +1412,10 @@ spec:
                   gracefulActionState:
                     description: GracefulActionState holds info about cc action status
                     properties:
+                      TaskStarted:
+                        description: TaskStarted hold the time when the execution
+                          started
+                        type: string
                       cruiseControlState:
                         description: CruiseControlState holds the information about
                           CC state
@@ -1429,10 +1428,6 @@ spec:
                         description: ErrorMessage holds the information what happened
                           with CC
                         type: string
-                      taskRetried:
-                        description: TaskRetried hold info about how many times the
-                          Operator checked if the task is still running
-                        type: integer
                     required:
                       - cruiseControlState
                       - errorMessage
