@@ -44,6 +44,8 @@ spec:
         usedForInnerBrokerCommunication: false
         usedForControllerCommunication: true
   cruiseControlConfig:
+    cruiseControlTaskSpec:
+      RetryDurationMinutes: 5
     topicConfig:
       partitions: 12
       replicationFactor: 3
