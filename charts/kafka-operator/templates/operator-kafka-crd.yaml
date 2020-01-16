@@ -965,10 +965,16 @@ spec:
                 cruiseControlEndpoint:
                   type: string
                 cruiseControlTaskSpec:
+                  description: CruiseControlTaskSpec specifies the configuration of
+                    the CC Tasks
                   properties:
                     RetrySleepSeconds:
+                      description: RetrySleepSeconds describes the amount of time
+                        the Operator waits between the retry
                       type: integer
                     retryCount:
+                      description: RetryCount describes the amount of time the Operator
+                        checks if the CC task is still in running state
                       type: integer
                   required:
                     - RetrySleepSeconds

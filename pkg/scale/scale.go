@@ -390,6 +390,6 @@ func CheckIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName string) (
 			return false, nil
 		}
 	}
-
+	log.Info("Cruise control task finished", "taskID", uTaskId)
 	return true, nil
 }
