@@ -123,8 +123,11 @@ type CruiseControlConfig struct {
 	TopicConfig           *TopicConfig                  `json:"topicConfig,omitempty"`
 }
 
+// CruiseControlTaskSpec specifies the configuration of the CC Tasks
 type CruiseControlTaskSpec struct {
-	RetryCount        int `json:"retryCount"`
+	// RetryCount describes the amount of time the Operator checks if the CC task is still in running state
+	RetryCount int `json:"retryCount"`
+	// RetrySleepSeconds describes the amount of time the Operator waits between the retry
 	RetrySleepSeconds int `json:"RetrySleepSeconds"`
 }
 
