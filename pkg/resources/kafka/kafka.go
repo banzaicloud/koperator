@@ -139,7 +139,7 @@ func getLoadBalancerIP(client client.Client, namespace, ingressController, crNam
 
 // Reconcile implements the reconcile logic for Kafka
 func (r *Reconciler) Reconcile(log logr.Logger) error {
-	log = log.WithValues("component", componentName)
+	log = log.WithValues("component", componentName, "clusterName", r.KafkaCluster.Name, "clusterNamespace", r.KafkaCluster.Namespace)
 
 	log.V(1).Info("Reconciling")
 
@@ -647,7 +647,7 @@ func (r *Reconciler) checkCCTaskState(brokerId string, brokerState v1beta1.Broke
 	if err != nil {
 		return errors.WrapIf(err, "could not parse timestamp")
 	}
-	if time.Now().Sub(*parsedTime).Minutes() < r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
+	if time.Now().Sub(parsedTime).Minutes() < r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
 		finished, err := scale.CheckIfCCTaskFinished(brokerState.GracefulActionState.CruiseControlTaskId,
 			r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 		if err != nil {

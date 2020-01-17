@@ -17,11 +17,11 @@ package cruisecontrol
 import "time"
 
 // ParseTimeStampToUnixTime parses the given CC timeStamp to time format
-func ParseTimeStampToUnixTime(timestamp string) (*time.Time, error) {
+func ParseTimeStampToUnixTime(timestamp string) (time.Time, error) {
 	timeStampLayout := "Mon, 2 Jan 2006 15:04:05 GMT"
 	t, err := time.Parse(timeStampLayout, timestamp)
 	if err != nil {
-		return nil, err
+		return time.Time{}, err
 	}
-	return &t, nil
+	return t, nil
 }
