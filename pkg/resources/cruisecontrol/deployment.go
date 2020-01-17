@@ -89,6 +89,21 @@ func (r *Reconciler) deployment(log logr.Logger, clientPass string) runtime.Obje
 									Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus.jar=9020:/etc/jmx-exporter/config.yaml",
 								},
 							},
+							Lifecycle: &corev1.Lifecycle{
+								PreStop: &corev1.Handler{
+									Exec: &corev1.ExecAction{
+										Command: []string{"bash", "-c", `
+SIGNAL=${SIGNAL:-TERM}
+PIDS=$(ps ax | grep -i 'cruise-control' | grep java | grep -v grep | awk '{print $1}')
+if [ -z "$PIDS" ]; then
+  echo "No cruise-control to stop"
+  exit 1
+else
+  kill -s $SIGNAL $PIDS
+fi`},
+									},
+								},
+							},
 							Image: r.KafkaCluster.Spec.CruiseControlConfig.GetCCImage(),
 							Ports: []corev1.ContainerPort{
 								{
