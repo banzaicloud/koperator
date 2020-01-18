@@ -16,13 +16,9 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"reflect"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +28,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
@@ -127,6 +129,12 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	existing, err := broker.GetTopic(instance.Spec.Name)
 	if err != nil {
 		return requeueWithError(reqLogger, "failure checking for existing topic", err)
+	}
+
+	// It may take several seconds after topic is created successfully for all the brokers
+	// to become aware that the topic has been created
+	if instance.Status.State == v1alpha1.TopicStateCreated && existing == nil {
+		return requeueWithError(reqLogger, instance.Spec.Name, errors.New("topic is still creating"))
 	}
 
 	// we got a topic back
