@@ -1,0 +1,90 @@
+{
+    "name": "eks-eunorth-kafka-test",
+    "location": "eu-north-1",
+    "cloud": "amazon",
+    "secretName": "my-aws-secret",
+    "properties": {
+      "eks": {
+        "version": "1.14.7",
+        "nodePools": {
+          "infra": {
+            "spotPrice": "0.2",
+            "count": 5,
+            "minCount": 5,
+            "maxCount": 8,
+            "autoscaling": true,
+            "instanceType": "c5.xlarge",
+            "subnet": {
+                "cidr": "192.168.64.0/20",
+                "availabilityZone": "eu-north-1a"
+             }
+          },
+          "kafkazonea": {
+            "spotPrice": "0.3",
+            "count": 1,
+            "minCount": 1,
+            "maxCount": 1,
+            "autoscaling": false,
+            "instanceType": "c5.4xlarge",
+            "subnet": {
+                "cidr": "192.168.64.0/20",
+                "availabilityZone": "eu-north-1a"
+             }
+          },
+          "kafkazoneb": {
+            "spotPrice": "0.3",
+            "count": 1,
+            "minCount": 1,
+            "maxCount": 1,
+            "autoscaling": false,
+            "instanceType": "c5.4xlarge",
+            "subnet": {
+                "cidr": "192.168.80.0/20",
+                "availabilityZone": "eu-north-1b"
+             }
+          },
+          "kafkazonec": {
+            "spotPrice": "0.3",
+            "count": 1,
+            "minCount": 1,
+            "maxCount": 1,
+            "autoscaling": false,
+            "instanceType": "c5.4xlarge",
+            "subnet": {
+                "cidr": "192.168.96.0/20",
+                "availabilityZone": "eu-north-1c"
+             }
+          },
+          "loadgen": {
+            "spotPrice": "0.3",
+            "count": 3,
+            "minCount": 3,
+            "maxCount": 3,
+            "autoscaling": false,
+            "instanceType": "c5.2xlarge",
+            "subnet": {
+                "cidr": "192.168.96.0/20",
+                "availabilityZone": "eu-north-1c"
+             }
+          }
+        },
+        "vpc": {
+            "cidr": "192.168.0.0/16"
+        },
+        "subnets": [
+          {
+            "cidr": "192.168.64.0/20",
+            "availabilityZone": "eu-north-1a"
+          },
+          {
+            "cidr": "192.168.80.0/20",
+            "availabilityZone": "eu-north-1b"
+          },
+          {
+            "cidr": "192.168.96.0/20",
+            "availabilityZone": "eu-north-1c"
+          }
+        ]
+      }
+    }
+  }
