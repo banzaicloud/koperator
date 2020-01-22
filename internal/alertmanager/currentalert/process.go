@@ -15,10 +15,14 @@
 package currentalert
 
 import (
+	"strconv"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -93,22 +97,26 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		}
 	case "downScale":
 		if ds.Down {
-			e.Log.Info("downscaling is skipped due to downscale limit")
+			e.Log.Info("downscale is skipped due to downscale limit")
 			return true, nil
 		}
-		err := downScale(e.Alert.Labels, e.Client)
+		err := downScale(e.Log, e.Alert.Labels, e.Client)
 		if err != nil {
 			return false, err
 		}
+
+		return true, nil
 	case "upScale":
 		if ds.Up {
-			e.Log.Info("upscaling is skipped due to upscale limit")
+			e.Log.Info("upscale is skipped due to upscale limit")
 			return true, nil
 		}
-		err := upScale(e.Alert.Labels, e.Alert.Annotations, e.Client)
+		err := upScale(e.Log, e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
 			return false, err
 		}
+
+		return true, nil
 	}
 	return false, nil
 }
@@ -118,11 +126,23 @@ func addPVC(labels model.LabelSet, annotations model.LabelSet, client client.Cli
 	return nil
 }
 
-func downScale(labels model.LabelSet, client client.Client) error {
+func downScale(log logr.Logger, labels model.LabelSet, client client.Client) error {
 
 	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
+	}
+
+	if ids := kafka.GetBrokersWithPendingOrRunningCCTask(cr); len(ids) > 0 {
+		var keyVals []interface{}
+		for _, id := range ids {
+			brokerId := strconv.Itoa(int(id))
+			keyVals = append(keyVals, brokerId, cr.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState)
+		}
+
+		log.Info("downscale is skipped as there are brokers which have tasks pending or running in CC", keyVals)
+
+		return nil
 	}
 
 	brokerId, err := scale.GetBrokerIDWithLeastPartition(string(labels["namespace"]), cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)
@@ -136,11 +156,23 @@ func downScale(labels model.LabelSet, client client.Client) error {
 	return nil
 }
 
-func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
+func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
 
 	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
+	}
+
+	if ids := kafka.GetBrokersWithPendingOrRunningCCTask(cr); len(ids) > 0 {
+		var keyVals []interface{}
+		for _, id := range ids {
+			brokerId := strconv.Itoa(int(id))
+			keyVals = append(keyVals, brokerId, cr.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState)
+		}
+
+		log.Info("upscale is skipped as there are brokers which have tasks pending or running in CC", keyVals)
+
+		return nil
 	}
 
 	biggestId := int32(0)
@@ -160,6 +192,10 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 		broker.Id = biggestId + 1
 
 	} else {
+		var storageClassName *string
+		if annotations["storageClass"] != "" {
+			storageClassName = util.StringPointer(string(annotations["storageClass"]))
+		}
 
 		broker = v1beta1.Broker{
 			Id: biggestId + 1,
@@ -172,7 +208,7 @@ func upScale(labels model.LabelSet, annotations model.LabelSet, client client.Cl
 							AccessModes: []corev1.PersistentVolumeAccessMode{
 								corev1.ReadWriteOnce,
 							},
-							StorageClassName: util.StringPointer(string(annotations["storageClass"])),
+							StorageClassName: storageClassName,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"storage": resource.MustParse(string(annotations["diskSize"])),
