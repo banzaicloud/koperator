@@ -767,3 +767,17 @@ func (r *Reconciler) reconcileKafkaPVC(log logr.Logger, desiredPVC *corev1.Persi
 	}
 	return nil
 }
+
+// GetBrokersWithPendingOrRunningCCTask returns list of brokers that are either waiting for CC
+// to start executing a broker task (add broker, remove broker, etc) or CC already running a task for it.
+func GetBrokersWithPendingOrRunningCCTask(kafkaCluster *v1beta1.KafkaCluster) []int32 {
+	var brokerIDs []int32
+	for i := range kafkaCluster.Spec.Brokers {
+		if state, ok := kafkaCluster.Status.BrokersState[strconv.Itoa(int(kafkaCluster.Spec.Brokers[i].Id))]; ok {
+			if state.GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRequired || (state.GracefulActionState.CruiseControlTaskId != "" && state.GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRunning) {
+				brokerIDs = append(brokerIDs, kafkaCluster.Spec.Brokers[i].Id)
+			}
+		}
+	}
+	return brokerIDs
+}
