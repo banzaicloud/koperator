@@ -140,7 +140,7 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 			keyVals = append(keyVals, brokerId, cr.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState)
 		}
 
-		log.Info("downscale is skipped as there are brokers which have tasks pending or running in CC", keyVals)
+		log.Info("downscale is skipped as there are brokers which are pending task to be initiated in CC or already have a running CC task", keyVals...)
 
 		return nil
 	}
@@ -170,7 +170,7 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 			keyVals = append(keyVals, brokerId, cr.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState)
 		}
 
-		log.Info("upscale is skipped as there are brokers which have tasks pending or running in CC", keyVals)
+		log.Info("upscale is skipped as there are brokers which are pending task to be initiated in CC or already have a running CC task", keyVals...)
 
 		return nil
 	}
