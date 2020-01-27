@@ -33,9 +33,11 @@ const (
 	addBrokerAction          = "add_broker"
 	getTaskListAction        = "user_tasks"
 	kafkaClusterStateAction  = "kafka_cluster_state"
+	clusterLoad              = "load"
 	rebalanceAction          = "rebalance"
 	killProposalAction       = "stop_proposal_execution"
 	serviceNameTemplate      = "%s-cruisecontrol-svc"
+	brokerAlive              = "ALIVE"
 )
 
 var errCruiseControlNotReady = errors.New("cruise-control is not ready")
@@ -132,7 +134,7 @@ func isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName string) (bo
 		"json": "true",
 	}
 
-	rsp, err := getCruiseControl(kafkaClusterStateAction, namespace, options, ccEndpoint, clusterName)
+	rsp, err := getCruiseControl(clusterLoad, namespace, options, ccEndpoint, clusterName)
 	if err != nil {
 		log.Error(err, "can't work with cruise-control because it is not ready")
 		return running, err
@@ -154,11 +156,16 @@ func isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName string) (bo
 	if err != nil {
 		return running, err
 	}
-	bId, _ := strconv.Atoi(brokerId)
 
-	if len(response["KafkaBrokerState"].(map[string]interface{})["OnlineLogDirsByBrokerId"].(map[string]interface{})) == bId+1 {
-		log.Info("waiting for broker to became available in cruise-control")
-		running = true
+	bIdToFloat, _ := strconv.ParseFloat(brokerId, 32)
+
+	for _, broker := range response["brokers"].([]interface{}) {
+		if broker.(map[string]interface{})["Broker"].(float64) == bIdToFloat &&
+			broker.(map[string]interface{})["BrokerState"].(string) == brokerAlive {
+			log.Info("broker is available in cruise-control")
+			running = true
+			break
+		}
 	}
 	return running, nil
 }
