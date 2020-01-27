@@ -177,7 +177,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 			deletedBrokers = append(deletedBrokers, pod)
 		}
-		//TODO depend on CC load check instead of kubernetes deletion timestamp
+
 		if !arePodsAlreadyDeleted(deletedBrokers, log) {
 			if r.KafkaCluster.Status.BrokersState[generateBrokerIdsFromPodSlice(deletedBrokers)[0]].GracefulActionState.CruiseControlState != v1beta1.GracefulUpdateRunning &&
 				r.KafkaCluster.Status.BrokersState[generateBrokerIdsFromPodSlice(deletedBrokers)[0]].GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded {
@@ -201,37 +201,41 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					return err
 				}
 			}
+		}
 
-			for _, broker := range deletedBrokers {
-				err = r.Client.Delete(context.TODO(), &broker)
+		for _, broker := range deletedBrokers {
+			if broker.ObjectMeta.DeletionTimestamp != nil {
+				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
+				continue
+			}
+			err = r.Client.Delete(context.TODO(), &broker)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "could not delete broker", "id", broker.Labels["brokerId"])
+			}
+			err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "could not delete configmap for broker", "id", broker.Labels["brokerId"])
+			}
+			if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
+				err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 				if err != nil {
-					return errors.WrapIfWithDetails(err, "could not delete broker", "id", broker.Labels["brokerId"])
+					return errors.WrapIfWithDetails(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
 				}
-				err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
-				if err != nil {
-					return errors.WrapIfWithDetails(err, "could not delete configmap for broker", "id", broker.Labels["brokerId"])
-				}
-				if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
-					err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+			}
+			for _, volume := range broker.Spec.Volumes {
+				if strings.HasPrefix(volume.Name, kafkaDataVolumeMount) {
+					err = r.Client.Delete(context.TODO(), &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
+						Name:      volume.PersistentVolumeClaim.ClaimName,
+						Namespace: r.KafkaCluster.Namespace,
+					}})
 					if err != nil {
-						return errors.WrapIfWithDetails(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
+						return errors.WrapIfWithDetails(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
 					}
 				}
-				for _, volume := range broker.Spec.Volumes {
-					if strings.HasPrefix(volume.Name, kafkaDataVolumeMount) {
-						err = r.Client.Delete(context.TODO(), &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
-							Name:      volume.PersistentVolumeClaim.ClaimName,
-							Namespace: r.KafkaCluster.Namespace,
-						}})
-						if err != nil {
-							return errors.WrapIfWithDetails(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
-						}
-					}
-				}
-				err = k8sutil.DeleteStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster, log)
-				if err != nil {
-					return errors.WrapIfWithDetails(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
-				}
+			}
+			err = k8sutil.DeleteStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster, log)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
 			}
 		}
 	}
