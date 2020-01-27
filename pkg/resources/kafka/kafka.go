@@ -177,58 +177,61 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 			deletedBrokers = append(deletedBrokers, pod)
 		}
-		for _, broker := range deletedBrokers {
-			if broker.ObjectMeta.DeletionTimestamp != nil {
-				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
-				continue
-			}
-			if r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.CruiseControlState != v1beta1.GracefulUpdateRunning {
-				uTaskId, taskStartTime, err := scale.DownsizeCluster(broker.Labels["brokerId"], r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+		//TODO depend on CC load check instead of kubernetes deletion timestamp
+		if !arePodsAlreadyDeleted(deletedBrokers, log) {
+			if r.KafkaCluster.Status.BrokersState[generateBrokerIdsFromPodSlice(deletedBrokers)[0]].GracefulActionState.CruiseControlState != v1beta1.GracefulUpdateRunning &&
+				r.KafkaCluster.Status.BrokersState[generateBrokerIdsFromPodSlice(deletedBrokers)[0]].GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded {
+				uTaskId, taskStartTime, err := scale.DownsizeCluster(strings.Join(generateBrokerIdsFromPodSlice(deletedBrokers), ","),
+					r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 				if err != nil {
-					log.Info(fmt.Sprintf("cruise control communication error during downscaling broker id: %s", broker.Labels["brokerId"]))
-					return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker id: %s", broker.Labels["brokerId"]))
+					log.Info(fmt.Sprintf("cruise control communication error during downscaling broker(s) id(s): %s", strings.Join(generateBrokerIdsFromPodSlice(deletedBrokers), ",")))
+					return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", strings.Join(generateBrokerIdsFromPodSlice(deletedBrokers), ",")))
 				}
-				err = k8sutil.UpdateBrokerStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster,
+				err = k8sutil.UpdateBrokerStatus(r.Client, generateBrokerIdsFromPodSlice(deletedBrokers), r.KafkaCluster,
 					v1beta1.GracefulActionState{CruiseControlTaskId: uTaskId, CruiseControlState: v1beta1.GracefulUpdateRunning,
 						TaskStarted: taskStartTime}, log)
 				if err != nil {
-					return errors.WrapIfWithDetails(err, "could not update status for broker", "id", broker.Labels["brokerId"])
+					return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(generateBrokerIdsFromPodSlice(deletedBrokers), ","))
 				}
 			}
-			if r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]].GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRunning {
-				err = r.checkCCTaskState(broker.Labels["brokerId"], r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]], log)
+			if r.KafkaCluster.Status.BrokersState[generateBrokerIdsFromPodSlice(deletedBrokers)[0]].GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRunning {
+				err = r.checkCCTaskState(generateBrokerIdsFromPodSlice(deletedBrokers),
+					r.KafkaCluster.Status.BrokersState[generateBrokerIdsFromPodSlice(deletedBrokers)[0]], v1beta1.GracefulDownscaleSucceeded, log)
 				if err != nil {
 					return err
 				}
 			}
-			err = r.Client.Delete(context.TODO(), &broker)
-			if err != nil {
-				return errors.WrapIfWithDetails(err, "could not delete broker", "id", broker.Labels["brokerId"])
-			}
-			err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
-			if err != nil {
-				return errors.WrapIfWithDetails(err, "could not delete configmap for broker", "id", broker.Labels["brokerId"])
-			}
-			if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
-				err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+
+			for _, broker := range deletedBrokers {
+				err = r.Client.Delete(context.TODO(), &broker)
 				if err != nil {
-					return errors.WrapIfWithDetails(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
+					return errors.WrapIfWithDetails(err, "could not delete broker", "id", broker.Labels["brokerId"])
 				}
-			}
-			for _, volume := range broker.Spec.Volumes {
-				if strings.HasPrefix(volume.Name, kafkaDataVolumeMount) {
-					err = r.Client.Delete(context.TODO(), &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
-						Name:      volume.PersistentVolumeClaim.ClaimName,
-						Namespace: r.KafkaCluster.Namespace,
-					}})
+				err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+				if err != nil {
+					return errors.WrapIfWithDetails(err, "could not delete configmap for broker", "id", broker.Labels["brokerId"])
+				}
+				if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
+					err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 					if err != nil {
-						return errors.WrapIfWithDetails(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
+						return errors.WrapIfWithDetails(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
 					}
 				}
-			}
-			err = k8sutil.DeleteStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster, log)
-			if err != nil {
-				return errors.WrapIfWithDetails(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
+				for _, volume := range broker.Spec.Volumes {
+					if strings.HasPrefix(volume.Name, kafkaDataVolumeMount) {
+						err = r.Client.Delete(context.TODO(), &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
+							Name:      volume.PersistentVolumeClaim.ClaimName,
+							Namespace: r.KafkaCluster.Namespace,
+						}})
+						if err != nil {
+							return errors.WrapIfWithDetails(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
+						}
+					}
+				}
+				err = k8sutil.DeleteStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster, log)
+				if err != nil {
+					return errors.WrapIfWithDetails(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
+				}
 			}
 		}
 	}
@@ -327,6 +330,24 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciled")
 
 	return nil
+}
+
+func generateBrokerIdsFromPodSlice(pods []corev1.Pod) []string {
+	ids := make([]string, len(pods))
+	for i, broker := range pods {
+		ids[i] = broker.Labels["brokerId"]
+	}
+	return ids
+}
+
+func arePodsAlreadyDeleted(pods []corev1.Pod, log logr.Logger) bool {
+	for _, broker := range pods {
+		if broker.ObjectMeta.DeletionTimestamp == nil {
+			return false
+		}
+		log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
+	}
+	return true
 }
 
 func (r *Reconciler) getServerAndClientDetails() (string, string, []string, error) {
@@ -476,7 +497,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 		}
 		// Update status to Config InSync because broker is configured to go
-		statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, v1beta1.ConfigInSync, log)
+		statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.ConfigInSync, log)
 		if statusErr != nil {
 			return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
 		}
@@ -486,7 +507,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
 				gracefulActionState = v1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: v1beta1.GracefulUpdateRequired}
 			}
-			statusErr = k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, gracefulActionState, log)
+			statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, gracefulActionState, log)
 			if statusErr != nil {
 				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
 			}
@@ -495,7 +516,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.RackAwarenessState == v1beta1.Configured {
 				return nil
 			}
-			statusErr := k8sutil.UpdateBrokerStatus(r.Client, desiredPod.Labels["brokerId"], r.KafkaCluster, v1beta1.WaitingForRackAwareness, log)
+			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.WaitingForRackAwareness, log)
 			if statusErr != nil {
 				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker rack state")
 			}
@@ -512,19 +533,20 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				if err != nil {
 					return err
 				}
-				statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster, v1beta1.Configured, log)
+				statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster, v1beta1.Configured, log)
 				if statusErr != nil {
 					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
 				}
 			}
 			if currentPod.Status.Phase == corev1.PodRunning && r.KafkaCluster.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRequired {
-				if r.KafkaCluster.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState != v1beta1.GracefulUpdateRunning {
+				if r.KafkaCluster.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState != v1beta1.GracefulUpdateRunning &&
+					r.KafkaCluster.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleSucceeded {
 					uTaskId, taskStartTime, scaleErr := scale.UpScaleCluster(desiredPod.Labels["brokerId"], desiredPod.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 					if scaleErr != nil {
 						log.Info(fmt.Sprintf("cruise control communication error during upscaling broker id: %s", brokerId))
-						return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker id: %s", brokerId))
+						return errorfactory.New(errorfactory.CruiseControlNotReady{}, scaleErr, fmt.Sprintf("broker id: %s", brokerId))
 					}
-					statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
+					statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster,
 						v1beta1.GracefulActionState{CruiseControlTaskId: uTaskId, CruiseControlState: v1beta1.GracefulUpdateRunning,
 							TaskStarted: taskStartTime}, log)
 					if statusErr != nil {
@@ -533,7 +555,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				}
 			}
 			if r.KafkaCluster.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState == v1beta1.GracefulUpdateRunning {
-				err = r.checkCCTaskState(brokerId, r.KafkaCluster.Status.BrokersState[brokerId], log)
+				err = r.checkCCTaskState([]string{brokerId}, r.KafkaCluster.Status.BrokersState[brokerId], v1beta1.GracefulUpscaleSucceeded, log)
 				if err != nil {
 					return err
 				}
@@ -642,7 +664,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 
 }
 
-func (r *Reconciler) checkCCTaskState(brokerId string, brokerState v1beta1.BrokerState, log logr.Logger) error {
+func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.BrokerState, cruiseControlState v1beta1.CruiseControlState, log logr.Logger) error {
 	parsedTime, err := ccutils.ParseTimeStampToUnixTime(brokerState.GracefulActionState.TaskStarted)
 	if err != nil {
 		return errors.WrapIf(err, "could not parse timestamp")
@@ -655,24 +677,24 @@ func (r *Reconciler) checkCCTaskState(brokerId string, brokerState v1beta1.Broke
 			return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 		}
 		if !finished {
-			err = k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
+			err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
 				v1beta1.GracefulActionState{TaskStarted: brokerState.GracefulActionState.TaskStarted,
 					CruiseControlTaskId: brokerState.GracefulActionState.CruiseControlTaskId,
 					CruiseControlState:  brokerState.GracefulActionState.CruiseControlState,
 				}, log)
 			if err != nil {
-				return errors.WrapIfWithDetails(err, "could not update status for broker", "id", brokerId)
+				return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(brokerIds, ","))
 			}
 			log.Info(fmt.Sprintf("Cruise control task: %s is still running", brokerState.GracefulActionState.CruiseControlTaskId))
 			return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("cc task is still running"), fmt.Sprintf("cc task id: %s", brokerState.GracefulActionState.CruiseControlTaskId))
 		}
-		err = k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
-			v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateSucceeded,
+		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+			v1beta1.GracefulActionState{CruiseControlState: cruiseControlState,
 				TaskStarted:         brokerState.GracefulActionState.TaskStarted,
 				CruiseControlTaskId: brokerState.GracefulActionState.CruiseControlTaskId,
 			}, log)
 		if err != nil {
-			return errors.WrapIfWithDetails(err, "could not update status for broker", "id", brokerId)
+			return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(brokerIds, ","))
 		}
 
 	} else {
@@ -681,13 +703,13 @@ func (r *Reconciler) checkCCTaskState(brokerId string, brokerState v1beta1.Broke
 		if err != nil {
 			return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 		}
-		err = k8sutil.UpdateBrokerStatus(r.Client, brokerId, r.KafkaCluster,
+		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
 			v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed,
 				ErrorMessage: "Timed out waiting for the task to complete",
 				TaskStarted:  brokerState.GracefulActionState.TaskStarted,
 			}, log)
 		if err != nil {
-			return errors.WrapIfWithDetails(err, "could not update status for broker", "id", brokerId)
+			return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(brokerIds, ","))
 		}
 	}
 	return nil

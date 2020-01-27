@@ -66,8 +66,10 @@ const (
 	Configured RackAwarenessState = "Configured"
 	// WaitingForRackAwareness states the broker is waiting for the rack awareness config
 	WaitingForRackAwareness RackAwarenessState = "WaitingForRackAwareness"
-	// GracefulUpdateSucceeded states the broker is updated gracefully
-	GracefulUpdateSucceeded CruiseControlState = "GracefulUpdateSucceeded"
+	// GracefulUpscaleSucceeded states the broker is updated gracefully
+	GracefulUpscaleSucceeded CruiseControlState = "GracefulUpscaleSucceeded"
+	// GracefulUpscaleSucceeded states the broker is updated gracefully
+	GracefulDownscaleSucceeded CruiseControlState = "GracefulDownscaleSucceeded"
 	// GracefulUpdateRunning states the broker update task is still running in CC
 	GracefulUpdateRunning CruiseControlState = "GracefulUpdateRunning"
 	// GracefulUpdateFailed states the broker could not be updated gracefully

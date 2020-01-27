@@ -17,6 +17,7 @@ package k8sutil
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"emperror.dev/errors"
@@ -42,54 +43,10 @@ func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 }
 
 // UpdateBrokerStatus updates the broker status with rack and configuration infos
-func UpdateBrokerStatus(c client.Client, brokerId string, cluster *v1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
+func UpdateBrokerStatus(c client.Client, brokerIds []string, cluster *v1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
-	if cluster.Status.BrokersState == nil {
-		switch s := state.(type) {
-		case banzaicloudv1beta1.RackAwarenessState:
-			cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {RackAwarenessState: s}}
-		case banzaicloudv1beta1.GracefulActionState:
-			cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: s}}
-		case banzaicloudv1beta1.ConfigurationState:
-			cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {ConfigurationState: s}}
-		}
-	} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
-		switch s := state.(type) {
-		case banzaicloudv1beta1.RackAwarenessState:
-			val.RackAwarenessState = s
-		case banzaicloudv1beta1.GracefulActionState:
-			val.GracefulActionState = s
-		case banzaicloudv1beta1.ConfigurationState:
-			val.ConfigurationState = s
-		}
-		cluster.Status.BrokersState[brokerId] = val
-	} else {
-		switch s := state.(type) {
-		case banzaicloudv1beta1.RackAwarenessState:
-			cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{RackAwarenessState: s}
-		case banzaicloudv1beta1.GracefulActionState:
-			cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: s}
-		case banzaicloudv1beta1.ConfigurationState:
-			cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{ConfigurationState: s}
-		}
-	}
-
-	err := c.Status().Update(context.Background(), cluster)
-	if apierrors.IsNotFound(err) {
-		err = c.Update(context.Background(), cluster)
-	}
-	if err != nil {
-		if !apierrors.IsConflict(err) {
-			return errors.WrapIff(err, "could not update Kafka broker %s state", brokerId)
-		}
-		err := c.Get(context.TODO(), types.NamespacedName{
-			Namespace: cluster.Namespace,
-			Name:      cluster.Name,
-		}, cluster)
-		if err != nil {
-			return errors.WrapIf(err, "could not get config for updating status")
-		}
+	for _, brokerId := range brokerIds {
 
 		if cluster.Status.BrokersState == nil {
 			switch s := state.(type) {
@@ -120,13 +77,63 @@ func UpdateBrokerStatus(c client.Client, brokerId string, cluster *v1beta1.Kafka
 				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{ConfigurationState: s}
 			}
 		}
+	}
+
+	err := c.Status().Update(context.Background(), cluster)
+	if apierrors.IsNotFound(err) {
+		err = c.Update(context.Background(), cluster)
+	}
+	if err != nil {
+		if !apierrors.IsConflict(err) {
+			return errors.WrapIff(err, "could not update Kafka broker(s) %s state", strings.Join(brokerIds, ","))
+		}
+		err := c.Get(context.TODO(), types.NamespacedName{
+			Namespace: cluster.Namespace,
+			Name:      cluster.Name,
+		}, cluster)
+		if err != nil {
+			return errors.WrapIf(err, "could not get config for updating status")
+		}
+
+		for _, brokerId := range brokerIds {
+
+			if cluster.Status.BrokersState == nil {
+				switch s := state.(type) {
+				case banzaicloudv1beta1.RackAwarenessState:
+					cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {RackAwarenessState: s}}
+				case banzaicloudv1beta1.GracefulActionState:
+					cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: s}}
+				case banzaicloudv1beta1.ConfigurationState:
+					cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {ConfigurationState: s}}
+				}
+			} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
+				switch s := state.(type) {
+				case banzaicloudv1beta1.RackAwarenessState:
+					val.RackAwarenessState = s
+				case banzaicloudv1beta1.GracefulActionState:
+					val.GracefulActionState = s
+				case banzaicloudv1beta1.ConfigurationState:
+					val.ConfigurationState = s
+				}
+				cluster.Status.BrokersState[brokerId] = val
+			} else {
+				switch s := state.(type) {
+				case banzaicloudv1beta1.RackAwarenessState:
+					cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{RackAwarenessState: s}
+				case banzaicloudv1beta1.GracefulActionState:
+					cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: s}
+				case banzaicloudv1beta1.ConfigurationState:
+					cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{ConfigurationState: s}
+				}
+			}
+		}
 
 		err = c.Status().Update(context.Background(), cluster)
 		if apierrors.IsNotFound(err) {
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
-			return errors.WrapIff(err, "could not update Kafka clusters broker %s state", brokerId)
+			return errors.WrapIff(err, "could not update Kafka clusters broker(s) %s state", strings.Join(brokerIds, ","))
 		}
 	}
 	// update loses the typeMeta of the config that's used later when setting ownerrefs

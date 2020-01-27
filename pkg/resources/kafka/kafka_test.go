@@ -46,7 +46,7 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 				Status: v1beta1.KafkaClusterStatus{
 					BrokersState: map[string]v1beta1.BrokerState{
 						"0": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateSucceeded},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},
 						},
 						"1": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed},

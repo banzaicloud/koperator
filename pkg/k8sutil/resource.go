@@ -128,7 +128,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			case *corev1.ConfigMap:
 				// Only update status when configmap belongs to broker
 				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
-					statusErr := UpdateBrokerStatus(client, id, cr, banzaicloudv1beta1.ConfigOutOfSync, log)
+					statusErr := UpdateBrokerStatus(client, []string{id}, cr, banzaicloudv1beta1.ConfigOutOfSync, log)
 					if statusErr != nil {
 						return errors.WrapIfWithDetails(err, "updating status for resource failed", "kind", desiredType)
 					}
