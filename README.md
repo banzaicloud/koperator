@@ -73,7 +73,7 @@ Join us as we take a deep dive into some of the details of the most popular pre-
 
 >We took a different approach to what's out there - we believe for a good reason - please read on to understand more about our [design motivations](docs/features.md) and some of the [scenarios](docs/scenarios.md) which were driving us to create the Banzai Cloud Kafka operator.
 
-Finally, our motivation is to build an open source solution and a community which drives the innovation and features of this operator. We are long term contributors and active community members of both Apache Kafka and Kubernetes, and we hope to recreate a similar community around this operator.  
+Finally, our motivation is to build an open source solution and a community which drives the innovation and features of this operator. We are long term contributors and active community members of both Apache Kafka and Kubernetes, and we hope to recreate a similar community around this operator.
 
 If you are willing to kickstart your managed Apache Kafka experience on 5 cloud providers, on-premise or hybrid environments, check out the free developer beta:
 <p align="center">
@@ -223,15 +223,15 @@ kubectl create -n default -f config/samples/kafkacluster-prometheus.yaml
 
 Alternatively, if you are using Helm, you can deploy the operator using a Helm chart [Helm chart](https://github.com/banzaicloud/kafka-operator/tree/master/charts):
 
-> To install the 0.7.x version of the operator use `helm install --name=kafka-operator --namespace=kafka --set operator.image.tag=0.7.x banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml`
+> To install the 0.7.x version of the operator use `helm install --name=kafka-operator --namespace=kafka --set operator.image.tag=0.7.x banzaicloud-stable/kafka-operator`
 
 ```bash
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 # Using helm3
 # You have to create the namespace before executing following command
-helm install kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml
+helm install kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator
 # Using previous versions of helm
-helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator -f config/samples/example-prometheus-alerts.yaml
+helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator
 # Add your zookeeper svc name to the configuration
 kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
 # If prometheus operator installed create the ServiceMonitors
@@ -279,9 +279,9 @@ If you have any questions about the Kafka operator, and would like to talk to us
 If you find this project useful, help us:
 
 - Support the development of this project and star this repo! :star:
-- If you use the Kafka operator in a production environment, add yourself to the list of production [adopters](https://github.com/banzaicloud/kafka-operator/blob/master/ADOPTERS.md).:metal: <br> 
+- If you use the Kafka operator in a production environment, add yourself to the list of production [adopters](https://github.com/banzaicloud/kafka-operator/blob/master/ADOPTERS.md).:metal: <br>
 - Help new users with issues they may encounter :muscle:
-- Send a pull request with your new features and bug fixes :rocket: 
+- Send a pull request with your new features and bug fixes :rocket:
 
 ## License
 
