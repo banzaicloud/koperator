@@ -102,10 +102,25 @@ func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, sche
 }
 
 func (c *certManager) kafkapki(ctx context.Context, scheme *runtime.Scheme, externalHostnames []string) ([]runtime.Object, error) {
-	if c.cluster.Spec.ListenersConfig.SSLSecrets.Create {
-		return fullPKI(c.cluster, scheme, externalHostnames), nil
+	sslConfig := c.cluster.Spec.ListenersConfig.SSLSecrets
+	if sslConfig.Create {
+		if sslConfig.IssuerRef == nil {
+			return fullPKI(c.cluster, scheme, externalHostnames), nil
+		} else {
+			return userProvidedIssuerPKI(c.cluster, externalHostnames), nil
+		}
 	}
 	return userProvidedPKI(ctx, c.client, c.cluster, scheme, externalHostnames)
+}
+
+func userProvidedIssuerPKI(cluster *v1beta1.KafkaCluster, externalHostnames []string) []runtime.Object {
+	// No need to generate self-signed certs and issuers because the issuer is provided by user
+	return []runtime.Object{
+		// Broker "user"
+		pkicommon.BrokerUserForCluster(cluster, externalHostnames),
+		// Operator user
+		pkicommon.ControllerUserForCluster(cluster),
+	}
 }
 
 func fullPKI(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, externalHostnames []string) []runtime.Object {
