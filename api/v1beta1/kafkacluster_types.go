@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"strings"
 
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -182,10 +183,10 @@ type ListenersConfig struct {
 
 // SSLSecrets defines the Kafka SSL secrets
 type SSLSecrets struct {
-	TLSSecretName   string `json:"tlsSecretName"`
-	JKSPasswordName string `json:"jksPasswordName"`
-	Create          bool   `json:"create,omitempty"`
-
+	TLSSecretName   string                  `json:"tlsSecretName"`
+	JKSPasswordName string                  `json:"jksPasswordName"`
+	Create          bool                    `json:"create,omitempty"`
+	IssuerRef       *cmmeta.ObjectReference `json:"issuerRef,omitempty"`
 	// +kubebuilder:validation:Enum={"cert-manager","vault"}
 	PKIBackend PKIBackend `json:"pkiBackend,omitempty"`
 }
