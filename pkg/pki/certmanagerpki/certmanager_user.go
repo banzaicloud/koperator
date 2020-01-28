@@ -148,6 +148,7 @@ func (c *certManager) clusterCertificateForUser(user *v1alpha1.KafkaUser, scheme
 			SecretName:  user.Spec.SecretName,
 			KeyEncoding: certv1.PKCS8,
 			CommonName:  user.Name,
+			Usages:      []certv1.KeyUsage{certv1.UsageClientAuth, certv1.UsageServerAuth},
 			IssuerRef: certmeta.ObjectReference{
 				Name: caName,
 				Kind: caKind,
