@@ -46,9 +46,14 @@ func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error
 	if c.cluster.Spec.ListenersConfig.SSLSecrets.Create {
 		// Names of our certificates and secrets
 		objNames := []types.NamespacedName{
-			{Name: fmt.Sprintf(pkicommon.BrokerCACertTemplate, c.cluster.Name), Namespace: namespaceCertManager},
 			{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, c.cluster.Name), Namespace: c.cluster.Namespace},
 			{Name: fmt.Sprintf(pkicommon.BrokerControllerTemplate, c.cluster.Name), Namespace: c.cluster.Namespace},
+		}
+		if c.cluster.Spec.ListenersConfig.SSLSecrets.IssuerRef == nil {
+			objNames = append(
+				objNames,
+				types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerCACertTemplate, c.cluster.Name), Namespace: namespaceCertManager})
+
 		}
 		for _, obj := range objNames {
 			// Delete the certificates first so we don't accidentally recreate the
