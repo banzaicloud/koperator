@@ -1306,6 +1306,20 @@ spec:
                       type: string
                     tlsSecretName:
                       type: string
+                    issuerRef:
+                      type: object
+                      description: IssuerRef represents a reference to an Issuer object
+                      required:
+                      - name
+                      - kind
+                      properties:
+                        name:
+                          type: string
+                        kind:
+                          type: string
+                          enum:
+                          - Issuer
+                          - ClusterIssuer
                   required:
                   - jksPasswordName
                   - tlsSecretName
