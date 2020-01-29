@@ -49,16 +49,16 @@ func (r *Reconciler) deployment(log logr.Logger, clientPass string) runtime.Obje
 	return &appsv1.Deployment{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(deploymentNameTemplate, r.KafkaCluster.Name),
-			templates.ObjectMetaLabels(r.KafkaCluster, labelSelector),
+			templates.ObjectMetaLabels(r.KafkaCluster, ccLabelSelector(r.KafkaCluster.Name)),
 			r.KafkaCluster,
 		),
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labelSelector,
+				MatchLabels: ccLabelSelector(r.KafkaCluster.Name),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      templates.ObjectMetaLabels(r.KafkaCluster, labelSelector),
+					Labels:      templates.ObjectMetaLabels(r.KafkaCluster, ccLabelSelector(r.KafkaCluster.Name)),
 					Annotations: util.MonitoringAnnotations(metricsPort),
 				},
 				Spec: corev1.PodSpec{

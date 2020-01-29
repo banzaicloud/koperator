@@ -33,7 +33,7 @@ func (r *Reconciler) configMap(log logr.Logger, clientPass string) runtime.Objec
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
-			util.MergeLabels(labelSelector, r.KafkaCluster.Labels),
+			util.MergeLabels(ccLabelSelector(r.KafkaCluster.Name), r.KafkaCluster.Labels),
 			r.KafkaCluster,
 		),
 		Data: map[string]string{

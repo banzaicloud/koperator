@@ -44,13 +44,16 @@ const (
 	metricsPort                 = 9020
 )
 
-var labelSelector = map[string]string{
-	"app": "cruisecontrol",
-}
-
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
+}
+
+func ccLabelSelector(kafkaCluster string) map[string]string {
+	return map[string]string{
+		"app":      "cruisecontrol",
+		"kafka_cr": kafkaCluster,
+	}
 }
 
 // New creates a new reconciler for CC
