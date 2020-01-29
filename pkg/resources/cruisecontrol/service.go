@@ -29,11 +29,11 @@ func (r *Reconciler) service(log logr.Logger, clientPass string) runtime.Object 
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(serviceNameTemplate, r.KafkaCluster.Name),
-			util.MergeLabels(labelSelector, r.KafkaCluster.Labels),
+			util.MergeLabels(ccLabelSelector(r.KafkaCluster.Name), r.KafkaCluster.Labels),
 			r.KafkaCluster,
 		),
 		Spec: corev1.ServiceSpec{
-			Selector: labelSelector,
+			Selector: ccLabelSelector(r.KafkaCluster.Name),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "cc",
