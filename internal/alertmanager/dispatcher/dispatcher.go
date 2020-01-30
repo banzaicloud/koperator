@@ -52,7 +52,11 @@ func alertFilter(promAlerts []model.Alert) []model.Alert {
 
 	filteredAlerts := []model.Alert{}
 	for _, alert := range promAlerts {
-		if label, labelOK := alert.Labels["alertGroup"]; labelOK && label == "kafka" {
+		var labelKafkaCR bool
+		if _, labelOk := alert.Labels["kafka_cr"]; labelOk {
+			labelKafkaCR = true
+		}
+		if label, labelOk := alert.Labels["alertGroup"]; (labelOk && label == "kafka") || labelKafkaCR {
 			if _, annotationOK := alert.Annotations["command"]; annotationOK {
 				filteredAlerts = append(filteredAlerts, alert)
 			}

@@ -48,6 +48,15 @@ func Test_alertFilter(t *testing.T) {
 				"command": "testcommand",
 			},
 		},
+		{
+			Labels: model.LabelSet{
+				"namespace": "kafka",
+				"kafka_cr":  "kafka",
+			},
+			Annotations: model.LabelSet{
+				"command": "testcommand",
+			},
+		},
 	}
 
 	filteredAlerts := []model.Alert{
@@ -55,6 +64,15 @@ func Test_alertFilter(t *testing.T) {
 			Labels: model.LabelSet{
 				"namespace":  "kafka",
 				"alertGroup": "kafka",
+			},
+			Annotations: model.LabelSet{
+				"command": "testcommand",
+			},
+		},
+		{
+			Labels: model.LabelSet{
+				"namespace": "kafka",
+				"kafka_cr":  "kafka",
 			},
 			Annotations: model.LabelSet{
 				"command": "testcommand",

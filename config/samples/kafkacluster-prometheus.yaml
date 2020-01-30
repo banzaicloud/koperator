@@ -90,7 +90,7 @@ spec:
       for: 5m
       labels:
         severity: alert
-        alretGroup: kafka
+        alertGroup: kafka
       annotations:
         description: 'broker {{ $labels.brokerId }} underreplicated'
         summary: 'broker underreplicated'
@@ -117,8 +117,8 @@ spec:
       expr: min(kafka_server_replicamanager_partitioncount)  by (namespace, kafka_cr) < 40
       for: 3m
       labels:
-        severity: alert
-        alretGroup: kafka
+        severity: alerta
+        alertGroup: kafka
       annotations:
         description: 'broker {{ $labels.brokerId }} has low partition count'
         summary: 'low partition count'
