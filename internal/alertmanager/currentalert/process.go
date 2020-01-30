@@ -15,8 +15,14 @@
 package currentalert
 
 import (
+	"context"
+	"fmt"
+	"math/rand"
 	"strconv"
+	"strings"
+	"time"
 
+	"emperror.dev/errors"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
@@ -26,6 +32,7 @@ import (
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -96,7 +103,7 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		if err := validators.ValidateAlert(); err != nil {
 			return false, err
 		}
-		err := addPVC(e.Alert.Labels, e.Alert.Annotations, e.Client)
+		err := addPVC(e.Log, e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
 			return false, err
 		}
@@ -134,8 +141,46 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 	return false, nil
 }
 
-func addPVC(labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
-	//TODO
+func addPVC(log logr.Logger, labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
+	var storageClassName *string
+
+	if annotations["storageClass"] != "" {
+		storageClassName = util.StringPointer(string(annotations["storageClass"]))
+	}
+
+	pvc, err := getPvc(string(labels["persistentvolumeclaim"]), string(labels["namespace"]), client)
+	if err!= nil {
+		return err
+	}
+
+	randomString, err := getRandomString(6)
+	if err != nil {
+		return err
+	}
+
+	storageConfig := v1beta1.StorageConfig{
+    	MountPath: pvc.Annotations["mountPath"] + "-" + randomString,
+    	PVCSpec: &corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			StorageClassName: storageClassName,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"storage": resource.MustParse(string(annotations["diskSize"])),
+				},
+			},
+	}}
+
+	log.Info("the following storageConfig was determined %+v", &storageConfig)
+
+	err = k8sutil.AddPvToSpecificBroker(pvc.Labels["brokerId"], pvc.Labels["kafka_cr"], string(labels["namespace"]), &storageConfig, client)
+	if err != nil {
+		return err
+	}
+
+	log.Info(fmt.Sprintf("PV successfully added to broker %s with the following storage configuration: %+v", pvc.Labels["brokerId"], &storageConfig))
+
 	return nil
 }
 
@@ -239,4 +284,31 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 		return err
 	}
 	return nil
+}
+
+// getPvc returns the given PVC object
+func getPvc(name, namespace string, client client.Client) (*corev1.PersistentVolumeClaim, error) {
+	cr := &corev1.PersistentVolumeClaim{}
+
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr)
+	if err != nil {
+		return nil, errors.WrapIfWithDetails(err, "could not get PVC from k8s", "PVCName", name, "namespace", namespace)
+	}
+	return cr, nil
+}
+
+// TODO should be moved to a common place
+// getRandomString returns a random string containing uppercase, lowercase and number characters with the length given
+func getRandomString(length int) (string, error){
+	rand.Seed(time.Now().UnixNano())
+
+	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+		"abcdefghijklmnopqrstuvwxyz" +
+		"0123456789")
+
+	var b strings.Builder
+	for i := 0; i < length; i++ {
+		b.WriteRune(chars[rand.Intn(len(chars))])
+	}
+	return b.String(), nil
 }
