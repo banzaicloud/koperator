@@ -158,9 +158,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 	// Handle Pod delete
 	podList := &corev1.PodList{}
-	matchingLabels := client.MatchingLabels{
-		"kafka_cr": r.KafkaCluster.Name,
-	}
+	matchingLabels := client.MatchingLabels(labelsForKafka(r.KafkaCluster.Name))
 
 	err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
 	if err != nil {
@@ -617,10 +615,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			if r.KafkaCluster.Status.State == v1beta1.KafkaClusterRollingUpgrading {
 				// Check if any kafka pod is in terminating state
 				podList := &corev1.PodList{}
-				matchingLabels := client.MatchingLabels{
-					"kafka_cr": r.KafkaCluster.Name,
-					"app":      "kafka",
-				}
+				matchingLabels := client.MatchingLabels(labelsForKafka(r.KafkaCluster.Name))
 				err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
 				if err != nil {
 					return errors.WrapIf(err, "failed to reconcile resource")
