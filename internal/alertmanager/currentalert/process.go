@@ -15,10 +15,7 @@
 package currentalert
 
 import (
-	"errors"
 	"strconv"
-
-	emperror "emperror.dev/errors"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
@@ -92,19 +89,16 @@ func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 
 func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 
+	if err := e.Alert.validateAlert(); err != nil {
+		return false, err
+	}
 	switch e.Alert.Annotations["command"] {
 	case "addPVC":
-		if err := checkLabelExists(e.Alert.Labels, "persistentvolumeclaim"); err != nil {
-			return false, emperror.Wrap(err, "label: persistentvolumeclaim")
-		}
 		err := addPVC(e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
 			return false, err
 		}
 	case "downScale":
-		if err := checkLabelExists(e.Alert.Labels, "kafka_cr"); err != nil {
-			return false, emperror.Wrap(err, "label: kafka_cr")
-		}
 		if ds.Down {
 			e.Log.Info("downscale is skipped due to downscale limit")
 			return true, nil
@@ -116,9 +110,6 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 
 		return true, nil
 	case "upScale":
-		if err := checkLabelExists(e.Alert.Labels, "kafka_cr"); err != nil {
-			return false, emperror.Wrap(err, "label: kafka_cr")
-		}
 		if ds.Up {
 			e.Log.Info("upscale is skipped due to upscale limit")
 			return true, nil
@@ -131,14 +122,6 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		return true, nil
 	}
 	return false, nil
-}
-
-func checkLabelExists(labelSet model.LabelSet, label model.LabelName) error {
-	if _, labelOK := labelSet[label]; !labelOK {
-		return errors.New("label doesn't exist")
-	}
-
-	return nil
 }
 
 func addPVC(labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
