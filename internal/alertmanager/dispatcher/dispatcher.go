@@ -52,7 +52,7 @@ func alertFilter(promAlerts []model.Alert) []model.Alert {
 
 	filteredAlerts := []model.Alert{}
 	for _, alert := range promAlerts {
-		var labelKafkaCR bool
+		labelKafkaCR := false
 		if _, labelOk := alert.Labels["kafka_cr"]; labelOk {
 			labelKafkaCR = true
 		}
