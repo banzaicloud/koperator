@@ -26,8 +26,8 @@ func Test_alertFilter(t *testing.T) {
 	testAlerts := []model.Alert{
 		{
 			Labels: model.LabelSet{
-				"kafka_cr":  "kafka",
-				"namespace": "kafka",
+				"namespace":  "kafka",
+				"alertGroup": "kafka",
 			},
 			Annotations: model.LabelSet{
 				"command": "testcommand",
@@ -35,14 +35,14 @@ func Test_alertFilter(t *testing.T) {
 		},
 		{
 			Labels: model.LabelSet{
-				"kafka_cr":  "kafka",
-				"namespace": "kafka",
+				"namespace":  "kafka",
+				"alertGroup": "kafka",
 			},
 		},
 		{
 			Labels: model.LabelSet{
-				"fake":      "fake",
-				"namespace": "kafka",
+				"namespace":  "kafka",
+				"alertGroup": "fake",
 			},
 			Annotations: model.LabelSet{
 				"command": "testcommand",
@@ -53,8 +53,8 @@ func Test_alertFilter(t *testing.T) {
 	filteredAlerts := []model.Alert{
 		{
 			Labels: model.LabelSet{
-				"kafka_cr":  "kafka",
-				"namespace": "kafka",
+				"namespace":  "kafka",
+				"alertGroup": "kafka",
 			},
 			Annotations: model.LabelSet{
 				"command": "testcommand",

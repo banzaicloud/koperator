@@ -74,6 +74,7 @@ spec:
       for: 5m
       labels:
         severity: alert
+        alertGroup: kafka
       annotations:
         description: 'broker {{ $labels.brokerId }} overloaded (current value is: {{ $value }})'
         summary: 'broker overloaded'
@@ -89,6 +90,7 @@ spec:
       for: 5m
       labels:
         severity: alert
+        alretGroup: kafka
       annotations:
         description: 'broker {{ $labels.brokerId }} underreplicated'
         summary: 'broker underreplicated'
@@ -102,6 +104,7 @@ spec:
       for: 3m
       labels:
         severity: alert
+        alertGroup: kafka
       annotations:
         description: 'broker {{ $labels.brokerId }} has high partition count'
         summary: 'high partition count'
@@ -115,6 +118,7 @@ spec:
       for: 3m
       labels:
         severity: alert
+        alretGroup: kafka
       annotations:
         description: 'broker {{ $labels.brokerId }} has low partition count'
         summary: 'low partition count'
@@ -124,6 +128,7 @@ spec:
       for: 2m
       labels:
         severity: alert
+        alertGroup: kafka
       annotations:
         description: 'broker {{ $labels.brokerId }} has low disk space'
         summary: 'low diskspace'
