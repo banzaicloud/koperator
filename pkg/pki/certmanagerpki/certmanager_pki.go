@@ -111,9 +111,8 @@ func (c *certManager) kafkapki(ctx context.Context, scheme *runtime.Scheme, exte
 	if sslConfig.Create {
 		if sslConfig.IssuerRef == nil {
 			return fullPKI(c.cluster, scheme, externalHostnames), nil
-		} else {
-			return userProvidedIssuerPKI(c.cluster, externalHostnames), nil
 		}
+		return userProvidedIssuerPKI(c.cluster, externalHostnames), nil
 	}
 	return userProvidedPKI(ctx, c.client, c.cluster, scheme, externalHostnames)
 }
