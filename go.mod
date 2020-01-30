@@ -1,6 +1,6 @@
 module github.com/banzaicloud/kafka-operator
 
-go 1.12
+go 1.13
 
 require (
 	emperror.dev/errors v0.4.2
