@@ -112,13 +112,17 @@ func GetCruiseControlStatus(namespace, ccEndpoint, clusterName string) error {
 		return err
 	}
 
-	var response map[string]interface{}
+	var response struct {
+		AnalyzerState struct {
+			IsProposalReady bool
+		}
+	}
 
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		return err
 	}
-	if !response["AnalyzerState"].(map[string]interface{})["isProposalReady"].(bool) {
+	if !response.AnalyzerState.IsProposalReady {
 		log.Info("could not handle graceful operation because cruise-control is not ready")
 		return errCruiseControlNotReady
 	}
@@ -150,7 +154,12 @@ func isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName string) (bo
 		return running, err
 	}
 
-	var response map[string]interface{}
+	var response struct {
+		Brokers []struct {
+			Broker      float64
+			BrokerState string
+		}
+	}
 
 	err = json.Unmarshal(body, &response)
 	if err != nil {
@@ -159,9 +168,9 @@ func isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName string) (bo
 
 	bIdToFloat, _ := strconv.ParseFloat(brokerId, 32)
 
-	for _, broker := range response["brokers"].([]interface{}) {
-		if broker.(map[string]interface{})["Broker"].(float64) == bIdToFloat &&
-			broker.(map[string]interface{})["BrokerState"].(string) == brokerAlive {
+	for _, broker := range response.Brokers {
+		if broker.Broker == bIdToFloat &&
+			broker.BrokerState == brokerAlive {
 			log.Info("broker is available in cruise-control")
 			running = true
 			break
@@ -200,19 +209,23 @@ func GetBrokerIDWithLeastPartition(namespace, ccEndpoint, clusterName string) (s
 		return brokerWithLeastPartition, err
 	}
 
-	var response map[string]interface{}
+	var response struct {
+		KafkaBrokerState struct {
+			ReplicaCountByBrokerId map[string]float64
+		}
+	}
 
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		return brokerWithLeastPartition, err
 	}
 
-	replicaCountByBroker := response["KafkaBrokerState"].(map[string]interface{})["ReplicaCountByBrokerId"].(map[string]interface{})
+	replicaCountByBroker := response.KafkaBrokerState.ReplicaCountByBrokerId
 	replicaCount := float64(99999)
 
 	for brokerID, replica := range replicaCountByBroker {
-		if replicaCount > replica.(float64) {
-			replicaCount = replica.(float64)
+		if replicaCount > replica {
+			replicaCount = replica
 			brokerWithLeastPartition = brokerID
 		}
 	}
@@ -376,7 +389,11 @@ func CheckIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName string) (
 		return false, err
 	}
 
-	var taskLists map[string]interface{}
+	var taskLists struct {
+		UserTasks []struct {
+			Status string
+		}
+	}
 
 	body, err := ioutil.ReadAll(gResp.Body)
 	if err != nil {
@@ -392,9 +409,14 @@ func CheckIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName string) (
 	if err != nil {
 		return false, err
 	}
-	// TODO use struct instead of casting things
-	for _, task := range taskLists["userTasks"].([]interface{}) {
-		if task.(map[string]interface{})["Status"].(string) != "Completed" {
+	// No cc task found with this UID
+	if len(taskLists.UserTasks) == 0 {
+		//TODO initiate a new task in CC for graceful operation
+		return false, nil
+	}
+
+	for _, task := range taskLists.UserTasks {
+		if task.Status != "Completed" {
 			log.Info("Cruise control task  still running", "taskID", uTaskId)
 			return false, nil
 		}
