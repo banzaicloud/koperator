@@ -92,10 +92,13 @@ func New(client client.Client, scheme *runtime.Scheme, cluster *v1beta1.KafkaClu
 
 func getCreatedPVCForBroker(c client.Client, brokerID int32, namespace, crName string) ([]corev1.PersistentVolumeClaim, error) {
 	foundPVCList := &corev1.PersistentVolumeClaimList{}
-	matchingLabels := client.MatchingLabels{
-		"kafka_cr": crName,
-		"brokerId": fmt.Sprintf("%d", brokerID),
-	}
+
+	matchingLabels := client.MatchingLabels(
+		util.MergeLabels(
+			labelsForKafka(crName),
+			map[string]string{"brokerId": fmt.Sprintf("%d", brokerID)},
+		),
+	)
 	err := c.List(context.TODO(), foundPVCList, client.ListOption(client.InNamespace(namespace)), client.ListOption(matchingLabels))
 	if err != nil {
 		return nil, err
@@ -483,10 +486,13 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 	log.V(1).Info("searching with label because name is empty")
 
 	podList := &corev1.PodList{}
-	matchingLabels := client.MatchingLabels{
-		"kafka_cr": r.KafkaCluster.Name,
-		"brokerId": desiredPod.Labels["brokerId"],
-	}
+
+	matchingLabels := client.MatchingLabels(
+		util.MergeLabels(
+			labelsForKafka(r.KafkaCluster.Name),
+			map[string]string{"brokerId": desiredPod.Labels["brokerId"]},
+		),
+	)
 	err := r.Client.List(context.TODO(), podList, client.InNamespace(currentPod.Namespace), matchingLabels)
 	if err != nil && len(podList.Items) == 0 {
 		return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
@@ -732,10 +738,13 @@ func (r *Reconciler) reconcileKafkaPVC(log logr.Logger, desiredPVC *corev1.Persi
 	log.V(1).Info("searching with label because name is empty")
 
 	pvcList := &corev1.PersistentVolumeClaimList{}
-	matchingLabels := client.MatchingLabels{
-		"kafka_cr": r.KafkaCluster.Name,
-		"brokerId": desiredPVC.Labels["brokerId"],
-	}
+
+	matchingLabels := client.MatchingLabels(
+		util.MergeLabels(
+			labelsForKafka(r.KafkaCluster.Name),
+			map[string]string{"brokerId": desiredPVC.Labels["brokerId"]},
+		),
+	)
 	err := r.Client.List(context.TODO(), pvcList,
 		client.InNamespace(currentPVC.Namespace), matchingLabels)
 	if err != nil && len(pvcList.Items) == 0 {
