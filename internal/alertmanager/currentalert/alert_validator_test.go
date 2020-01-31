@@ -35,7 +35,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 							"persistentvolumeclaim": "test-pvc",
 						},
 						Annotations: model.LabelSet{
-							"command": "addPVC",
+							"command": AddPVCCommand,
 						},
 					},
 				},
@@ -50,7 +50,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 							"persistentvolumeclaim_missing": "test-pvc",
 						},
 						Annotations: model.LabelSet{
-							"command": "addPVC",
+							"command": AddPVCCommand,
 						},
 					},
 				},
@@ -82,7 +82,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 							"kafka_cr": "kafka",
 						},
 						Annotations: model.LabelSet{
-							"command": "downScale",
+							"command": DownScaleCommand,
 						},
 					},
 				},
@@ -97,7 +97,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 							"kafka_cr_missing": "kafka",
 						},
 						Annotations: model.LabelSet{
-							"command": "downScale",
+							"command": DownScaleCommand,
 						},
 					},
 				},
@@ -129,7 +129,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 							"kafka_cr": "kafka",
 						},
 						Annotations: model.LabelSet{
-							"command": "upScale",
+							"command": UpScaleCommand,
 						},
 					},
 				},
@@ -144,7 +144,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 							"kafka_cr_missing": "kafka",
 						},
 						Annotations: model.LabelSet{
-							"command": "upScale",
+							"command": UpScaleCommand,
 						},
 					},
 				},
