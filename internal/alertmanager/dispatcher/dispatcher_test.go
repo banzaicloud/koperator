@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/banzaicloud/kafka-operator/internal/alertmanager/currentalert"
 	"github.com/prometheus/common/model"
 )
 
@@ -26,26 +27,39 @@ func Test_alertFilter(t *testing.T) {
 	testAlerts := []model.Alert{
 		{
 			Labels: model.LabelSet{
-				"kafka_cr":  "kafka",
-				"namespace": "kafka",
+				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": "testcommand",
+				"command": currentalert.AddPVCCommand,
 			},
 		},
 		{
 			Labels: model.LabelSet{
-				"kafka_cr":  "kafka",
-				"namespace": "kafka",
+				"test": "test_1",
+			},
+			Annotations: model.LabelSet{
+				"command": currentalert.UpScaleCommand,
 			},
 		},
 		{
 			Labels: model.LabelSet{
-				"fake":      "fake",
-				"namespace": "kafka",
+				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": "testcommand",
+				"command": currentalert.DownScaleCommand,
+			},
+		},
+		{
+			Labels: model.LabelSet{
+				"test": "test_2",
+			},
+		},
+		{
+			Labels: model.LabelSet{
+				"test": "test_3",
+			},
+			Annotations: model.LabelSet{
+				"command": "fakeComand",
 			},
 		},
 	}
@@ -53,11 +67,26 @@ func Test_alertFilter(t *testing.T) {
 	filteredAlerts := []model.Alert{
 		{
 			Labels: model.LabelSet{
-				"kafka_cr":  "kafka",
-				"namespace": "kafka",
+				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": "testcommand",
+				"command": currentalert.AddPVCCommand,
+			},
+		},
+		{
+			Labels: model.LabelSet{
+				"test": "test_1",
+			},
+			Annotations: model.LabelSet{
+				"command": currentalert.UpScaleCommand,
+			},
+		},
+		{
+			Labels: model.LabelSet{
+				"test": "test_1",
+			},
+			Annotations: model.LabelSet{
+				"command": currentalert.DownScaleCommand,
 			},
 		},
 	}
