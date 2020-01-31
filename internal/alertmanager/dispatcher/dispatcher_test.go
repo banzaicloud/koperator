@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/banzaicloud/kafka-operator/internal/alertmanager/currentalert"
 	"github.com/prometheus/common/model"
 )
 
@@ -29,7 +30,7 @@ func Test_alertFilter(t *testing.T) {
 				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": "addPVC",
+				"command": currentalert.AddPVCCommand,
 			},
 		},
 		{
@@ -37,7 +38,7 @@ func Test_alertFilter(t *testing.T) {
 				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": "upScale",
+				"command": currentalert.UpScaleCommand,
 			},
 		},
 		{
@@ -45,7 +46,7 @@ func Test_alertFilter(t *testing.T) {
 				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": "downScale",
+				"command": currentalert.DownScaleCommand,
 			},
 		},
 		{
@@ -69,7 +70,7 @@ func Test_alertFilter(t *testing.T) {
 				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": "addPVC",
+				"command": currentalert.AddPVCCommand,
 			},
 		},
 		{
@@ -77,7 +78,7 @@ func Test_alertFilter(t *testing.T) {
 				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": "upScale",
+				"command": currentalert.UpScaleCommand,
 			},
 		},
 		{
@@ -85,7 +86,7 @@ func Test_alertFilter(t *testing.T) {
 				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": "downScale",
+				"command": currentalert.DownScaleCommand,
 			},
 		},
 	}
