@@ -40,6 +40,24 @@ type disableScaling struct {
 	Down bool
 }
 
+const (
+	// AddPVCCommand command name for addPVC
+	AddPVCCommand = "addPVC"
+	// DownScaleCommand command name for donscale
+	DownScaleCommand = "downScale"
+	// UpScaleCommand command name for ipscale
+	UpScaleCommand = "upScale"
+)
+
+// GetCommandList returns list of supported commands
+func GetCommandList() []string {
+	return []string{
+		AddPVCCommand,
+		DownScaleCommand,
+		UpScaleCommand,
+	}
+}
+
 func (e *examiner) getCR() (*v1beta1.KafkaCluster, *ccConfig, error) {
 	cr, err := k8sutil.GetCr(string(e.Alert.Labels["kafka_cr"]), string(e.Alert.Labels["namespace"]), e.Client)
 	if err != nil {
@@ -89,16 +107,21 @@ func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 
 func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 
-	if err := e.Alert.validateAlert(); err != nil {
-		return false, err
-	}
 	switch e.Alert.Annotations["command"] {
-	case "addPVC":
+	case AddPVCCommand:
+		validators := AlertValidators{newAddPVCValidator(e.Alert)}
+		if err := validators.ValidateAlert(); err != nil {
+			return false, err
+		}
 		err := addPVC(e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
 			return false, err
 		}
-	case "downScale":
+	case DownScaleCommand:
+		validators := AlertValidators{newDownScaleValidator(e.Alert)}
+		if err := validators.ValidateAlert(); err != nil {
+			return false, err
+		}
 		if ds.Down {
 			e.Log.Info("downscale is skipped due to downscale limit")
 			return true, nil
@@ -109,7 +132,11 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		}
 
 		return true, nil
-	case "upScale":
+	case UpScaleCommand:
+		validators := AlertValidators{newUpScaleValidator(e.Alert)}
+		if err := validators.ValidateAlert(); err != nil {
+			return false, err
+		}
 		if ds.Up {
 			e.Log.Info("upscale is skipped due to upscale limit")
 			return true, nil

@@ -49,18 +49,17 @@ func Dispatcher(promAlerts []model.Alert, log logr.Logger, client client.Client)
 }
 
 func alertFilter(promAlerts []model.Alert) []model.Alert {
-
+	supportedCommandList := currentalert.GetCommandList()
 	filteredAlerts := []model.Alert{}
 	for _, alert := range promAlerts {
-		labelKafkaCR := false
-		if _, labelOk := alert.Labels["kafka_cr"]; labelOk {
-			labelKafkaCR = true
-		}
-		if label, labelOk := alert.Labels["alertGroup"]; (labelOk && label == "kafka") || labelKafkaCR {
-			if _, annotationOK := alert.Annotations["command"]; annotationOK {
-				filteredAlerts = append(filteredAlerts, alert)
+		if annotation, annotationOK := alert.Annotations["command"]; annotationOK {
+			for _, command := range supportedCommandList {
+				if string(annotation) == command {
+					filteredAlerts = append(filteredAlerts, alert)
+				}
 			}
 		}
 	}
+
 	return filteredAlerts
 }

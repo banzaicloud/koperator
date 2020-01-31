@@ -18,7 +18,6 @@ import (
 	"errors"
 	"sync"
 
-	emperror "emperror.dev/errors"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -151,22 +150,4 @@ func (a *currentAlerts) GetRollingUpgradeAlertCount() int {
 		}
 	}
 	return alertCount
-}
-
-func (ca *currentAlertStruct) validateAlert() error {
-	pvcLabel := checkLabelExists(ca.Labels, "persistentvolumeclaim")
-	kafkaLabel := checkLabelExists(ca.Labels, "kafka_cr")
-	if pvcLabel || kafkaLabel {
-		return nil
-	}
-
-	return emperror.New("required labels aren't set")
-}
-
-func checkLabelExists(labelSet model.LabelSet, label model.LabelName) bool {
-	if _, labelOK := labelSet[label]; labelOK {
-		return true
-	}
-
-	return false
 }

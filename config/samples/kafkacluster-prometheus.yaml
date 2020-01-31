@@ -117,7 +117,7 @@ spec:
       expr: min(kafka_server_replicamanager_partitioncount)  by (namespace, kafka_cr) < 40
       for: 3m
       labels:
-        severity: alerta
+        severity: alert
         alertGroup: kafka
       annotations:
         description: 'broker {{ $labels.brokerId }} has low partition count'
