@@ -33,7 +33,7 @@ func (a addPVCValidator) validateAlert() error {
 		return emperror.New("persistentvolumeclaim label doesn't exist")
 	}
 	if a.Alert.Annotations["command"] != AddPVCCommand {
-		return emperror.NewWithDetails("unsupported command", "comand", a.Alert.Annotations["command"])
+		return emperror.NewWithDetails("unsupported command", "command", a.Alert.Annotations["command"])
 	}
 
 	return nil

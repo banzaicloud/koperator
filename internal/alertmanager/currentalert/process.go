@@ -29,6 +29,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
+	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -42,8 +43,8 @@ type disableScaling struct {
 }
 
 const (
-	// AddPVCCommand command name for addPVC
-	AddPVCCommand = "addPVC"
+	// AddPVCCommand command name for addPvc
+	AddPVCCommand = "addPvc"
 	// DownScaleCommand command name for donscale
 	DownScaleCommand = "downScale"
 	// UpScaleCommand command name for ipscale
@@ -58,18 +59,35 @@ func GetCommandList() []string {
 		UpScaleCommand,
 	}
 }
-
-func (e *examiner) getCR() (*v1beta1.KafkaCluster, error) {
-	cr, err := k8sutil.GetCr(string(e.Alert.Labels["kafka_cr"]), string(e.Alert.Labels["namespace"]), e.Client)
-	if err != nil {
-		return nil, err
+func (e *examiner) getKafkaCr() (*v1beta1.KafkaCluster, error) {
+	var cr *v1beta1.KafkaCluster
+	if kafkaCr, ok := e.Alert.Labels["kafka_cr"]; ok {
+		var err error
+		cr, err = k8sutil.GetCr(string(kafkaCr), string(e.Alert.Labels["namespace"]), e.Client)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// If kafka_cr is not a valid alert label, try to get it from the persistenvolumeclaim
+		if pvcName, ok := e.Alert.Labels["persistenvolumeclaim"]; ok {
+			pvc, err := k8sutil.GetCr(string(pvcName), string(e.Alert.Labels["namespace"]), e.Client)
+			if err != nil {
+				return nil, err
+			}
+			kafkaCr = model.LabelValue(pvc.Labels["kafka_cr"])
+			cr, err = k8sutil.GetCr(string(kafkaCr), string(e.Alert.Labels["namespace"]), e.Client)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
+
 	return cr, nil
 }
 
 func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 
-	cr, err := e.getCR()
+	cr, err := e.getKafkaCr()
 	if err != nil {
 		return false, err
 	}
@@ -103,7 +121,7 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		if err := validators.ValidateAlert(); err != nil {
 			return false, err
 		}
-		err := addPVC(e.Log, e.Alert.Labels, e.Alert.Annotations, e.Client)
+		err := addPvc(e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
 			return false, err
 		}
@@ -141,25 +159,25 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 	return false, nil
 }
 
-func addPVC(log logr.Logger, labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
+func addPvc(alertLabels model.LabelSet, alertAnnotations model.LabelSet, client client.Client) error {
 	var storageClassName *string
 
-	if annotations["storageClass"] != "" {
-		storageClassName = util.StringPointer(string(annotations["storageClass"]))
+	if alertAnnotations["storageClass"] != "" {
+		storageClassName = util.StringPointer(string(alertAnnotations["storageClass"]))
 	}
 
-	pvc, err := getPvc(string(labels["persistentvolumeclaim"]), string(labels["namespace"]), client)
+	pvc, err := getPvc(string(alertLabels["persistentvolumeclaim"]), string(alertLabels["namespace"]), client)
 	if err!= nil {
 		return err
 	}
 
-	randomString, err := getRandomString(6)
+	randomIdentifier, err := getRandomString(6)
 	if err != nil {
 		return err
 	}
 
 	storageConfig := v1beta1.StorageConfig{
-    	MountPath: pvc.Annotations["mountPath"] + "-" + randomString,
+    	MountPath: pvc.Annotations["mountPath"] + "-" + randomIdentifier,
     	PVCSpec: &corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,
@@ -167,14 +185,14 @@ func addPVC(log logr.Logger, labels model.LabelSet, annotations model.LabelSet, 
 			StorageClassName: storageClassName,
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					"storage": resource.MustParse(string(annotations["diskSize"])),
+					"storage": resource.MustParse(string(alertAnnotations["diskSize"])),
 				},
 			},
 	}}
 
-	log.Info("the following storageConfig was determined %+v", &storageConfig)
+	log.Info(fmt.Sprintf("the following storageConfig was determined %+v", &storageConfig))
 
-	err = k8sutil.AddPvToSpecificBroker(pvc.Labels["brokerId"], pvc.Labels["kafka_cr"], string(labels["namespace"]), &storageConfig, client)
+	err = k8sutil.AddPvToSpecificBroker(pvc.Labels["brokerId"], pvc.Labels["kafka_cr"], pvc.Labels["namespace"], &storageConfig, client)
 	if err != nil {
 		return err
 	}

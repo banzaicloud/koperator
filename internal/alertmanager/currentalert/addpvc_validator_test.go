@@ -30,7 +30,7 @@ func TestAddPVCValidator_validateAlert(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "addPVC validate success",
+			name: "addPvc validate success",
 			fields: fields{
 				Alert: &currentAlertStruct{
 					Labels: model.LabelSet{
@@ -43,7 +43,7 @@ func TestAddPVCValidator_validateAlert(t *testing.T) {
 			},
 		},
 		{
-			name: "addPVC validate failed due to missing label",
+			name: "addPvc validate failed due to missing label",
 			fields: fields{
 				Alert: &currentAlertStruct{
 					Labels: model.LabelSet{
@@ -57,7 +57,7 @@ func TestAddPVCValidator_validateAlert(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "addPVC validate failed due to unsupported command",
+			name: "addPvc validate failed due to unsupported command",
 			fields: fields{
 				Alert: &currentAlertStruct{
 					Labels: model.LabelSet{

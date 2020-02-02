@@ -27,7 +27,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "addPVC validate success",
+			name: "addPvc validate success",
 			v: AlertValidators{
 				addPVCValidator{
 					Alert: &currentAlertStruct{
@@ -42,7 +42,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 			},
 		},
 		{
-			name: "addPVC validate failed due to missing label",
+			name: "addPvc validate failed due to missing label",
 			v: AlertValidators{
 				addPVCValidator{
 					Alert: &currentAlertStruct{
@@ -58,7 +58,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "addPVC validate failed due to unsupported command",
+			name: "addPvc validate failed due to unsupported command",
 			v: AlertValidators{
 				addPVCValidator{
 					Alert: &currentAlertStruct{
