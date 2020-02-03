@@ -79,9 +79,6 @@ func Test_addPvc(t *testing.T) {
 			}
 
 			brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
-			if brokerStorageConfig == nil {
-				t.Errorf("BrokerConfig of updated broker should not be nil")
-			}
 
 			if brokerStorageConfig.MountPath == string(testAlerts[0].alert.Annotations["mountPah"]) {
 				t.Error("Broker storage config mountpath should not be the same as the original")

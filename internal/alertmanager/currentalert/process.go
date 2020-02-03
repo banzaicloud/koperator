@@ -20,11 +20,6 @@ import (
 	"strconv"
 
 	"emperror.dev/errors"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
-	"github.com/banzaicloud/kafka-operator/pkg/scale"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/model"
@@ -32,6 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
+	"github.com/banzaicloud/kafka-operator/pkg/scale"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 type disableScaling struct {
@@ -47,7 +48,7 @@ const (
 	// UpScaleCommand command name for ipscale
 	UpScaleCommand = "upScale"
 	// ResizePvcCommand command name for resizePvc
-	ResizePvcCommand= "resizePvc"
+	ResizePvcCommand = "resizePvc"
 )
 
 // GetCommandList returns list of supported commands
@@ -180,7 +181,7 @@ func addPvc(alertLabels model.LabelSet, alertAnnotations model.LabelSet, client 
 	}
 
 	pvc, err := getPvc(string(alertLabels["persistentvolumeclaim"]), string(alertLabels["namespace"]), client)
-	if err!= nil {
+	if err != nil {
 		return err
 	}
 
@@ -190,8 +191,8 @@ func addPvc(alertLabels model.LabelSet, alertAnnotations model.LabelSet, client 
 	}
 
 	storageConfig := v1beta1.StorageConfig{
-    	MountPath: pvc.Annotations["mountPath"] + "-" + randomIdentifier,
-    	PVCSpec: &corev1.PersistentVolumeClaimSpec{
+		MountPath: pvc.Annotations["mountPath"] + "-" + randomIdentifier,
+		PVCSpec: &corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,
 			},
@@ -201,7 +202,7 @@ func addPvc(alertLabels model.LabelSet, alertAnnotations model.LabelSet, client 
 					"storage": resource.MustParse(string(alertAnnotations["diskSize"])),
 				},
 			},
-	}}
+		}}
 
 	log.Info(fmt.Sprintf("the following storageConfig was determined %+v", &storageConfig))
 
