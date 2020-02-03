@@ -54,9 +54,9 @@ func Test_addPvc(t *testing.T) {
 					"persistentvolumeclaim": "testPvc",
 				},
 				Annotations: model.LabelSet{
-					"command":   "addPvc",
+					"command":         "addPvc",
 					"mountPathPrefix": "/kafka-logs",
-					"diskSize":  "2G",
+					"diskSize":        "2G",
 				},
 			},
 			wantErr: false,
