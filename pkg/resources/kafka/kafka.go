@@ -677,19 +677,21 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 	if time.Now().Sub(parsedTime).Minutes() < r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
 		finished, err := scale.CheckIfCCTaskFinished(brokerState.GracefulActionState.CruiseControlTaskId,
 			r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
-		if err != nil {
+		if err != nil && !errors.As(errors.Cause(err), &errorfactory.CruiseControlTaskNotExists{}) {
 			log.Info(fmt.Sprintf("Cruise control communication error checking running task: %s", brokerState.GracefulActionState.CruiseControlTaskId))
 			return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 		}
-		if !finished {
-			err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
-				v1beta1.GracefulActionState{TaskStarted: brokerState.GracefulActionState.TaskStarted,
-					CruiseControlTaskId: brokerState.GracefulActionState.CruiseControlTaskId,
-					CruiseControlState:  brokerState.GracefulActionState.CruiseControlState,
+		if errors.As(errors.Cause(err), &errorfactory.CruiseControlTaskNotExists{}) {
+			log.Error(err, "Retrying in CC")
+			err := k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+				v1beta1.GracefulActionState{
+					CruiseControlState: v1beta1.GracefulUpdateRequired,
 				}, log)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(brokerIds, ","))
 			}
+		}
+		if !finished {
 			log.Info(fmt.Sprintf("Cruise control task: %s is still running", brokerState.GracefulActionState.CruiseControlTaskId))
 			return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("cc task is still running"), fmt.Sprintf("cc task id: %s", brokerState.GracefulActionState.CruiseControlTaskId))
 		}

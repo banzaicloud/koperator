@@ -38,6 +38,7 @@ var errorTypes = []error{
 	FatalReconcileError{},
 	CruiseControlNotReady{},
 	CruiseControlTaskRunning{},
+	CruiseControlTaskNotExists{},
 }
 
 func TestNew(t *testing.T) {

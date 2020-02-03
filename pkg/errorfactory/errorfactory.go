@@ -64,6 +64,9 @@ type CruiseControlNotReady struct{ error }
 // CruiseControlTaskRunning states that CC task is still running
 type CruiseControlTaskRunning struct{ error }
 
+// CruiseControlTaskNotExists states that the given CC task is not exists in CC
+type CruiseControlTaskNotExists struct{ error }
+
 // New creates a new error factory error
 func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 	wrapped := errors.WrapIfWithDetails(err, msg, wrapArgs...)
@@ -100,6 +103,8 @@ func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 		return CruiseControlNotReady{wrapped}
 	case CruiseControlTaskRunning:
 		return CruiseControlTaskRunning{wrapped}
+	case CruiseControlTaskNotExists:
+		return CruiseControlTaskNotExists{wrapped}
 	}
 	return wrapped
 }
