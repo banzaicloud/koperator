@@ -127,7 +127,9 @@ type CruiseControlConfig struct {
 // CruiseControlTaskSpec specifies the configuration of the CC Tasks
 type CruiseControlTaskSpec struct {
 	// RetryDurationMinutes describes the amount of time the Operator waits for the task
-	RetryDurationMinutes int `json:"RetryDurationMinutes"`
+	RetryDurationMinutes int `json:"retryDurationMinutes"`
+	// DownScaleRetryDurationMinutes describes the amount of time the Operator waits during a downscale task
+	DownScaleRetryDurationMinutes int `json:"downScaleRetryDurationMinutes,omitempty"`
 }
 
 // TopicConfig holds info for topic configuration regarding partitions and replicationFactor
@@ -304,11 +306,20 @@ func (kSpec *KafkaClusterSpec) GetZkPath() string {
 	}
 }
 
+// GetDurationMinutes returns the default 15m value if RetryDurationMinutes not specified
 func (cTaskSpec *CruiseControlTaskSpec) GetDurationMinutes() float64 {
 	if cTaskSpec.RetryDurationMinutes == 0 {
-		return 5
+		return 15
 	}
 	return float64(cTaskSpec.RetryDurationMinutes)
+}
+
+// GetDownscaleDurationMinutes returns the default infinite value if DownScaleRetryDurationMinutes not specified
+func (cTaskSpec *CruiseControlTaskSpec) GetDownscaleDurationMinutes() float64 {
+	if cTaskSpec.DownScaleRetryDurationMinutes <= 0 {
+		return -1
+	}
+	return float64(cTaskSpec.DownScaleRetryDurationMinutes)
 }
 
 //GetInitContainerImage returns the Init container image to use for CruiseControl

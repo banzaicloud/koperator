@@ -674,7 +674,22 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 	if err != nil {
 		return errors.WrapIf(err, "could not parse timestamp")
 	}
-	if time.Now().Sub(parsedTime).Minutes() < r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
+
+	//Check if we still need to wait for the task
+	stillWait := true
+	switch cruiseControlState {
+	case v1beta1.GracefulDownscaleSucceeded:
+		if r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDownscaleDurationMinutes() > -1 &&
+			time.Now().Sub(parsedTime).Minutes() > r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDownscaleDurationMinutes() {
+			stillWait = false
+		}
+	case v1beta1.GracefulUpscaleSucceeded:
+		if time.Now().Sub(parsedTime).Minutes() > r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
+			stillWait = false
+		}
+	}
+
+	if stillWait {
 		finished, err := scale.CheckIfCCTaskFinished(brokerState.GracefulActionState.CruiseControlTaskId,
 			r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 		if err != nil && !errors.As(errors.Cause(err), &errorfactory.CruiseControlTaskNotExists{}) {

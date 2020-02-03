@@ -964,12 +964,16 @@ spec:
                   description: CruiseControlTaskSpec specifies the configuration of
                     the CC Tasks
                   properties:
-                    RetryDurationMinutes:
+                    downScaleRetryDurationMinutes:
+                      description: DownScaleRetryDurationMinutes describes the amount
+                        of time the Operator waits during a downscale task
+                      type: integer
+                    retryDurationMinutes:
                       description: RetryDurationMinutes describes the amount of time
                         the Operator waits for the task
                       type: integer
                   required:
-                  - RetryDurationMinutes
+                  - retryDurationMinutes
                   type: object
                 image:
                   type: string

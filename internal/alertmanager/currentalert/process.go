@@ -240,7 +240,3 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 	}
 	return nil
 }
-
-//func (c *ccConfig) getCruiseControlStatus() error {
-//	return scale.GetCruiseControlStatus(c.Namespace, c.CruiseControlEndpoint, c.Name)
-//}
