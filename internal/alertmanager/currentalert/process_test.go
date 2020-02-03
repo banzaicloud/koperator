@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func Test_addPvc(t *testing.T) {
@@ -54,7 +55,7 @@ func Test_addPvc(t *testing.T) {
 				},
 				Annotations: model.LabelSet{
 					"command":   "addPvc",
-					"mountPath": "/kafka-logs",
+					"mountPathPrefix": "/kafka-logs",
 					"diskSize":  "2G",
 				},
 			},
@@ -64,7 +65,7 @@ func Test_addPvc(t *testing.T) {
 
 	for _, tt := range testAlerts {
 		t.Run(tt.name, func(t *testing.T) {
-			err := addPvc(tt.alert.Labels, tt.alert.Annotations, testClient)
+			err := addPvc(logf.NullLogger{}, tt.alert.Labels, tt.alert.Annotations, testClient)
 			if err != nil {
 				t.Errorf("process.addPvc() error = %v, wantErr = %v", err, tt.wantErr)
 			}
@@ -80,8 +81,8 @@ func Test_addPvc(t *testing.T) {
 
 			brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
 
-			if brokerStorageConfig.MountPath == string(testAlerts[0].alert.Annotations["mountPah"]) {
-				t.Error("Broker storage config mountpath should not be the same as the original")
+			if brokerStorageConfig.MountPath == string(testAlerts[0].alert.Annotations["mountPathPrefix"]) {
+				t.Error("Broker storage config mountpath should not be the same as the original mountPathPrefix")
 			}
 
 			storageRequest := brokerStorageConfig.PvcSpec.Resources.Requests["storage"]
