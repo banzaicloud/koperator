@@ -23,6 +23,9 @@ type CruiseControlState string
 // CruiseControlTopicStatus holds info about the CC topic status
 type CruiseControlTopicStatus string
 
+// CruiseControlUserTaskState holds info about the CC user task state
+type CruiseControlUserTaskState string
+
 // ClusterState holds info about the cluster state
 type ClusterState string
 
@@ -82,6 +85,16 @@ const (
 	CruiseControlTopicNotReady CruiseControlTopicStatus = "CruiseControlTopicNotReady"
 	// CruiseControlTopicReady states the CC required topic is created
 	CruiseControlTopicReady CruiseControlTopicStatus = "CruiseControlTopicReady"
+	// CruiseControlTaskActive states the CC task is scheduled but not yet running
+	CruiseControlTaskActive CruiseControlUserTaskState = "Active"
+	// CruiseControlTaskNotFound states the CC task is not found (can happen when CC is restarted during operation)
+	CruiseControlTaskNotFound CruiseControlUserTaskState = "NotFound"
+	// CruiseControlTaskInExecution states the CC task is executing
+	CruiseControlTaskInExecution CruiseControlUserTaskState = "InExecution"
+	// CruiseControlTaskCompleted states the CC task compeleted successfully
+	CruiseControlTaskCompleted CruiseControlUserTaskState = "Completed"
+	// CruiseControlTaskCompletedWithError states the CC task completed with error
+	CruiseControlTaskCompletedWithError CruiseControlUserTaskState = "CompletedWithError"
 	// KafkaClusterReconciling states that the cluster is still in reconciling stage
 	KafkaClusterReconciling ClusterState = "ClusterReconciling"
 	// KafkaClusterRollingUpgrading states that the cluster is rolling upgrading

@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -378,7 +379,7 @@ func KillCCTask(namespace, ccEndpoint, clusterName string) error {
 }
 
 // CheckIfCCTaskFinished checks whether the given CC Task ID finished or not
-func CheckIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName string) (bool, error) {
+func GetCCTaskState(uTaskId, namespace, ccEndpoint, clusterName string) (v1beta1.CruiseControlUserTaskState, error) {
 
 	gResp, err := getCruiseControl(getTaskListAction, namespace, map[string]string{
 		"json":          "true",
@@ -386,41 +387,41 @@ func CheckIfCCTaskFinished(uTaskId, namespace, ccEndpoint, clusterName string) (
 	}, ccEndpoint, clusterName)
 	if err != nil {
 		log.Error(err, "can't get task list from cruise-control")
-		return false, err
+		return "", err
 	}
 
 	var taskLists struct {
 		UserTasks []struct {
-			Status string
+			Status     string
+			UserTaskId string
 		}
 	}
 
 	body, err := ioutil.ReadAll(gResp.Body)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 
 	err = gResp.Body.Close()
 	if err != nil {
-		return false, err
+		return "", err
 	}
 
 	err = json.Unmarshal(body, &taskLists)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 	// No cc task found with this UID
 	if len(taskLists.UserTasks) == 0 {
-		//TODO initiate a new task in CC for graceful operation
-		return false, nil
+		return v1beta1.CruiseControlTaskNotFound, nil
 	}
 
 	for _, task := range taskLists.UserTasks {
-		if task.Status != "Completed" {
-			log.Info("Cruise control task  still running", "taskID", uTaskId)
-			return false, nil
+		if task.UserTaskId == uTaskId {
+			log.Info("Cruise control task state", "state", task.Status, "taskID", uTaskId)
+			return v1beta1.CruiseControlUserTaskState(task.Status), nil
 		}
 	}
-	log.Info("Cruise control task finished", "taskID", uTaskId)
-	return true, nil
+	log.Info("Cruise control task not found", "taskID", uTaskId)
+	return v1beta1.CruiseControlTaskNotFound, nil
 }

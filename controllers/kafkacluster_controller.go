@@ -148,6 +148,14 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 				return ctrl.Result{
 					RequeueAfter: time.Duration(20) * time.Second,
 				}, nil
+			case errorfactory.CruiseControlTaskTimeout:
+				return ctrl.Result{
+					RequeueAfter: time.Duration(20) * time.Second,
+				}, nil
+			case errorfactory.CruiseControlTaskFailure:
+				return ctrl.Result{
+					RequeueAfter: time.Duration(20) * time.Second,
+				}, nil
 			default:
 				return requeueWithError(log, err.Error(), err)
 			}
