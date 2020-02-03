@@ -135,7 +135,7 @@ spec:
         storageClass: 'standard'
         mountPath: '/kafkalog'
         diskSize: '2G'
-        command: 'addPVC'
+        command: 'addPvc'
 ---
 apiVersion: v1
 kind: ServiceAccount

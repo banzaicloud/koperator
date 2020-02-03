@@ -84,7 +84,7 @@ func Test_addPvc(t *testing.T) {
 				t.Error("Broker storage config mountpath should not be the same as the original")
 			}
 
-			storageRequest := brokerStorageConfig.PVCSpec.Resources.Requests["storage"]
+			storageRequest := brokerStorageConfig.PvcSpec.Resources.Requests["storage"]
 			if storageRequest.String() !=
 				string(testAlerts[0].alert.Annotations["diskSize"]) {
 				t.Error("Broker storage config memory request should be same as in the alert")
@@ -125,7 +125,7 @@ func setupEnvironment(t *testing.T, testClient client.Client) error {
 					StorageConfigs: []v1beta1.StorageConfig{
 						{
 							MountPath: "/kafka-logs",
-							PVCSpec: &corev1.PersistentVolumeClaimSpec{
+							PvcSpec: &corev1.PersistentVolumeClaimSpec{
 								AccessModes: []corev1.PersistentVolumeAccessMode{
 									"ReadWriteOnce",
 								},

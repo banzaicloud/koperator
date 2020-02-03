@@ -20,7 +20,7 @@ import (
 	"github.com/prometheus/common/model"
 )
 
-func TestAddPVCValidator_validateAlert(t *testing.T) {
+func TestAddPvcValidator_validateAlert(t *testing.T) {
 	type fields struct {
 		Alert *currentAlertStruct
 	}
@@ -37,7 +37,7 @@ func TestAddPVCValidator_validateAlert(t *testing.T) {
 						"persistentvolumeclaim": "test-pvc",
 					},
 					Annotations: model.LabelSet{
-						"command": AddPVCCommand,
+						"command": AddPvcCommand,
 					},
 				},
 			},
@@ -50,7 +50,7 @@ func TestAddPVCValidator_validateAlert(t *testing.T) {
 						"persistentvolumeclaim_missing": "test-pvc",
 					},
 					Annotations: model.LabelSet{
-						"command": AddPVCCommand,
+						"command": AddPvcCommand,
 					},
 				},
 			},
@@ -78,11 +78,11 @@ func TestAddPVCValidator_validateAlert(t *testing.T) {
 		tt := tt
 
 		t.Run(tt.name, func(t *testing.T) {
-			a := addPVCValidator{
+			a := addPvcValidator{
 				Alert: tt.fields.Alert,
 			}
 			if err := a.validateAlert(); (err != nil) != tt.wantErr {
-				t.Errorf("addPVCValidator.validateAlert() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("addPvcValidator.validateAlert() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

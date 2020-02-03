@@ -18,21 +18,21 @@ import (
 	emperror "emperror.dev/errors"
 )
 
-type addPVCValidator struct {
+type addPvcValidator struct {
 	Alert *currentAlertStruct
 }
 
-func newAddPVCValidator(curerentAlert *currentAlertStruct) addPVCValidator {
-	return addPVCValidator{
+func newAddPvcValidator(curerentAlert *currentAlertStruct) addPvcValidator {
+	return addPvcValidator{
 		Alert: curerentAlert,
 	}
 }
 
-func (a addPVCValidator) validateAlert() error {
+func (a addPvcValidator) validateAlert() error {
 	if !checkLabelExists(a.Alert.Labels, "persistentvolumeclaim") {
 		return emperror.New("persistentvolumeclaim label doesn't exist")
 	}
-	if a.Alert.Annotations["command"] != AddPVCCommand {
+	if a.Alert.Annotations["command"] != AddPvcCommand {
 		return emperror.NewWithDetails("unsupported command", "command", a.Alert.Annotations["command"])
 	}
 

@@ -196,7 +196,7 @@ func GetBrokerImage(brokerConfig *v1beta1.BrokerConfig, clusterImage string) str
 }
 
 // getRandomString returns a random string containing uppercase, lowercase and number characters with the length given
-func GetRandomString(length int) (string, error){
+func GetRandomString(length int) (string, error) {
 	rand.Seed(time.Now().UnixNano())
 
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
