@@ -716,22 +716,22 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 		}
 		log.Info(fmt.Sprintf("Cruise control task: %s is still running", brokerState.GracefulActionState.CruiseControlTaskId))
 		return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("cc task is still running"), fmt.Sprintf("cc task id: %s", brokerState.GracefulActionState.CruiseControlTaskId))
-	} else {
-		log.Info(fmt.Sprintf("Killing Cruise control task: %s", brokerState.GracefulActionState.CruiseControlTaskId))
-		err := scale.KillCCTask(r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
-		if err != nil {
-			return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
-		}
-		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
-			v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed,
-				ErrorMessage: "Timed out waiting for the task to complete",
-				TaskStarted:  brokerState.GracefulActionState.TaskStarted,
-			}, log)
-		if err != nil {
-			return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(brokerIds, ","))
-		}
-		return errorfactory.New(errorfactory.CruiseControlTaskTimeout{}, errors.New("cc task timed out"), fmt.Sprintf("cc task id: %s", brokerState.GracefulActionState.CruiseControlTaskId))
 	}
+	// task timed out
+	log.Info(fmt.Sprintf("Killing Cruise control task: %s", brokerState.GracefulActionState.CruiseControlTaskId))
+	err = scale.KillCCTask(r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+	if err != nil {
+		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
+	}
+	err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+		v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed,
+			ErrorMessage: "Timed out waiting for the task to complete",
+			TaskStarted:  brokerState.GracefulActionState.TaskStarted,
+		}, log)
+	if err != nil {
+		return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(brokerIds, ","))
+	}
+	return errorfactory.New(errorfactory.CruiseControlTaskTimeout{}, errors.New("cc task timed out"), fmt.Sprintf("cc task id: %s", brokerState.GracefulActionState.CruiseControlTaskId))
 }
 
 func isPodHealthy(pod *corev1.Pod) bool {
