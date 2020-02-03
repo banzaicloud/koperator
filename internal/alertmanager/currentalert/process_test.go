@@ -26,14 +26,79 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func Test_addPvc(t *testing.T) {
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 
-	//Setup kafkacluster and pvc
-	//TODO separate to different method
+	//Setup test kafka cluster and pvc
+	err := setupEnvironment(t, testClient)
+	if err != nil {
+		t.Error(err)
+	}
+
+	testAlerts := []struct {
+		name    string
+		alert   model.Alert
+		wantErr bool
+	}{
+		{
+			name: "addPvc alert success",
+			alert: model.Alert{
+				Labels: model.LabelSet{
+					"kafka_cr":              "kafka",
+					"namespace":             "kafka",
+					"persistentvolumeclaim": "testPvc",
+				},
+				Annotations: model.LabelSet{
+					"command":   "addPvc",
+					"mountPath": "/kafka-logs",
+					"diskSize":  "2G",
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range testAlerts {
+		t.Run(tt.name, func(t *testing.T) {
+			err := addPvc(tt.alert.Labels, tt.alert.Annotations, testClient)
+			if err != nil {
+				t.Errorf("process.addPvc() error = %v, wantErr = %v", err, tt.wantErr)
+			}
+
+			var kafkaCluster v1beta1.KafkaCluster
+			err = testClient.Get(
+				context.Background(),
+				types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: kafkaCluster.Name},
+				&kafkaCluster)
+			if err != nil {
+				t.Errorf("kafka cr was not found, error = %v", err)
+			}
+
+			brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
+			if brokerStorageConfig == nil {
+				t.Errorf("BrokerConfig of updated broker should not be nil")
+			}
+
+			if brokerStorageConfig.MountPath == string(testAlerts[0].alert.Annotations["mountPah"]) {
+				t.Error("Broker storage config mountpath should not be the same as the original")
+			}
+
+			storageRequest := brokerStorageConfig.PVCSpec.Resources.Requests["storage"]
+			if storageRequest.String() !=
+				string(testAlerts[0].alert.Annotations["diskSize"]) {
+				t.Error("Broker storage config memory request should be same as in the alert")
+			}
+		})
+	}
+
+}
+
+func setupEnvironment(t *testing.T, testClient client.Client) error {
+
 	storageResourceQuantity, err := resource.ParseQuantity("10Gi")
 	if err != nil {
 		t.Error(err)
@@ -79,6 +144,7 @@ func Test_addPvc(t *testing.T) {
 			},
 		},
 	})
+
 	if err != nil {
 		t.Error(err)
 	}
@@ -100,89 +166,6 @@ func Test_addPvc(t *testing.T) {
 			StorageClassName: util.StringPointer("gp2"),
 		},
 	})
-	if err != nil {
-		t.Error(err)
-	}
 
-	testAlerts := []struct {
-		name    string
-		alert   model.Alert
-		wantErr bool
-	}{
-		{
-			name: "addPvc alert success",
-			alert: model.Alert{
-				Labels: model.LabelSet{
-					"kafka_cr":              "kafka",
-					"namespace":             "kafka",
-					"persistentvolumeclaim": "testPvc",
-				},
-				Annotations: model.LabelSet{
-					"command":   "addPvc",
-					"mountPath": "/kafka-logs",
-					"diskSize":  "2G",
-				},
-			},
-			wantErr: false,
-		},
-		//{
-		//	name: "addPvc failed because persistentvolumeclaim label is missing",
-		//	alert: model.Alert{
-		//		Labels: model.LabelSet{
-		//			"kafka_cr":  "kafka",
-		//			"namespace": "kafka",
-		//		},
-		//		Annotations: model.LabelSet{
-		//			"command":   "addPvc",
-		//			"mountPath": "/kafka-logs",
-		//			"diskSize":  "2G",
-		//		},
-		//	},
-		//	wantErr: true,
-		//},
-	}
-
-	for _, tt := range testAlerts {
-		//TODO check stuff got into kafkacluster
-		t.Run(tt.name, func(t *testing.T) {
-			err := addPvc(tt.alert.Labels, tt.alert.Annotations, testClient)
-			if err != nil {
-				t.Errorf("process.addPvc() error = %v, wantErr = %v", err, tt.wantErr)
-			}
-
-			var kafkaCluster v1beta1.KafkaCluster
-			err = testClient.Get(
-				context.Background(),
-				types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: kafkaCluster.Name},
-				&kafkaCluster)
-			if err != nil {
-				t.Errorf("kafka cr was not found, error = %v", err)
-			}
-
-			//TODO remove 0 magic number into variable, make more detailed check for storage etc.
-			if kafkaCluster.Spec.Brokers[0].BrokerConfig == nil {
-				t.Errorf("BrokerConfig of updated broker should not be nil, error = %v", err)
-			}
-		})
-	}
-
-}
-
-func TestNewBrokerConnection(t *testing.T) {
-
-	//err := client.Create(context.Background(), &corev1.Namespace{
-	//	ObjectMeta: v1.ObjectMeta{
-	//		Name: "almafa",
-	//	},
-	//})
-	//if err != nil {
-	//	t.Error(err)
-	//}
-	//
-	//var namespaces corev1.NamespaceList
-	//err = client.List(context.Background(), &namespaces)
-	//if err != nil {
-	//	t.Error(err)
-	//}
-
+	return err
 }

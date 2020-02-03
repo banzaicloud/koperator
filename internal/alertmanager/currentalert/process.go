@@ -17,10 +17,7 @@ package currentalert
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"strconv"
-	"strings"
-	"time"
 
 	"emperror.dev/errors"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -49,6 +46,8 @@ const (
 	DownScaleCommand = "downScale"
 	// UpScaleCommand command name for ipscale
 	UpScaleCommand = "upScale"
+	// ResizePvcCommand command name for resizePvc
+	ResizePvcCommand= "resizePvc"
 )
 
 // GetCommandList returns list of supported commands
@@ -57,6 +56,7 @@ func GetCommandList() []string {
 		AddPVCCommand,
 		DownScaleCommand,
 		UpScaleCommand,
+		ResizePvcCommand,
 	}
 }
 func (e *examiner) getKafkaCr() (*v1beta1.KafkaCluster, error) {
@@ -125,6 +125,19 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		if err != nil {
 			return false, err
 		}
+
+		return true, nil
+	case ResizePvcCommand:
+		validators := AlertValidators{newResizePvcValidator(e.Alert)}
+		if err := validators.ValidateAlert(); err != nil {
+			return false, err
+		}
+		err := resizePvc(e.Alert.Labels, e.Alert.Annotations, e.Client)
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
 	case DownScaleCommand:
 		validators := AlertValidators{newDownScaleValidator(e.Alert)}
 		if err := validators.ValidateAlert(); err != nil {
@@ -171,7 +184,7 @@ func addPvc(alertLabels model.LabelSet, alertAnnotations model.LabelSet, client 
 		return err
 	}
 
-	randomIdentifier, err := getRandomString(6)
+	randomIdentifier, err := util.GetRandomString(6)
 	if err != nil {
 		return err
 	}
@@ -198,6 +211,12 @@ func addPvc(alertLabels model.LabelSet, alertAnnotations model.LabelSet, client 
 	}
 
 	log.Info(fmt.Sprintf("PV successfully added to broker %s with the following storage configuration: %+v", pvc.Labels["brokerId"], &storageConfig))
+
+	return nil
+}
+
+func resizePvc(labels model.LabelSet, annotiations model.LabelSet, client client.Client) error {
+	//TODO
 
 	return nil
 }
@@ -313,20 +332,4 @@ func getPvc(name, namespace string, client client.Client) (*corev1.PersistentVol
 		return nil, errors.WrapIfWithDetails(err, "could not get PVC from k8s", "PVCName", name, "namespace", namespace)
 	}
 	return cr, nil
-}
-
-// TODO should be moved to a common place
-// getRandomString returns a random string containing uppercase, lowercase and number characters with the length given
-func getRandomString(length int) (string, error){
-	rand.Seed(time.Now().UnixNano())
-
-	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-		"abcdefghijklmnopqrstuvwxyz" +
-		"0123456789")
-
-	var b strings.Builder
-	for i := 0; i < length; i++ {
-		b.WriteRune(chars[rand.Intn(len(chars))])
-	}
-	return b.String(), nil
 }
