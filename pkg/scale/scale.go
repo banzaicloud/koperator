@@ -18,12 +18,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
@@ -378,8 +378,8 @@ func KillCCTask(namespace, ccEndpoint, clusterName string) error {
 	return nil
 }
 
-// CheckIfCCTaskFinished checks whether the given CC Task ID finished or not
-func GetCCTaskState(uTaskId, namespace, ccEndpoint, clusterName string) (v1beta1.CruiseControlUserTaskState, error) {
+// GetCCTaskState checks whether the given CC Task ID finished or not
+func GetCCTaskState(uTaskId, namespace, ccEndpoint, clusterName string) (banzaicloudv1beta1.CruiseControlUserTaskState, error) {
 
 	gResp, err := getCruiseControl(getTaskListAction, namespace, map[string]string{
 		"json":          "true",
@@ -413,15 +413,15 @@ func GetCCTaskState(uTaskId, namespace, ccEndpoint, clusterName string) (v1beta1
 	}
 	// No cc task found with this UID
 	if len(taskLists.UserTasks) == 0 {
-		return v1beta1.CruiseControlTaskNotFound, nil
+		return banzaicloudv1beta1.CruiseControlTaskNotFound, nil
 	}
 
 	for _, task := range taskLists.UserTasks {
 		if task.UserTaskId == uTaskId {
 			log.Info("Cruise control task state", "state", task.Status, "taskID", uTaskId)
-			return v1beta1.CruiseControlUserTaskState(task.Status), nil
+			return banzaicloudv1beta1.CruiseControlUserTaskState(task.Status), nil
 		}
 	}
 	log.Info("Cruise control task not found", "taskID", uTaskId)
-	return v1beta1.CruiseControlTaskNotFound, nil
+	return banzaicloudv1beta1.CruiseControlTaskNotFound, nil
 }
