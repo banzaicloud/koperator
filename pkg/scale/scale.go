@@ -28,20 +28,18 @@ import (
 )
 
 const (
-	basePath                 = "kafkacruisecontrol"
-	removeBrokerAction       = "remove_broker"
-	cruiseControlStateAction = "state"
-	addBrokerAction          = "add_broker"
-	getTaskListAction        = "user_tasks"
-	kafkaClusterStateAction  = "kafka_cluster_state"
-	clusterLoad              = "load"
-	rebalanceAction          = "rebalance"
-	killProposalAction       = "stop_proposal_execution"
-	serviceNameTemplate      = "%s-cruisecontrol-svc"
-	brokerAlive              = "ALIVE"
+	basePath                = "kafkacruisecontrol"
+	removeBrokerAction      = "remove_broker"
+	addBrokerAction         = "add_broker"
+	getTaskListAction       = "user_tasks"
+	kafkaClusterStateAction = "kafka_cluster_state"
+	clusterLoad             = "load"
+	rebalanceAction         = "rebalance"
+	killProposalAction      = "stop_proposal_execution"
+	serviceNameTemplate     = "%s-cruisecontrol-svc"
+	brokerAlive             = "ALIVE"
 )
 
-var errCruiseControlNotReady = errors.New("cruise-control is not ready")
 var errCruiseControlNotReturned200 = errors.New("non 200 response from cruise-control")
 
 var log = logf.Log.WithName("cruise-control-methods")
@@ -89,46 +87,6 @@ func getCruiseControl(action, namespace string, options map[string]string, ccEnd
 	}
 
 	return rsp, nil
-}
-
-func GetCruiseControlStatus(namespace, ccEndpoint, clusterName string) error {
-
-	options := map[string]string{
-		"substates": "ANALYZER",
-		"json":      "true",
-	}
-
-	rsp, err := getCruiseControl(cruiseControlStateAction, namespace, options, ccEndpoint, clusterName)
-	if err != nil {
-		log.Error(err, "can't work with cruise-control because it is not ready")
-		return err
-	}
-	body, err := ioutil.ReadAll(rsp.Body)
-	if err != nil {
-		return err
-	}
-
-	err = rsp.Body.Close()
-	if err != nil {
-		return err
-	}
-
-	var response struct {
-		AnalyzerState struct {
-			IsProposalReady bool
-		}
-	}
-
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return err
-	}
-	if !response.AnalyzerState.IsProposalReady {
-		log.Info("could not handle graceful operation because cruise-control is not ready")
-		return errCruiseControlNotReady
-	}
-
-	return nil
 }
 
 func isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName string) (bool, error) {
@@ -185,11 +143,6 @@ func GetBrokerIDWithLeastPartition(namespace, ccEndpoint, clusterName string) (s
 
 	brokerWithLeastPartition := ""
 
-	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
-	if err != nil {
-		return brokerWithLeastPartition, err
-	}
-
 	options := map[string]string{
 		"json": "true",
 	}
@@ -237,11 +190,6 @@ func GetBrokerIDWithLeastPartition(namespace, ccEndpoint, clusterName string) (s
 // UpScaleCluster upscales Kafka cluster
 func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) (string, string, error) {
 
-	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
-	if err != nil {
-		return "", "", err
-	}
-
 	ready, err := isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName)
 	if err != nil {
 		return "", "", err
@@ -277,11 +225,6 @@ func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) (string
 // DownsizeCluster downscales Kafka cluster
 func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) (string, string, error) {
 
-	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
-	if err != nil {
-		return "", "", err
-	}
-
 	options := map[string]string{
 		"brokerid": brokerId,
 		"dryrun":   "false",
@@ -290,7 +233,7 @@ func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) (strin
 
 	var dResp *http.Response
 
-	dResp, err = postCruiseControl(removeBrokerAction, namespace, options, ccEndpoint, clusterName)
+	dResp, err := postCruiseControl(removeBrokerAction, namespace, options, ccEndpoint, clusterName)
 	if err != nil && err != errCruiseControlNotReturned200 {
 		log.Error(err, "downsize cluster gracefully failed since CC returned non 200")
 		return "", "", err
@@ -309,11 +252,6 @@ func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) (strin
 
 // RebalanceCluster rebalances Kafka cluster using CC
 func RebalanceCluster(namespace, ccEndpoint, clusterName string) (string, error) {
-
-	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
-	if err != nil {
-		return "", err
-	}
 
 	options := map[string]string{
 		"dryrun": "false",
@@ -335,11 +273,6 @@ func RebalanceCluster(namespace, ccEndpoint, clusterName string) (string, error)
 // RunPreferedLeaderElectionInCluster runs leader election in  Kafka cluster using CC
 func RunPreferedLeaderElectionInCluster(namespace, ccEndpoint, clusterName string) (string, error) {
 
-	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
-	if err != nil {
-		return "", err
-	}
-
 	options := map[string]string{
 		"dryrun": "false",
 		"json":   "true",
@@ -360,15 +293,11 @@ func RunPreferedLeaderElectionInCluster(namespace, ccEndpoint, clusterName strin
 
 // KillCCTask kills the specified CC task
 func KillCCTask(namespace, ccEndpoint, clusterName string) error {
-	err := GetCruiseControlStatus(namespace, ccEndpoint, clusterName)
-	if err != nil {
-		return err
-	}
 	options := map[string]string{
 		"json": "true",
 	}
 
-	_, err = postCruiseControl(killProposalAction, namespace, options, ccEndpoint, clusterName)
+	_, err := postCruiseControl(killProposalAction, namespace, options, ccEndpoint, clusterName)
 	if err != nil {
 		log.Error(err, "can't kill running tasks since post to cruise-control failed")
 		return err

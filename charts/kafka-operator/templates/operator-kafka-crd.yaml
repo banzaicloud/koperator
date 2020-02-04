@@ -1299,6 +1299,19 @@ spec:
                   properties:
                     create:
                       type: boolean
+                    issuerRef:
+                      description: ObjectReference is a reference to an object with
+                        a given name, kind and group.
+                      properties:
+                        group:
+                          type: string
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                        - name
+                      type: object
                     jksPasswordName:
                       type: string
                     pkiBackend:
@@ -1310,20 +1323,6 @@ spec:
                       type: string
                     tlsSecretName:
                       type: string
-                    issuerRef:
-                      type: object
-                      description: IssuerRef represents a reference to an Issuer object
-                      required:
-                      - name
-                      - kind
-                      properties:
-                        name:
-                          type: string
-                        kind:
-                          type: string
-                          enum:
-                          - Issuer
-                          - ClusterIssuer
                   required:
                     - jksPasswordName
                     - tlsSecretName
