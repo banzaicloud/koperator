@@ -29,12 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ccConfig struct {
-	Name                  string
-	Namespace             string
-	CruiseControlEndpoint string
-}
-
 type disableScaling struct {
 	Up   bool
 	Down bool
@@ -58,30 +52,19 @@ func GetCommandList() []string {
 	}
 }
 
-func (e *examiner) getCR() (*v1beta1.KafkaCluster, *ccConfig, error) {
+func (e *examiner) getCR() (*v1beta1.KafkaCluster, error) {
 	cr, err := k8sutil.GetCr(string(e.Alert.Labels["kafka_cr"]), string(e.Alert.Labels["namespace"]), e.Client)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	cc := &ccConfig{
-		Name:                  cr.Name,
-		Namespace:             cr.Namespace,
-		CruiseControlEndpoint: cr.Spec.CruiseControlConfig.CruiseControlEndpoint,
-	}
-	return cr, cc, nil
+	return cr, nil
 }
 
 func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 
-	cr, cc, err := e.getCR()
+	cr, err := e.getCR()
 	if err != nil {
 		return false, err
-	}
-
-	if !e.IgnoreCCStatus {
-		if err := cc.getCruiseControlStatus(); err != nil {
-			return false, err
-		}
 	}
 
 	if err := k8sutil.UpdateCrWithRollingUpgrade(rollingUpgradeAlertCount, cr, e.Client); err != nil {
@@ -256,8 +239,4 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 		return err
 	}
 	return nil
-}
-
-func (c *ccConfig) getCruiseControlStatus() error {
-	return scale.GetCruiseControlStatus(c.Namespace, c.CruiseControlEndpoint, c.Name)
 }
