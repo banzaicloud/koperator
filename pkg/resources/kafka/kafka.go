@@ -296,7 +296,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		} else {
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
-				if brokerState.RackAwarenessState == v1beta1.Configured {
+				if brokerState.RackAwarenessState != "" {
 					o := r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
 					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 					if err != nil {
@@ -518,12 +518,6 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, gracefulActionState, log)
 			if statusErr != nil {
 				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
-			}
-		}
-		if r.KafkaCluster.Spec.RackAwareness != nil {
-			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.Configured, log)
-			if statusErr != nil {
-				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker rack state")
 			}
 		}
 

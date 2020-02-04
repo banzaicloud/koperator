@@ -13,10 +13,6 @@ spec:
   clusterImage: "wurstmeister/kafka:2.12-2.3.0"
   readOnlyConfig: |
     auto.create.topics.enable=false
-  rackAwareness:
-    labels:
-      - failure-domain.beta.kubernetes.io/region
-      - failure-domain.beta.kubernetes.io/zone
   brokerConfigGroups:
     default:
       storageConfigs:
