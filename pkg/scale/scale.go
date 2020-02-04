@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -67,7 +68,7 @@ func postCruiseControl(action, namespace string, options map[string]string, ccEn
 	}
 	if rsp.StatusCode != 200 && rsp.StatusCode != 202 {
 		log.Error(errors.New("Non 200 response from cruise-control: "+rsp.Status), "error during talking to cruise-control")
-		return nil, errCruiseControlNotReturned200
+		return rsp, errCruiseControlNotReturned200
 	}
 
 	return rsp, nil
@@ -83,10 +84,27 @@ func getCruiseControl(action, namespace string, options map[string]string, ccEnd
 	}
 	if rsp.StatusCode != 200 {
 		log.Error(errors.New("Non 200 response from cruise-control: "+rsp.Status), "error during talking to cruise-control")
-		return nil, errors.New("Non 200 response from cruise-control: " + rsp.Status)
+		return rsp, errors.New("Non 200 response from cruise-control: " + rsp.Status)
 	}
 
 	return rsp, nil
+}
+
+func parseCCErrorFromResp(input io.Reader) (string, error) {
+	var errorFromResponse struct {
+		ErrorMessage string
+	}
+
+	body, err := ioutil.ReadAll(input)
+	if err != nil {
+		return "", err
+	}
+	err = json.Unmarshal(body, &errorFromResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return errorFromResponse.ErrorMessage, err
 }
 
 func isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName string) (bool, error) {
@@ -211,6 +229,13 @@ func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) (string
 	}
 	if err == errCruiseControlNotReturned200 {
 		log.Info("trying to communicate with cc")
+
+		defer uResp.Body.Close()
+		ccErr, perr := parseCCErrorFromResp(uResp.Body)
+		if perr != nil {
+			return "", "", err
+		}
+		log.Info(ccErr)
 		return "", "", err
 	}
 
@@ -240,6 +265,13 @@ func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) (strin
 	}
 	if err == errCruiseControlNotReturned200 {
 		log.Error(err, "could not communicate with cc")
+
+		defer dResp.Body.Close()
+		ccErr, perr := parseCCErrorFromResp(dResp.Body)
+		if perr != nil {
+			return "", "", err
+		}
+		log.Info(ccErr)
 		return "", "", err
 	}
 
