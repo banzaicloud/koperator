@@ -725,8 +725,9 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 	}
 	err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
 		v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed,
-			ErrorMessage: "Timed out waiting for the task to complete",
-			TaskStarted:  brokerState.GracefulActionState.TaskStarted,
+			CruiseControlTaskId: brokerState.GracefulActionState.CruiseControlTaskId,
+			ErrorMessage:        "Timed out waiting for the task to complete",
+			TaskStarted:         brokerState.GracefulActionState.TaskStarted,
 		}, log)
 	if err != nil {
 		return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(brokerIds, ","))
