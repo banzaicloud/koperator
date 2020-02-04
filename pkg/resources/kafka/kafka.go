@@ -521,10 +521,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			}
 		}
 		if r.KafkaCluster.Spec.RackAwareness != nil {
-			if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.RackAwarenessState == v1beta1.Configured {
-				return nil
-			}
-			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.WaitingForRackAwareness, log)
+			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.Configured, log)
 			if statusErr != nil {
 				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker rack state")
 			}
@@ -536,12 +533,12 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		currentPod = podList.Items[0].DeepCopy()
 		brokerId := currentPod.Labels["brokerId"]
 		if _, ok := r.KafkaCluster.Status.BrokersState[brokerId]; ok {
-			if r.KafkaCluster.Spec.RackAwareness != nil && (r.KafkaCluster.Status.BrokersState[brokerId].RackAwarenessState == v1beta1.WaitingForRackAwareness || r.KafkaCluster.Status.BrokersState[brokerId].RackAwarenessState == "") {
-				err := k8sutil.UpdateCrWithRackAwarenessConfig(currentPod, r.KafkaCluster, r.Client)
+			if r.KafkaCluster.Spec.RackAwareness != nil {
+				rackAwarenessState, err := k8sutil.UpdateCrWithRackAwarenessConfig(currentPod, r.KafkaCluster, r.Client)
 				if err != nil {
 					return err
 				}
-				statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster, v1beta1.Configured, log)
+				statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster, rackAwarenessState, log)
 				if statusErr != nil {
 					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
 				}

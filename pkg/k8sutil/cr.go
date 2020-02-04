@@ -31,37 +31,45 @@ import (
 )
 
 // UpdateCrWithRackAwarenessConfig updates the CR with rack awareness config
-func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
+func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client) (v1beta1.RackAwarenessState, error) {
 
 	if pod.Spec.NodeName == "" {
-		return errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("pod does not scheduled to node yet"), "trying")
+		return "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("pod does not scheduled to node yet"), "trying")
 	}
 	rackConfigMap, err := getSpecificNodeLabels(pod.Spec.NodeName, client, cr.Spec.RackAwareness.Labels)
 	if err != nil {
-		return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with rack awareness info failed")
+		return "", errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with rack awareness info failed")
 	}
 	rackConfigValues := make([]string, 0, len(rackConfigMap))
 	for _, value := range rackConfigMap {
 		rackConfigValues = append(rackConfigValues, value)
 	}
 	sort.Strings(rackConfigValues)
+	rackAwarenessState := v1beta1.RackAwarenessState("")
+	rackAwarenessState, cr.Spec.Brokers = rackAwerenessLabelsToReadonlyConfig(pod, cr, rackConfigValues)
+
+	return rackAwarenessState, updateCr(cr, client)
+}
+
+func rackAwerenessLabelsToReadonlyConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, rackConfigValues []string) (v1beta1.RackAwarenessState, []v1beta1.Broker) {
 
 	brokerConfigs := []v1beta1.Broker{}
-
+	var readOnlyConfig string
+	brokerId := pod.Labels["brokerId"]
 	for _, broker := range cr.Spec.Brokers {
-		if strconv.Itoa(int(broker.Id)) == pod.Labels["brokerId"] {
-			if broker.ReadOnlyConfig == "" {
-				readOnlyConfig := fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
-				broker.ReadOnlyConfig = readOnlyConfig
+		if strconv.Itoa(int(broker.Id)) == brokerId {
+			if _, ok := cr.Status.BrokersState[brokerId]; ok && cr.Status.BrokersState[brokerId].RackAwarenessState != "" && cr.Status.BrokersState[brokerId].RackAwarenessState != v1beta1.Configured {
+				readOnlyConfig = string(cr.Status.BrokersState[brokerId].RackAwarenessState)
+			} else if broker.ReadOnlyConfig == "" {
+				readOnlyConfig = fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
 			} else if !strings.Contains(broker.ReadOnlyConfig, "broker.rack=") {
-				readOnlyConfig := broker.ReadOnlyConfig + fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
-				broker.ReadOnlyConfig = readOnlyConfig
+				readOnlyConfig = broker.ReadOnlyConfig + fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
 			}
+			broker.ReadOnlyConfig = readOnlyConfig
 		}
 		brokerConfigs = append(brokerConfigs, broker)
 	}
-	cr.Spec.Brokers = brokerConfigs
-	return updateCr(cr, client)
+	return v1beta1.RackAwarenessState(readOnlyConfig), brokerConfigs
 }
 
 // AddNewBrokerToCr modifies the CR and adds a new broker
