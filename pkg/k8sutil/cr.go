@@ -45,13 +45,13 @@ func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, 
 		rackConfigValues = append(rackConfigValues, value)
 	}
 	sort.Strings(rackConfigValues)
-	rackAwarenessState := v1beta1.RackAwarenessState("")
-	rackAwarenessState, cr.Spec.Brokers = rackAwerenessLabelsToReadonlyConfig(pod, cr, rackConfigValues)
 
+	rackAwarenessState, brokers := rackAwarenessLabelsToReadonlyConfig(pod, cr, rackConfigValues)
+	cr.Spec.Brokers = brokers
 	return rackAwarenessState, updateCr(cr, client)
 }
 
-func rackAwerenessLabelsToReadonlyConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, rackConfigValues []string) (v1beta1.RackAwarenessState, []v1beta1.Broker) {
+func rackAwarenessLabelsToReadonlyConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, rackConfigValues []string) (v1beta1.RackAwarenessState, []v1beta1.Broker) {
 
 	brokerConfigs := []v1beta1.Broker{}
 	var readOnlyConfig string
@@ -59,7 +59,11 @@ func rackAwerenessLabelsToReadonlyConfig(pod *corev1.Pod, cr *v1beta1.KafkaClust
 	for _, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) == brokerId {
 			if _, ok := cr.Status.BrokersState[brokerId]; ok && cr.Status.BrokersState[brokerId].RackAwarenessState != "" && cr.Status.BrokersState[brokerId].RackAwarenessState != v1beta1.Configured {
-				readOnlyConfig = string(cr.Status.BrokersState[brokerId].RackAwarenessState)
+				if !strings.Contains(broker.ReadOnlyConfig, "broker.rack=") {
+					readOnlyConfig = broker.ReadOnlyConfig + string(cr.Status.BrokersState[brokerId].RackAwarenessState)
+				} else {
+					readOnlyConfig = broker.ReadOnlyConfig
+				}
 			} else if broker.ReadOnlyConfig == "" {
 				readOnlyConfig = fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
 			} else if !strings.Contains(broker.ReadOnlyConfig, "broker.rack=") {
