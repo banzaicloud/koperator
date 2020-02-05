@@ -55,25 +55,28 @@ func rackAwarenessLabelsToReadonlyConfig(pod *corev1.Pod, cr *v1beta1.KafkaClust
 
 	brokerConfigs := []v1beta1.Broker{}
 	var readOnlyConfig string
+	var rackAwaranessState string
 	brokerId := pod.Labels["brokerId"]
 	for _, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) == brokerId {
+			rackAwaranessState = fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
 			if _, ok := cr.Status.BrokersState[brokerId]; ok && cr.Status.BrokersState[brokerId].RackAwarenessState != "" && cr.Status.BrokersState[brokerId].RackAwarenessState != v1beta1.Configured {
 				if !strings.Contains(broker.ReadOnlyConfig, "broker.rack=") {
 					readOnlyConfig = broker.ReadOnlyConfig + string(cr.Status.BrokersState[brokerId].RackAwarenessState)
 				} else {
 					readOnlyConfig = broker.ReadOnlyConfig
 				}
+				rackAwaranessState = string(cr.Status.BrokersState[brokerId].RackAwarenessState)
 			} else if broker.ReadOnlyConfig == "" {
-				readOnlyConfig = fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
+				readOnlyConfig = rackAwaranessState
 			} else if !strings.Contains(broker.ReadOnlyConfig, "broker.rack=") {
-				readOnlyConfig = broker.ReadOnlyConfig + fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
+				readOnlyConfig = broker.ReadOnlyConfig + rackAwaranessState
 			}
 			broker.ReadOnlyConfig = readOnlyConfig
 		}
 		brokerConfigs = append(brokerConfigs, broker)
 	}
-	return v1beta1.RackAwarenessState(readOnlyConfig), brokerConfigs
+	return v1beta1.RackAwarenessState(rackAwaranessState), brokerConfigs
 }
 
 // AddNewBrokerToCr modifies the CR and adds a new broker
