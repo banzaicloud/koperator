@@ -22,14 +22,38 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 )
 
+// AclPatternTypeMapping maps patternType from v1alpha1.KafkaPatternType to sarama.AclResourcePatternType
+func AclPatternTypeMapping(patternType v1alpha1.KafkaPatternType) sarama.AclResourcePatternType {
+	switch patternType {
+	case v1alpha1.KafkaPatternTypeAny:
+		return sarama.AclPatternAny
+	case v1alpha1.KafkaPatternTypeMatch:
+		return sarama.AclPatternMatch
+	case v1alpha1.KafkaPatternTypeLiteral:
+		return sarama.AclPatternLiteral
+	case v1alpha1.KafkaPatternTypePrefixed:
+		return sarama.AclPatternPrefixed
+	default:
+		return sarama.AclPatternUnknown
+	}
+}
+
 // CreateUserACLs creates Kafka ACLs for the given access type and user
-func (k *kafkaClient) CreateUserACLs(accessType v1alpha1.KafkaAccessType, dn string, topic string) (err error) {
+// `literal` patternType will be used if patternType == ""
+func (k *kafkaClient) CreateUserACLs(accessType v1alpha1.KafkaAccessType, patternType v1alpha1.KafkaPatternType, dn string, topic string) (err error) {
 	userName := fmt.Sprintf("User:%s", dn)
+	if patternType == "" {
+		patternType = v1alpha1.KafkaPatternTypeDefault
+	}
+	aclPatternType := AclPatternTypeMapping(patternType)
+	if aclPatternType == sarama.AclPatternUnknown {
+		return errorfactory.New(errorfactory.InternalError{}, fmt.Errorf("unknown type: %s", patternType), "unrecognized pattern type")
+	}
 	switch accessType {
 	case v1alpha1.KafkaAccessTypeRead:
-		return k.createReadACLs(userName, topic)
+		return k.createReadACLs(userName, topic, aclPatternType)
 	case v1alpha1.KafkaAccessTypeWrite:
-		return k.createWriteACLs(userName, topic)
+		return k.createWriteACLs(userName, topic, aclPatternType)
 	default:
 		return errorfactory.New(errorfactory.InternalError{}, fmt.Errorf("unknown type: %s", accessType), "unrecognized access type")
 	}
@@ -51,8 +75,8 @@ func (k *kafkaClient) DeleteUserACLs(dn string) (err error) {
 	return
 }
 
-func (k *kafkaClient) createReadACLs(dn string, topic string) (err error) {
-	if err = k.createCommonACLs(dn, topic); err != nil {
+func (k *kafkaClient) createReadACLs(dn string, topic string, patternType sarama.AclResourcePatternType) (err error) {
+	if err = k.createCommonACLs(dn, topic, patternType); err != nil {
 		return
 	}
 
@@ -60,7 +84,7 @@ func (k *kafkaClient) createReadACLs(dn string, topic string) (err error) {
 	if err = k.admin.CreateACL(sarama.Resource{
 		ResourceType:        sarama.AclResourceTopic,
 		ResourceName:        topic,
-		ResourcePatternType: sarama.AclPatternLiteral,
+		ResourcePatternType: patternType,
 	}, sarama.Acl{
 		Principal:      dn,
 		Host:           "*",
@@ -85,8 +109,8 @@ func (k *kafkaClient) createReadACLs(dn string, topic string) (err error) {
 	return
 }
 
-func (k *kafkaClient) createWriteACLs(dn string, topic string) (err error) {
-	if err = k.createCommonACLs(dn, topic); err != nil {
+func (k *kafkaClient) createWriteACLs(dn string, topic string, patternType sarama.AclResourcePatternType) (err error) {
+	if err = k.createCommonACLs(dn, topic, patternType); err != nil {
 		return
 	}
 
@@ -94,7 +118,7 @@ func (k *kafkaClient) createWriteACLs(dn string, topic string) (err error) {
 	if err = k.admin.CreateACL(sarama.Resource{
 		ResourceType:        sarama.AclResourceTopic,
 		ResourceName:        topic,
-		ResourcePatternType: sarama.AclPatternLiteral,
+		ResourcePatternType: patternType,
 	}, sarama.Acl{
 		Principal:      dn,
 		Host:           "*",
@@ -108,7 +132,7 @@ func (k *kafkaClient) createWriteACLs(dn string, topic string) (err error) {
 	err = k.admin.CreateACL(sarama.Resource{
 		ResourceType:        sarama.AclResourceTopic,
 		ResourceName:        topic,
-		ResourcePatternType: sarama.AclPatternLiteral,
+		ResourcePatternType: patternType,
 	}, sarama.Acl{
 		Principal:      dn,
 		Host:           "*",
@@ -119,12 +143,12 @@ func (k *kafkaClient) createWriteACLs(dn string, topic string) (err error) {
 	return
 }
 
-func (k *kafkaClient) createCommonACLs(dn string, topic string) error {
+func (k *kafkaClient) createCommonACLs(dn string, topic string, patternType sarama.AclResourcePatternType) error {
 	// DESCRIBE on topic
 	return k.admin.CreateACL(sarama.Resource{
 		ResourceType:        sarama.AclResourceTopic,
 		ResourceName:        topic,
-		ResourcePatternType: sarama.AclPatternLiteral,
+		ResourcePatternType: patternType,
 	}, sarama.Acl{
 		Principal:      dn,
 		Host:           "*",
