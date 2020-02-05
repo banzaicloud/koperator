@@ -38,9 +38,9 @@ func Test_addPvc(t *testing.T) {
 	setupEnvironment(t, testClient)
 
 	testCase := []struct {
-		name            string
-		alertList       []model.Alert
-		pvcList         *corev1.PersistentVolumeClaimList
+		name      string
+		alertList []model.Alert
+		pvcList   *corev1.PersistentVolumeClaimList
 	}{
 		{
 			name: "addPvc alert successfully creates pvc",
@@ -223,9 +223,9 @@ func Test_addPvc(t *testing.T) {
 }
 
 func cleanupPvcs(testClient client.Client, tt struct {
-	name            string
-	alertList       []model.Alert
-	pvcList         *corev1.PersistentVolumeClaimList
+	name      string
+	alertList []model.Alert
+	pvcList   *corev1.PersistentVolumeClaimList
 }, t *testing.T) {
 	for _, pvc := range tt.pvcList.Items {
 		err := testClient.Delete(context.TODO(), &corev1.PersistentVolumeClaim{
