@@ -202,7 +202,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		for _, grant := range instance.Spec.TopicGrants {
 			reqLogger.Info(fmt.Sprintf("Ensuring %s ACLs for User: %s -> Topic: %s", grant.AccessType, user.DN(), grant.TopicName))
 			// CreateUserACLs returns no error if the ACLs already exist
-			if err = broker.CreateUserACLs(grant.AccessType, user.DN(), grant.TopicName); err != nil {
+			if err = broker.CreateUserACLs(grant.AccessType, grant.PatternType, user.DN(), grant.TopicName); err != nil {
 				return requeueWithError(reqLogger, "failed to ensure ACLs for kafkauser", err)
 			}
 		}

@@ -38,7 +38,7 @@ type KafkaClient interface {
 	DeleteTopic(string, bool) error
 	GetTopic(string) (*sarama.TopicDetail, error)
 	DescribeTopic(string) (*sarama.TopicMetadata, error)
-	CreateUserACLs(v1alpha1.KafkaAccessType, string, string) error
+	CreateUserACLs(v1alpha1.KafkaAccessType, v1alpha1.KafkaPatternType, string, string) error
 	DeleteUserACLs(string) error
 
 	Brokers() map[int32]string
