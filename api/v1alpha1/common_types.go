@@ -17,6 +17,9 @@ package v1alpha1
 // KafkaAccessType hold info about Kafka ACL
 type KafkaAccessType string
 
+// KafkaPatternType hold the Resource Pattern Type of kafka ACL
+type KafkaPatternType string
+
 // TopicState defines the state of a KafkaTopic
 type TopicState string
 
@@ -35,6 +38,12 @@ const (
 	KafkaAccessTypeRead KafkaAccessType = "read"
 	// KafkaAccessTypeWrite states that a user wants produce access to a topic
 	KafkaAccessTypeWrite KafkaAccessType = "write"
+	// Resource pattern types. More info: https://kafka.apache.org/20/javadoc/org/apache/kafka/common/resource/PatternType.html
+	KafkaPatternTypeAny      KafkaPatternType = "any"
+	KafkaPatternTypeLiteral  KafkaPatternType = "literal"
+	KafkaPatternTypeMatch    KafkaPatternType = "match"
+	KafkaPatternTypePrefixed KafkaPatternType = "prefixed"
+	KafkaPatternTypeDefault  KafkaPatternType = "literal"
 	// TopicStateCreated describes the status of a KafkaTopic as created
 	TopicStateCreated TopicState = "created"
 	// UserStateCreated describes the status of a KafkaUser as created
