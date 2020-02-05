@@ -35,6 +35,8 @@ type ConfigurationState string
 // PKIBackend represents an interface implementing the PKIManager
 type PKIBackend string
 
+type VolumeState map[string]CruiseControlState
+
 const (
 	// PKIBackendCertManager invokes cert-manager for user certificate management
 	PKIBackendCertManager PKIBackend = "cert-manager"
@@ -62,6 +64,8 @@ type BrokerState struct {
 	GracefulActionState GracefulActionState `json:"gracefulActionState"`
 	// ConfigurationState holds info about the config
 	ConfigurationState ConfigurationState `json:"configurationState"`
+	// VolumeState holds info about the volume status
+	VolumeState VolumeState`json:"volumeState"`
 }
 
 const (
@@ -69,6 +73,8 @@ const (
 	Configured RackAwarenessState = "Configured"
 	// WaitingForRackAwareness states the broker is waiting for the rack awareness config
 	WaitingForRackAwareness RackAwarenessState = "WaitingForRackAwareness"
+	// GracefulDiskRebalanceRequired states that the broker needs a CC disk re-balance
+	GracefulDiskRebalanceRequired CruiseControlState = "GracefulDiskRebalanceRequired"
 	// GracefulUpscaleSucceeded states the broker is updated gracefully
 	GracefulUpscaleSucceeded CruiseControlState = "GracefulUpscaleSucceeded"
 	// GracefulUpscaleSucceeded states the broker is updated gracefully
@@ -91,7 +97,7 @@ const (
 	CruiseControlTaskNotFound CruiseControlUserTaskState = "NotFound"
 	// CruiseControlTaskInExecution states the CC task is executing
 	CruiseControlTaskInExecution CruiseControlUserTaskState = "InExecution"
-	// CruiseControlTaskCompleted states the CC task compeleted successfully
+	// CruiseControlTaskCompleted states the CC task completed successfully
 	CruiseControlTaskCompleted CruiseControlUserTaskState = "Completed"
 	// CruiseControlTaskCompletedWithError states the CC task completed with error
 	CruiseControlTaskCompletedWithError CruiseControlUserTaskState = "CompletedWithError"

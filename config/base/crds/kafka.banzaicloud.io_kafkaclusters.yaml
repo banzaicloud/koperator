@@ -1445,10 +1445,18 @@ spec:
                     description: RackAwarenessState holds info about rack awareness
                       status
                     type: string
+                  volumeState:
+                    additionalProperties:
+                      description: CruiseControlState holds info about the state of
+                        Cruise Control
+                      type: string
+                    description: VolumeState holds info about the volume status
+                    type: object
                 required:
                 - configurationState
                 - gracefulActionState
                 - rackAwarenessState
+                - volumeState
                 type: object
               type: object
             cruiseControlTopicStatus:

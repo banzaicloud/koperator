@@ -792,6 +792,8 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, desiredPvc *corev1.Persi
 		if err := r.Client.Create(context.TODO(), desiredPvc); err != nil {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 		}
+		err = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPvc.Labels["brokerId"]},
+			r.KafkaCluster, v1beta1.VolumeState{desiredPvc.Annotations["mountPath"]:v1beta1.GracefulDiskRebalanceRequired}, log)
 		return nil
 	}
 	if err == nil {
