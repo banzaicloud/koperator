@@ -85,7 +85,7 @@ func Test_rackAwarenessLabelsToReadonlyConfig(t *testing.T) {
 					},
 					Status: v1beta1.KafkaClusterStatus{
 						BrokersState: map[string]v1beta1.BrokerState{
-							"0": v1beta1.BrokerState{
+							"0": {
 								RackAwarenessState: "broker.rack=us-east-2,us-east-2a\n",
 							},
 						},
@@ -122,7 +122,7 @@ func Test_rackAwarenessLabelsToReadonlyConfig(t *testing.T) {
 					},
 					Status: v1beta1.KafkaClusterStatus{
 						BrokersState: map[string]v1beta1.BrokerState{
-							"0": v1beta1.BrokerState{
+							"0": {
 								RackAwarenessState: "broker.rack=us-east-2,us-east-2a\n",
 							},
 						},
