@@ -35,43 +35,151 @@ func Test_addPvc(t *testing.T) {
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 
 	//Setup test kafka cluster and pvc
-	err := setupEnvironment(t, testClient)
-	if err != nil {
-		t.Error(err)
-	}
+	setupEnvironment(t, testClient)
 
-	testAlerts := []struct {
-		name    string
-		alert   model.Alert
-		wantErr bool
+	testCase := []struct {
+		name            string
+		alertList       []model.Alert
+		pvcList         *corev1.PersistentVolumeClaimList
 	}{
 		{
-			name: "addPvc alert success",
-			alert: model.Alert{
-				Labels: model.LabelSet{
-					"kafka_cr":              "kafka",
-					"namespace":             "kafka",
-					"persistentvolumeclaim": "testPvc",
-				},
-				Annotations: model.LabelSet{
-					"command":         "addPvc",
-					"mountPathPrefix": "/kafka-logs",
-					"diskSize":        "2G",
+			name: "addPvc alert successfully creates pvc",
+			alertList: []model.Alert{
+				{
+					Labels: model.LabelSet{
+						"kafka_cr":              "kafka",
+						"namespace":             "kafka",
+						"persistentvolumeclaim": "testPvc",
+						"node":                  "test-node",
+					},
+					Annotations: model.LabelSet{
+						"command":         "addPvc",
+						"mountPathPrefix": "/kafka-logs",
+						"diskSize":        "2G",
+					},
 				},
 			},
-			wantErr: false,
+			pvcList: &corev1.PersistentVolumeClaimList{
+				Items: []corev1.PersistentVolumeClaim{
+					{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "testPvc",
+							Namespace: "kafka",
+							Labels: map[string]string{
+								"app":      "kafka",
+								"brokerId": "0",
+								"kafka_cr": "kafka",
+							},
+							Annotations: map[string]string{
+								"mountPath":                          "/kafka-logs",
+								"volume.kubernetes.io/selected-node": "test-node",
+							},
+						},
+						Spec: corev1.PersistentVolumeClaimSpec{
+							StorageClassName: util.StringPointer("gp2"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "addPvc skips pvc creation because of an existing unbound pvc",
+			alertList: []model.Alert{
+				{
+					Labels: model.LabelSet{
+						"kafka_cr":              "kafka",
+						"namespace":             "kafka",
+						"persistentvolumeclaim": "testPvc1",
+						"node":                  "test-node",
+					},
+					Annotations: model.LabelSet{
+						"command":         "addPvc",
+						"mountPathPrefix": "/kafka-logs",
+						"diskSize":        "2G",
+					},
+				},
+				{
+					Labels: model.LabelSet{
+						"kafka_cr":              "kafka",
+						"namespace":             "kafka",
+						"persistentvolumeclaim": "testPvc2",
+						"node":                  "test-node",
+					},
+					Annotations: model.LabelSet{
+						"command":         "addPvc",
+						"mountPathPrefix": "/kafka-logs2",
+						"diskSize":        "4G",
+					},
+				},
+			},
+			pvcList: &corev1.PersistentVolumeClaimList{
+				Items: []corev1.PersistentVolumeClaim{
+					{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "testPvc1",
+							Namespace: "kafka",
+							Labels: map[string]string{
+								"app":      "kafka",
+								"brokerId": "0",
+								"kafka_cr": "kafka",
+							},
+							Annotations: map[string]string{
+								"mountPath":                          "/kafka-logs",
+								"volume.kubernetes.io/selected-node": "test-node",
+							},
+						},
+						Spec: corev1.PersistentVolumeClaimSpec{
+							StorageClassName: util.StringPointer("gp2"),
+						},
+						Status: corev1.PersistentVolumeClaimStatus{
+							Phase: corev1.ClaimPending,
+						},
+					},
+					{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "testPvc2",
+							Namespace: "kafka",
+							Labels: map[string]string{
+								"app":      "kafka",
+								"brokerId": "0",
+								"kafka_cr": "kafka",
+							},
+							Annotations: map[string]string{
+								"mountPath":                          "/kafka-logs",
+								"volume.kubernetes.io/selected-node": "test-node",
+							},
+						},
+						Spec: corev1.PersistentVolumeClaimSpec{
+							StorageClassName: util.StringPointer("gp2"),
+						},
+						Status: corev1.PersistentVolumeClaimStatus{
+							Phase: corev1.ClaimPending,
+						},
+					},
+				},
+			},
 		},
 	}
 
-	for _, tt := range testAlerts {
+	for testCaseIndex, tt := range testCase {
 		t.Run(tt.name, func(t *testing.T) {
-			err := addPvc(logf.NullLogger{}, tt.alert.Labels, tt.alert.Annotations, testClient)
-			if err != nil {
-				t.Errorf("process.addPvc() error = %v, wantErr = %v", err, tt.wantErr)
+
+			for _, pvc := range tt.pvcList.Items {
+				err := testClient.Create(context.Background(), &pvc)
+				if err != nil {
+					t.Error("Pvc creation failed", err)
+				}
+			}
+
+			for _, alert := range tt.alertList {
+				err := addPvc(logf.NullLogger{}, alert.Labels, alert.Annotations, testClient)
+				if err != nil {
+					t.Errorf("process.addPvc() error = %v", err)
+				}
 			}
 
 			var kafkaCluster v1beta1.KafkaCluster
-			err = testClient.Get(
+			err := testClient.Get(
 				context.Background(),
 				types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: kafkaCluster.Name},
 				&kafkaCluster)
@@ -79,23 +187,60 @@ func Test_addPvc(t *testing.T) {
 				t.Errorf("kafka cr was not found, error = %v", err)
 			}
 
-			brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
+			if len(tt.pvcList.Items) <= 1 {
+				brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
 
-			if brokerStorageConfig.MountPath == string(testAlerts[0].alert.Annotations["mountPathPrefix"]) {
-				t.Error("Broker storage config mountpath should not be the same as the original mountPathPrefix")
+				if brokerStorageConfig.MountPath == string(testCase[testCaseIndex].alertList[0].Annotations["mountPathPrefix"]) {
+					t.Error("Broker storage config mountpath should not be the same as the original mountPathPrefix")
+				}
+
+				storageRequest := brokerStorageConfig.PvcSpec.Resources.Requests["storage"]
+				if storageRequest.String() !=
+					string(testCase[testCaseIndex].alertList[0].Annotations["diskSize"]) {
+					t.Error("Broker storage config memory request should be same as in the alert")
+				}
+			} else {
+				brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
+
+				for alertListIndex := range testCase[testCaseIndex].alertList {
+
+					if brokerStorageConfig.MountPath == string(testCase[testCaseIndex].alertList[alertListIndex].Annotations["mountPathPrefix"]) {
+						t.Error("Broker storage config mountpath should not be the same as the original mountPathPrefix")
+					}
+
+					storageRequest := brokerStorageConfig.PvcSpec.Resources.Requests["storage"]
+					if storageRequest.String() == string(testCase[testCaseIndex].alertList[1].Annotations["diskSize"]) {
+						t.Error("Broker storage config memory request should not be same as in the second alert")
+					}
+				}
 			}
 
-			storageRequest := brokerStorageConfig.PvcSpec.Resources.Requests["storage"]
-			if storageRequest.String() !=
-				string(testAlerts[0].alert.Annotations["diskSize"]) {
-				t.Error("Broker storage config memory request should be same as in the alert")
-			}
+			//Cleanup Pvcs from previous tests
+			cleanupPvcs(testClient, tt, t)
 		})
 	}
 
 }
 
-func setupEnvironment(t *testing.T, testClient client.Client) error {
+func cleanupPvcs(testClient client.Client, tt struct {
+	name            string
+	alertList       []model.Alert
+	pvcList         *corev1.PersistentVolumeClaimList
+}, t *testing.T) {
+	for _, pvc := range tt.pvcList.Items {
+		err := testClient.Delete(context.TODO(), &corev1.PersistentVolumeClaim{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      pvc.Name,
+				Namespace: pvc.Namespace,
+			},
+		})
+		if err != nil {
+			t.Error("Pvc cleanup failed")
+		}
+	}
+}
+
+func setupEnvironment(t *testing.T, testClient client.Client) {
 
 	storageResourceQuantity, err := resource.ParseQuantity("10Gi")
 	if err != nil {
@@ -146,24 +291,4 @@ func setupEnvironment(t *testing.T, testClient client.Client) error {
 	if err != nil {
 		t.Error(err)
 	}
-
-	err = testClient.Create(context.Background(), &corev1.PersistentVolumeClaim{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "testPvc",
-			Namespace: "kafka",
-			Labels: map[string]string{
-				"app":      "kafka",
-				"brokerId": "0",
-				"kafka_cr": "kafka",
-			},
-			Annotations: map[string]string{
-				"mountPath": "/kafka-logs",
-			},
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			StorageClassName: util.StringPointer("gp2"),
-		},
-	})
-
-	return err
 }

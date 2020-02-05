@@ -184,20 +184,21 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 		return err
 	}
 
-	kafkaCluster, err := k8sutil.GetCr(pvc.Labels["kafka_cr"], pvc.Labels["namespace"], client)
+	// Check for skipping in case of pending or running CC task
+	ccTaskExists, err := pendingOrRunningCCTaskExists(pvc.Labels, client, log)
 	if err != nil {
 		return err
 	}
+	if ccTaskExists {
+		return nil
+	}
 
-	if ids := kafka.GetBrokersWithPendingOrRunningCCTask(kafkaCluster); len(ids) > 0 {
-		var keyVals []interface{}
-		for _, id := range ids {
-			brokerId := strconv.Itoa(int(id))
-			keyVals = append(keyVals, brokerId, kafkaCluster.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState)
-		}
-
-		log.Info("addPvc is skipped as there are brokers which are pending task to be initiated in CC or already have a running CC task", keyVals...)
-
+	//Check for skipping in case of k8s node cannot attach more PVs, (When there is already a pvc that is unbound)
+	unboundPvcExists, err := unboundPvcOnNodeExists(client, pvc, log, string(alertLabels["node"]))
+	if err != nil {
+		return err
+	}
+	if unboundPvcExists {
 		return nil
 	}
 
@@ -347,4 +348,50 @@ func getPvc(name, namespace string, client client.Client) (*corev1.PersistentVol
 		return nil, errors.WrapIfWithDetails(err, "could not get PVC from k8s", "PVCName", name, "namespace", namespace)
 	}
 	return cr, nil
+}
+
+func pendingOrRunningCCTaskExists(pvcLabels map[string]string, client client.Client, log logr.Logger) (bool, error) {
+	kafkaCluster, err := k8sutil.GetCr(pvcLabels["kafka_cr"], pvcLabels["namespace"], client)
+	if err != nil {
+		return false, err
+	}
+
+	if ids := kafka.GetBrokersWithPendingOrRunningCCTask(kafkaCluster); len(ids) > 0 {
+		var keyVals []interface{}
+		for _, id := range ids {
+			brokerId := strconv.Itoa(int(id))
+			keyVals = append(keyVals, brokerId, kafkaCluster.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState)
+		}
+
+		log.Info("addPvc is skipped as there are brokers which are pending task to be initiated in CC or already have a running CC task", keyVals...)
+
+		return true, nil
+	}
+	return false, nil
+}
+
+func unboundPvcOnNodeExists(c client.Client, pvc *corev1.PersistentVolumeClaim, log logr.Logger, nodeName string) (bool, error) {
+	kafkaPvcList := &corev1.PersistentVolumeClaimList{}
+
+	err := c.List(context.TODO(), kafkaPvcList, client.ListOption(client.InNamespace(pvc.Namespace)),
+		client.ListOption(client.MatchingLabels(map[string]string{"app": "kafka", "kafka_cr": pvc.Labels["kafka_cr"]})))
+	if err != nil {
+		return false, err
+	}
+
+	kafkaPvcListOnNode := &corev1.PersistentVolumeClaimList{}
+	for _, pvc := range kafkaPvcList.Items {
+		if pvc.Annotations["volume.kubernetes.io/selected-node"] == nodeName {
+			kafkaPvcListOnNode.Items = append(kafkaPvcListOnNode.Items, pvc)
+		}
+	}
+
+	for _, pvc := range kafkaPvcListOnNode.Items {
+		if pvc.Status.Phase == corev1.ClaimPending {
+			log.Info("addPvc is skipped because a PVC exists on the node which is unbound", "node:", nodeName)
+
+			return true, nil
+		}
+	}
+	return false, nil
 }
