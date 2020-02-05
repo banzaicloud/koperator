@@ -66,6 +66,37 @@ func Test_rackAwarenessLabelsToReadonlyConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "rack awareness state not set, broker.rack is set in broker read only config",
+			args: args{
+				pod: &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"brokerId": "0",
+						},
+					},
+				},
+				cr: &v1beta1.KafkaCluster{
+					Spec: v1beta1.KafkaClusterSpec{
+						Brokers: []v1beta1.Broker{
+							{
+								Id:             0,
+								ReadOnlyConfig: "fake-readonly-config\n",
+							},
+						},
+					},
+					Status: v1beta1.KafkaClusterStatus{},
+				},
+				rackConfigValues: []string{"us-east-2", "us-east-2a"},
+			},
+			want: "broker.rack=us-east-2,us-east-2a\n",
+			want1: []v1beta1.Broker{
+				{
+					Id:             0,
+					ReadOnlyConfig: "fake-readonly-config\nbroker.rack=us-east-2,us-east-2a\n",
+				},
+			},
+		},
+		{
 			name: "rack awareness state is set, broker radonly config not set",
 			args: args{
 				pod: &corev1.Pod{
@@ -117,6 +148,43 @@ func Test_rackAwarenessLabelsToReadonlyConfig(t *testing.T) {
 							{
 								Id:             0,
 								ReadOnlyConfig: "fake-readonly-config\nbroker.rack=us-east-2,us-east-2a\n",
+							},
+						},
+					},
+					Status: v1beta1.KafkaClusterStatus{
+						BrokersState: map[string]v1beta1.BrokerState{
+							"0": {
+								RackAwarenessState: "broker.rack=us-east-2,us-east-2a\n",
+							},
+						},
+					},
+				},
+				rackConfigValues: []string{},
+			},
+			want: "broker.rack=us-east-2,us-east-2a\n",
+			want1: []v1beta1.Broker{
+				{
+					Id:             0,
+					ReadOnlyConfig: "fake-readonly-config\nbroker.rack=us-east-2,us-east-2a\n",
+				},
+			},
+		},
+		{
+			name: "rack awareness state is set, broker readonly config is set but broker.rack is missing",
+			args: args{
+				pod: &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"brokerId": "0",
+						},
+					},
+				},
+				cr: &v1beta1.KafkaCluster{
+					Spec: v1beta1.KafkaClusterSpec{
+						Brokers: []v1beta1.Broker{
+							{
+								Id:             0,
+								ReadOnlyConfig: "fake-readonly-config\n",
 							},
 						},
 					},
