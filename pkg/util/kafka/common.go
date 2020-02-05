@@ -16,6 +16,7 @@ package kafka
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -29,16 +30,16 @@ const (
 )
 
 // commonAclString is the raw representation of an ACL allowing Describe on a Topic
-var commonAclString = "User:%s,Topic,LITERAL,%s,Describe,Allow,*"
+var commonAclString = "User:%s,Topic,%s,%s,Describe,Allow,*"
 
 // createAclString is the raw representation of an ACL allowing Create on a Topic
-var createAclString = "User:%s,Topic,LITERAL,%s,Create,Allow,*"
+var createAclString = "User:%s,Topic,%s,%s,Create,Allow,*"
 
 // writeAclString is the raw representation of an ACL allowing Write on a Topic
-var writeAclString = "User:%s,Topic,LITERAL,%s,Write,Allow,*"
+var writeAclString = "User:%s,Topic,%s,%s,Write,Allow,*"
 
 // reacAclString is the raw representation of an ACL allowing Read on a Topic
-var readAclString = "User:%s,Topic,LITERAL,%s,Read,Allow,*"
+var readAclString = "User:%s,Topic,%s,%s,Read,Allow,*"
 
 // readGroupAclString is the raw representation of an ACL allowing Read on ConsumerGroups
 var readGroupAclString = "User:%s,Group,LITERAL,*,Read,Allow,*"
@@ -48,13 +49,17 @@ var readGroupAclString = "User:%s,Group,LITERAL,*,Read,Allow,*"
 func GrantsToACLStrings(dn string, grants []v1alpha1.UserTopicGrant) []string {
 	acls := make([]string, 0)
 	for _, x := range grants {
-		cmn := fmt.Sprintf(commonAclString, dn, x.TopicName)
+		if x.PatternType == "" {
+			x.PatternType = v1alpha1.KafkaPatternTypeDefault
+		}
+		patternType := strings.ToUpper(string(x.PatternType))
+		cmn := fmt.Sprintf(commonAclString, dn, patternType, x.TopicName)
 		if !util.StringSliceContains(acls, cmn) {
 			acls = append(acls, cmn)
 		}
 		switch x.AccessType {
 		case v1alpha1.KafkaAccessTypeRead:
-			readAcl := fmt.Sprintf(readAclString, dn, x.TopicName)
+			readAcl := fmt.Sprintf(readAclString, dn, patternType, x.TopicName)
 			readGroupAcl := fmt.Sprintf(readGroupAclString, dn)
 			for _, y := range []string{readAcl, readGroupAcl} {
 				if !util.StringSliceContains(acls, y) {
@@ -62,8 +67,8 @@ func GrantsToACLStrings(dn string, grants []v1alpha1.UserTopicGrant) []string {
 				}
 			}
 		case v1alpha1.KafkaAccessTypeWrite:
-			createAcl := fmt.Sprintf(createAclString, dn, x.TopicName)
-			writeAcl := fmt.Sprintf(writeAclString, dn, x.TopicName)
+			createAcl := fmt.Sprintf(createAclString, dn, patternType, x.TopicName)
+			writeAcl := fmt.Sprintf(writeAclString, dn, patternType, x.TopicName)
 			for _, y := range []string{createAcl, writeAcl} {
 				if !util.StringSliceContains(acls, y) {
 					acls = append(acls, y)
