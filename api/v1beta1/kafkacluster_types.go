@@ -171,7 +171,7 @@ type MonitoringConfig struct {
 // StorageConfig defines the broker storage configuration
 type StorageConfig struct {
 	MountPath string                            `json:"mountPath"`
-	PVCSpec   *corev1.PersistentVolumeClaimSpec `json:"pvcSpec"`
+	PvcSpec   *corev1.PersistentVolumeClaimSpec `json:"pvcSpec"`
 }
 
 //ListenersConfig defines the Kafka listener types

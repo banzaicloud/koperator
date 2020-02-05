@@ -15,8 +15,10 @@
 package util
 
 import (
+	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"emperror.dev/errors"
 	"github.com/imdario/mergo"
@@ -191,4 +193,19 @@ func GetBrokerImage(brokerConfig *v1beta1.BrokerConfig, clusterImage string) str
 		return brokerConfig.Image
 	}
 	return clusterImage
+}
+
+// getRandomString returns a random string containing uppercase, lowercase and number characters with the length given
+func GetRandomString(length int) (string, error) {
+	rand.Seed(time.Now().UnixNano())
+
+	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+		"abcdefghijklmnopqrstuvwxyz" +
+		"0123456789")
+
+	var b strings.Builder
+	for i := 0; i < length; i++ {
+		b.WriteRune(chars[rand.Intn(len(chars))])
+	}
+	return b.String(), nil
 }

@@ -30,7 +30,7 @@ func Test_alertFilter(t *testing.T) {
 				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": currentalert.AddPVCCommand,
+				"command": currentalert.AddPvcCommand,
 			},
 		},
 		{
@@ -70,7 +70,7 @@ func Test_alertFilter(t *testing.T) {
 				"test": "test_1",
 			},
 			Annotations: model.LabelSet{
-				"command": currentalert.AddPVCCommand,
+				"command": currentalert.AddPvcCommand,
 			},
 		},
 		{

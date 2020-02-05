@@ -133,9 +133,9 @@ spec:
         description: 'broker {{ $labels.brokerId }} has low disk space'
         summary: 'low diskspace'
         storageClass: 'standard'
-        mountPath: '/kafkalog'
+        mountPathPrefix: '/kafkalog'
         diskSize: '2G'
-        command: 'addPVC'
+        command: 'addPvc'
 ---
 apiVersion: v1
 kind: ServiceAccount

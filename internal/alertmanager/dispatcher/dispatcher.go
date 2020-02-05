@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Dispatcher calls actioners based on alert annotations
+// Dispatcher calls actors based on alert annotations
 func Dispatcher(promAlerts []model.Alert, log logr.Logger, client client.Client) {
 
 	storedAlerts := currentalert.GetCurrentAlerts()

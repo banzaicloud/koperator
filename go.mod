@@ -43,6 +43,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586 // indirect
 	google.golang.org/api v0.7.0 // indirect
 	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
+	gopkg.in/jcmturner/gokrb5.v7 v7.2.3
 	k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
 	k8s.io/client-go v11.0.1-0.20190516230509-ae8359b20417+incompatible

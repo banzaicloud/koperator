@@ -89,24 +89,22 @@ func New(client client.Client, scheme *runtime.Scheme, cluster *v1beta1.KafkaClu
 		},
 	}
 }
-
-func getCreatedPVCForBroker(c client.Client, brokerID int32, namespace, crName string) ([]corev1.PersistentVolumeClaim, error) {
-	foundPVCList := &corev1.PersistentVolumeClaimList{}
-
+func getCreatedPvcForBroker(c client.Client, brokerID int32, namespace, crName string) ([]corev1.PersistentVolumeClaim, error) {
+	foundPvcList := &corev1.PersistentVolumeClaimList{}
 	matchingLabels := client.MatchingLabels(
 		util.MergeLabels(
 			labelsForKafka(crName),
 			map[string]string{"brokerId": fmt.Sprintf("%d", brokerID)},
 		),
 	)
-	err := c.List(context.TODO(), foundPVCList, client.ListOption(client.InNamespace(namespace)), client.ListOption(matchingLabels))
+	err := c.List(context.TODO(), foundPvcList, client.ListOption(client.InNamespace(namespace)), client.ListOption(matchingLabels))
 	if err != nil {
 		return nil, err
 	}
-	if len(foundPVCList.Items) == 0 {
+	if len(foundPvcList.Items) == 0 {
 		return nil, fmt.Errorf("no persistentvolume found for broker %d", brokerID)
 	}
-	return foundPVCList.Items, nil
+	return foundPvcList.Items, nil
 }
 
 func getLoadBalancerIP(client client.Client, namespace, ingressController, crName string, log logr.Logger) (string, error) {
@@ -282,7 +280,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 		for _, storage := range brokerConfig.StorageConfigs {
 			o := r.pvc(broker.Id, storage, log)
-			err := r.reconcileKafkaPVC(log, o.(*corev1.PersistentVolumeClaim))
+			err := r.reconcileKafkaPvc(log, o.(*corev1.PersistentVolumeClaim))
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
@@ -306,7 +304,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		}
 
-		pvcs, err := getCreatedPVCForBroker(r.Client, broker.Id, r.KafkaCluster.Namespace, r.KafkaCluster.Name)
+		pvcs, err := getCreatedPvcForBroker(r.Client, broker.Id, r.KafkaCluster.Namespace, r.KafkaCluster.Name)
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "failed to list PVC's")
 		}
@@ -746,9 +744,9 @@ func isPodHealthy(pod *corev1.Pod) bool {
 	return healthy
 }
 
-func (r *Reconciler) reconcileKafkaPVC(log logr.Logger, desiredPVC *corev1.PersistentVolumeClaim) error {
-	var currentPVC = desiredPVC.DeepCopy()
-	desiredType := reflect.TypeOf(desiredPVC)
+func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, desiredPvc *corev1.PersistentVolumeClaim) error {
+	var currentPvc = desiredPvc.DeepCopy()
+	desiredType := reflect.TypeOf(desiredPvc)
 	log = log.WithValues("kind", desiredType)
 	log.V(1).Info("searching with label because name is empty")
 
@@ -757,22 +755,22 @@ func (r *Reconciler) reconcileKafkaPVC(log logr.Logger, desiredPVC *corev1.Persi
 	matchingLabels := client.MatchingLabels(
 		util.MergeLabels(
 			labelsForKafka(r.KafkaCluster.Name),
-			map[string]string{"brokerId": desiredPVC.Labels["brokerId"]},
+			map[string]string{"brokerId": desiredPvc.Labels["brokerId"]},
 		),
 	)
 	err := r.Client.List(context.TODO(), pvcList,
-		client.InNamespace(currentPVC.Namespace), matchingLabels)
+		client.InNamespace(currentPvc.Namespace), matchingLabels)
 	if err != nil && len(pvcList.Items) == 0 {
 		return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
 	}
-	mountPath := currentPVC.Annotations["mountPath"]
+	mountPath := currentPvc.Annotations["mountPath"]
 
 	// Creating the first PersistentVolume For Pod
 	if len(pvcList.Items) == 0 {
-		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC); err != nil {
+		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
 			return errors.WrapIf(err, "could not apply last state to annotation")
 		}
-		if err := r.Client.Create(context.TODO(), desiredPVC); err != nil {
+		if err := r.Client.Create(context.TODO(), desiredPvc); err != nil {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 		}
 		log.Info("resource created")
@@ -781,30 +779,30 @@ func (r *Reconciler) reconcileKafkaPVC(log logr.Logger, desiredPVC *corev1.Persi
 	alreadyCreated := false
 	for _, pvc := range pvcList.Items {
 		if mountPath == pvc.Annotations["mountPath"] {
-			currentPVC = pvc.DeepCopy()
+			currentPvc = pvc.DeepCopy()
 			alreadyCreated = true
 			break
 		}
 	}
 	if !alreadyCreated {
 		// Creating the 2+ PersistentVolumes for Pod
-		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC); err != nil {
+		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
 			return errors.WrapIf(err, "could not apply last state to annotation")
 		}
-		if err := r.Client.Create(context.TODO(), desiredPVC); err != nil {
+		if err := r.Client.Create(context.TODO(), desiredPvc); err != nil {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 		}
 		return nil
 	}
 	if err == nil {
-		if k8sutil.CheckIfObjectUpdated(log, desiredType, currentPVC, desiredPVC) {
+		if k8sutil.CheckIfObjectUpdated(log, desiredType, currentPvc, desiredPvc) {
 
-			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPVC); err != nil {
+			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
 				return errors.WrapIf(err, "could not apply last state to annotation")
 			}
-			desiredPVC = currentPVC
+			desiredPvc = currentPvc
 
-			if err := r.Client.Update(context.TODO(), desiredPVC); err != nil {
+			if err := r.Client.Update(context.TODO(), desiredPvc); err != nil {
 				return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
 			}
 			log.Info("resource updated")

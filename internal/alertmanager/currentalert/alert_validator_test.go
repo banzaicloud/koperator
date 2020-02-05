@@ -27,30 +27,30 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "addPVC validate success",
+			name: "addPvc validate success",
 			v: AlertValidators{
-				addPVCValidator{
+				addPvcValidator{
 					Alert: &currentAlertStruct{
 						Labels: model.LabelSet{
 							"persistentvolumeclaim": "test-pvc",
 						},
 						Annotations: model.LabelSet{
-							"command": AddPVCCommand,
+							"command": AddPvcCommand,
 						},
 					},
 				},
 			},
 		},
 		{
-			name: "addPVC validate failed due to missing label",
+			name: "addPvc validate failed due to missing label",
 			v: AlertValidators{
-				addPVCValidator{
+				addPvcValidator{
 					Alert: &currentAlertStruct{
 						Labels: model.LabelSet{
 							"persistentvolumeclaim_missing": "test-pvc",
 						},
 						Annotations: model.LabelSet{
-							"command": AddPVCCommand,
+							"command": AddPvcCommand,
 						},
 					},
 				},
@@ -58,9 +58,9 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "addPVC validate failed due to unsupported command",
+			name: "addPvc validate failed due to unsupported command",
 			v: AlertValidators{
-				addPVCValidator{
+				addPvcValidator{
 					Alert: &currentAlertStruct{
 						Labels: model.LabelSet{
 							"persistentvolumeclaim": "test-pvc",

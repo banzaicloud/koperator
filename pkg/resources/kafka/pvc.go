@@ -34,6 +34,6 @@ func (r *Reconciler) pvc(id int32, storage v1beta1.StorageConfig, log logr.Logge
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			map[string]string{"mountPath": storage.MountPath}, r.KafkaCluster),
-		Spec: *storage.PVCSpec,
+		Spec: *storage.PvcSpec,
 	}
 }

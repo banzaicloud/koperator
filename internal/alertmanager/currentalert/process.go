@@ -15,18 +15,23 @@
 package currentalert
 
 import (
+	"context"
+	"fmt"
 	"strconv"
+
+	"emperror.dev/errors"
+	"github.com/go-logr/logr"
+	"github.com/prometheus/common/model"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
-	"github.com/go-logr/logr"
-	"github.com/prometheus/common/model"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type disableScaling struct {
@@ -35,34 +40,54 @@ type disableScaling struct {
 }
 
 const (
-	// AddPVCCommand command name for addPVC
-	AddPVCCommand = "addPVC"
+	// AddPvcCommand command name for addPvc
+	AddPvcCommand = "addPvc"
 	// DownScaleCommand command name for donscale
 	DownScaleCommand = "downScale"
 	// UpScaleCommand command name for ipscale
 	UpScaleCommand = "upScale"
+	// ResizePvcCommand command name for resizePvc
+	ResizePvcCommand = "resizePvc"
 )
 
 // GetCommandList returns list of supported commands
 func GetCommandList() []string {
 	return []string{
-		AddPVCCommand,
+		AddPvcCommand,
 		DownScaleCommand,
 		UpScaleCommand,
+		ResizePvcCommand,
 	}
 }
-
-func (e *examiner) getCR() (*v1beta1.KafkaCluster, error) {
-	cr, err := k8sutil.GetCr(string(e.Alert.Labels["kafka_cr"]), string(e.Alert.Labels["namespace"]), e.Client)
-	if err != nil {
-		return nil, err
+func (e *examiner) getKafkaCr() (*v1beta1.KafkaCluster, error) {
+	var cr *v1beta1.KafkaCluster
+	if kafkaCr, ok := e.Alert.Labels["kafka_cr"]; ok {
+		var err error
+		cr, err = k8sutil.GetCr(string(kafkaCr), string(e.Alert.Labels["namespace"]), e.Client)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// If kafka_cr is not a valid alert label, try to get it from the persistenvolumeclaim
+		if pvcName, ok := e.Alert.Labels["persistenvolumeclaim"]; ok {
+			pvc, err := k8sutil.GetCr(string(pvcName), string(e.Alert.Labels["namespace"]), e.Client)
+			if err != nil {
+				return nil, err
+			}
+			kafkaCr = model.LabelValue(pvc.Labels["kafka_cr"])
+			cr, err = k8sutil.GetCr(string(kafkaCr), string(e.Alert.Labels["namespace"]), e.Client)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
+
 	return cr, nil
 }
 
 func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 
-	cr, err := e.getCR()
+	cr, err := e.getKafkaCr()
 	if err != nil {
 		return false, err
 	}
@@ -91,15 +116,28 @@ func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 
 	switch e.Alert.Annotations["command"] {
-	case AddPVCCommand:
-		validators := AlertValidators{newAddPVCValidator(e.Alert)}
+	case AddPvcCommand:
+		validators := AlertValidators{newAddPvcValidator(e.Alert)}
 		if err := validators.ValidateAlert(); err != nil {
 			return false, err
 		}
-		err := addPVC(e.Alert.Labels, e.Alert.Annotations, e.Client)
+		err := addPvc(e.Log, e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
 			return false, err
 		}
+
+		return true, nil
+	case ResizePvcCommand:
+		validators := AlertValidators{newResizePvcValidator(e.Alert)}
+		if err := validators.ValidateAlert(); err != nil {
+			return false, err
+		}
+		err := resizePvc(e.Alert.Labels, e.Alert.Annotations, e.Client)
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
 	case DownScaleCommand:
 		validators := AlertValidators{newDownScaleValidator(e.Alert)}
 		if err := validators.ValidateAlert(); err != nil {
@@ -134,8 +172,68 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 	return false, nil
 }
 
-func addPVC(labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
+func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.LabelSet, client client.Client) error {
+	var storageClassName *string
+
+	if alertAnnotations["storageClass"] != "" {
+		storageClassName = util.StringPointer(string(alertAnnotations["storageClass"]))
+	}
+
+	pvc, err := getPvc(string(alertLabels["persistentvolumeclaim"]), string(alertLabels["namespace"]), client)
+	if err != nil {
+		return err
+	}
+
+	// Check for skipping in case of pending or running CC task
+	ccTaskExists, err := pendingOrRunningCCTaskExists(pvc.Labels, client, log)
+	if err != nil {
+		return err
+	}
+	if ccTaskExists {
+		return nil
+	}
+
+	//Check for skipping in case of k8s node cannot attach more PVs, (When there is already a pvc that is unbound)
+	unboundPvcExists, err := unboundPvcOnNodeExists(client, pvc, log, string(alertLabels["node"]))
+	if err != nil {
+		return err
+	}
+	if unboundPvcExists {
+		return nil
+	}
+
+	randomIdentifier, err := util.GetRandomString(6)
+	if err != nil {
+		return err
+	}
+
+	storageConfig := v1beta1.StorageConfig{
+		MountPath: pvc.Annotations["mountPathPrefix"] + "-" + randomIdentifier,
+		PvcSpec: &corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			StorageClassName: storageClassName,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"storage": resource.MustParse(string(alertAnnotations["diskSize"])),
+				},
+			},
+		}}
+
+	err = k8sutil.AddPvToSpecificBroker(pvc.Labels["brokerId"], pvc.Labels["kafka_cr"], pvc.Labels["namespace"], &storageConfig, client)
+	if err != nil {
+		return err
+	}
+
+	log.Info(fmt.Sprintf("PV successfully added to broker %s with the following storage configuration: %+v", pvc.Labels["brokerId"], &storageConfig))
+
+	return nil
+}
+
+func resizePvc(labels model.LabelSet, annotiations model.LabelSet, client client.Client) error {
 	//TODO
+
 	return nil
 }
 
@@ -216,8 +314,8 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 				Image: string(annotations["image"]),
 				StorageConfigs: []v1beta1.StorageConfig{
 					{
-						MountPath: string(annotations["mountPath"]),
-						PVCSpec: &corev1.PersistentVolumeClaimSpec{
+						MountPath: string(annotations["mountPathPrefix"]),
+						PvcSpec: &corev1.PersistentVolumeClaimSpec{
 							AccessModes: []corev1.PersistentVolumeAccessMode{
 								corev1.ReadWriteOnce,
 							},
@@ -239,4 +337,61 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 		return err
 	}
 	return nil
+}
+
+// getPvc returns the given PVC object
+func getPvc(name, namespace string, client client.Client) (*corev1.PersistentVolumeClaim, error) {
+	cr := &corev1.PersistentVolumeClaim{}
+
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr)
+	if err != nil {
+		return nil, errors.WrapIfWithDetails(err, "could not get PVC from k8s", "PVCName", name, "namespace", namespace)
+	}
+	return cr, nil
+}
+
+func pendingOrRunningCCTaskExists(pvcLabels map[string]string, client client.Client, log logr.Logger) (bool, error) {
+	kafkaCluster, err := k8sutil.GetCr(pvcLabels["kafka_cr"], pvcLabels["namespace"], client)
+	if err != nil {
+		return false, err
+	}
+
+	if ids := kafka.GetBrokersWithPendingOrRunningCCTask(kafkaCluster); len(ids) > 0 {
+		var keyVals []interface{}
+		for _, id := range ids {
+			brokerId := strconv.Itoa(int(id))
+			keyVals = append(keyVals, brokerId, kafkaCluster.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState)
+		}
+
+		log.Info("addPvc is skipped as there are brokers which are pending task to be initiated in CC or already have a running CC task", keyVals...)
+
+		return true, nil
+	}
+	return false, nil
+}
+
+func unboundPvcOnNodeExists(c client.Client, pvc *corev1.PersistentVolumeClaim, log logr.Logger, nodeName string) (bool, error) {
+	kafkaPvcList := &corev1.PersistentVolumeClaimList{}
+
+	err := c.List(context.TODO(), kafkaPvcList, client.ListOption(client.InNamespace(pvc.Namespace)),
+		client.ListOption(client.MatchingLabels(map[string]string{"app": "kafka", "kafka_cr": pvc.Labels["kafka_cr"]})))
+	if err != nil {
+		return false, err
+	}
+
+	kafkaPvcListOnNode := &corev1.PersistentVolumeClaimList{}
+	for _, pvc := range kafkaPvcList.Items {
+		if pvc.Annotations["volume.kubernetes.io/selected-node"] == nodeName {
+			kafkaPvcListOnNode.Items = append(kafkaPvcListOnNode.Items, pvc)
+		}
+	}
+
+	for _, pvc := range kafkaPvcListOnNode.Items {
+		if pvc.Status.Phase == corev1.ClaimPending {
+			log.Info("addPvc is skipped because a PVC exists on the node which is unbound", "node:", nodeName)
+
+			return true, nil
+		}
+	}
+	return false, nil
 }

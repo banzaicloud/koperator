@@ -282,6 +282,39 @@ func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) (strin
 	return uTaskId, startTimeStamp, nil
 }
 
+// RebalanceDisks rebalances Kafka broker replicas between disks using CC
+func RebalanceDisks(namespace, ccEndpoint, clusterName string) (string, string, error) {
+
+	options := map[string]string{
+		"dryrun":         "false",
+		"json":           "true",
+		"rebalance_disk": "true",
+	}
+
+	rResp, err := postCruiseControl(rebalanceAction, namespace, options, ccEndpoint, clusterName)
+	if err != nil && err != errCruiseControlNotReturned200 {
+		log.Error(err, "can't rebalance brokers disk gracefully since post to cruise-control failed")
+		return "", "", err
+	}
+	if err == errCruiseControlNotReturned200 {
+		log.Error(err, "could not communicate with cc")
+
+		defer rResp.Body.Close()
+		ccErr, perr := parseCCErrorFromResp(rResp.Body)
+		if perr != nil {
+			return "", "", err
+		}
+		log.Info(ccErr)
+		return "", "", err
+	}
+
+	log.Info("Initiated disk rebalance in cruise control")
+	uTaskId := rResp.Header.Get("User-Task-Id")
+	startTimeStamp := rResp.Header.Get("Date")
+
+	return uTaskId, startTimeStamp, nil
+}
+
 // RebalanceCluster rebalances Kafka cluster using CC
 func RebalanceCluster(namespace, ccEndpoint, clusterName string) (string, error) {
 

@@ -99,15 +99,16 @@ func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *v1
 	if err != nil {
 		return err
 	}
-	tempConfigs := cr.Spec.Brokers[:0]
-	for _, broker := range cr.Spec.Brokers {
+
+	for i, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) == brokerId {
-			broker.BrokerConfig.StorageConfigs = append(broker.BrokerConfig.StorageConfigs, *storageConfig)
+			if broker.BrokerConfig == nil {
+				cr.Spec.Brokers[i].BrokerConfig = &v1beta1.BrokerConfig{}
+			}
+			cr.Spec.Brokers[i].BrokerConfig.StorageConfigs = append(cr.Spec.Brokers[i].BrokerConfig.StorageConfigs, *storageConfig)
 		}
-		tempConfigs = append(tempConfigs, broker)
 	}
 
-	cr.Spec.Brokers = tempConfigs
 	return updateCr(cr, client)
 }
 

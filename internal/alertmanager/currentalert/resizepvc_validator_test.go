@@ -20,7 +20,7 @@ import (
 	"github.com/prometheus/common/model"
 )
 
-func TestAddPvcValidator_validateAlert(t *testing.T) {
+func TestResizePvcValidator_validateAlert(t *testing.T) {
 	type fields struct {
 		Alert *currentAlertStruct
 	}
@@ -30,34 +30,34 @@ func TestAddPvcValidator_validateAlert(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "addPvc validate success",
+			name: "resizePvc validate success",
 			fields: fields{
 				Alert: &currentAlertStruct{
 					Labels: model.LabelSet{
 						"persistentvolumeclaim": "test-pvc",
 					},
 					Annotations: model.LabelSet{
-						"command": AddPvcCommand,
+						"command": ResizePvcCommand,
 					},
 				},
 			},
 		},
 		{
-			name: "addPvc validate failed due to missing label",
+			name: "resizePvc validate failed due to missing label",
 			fields: fields{
 				Alert: &currentAlertStruct{
 					Labels: model.LabelSet{
 						"persistentvolumeclaim_missing": "test-pvc",
 					},
 					Annotations: model.LabelSet{
-						"command": AddPvcCommand,
+						"command": ResizePvcCommand,
 					},
 				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "addPvc validate failed due to unsupported command",
+			name: "resizePvc validate failed due to unsupported command",
 			fields: fields{
 				Alert: &currentAlertStruct{
 					Labels: model.LabelSet{
@@ -78,11 +78,11 @@ func TestAddPvcValidator_validateAlert(t *testing.T) {
 		tt := tt
 
 		t.Run(tt.name, func(t *testing.T) {
-			a := addPvcValidator{
+			a := resizePvcValidator{
 				Alert: tt.fields.Alert,
 			}
 			if err := a.validateAlert(); (err != nil) != tt.wantErr {
-				t.Errorf("addPvcValidator.validateAlert() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("resizePvcValidator.validateAlert() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
