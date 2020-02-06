@@ -638,7 +638,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 					return errors.WrapIf(err, "health check failed")
 				}
 
-				if offlineReplicaCount > 0 && !replicasInSync {
+				if offlineReplicaCount > 0 || !replicasInSync {
 					errorCount++
 				}
 				if errorCount >= r.KafkaCluster.Spec.RollingUpgradeConfig.FailureThreshold {
