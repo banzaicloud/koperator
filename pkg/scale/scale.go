@@ -148,7 +148,7 @@ func isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName string) (bo
 	for _, broker := range response.Brokers {
 		if broker.Broker == bIdToFloat &&
 			broker.BrokerState == brokerAlive {
-			log.Info("broker is available in cruise-control")
+			log.Info("broker is available in cruise-control", "brokerId", brokerId)
 			running = true
 			break
 		}
