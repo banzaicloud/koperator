@@ -37,13 +37,20 @@ func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.Ext
 
 func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger) []v1alpha3.Server {
 	servers := make([]v1alpha3.Server, 0)
+	protocol := v1alpha3.ProtocolTCP
+	var tlsConfig *v1alpha3.TLSOptions
+	if kc.Spec.IstioIngressConfig.TLSOptions != nil {
+		tlsConfig = kc.Spec.IstioIngressConfig.TLSOptions
+		protocol = v1alpha3.ProtocolTLS
+	}
 	for _, broker := range kc.Spec.Brokers {
 		servers = append(servers, v1alpha3.Server{
 			Port: &v1alpha3.Port{
 				Number:   int(broker.Id + externalListenerConfig.ExternalStartingPort),
-				Protocol: v1alpha3.ProtocolTCP,
+				Protocol: protocol,
 				Name:     fmt.Sprintf("broker-%d", broker.Id),
 			},
+			TLS:   tlsConfig,
 			Hosts: []string{"*"},
 		})
 	}
