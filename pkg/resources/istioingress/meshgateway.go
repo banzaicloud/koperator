@@ -17,11 +17,10 @@ package istioingress
 import (
 	"fmt"
 
+	istioOperatorApi "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	istioOperatorApi "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
@@ -30,7 +29,7 @@ import (
 )
 
 func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig) runtime.Object {
-	return &istioOperatorApi.MeshGateway{
+	mgateway := &istioOperatorApi.MeshGateway{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(istioingressutils.MeshGatewayNameTemplate, r.KafkaCluster.Name), labelsForIstioIngress(r.KafkaCluster.Name, externalListenerConfig.Name), r.KafkaCluster),
 		Spec: istioOperatorApi.MeshGatewaySpec{
 			MeshGatewayConfiguration: istioOperatorApi.MeshGatewayConfiguration{
@@ -52,6 +51,13 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 			Type:  istioOperatorApi.GatewayTypeIngress,
 		},
 	}
+	if !r.KafkaCluster.Spec.HeadlessServiceEnabled && len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners) > 0 {
+		mgateway.Spec.Ports = append(mgateway.Spec.Ports, corev1.ServicePort{
+			Name: allBrokers,
+			Port: r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort,
+		})
+	}
+	return mgateway
 }
 
 func generateExternalPorts(clusterSpec v1beta1.KafkaClusterSpec, externalListenerConfig v1beta1.ExternalListenerConfig) []corev1.ServicePort {

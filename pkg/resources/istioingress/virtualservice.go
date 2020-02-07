@@ -24,6 +24,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
 func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig) runtime.Object {
@@ -52,6 +53,23 @@ func generateTcpRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 					Destination: &v1alpha3.Destination{
 						Host: fmt.Sprintf("%s-%d", kc.Name, broker.Id),
 						Port: &v1alpha3.PortSelector{Number: uint32(externalListenerConfig.ContainerPort)},
+					},
+				},
+			},
+		})
+	}
+	if !kc.Spec.HeadlessServiceEnabled && len(kc.Spec.ListenersConfig.ExternalListeners) > 0 {
+		tcpRoutes = append(tcpRoutes, v1alpha3.TCPRoute{
+			Match: []v1alpha3.L4MatchAttributes{
+				{
+					Port: util.IntPointer(int(kc.Spec.ListenersConfig.InternalListeners[0].ContainerPort)),
+				},
+			},
+			Route: []*v1alpha3.RouteDestination{
+				{
+					Destination: &v1alpha3.Destination{
+						Host: fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, kc.Name),
+						Port: &v1alpha3.PortSelector{Number: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ContainerPort)},
 					},
 				},
 			},
