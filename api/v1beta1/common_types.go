@@ -69,7 +69,8 @@ const (
 	Configured RackAwarenessState = "Configured"
 	// WaitingForRackAwareness states the broker is waiting for the rack awareness config
 	WaitingForRackAwareness RackAwarenessState = "WaitingForRackAwareness"
-	// GracefulUpscaleSucceeded states the broker is updated gracefully
+	// GracefulUpscaleSucceeded states the broker is updated gracefully OR
+	// states that the broker is part of the initial cluster creation where CC topic is still in creating stage
 	GracefulUpscaleSucceeded CruiseControlState = "GracefulUpscaleSucceeded"
 	// GracefulUpscaleSucceeded states the broker is updated gracefully
 	GracefulDownscaleSucceeded CruiseControlState = "GracefulDownscaleSucceeded"
@@ -79,8 +80,6 @@ const (
 	GracefulUpdateFailed CruiseControlState = "GracefulUpdateFailed"
 	// GracefulUpdateRequired states the broker requires an
 	GracefulUpdateRequired CruiseControlState = "GracefulUpdateRequired"
-	// GracefulUpdateNotRequired states the broker is the part of the initial cluster where CC is still in creating stage
-	GracefulUpdateNotRequired CruiseControlState = "GracefulUpdateNotRequired"
 	// CruiseControlTopicNotReady states the CC required topic is not yet created
 	CruiseControlTopicNotReady CruiseControlTopicStatus = "CruiseControlTopicNotReady"
 	// CruiseControlTopicReady states the CC required topic is created
