@@ -180,7 +180,7 @@ func GetBrokerConfig(broker v1beta1.Broker, clusterSpec v1beta1.KafkaClusterSpec
 		bConfig = broker.BrokerConfig.DeepCopy()
 	}
 
-	err := mergo.Merge(bConfig, clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup])
+	err := mergo.Merge(bConfig, clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup], mergo.WithAppendSlice)
 	if err != nil {
 		return nil, errors.WrapIf(err, "could not merge brokerConfig with ConfigGroup")
 	}
