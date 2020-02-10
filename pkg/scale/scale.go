@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	bcutil "github.com/banzaicloud/kafka-operator/pkg/util"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
@@ -156,6 +157,53 @@ func isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName string) (bo
 	return running, nil
 }
 
+// Get brokers status from CC from a provided list of broker ids
+func GetLiveKafkaBrokersFromCruiseControl(brokerIds []string, namespace, ccEndpoint, clusterName string) ([]string, error) {
+
+	options := map[string]string{
+		"json": "true",
+	}
+
+	rsp, err := getCruiseControl(clusterLoad, namespace, options, ccEndpoint, clusterName)
+	if err != nil {
+		log.Error(err, "can't work with cruise-control because it is not ready")
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(rsp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		Brokers []struct {
+			Broker      float64
+			BrokerState string
+		}
+	}
+
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	aliveBrokers := make([]string, 0, len(brokerIds))
+
+	for _, broker := range response.Brokers {
+		bIdStr := fmt.Sprintf("%g", broker.Broker)
+		if broker.BrokerState == brokerAlive && bcutil.StringSliceContains(brokerIds, bIdStr) {
+			aliveBrokers = append(aliveBrokers, bIdStr)
+			log.Info("broker is available in cruise-control", "brokerId", bIdStr)
+		}
+	}
+	return aliveBrokers, nil
+}
+
 // GetBrokerIDWithLeastPartition returns
 func GetBrokerIDWithLeastPartition(namespace, ccEndpoint, clusterName string) (string, error) {
 
@@ -248,10 +296,10 @@ func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) (string
 }
 
 // DownsizeCluster downscales Kafka cluster
-func DownsizeCluster(brokerId, namespace, ccEndpoint, clusterName string) (string, string, error) {
+func DownsizeCluster(brokerIds []string, namespace, ccEndpoint, clusterName string) (string, string, error) {
 
 	options := map[string]string{
-		"brokerid": brokerId,
+		"brokerid": strings.Join(brokerIds, ","),
 		"dryrun":   "false",
 		"json":     "true",
 	}
