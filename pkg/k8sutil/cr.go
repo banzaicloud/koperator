@@ -32,10 +32,6 @@ import (
 
 // UpdateCrWithRackAwarenessConfig updates the CR with rack awareness config
 func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client) (v1beta1.RackAwarenessState, error) {
-
-	if pod.Spec.NodeName == "" {
-		return "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("pod does not scheduled to node yet"), "trying")
-	}
 	rackConfigMap, err := getSpecificNodeLabels(pod.Spec.NodeName, client, cr.Spec.RackAwareness.Labels)
 	if err != nil {
 		return "", errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with rack awareness info failed")
