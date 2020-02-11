@@ -581,7 +581,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		if err != nil {
 			log.Error(err, "could not match objects", "kind", desiredType)
 		} else if patchResult.IsEmpty() {
-			if isPodHealthy(currentPod) && r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync {
+			if !k8sutil.IsPodContainsTerminatedContainer(currentPod) && r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync {
 				log.V(1).Info("resource is in sync")
 				return nil
 			}
@@ -597,7 +597,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			return errors.WrapIf(err, "could not apply last state to annotation")
 		}
 
-		if isPodHealthy(currentPod) {
+		if !k8sutil.IsPodContainsTerminatedContainer(currentPod) {
 
 			if r.KafkaCluster.Status.State != v1beta1.KafkaClusterRollingUpgrading {
 				if err := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, v1beta1.KafkaClusterRollingUpgrading, log); err != nil {
@@ -606,7 +606,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			}
 
 			if r.KafkaCluster.Status.State == v1beta1.KafkaClusterRollingUpgrading {
-				// Check if any kafka pod is in terminating state
+				// Check if any kafka pod is in terminating or pending state
 				podList := &corev1.PodList{}
 				matchingLabels := client.MatchingLabels(labelsForKafka(r.KafkaCluster.Name))
 				err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
@@ -617,7 +617,11 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 					if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {
 						return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating"), "rolling upgrade in progress")
 					}
+					if k8sutil.IsPodContainsPendingContainer(&pod) {
+						return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still creating"), "rolling upgrade in progress")
+					}
 				}
+
 				errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
 
 				kClient, err := kafkaclient.NewFromCluster(r.Client, r.KafkaCluster)
@@ -722,17 +726,6 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 		return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(brokerIds, ","))
 	}
 	return errorfactory.New(errorfactory.CruiseControlTaskTimeout{}, errors.New("cc task timed out"), fmt.Sprintf("cc task id: %s", brokerState.GracefulActionState.CruiseControlTaskId))
-}
-
-func isPodHealthy(pod *corev1.Pod) bool {
-	healthy := true
-	for _, containerState := range pod.Status.ContainerStatuses {
-		if containerState.State.Terminated != nil {
-			healthy = false
-			break
-		}
-	}
-	return healthy
 }
 
 func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, desiredPvc *corev1.PersistentVolumeClaim) error {
