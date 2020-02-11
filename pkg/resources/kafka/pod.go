@@ -84,7 +84,7 @@ fi
 
 	pod := &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
-			r.KafkaCluster.Name,
+			fmt.Sprintf("%s-%d-", r.KafkaCluster.Name, id),
 			util.MergeLabels(
 				labelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
