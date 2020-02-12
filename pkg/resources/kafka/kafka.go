@@ -52,7 +52,7 @@ import (
 const (
 	componentName         = "kafka"
 	brokerConfigTemplate  = "%s-config"
-	brokerStorageTemplate = "%s-storage"
+	brokerStorageTemplate = "%s-%d-storage"
 
 	brokerConfigMapVolumeMount = "broker-config"
 	kafkaDataVolumeMount       = "kafka-data"
