@@ -35,12 +35,21 @@ type ConfigurationState string
 // PKIBackend represents an interface implementing the PKIManager
 type PKIBackend string
 
-type VolumeState map[string]CruiseControlState
+// CruiseControlVolumeState holds information about the state of volume rebalance
+type CruiseControlVolumeState string
+
+func (r CruiseControlState) IsUpscale() bool {
+	return r == GracefulUpscaleRequired || r == GracefulUpscaleRunning || r == GracefulUpscaleSucceeded || r == GracefulUpscaleFailed
+}
+
+func (r CruiseControlState) IsDownscale() bool {
+	return r == GracefulDownscaleRequired || r == GracefulDownscaleRunning || r == GracefulDownscaleSucceeded || r == GracefulDownscaleFailed
+}
 
 const (
 	// PKIBackendCertManager invokes cert-manager for user certificate management
 	PKIBackendCertManager PKIBackend = "cert-manager"
-	// PKIBackendVault invokves vault PKI for user certificate management
+	// PKIBackendVault invokes vault PKI for user certificate management
 	PKIBackendVault PKIBackend = "vault"
 )
 
@@ -54,6 +63,21 @@ type GracefulActionState struct {
 	TaskStarted string `json:"TaskStarted,omitempty"`
 	// CruiseControlState holds the information about CC state
 	CruiseControlState CruiseControlState `json:"cruiseControlState"`
+	// VolumeStates holds the information about the CC disk rebalance states and tasks
+	VolumeStates []VolumeState `json:"volumeStates"`
+}
+
+type VolumeState struct {
+	// MountPath holds the information about the path the volume is mounted at
+	MountPath string `json:"mountPath"`
+	// ErrorMessage holds the information what happened with CC disk rebalance
+	ErrorMessage string `json:"errorMessage"`
+	// CruiseControlTaskId holds info about the task id ran by CC
+	CruiseControlTaskId string `json:"cruiseControlTaskId,omitempty"`
+	// TaskStarted hold the time when the execution started
+	TaskStarted string `json:"TaskStarted,omitempty"`
+	// CruiseControlVolumeState holds the information about the CC disk rebalance state
+	CruiseControlVolumeState CruiseControlVolumeState `json:"cruiseControlVolumeState"`
 }
 
 // BrokerState holds information about broker state
@@ -64,8 +88,6 @@ type BrokerState struct {
 	GracefulActionState GracefulActionState `json:"gracefulActionState"`
 	// ConfigurationState holds info about the config
 	ConfigurationState ConfigurationState `json:"configurationState"`
-	// VolumeState holds info about the volume status
-	VolumeState VolumeState`json:"volumeState"`
 }
 
 const (
@@ -73,20 +95,37 @@ const (
 	Configured RackAwarenessState = "Configured"
 	// WaitingForRackAwareness states the broker is waiting for the rack awareness config
 	WaitingForRackAwareness RackAwarenessState = "WaitingForRackAwareness"
-	// GracefulDiskRebalanceRequired states that the broker needs a CC disk re-balance
-	GracefulDiskRebalanceRequired CruiseControlState = "GracefulDiskRebalanceRequired"
-	// GracefulUpscaleSucceeded states the broker is updated gracefully
+
+	// Upscale cruise control states
+	// GracefulUpscaleRequired states that a broker upscale is required
+	GracefulUpscaleRequired CruiseControlState = "GracefulUpscaleRequired"
+	// GracefulUpscaleRunning states that the broker upscale task is still running in CC
+	GracefulUpscaleRunning CruiseControlState = "GracefulUpscaleRunning"
+	// GracefulUpscaleFailed states that the broker could not be upscaled gracefully
+	GracefulUpscaleFailed CruiseControlState = "GracefulUpscaleFailed"
+	// GracefulUpscaleSucceeded states that the broker upscaled gracefully
 	GracefulUpscaleSucceeded CruiseControlState = "GracefulUpscaleSucceeded"
-	// GracefulUpscaleSucceeded states the broker is updated gracefully
+
+	// Downscale cruise control states
+	// GracefulDownscaleRequired states that a broker downscale is required
+	GracefulDownscaleRequired CruiseControlState = "GracefulDownscaleRequired"
+	// GracefulDownscaleRunning states that the broker downscale is still running in CC
+	GracefulDownscaleRunning CruiseControlState = "GracefulDownscaleRunning"
+	// GracefulDownscaleFailed states that the broker could not be downscaled gracefully
+	GracefulDownscaleFailed CruiseControlState = "GracefulDownscaleFailed"
+	// GracefulUpscaleSucceeded states that the broker downscaled gracefully
 	GracefulDownscaleSucceeded CruiseControlState = "GracefulDownscaleSucceeded"
-	// GracefulUpdateRunning states the broker update task is still running in CC
-	GracefulUpdateRunning CruiseControlState = "GracefulUpdateRunning"
-	// GracefulUpdateFailed states the broker could not be updated gracefully
-	GracefulUpdateFailed CruiseControlState = "GracefulUpdateFailed"
-	// GracefulUpdateRequired states the broker requires an
-	GracefulUpdateRequired CruiseControlState = "GracefulUpdateRequired"
-	// GracefulUpdateNotRequired states the broker is the part of the initial cluster where CC is still in creating stage
-	GracefulUpdateNotRequired CruiseControlState = "GracefulUpdateNotRequired"
+
+	// Disk rebalance cruise control states
+	// GracefulDiskRebalanceRequired states that the broker volume needs a CC disk rebalance
+	GracefulDiskRebalanceRequired CruiseControlVolumeState = "GracefulDiskRebalanceRequired"
+	// GracefulDiskRebalanceRunning states that for the broker volume a CC disk rebalance is in progress
+	GracefulDiskRebalanceRunning CruiseControlVolumeState = "GracefulDiskRebalanceRunning"
+	// GracefulDiskRebalanceFailed states that the broker volume CC disk rebalance task has failed
+	GracefulDiskRebalanceFailed CruiseControlVolumeState = "GracefulDiskRebalanceFailed"
+	// GracefulDiskRebalanceSucceeded states that the for the broker volume rebalance has succeeded
+	GracefulDiskRebalanceSucceeded CruiseControlVolumeState = "GracefulDiskRebalanceSucceeded"
+
 	// CruiseControlTopicNotReady states the CC required topic is not yet created
 	CruiseControlTopicNotReady CruiseControlTopicStatus = "CruiseControlTopicNotReady"
 	// CruiseControlTopicReady states the CC required topic is created

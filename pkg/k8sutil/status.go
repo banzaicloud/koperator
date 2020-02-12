@@ -92,7 +92,10 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 			case banzaicloudv1beta1.ConfigurationState:
 				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {ConfigurationState: s}}
 			case banzaicloudv1beta1.VolumeState:
-				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {VolumeState: s}}
+				gracefulActionState := banzaicloudv1beta1.GracefulActionState{
+					VolumeStates:         []banzaicloudv1beta1.VolumeState{s},
+				}
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: gracefulActionState}}
 			}
 		} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
 			switch s := state.(type) {
@@ -103,12 +106,10 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 			case banzaicloudv1beta1.ConfigurationState:
 				val.ConfigurationState = s
 			case banzaicloudv1beta1.VolumeState:
-				if val.VolumeState == nil {
-					val.VolumeState = s
+				if val.GracefulActionState.VolumeStates == nil {
+					val.GracefulActionState.VolumeStates = []banzaicloudv1beta1.VolumeState{s}
 				} else {
-					for k, v := range s {
-						val.VolumeState[k] = v
-					}
+					val.GracefulActionState.VolumeStates = append(val.GracefulActionState.VolumeStates, s)
 				}
 			}
 			cluster.Status.BrokersState[brokerId] = val
@@ -121,7 +122,10 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 			case banzaicloudv1beta1.ConfigurationState:
 				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{ConfigurationState: s}
 			case banzaicloudv1beta1.VolumeState:
-				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{VolumeState: s}
+				gracefulActionState := banzaicloudv1beta1.GracefulActionState{
+					VolumeStates:         []banzaicloudv1beta1.VolumeState{s},
+				}
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: gracefulActionState}
 			}
 		}
 	}

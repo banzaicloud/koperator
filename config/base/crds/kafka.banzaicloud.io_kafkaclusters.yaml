@@ -1437,21 +1437,50 @@ spec:
                         description: ErrorMessage holds the information what happened
                           with CC
                         type: string
+                      volumeState:
+                        description: VolumeState holds the information about the CC
+                          disk rebalance states and tasks
+                        items:
+                          properties:
+                            TaskStarted:
+                              description: TaskStarted hold the time when the execution
+                                started
+                              type: string
+                            cruiseControlTaskId:
+                              description: CruiseControlTaskId holds info about the
+                                task id ran by CC
+                              type: string
+                            cruiseControlVolumeState:
+                              description: CruiseControlVolumeState holds the information
+                                about the CC disk rebalance state
+                              type: string
+                            errorMessage:
+                              description: ErrorMessage holds the information what
+                                happened with CC disk rebalance
+                              type: string
+                            mountPath:
+                              description: MountPath holds the information about the
+                                path the volume is mounted at
+                              type: string
+                          required:
+                          - cruiseControlVolumeState
+                          - errorMessage
+                          - mountPath
+                          type: object
+                        type: array
                     required:
                     - cruiseControlState
                     - errorMessage
+                    - volumeState
                     type: object
                   rackAwarenessState:
                     description: RackAwarenessState holds info about rack awareness
                       status
                     type: string
                   volumeState:
-                    additionalProperties:
-                      description: CruiseControlState holds info about the state of
-                        Cruise Control
-                      type: string
-                    description: VolumeState holds info about the volume status
-                    type: object
+                    description: CruiseControlVolumeState holds info about the volume
+                      status
+                    type: string
                 required:
                 - configurationState
                 - gracefulActionState

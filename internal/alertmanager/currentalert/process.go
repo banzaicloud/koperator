@@ -179,7 +179,7 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 		storageClassName = util.StringPointer(string(alertAnnotations["storageClass"]))
 	}
 
-	pvc, err := getPvc(string(alertLabels["persistentvolumeclaim"]), string(alertLabels["namespace"]), client)
+	pvc, err := getPvcRunningOutOfStorage(string(alertLabels["persistentvolumeclaim"]), string(alertLabels["namespace"]), client)
 	if err != nil {
 		return err
 	}
@@ -339,8 +339,8 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 	return nil
 }
 
-// getPvc returns the given PVC object
-func getPvc(name, namespace string, client client.Client) (*corev1.PersistentVolumeClaim, error) {
+// getPvcRunningOutOfStorage returns the given PVC object
+func getPvcRunningOutOfStorage(name, namespace string, client client.Client) (*corev1.PersistentVolumeClaim, error) {
 	cr := &corev1.PersistentVolumeClaim{}
 
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr)
