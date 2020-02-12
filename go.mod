@@ -8,7 +8,7 @@ require (
 	github.com/Shopify/sarama v1.23.1
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.2.0
-	github.com/banzaicloud/istio-client-go v0.0.0-20191203163313-928801ec5028
+	github.com/banzaicloud/istio-client-go v0.0.0-20200207164547-0c6796585145
 	github.com/banzaicloud/istio-operator v0.0.0-20191212123221-6e3658721f00
 	github.com/banzaicloud/k8s-objectmatcher v1.0.0
 	github.com/envoyproxy/go-control-plane v0.8.6

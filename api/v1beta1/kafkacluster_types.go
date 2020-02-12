@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"strings"
 
+	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -158,6 +159,7 @@ type IstioIngressConfig struct {
 	NodeSelector map[string]string            `json:"nodeSelector,omitempty"`
 	Tolerations  []corev1.Toleration          `json:"tolerations,omitempty"`
 	Annotations  map[string]string            `json:"annotations,omitempty"`
+	TLSOptions   *v1alpha3.TLSOptions         `json:"gatewayConfig,omitempty"`
 }
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control

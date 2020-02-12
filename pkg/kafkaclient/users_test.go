@@ -24,24 +24,57 @@ import (
 func TestCreateUserACLs(t *testing.T) {
 	client := newOpenedMockClient()
 
-	if err := client.CreateUserACLs(v1alpha1.KafkaAccessTypeRead, "test-user", "test-topic"); err != nil {
-		t.Error("Expected no error, got:", err)
-	}
+	validAccessTypes := []v1alpha1.KafkaAccessType{
+		"read",
+		"write"}
+	invalidAccessTypes := []v1alpha1.KafkaAccessType{
+		"",
+		"helloWorld"}
+	allAccessTypes := append(validAccessTypes, invalidAccessTypes...)
 
-	if err := client.CreateUserACLs(v1alpha1.KafkaAccessTypeWrite, "test-user", "test-topic"); err != nil {
-		t.Error("Expected no error, got:", err)
-	}
+	validPatternTypes := []v1alpha1.KafkaPatternType{
+		"any",
+		"literal",
+		"match",
+		"prefixed",
+		""}
+	invalidPatternTypes := []v1alpha1.KafkaPatternType{
+		"helloWorld"}
+	allPatternTypes := append(validPatternTypes, invalidPatternTypes...)
 
-	if err := client.CreateUserACLs(v1alpha1.KafkaAccessType(""), "test-user", "test-topic"); err == nil {
-		t.Error("Expected error, got nil")
+	// Test all valid combinations of accessType and patternType
+	for _, accessType := range validAccessTypes {
+		for _, patternType := range validPatternTypes {
+			if err := client.CreateUserACLs(accessType, patternType, "test-user", "test-topic"); err != nil {
+				t.Error("Expected no error, got:", err)
+			}
+		}
+	}
+	// Test invalid accessTypes against all patternTypes
+	for _, accessType := range invalidAccessTypes {
+		for _, patternType := range allPatternTypes {
+			if err := client.CreateUserACLs(accessType, patternType, "test-user", "test-topic"); err == nil {
+				t.Error("Expected error, got nil")
+			}
+		}
+	}
+	// Test invalid patternTypes against all accessTypes
+	for _, patternType := range invalidPatternTypes {
+		for _, accessType := range allAccessTypes {
+			if err := client.CreateUserACLs(accessType, patternType, "test-user", "test-topic"); err == nil {
+				t.Error("Expected error, got nil")
+			}
+		}
 	}
 
 	client.admin, _ = newMockClusterAdminFailOps([]string{}, sarama.NewConfig())
-	if err := client.CreateUserACLs(v1alpha1.KafkaAccessTypeRead, "test-user", "test-topic"); err == nil {
-		t.Error("Expected error, got nil")
-	}
-	if err := client.CreateUserACLs(v1alpha1.KafkaAccessTypeWrite, "test-user", "test-topic"); err == nil {
-		t.Error("Expected error, got nil")
+	// Test all combinations of accessType and patternType
+	for _, accessType := range allAccessTypes {
+		for _, patternType := range allPatternTypes {
+			if err := client.CreateUserACLs(accessType, patternType, "test-user", "test-topic"); err == nil {
+				t.Error("Expected error, got nil")
+			}
+		}
 	}
 }
 

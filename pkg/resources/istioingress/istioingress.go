@@ -28,6 +28,7 @@ const (
 	componentName          = "istioingress"
 	gatewayNameTemplate    = "%s-%s-gateway"
 	virtualServiceTemplate = "%s-%s-virtualservice"
+	allBrokers             = "all-brokers"
 )
 
 // labelsForIstioIngress returns the labels for selecting the resources

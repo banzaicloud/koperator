@@ -18,16 +18,17 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
-	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
@@ -62,7 +63,7 @@ if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then
   MAXCOUNT=${1:-30}
   HEALTHYSTATUSCODE="200"
   while true; do
-    COUNT= $(expr $COUNT + 1)
+    COUNT=$(expr $COUNT + 1)
     SC=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:15000/ready)
     echo "waiting for envoy proxy to come up";
     sleep 1;
@@ -83,7 +84,7 @@ fi
 
 	pod := &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
-			r.KafkaCluster.Name,
+			fmt.Sprintf("%s-%d-", r.KafkaCluster.Name, id),
 			util.MergeLabels(
 				labelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},

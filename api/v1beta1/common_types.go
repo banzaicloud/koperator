@@ -103,7 +103,8 @@ const (
 	GracefulUpscaleRunning CruiseControlState = "GracefulUpscaleRunning"
 	// GracefulUpscaleFailed states that the broker could not be upscaled gracefully
 	GracefulUpscaleFailed CruiseControlState = "GracefulUpscaleFailed"
-	// GracefulUpscaleSucceeded states that the broker upscaled gracefully
+	// GracefulUpscaleSucceeded states the broker is updated gracefully OR
+	// states that the broker is part of the initial cluster creation where CC topic is still in creating stage
 	GracefulUpscaleSucceeded CruiseControlState = "GracefulUpscaleSucceeded"
 
 	// Downscale cruise control states

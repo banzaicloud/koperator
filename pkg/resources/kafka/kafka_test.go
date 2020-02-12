@@ -52,7 +52,7 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed},
 						},
 						"2": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateNotRequired},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},
 						},
 						"3": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateRequired},

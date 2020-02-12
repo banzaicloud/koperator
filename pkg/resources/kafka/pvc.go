@@ -28,7 +28,7 @@ import (
 func (r *Reconciler) pvc(id int32, storage v1beta1.StorageConfig, log logr.Logger) runtime.Object {
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
-			fmt.Sprintf(brokerStorageTemplate, r.KafkaCluster.Name),
+			fmt.Sprintf(brokerStorageTemplate, r.KafkaCluster.Name, id),
 			util.MergeLabels(
 				labelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},

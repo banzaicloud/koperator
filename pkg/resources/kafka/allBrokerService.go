@@ -37,6 +37,14 @@ func (r *Reconciler) allBrokerService() runtime.Object {
 			Protocol:   corev1.ProtocolTCP,
 		})
 	}
+	//Append external listener ports as well to allow using this service for metadata fetch
+	for _, eListeners := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		usedPorts = append(usedPorts, corev1.ServicePort{
+			Name:     strings.ReplaceAll(eListeners.Name, "_", ""),
+			Port:     eListeners.ContainerPort,
+			Protocol: corev1.ProtocolTCP,
+		})
+	}
 
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, r.KafkaCluster.Name), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),

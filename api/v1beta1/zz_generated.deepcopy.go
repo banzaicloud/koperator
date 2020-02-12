@@ -19,6 +19,7 @@
 package v1beta1
 
 import (
+	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
 	metav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -322,6 +323,11 @@ func (in *IstioIngressConfig) DeepCopyInto(out *IstioIngressConfig) {
 		for key, val := range *in {
 			(*out)[key] = val
 		}
+	}
+	if in.TLSOptions != nil {
+		in, out := &in.TLSOptions, &out.TLSOptions
+		*out = new(v1alpha3.TLSOptions)
+		(*in).DeepCopyInto(*out)
 	}
 }
 

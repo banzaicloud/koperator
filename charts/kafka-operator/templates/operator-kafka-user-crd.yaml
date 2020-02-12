@@ -49,7 +49,7 @@ spec:
                   be created. If ommitted, the namespace of the current CR is assumed.'
                   type: string
               required:
-              - name
+                - name
               type: object
             dnsNames:
               items:
@@ -64,25 +64,33 @@ spec:
               type: string
             topicGrants:
               items:
-                description: 'UserTopicGrant is the desired permissions for the KafkaUser.
-                Each grant must have a topicName and an accessType. AccessType must be one
-                of "read" or "write".'
+                description: UserTopicGrant is the desired permissions for the KafkaUser
                 properties:
                   accessType:
+                    description: KafkaAccessType hold info about Kafka ACL
                     enum:
-                    - read
-                    - write
+                      - read
+                      - write
+                    type: string
+                  patternType:
+                    description: 'patternType is the Resource Pattern Type of this ACL entry.
+                      More info: https://kafka.apache.org/20/javadoc/org/apache/kafka/common/resource/PatternType.html'
+                    enum:
+                      - literal
+                      - match
+                      - prefixed
+                      - any
                     type: string
                   topicName:
                     type: string
                 required:
-                - accessType
-                - topicName
+                  - accessType
+                  - topicName
                 type: object
               type: array
           required:
-          - clusterRef
-          - secretName
+            - clusterRef
+            - secretName
           type: object
         status:
           description: KafkaUserStatus defines the observed state of KafkaUser
@@ -95,14 +103,14 @@ spec:
               description: UserState defines the state of a KafkaUser
               type: string
           required:
-          - state
+            - state
           type: object
       type: object
   version: v1alpha1
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true
 status:
   acceptedNames:
     kind: ""
