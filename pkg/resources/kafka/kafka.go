@@ -234,6 +234,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
 				err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 				if err != nil {
+					if apierrors.IsNotFound(err) {
+						// can happen when broker was not fully initialized and now is deleted
+						log.Info(fmt.Sprintf("Service for Broker %s not found. Continue", broker.Labels["brokerId"]))
+					}
 					return errors.WrapIfWithDetails(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
 				}
 			}
@@ -244,6 +248,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 						Namespace: r.KafkaCluster.Namespace,
 					}})
 					if err != nil {
+						if apierrors.IsNotFound(err) {
+							// can happen when broker was not fully initialized and now is deleted
+							log.Info(fmt.Sprintf("PVC for Broker %s not found. Continue", broker.Labels["brokerId"]))
+						}
 						return errors.WrapIfWithDetails(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
 					}
 				}
