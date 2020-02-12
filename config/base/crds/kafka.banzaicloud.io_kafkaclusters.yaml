@@ -1255,8 +1255,6 @@ spec:
                       items:
                         type: string
                       type: array
-                  required:
-                  - httpsRedirect
                   type: object
                 nodeSelector:
                   additionalProperties:

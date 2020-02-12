@@ -34,7 +34,7 @@ type UserTopicGrant struct {
 	// +kubebuilder:validation:Enum={"read","write"}
 	AccessType KafkaAccessType `json:"accessType"`
 	// +kubebuilder:validation:Enum={"literal","match","prefixed","any"}
-	PatternType KafkaPatternType `json:"patternType"`
+	PatternType KafkaPatternType `json:"patternType,omitempty"`
 }
 
 // KafkaUserStatus defines the observed state of KafkaUser
