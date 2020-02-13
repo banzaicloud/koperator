@@ -27,6 +27,10 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
+const (
+	symbolSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+)
+
 // IntstrPointer generate IntOrString pointer from int
 func IntstrPointer(i int) *intstr.IntOrString {
 	is := intstr.FromInt(i)
@@ -199,9 +203,7 @@ func GetBrokerImage(brokerConfig *v1beta1.BrokerConfig, clusterImage string) str
 func GetRandomString(length int) (string, error) {
 	rand.Seed(time.Now().UnixNano())
 
-	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-		"abcdefghijklmnopqrstuvwxyz" +
-		"0123456789")
+	chars := []rune(symbolSet)
 
 	var b strings.Builder
 	for i := 0; i < length; i++ {

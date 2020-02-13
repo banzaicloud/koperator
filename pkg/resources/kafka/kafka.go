@@ -74,7 +74,7 @@ type Reconciler struct {
 
 // labelsForKafka returns the labels for selecting the resources
 // belonging to the given kafka CR name.
-func labelsForKafka(name string) map[string]string {
+func LabelsForKafka(name string) map[string]string {
 	return map[string]string{"app": "kafka", "kafka_cr": name}
 }
 

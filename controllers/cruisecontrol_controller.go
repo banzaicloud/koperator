@@ -27,6 +27,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	ccutils "github.com/banzaicloud/kafka-operator/pkg/util/cruisecontrol"
@@ -108,7 +109,7 @@ func (r *Reconciler) handlePodAddCCTask(brokerId string, brokerState kafkav1beta
 
 	matchingLabels := client.MatchingLabels(
 		util.MergeLabels(
-			map[string]string{"app": "kafka", "kafka_cr": r.KafkaCluster.Name},
+			kafka.LabelsForKafka(r.KafkaCluster.Name),
 			map[string]string{"brokerId": brokerId},
 		),
 	)
@@ -123,7 +124,7 @@ func (r *Reconciler) handlePodAddCCTask(brokerId string, brokerState kafkav1beta
 			//trigger add broker in CC
 			uTaskId, taskStartTime, scaleErr := scale.UpScaleCluster(brokerId, r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 			if scaleErr != nil {
-				log.Info(fmt.Sprintf("cruise control communication error during upscaling broker id: %s", brokerId))
+				log.Info("cruise control communication error during upscaling broker", "brokerId",  brokerId)
 				return errorfactory.New(errorfactory.CruiseControlNotReady{}, scaleErr, fmt.Sprintf("broker id: %s", brokerId))
 			}
 			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster,
@@ -150,7 +151,7 @@ func (r *Reconciler) handlePodDeleteCCTask(brokerId string, brokerState kafkav1b
 		uTaskId, taskStartTime, err := scale.DownsizeCluster([]string{brokerId},
 			r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 		if err != nil {
-			log.Info(fmt.Sprintf("cruise control communication error during downscaling broker(s) id(s): %s", brokerId))
+			log.Info("cruise control communication error during downscaling broker(s)", "id(s)", brokerId)
 			return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", brokerId))
 		}
 		err = k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster,
@@ -176,7 +177,7 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 	status, err := scale.GetCCTaskState(brokerState.GracefulActionState.CruiseControlTaskId,
 		r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 	if err != nil {
-		log.Info(fmt.Sprintf("Cruise control communication error checking running task: %s", brokerState.GracefulActionState.CruiseControlTaskId))
+		log.Info("Cruise control communication error checking running ", "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 	}
 
@@ -225,11 +226,11 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(brokerIds, ","))
 		}
-		log.Info(fmt.Sprintf("Cruise control task: %s is still running", brokerState.GracefulActionState.CruiseControlTaskId))
+		log.Info("Cruise control task is still running", "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
 		return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("cc task is still running"), fmt.Sprintf("cc task id: %s", brokerState.GracefulActionState.CruiseControlTaskId))
 	}
 	// task timed out
-	log.Info(fmt.Sprintf("Killing Cruise control task: %s", brokerState.GracefulActionState.CruiseControlTaskId))
+	log.Info("Killing Cruise control task", "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
 	err = scale.KillCCTask(r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 	if err != nil {
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
@@ -264,7 +265,7 @@ func (r *Reconciler) checkVolumeCCTaskState(brokerIds []string, volumeState v1be
 	status, err := scale.GetCCTaskState(volumeState.CruiseControlTaskId,
 		r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 	if err != nil {
-		log.Info(fmt.Sprintf("Cruise control communication error checking running task: %s", volumeState.CruiseControlTaskId))
+		log.Info("Cruise control communication error checking running task", "taskId", volumeState.CruiseControlTaskId)
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 	}
 
@@ -308,11 +309,11 @@ func (r *Reconciler) checkVolumeCCTaskState(brokerIds []string, volumeState v1be
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", strings.Join(brokerIds, ","))
 		}
-		log.Info(fmt.Sprintf("Cruise control task: %s is still running", volumeState.CruiseControlTaskId))
+		log.Info("Cruise control task is still running", "taskId", volumeState.CruiseControlTaskId)
 		return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("cc task is still running"), fmt.Sprintf("cc task id: %s", volumeState.CruiseControlTaskId))
 	}
 	// task timed out
-	log.Info(fmt.Sprintf("Killing Cruise control task: %s", volumeState.CruiseControlTaskId))
+	log.Info("Killing Cruise control task", "taskId", volumeState.CruiseControlTaskId)
 	err = scale.KillCCTask(r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 	if err != nil {
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")

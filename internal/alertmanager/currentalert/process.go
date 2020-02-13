@@ -179,7 +179,7 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 		storageClassName = util.StringPointer(string(alertAnnotations["storageClass"]))
 	}
 
-	pvc, err := getPvcRunningOutOfStorage(string(alertLabels["persistentvolumeclaim"]), string(alertLabels["namespace"]), client)
+	pvc, err := getPvc(string(alertLabels["persistentvolumeclaim"]), string(alertLabels["namespace"]), client)
 	if err != nil {
 		return err
 	}
@@ -339,8 +339,8 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 	return nil
 }
 
-// getPvcRunningOutOfStorage returns the given PVC object
-func getPvcRunningOutOfStorage(name, namespace string, client client.Client) (*corev1.PersistentVolumeClaim, error) {
+// getPvc returns the given PVC object
+func getPvc(name, namespace string, client client.Client) (*corev1.PersistentVolumeClaim, error) {
 	cr := &corev1.PersistentVolumeClaim{}
 
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr)
@@ -388,7 +388,7 @@ func unboundPvcOnNodeExists(c client.Client, pvc *corev1.PersistentVolumeClaim, 
 
 	for _, pvc := range kafkaPvcListOnNode.Items {
 		if pvc.Status.Phase == corev1.ClaimPending {
-			log.Info("addPvc is skipped because a PVC exists on the node which is unbound", "node:", nodeName)
+			log.Info("addPvc is skipped because a PVC exists on the node which is unbound", "node", nodeName)
 
 			return true, nil
 		}
