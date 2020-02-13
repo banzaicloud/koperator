@@ -46,6 +46,14 @@ func (r CruiseControlState) IsDownscale() bool {
 	return r == GracefulDownscaleRequired || r == GracefulDownscaleRunning || r == GracefulDownscaleSucceeded || r == GracefulDownscaleFailed
 }
 
+func (r CruiseControlState) IsRunningState() bool {
+	return r == GracefulDownscaleRunning || r == GracefulUpscaleRunning
+}
+
+func (r CruiseControlState) IsRequiredState() bool {
+	return r == GracefulDownscaleRequired || r == GracefulUpscaleRequired
+}
+
 const (
 	// PKIBackendCertManager invokes cert-manager for user certificate management
 	PKIBackendCertManager PKIBackend = "cert-manager"

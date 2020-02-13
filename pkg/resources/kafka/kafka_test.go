@@ -49,13 +49,13 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},
 						},
 						"1": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleFailed},
 						},
 						"2": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},
 						},
 						"3": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateRequired},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRequired},
 						},
 					},
 				},
@@ -85,20 +85,20 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 						"0": {
 							GracefulActionState: v1beta1.GracefulActionState{
 								CruiseControlTaskId: "cc-task-id-1",
-								CruiseControlState:  v1beta1.GracefulUpdateRunning,
+								CruiseControlState:  v1beta1.GracefulUpscaleRunning,
 							},
 						},
 						"1": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleFailed},
 						},
 						"2": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateRequired},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRequired},
 						},
 						"3": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateRequired},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRequired},
 						},
 						"4": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateRunning},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRunning},
 						},
 					},
 				},

@@ -140,7 +140,7 @@ func isKafkaBrokerDiskReady(brokerId, mountPath, namespace, ccEndpoint, clusterN
 	}
 
 	for key, value := range response.KafkaBrokerState.OnlineLogDirsByBrokerId {
-		if key == brokerId && contains(value, mountPath){
+		if key == brokerId && contains(value, mountPath) {
 			log.Info("broker disk is available in cruise-control")
 			return true, nil
 		}
@@ -204,7 +204,7 @@ func GetLiveKafkaBrokersFromCruiseControl(brokerIds []string, namespace, ccEndpo
 		"json": "true",
 	}
 
-	rsp, err := getCruiseControl(clusterLoad, namespace, options, ccEndpoint, clusterName)
+	rsp, err := getCruiseControl(clusterLoadAction, namespace, options, ccEndpoint, clusterName)
 	if err != nil {
 		log.Error(err, "can't work with cruise-control because it is not ready")
 		return nil, err
@@ -380,7 +380,6 @@ func RebalanceDisks(brokerId, mountPath, namespace, ccEndpoint, clusterName stri
 	if !ready {
 		return "", "", errors.New("broker disk is not ready yet")
 	}
-
 
 	options := map[string]string{
 		"dryrun":         "false",

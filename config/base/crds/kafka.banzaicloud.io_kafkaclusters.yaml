@@ -1519,9 +1519,9 @@ spec:
                         description: ErrorMessage holds the information what happened
                           with CC
                         type: string
-                      volumeState:
-                        description: VolumeState holds the information about the CC
-                          disk rebalance states and tasks
+                      volumeStates:
+                        description: VolumeStates holds the information about the
+                          CC disk rebalance states and tasks
                         items:
                           properties:
                             TaskStarted:
@@ -1553,21 +1553,16 @@ spec:
                     required:
                     - cruiseControlState
                     - errorMessage
-                    - volumeState
+                    - volumeStates
                     type: object
                   rackAwarenessState:
                     description: RackAwarenessState holds info about rack awareness
-                      status
-                    type: string
-                  volumeState:
-                    description: CruiseControlVolumeState holds info about the volume
                       status
                     type: string
                 required:
                 - configurationState
                 - gracefulActionState
                 - rackAwarenessState
-                - volumeState
                 type: object
               type: object
             cruiseControlTopicStatus:
