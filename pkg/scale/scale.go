@@ -115,7 +115,13 @@ func isKafkaBrokerDiskReady(brokerId, mountPath, namespace, ccEndpoint, clusterN
 
 	rsp, err := getCruiseControl(kafkaClusterStateAction, namespace, options, ccEndpoint, clusterName)
 	if err != nil {
-		log.Error(err, "can't work with cruise-control because it is not ready")
+               keyVals :=[]interface{}{
+                 "namespace", namespace,
+                 "clusterName", clusterName,
+                 "brokerId", brokerId,
+                 "path", mountPath, 
+               }
+		log.Error(err, "can't check if broker disk is ready as Cruise Control not ready", keyVals...)
 		return false, err
 	}
 
