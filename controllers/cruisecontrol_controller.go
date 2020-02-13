@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
@@ -414,10 +413,4 @@ func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
 		})
 
 	return builder
-}
-
-func (r *CruiseControlReconciler) addFinalizer(reqLogger logr.Logger, user *v1alpha1.KafkaUser) {
-	reqLogger.Info("Adding Finalizer for the CruiseControlController")
-	user.SetFinalizers(append(user.GetFinalizers(), userFinalizer))
-	return
 }
