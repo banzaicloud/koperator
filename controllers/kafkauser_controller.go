@@ -80,7 +80,7 @@ func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
 	return nil
 }
 
-// blank assignment to verify that KafkaUserReconciler implements reconcile.Reconciler
+// blank assignment to verify that KafkaUserReconciler implements reconcile.CruiseControlReconciler
 var _ reconcile.Reconciler = &KafkaUserReconciler{}
 
 // KafkaUserReconciler reconciles a KafkaUser object

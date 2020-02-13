@@ -124,7 +124,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = controllers.SetupCruiseControlWithManager(mgr).Complete(kafkaClusterReconciler); err != nil {
+	kafkaClusterCCReconciler := &controllers.CruiseControlReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Log:    ctrl.Log.WithName("controller").WithName("CruiseControl"),
+	}
+
+	if err = controllers.SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CruiseControl")
 		os.Exit(1)
 	}

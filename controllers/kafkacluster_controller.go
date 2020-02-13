@@ -78,7 +78,7 @@ type KafkaClusterReconciler struct {
 
 func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("kafkacluster", request.NamespacedName, "Request.Name", request.Name)
+	log := r.Log.WithValues("Request.Namespace", request.NamespacedName, "Request.Name", request.Name)
 
 	log.Info("Reconciling KafkaCluster")
 

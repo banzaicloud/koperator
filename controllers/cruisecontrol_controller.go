@@ -26,7 +26,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -40,38 +39,67 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+
 	kafkav1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
-const (
-	componentName = "kafka"
-)
-
 // CruiseControlReconciler reconciles a kafka cluster object
-type Reconciler struct {
-	resources.Reconciler
+type CruiseControlReconciler struct {
+	client.Client
 	Scheme *runtime.Scheme
+
+	Log logr.Logger
 }
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaCluster,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaCluster/status,verbs=get;update;patch
 
-func (r *Reconciler) Reconcile(log logr.Logger) error {
-	log = log.WithValues("component", componentName, "clusterName", r.KafkaCluster.Name, "clusterNamespace", r.KafkaCluster.Namespace)
+func (r *CruiseControlReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
+	ctx := context.Background()
+
+	log := r.Log.WithValues("clusterName", request.Name, "clusterNamespace", request.Namespace)
+
+	// Fetch the KafkaCluster instance
+	instance := &v1beta1.KafkaCluster{}
+	err := r.Get(ctx, request.NamespacedName, instance)
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			// Object not found, return.  Created objects are automatically garbage collected.
+			// For additional cleanup logic use finalizers.
+			return reconciled()
+		}
+		// Error reading the object - requeue the request.
+		return requeueWithError(r.Log, err.Error(), err)
+	}
 
 	log.V(1).Info("Reconciling")
 
-	for brokerId, brokerStatus := range r.KafkaCluster.Status.BrokersState {
+	for brokerId, brokerStatus := range instance.Status.BrokersState {
+
+		var err error
 		// add and delete broker logic, create new cc task, etc.
 		if brokerStatus.GracefulActionState.CruiseControlState.IsUpscale() {
-			err := r.handlePodAddCCTask(brokerId, brokerStatus, log)
-			if err != nil {
-				return err
-			}
+			err = r.handlePodAddCCTask(instance, brokerId, brokerStatus, log)
 		} else if brokerStatus.GracefulActionState.CruiseControlState.IsDownscale() {
-			err := r.handlePodDeleteCCTask(brokerId, brokerStatus, log)
-			if err != nil {
-				return err
+			err = r.handlePodDeleteCCTask(instance, brokerId, brokerStatus, log)
+		}
+		if err != nil {
+			switch errors.Cause(err).(type) {
+			case errorfactory.CruiseControlNotReady:
+				return ctrl.Result{
+					RequeueAfter: time.Duration(15) * time.Second,
+				}, nil
+			case errorfactory.CruiseControlTaskRunning:
+				return ctrl.Result{
+					RequeueAfter: time.Duration(20) * time.Second,
+				}, nil
+			case errorfactory.CruiseControlTaskTimeout, errorfactory.CruiseControlTaskFailure:
+				return ctrl.Result{
+					RequeueAfter: time.Duration(20) * time.Second,
+				}, nil
+			default:
+				return requeueWithError(log, err.Error(), err)
 			}
 		}
 
@@ -80,40 +108,70 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			switch volumeState.CruiseControlVolumeState {
 			case v1beta1.GracefulDiskRebalanceRunning:
 				// if succeeded set status to succeeded, if running don't do anything, if failed set status to failed
-
-				err := r.checkVolumeCCTaskState([]string{brokerId}, volumeState, v1beta1.GracefulDiskRebalanceSucceeded, log)
+				err = r.checkVolumeCCTaskState(instance, []string{brokerId}, volumeState, v1beta1.GracefulDiskRebalanceSucceeded, log)
 				if err != nil {
-					return err
+					switch errors.Cause(err).(type) {
+					case errorfactory.CruiseControlNotReady:
+						return ctrl.Result{
+							RequeueAfter: time.Duration(15) * time.Second,
+						}, nil
+					case errorfactory.CruiseControlTaskRunning:
+						return ctrl.Result{
+							RequeueAfter: time.Duration(20) * time.Second,
+						}, nil
+					case errorfactory.CruiseControlTaskTimeout, errorfactory.CruiseControlTaskFailure:
+						return ctrl.Result{
+							RequeueAfter: time.Duration(20) * time.Second,
+						}, nil
+					default:
+						return requeueWithError(log, err.Error(), err)
+					}
 				}
+
 			case v1beta1.GracefulDiskRebalanceRequired:
 				// create new cc task, set status to running
-				taskId, startTime, err := scale.RebalanceDisks(brokerId, volumeState.MountPath, r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+				taskId, startTime, err := scale.RebalanceDisks(brokerId, volumeState.MountPath, instance.Namespace, instance.Spec.CruiseControlConfig.CruiseControlEndpoint, instance.Name)
 				if err != nil {
-					return nil
+					switch errors.Cause(err).(type) {
+					case errorfactory.CruiseControlNotReady:
+						return ctrl.Result{
+							RequeueAfter: time.Duration(15) * time.Second,
+						}, nil
+					case errorfactory.CruiseControlTaskRunning:
+						return ctrl.Result{
+							RequeueAfter: time.Duration(20) * time.Second,
+						}, nil
+					case errorfactory.CruiseControlTaskTimeout, errorfactory.CruiseControlTaskFailure:
+						return ctrl.Result{
+							RequeueAfter: time.Duration(20) * time.Second,
+						}, nil
+					default:
+						return requeueWithError(log, err.Error(), err)
+					}
 				}
-				err = k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster, kafkav1beta1.VolumeState{
+				err = k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, instance, kafkav1beta1.VolumeState{
 					CruiseControlTaskId: taskId,
 					TaskStarted:         startTime,
 				}, log)
 				if err != nil {
-					return err
+					return requeueWithError(log, err.Error(), err)
 				}
 			}
 		}
 	}
 
-	return nil
+	return reconciled()
 }
-func (r *Reconciler) handlePodAddCCTask(brokerId string, brokerState kafkav1beta1.BrokerState, log logr.Logger) error {
+func (r *CruiseControlReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerId string, brokerState kafkav1beta1.BrokerState, log logr.Logger) error {
 	podList := &corev1.PodList{}
 
 	matchingLabels := client.MatchingLabels(
 		util.MergeLabels(
-			kafka.LabelsForKafka(r.KafkaCluster.Name),
+			kafka.LabelsForKafka(kafkaCluster.Name),
 			map[string]string{"brokerId": brokerId},
 		),
 	)
-	err := r.Client.List(context.TODO(), podList, client.InNamespace(r.KafkaCluster.Namespace), matchingLabels)
+	err := r.Client.List(context.TODO(), podList, client.InNamespace(kafkaCluster.Namespace), matchingLabels)
 	if err != nil && len(podList.Items) == 0 {
 		return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed")
 	}
@@ -122,12 +180,12 @@ func (r *Reconciler) handlePodAddCCTask(brokerId string, brokerState kafkav1beta
 		if podList.Items[0].DeepCopy().Status.Phase == corev1.PodRunning &&
 			brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulUpscaleRequired {
 			//trigger add broker in CC
-			uTaskId, taskStartTime, scaleErr := scale.UpScaleCluster(brokerId, r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+			uTaskId, taskStartTime, scaleErr := scale.UpScaleCluster(brokerId, kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 			if scaleErr != nil {
 				log.Info("cruise control communication error during upscaling broker", "brokerId", brokerId)
 				return errorfactory.New(errorfactory.CruiseControlNotReady{}, scaleErr, fmt.Sprintf("broker id: %s", brokerId))
 			}
-			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster,
+			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, kafkaCluster,
 				v1beta1.GracefulActionState{CruiseControlTaskId: uTaskId, CruiseControlState: v1beta1.GracefulUpscaleRunning,
 					TaskStarted: taskStartTime}, log)
 			if statusErr != nil {
@@ -135,7 +193,7 @@ func (r *Reconciler) handlePodAddCCTask(brokerId string, brokerState kafkav1beta
 			}
 		}
 		if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulUpscaleRunning {
-			err = r.checkCCTaskState([]string{brokerId}, brokerState, v1beta1.GracefulUpscaleSucceeded, log)
+			err = r.checkCCTaskState(kafkaCluster, []string{brokerId}, brokerState, v1beta1.GracefulUpscaleSucceeded, log)
 			if err != nil {
 				return err
 			}
@@ -145,16 +203,16 @@ func (r *Reconciler) handlePodAddCCTask(brokerId string, brokerState kafkav1beta
 
 	return nil
 }
-func (r *Reconciler) handlePodDeleteCCTask(brokerId string, brokerState kafkav1beta1.BrokerState, log logr.Logger) error {
+func (r *CruiseControlReconciler) handlePodDeleteCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerId string, brokerState kafkav1beta1.BrokerState, log logr.Logger) error {
 	ccState := brokerState.GracefulActionState.CruiseControlState
 	if ccState == v1beta1.GracefulDownscaleFailed || ccState == v1beta1.GracefulDownscaleRequired {
 		uTaskId, taskStartTime, err := scale.DownsizeCluster([]string{brokerId},
-			r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+			kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 		if err != nil {
 			log.Info("cruise control communication error during downscaling broker(s)", "id(s)", brokerId)
 			return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", brokerId))
 		}
-		err = k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster,
+		err = k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, kafkaCluster,
 			v1beta1.GracefulActionState{CruiseControlTaskId: uTaskId, CruiseControlState: v1beta1.GracefulDownscaleRunning,
 				TaskStarted: taskStartTime}, log)
 		if err != nil {
@@ -163,7 +221,7 @@ func (r *Reconciler) handlePodDeleteCCTask(brokerId string, brokerState kafkav1b
 	}
 
 	if ccState == v1beta1.GracefulDownscaleRunning {
-		err := r.checkCCTaskState([]string{brokerId}, brokerState, v1beta1.GracefulDownscaleSucceeded, log)
+		err := r.checkCCTaskState(kafkaCluster, []string{brokerId}, brokerState, v1beta1.GracefulDownscaleSucceeded, log)
 		if err != nil {
 			return err
 		}
@@ -171,11 +229,11 @@ func (r *Reconciler) handlePodDeleteCCTask(brokerId string, brokerState kafkav1b
 	return nil
 }
 
-func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.BrokerState, cruiseControlState v1beta1.CruiseControlState, log logr.Logger) error {
+func (r *CruiseControlReconciler) checkCCTaskState(kafkaCluster *v1beta1.KafkaCluster, brokerIds []string, brokerState v1beta1.BrokerState, cruiseControlState v1beta1.CruiseControlState, log logr.Logger) error {
 
 	// check cc task status
 	status, err := scale.GetCCTaskState(brokerState.GracefulActionState.CruiseControlTaskId,
-		r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+		kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 	if err != nil {
 		log.Info("Cruise control communication error checking running ", "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
@@ -189,7 +247,7 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 			return err
 		}
 
-		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
 			v1beta1.GracefulActionState{CruiseControlState: requiredCCState,
 				ErrorMessage: "Previous cc task status invalid",
 			}, log)
@@ -202,7 +260,7 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 
 	if status == v1beta1.CruiseControlTaskCompleted {
 		// cc task completed successfully
-		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
 			v1beta1.GracefulActionState{CruiseControlState: cruiseControlState,
 				TaskStarted:         brokerState.GracefulActionState.TaskStarted,
 				CruiseControlTaskId: brokerState.GracefulActionState.CruiseControlTaskId,
@@ -217,8 +275,8 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 	if err != nil {
 		return errors.WrapIf(err, "could not parse timestamp")
 	}
-	if time.Now().Sub(parsedTime).Minutes() < r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
-		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+	if time.Now().Sub(parsedTime).Minutes() < kafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
+		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
 			v1beta1.GracefulActionState{TaskStarted: brokerState.GracefulActionState.TaskStarted,
 				CruiseControlTaskId: brokerState.GracefulActionState.CruiseControlTaskId,
 				CruiseControlState:  brokerState.GracefulActionState.CruiseControlState,
@@ -231,11 +289,11 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 	}
 	// task timed out
 	log.Info("Killing Cruise control task", "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
-	err = scale.KillCCTask(r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+	err = scale.KillCCTask(kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 	if err != nil {
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 	}
-	err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+	err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
 		v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleFailed,
 			CruiseControlTaskId: brokerState.GracefulActionState.CruiseControlTaskId,
 			ErrorMessage:        "Timed out waiting for the task to complete",
@@ -248,7 +306,7 @@ func (r *Reconciler) checkCCTaskState(brokerIds []string, brokerState v1beta1.Br
 }
 
 // getCorrectRequiredCCState returns the correct Required CC state based on that we upscale or downscale
-func (r *Reconciler) getCorrectRequiredCCState(ccState kafkav1beta1.CruiseControlState) (kafkav1beta1.CruiseControlState, error) {
+func (r *CruiseControlReconciler) getCorrectRequiredCCState(ccState kafkav1beta1.CruiseControlState) (kafkav1beta1.CruiseControlState, error) {
 	if ccState.IsDownscale() {
 		return kafkav1beta1.GracefulDownscaleRequired, nil
 	} else if ccState.IsUpscale() {
@@ -259,11 +317,11 @@ func (r *Reconciler) getCorrectRequiredCCState(ccState kafkav1beta1.CruiseContro
 }
 
 //TODO merge with checkCCTaskState into one func (hi-im-aren)
-func (r *Reconciler) checkVolumeCCTaskState(brokerIds []string, volumeState v1beta1.VolumeState, cruiseControlVolumeState v1beta1.CruiseControlVolumeState, log logr.Logger) error {
+func (r *CruiseControlReconciler) checkVolumeCCTaskState(kafkaCluster *v1beta1.KafkaCluster, brokerIds []string, volumeState v1beta1.VolumeState, cruiseControlVolumeState v1beta1.CruiseControlVolumeState, log logr.Logger) error {
 
 	// check cc task status
 	status, err := scale.GetCCTaskState(volumeState.CruiseControlTaskId,
-		r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+		kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 	if err != nil {
 		log.Info("Cruise control communication error checking running task", "taskId", volumeState.CruiseControlTaskId)
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
@@ -272,7 +330,7 @@ func (r *Reconciler) checkVolumeCCTaskState(brokerIds []string, volumeState v1be
 	if status == v1beta1.CruiseControlTaskNotFound || status == v1beta1.CruiseControlTaskCompletedWithError {
 		// CC task failed or not found in CC,
 		// reschedule it by marking volume CruiseControlVolumeState=GracefulDiskRebalanceRequired
-		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
 			kafkav1beta1.VolumeState{
 				CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
 				ErrorMessage:             "Previous cc task status invalid",
@@ -285,7 +343,7 @@ func (r *Reconciler) checkVolumeCCTaskState(brokerIds []string, volumeState v1be
 
 	if status == v1beta1.CruiseControlTaskCompleted {
 		// cc task completed successfully
-		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
 			kafkav1beta1.VolumeState{CruiseControlVolumeState: cruiseControlVolumeState,
 				TaskStarted:         volumeState.TaskStarted,
 				CruiseControlTaskId: volumeState.CruiseControlTaskId,
@@ -300,8 +358,8 @@ func (r *Reconciler) checkVolumeCCTaskState(brokerIds []string, volumeState v1be
 	if err != nil {
 		return errors.WrapIf(err, "could not parse timestamp")
 	}
-	if time.Now().Sub(parsedTime).Minutes() < r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
-		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+	if time.Now().Sub(parsedTime).Minutes() < kafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
+		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
 			kafkav1beta1.VolumeState{TaskStarted: volumeState.TaskStarted,
 				CruiseControlTaskId:      volumeState.CruiseControlTaskId,
 				CruiseControlVolumeState: volumeState.CruiseControlVolumeState,
@@ -314,11 +372,11 @@ func (r *Reconciler) checkVolumeCCTaskState(brokerIds []string, volumeState v1be
 	}
 	// task timed out
 	log.Info("Killing Cruise control task", "taskId", volumeState.CruiseControlTaskId)
-	err = scale.KillCCTask(r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+	err = scale.KillCCTask(kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 	if err != nil {
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 	}
-	err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster,
+	err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
 		kafkav1beta1.VolumeState{CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceFailed,
 			CruiseControlTaskId: volumeState.CruiseControlTaskId,
 			ErrorMessage:        "Timed out waiting for the task to complete",
@@ -358,7 +416,7 @@ func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
 	return builder
 }
 
-func (r *Reconciler) addFinalizer(reqLogger logr.Logger, user *v1alpha1.KafkaUser) {
+func (r *CruiseControlReconciler) addFinalizer(reqLogger logr.Logger, user *v1alpha1.KafkaUser) {
 	reqLogger.Info("Adding Finalizer for the CruiseControlController")
 	user.SetFinalizers(append(user.GetFinalizers(), userFinalizer))
 	return

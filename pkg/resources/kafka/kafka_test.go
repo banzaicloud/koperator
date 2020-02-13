@@ -220,7 +220,6 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 				},
 			},
 		},
-
 	}
 
 	t.Parallel()
