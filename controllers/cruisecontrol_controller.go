@@ -344,7 +344,7 @@ func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
 				if _, ok := object.(*v1beta1.KafkaCluster); ok {
 					old := e.ObjectOld.(*v1beta1.KafkaCluster)
 					new := e.ObjectNew.(*v1beta1.KafkaCluster)
-					if !reflect.DeepEqual(old.Status, new.Status) ||
+					if !reflect.DeepEqual(old.Status.BrokersState, new.Status.BrokersState) ||
 						old.GetDeletionTimestamp() != new.GetDeletionTimestamp() ||
 						old.GetGeneration() != new.GetGeneration() {
 						return true
