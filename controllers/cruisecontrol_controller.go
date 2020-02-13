@@ -238,7 +238,7 @@ func (r *CruiseControlReconciler) checkCCTaskState(kafkaCluster *v1beta1.KafkaCl
 	status, err := scale.GetCCTaskState(brokerState.GracefulActionState.CruiseControlTaskId,
 		kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 	if err != nil {
-		log.Info("Cruise control communication error checking running ", "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
+		log.Info("Cruise control communication error checking running task", "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 	}
 
