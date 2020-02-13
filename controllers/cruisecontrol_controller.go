@@ -85,7 +85,7 @@ func (r *CruiseControlReconciler) Reconcile(request ctrl.Request) (ctrl.Result, 
 		}
 		if err != nil {
 			switch errors.Cause(err).(type) {
-			case errorfactory.CruiseControlNotReady:
+			case errorfactory.CruiseControlNotReady, errorfactory.ResourceNotReady:
 				return ctrl.Result{
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
@@ -176,7 +176,11 @@ func (r *CruiseControlReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.Kafka
 	}
 	if len(podList.Items) == 1 {
 
-		if podList.Items[0].DeepCopy().Status.Phase == corev1.PodRunning &&
+		podStatus := podList.Items[0].DeepCopy().Status.Phase
+		if podStatus == corev1.PodPending {
+			return errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("broker pod is in pending state"), fmt.Sprintf("broker id: %s", brokerId))
+		}
+		if podStatus == corev1.PodRunning &&
 			brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulUpscaleRequired {
 			//trigger add broker in CC
 			uTaskId, taskStartTime, scaleErr := scale.UpScaleCluster(brokerId, kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
