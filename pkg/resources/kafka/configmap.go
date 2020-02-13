@@ -110,7 +110,7 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
 			util.MergeLabels(
-				labelsForKafka(r.KafkaCluster.Name),
+				LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			r.KafkaCluster,

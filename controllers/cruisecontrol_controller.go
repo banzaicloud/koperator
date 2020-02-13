@@ -124,7 +124,7 @@ func (r *Reconciler) handlePodAddCCTask(brokerId string, brokerState kafkav1beta
 			//trigger add broker in CC
 			uTaskId, taskStartTime, scaleErr := scale.UpScaleCluster(brokerId, r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 			if scaleErr != nil {
-				log.Info("cruise control communication error during upscaling broker", "brokerId",  brokerId)
+				log.Info("cruise control communication error during upscaling broker", "brokerId", brokerId)
 				return errorfactory.New(errorfactory.CruiseControlNotReady{}, scaleErr, fmt.Sprintf("broker id: %s", brokerId))
 			}
 			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster,

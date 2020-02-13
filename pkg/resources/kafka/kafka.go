@@ -92,7 +92,7 @@ func getCreatedPvcForBroker(c client.Client, brokerID int32, namespace, crName s
 	foundPvcList := &corev1.PersistentVolumeClaimList{}
 	matchingLabels := client.MatchingLabels(
 		util.MergeLabels(
-			labelsForKafka(crName),
+			LabelsForKafka(crName),
 			map[string]string{"brokerId": fmt.Sprintf("%d", brokerID)},
 		),
 	)
@@ -260,7 +260,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 	podList := &corev1.PodList{}
-	matchingLabels := client.MatchingLabels(labelsForKafka(r.KafkaCluster.Name))
+	matchingLabels := client.MatchingLabels(LabelsForKafka(r.KafkaCluster.Name))
 
 	err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
 	if err != nil {
@@ -314,7 +314,7 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "could not delete broker", "id", broker.Labels["brokerId"])
 			}
-			err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+			err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 			if err != nil {
 				if apierrors.IsNotFound(err) {
 					// can happen when broker was not fully initialized and now is deleted
@@ -324,7 +324,7 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 				}
 			}
 			if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
-				err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), labelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+				err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"]), LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 				if err != nil {
 					if apierrors.IsNotFound(err) {
 						// can happen when broker was not fully initialized and now is deleted
@@ -510,7 +510,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 
 	matchingLabels := client.MatchingLabels(
 		util.MergeLabels(
-			labelsForKafka(r.KafkaCluster.Name),
+			LabelsForKafka(r.KafkaCluster.Name),
 			map[string]string{"brokerId": desiredPod.Labels["brokerId"]},
 		),
 	)
@@ -617,7 +617,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			if r.KafkaCluster.Status.State == v1beta1.KafkaClusterRollingUpgrading {
 				// Check if any kafka pod is in terminating or pending state
 				podList := &corev1.PodList{}
-				matchingLabels := client.MatchingLabels(labelsForKafka(r.KafkaCluster.Name))
+				matchingLabels := client.MatchingLabels(LabelsForKafka(r.KafkaCluster.Name))
 				err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
 				if err != nil {
 					return errors.WrapIf(err, "failed to reconcile resource")
@@ -679,7 +679,7 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, desiredPvc *corev1.Persi
 
 	matchingLabels := client.MatchingLabels(
 		util.MergeLabels(
-			labelsForKafka(r.KafkaCluster.Name),
+			LabelsForKafka(r.KafkaCluster.Name),
 			map[string]string{"brokerId": desiredPvc.Labels["brokerId"]},
 		),
 	)
@@ -755,6 +755,14 @@ func GetBrokersWithPendingOrRunningCCTask(kafkaCluster *v1beta1.KafkaCluster) []
 			if state.GracefulActionState.CruiseControlState.IsRequiredState() ||
 				(state.GracefulActionState.CruiseControlTaskId != "" && state.GracefulActionState.CruiseControlState.IsRunningState()) {
 				brokerIDs = append(brokerIDs, kafkaCluster.Spec.Brokers[i].Id)
+			} else {
+				// Check if the volumes are rebalancing
+				for _, volumeState := range state.GracefulActionState.VolumeStates {
+					if volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceRequired ||
+						(volumeState.CruiseControlTaskId != "" && volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceRunning) {
+						brokerIDs = append(brokerIDs, kafkaCluster.Spec.Brokers[i].Id)
+					}
+				}
 			}
 		}
 	}
