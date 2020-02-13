@@ -28,6 +28,57 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 		expectedIDs  []int32
 	}{
 		{
+			testName: "pending and running CC rebalance tasks",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{
+							Id: 0,
+						},
+						{
+							Id: 1,
+						},
+						{
+							Id: 2,
+						},
+						{
+							Id: 4,
+						},
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {
+							GracefulActionState: v1beta1.GracefulActionState{
+								CruiseControlTaskId: "cc-task-id-1",
+								CruiseControlState:  v1beta1.GracefulDownscaleRunning,
+							},
+						},
+						"1": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded,
+								VolumeStates: []v1beta1.VolumeState{{
+									CruiseControlTaskId: "1",
+									CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRunning,
+								}}},
+						},
+						"2": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded,
+								VolumeStates: []v1beta1.VolumeState{{
+									CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
+								}}},
+						},
+						"3": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
+						},
+						"4": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRunning},
+						},
+					},
+				},
+			},
+			expectedIDs: []int32{0, 1, 2},
+		},
+		{
 			testName: "no pending or running CC upscale tasks",
 			kafkaCluster: v1beta1.KafkaCluster{
 				Spec: v1beta1.KafkaClusterSpec{
