@@ -723,6 +723,10 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, desiredPvc *corev1.Persi
 				MountPath:                desiredPvc.Annotations["mountPath"],
 				CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
 			}, log)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 	if err == nil {

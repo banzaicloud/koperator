@@ -87,6 +87,9 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			case v1beta1.GracefulDiskRebalanceRequired:
 				// create new cc task, set status to running
 				taskId, startTime, err := scale.RebalanceDisks(brokerId, volumeState.MountPath, r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+				if err != nil {
+					return nil
+				}
 				err = k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster, kafkav1beta1.VolumeState{
 					CruiseControlTaskId: taskId,
 					TaskStarted:         startTime,
