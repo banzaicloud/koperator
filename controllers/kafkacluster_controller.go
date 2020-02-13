@@ -333,7 +333,7 @@ func (r *KafkaClusterReconciler) updateAndFetchLatest(ctx context.Context, clust
 func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Builder {
 
 	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&v1beta1.KafkaCluster{})
+		For(&v1beta1.KafkaCluster{}).Named("KafkaCluster")
 
 	kafkaWatches(builder)
 	envoyWatches(builder)

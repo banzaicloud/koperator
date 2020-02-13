@@ -332,7 +332,7 @@ func (r *Reconciler) checkVolumeCCTaskState(brokerIds []string, volumeState v1be
 
 // SetupCruiseControlWithManager registers cruise control controller to the manager
 func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
-	builder := ctrl.NewControllerManagedBy(mgr).For(&kafkav1beta1.KafkaCluster{})
+	builder := ctrl.NewControllerManagedBy(mgr).For(&kafkav1beta1.KafkaCluster{}).Named("CruiseControl")
 
 	builder.WithEventFilter(
 		predicate.Funcs{
