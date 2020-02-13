@@ -287,11 +287,10 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 				return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", strings.Join(liveBrokers, ",")))
 			}
 			if len(liveBrokers) <= 0 {
-				log.Info("No alive broker found in CC. No need to decomission")
+				log.Info("No alive broker found in CC. No need to decommission")
 			} else {
 				ccState := r.KafkaCluster.Status.BrokersState[liveBrokers[0]].GracefulActionState.CruiseControlState
-
-				if ccState == v1beta1.GracefulDownscaleFailed {
+				if ccState != v1beta1.GracefulUpscaleRunning && ccState != v1beta1.GracefulDownscaleSucceeded {
 					err = k8sutil.UpdateBrokerStatus(r.Client, liveBrokers, r.KafkaCluster,
 						v1beta1.GracefulActionState{
 							CruiseControlState: v1beta1.GracefulDownscaleRequired,

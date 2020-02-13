@@ -57,7 +57,7 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 						"1": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded,
 								VolumeStates: []v1beta1.VolumeState{{
-									CruiseControlTaskId: "1",
+									CruiseControlTaskId:      "1",
 									CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRunning,
 								}}},
 						},
