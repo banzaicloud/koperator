@@ -39,11 +39,11 @@ type PKIBackend string
 type CruiseControlVolumeState string
 
 func (r CruiseControlState) IsUpscale() bool {
-	return r == GracefulUpscaleRequired || r == GracefulUpscaleRunning || r == GracefulUpscaleSucceeded || r == GracefulUpscaleFailed
+	return r == GracefulUpscaleRequired || r == GracefulUpscaleRunning || r == GracefulUpscaleSucceeded
 }
 
 func (r CruiseControlState) IsDownscale() bool {
-	return r == GracefulDownscaleRequired || r == GracefulDownscaleRunning || r == GracefulDownscaleSucceeded || r == GracefulDownscaleFailed
+	return r == GracefulDownscaleRequired || r == GracefulDownscaleRunning || r == GracefulDownscaleSucceeded
 }
 
 func (r CruiseControlState) IsRunningState() bool {
@@ -109,8 +109,6 @@ const (
 	GracefulUpscaleRequired CruiseControlState = "GracefulUpscaleRequired"
 	// GracefulUpscaleRunning states that the broker upscale task is still running in CC
 	GracefulUpscaleRunning CruiseControlState = "GracefulUpscaleRunning"
-	// GracefulUpscaleFailed states that the broker could not be upscaled gracefully
-	GracefulUpscaleFailed CruiseControlState = "GracefulUpscaleFailed"
 	// GracefulUpscaleSucceeded states the broker is updated gracefully OR
 	// states that the broker is part of the initial cluster creation where CC topic is still in creating stage
 	GracefulUpscaleSucceeded CruiseControlState = "GracefulUpscaleSucceeded"
@@ -120,8 +118,6 @@ const (
 	GracefulDownscaleRequired CruiseControlState = "GracefulDownscaleRequired"
 	// GracefulDownscaleRunning states that the broker downscale is still running in CC
 	GracefulDownscaleRunning CruiseControlState = "GracefulDownscaleRunning"
-	// GracefulDownscaleFailed states that the broker could not be downscaled gracefully
-	GracefulDownscaleFailed CruiseControlState = "GracefulDownscaleFailed"
 	// GracefulUpscaleSucceeded states that the broker downscaled gracefully
 	GracefulDownscaleSucceeded CruiseControlState = "GracefulDownscaleSucceeded"
 

@@ -208,7 +208,7 @@ func (r *CruiseControlReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.Kafka
 }
 func (r *CruiseControlReconciler) handlePodDeleteCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerId string, brokerState kafkav1beta1.BrokerState, log logr.Logger) error {
 	ccState := brokerState.GracefulActionState.CruiseControlState
-	if ccState == v1beta1.GracefulDownscaleFailed || ccState == v1beta1.GracefulDownscaleRequired {
+	if ccState == v1beta1.GracefulDownscaleRequired {
 		uTaskId, taskStartTime, err := scale.DownsizeCluster([]string{brokerId},
 			kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 		if err != nil {
@@ -297,7 +297,7 @@ func (r *CruiseControlReconciler) checkCCTaskState(kafkaCluster *v1beta1.KafkaCl
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 	}
 	err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
-		v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleFailed,
+		v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRequired,
 			CruiseControlTaskId: brokerState.GracefulActionState.CruiseControlTaskId,
 			ErrorMessage:        "Timed out waiting for the task to complete",
 			TaskStarted:         brokerState.GracefulActionState.TaskStarted,
