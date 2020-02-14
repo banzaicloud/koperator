@@ -61,7 +61,7 @@ func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
 	return nil
 }
 
-// blank assignment to verify that KafkaTopicReconciler implements reconcile.CruiseControlReconciler
+// blank assignment to verify that KafkaTopicReconciler implements reconcile.KafkaTopicReconciler
 var _ reconcile.Reconciler = &KafkaTopicReconciler{}
 
 // KafkaTopicReconciler reconciles a KafkaTopic object

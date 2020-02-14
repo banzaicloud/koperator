@@ -56,16 +56,18 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 						},
 						"1": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded,
-								VolumeStates: []v1beta1.VolumeState{{
-									CruiseControlTaskId:      "1",
-									CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRunning,
-								}}},
+								VolumeStates: map[string]v1beta1.VolumeState{
+									"/path1": {
+										CruiseControlTaskId:      "1",
+										CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRunning,
+									}}},
 						},
 						"2": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded,
-								VolumeStates: []v1beta1.VolumeState{{
-									CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
-								}}},
+								VolumeStates: map[string]v1beta1.VolumeState{
+									"/path1": {
+										CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
+									}}},
 						},
 						"3": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
@@ -254,9 +256,10 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 					BrokersState: map[string]v1beta1.BrokerState{
 						"0": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded,
-								VolumeStates: []v1beta1.VolumeState{{
-									CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceSucceeded,
-								}}},
+								VolumeStates: map[string]v1beta1.VolumeState{
+									"/path1": {
+										CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceSucceeded,
+									}}},
 						},
 						"1": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},

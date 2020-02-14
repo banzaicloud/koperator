@@ -39,11 +39,11 @@ type PKIBackend string
 type CruiseControlVolumeState string
 
 func (r CruiseControlState) IsUpscale() bool {
-	return r == GracefulUpscaleRequired || r == GracefulUpscaleRunning || r == GracefulUpscaleSucceeded
+	return r == GracefulUpscaleRequired || r == GracefulUpscaleSucceeded || r == GracefulUpscaleRunning
 }
 
 func (r CruiseControlState) IsDownscale() bool {
-	return r == GracefulDownscaleRequired || r == GracefulDownscaleRunning || r == GracefulDownscaleSucceeded
+	return r == GracefulDownscaleRequired || r == GracefulDownscaleSucceeded || r == GracefulDownscaleRunning
 }
 
 func (r CruiseControlState) IsRunningState() bool {
@@ -52,6 +52,17 @@ func (r CruiseControlState) IsRunningState() bool {
 
 func (r CruiseControlState) IsRequiredState() bool {
 	return r == GracefulDownscaleRequired || r == GracefulUpscaleRequired
+}
+
+func (r CruiseControlState) Complete() CruiseControlState {
+	switch r {
+	case GracefulUpscaleRequired, GracefulUpscaleRunning:
+		return GracefulUpscaleSucceeded
+	case GracefulDownscaleRequired, GracefulDownscaleRunning:
+		return GracefulDownscaleSucceeded
+	default:
+		return r
+	}
 }
 
 const (
@@ -72,12 +83,10 @@ type GracefulActionState struct {
 	// CruiseControlState holds the information about CC state
 	CruiseControlState CruiseControlState `json:"cruiseControlState"`
 	// VolumeStates holds the information about the CC disk rebalance states and tasks
-	VolumeStates []VolumeState `json:"volumeStates"`
+	VolumeStates map[string]VolumeState `json:"volumeStates"`
 }
 
 type VolumeState struct {
-	// MountPath holds the information about the path the volume is mounted at
-	MountPath string `json:"mountPath"`
 	// ErrorMessage holds the information what happened with CC disk rebalance
 	ErrorMessage string `json:"errorMessage"`
 	// CruiseControlTaskId holds info about the task id ran by CC

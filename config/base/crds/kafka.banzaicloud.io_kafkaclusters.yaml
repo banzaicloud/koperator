@@ -1520,9 +1520,7 @@ spec:
                           with CC
                         type: string
                       volumeStates:
-                        description: VolumeStates holds the information about the
-                          CC disk rebalance states and tasks
-                        items:
+                        additionalProperties:
                           properties:
                             TaskStarted:
                               description: TaskStarted hold the time when the execution
@@ -1540,16 +1538,13 @@ spec:
                               description: ErrorMessage holds the information what
                                 happened with CC disk rebalance
                               type: string
-                            mountPath:
-                              description: MountPath holds the information about the
-                                path the volume is mounted at
-                              type: string
                           required:
                           - cruiseControlVolumeState
                           - errorMessage
-                          - mountPath
                           type: object
-                        type: array
+                        description: VolumeStates holds the information about the
+                          CC disk rebalance states and tasks
+                        type: object
                     required:
                     - cruiseControlState
                     - errorMessage

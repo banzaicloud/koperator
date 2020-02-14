@@ -152,18 +152,6 @@ rules:
 - apiGroups:
   - kafka.banzaicloud.io
   resources:
-  - kafkaCluster
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - kafka.banzaicloud.io
-  resources:
   - kafkaCluster/status
   verbs:
   - get

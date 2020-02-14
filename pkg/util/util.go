@@ -16,6 +16,8 @@ package util
 
 import (
 	"math/rand"
+	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -172,6 +174,12 @@ func ParsePropertiesFormat(properties string) map[string]string {
 	}
 
 	return config
+}
+
+func AreStringSlicesIdentical(a, b []string) bool {
+	sort.Strings(a)
+	sort.Strings(b)
+	return reflect.DeepEqual(a, b)
 }
 
 // GetBrokerConfig compose the brokerConfig for a given broker

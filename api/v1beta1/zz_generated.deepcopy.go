@@ -265,8 +265,10 @@ func (in *GracefulActionState) DeepCopyInto(out *GracefulActionState) {
 	*out = *in
 	if in.VolumeStates != nil {
 		in, out := &in.VolumeStates, &out.VolumeStates
-		*out = make([]VolumeState, len(*in))
-		copy(*out, *in)
+		*out = make(map[string]VolumeState, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 }
 

@@ -196,19 +196,35 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return err
 	}
 
+	brokersVolumes := make(map[string][]*corev1.PersistentVolumeClaim, len(r.KafkaCluster.Spec.Brokers))
 	for _, broker := range r.KafkaCluster.Spec.Brokers {
 		brokerConfig, err := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
 		if err != nil {
 			return errors.WrapIf(err, "failed to reconcile resource")
 		}
+
+		var brokerVolumes []*corev1.PersistentVolumeClaim
 		for _, storage := range brokerConfig.StorageConfigs {
 			o := r.pvc(broker.Id, storage, log)
-			err := r.reconcileKafkaPvc(log, o.(*corev1.PersistentVolumeClaim))
-			if err != nil {
-				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
-			}
-
+			brokerVolumes = append(brokerVolumes, o.(*corev1.PersistentVolumeClaim))
 		}
+		if len(brokerVolumes) > 0 {
+			brokersVolumes[strconv.Itoa(int(broker.Id))] = brokerVolumes
+		}
+	}
+	if len(brokersVolumes) > 0 {
+		err := r.reconcileKafkaPvc(log, brokersVolumes)
+		if err != nil {
+			return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resources", "PersistentVolumeClaim")
+		}
+	}
+
+	for _, broker := range r.KafkaCluster.Spec.Brokers {
+		brokerConfig, err := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
+		if err != nil {
+			return errors.WrapIf(err, "failed to reconcile resource")
+		}
+
 		if r.KafkaCluster.Spec.RackAwareness == nil {
 			o := r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
@@ -266,18 +282,19 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 	if err != nil {
 		return errors.WrapIf(err, "failed to reconcile resource")
 	}
-	if len(podList.Items) > len(r.KafkaCluster.Spec.Brokers) {
-		deletedBrokers := make([]corev1.Pod, 0)
-	OUTERLOOP:
-		for _, pod := range podList.Items {
-			for _, broker := range r.KafkaCluster.Spec.Brokers {
-				if pod.Labels["brokerId"] == fmt.Sprintf("%d", broker.Id) {
-					continue OUTERLOOP
-				}
-			}
-			deletedBrokers = append(deletedBrokers, pod)
-		}
 
+	deletedBrokers := make([]corev1.Pod, 0)
+OUTERLOOP:
+	for _, pod := range podList.Items {
+		for _, broker := range r.KafkaCluster.Spec.Brokers {
+			if pod.Labels["brokerId"] == fmt.Sprintf("%d", broker.Id) {
+				continue OUTERLOOP
+			}
+		}
+		deletedBrokers = append(deletedBrokers, pod)
+	}
+
+	if len(deletedBrokers) > 0 {
 		if !arePodsAlreadyDeleted(deletedBrokers, log) {
 			liveBrokers, err := scale.GetLiveKafkaBrokersFromCruiseControl(
 				generateBrokerIdsFromPodSlice(deletedBrokers),
@@ -289,8 +306,15 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 			if len(liveBrokers) <= 0 {
 				log.Info("No alive broker found in CC. No need to decommission")
 			} else {
-				ccState := r.KafkaCluster.Status.BrokersState[liveBrokers[0]].GracefulActionState.CruiseControlState
-				if ccState != v1beta1.GracefulUpscaleRunning && ccState != v1beta1.GracefulDownscaleSucceeded {
+				ccState := v1beta1.GracefulDownscaleRequired
+				for _, liveBrokerId := range liveBrokers {
+					if brokerState, ok := r.KafkaCluster.Status.BrokersState[liveBrokerId]; ok {
+						ccState = brokerState.GracefulActionState.CruiseControlState
+						break
+					}
+				}
+
+				if ccState != v1beta1.GracefulUpscaleRunning && ccState != v1beta1.GracefulDownscaleSucceeded && ccState != v1beta1.GracefulDownscaleRunning {
 					err = k8sutil.UpdateBrokerStatus(r.Client, liveBrokers, r.KafkaCluster,
 						v1beta1.GracefulActionState{
 							CruiseControlState: v1beta1.GracefulDownscaleRequired,
@@ -304,11 +328,21 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 			}
 		}
 
+		var runningDownscaleCCTasks []string
 		for _, broker := range deletedBrokers {
 			if broker.ObjectMeta.DeletionTimestamp != nil {
 				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
 				continue
 			}
+
+			if brokerState, ok := r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]]; ok &&
+				(brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning || brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRequired) {
+				log.Info("cc task is still running for broker", "brokerId", broker.Labels["brokerId"], "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
+
+				runningDownscaleCCTasks = append(runningDownscaleCCTasks, brokerState.GracefulActionState.CruiseControlTaskId)
+				continue
+			}
+
 			err = r.Client.Delete(context.TODO(), &broker)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "could not delete broker", "id", broker.Labels["brokerId"])
@@ -353,6 +387,11 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 			}
 
 		}
+
+		if len(runningDownscaleCCTasks) > 0 {
+			return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("downscale cc tasks is still running"), "taskIds", strings.Join(runningDownscaleCCTasks, ","))
+		}
+
 	}
 	return nil
 }
@@ -668,80 +707,97 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 
 }
 
-func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, desiredPvc *corev1.PersistentVolumeClaim) error {
-	var currentPvc = desiredPvc.DeepCopy()
-	desiredType := reflect.TypeOf(desiredPvc)
-	log = log.WithValues("kind", desiredType)
-	log.V(1).Info("searching with label because name is empty")
+func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[string][]*corev1.PersistentVolumeClaim) error {
+	brokersVolumesState := make(map[string]map[string]v1beta1.VolumeState)
+	var brokerIds []string
 
-	pvcList := &corev1.PersistentVolumeClaimList{}
+	for brokerId, desiredPvcs := range brokersDesiredPvcs {
+		brokerVolumesState := make(map[string]v1beta1.VolumeState)
 
-	matchingLabels := client.MatchingLabels(
-		util.MergeLabels(
-			LabelsForKafka(r.KafkaCluster.Name),
-			map[string]string{"brokerId": desiredPvc.Labels["brokerId"]},
-		),
-	)
-	err := r.Client.List(context.TODO(), pvcList,
-		client.InNamespace(currentPvc.Namespace), matchingLabels)
-	if err != nil && len(pvcList.Items) == 0 {
-		return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
-	}
-	mountPath := currentPvc.Annotations["mountPath"]
+		pvcList := &corev1.PersistentVolumeClaimList{}
 
-	// Creating the first PersistentVolume For Pod
-	if len(pvcList.Items) == 0 {
-		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
-			return errors.WrapIf(err, "could not apply last state to annotation")
+		matchingLabels := client.MatchingLabels(
+			util.MergeLabels(
+				LabelsForKafka(r.KafkaCluster.Name),
+				map[string]string{"brokerId": brokerId},
+			),
+		)
+
+		for _, desiredPvc := range desiredPvcs {
+			currentPvc := desiredPvc.DeepCopy()
+			desiredType := reflect.TypeOf(desiredPvc)
+			log = log.WithValues("kind", desiredType)
+			log.V(1).Info("searching with label because name is empty")
+
+			err := r.Client.List(context.TODO(), pvcList,
+				client.InNamespace(currentPvc.Namespace), matchingLabels)
+			if err != nil && len(pvcList.Items) == 0 {
+				return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
+			}
+
+			mountPath := currentPvc.Annotations["mountPath"]
+			// Creating the first PersistentVolume For Pod
+			if len(pvcList.Items) == 0 {
+				if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
+					return errors.WrapIf(err, "could not apply last state to annotation")
+				}
+				if err := r.Client.Create(context.TODO(), desiredPvc); err != nil {
+					return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
+				}
+				log.Info("resource created")
+				continue
+			}
+
+			alreadyCreated := false
+			for _, pvc := range pvcList.Items {
+				if mountPath == pvc.Annotations["mountPath"] {
+					currentPvc = pvc.DeepCopy()
+					alreadyCreated = true
+					break
+				}
+			}
+
+			if !alreadyCreated {
+				// Creating the 2+ PersistentVolumes for Pod
+				if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
+					return errors.WrapIf(err, "could not apply last state to annotation")
+				}
+				if err := r.Client.Create(context.TODO(), desiredPvc); err != nil {
+					return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
+				}
+				brokerVolumesState[desiredPvc.Annotations["mountPath"]] = v1beta1.VolumeState{CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired}
+				continue
+			}
+			if err == nil {
+				if k8sutil.CheckIfObjectUpdated(log, desiredType, currentPvc, desiredPvc) {
+
+					if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
+						return errors.WrapIf(err, "could not apply last state to annotation")
+					}
+					desiredPvc = currentPvc
+
+					if err := r.Client.Update(context.TODO(), desiredPvc); err != nil {
+						return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
+					}
+					log.Info("resource updated")
+				}
+			}
 		}
-		if err := r.Client.Create(context.TODO(), desiredPvc); err != nil {
-			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
+
+		if len(brokerVolumesState) > 0 {
+			brokerIds = append(brokerIds, brokerId)
+			brokersVolumesState[brokerId] = brokerVolumesState
 		}
-		log.Info("resource created")
-		return nil
+
 	}
-	alreadyCreated := false
-	for _, pvc := range pvcList.Items {
-		if mountPath == pvc.Annotations["mountPath"] {
-			currentPvc = pvc.DeepCopy()
-			alreadyCreated = true
-			break
-		}
-	}
-	if !alreadyCreated {
-		// Creating the 2+ PersistentVolumes for Pod
-		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
-			return errors.WrapIf(err, "could not apply last state to annotation")
-		}
-		if err := r.Client.Create(context.TODO(), desiredPvc); err != nil {
-			return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
-		}
-		err = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPvc.Labels["brokerId"]},
-			// get pods with brokerid, then run this line below
-			r.KafkaCluster, v1beta1.VolumeState{
-				MountPath:                desiredPvc.Annotations["mountPath"],
-				CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
-			}, log)
+
+	if len(brokersVolumesState) > 0 {
+		err := k8sutil.UpdateBrokerStatus(r.Client, brokerIds, r.KafkaCluster, brokersVolumesState, log)
 		if err != nil {
 			return err
 		}
-
-		return nil
 	}
-	if err == nil {
-		if k8sutil.CheckIfObjectUpdated(log, desiredType, currentPvc, desiredPvc) {
 
-			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
-				return errors.WrapIf(err, "could not apply last state to annotation")
-			}
-			desiredPvc = currentPvc
-
-			if err := r.Client.Update(context.TODO(), desiredPvc); err != nil {
-				return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
-			}
-			log.Info("resource updated")
-		}
-	}
 	return nil
 }
 
