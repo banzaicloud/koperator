@@ -126,8 +126,6 @@ const (
 	GracefulDiskRebalanceRequired CruiseControlVolumeState = "GracefulDiskRebalanceRequired"
 	// GracefulDiskRebalanceRunning states that for the broker volume a CC disk rebalance is in progress
 	GracefulDiskRebalanceRunning CruiseControlVolumeState = "GracefulDiskRebalanceRunning"
-	// GracefulDiskRebalanceFailed states that the broker volume CC disk rebalance task has failed
-	GracefulDiskRebalanceFailed CruiseControlVolumeState = "GracefulDiskRebalanceFailed"
 	// GracefulDiskRebalanceSucceeded states that the for the broker volume rebalance has succeeded
 	GracefulDiskRebalanceSucceeded CruiseControlVolumeState = "GracefulDiskRebalanceSucceeded"
 

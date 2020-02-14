@@ -380,7 +380,7 @@ func (r *CruiseControlReconciler) checkVolumeCCTaskState(kafkaCluster *v1beta1.K
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 	}
 	err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
-		kafkav1beta1.VolumeState{CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceFailed,
+		kafkav1beta1.VolumeState{CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
 			CruiseControlTaskId: volumeState.CruiseControlTaskId,
 			ErrorMessage:        "Timed out waiting for the task to complete",
 			TaskStarted:         volumeState.TaskStarted,
