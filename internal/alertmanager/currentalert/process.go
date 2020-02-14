@@ -95,6 +95,10 @@ func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 		return false, err
 	}
 
+	if cr == nil {
+		return false, errors.New("kafkaCR is nil")
+	}
+
 	if err := k8sutil.UpdateCrWithRollingUpgrade(rollingUpgradeAlertCount, cr, e.Client); err != nil {
 		return false, err
 	}
@@ -317,7 +321,7 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 				Image: string(annotations["image"]),
 				StorageConfigs: []v1beta1.StorageConfig{
 					{
-						MountPath: string(annotations["mountPathPrefix"]),
+						MountPath: string(annotations["mountPath"]),
 						PvcSpec: &corev1.PersistentVolumeClaimSpec{
 							AccessModes: []corev1.PersistentVolumeAccessMode{
 								corev1.ReadWriteOnce,

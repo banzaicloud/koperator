@@ -5,6 +5,7 @@ metadata:
   labels:
     app: kafka
     kafka_cr: kafka
+    release: prometheus-operator
 spec:
   selector:
     matchLabels:
@@ -45,6 +46,7 @@ metadata:
   labels:
     app: kafka
     kafka_cr: kafka
+    release: prometheus-operator
 spec:
   selector:
     matchLabels:
@@ -70,7 +72,7 @@ spec:
   - name: KafkaAlerts
     rules:
     - alert: BrokerOverLoaded
-      expr: avg(sum by(brokerId, kafka_cr, namespace) (rate(kafka_network_requestmetrics_requests_total[15m]))) > 30
+      expr: avg(sum by(brokerId, kafka_cr, namespace) (rate(kafka_network_requestmetrics_requests_total[15m]))) by (kafka_cr, namespace) > 30
       for: 5m
       labels:
         severity: alert
@@ -80,9 +82,9 @@ spec:
         summary: 'broker overloaded'
         # If brokerConfigGroup is defined it will override scaled broker config
         # brokerConfigGroup: 'default_group'
-        storageClass: 'standard'
+        storageClass: 'gp2'
         mountPath: '/kafkalog'
-        diskSize: '2G'
+        diskSize: '10G'
         image: 'wurstmeister/kafka:2.12-2.3.0'
         command: 'upScale'
     - alert: BrokerUnderReplicated
@@ -94,9 +96,9 @@ spec:
       annotations:
         description: 'broker {{ $labels.brokerId }} underreplicated'
         summary: 'broker underreplicated'
-        storageClass: 'standard'
+        storageClass: 'gp2'
         mountPath: '/kafkalog'
-        diskSize: '2G'
+        diskSize: '10G'
         image: 'wurstmeister/kafka:2.12-2.3.0'
         command: 'upScale'
     - alert: PartitionCountHigh
@@ -108,9 +110,9 @@ spec:
       annotations:
         description: 'broker {{ $labels.brokerId }} has high partition count'
         summary: 'high partition count'
-        storageClass: 'standard'
+        storageClass: 'gp2'
         mountPath: '/kafkalog'
-        diskSize: '2G'
+        diskSize: '10G'
         image: 'wurstmeister/kafka:2.12-2.3.0'
         command: 'upScale'
     - alert: PartitionCountLow
@@ -124,7 +126,7 @@ spec:
         summary: 'low partition count'
         command: 'downScale'
     - alert: RemainingDiskSpaceLow
-      expr: kubelet_volume_stats_available_bytes{persistentvolumeclaim=~"kafka-.*"} < 1 * 1000 * 1000 * 1000
+      expr: kubelet_volume_stats_available_bytes{persistentvolumeclaim=~"kafka-.*"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~"kafka-.*"} * 100 < 30
       for: 2m
       labels:
         severity: alert
@@ -132,9 +134,9 @@ spec:
       annotations:
         description: 'broker {{ $labels.brokerId }} has low disk space'
         summary: 'low diskspace'
-        storageClass: 'standard'
+        storageClass: 'gp2'
         mountPathPrefix: '/kafkalog'
-        diskSize: '2G'
+        diskSize: '10G'
         command: 'addPvc'
 ---
 apiVersion: v1
@@ -179,6 +181,9 @@ kind: Prometheus
 metadata:
   name: kafka-prometheus
 spec:
+  podMonitorSelector:
+    matchLabels:
+      release: prometheus-operator
   serviceAccountName: prometheus
   alerting:
     alertmanagers:

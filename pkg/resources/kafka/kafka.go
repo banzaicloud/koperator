@@ -300,36 +300,52 @@ OUTERLOOP:
 				generateBrokerIdsFromPodSlice(deletedBrokers),
 				r.KafkaCluster.Namespace, r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
 			if err != nil {
-				log.Error(err, "Could not query CC for ALIVE brokers")
+				log.Error(err, "could not query CC for ALIVE brokers")
 				return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", strings.Join(liveBrokers, ",")))
 			}
 			if len(liveBrokers) <= 0 {
 				log.Info("No alive broker found in CC. No need to decommission")
 			} else {
-				ccState := v1beta1.GracefulDownscaleRequired
-				for _, liveBrokerId := range liveBrokers {
-					if brokerState, ok := r.KafkaCluster.Status.BrokersState[liveBrokerId]; ok {
-						ccState = brokerState.GracefulActionState.CruiseControlState
-						break
+				var brokersPendingGracefulDownscale []string
+
+				for i := range liveBrokers {
+					if brokerState, ok := r.KafkaCluster.Status.BrokersState[liveBrokers[i]]; ok {
+						ccState := brokerState.GracefulActionState.CruiseControlState
+						if ccState != v1beta1.GracefulUpscaleRunning &&
+							ccState != v1beta1.GracefulDownscaleSucceeded &&
+							ccState != v1beta1.GracefulDownscaleRequired {
+							brokersPendingGracefulDownscale = append(brokersPendingGracefulDownscale, liveBrokers[i])
+						}
 					}
 				}
 
-				if ccState != v1beta1.GracefulUpscaleRunning && ccState != v1beta1.GracefulDownscaleSucceeded && ccState != v1beta1.GracefulDownscaleRunning {
-					err = k8sutil.UpdateBrokerStatus(r.Client, liveBrokers, r.KafkaCluster,
+				if len(brokersPendingGracefulDownscale) > 0 {
+					err = k8sutil.UpdateBrokerStatus(r.Client, brokersPendingGracefulDownscale, r.KafkaCluster,
 						v1beta1.GracefulActionState{
 							CruiseControlState: v1beta1.GracefulDownscaleRequired,
-							ErrorMessage:       "Previous cc task failed, retrying",
 						}, log)
 					if err != nil {
 						return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)",
-							strings.Join(liveBrokers, ","))
+							strings.Join(brokersPendingGracefulDownscale, ","))
 					}
+				}
+
+			}
+		}
+
+		var downScaledBrokers []corev1.Pod
+
+		for i := range deletedBrokers {
+			brokerId := deletedBrokers[i].Labels["brokerId"]
+			if brokerState, ok := r.KafkaCluster.Status.BrokersState[brokerId]; ok {
+				if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleSucceeded {
+					downScaledBrokers = append(downScaledBrokers, deletedBrokers[i])
 				}
 			}
 		}
 
 		var runningDownscaleCCTasks []string
-		for _, broker := range deletedBrokers {
+		for _, broker := range downScaledBrokers {
 			if broker.ObjectMeta.DeletionTimestamp != nil {
 				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
 				continue
