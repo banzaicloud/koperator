@@ -74,15 +74,24 @@ func (r *CruiseControlReconciler) Reconcile(request ctrl.Request) (ctrl.Result, 
 
 	log.V(1).Info("Reconciling")
 
-	for brokerId, brokerStatus := range instance.Status.BrokersState {
+	var brokersWithDownscaleRequired []string
 
+	for brokerId, brokerStatus := range instance.Status.BrokersState {
 		var err error
-		// add and delete broker logic, create new cc task, etc.
+
 		if brokerStatus.GracefulActionState.CruiseControlState.IsUpscale() {
 			err = r.handlePodAddCCTask(instance, brokerId, brokerStatus, log)
 		} else if brokerStatus.GracefulActionState.CruiseControlState.IsDownscale() {
-			err = r.handlePodDeleteCCTask(instance, brokerId, brokerStatus, log)
+			if brokerStatus.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
+				err = r.checkCCTaskState(instance, []string{brokerId}, brokerStatus, v1beta1.GracefulDownscaleSucceeded, log)
+				if err != nil {
+					return requeueWithError(log, err.Error(), err)
+				}
+			} else if brokerStatus.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRequired {
+				brokersWithDownscaleRequired = append(brokersWithDownscaleRequired, brokerId)
+			}
 		}
+
 		if err != nil {
 			switch errors.Cause(err).(type) {
 			case errorfactory.CruiseControlNotReady, errorfactory.ResourceNotReady:
@@ -159,6 +168,11 @@ func (r *CruiseControlReconciler) Reconcile(request ctrl.Request) (ctrl.Result, 
 		}
 	}
 
+	err = r.handlePodDeleteCCTask(instance, brokersWithDownscaleRequired, log)
+	if err != nil {
+		return requeueWithError(log, err.Error(), err)
+	}
+
 	return reconciled()
 }
 func (r *CruiseControlReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerId string, brokerState kafkav1beta1.BrokerState, log logr.Logger) error {
@@ -206,29 +220,20 @@ func (r *CruiseControlReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.Kafka
 
 	return nil
 }
-func (r *CruiseControlReconciler) handlePodDeleteCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerId string, brokerState kafkav1beta1.BrokerState, log logr.Logger) error {
-	ccState := brokerState.GracefulActionState.CruiseControlState
-	if ccState == v1beta1.GracefulDownscaleRequired {
-		uTaskId, taskStartTime, err := scale.DownsizeCluster([]string{brokerId},
-			kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
-		if err != nil {
-			log.Info("cruise control communication error during downscaling broker(s)", "id(s)", brokerId)
-			return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", brokerId))
-		}
-		err = k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, kafkaCluster,
-			v1beta1.GracefulActionState{CruiseControlTaskId: uTaskId, CruiseControlState: v1beta1.GracefulDownscaleRunning,
-				TaskStarted: taskStartTime}, log)
-		if err != nil {
-			return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", brokerId)
-		}
+func (r *CruiseControlReconciler) handlePodDeleteCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerIds []string, log logr.Logger) error {
+	uTaskId, taskStartTime, err := scale.DownsizeCluster(brokerIds,
+		kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+	if err != nil {
+		log.Info("cruise control communication error during downscaling broker(s)", "id(s)", brokerIds)
+		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", brokerIds))
+	}
+	err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
+		v1beta1.GracefulActionState{CruiseControlTaskId: uTaskId, CruiseControlState: v1beta1.GracefulDownscaleRunning,
+			TaskStarted: taskStartTime}, log)
+	if err != nil {
+		return errors.WrapIfWithDetails(err, "could not update status for broker(s)", "id(s)", brokerIds)
 	}
 
-	if ccState == v1beta1.GracefulDownscaleRunning {
-		err := r.checkCCTaskState(kafkaCluster, []string{brokerId}, brokerState, v1beta1.GracefulDownscaleSucceeded, log)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
