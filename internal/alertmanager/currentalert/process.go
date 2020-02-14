@@ -68,9 +68,9 @@ func (e *examiner) getKafkaCr() (*v1beta1.KafkaCluster, error) {
 			return nil, err
 		}
 	} else {
-		// If kafka_cr is not a valid alert label, try to get it from the persistenvolumeclaim
-		if pvcName, ok := e.Alert.Labels["persistenvolumeclaim"]; ok {
-			pvc, err := k8sutil.GetCr(string(pvcName), string(e.Alert.Labels["namespace"]), e.Client)
+		// If kafka_cr is not a valid alert label, try to get it from the persistentvolumeclaim
+		if pvcName, ok := e.Alert.Labels["persistentvolumeclaim"]; ok {
+			pvc, err := getPvc(string(pvcName), string(e.Alert.Labels["namespace"]), e.Client)
 			if err != nil {
 				return nil, err
 			}
