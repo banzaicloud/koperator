@@ -150,8 +150,10 @@ func isKafkaBrokerDiskReady(brokerIdsWithMountPath map[string][]string, namespac
 			for _, volumeMount := range volumeMounts {
 				match := false
 				for _, ccOnlineLogDir := range ccOnlineLogDirs {
-					match = strings.HasPrefix(strings.TrimSpace(ccOnlineLogDir), strings.TrimSpace(volumeMount))
-					break
+					if strings.HasPrefix(strings.TrimSpace(ccOnlineLogDir), strings.TrimSpace(volumeMount)) {
+						match = true
+						break
+					}
 				}
 
 				if !match {

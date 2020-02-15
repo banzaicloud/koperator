@@ -311,9 +311,8 @@ OUTERLOOP:
 				for i := range liveBrokers {
 					if brokerState, ok := r.KafkaCluster.Status.BrokersState[liveBrokers[i]]; ok {
 						ccState := brokerState.GracefulActionState.CruiseControlState
-						if ccState != v1beta1.GracefulUpscaleRunning &&
-							ccState != v1beta1.GracefulDownscaleSucceeded &&
-							ccState != v1beta1.GracefulDownscaleRequired {
+						if ccState != v1beta1.GracefulDownscaleRunning && (ccState == v1beta1.GracefulUpscaleSucceeded ||
+							ccState == v1beta1.GracefulUpscaleRequired) {
 							brokersPendingGracefulDownscale = append(brokersPendingGracefulDownscale, liveBrokers[i])
 						}
 					}
@@ -333,29 +332,23 @@ OUTERLOOP:
 			}
 		}
 
-		var downScaledBrokers []corev1.Pod
-
-		for i := range deletedBrokers {
-			brokerId := deletedBrokers[i].Labels["brokerId"]
-			if brokerState, ok := r.KafkaCluster.Status.BrokersState[brokerId]; ok {
-				if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleSucceeded {
-					downScaledBrokers = append(downScaledBrokers, deletedBrokers[i])
-				}
-			}
-		}
-
-		var runningDownscaleCCTasks []string
-		for _, broker := range downScaledBrokers {
+		var runningOrPendingDownscaleCCTaskBrokers []string
+		for _, broker := range deletedBrokers {
 			if broker.ObjectMeta.DeletionTimestamp != nil {
 				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
 				continue
 			}
 
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]]; ok &&
-				(brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning || brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRequired) {
-				log.Info("cc task is still running for broker", "brokerId", broker.Labels["brokerId"], "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
+				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded {
 
-				runningDownscaleCCTasks = append(runningDownscaleCCTasks, brokerState.GracefulActionState.CruiseControlTaskId)
+				if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
+					log.Info("cc task is still running for broker", "brokerId", broker.Labels["brokerId"], "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
+				}
+
+				if !util.StringSliceContains(runningOrPendingDownscaleCCTaskBrokers, broker.Labels["brokerId"]) {
+					runningOrPendingDownscaleCCTaskBrokers = append(runningOrPendingDownscaleCCTaskBrokers, broker.Labels["brokerId"])
+				}
 				continue
 			}
 
@@ -404,8 +397,8 @@ OUTERLOOP:
 
 		}
 
-		if len(runningDownscaleCCTasks) > 0 {
-			return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("downscale cc tasks is still running"), "taskIds", strings.Join(runningDownscaleCCTasks, ","))
+		if len(runningOrPendingDownscaleCCTaskBrokers) > 0 {
+			return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("downscale cc tasks are still pending or running"), "broker(s)", strings.Join(runningOrPendingDownscaleCCTaskBrokers, ","))
 		}
 
 	}

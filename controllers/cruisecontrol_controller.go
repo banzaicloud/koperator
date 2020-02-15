@@ -149,7 +149,7 @@ func (r *CruiseControlReconciler) Reconcile(request ctrl.Request) (ctrl.Result, 
 			var brokerIds []string
 			brokersVolumeStates := make(map[string]map[string]v1beta1.VolumeState, len(brokersWithDiskRebalanceRequired))
 			for brokerId, mountPaths := range brokersWithDiskRebalanceRequired {
-				brokerIds = append(brokerIds, brokerId)
+
 				brokerVolumeState := make(map[string]v1beta1.VolumeState, len(mountPaths))
 				for _, mountPath := range mountPaths {
 					brokerVolumeState[mountPath] = kafkav1beta1.VolumeState{
@@ -158,9 +158,15 @@ func (r *CruiseControlReconciler) Reconcile(request ctrl.Request) (ctrl.Result, 
 						CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRunning,
 					}
 				}
+				if len(brokerVolumeState) > 0 {
+					brokersVolumeStates[brokerId] = brokerVolumeState
+					brokerIds = append(brokerIds, brokerId)
+				}
 
 			}
-			err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, instance, brokersVolumeStates, log)
+			if len(brokersVolumeStates) > 0 {
+				err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, instance, brokersVolumeStates, log)
+			}
 		}
 	}
 
@@ -422,16 +428,16 @@ func (r *CruiseControlReconciler) checkVolumeCCTaskState(kafkaCluster *v1beta1.K
 		for brokerId, volumesState := range brokersVolumesState {
 			brokerIds = append(brokerIds, brokerId)
 
-			volumesState := make(map[string]v1beta1.VolumeState, len(volumesState))
+			volumesStateSucceeded := make(map[string]v1beta1.VolumeState, len(volumesState))
 			for mountPath, volumeState := range volumesState {
-				volumesState[mountPath] = kafkav1beta1.VolumeState{
+				volumesStateSucceeded[mountPath] = kafkav1beta1.VolumeState{
 					CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceSucceeded,
 					TaskStarted:              volumeState.TaskStarted,
 					CruiseControlTaskId:      volumeState.CruiseControlTaskId,
 				}
 			}
 
-			rebalanceCompletedVolumesState[brokerId] = volumesState
+			rebalanceCompletedVolumesState[brokerId] = volumesStateSucceeded
 		}
 
 		err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster, rebalanceCompletedVolumesState, log)
@@ -463,8 +469,6 @@ func (r *CruiseControlReconciler) checkVolumeCCTaskState(kafkaCluster *v1beta1.K
 						CruiseControlVolumeState: volumeState.CruiseControlVolumeState,
 					}
 				} else {
-					brokersWithTimedOutCCTask = append(brokersWithTimedOutCCTask, brokerId)
-
 					volumesStateWithTimedOutDiskCCTask[mountPath] = kafkav1beta1.VolumeState{
 						CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
 						CruiseControlTaskId:      volumeState.CruiseControlTaskId,
@@ -480,7 +484,11 @@ func (r *CruiseControlReconciler) checkVolumeCCTaskState(kafkaCluster *v1beta1.K
 			brokersVolumesStateWithRunningDiskCCTask[brokerId] = volumesStateWithRunningDiskCCTask
 		}
 
-		brokersVolumesStateWithTimedOutDiskCCTask[brokerId] = volumesStateWithTimedOutDiskCCTask
+		if len(volumesStateWithTimedOutDiskCCTask) > 0 {
+			brokersWithTimedOutCCTask = append(brokersWithTimedOutCCTask, brokerId)
+			brokersVolumesStateWithTimedOutDiskCCTask[brokerId] = volumesStateWithTimedOutDiskCCTask
+		}
+
 	}
 
 	// cc task still in progress
