@@ -17,6 +17,7 @@ package cruisecontrol
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -125,21 +126,24 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger)
 	capacityConfig := CruiseControlCapacityConfig{}
 
 	for _, brokerState := range kafkaCluster.Spec.Brokers {
+		if brokerState.BrokerConfig == nil {
+			continue
+		}
 		brokerCapacity := BrokerCapacity{
-			BrokerID: string(brokerState.Id),
+			BrokerID: fmt.Sprintf("%d", brokerState.Id),
 			Capacity: Capacity{
 				DISK:  generateBrokerDisks(brokerState, kafkaCluster.Spec, log),
 				CPU:   storageConfigCPUDefaultValue,
 				NWIN:  storageConfigNWINDefaultValue,
 				NWOUT: storageConfigNWOUTDefaultValue,
 			},
-			Doc: fmt.Sprintf("This overrides the capacity for broker %q.", string(brokerState.Id)),
+			Doc: "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB.",
 		}
 
 		capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
 	}
 
-	result, err := json.Marshal(capacityConfig)
+	result, err := json.MarshalIndent(capacityConfig, "", "    ")
 	if err != nil {
 		log.Error(err, "Could not marshal cruise control capacity config")
 	}
@@ -153,25 +157,23 @@ func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 	// Get disks from the BrokerConfigGroup if it's in use
 	if brokerState.BrokerConfigGroup != "" {
 		brokerConfigGroup := kafkaClusterSpec.BrokerConfigGroups[brokerState.BrokerConfigGroup]
-		for _, storageConfig := range brokerConfigGroup.StorageConfigs {
-			byteValue, isConvertible := util.QuantityPointer(storageConfig.PvcSpec.Resources.Requests["storage"]).AsInt64()
-			if isConvertible == false {
-				log.Info("Could not convert 'storage' quantity to Int64 in brokerConfig for broker",
-					"brokerId", brokerState.Id)
-			}
-
-			brokerDisks[storageConfig.MountPath] = string(byteValue)
-		}
+		parseMountPathWithSize(brokerConfigGroup, log, brokerState, brokerDisks)
 	}
 
 	//Get disks from the BrokerConfig itself
-	for _, storageConfig := range brokerState.BrokerConfig.StorageConfigs {
-		byteValue, isConvertible := util.QuantityPointer(storageConfig.PvcSpec.Resources.Requests["storage"]).AsInt64()
+	parseMountPathWithSize(*brokerState.BrokerConfig, log, brokerState, brokerDisks)
+
+	return brokerDisks
+}
+
+func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Logger, brokerState v1beta1.Broker, brokerDisks map[string]string) {
+	for _, storageConfig := range brokerConfigGroup.StorageConfigs {
+		int64Value, isConvertible := util.QuantityPointer(storageConfig.PvcSpec.Resources.Requests["storage"]).AsInt64()
 		if isConvertible == false {
 			log.Info("Could not convert 'storage' quantity to Int64 in brokerConfig for broker",
 				"brokerId", brokerState.Id)
 		}
-		brokerDisks[storageConfig.MountPath] = string(byteValue)
+
+		brokerDisks[storageConfig.MountPath] = strconv.FormatInt(int64Value, 10)
 	}
-	return brokerDisks
 }
