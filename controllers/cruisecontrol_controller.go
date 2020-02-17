@@ -49,7 +49,7 @@ type CruiseControlReconciler struct {
 	Log logr.Logger
 }
 
-// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaCluster/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
 
 func (r *CruiseControlReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
