@@ -24,6 +24,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/imdario/mergo"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -62,6 +63,11 @@ func IntPointer(i int) *int {
 // StringPointer generates string pointer from string
 func StringPointer(s string) *string {
 	return &s
+}
+
+// QuantityPointer generates Quantity pointer from Quantity
+func QuantityPointer(q resource.Quantity) *resource.Quantity {
+	return &q
 }
 
 // MapStringStringPointer generates a map[string]*string
