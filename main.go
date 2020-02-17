@@ -124,7 +124,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	kafkaClusterCCReconciler := &controllers.CruiseControlReconciler{
+	kafkaClusterCCReconciler := &controllers.CruiseControlTaskReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		Log:    ctrl.Log.WithName("controller").WithName("CruiseControl"),

@@ -41,8 +41,8 @@ import (
 	kafkav1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
-// CruiseControlReconciler reconciles a kafka cluster object
-type CruiseControlReconciler struct {
+// CruiseControlTaskReconciler reconciles a kafka cluster object
+type CruiseControlTaskReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 
@@ -51,7 +51,7 @@ type CruiseControlReconciler struct {
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
 
-func (r *CruiseControlReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
+func (r *CruiseControlTaskReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
 	log := r.Log.WithValues("clusterName", request.Name, "clusterNamespace", request.Namespace)
@@ -191,7 +191,7 @@ func (r *CruiseControlReconciler) Reconcile(request ctrl.Request) (ctrl.Result, 
 
 	return reconciled()
 }
-func (r *CruiseControlReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerIds []string, log logr.Logger) error {
+func (r *CruiseControlTaskReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerIds []string, log logr.Logger) error {
 	uTaskId, taskStartTime, scaleErr := scale.UpScaleCluster(brokerIds, kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 	if scaleErr != nil {
 		log.Info("cruise control communication error during upscaling broker(s)", "brokerId(s)", brokerIds)
@@ -205,7 +205,7 @@ func (r *CruiseControlReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.Kafka
 	}
 	return nil
 }
-func (r *CruiseControlReconciler) handlePodDeleteCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerIds []string, log logr.Logger) error {
+func (r *CruiseControlTaskReconciler) handlePodDeleteCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerIds []string, log logr.Logger) error {
 	uTaskId, taskStartTime, err := scale.DownsizeCluster(brokerIds,
 		kafkaCluster.Namespace, kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 	if err != nil {
@@ -222,7 +222,7 @@ func (r *CruiseControlReconciler) handlePodDeleteCCTask(kafkaCluster *v1beta1.Ka
 	return nil
 }
 
-func (r *CruiseControlReconciler) checkCCTaskState(kafkaCluster *v1beta1.KafkaCluster, brokersState map[string]v1beta1.BrokerState, log logr.Logger) error {
+func (r *CruiseControlTaskReconciler) checkCCTaskState(kafkaCluster *v1beta1.KafkaCluster, brokersState map[string]v1beta1.BrokerState, log logr.Logger) error {
 	if len(brokersState) == 0 {
 		return nil
 	}
@@ -358,7 +358,7 @@ func (r *CruiseControlReconciler) checkCCTaskState(kafkaCluster *v1beta1.KafkaCl
 }
 
 // getCorrectRequiredCCState returns the correct Required CC state based on that we upscale or downscale
-func (r *CruiseControlReconciler) getCorrectRequiredCCState(ccState kafkav1beta1.CruiseControlState) (kafkav1beta1.CruiseControlState, error) {
+func (r *CruiseControlTaskReconciler) getCorrectRequiredCCState(ccState kafkav1beta1.CruiseControlState) (kafkav1beta1.CruiseControlState, error) {
 	if ccState.IsDownscale() {
 		return kafkav1beta1.GracefulDownscaleRequired, nil
 	} else if ccState.IsUpscale() {
@@ -369,7 +369,7 @@ func (r *CruiseControlReconciler) getCorrectRequiredCCState(ccState kafkav1beta1
 }
 
 //TODO merge with checkCCTaskState into one func (hi-im-aren)
-func (r *CruiseControlReconciler) checkVolumeCCTaskState(kafkaCluster *v1beta1.KafkaCluster, brokersVolumesState map[string]map[string]v1beta1.VolumeState, log logr.Logger) error {
+func (r *CruiseControlTaskReconciler) checkVolumeCCTaskState(kafkaCluster *v1beta1.KafkaCluster, brokersVolumesState map[string]map[string]v1beta1.VolumeState, log logr.Logger) error {
 	if len(brokersVolumesState) == 0 {
 		return nil
 	}
