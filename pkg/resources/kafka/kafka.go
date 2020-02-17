@@ -332,7 +332,6 @@ OUTERLOOP:
 			}
 		}
 
-		var runningOrPendingDownscaleCCTaskBrokers []string
 		for _, broker := range deletedBrokers {
 			if broker.ObjectMeta.DeletionTimestamp != nil {
 				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
@@ -344,10 +343,6 @@ OUTERLOOP:
 
 				if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
 					log.Info("cc task is still running for broker", "brokerId", broker.Labels["brokerId"], "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
-				}
-
-				if !util.StringSliceContains(runningOrPendingDownscaleCCTaskBrokers, broker.Labels["brokerId"]) {
-					runningOrPendingDownscaleCCTaskBrokers = append(runningOrPendingDownscaleCCTaskBrokers, broker.Labels["brokerId"])
 				}
 				continue
 			}
@@ -395,10 +390,6 @@ OUTERLOOP:
 				return errors.WrapIfWithDetails(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
 			}
 
-		}
-
-		if len(runningOrPendingDownscaleCCTaskBrokers) > 0 {
-			return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("downscale cc tasks are still pending or running"), "broker(s)", strings.Join(runningOrPendingDownscaleCCTaskBrokers, ","))
 		}
 
 	}

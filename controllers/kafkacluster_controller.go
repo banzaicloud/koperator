@@ -372,7 +372,8 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Build
 					new := e.ObjectNew.(*v1beta1.KafkaCluster)
 					if !reflect.DeepEqual(old.Spec, new.Spec) ||
 						old.GetDeletionTimestamp() != new.GetDeletionTimestamp() ||
-						old.GetGeneration() != new.GetGeneration() {
+						old.GetGeneration() != new.GetGeneration() ||
+						!reflect.DeepEqual(old.Status.BrokersState, new.Status.BrokersState) {
 						return true
 					}
 					return false
