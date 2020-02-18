@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     certmanager.k8s.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "kafka-operator.fullname" . }}-server-cert
+    controller-gen.kubebuilder.io/version: v0.2.5
   labels:
     app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
     helm.sh/chart: {{ include "kafka-operator.chart" . }}
@@ -15,12 +16,12 @@ spec:
   group: kafka.banzaicloud.io
   names:
     kind: KafkaTopic
+    listKind: KafkaTopicList
     plural: kafkatopics
-  scope: ""
+    singular: kafkatopic
+  scope: Namespaced
   subresources:
     status: {}
-  conversion:
-    strategy: None
   validation:
     openAPIV3Schema:
       description: KafkaTopic is the Schema for the kafkatopics API
@@ -28,12 +29,12 @@ spec:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -45,45 +46,29 @@ spec:
                 provisioning
               properties:
                 name:
-                  description: 'The name of the KafkaCluster CR where the topic should
-                  be created'
                   type: string
                 namespace:
-                  description: 'The namespace of the KafkaCluster where the topic should
-                  be created. If ommitted, the namespace of the current CR is assumed.'
                   type: string
               required:
-              - name
+                - name
               type: object
             config:
-              description: 'A map of arbitrary configurations to apply to the topic.
-              These values can be changed and the state will be reflected in Kafka.
-              For a full list of options, please refer to the official documentation.
-              https://kafka.apache.org/documentation/#topicconfigs'
               additionalProperties:
                 type: string
               type: object
             name:
-              description: 'The actual name of the topic. The CR will be rejected
-              if a topic with this name already exists on the cluster.'
               type: string
             partitions:
-              description: 'The number of partitions for the topic. This value can be
-              increased by editing the CR, however any attempt at a decrease will be
-              rejected.'
               format: int32
               type: integer
             replicationFactor:
-              description: 'The replication factor for topic partitions. This field
-              is immutable and cannot be changed. If you need to adjust this value,
-              you will have to recreate the topic.'
               format: int32
               type: integer
           required:
-          - clusterRef
-          - name
-          - partitions
-          - replicationFactor
+            - clusterRef
+            - name
+            - partitions
+            - replicationFactor
           type: object
         status:
           description: KafkaTopicStatus defines the observed state of KafkaTopic
@@ -92,14 +77,14 @@ spec:
               description: TopicState defines the state of a KafkaTopic
               type: string
           required:
-          - state
+            - state
           type: object
       type: object
   version: v1alpha1
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true
 status:
   acceptedNames:
     kind: ""

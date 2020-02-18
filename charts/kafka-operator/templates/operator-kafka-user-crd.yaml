@@ -1,6 +1,8 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
   labels:
     app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
     helm.sh/chart: {{ include "kafka-operator.chart" . }}
@@ -13,23 +15,25 @@ spec:
   group: kafka.banzaicloud.io
   names:
     kind: KafkaUser
+    listKind: KafkaUserList
     plural: kafkausers
-  scope: ""
+    singular: kafkauser
+  scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: KafkaUser is the Schema for the kafkausers API
+      description: KafkaUser is the Schema for the kafka users API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -41,12 +45,8 @@ spec:
                 provisioning
               properties:
                 name:
-                  description: 'The name of the KafkaCluster CR where the topic should
-                  be created'
                   type: string
                 namespace:
-                  description: 'The namespace of the KafkaCluster where the topic should
-                  be created. If ommitted, the namespace of the current CR is assumed.'
                   type: string
               required:
                 - name
@@ -56,11 +56,8 @@ spec:
                 type: string
               type: array
             includeJKS:
-              description: 'If true, a keystore and truststore in JKS format will be included
-              with the user secret as well as a generated password.'
               type: boolean
             secretName:
-              description: 'The secret where the user credentials should be stored.'
               type: string
             topicGrants:
               items:
@@ -73,8 +70,8 @@ spec:
                       - write
                     type: string
                   patternType:
-                    description: 'patternType is the Resource Pattern Type of this ACL entry.
-                      More info: https://kafka.apache.org/20/javadoc/org/apache/kafka/common/resource/PatternType.html'
+                    description: KafkaPatternType hold the Resource Pattern Type of
+                      kafka ACL
                     enum:
                       - literal
                       - match

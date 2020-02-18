@@ -46,7 +46,6 @@ type KafkaClusterSpec struct {
 	BrokerConfigGroups   map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
 	Brokers              []Broker                `json:"brokers"`
 	RollingUpgradeConfig RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
-	// +kubebuilder:default=envoy
 	// +kubebuilder:validation:Enum=envoy;istioingress
 	IngressController   string              `json:"ingressController,omitempty"`
 	OneBrokerPerNode    bool                `json:"oneBrokerPerNode"`
