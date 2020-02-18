@@ -374,7 +374,7 @@ func (in *KafkaCluster) DeepCopyObject() runtime.Object {
 func (in *KafkaClusterList) DeepCopyInto(out *KafkaClusterList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]KafkaCluster, len(*in))

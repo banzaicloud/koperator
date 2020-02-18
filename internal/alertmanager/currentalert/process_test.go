@@ -181,7 +181,7 @@ func Test_addPvc(t *testing.T) {
 			var kafkaCluster v1beta1.KafkaCluster
 			err := testClient.Get(
 				context.Background(),
-				types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: kafkaCluster.Name},
+				types.NamespacedName{Namespace: "kafka", Name: "kafka"},
 				&kafkaCluster)
 			if err != nil {
 				t.Errorf("kafka cr was not found, error = %v", err)
