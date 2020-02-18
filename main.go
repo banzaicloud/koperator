@@ -127,7 +127,7 @@ func main() {
 	kafkaClusterCCReconciler := &controllers.CruiseControlTaskReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controller").WithName("CruiseControl"),
+		Log:    ctrl.Log.WithName("controller").WithName("CruiseControlTask"),
 	}
 
 	if err = controllers.SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler); err != nil {
