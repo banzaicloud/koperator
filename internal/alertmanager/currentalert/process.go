@@ -192,7 +192,7 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 	}
 
 	// Check for skipping in case of pending or running CC task
-	ccTaskExists, err := pendingOrRunningCCTaskExists(pvc.Labels, client, log)
+	ccTaskExists, err := pendingOrRunningCCTaskExists(pvc.Labels, string(alertLabels["namespace"]), client, log)
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 	}
 
 	storageConfig := v1beta1.StorageConfig{
-		MountPath: pvc.Annotations["mountPathPrefix"] + "-" + randomIdentifier,
+		MountPath: string(alertAnnotations["mountPathPrefix"]) + "-" + randomIdentifier,
 		PvcSpec: &corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,
@@ -228,7 +228,7 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 			},
 		}}
 
-	err = k8sutil.AddPvToSpecificBroker(pvc.Labels["brokerId"], pvc.Labels["kafka_cr"], pvc.Labels["namespace"], &storageConfig, client)
+	err = k8sutil.AddPvToSpecificBroker(pvc.Labels["brokerId"], pvc.Labels["kafka_cr"], string(alertLabels["namespace"]), &storageConfig, client)
 	if err != nil {
 		return err
 	}
@@ -358,8 +358,8 @@ func getPvc(name, namespace string, client client.Client) (*corev1.PersistentVol
 	return pvc, nil
 }
 
-func pendingOrRunningCCTaskExists(pvcLabels map[string]string, client client.Client, log logr.Logger) (bool, error) {
-	kafkaCluster, err := k8sutil.GetCr(pvcLabels["kafka_cr"], pvcLabels["namespace"], client)
+func pendingOrRunningCCTaskExists(pvcLabels map[string]string, namespace string, client client.Client, log logr.Logger) (bool, error) {
+	kafkaCluster, err := k8sutil.GetCr(pvcLabels["kafka_cr"], namespace, client)
 	if err != nil {
 		return false, err
 	}
