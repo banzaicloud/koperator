@@ -143,6 +143,21 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	log.V(1).Info("Reconciling")
 
+	//TODO remove this in a future release (baluchicken)
+	// this is only required to keep backward compatibility
+	var brokerIdWithDeprecatedStatus []string
+	for bId, bStatus := range r.KafkaCluster.Status.BrokersState {
+		if bStatus.GracefulActionState.CruiseControlState == "GracefulUpdateNotRequired" {
+			brokerIdWithDeprecatedStatus = append(brokerIdWithDeprecatedStatus, bId)
+		}
+	}
+	statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerIdWithDeprecatedStatus, r.KafkaCluster,
+		v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded}, log)
+
+	if statusErr != nil {
+		return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating deprecated status failed")
+	}
+
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
 		o := r.headlessService()
 		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
@@ -569,7 +584,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.ConfigInSync, log)
 
 		if statusErr != nil {
-			return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
+			return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating status for resource failed", "kind", desiredType)
 		}
 
 		if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleSucceeded {
@@ -580,7 +595,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			}
 			statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, gracefulActionState, log)
 			if statusErr != nil {
-				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "could not update broker graceful action state")
+				return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "could not update broker graceful action state")
 			}
 		}
 		log.Info("resource created")
@@ -598,7 +613,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				}
 				statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{brokerId}, r.KafkaCluster, rackAwarenessState, log)
 				if statusErr != nil {
-					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating status for resource failed", "kind", desiredType)
+					return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating status for resource failed", "kind", desiredType)
 				}
 			}
 		} else {
