@@ -1552,7 +1552,6 @@ spec:
                     required:
                       - cruiseControlState
                       - errorMessage
-                      - volumeStates
                     type: object
                   rackAwarenessState:
                     description: RackAwarenessState holds info about rack awareness
