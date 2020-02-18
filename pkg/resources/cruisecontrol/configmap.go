@@ -118,6 +118,8 @@ type Capacity struct {
 
 // generateCapacityConfig generates a CC capacity config with default values or returns the manually overridden value if it exists
 func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) string {
+	log.Info("Generating capacity config")
+
 	// If there is already a config added manually, use that one
 	if kafkaCluster.Spec.CruiseControlConfig.CapacityConfig != "" {
 		return kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
@@ -126,9 +128,6 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger)
 	capacityConfig := CruiseControlCapacityConfig{}
 
 	for _, brokerState := range kafkaCluster.Spec.Brokers {
-		if brokerState.BrokerConfig == nil {
-			continue
-		}
 		brokerCapacity := BrokerCapacity{
 			BrokerID: fmt.Sprintf("%d", brokerState.Id),
 			Capacity: Capacity{
@@ -140,6 +139,8 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger)
 			Doc: "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB.",
 		}
 
+		log.Info("The following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
+
 		capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
 	}
 
@@ -147,6 +148,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger)
 	if err != nil {
 		log.Error(err, "Could not marshal cruise control capacity config")
 	}
+	log.Info("Generated capacity config was successful with values:", result)
 
 	return string(result)
 }
@@ -161,7 +163,9 @@ func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 	}
 
 	//Get disks from the BrokerConfig itself
-	parseMountPathWithSize(*brokerState.BrokerConfig, log, brokerState, brokerDisks)
+	if brokerState.BrokerConfig != nil {
+		parseMountPathWithSize(*brokerState.BrokerConfig, log, brokerState, brokerDisks)
+	}
 
 	return brokerDisks
 }
@@ -174,6 +178,6 @@ func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Log
 				"brokerId", brokerState.Id)
 		}
 
-		brokerDisks[storageConfig.MountPath] = strconv.FormatInt(int64Value, 10)
+		brokerDisks[storageConfig.MountPath+"/kafka"] = strconv.FormatInt(int64Value, 10)
 	}
 }
