@@ -46,38 +46,7 @@ func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 func UpdateBrokerStatus(c client.Client, brokerIds []string, cluster *v1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
-	for _, brokerId := range brokerIds {
-
-		if cluster.Status.BrokersState == nil {
-			switch s := state.(type) {
-			case banzaicloudv1beta1.RackAwarenessState:
-				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {RackAwarenessState: s}}
-			case banzaicloudv1beta1.GracefulActionState:
-				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: s}}
-			case banzaicloudv1beta1.ConfigurationState:
-				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {ConfigurationState: s}}
-			}
-		} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
-			switch s := state.(type) {
-			case banzaicloudv1beta1.RackAwarenessState:
-				val.RackAwarenessState = s
-			case banzaicloudv1beta1.GracefulActionState:
-				val.GracefulActionState = s
-			case banzaicloudv1beta1.ConfigurationState:
-				val.ConfigurationState = s
-			}
-			cluster.Status.BrokersState[brokerId] = val
-		} else {
-			switch s := state.(type) {
-			case banzaicloudv1beta1.RackAwarenessState:
-				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{RackAwarenessState: s}
-			case banzaicloudv1beta1.GracefulActionState:
-				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: s}
-			case banzaicloudv1beta1.ConfigurationState:
-				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{ConfigurationState: s}
-			}
-		}
-	}
+	generateBrokerState(brokerIds, cluster, state)
 
 	err := c.Status().Update(context.Background(), cluster)
 	if apierrors.IsNotFound(err) {
@@ -95,38 +64,7 @@ func UpdateBrokerStatus(c client.Client, brokerIds []string, cluster *v1beta1.Ka
 			return errors.WrapIf(err, "could not get config for updating status")
 		}
 
-		for _, brokerId := range brokerIds {
-
-			if cluster.Status.BrokersState == nil {
-				switch s := state.(type) {
-				case banzaicloudv1beta1.RackAwarenessState:
-					cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {RackAwarenessState: s}}
-				case banzaicloudv1beta1.GracefulActionState:
-					cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: s}}
-				case banzaicloudv1beta1.ConfigurationState:
-					cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {ConfigurationState: s}}
-				}
-			} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
-				switch s := state.(type) {
-				case banzaicloudv1beta1.RackAwarenessState:
-					val.RackAwarenessState = s
-				case banzaicloudv1beta1.GracefulActionState:
-					val.GracefulActionState = s
-				case banzaicloudv1beta1.ConfigurationState:
-					val.ConfigurationState = s
-				}
-				cluster.Status.BrokersState[brokerId] = val
-			} else {
-				switch s := state.(type) {
-				case banzaicloudv1beta1.RackAwarenessState:
-					cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{RackAwarenessState: s}
-				case banzaicloudv1beta1.GracefulActionState:
-					cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: s}
-				case banzaicloudv1beta1.ConfigurationState:
-					cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{ConfigurationState: s}
-				}
-			}
-		}
+		generateBrokerState(brokerIds, cluster, state)
 
 		err = c.Status().Update(context.Background(), cluster)
 		if apierrors.IsNotFound(err) {
@@ -140,6 +78,87 @@ func UpdateBrokerStatus(c client.Client, brokerIds []string, cluster *v1beta1.Ka
 	cluster.TypeMeta = typeMeta
 	logger.Info("Kafka cluster state updated")
 	return nil
+}
+
+func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCluster, state interface{}) {
+	for _, brokerId := range brokerIds {
+
+		if cluster.Status.BrokersState == nil {
+			switch s := state.(type) {
+			case banzaicloudv1beta1.RackAwarenessState:
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {RackAwarenessState: s}}
+			case banzaicloudv1beta1.GracefulActionState:
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: s}}
+			case map[string]banzaicloudv1beta1.GracefulActionState:
+				state := s[brokerId]
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: state}}
+			case banzaicloudv1beta1.ConfigurationState:
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {ConfigurationState: s}}
+			case map[string]banzaicloudv1beta1.VolumeState:
+				gracefulActionState := banzaicloudv1beta1.GracefulActionState{
+					VolumeStates: s,
+				}
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: gracefulActionState}}
+			case map[string]map[string]banzaicloudv1beta1.VolumeState:
+				state := s[brokerId]
+				gracefulActionState := banzaicloudv1beta1.GracefulActionState{
+					VolumeStates: state,
+				}
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: gracefulActionState}}
+			}
+		} else if val, ok := cluster.Status.BrokersState[brokerId]; ok {
+			switch s := state.(type) {
+			case banzaicloudv1beta1.RackAwarenessState:
+				val.RackAwarenessState = s
+			case banzaicloudv1beta1.GracefulActionState:
+				val.GracefulActionState = s
+			case map[string]banzaicloudv1beta1.GracefulActionState:
+				state := s[brokerId]
+				val.GracefulActionState = state
+			case banzaicloudv1beta1.ConfigurationState:
+				val.ConfigurationState = s
+			case map[string]banzaicloudv1beta1.VolumeState:
+				if val.GracefulActionState.VolumeStates == nil {
+					val.GracefulActionState.VolumeStates = make(map[string]banzaicloudv1beta1.VolumeState)
+				}
+				for mountPath, volumeState := range s {
+					val.GracefulActionState.VolumeStates[mountPath] = volumeState
+				}
+			case map[string]map[string]banzaicloudv1beta1.VolumeState:
+				state := s[brokerId]
+				if val.GracefulActionState.VolumeStates == nil {
+					val.GracefulActionState.VolumeStates = make(map[string]banzaicloudv1beta1.VolumeState)
+				}
+				for mountPath, volumeState := range state {
+					val.GracefulActionState.VolumeStates[mountPath] = volumeState
+				}
+			}
+			cluster.Status.BrokersState[brokerId] = val
+		} else {
+			switch s := state.(type) {
+			case banzaicloudv1beta1.RackAwarenessState:
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{RackAwarenessState: s}
+			case banzaicloudv1beta1.GracefulActionState:
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: s}
+			case map[string]banzaicloudv1beta1.GracefulActionState:
+				state := s[brokerId]
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: state}
+			case banzaicloudv1beta1.ConfigurationState:
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{ConfigurationState: s}
+			case map[string]banzaicloudv1beta1.VolumeState:
+				gracefulActionState := banzaicloudv1beta1.GracefulActionState{
+					VolumeStates: s,
+				}
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: gracefulActionState}
+			case map[string]map[string]banzaicloudv1beta1.VolumeState:
+				state := s[brokerId]
+				gracefulActionState := banzaicloudv1beta1.GracefulActionState{
+					VolumeStates: state,
+				}
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: gracefulActionState}
+			}
+		}
+	}
 }
 
 // DeleteStatus deletes the given broker state from the CR

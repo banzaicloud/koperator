@@ -78,7 +78,7 @@ type KafkaClusterReconciler struct {
 
 func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("kafkacluster", request.NamespacedName, "Request.Name", request.Name)
+	log := r.Log.WithValues("Request.Namespace", request.NamespacedName, "Request.Name", request.Name)
 
 	log.Info("Reconciling KafkaCluster")
 
@@ -333,7 +333,7 @@ func (r *KafkaClusterReconciler) updateAndFetchLatest(ctx context.Context, clust
 func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Builder {
 
 	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&v1beta1.KafkaCluster{})
+		For(&v1beta1.KafkaCluster{}).Named("KafkaCluster")
 
 	kafkaWatches(builder)
 	envoyWatches(builder)
@@ -372,7 +372,8 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Build
 					new := e.ObjectNew.(*v1beta1.KafkaCluster)
 					if !reflect.DeepEqual(old.Spec, new.Spec) ||
 						old.GetDeletionTimestamp() != new.GetDeletionTimestamp() ||
-						old.GetGeneration() != new.GetGeneration() {
+						old.GetGeneration() != new.GetGeneration() ||
+						!reflect.DeepEqual(old.Status.BrokersState, new.Status.BrokersState) {
 						return true
 					}
 					return false

@@ -60,14 +60,14 @@ func (r *Reconciler) service(id int32, log logr.Logger) runtime.Object {
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id),
 			util.MergeLabels(
-				labelsForKafka(r.KafkaCluster.Name),
+				LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
 			SessionAffinity: corev1.ServiceAffinityNone,
-			Selector:        util.MergeLabels(labelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
+			Selector:        util.MergeLabels(LabelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
 			Ports:           usedPorts,
 		},
 	}

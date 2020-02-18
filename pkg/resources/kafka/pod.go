@@ -86,7 +86,7 @@ fi
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
 			fmt.Sprintf("%s-%d-", r.KafkaCluster.Name, id),
 			util.MergeLabels(
-				labelsForKafka(r.KafkaCluster.Name),
+				LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			util.MergeAnnotations(
@@ -247,7 +247,7 @@ func generatePodAntiAffinity(clusterName string, hardRuleEnabled bool) *corev1.P
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 				{
 					LabelSelector: &metav1.LabelSelector{
-						MatchLabels: labelsForKafka(clusterName),
+						MatchLabels: LabelsForKafka(clusterName),
 					},
 					TopologyKey: "kubernetes.io/hostname",
 				},
@@ -260,7 +260,7 @@ func generatePodAntiAffinity(clusterName string, hardRuleEnabled bool) *corev1.P
 					Weight: int32(100),
 					PodAffinityTerm: corev1.PodAffinityTerm{
 						LabelSelector: &metav1.LabelSelector{
-							MatchLabels: labelsForKafka(clusterName),
+							MatchLabels: LabelsForKafka(clusterName),
 						},
 						TopologyKey: "kubernetes.io/hostname",
 					},

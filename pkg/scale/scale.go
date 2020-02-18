@@ -21,12 +21,12 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"strings"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	bcutil "github.com/banzaicloud/kafka-operator/pkg/util"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const (
@@ -35,7 +35,7 @@ const (
 	addBrokerAction         = "add_broker"
 	getTaskListAction       = "user_tasks"
 	kafkaClusterStateAction = "kafka_cluster_state"
-	clusterLoad             = "load"
+	clusterLoadAction       = "load"
 	rebalanceAction         = "rebalance"
 	killProposalAction      = "stop_proposal_execution"
 	serviceNameTemplate     = "%s-cruisecontrol-svc"
@@ -108,53 +108,65 @@ func parseCCErrorFromResp(input io.Reader) (string, error) {
 	return errorFromResponse.ErrorMessage, err
 }
 
-func isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName string) (bool, error) {
-
-	running := false
-
+func isKafkaBrokerDiskReady(brokerIdsWithMountPath map[string][]string, namespace, ccEndpoint, clusterName string) (bool, error) {
 	options := map[string]string{
 		"json": "true",
 	}
 
-	rsp, err := getCruiseControl(clusterLoad, namespace, options, ccEndpoint, clusterName)
+	rsp, err := getCruiseControl(kafkaClusterStateAction, namespace, options, ccEndpoint, clusterName)
 	if err != nil {
-		log.Error(err, "can't work with cruise-control because it is not ready")
-		return running, err
+		keyVals := []interface{}{
+			"namespace", namespace,
+			"clusterName", clusterName,
+			//"brokerId", brokerIds,
+			//"path", mountPath,
+		}
+		log.Error(err, "can't check if broker disk is ready as Cruise Control not ready", keyVals...)
+		return false, err
 	}
 
 	body, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		return running, err
+		return false, err
 	}
 
 	err = rsp.Body.Close()
 	if err != nil {
-		return running, err
+		return false, err
 	}
 
 	var response struct {
-		Brokers []struct {
-			Broker      float64
-			BrokerState string
+		KafkaBrokerState struct {
+			OnlineLogDirsByBrokerId map[string][]string
 		}
 	}
-
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return running, err
+		return false, err
 	}
 
-	bIdToFloat, _ := strconv.ParseFloat(brokerId, 32)
+	for brokerId, volumeMounts := range brokerIdsWithMountPath {
+		if ccOnlineLogDirs, ok := response.KafkaBrokerState.OnlineLogDirsByBrokerId[brokerId]; ok {
+			for _, volumeMount := range volumeMounts {
+				match := false
+				for _, ccOnlineLogDir := range ccOnlineLogDirs {
+					if strings.HasPrefix(strings.TrimSpace(ccOnlineLogDir), strings.TrimSpace(volumeMount)) {
+						match = true
+						break
+					}
+				}
 
-	for _, broker := range response.Brokers {
-		if broker.Broker == bIdToFloat &&
-			broker.BrokerState == brokerAlive {
-			log.Info("broker is available in cruise-control", "brokerId", brokerId)
-			running = true
-			break
+				if !match {
+					return false, nil
+				}
+			}
+
+		} else {
+			return false, nil
 		}
 	}
-	return running, nil
+
+	return true, nil
 }
 
 // Get brokers status from CC from a provided list of broker ids
@@ -164,7 +176,7 @@ func GetLiveKafkaBrokersFromCruiseControl(brokerIds []string, namespace, ccEndpo
 		"json": "true",
 	}
 
-	rsp, err := getCruiseControl(clusterLoad, namespace, options, ccEndpoint, clusterName)
+	rsp, err := getCruiseControl(clusterLoadAction, namespace, options, ccEndpoint, clusterName)
 	if err != nil {
 		log.Error(err, "can't work with cruise-control because it is not ready")
 		return nil, err
@@ -254,12 +266,14 @@ func GetBrokerIDWithLeastPartition(namespace, ccEndpoint, clusterName string) (s
 }
 
 // UpScaleCluster upscales Kafka cluster
-func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) (string, string, error) {
+func UpScaleCluster(brokerIds []string, namespace, ccEndpoint, clusterName string) (string, string, error) {
 
-	ready, err := isKafkaBrokerReady(brokerId, namespace, ccEndpoint, clusterName)
+	liveBrokers, err := GetLiveKafkaBrokersFromCruiseControl(brokerIds, namespace, ccEndpoint, clusterName)
 	if err != nil {
 		return "", "", err
 	}
+	ready := bcutil.AreStringSlicesIdentical(liveBrokers, brokerIds)
+
 	if !ready {
 		return "", "", errors.New("broker is not ready yet")
 	}
@@ -267,7 +281,7 @@ func UpScaleCluster(brokerId, namespace, ccEndpoint, clusterName string) (string
 	options := map[string]string{
 		"json":     "true",
 		"dryrun":   "false",
-		"brokerid": brokerId,
+		"brokerid": strings.Join(brokerIds, ","),
 	}
 
 	uResp, err := postCruiseControl(addBrokerAction, namespace, options, ccEndpoint, clusterName)
@@ -331,7 +345,15 @@ func DownsizeCluster(brokerIds []string, namespace, ccEndpoint, clusterName stri
 }
 
 // RebalanceDisks rebalances Kafka broker replicas between disks using CC
-func RebalanceDisks(namespace, ccEndpoint, clusterName string) (string, string, error) {
+func RebalanceDisks(brokerIdsWithMountPath map[string][]string, namespace, ccEndpoint, clusterName string) (string, string, error) {
+
+	ready, err := isKafkaBrokerDiskReady(brokerIdsWithMountPath, namespace, ccEndpoint, clusterName)
+	if err != nil {
+		return "", "", err
+	}
+	if !ready {
+		return "", "", errors.New("broker disk is not ready yet")
+	}
 
 	options := map[string]string{
 		"dryrun":         "false",

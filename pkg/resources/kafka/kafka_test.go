@@ -28,41 +28,7 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 		expectedIDs  []int32
 	}{
 		{
-			testName: "no pending or running CC tasks",
-			kafkaCluster: v1beta1.KafkaCluster{
-				Spec: v1beta1.KafkaClusterSpec{
-					Brokers: []v1beta1.Broker{
-						{
-							Id: 0,
-						},
-						{
-							Id: 1,
-						},
-						{
-							Id: 2,
-						},
-					},
-				},
-				Status: v1beta1.KafkaClusterStatus{
-					BrokersState: map[string]v1beta1.BrokerState{
-						"0": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},
-						},
-						"1": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed},
-						},
-						"2": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},
-						},
-						"3": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateRequired},
-						},
-					},
-				},
-			},
-		},
-		{
-			testName: "pending and running CC tasks",
+			testName: "pending and running CC rebalance tasks",
 			kafkaCluster: v1beta1.KafkaCluster{
 				Spec: v1beta1.KafkaClusterSpec{
 					Brokers: []v1beta1.Broker{
@@ -85,25 +51,228 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 						"0": {
 							GracefulActionState: v1beta1.GracefulActionState{
 								CruiseControlTaskId: "cc-task-id-1",
-								CruiseControlState:  v1beta1.GracefulUpdateRunning,
+								CruiseControlState:  v1beta1.GracefulDownscaleRunning,
 							},
 						},
 						"1": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateFailed},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded,
+								VolumeStates: map[string]v1beta1.VolumeState{
+									"/path1": {
+										CruiseControlTaskId:      "1",
+										CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRunning,
+									}}},
 						},
 						"2": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateRequired},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded,
+								VolumeStates: map[string]v1beta1.VolumeState{
+									"/path1": {
+										CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
+									}}},
 						},
 						"3": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateRequired},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
 						},
 						"4": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpdateRunning},
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRunning},
+						},
+					},
+				},
+			},
+			expectedIDs: []int32{0, 1, 2},
+		},
+		{
+			testName: "no pending or running CC upscale tasks",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{
+							Id: 0,
+						},
+						{
+							Id: 1,
+						},
+						{
+							Id: 2,
+						},
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},
+						},
+						"1": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},
+						},
+						"2": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},
+						},
+						"3": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRequired},
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "pending and running CC upscale tasks",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{
+							Id: 0,
+						},
+						{
+							Id: 1,
+						},
+						{
+							Id: 2,
+						},
+						{
+							Id: 4,
+						},
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {
+							GracefulActionState: v1beta1.GracefulActionState{
+								CruiseControlTaskId: "cc-task-id-1",
+								CruiseControlState:  v1beta1.GracefulUpscaleRunning,
+							},
+						},
+						"1": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRunning},
+						},
+						"2": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRequired},
+						},
+						"3": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRequired},
+						},
+						"4": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRunning},
 						},
 					},
 				},
 			},
 			expectedIDs: []int32{0, 2},
+		},
+		{
+			testName: "no pending or running CC downscale tasks",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{
+							Id: 0,
+						},
+						{
+							Id: 1,
+						},
+						{
+							Id: 2,
+						},
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded},
+						},
+						"1": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded},
+						},
+						"2": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded},
+						},
+						"3": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "pending and running CC downscale tasks",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{
+							Id: 0,
+						},
+						{
+							Id: 1,
+						},
+						{
+							Id: 2,
+						},
+						{
+							Id: 4,
+						},
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {
+							GracefulActionState: v1beta1.GracefulActionState{
+								CruiseControlTaskId: "cc-task-id-1",
+								CruiseControlState:  v1beta1.GracefulDownscaleRunning,
+							},
+						},
+						"1": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRunning},
+						},
+						"2": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
+						},
+						"3": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
+						},
+						"4": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRunning},
+						},
+					},
+				},
+			},
+			expectedIDs: []int32{0, 2},
+		},
+		{
+			testName: "no pending or running CC rebalance tasks",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{
+							Id: 0,
+						},
+						{
+							Id: 1,
+						},
+						{
+							Id: 2,
+						},
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded,
+								VolumeStates: map[string]v1beta1.VolumeState{
+									"/path1": {
+										CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceSucceeded,
+									}}},
+						},
+						"1": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded},
+						},
+						"2": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded},
+						},
+						"3": {
+							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
+						},
+					},
+				},
+			},
 		},
 	}
 

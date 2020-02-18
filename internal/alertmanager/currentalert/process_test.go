@@ -249,7 +249,8 @@ func setupEnvironment(t *testing.T, testClient client.Client) {
 
 	err = testClient.Create(context.Background(), &v1beta1.KafkaCluster{
 		ObjectMeta: v1.ObjectMeta{
-			Name: "kafka",
+			Name:      "kafka",
+			Namespace: "kafka",
 		},
 		Spec: v1beta1.KafkaClusterSpec{
 			Brokers: []v1beta1.Broker{

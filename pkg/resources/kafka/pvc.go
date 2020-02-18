@@ -30,7 +30,7 @@ func (r *Reconciler) pvc(id int32, storage v1beta1.StorageConfig, log logr.Logge
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
 			fmt.Sprintf(brokerStorageTemplate, r.KafkaCluster.Name, id),
 			util.MergeLabels(
-				labelsForKafka(r.KafkaCluster.Name),
+				LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			map[string]string{"mountPath": storage.MountPath}, r.KafkaCluster),

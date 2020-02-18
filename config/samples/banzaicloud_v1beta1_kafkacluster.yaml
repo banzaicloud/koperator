@@ -413,7 +413,7 @@ spec:
       webserver.accesslog.path=access.log
       # HTTP Request Log retention days
       webserver.accesslog.retention.days=14
-    # CapacityConfig describes Cruise Control config capacity.json
+    # CapacityConfig describes Cruise Control config capacity.json if unset the operator will calculate it for the cluster
     capacityConfig: |
       {
         "brokerCapacities":[

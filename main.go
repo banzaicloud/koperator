@@ -124,6 +124,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	kafkaClusterCCReconciler := &controllers.CruiseControlTaskReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Log:    ctrl.Log.WithName("controller").WithName("CruiseControlTask"),
+	}
+
+	if err = controllers.SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CruiseControl")
+		os.Exit(1)
+	}
+
 	webhook.SetupServerHandlers(mgr, webhookCertDir)
 
 	// +kubebuilder:scaffold:builder

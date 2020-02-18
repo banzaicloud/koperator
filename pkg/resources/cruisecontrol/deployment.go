@@ -15,6 +15,8 @@
 package cruisecontrol
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -59,7 +61,7 @@ func (r *Reconciler) deployment(log logr.Logger, clientPass string) runtime.Obje
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      templates.ObjectMetaLabels(r.KafkaCluster, ccLabelSelector(r.KafkaCluster.Name)),
-					Annotations: util.MonitoringAnnotations(metricsPort),
+					Annotations: generatePodAnnotations(r.KafkaCluster, log),
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            r.KafkaCluster.Spec.CruiseControlConfig.GetServiceAccount(),
@@ -170,6 +172,19 @@ fi`},
 			},
 		},
 	}
+}
+
+func generatePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) map[string]string {
+	hashedCruiseControlCapacityJson := sha256.Sum256([]byte(GenerateCapacityConfig(kafkaCluster, log)))
+
+	annotations := []map[string]string{
+		{
+			"cruiseControlCapacity.json": hex.EncodeToString(hashedCruiseControlCapacityJson[:]),
+		},
+		util.MonitoringAnnotations(metricsPort),
+	}
+
+	return util.MergeAnnotations(annotations...)
 }
 
 func generateVolumesForSSL(cluster *v1beta1.KafkaCluster) []corev1.Volume {
