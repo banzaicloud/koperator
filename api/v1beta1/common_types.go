@@ -83,7 +83,7 @@ type GracefulActionState struct {
 	// CruiseControlState holds the information about CC state
 	CruiseControlState CruiseControlState `json:"cruiseControlState"`
 	// VolumeStates holds the information about the CC disk rebalance states and tasks
-	VolumeStates map[string]VolumeState `json:"volumeStates"`
+	VolumeStates map[string]VolumeState `json:"volumeStates,omitempty"`
 }
 
 type VolumeState struct {
