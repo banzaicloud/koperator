@@ -276,7 +276,7 @@ When you are opening a PR to Kafka operator the first time we will require you t
 
 ## Community
 
-If you have any questions about the Kafka operator, and would like to talk to us and the other members of the Banzai Cloud community, please join our **#kafka-operator** channel on [Slack](https://slack.banzaicloud.io/).
+If you have any questions about the Kafka operator, and would like to talk to us and the other members of the Banzai Cloud community, please join our **#kafka-operator** channel on [Slack](https://pages.banzaicloud.com/invite-slack).
 
 If you find this project useful, help us:
 
