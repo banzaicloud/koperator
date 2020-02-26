@@ -26,6 +26,7 @@ operator:
       memory: 128Mi
 
 webhook:
+  enabled: true
   certs:
     generate: true
     secret: "kafka-operator-serving-cert"

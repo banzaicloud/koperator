@@ -1,4 +1,4 @@
-{{- if .Values.webhook.certs.generate -}}
+{{- if and (.Values.webhook.enabled) (.Values.webhook.certs.generate) -}}
 
 {{- $commonName := printf "%s-operator.%s.svc" (include "kafka-operator.fullname" .) .Release.Namespace -}}
 {{- $altNames := list ( $commonName ) ( printf "%s.cluster.local" $commonName ) -}}

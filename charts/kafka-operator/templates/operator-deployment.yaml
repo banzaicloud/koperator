@@ -65,6 +65,9 @@ spec:
           args:
             - --enable-leader-election
             - --cert-manager-namespace={{ .Values.certManager.namespace }}
+          {{- if not .Values.webhook.enabled }}
+            - --disable-webhooks
+          {{- end }}
           {{- if .Values.operator.verboseLogging }}
             - --verbose
           {{- end }}
