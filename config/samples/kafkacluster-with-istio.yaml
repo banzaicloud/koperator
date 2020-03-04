@@ -7,6 +7,9 @@ metadata:
 spec:
   headlessServiceEnabled: false
   ingressController: "istioingress"
+  istioIngressConfig:
+    gatewayConfig:
+      mode: ISTIO_MUTUAL
   zkAddresses:
     - "example-zookeepercluster-client.zookeeper:2181"
   oneBrokerPerNode: false
