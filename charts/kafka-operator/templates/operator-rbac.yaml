@@ -149,6 +149,7 @@ rules:
   - get
   - list
   - watch
+{{- if .Values.webhook.enabled }}
 - apiGroups:
   - admissionregistration.k8s.io
   resources:
@@ -162,6 +163,7 @@ rules:
   - update
   - patch
   - delete
+{{- end }}
 - apiGroups:
   - ""
   resources:

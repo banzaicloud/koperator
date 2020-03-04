@@ -38,9 +38,11 @@ spec:
       serviceAccountName: {{ include "kafka-operator.fullname" . }}-operator
       {{- end }}
       volumes:
+      {{- if .Values.webhook.enabled }}
         - name: serving-cert
           secret:
             secretName: {{ .Values.webhook.certs.secret }}
+      {{- end }}
       {{- if .Values.operator.vaultSecret }}
         - name: {{ .Values.operator.vaultSecret }}
           secret:
@@ -88,9 +90,11 @@ spec:
               value: /etc/vault/certs/ca.crt
           {{- end }}
           ports:
+          {{- if .Values.webhook.enabled }}
             - containerPort: 443
               name: webhook-server
               protocol: TCP
+          {{- end }}
             - containerPort: 8080
               name: metrics
               protocol: TCP
@@ -98,9 +102,11 @@ spec:
               name: alerts
               protocol: TCP
           volumeMounts:
+          {{- if .Values.webhook.enabled }}
             - mountPath: /etc/webhook/certs
               name: serving-cert
               readOnly: true
+          {{- end }}
           {{- if .Values.operator.vaultSecret }}
             - mountPath: /etc/vault/certs
               name: {{ .Values.operator.vaultSecret }}
