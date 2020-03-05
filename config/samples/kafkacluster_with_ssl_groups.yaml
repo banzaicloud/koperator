@@ -7,14 +7,14 @@ metadata:
 spec:
   headlessServiceEnabled: true
   zkAddresses:
-    - "example-zookeepercluster-client.zookeeper:2181"
+    - "zookeeper-client.zookeeper:2181"
   rackAwareness:
     # operator will use these labels from the nodes to create the rack for Kafka
     labels:
       - "failure-domain.beta.kubernetes.io/region"
       - "failure-domain.beta.kubernetes.io/zone"
   oneBrokerPerNode: false
-  clusterImage: "wurstmeister/kafka:2.12-2.3.0"
+  clusterImage: "banzaicloud/kafka:2.13-2.4.0"
   readOnlyConfig: |
     auto.create.topics.enable=false
     authorizer.class.name=kafka.security.auth.SimpleAclAuthorizer

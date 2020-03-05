@@ -8,7 +8,7 @@ spec:
   headlessServiceEnabled: false
   ingressController: "istioingress"
   zkAddresses:
-    - "example-zookeepercluster-client.zookeeper:2181"
+    - "zookeeper-client.zookeeper:2181"
   oneBrokerPerNode: false
   clusterImage: "banzaicloud/kafka:2.13-2.4.0"
   readOnlyConfig: |

@@ -111,7 +111,7 @@ This will install 3 brokers partitioned to three different zone with fast ssd.
 
 To create the topic we should create a client container inside the cluster.
 ```
-kubectl create -f - <<EOF 
+kubectl create -f - <<EOF
 apiVersion: v1
 kind: Pod
 metadata:
@@ -131,9 +131,9 @@ EOF
 Exec into this client and create the `perftest, perftest2, perftes3` topics.
 ```
 kubectl exec -it kafka-test bash
-./opt/kafka/bin/kafka-topics.sh --zookeeper example-zookeepercluster-client.zookeeper:2181 --topic perftest --create --replication-factor 3 --partitions 3
-./opt/kafka/bin/kafka-topics.sh --zookeeper example-zookeepercluster-client.zookeeper:2181 --topic perftest2 --create --replication-factor 3 --partitions 3
-./opt/kafka/bin/kafka-topics.sh --zookeeper example-zookeepercluster-client.zookeeper:2181 --topic perftest3 --create --replication-factor 3 --partitions 3
+./opt/kafka/bin/kafka-topics.sh --zookeeper zookeeper-client.zookeeper:2181 --topic perftest --create --replication-factor 3 --partitions 3
+./opt/kafka/bin/kafka-topics.sh --zookeeper zookeeper-client.zookeeper:2181 --topic perftest2 --create --replication-factor 3 --partitions 3
+./opt/kafka/bin/kafka-topics.sh --zookeeper zookeeper-client.zookeeper:2181 --topic perftest3 --create --replication-factor 3 --partitions 3
 ```
 
 Monitoring environment automatically installed, find your cluster and Grafanas UI/credentials on our [UI](https://beta.banzaicloud.io). To monitor the infrastructure we used the official Node Exporter dashboard available with id `1860`.
