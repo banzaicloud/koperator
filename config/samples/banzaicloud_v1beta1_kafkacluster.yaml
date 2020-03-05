@@ -12,7 +12,7 @@ spec:
   ingressController: "envoy"
   # Specify the zookeeper addresses where the Kafka should store it's metadata
   zkAddresses:
-    - "example-zookeepercluster-client.zookeeper:2181"
+    - "zookeeper-client.zookeeper:2181"
   # Specify the zookeeper path where the Kafka related metadatas should be placed
   # By default it is bound to "/" and can be left blank
   zkPath: "/kafka"
@@ -28,7 +28,7 @@ spec:
   oneBrokerPerNode: false
   # Specify the Kafka Broker related settings
   # clusterImage can specify the whole kafkacluster image in one place
-  #clusterImage: "wurstmeister/kafka:2.12-2.3.0"
+  #clusterImage: "banzaicloud/kafka:2.13-2.4.0"
   # readOnlyConfig specifies the read-only type kafka config cluster wide, all these will be merged with broker specified
   # readOnly configurations, so it can be overwritten per broker.
   #clusterWideConfig specifies the cluster-wide kafka config cluster wide, all these can be overridden per-broker
@@ -65,7 +65,7 @@ spec:
         auto.create.topics.enable=false
       brokerConfig:
         # Docker image used by the operator to create the Broker with id 0
-        #image: "wurstmeister/kafka:2.12-2.3.0"
+        #image: "banzaicloud/kafka:2.13-2.4.0"
         # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
         # through this property
         #resourceRequirements:
@@ -113,7 +113,7 @@ spec:
           #      resources:
           #        requests:
           #          storage: 3Gi
-    - image: "wurstmeister/kafka:2.12-2.3.0"
+    - image: "banzaicloud/kafka:2.13-2.4.0"
       id: 1
       config: |
         auto.create.topics.enable=false
@@ -129,7 +129,7 @@ spec:
       readOnlyConfig: |
         auto.create.topics.enable=false
       brokerConfig:
-        image: "wurstmeister/kafka:2.12-2.3.0"
+        image: "banzaicloud/kafka:2.13-2.4.0"
         storageConfigs:
           - mountPath: "/kafka-logs"
             pvcSpec:

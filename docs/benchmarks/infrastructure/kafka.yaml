@@ -7,9 +7,9 @@ metadata:
 spec:
   headlessServiceEnabled: false
   zkAddresses:
-    - "example-zookeepercluster-client.zookeeper:2181"
+    - "zookeeper-client.zookeeper:2181"
   oneBrokerPerNode: true
-  clusterImage: "wurstmeister/kafka:2.12-2.3.0"
+  clusterImage: "banzaicloud/kafka:2.13-2.4.0"
   readOnlyConfig: |
     auto.create.topics.enable=false
   rackAwareness:

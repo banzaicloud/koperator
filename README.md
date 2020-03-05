@@ -84,7 +84,7 @@ If you are willing to kickstart your managed Apache Kafka experience on 5 cloud 
 
 ## Installation
 
-The operator installs the 2.3.0 version of Apache Kafka, and can run on Minikube v0.33.1+ and Kubernetes 1.12.0+.
+The operator installs the 2.4.0 version of Apache Kafka, and can run on Minikube v0.33.1+ and Kubernetes 1.12.0+.
 
 > The operator supports Kafka 2.0+
 
@@ -129,20 +129,22 @@ helm install --name cert-manager --namespace cert-manager --version v0.11.0 jets
 ##### Install Zookeeper
 
 To install Zookeeper we recommend using the [Pravega's Zookeeper Operator](https://github.com/pravega/zookeeper-operator).
-You can deploy Zookeeper by using the Helm chart.
+You can deploy Zookeeper by using the Helm chart which can be found here [chart](https://github.com/pravega/zookeeper-operator/tree/master/charts/zookeeper-operator).
 
 ```bash
+# Deprecated, please use Pravega's helm chart
 helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 # Using helm3
 # You have to create the namespace before executing following command
 helm install zookeeper-operator --namespace=zookeeper banzaicloud-stable/zookeeper-operator
 # Using previous versions of helm
+# Deprecated, please use Pravega's helm chart
 helm install --name zookeeper-operator --namespace=zookeeper banzaicloud-stable/zookeeper-operator
 kubectl create --namespace zookeeper -f - <<EOF
 apiVersion: zookeeper.pravega.io/v1beta1
 kind: ZookeeperCluster
 metadata:
-  name: example-zookeepercluster
+  name: zookeeper
   namespace: zookeeper
 spec:
   replicas: 3
