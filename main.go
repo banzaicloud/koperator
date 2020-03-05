@@ -32,6 +32,9 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 
 	istioclientv1alpha3 "github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
 	banzaiistiov1beta1 "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
@@ -68,12 +71,14 @@ func init() {
 }
 
 func main() {
+	var namespaces string
 	var metricsAddr string
 	var enableLeaderElection bool
 	var webhookCertDir string
 	var webhookDisabled bool
 	var verboseLogging bool
 
+	flag.StringVar(&namespaces, "namespaces", "", "Comma separated list of namespaces where operator listens for resources")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
@@ -84,11 +89,26 @@ func main() {
 
 	ctrl.SetLogger(zap.Logger(verboseLogging))
 
+	//When operator is started to watch resources in a specific set of namespaces, we use the MultiNamespacedCacheBuilder cache.
+	//In this scenario, it is also suggested to restrict the provided authorization to this namespace by replacing the default
+	//ClusterRole and ClusterRoleBinding to Role and RoleBinding respectively
+	//For further information see the kubernetes documentation about
+	//Using [RBAC Authorization](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
+	managerWatchCache := (cache.NewCacheFunc)(nil)
+	if namespaces != "" {
+		ns := strings.Split(namespaces, ",")
+		for i := range ns {
+			ns[i] = strings.TrimSpace(ns[i])
+		}
+		managerWatchCache = cache.MultiNamespacedCacheBuilder(ns)
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "controller-leader-election-helper",
+		NewCache:           managerWatchCache,
 	})
 
 	if err != nil {

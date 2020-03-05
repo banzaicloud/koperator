@@ -70,6 +70,9 @@ spec:
           {{- if not .Values.webhook.enabled }}
             - --disable-webhooks
           {{- end }}
+          {{- if .Values.operator.namespaces }}
+            - --namespaces={{ .Values.operator.namespaces }}
+          {{- end }}
           {{- if .Values.operator.verboseLogging }}
             - --verbose
           {{- end }}
