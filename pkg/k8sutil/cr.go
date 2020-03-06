@@ -31,8 +31,8 @@ import (
 )
 
 // UpdateCrWithRackAwarenessConfig updates the CR with rack awareness config
-func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client) (v1beta1.RackAwarenessState, error) {
-	rackConfigMap, err := getSpecificNodeLabels(pod.Spec.NodeName, client, cr.Spec.RackAwareness.Labels)
+func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, client runtimeClient.Client, directClient runtimeClient.Reader) (v1beta1.RackAwarenessState, error) {
+	rackConfigMap, err := getSpecificNodeLabels(pod.Spec.NodeName, directClient, cr.Spec.RackAwareness.Labels)
 	if err != nil {
 		return "", errorfactory.New(errorfactory.StatusUpdateError{}, err, "updating cr with rack awareness info failed")
 	}

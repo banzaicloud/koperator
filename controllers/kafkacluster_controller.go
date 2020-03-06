@@ -55,8 +55,9 @@ var clusterUsersFinalizer = "users.kafkaclusters.kafka.banzaicloud.io"
 // KafkaClusterReconciler reconciles a KafkaCluster object
 type KafkaClusterReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	DirectClient client.Reader
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a KafkaCluster object and makes changes based on the state read
@@ -111,7 +112,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		istioingress.New(r.Client, instance),
 		kafkamonitoring.New(r.Client, instance),
 		cruisecontrolmonitoring.New(r.Client, instance),
-		kafka.New(r.Client, r.Scheme, instance),
+		kafka.New(r.Client, r.DirectClient, r.Scheme, instance),
 		cruisecontrol.New(r.Client, instance),
 	}
 

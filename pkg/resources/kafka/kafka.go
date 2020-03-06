@@ -79,11 +79,12 @@ func LabelsForKafka(name string) map[string]string {
 }
 
 // New creates a new reconciler for Kafka
-func New(client client.Client, scheme *runtime.Scheme, cluster *v1beta1.KafkaCluster) *Reconciler {
+func New(client client.Client, directClient client.Reader, scheme *runtime.Scheme, cluster *v1beta1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Scheme: scheme,
 		Reconciler: resources.Reconciler{
 			Client:       client,
+			DirectClient: directClient,
 			KafkaCluster: cluster,
 		},
 	}
@@ -607,7 +608,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			if currentPod.Spec.NodeName == "" {
 				log.Info(fmt.Sprintf("pod for brokerId %s does not scheduled to node yet", brokerId))
 			} else if r.KafkaCluster.Spec.RackAwareness != nil {
-				rackAwarenessState, err := k8sutil.UpdateCrWithRackAwarenessConfig(currentPod, r.KafkaCluster, r.Client)
+				rackAwarenessState, err := k8sutil.UpdateCrWithRackAwarenessConfig(currentPod, r.KafkaCluster, r.Client, r.DirectClient)
 				if err != nil {
 					return err
 				}
