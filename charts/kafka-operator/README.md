@@ -40,7 +40,7 @@ Parameter | Description | Default
 `operator.image.tag` | Operator container image tag | `0.6.0`
 `operator.image.pullPolicy` | Operator container image pull policy | `IfNotPresent`
 `operator.resources` | CPU/Memory resource requests/limits (YAML) | Memory: `128Mi/256Mi`, CPU: `100m/200m`
-`operator.namespaces` | List of namespaces where Operator watches for custom resources. **Note** that is not compatible with `rackAwareness` setting in the `KafkaCluster` resource as that requires read access for _cluster-scoped_ `Node` labels. | `""` i.e. all namespaces
+`operator.namespaces` | List of namespaces where Operator watches for custom resources.<br><br>**Note** that the operator still requires to read the cluster-scoped `Node` labels to configure `rack awareness`. Make sure the operator ServiceAccount is granted `get` permissions on this `Node` resource when using limited RBACs.| `""` i.e. all namespaces
 `prometheusMetrics.enabled` | If true, use direct access for Prometheus metrics | `false`
 `prometheusMetrics.authProxy.enabled` | If true, use auth proxy for Prometheus metrics | `true`
 `prometheusMetrics.authProxy.image.repository` | Auth proxy container image repository | `gcr.io/kubebuilder/kube-rbac-proxy`

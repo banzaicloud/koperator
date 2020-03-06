@@ -22,7 +22,7 @@ import (
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getSpecificNodeLabels(nodeName string, client runtimeClient.Client, filter []string) (map[string]string, error) {
+func getSpecificNodeLabels(nodeName string, client runtimeClient.Reader, filter []string) (map[string]string, error) {
 	node := &corev1.Node{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: nodeName, Namespace: ""}, node)
 	if err != nil {

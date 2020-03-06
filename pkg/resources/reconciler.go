@@ -23,9 +23,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// Reconciler holds client and CR for Kafka
+// Reconciler holds:
+// - cached client : split client reading cached/watched resources from informers and writing to api-server
+// - direct client : to read non-watched resources
+// - KafkaCluster CR
 type Reconciler struct {
 	client.Client
+	DirectClient client.Reader
 	KafkaCluster *v1beta1.KafkaCluster
 }
 
