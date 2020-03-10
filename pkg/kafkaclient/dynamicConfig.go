@@ -24,11 +24,11 @@ import (
 )
 
 func (k *kafkaClient) AlterClusterWideConfig(configChange map[string]*string) error {
-	return k.admin.AlterConfig(sarama.ClusterResource, "", configChange, false)
+	return k.admin.AlterConfig(sarama.BrokerResource, "", configChange, false)
 }
 
 func (k *kafkaClient) DescribeClusterWideConfig() ([]sarama.ConfigEntry, error) {
-	return k.admin.DescribeConfig(sarama.ConfigResource{Type: sarama.ClusterResource, Name: "", ConfigNames: []string{}})
+	return k.admin.DescribeConfig(sarama.ConfigResource{Type: sarama.BrokerResource, Name: "", ConfigNames: []string{}})
 }
 
 func (k *kafkaClient) AlterPerBrokerConfig(brokerId int32, configChange map[string]*string) error {
@@ -46,7 +46,7 @@ func (k *kafkaClient) AlterPerBrokerConfig(brokerId int32, configChange map[stri
 		ValidateOnly: false,
 		Resources: []*sarama.AlterConfigsResource{
 			{
-				Type:          sarama.ClusterResource,
+				Type:          sarama.BrokerResource,
 				Name:          strconv.Itoa(int(brokerId)),
 				ConfigEntries: configChange,
 			},
@@ -67,7 +67,7 @@ func (k *kafkaClient) DescribePerBrokerConfig(brokerId int32, config []string) (
 	defer broker.Close()
 
 	currentConfig, err := broker.DescribeConfigs(&sarama.DescribeConfigsRequest{
-		Resources: []*sarama.ConfigResource{{Type: sarama.ClusterResource, Name: strconv.Itoa(int(brokerId)), ConfigNames: config}},
+		Resources: []*sarama.ConfigResource{{Type: sarama.BrokerResource, Name: strconv.Itoa(int(brokerId)), ConfigNames: config}},
 	})
 	if err != nil {
 		return nil, err
