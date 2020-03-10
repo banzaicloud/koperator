@@ -25,13 +25,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) pvc(id int32, storage v1beta1.StorageConfig, log logr.Logger) runtime.Object {
+func (r *Reconciler) pvc(brokerId int32, storageIndex int, storage v1beta1.StorageConfig, log logr.Logger) runtime.Object {
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
-			fmt.Sprintf(brokerStorageTemplate, r.KafkaCluster.Name, id),
+			fmt.Sprintf(brokerStorageTemplate, r.KafkaCluster.Name, brokerId, storageIndex),
 			util.MergeLabels(
 				LabelsForKafka(r.KafkaCluster.Name),
-				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
+				map[string]string{"brokerId": fmt.Sprintf("%d", brokerId)},
 			),
 			map[string]string{"mountPath": storage.MountPath}, r.KafkaCluster),
 		Spec: *storage.PvcSpec,
