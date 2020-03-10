@@ -95,12 +95,13 @@ func main() {
 	//For further information see the kubernetes documentation about
 	//Using [RBAC Authorization](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
 	managerWatchCache := (cache.NewCacheFunc)(nil)
+	var namespaceList []string
 	if namespaces != "" {
-		ns := strings.Split(namespaces, ",")
-		for i := range ns {
-			ns[i] = strings.TrimSpace(ns[i])
+		namespaceList = strings.Split(namespaces, ",")
+		for i := range namespaceList {
+			namespaceList[i] = strings.TrimSpace(namespaceList[i])
 		}
-		managerWatchCache = cache.MultiNamespacedCacheBuilder(ns)
+		managerWatchCache = cache.MultiNamespacedCacheBuilder(namespaceList)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -130,6 +131,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		DirectClient: mgr.GetAPIReader(),
 		Scheme:       mgr.GetScheme(),
+		Namespaces:   namespaceList,
 		Log:          ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
 	}
 
