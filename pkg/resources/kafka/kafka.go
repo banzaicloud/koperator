@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -51,7 +52,7 @@ import (
 const (
 	componentName         = "kafka"
 	brokerConfigTemplate  = "%s-config"
-	brokerStorageTemplate = "%s-%d-storage"
+	brokerStorageTemplate = "%s-%d-storage-%d-"
 
 	brokerConfigMapVolumeMount = "broker-config"
 	kafkaDataVolumeMount       = "kafka-data"
@@ -104,6 +105,9 @@ func getCreatedPvcForBroker(c client.Client, brokerID int32, namespace, crName s
 	if len(foundPvcList.Items) == 0 {
 		return nil, fmt.Errorf("no persistentvolume found for broker %d", brokerID)
 	}
+	sort.Slice(foundPvcList.Items[:], func(i, j int) bool {
+		return foundPvcList.Items[i].Name < foundPvcList.Items[j].Name
+	})
 	return foundPvcList.Items, nil
 }
 
@@ -220,8 +224,8 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 
 		var brokerVolumes []*corev1.PersistentVolumeClaim
-		for _, storage := range brokerConfig.StorageConfigs {
-			o := r.pvc(broker.Id, storage, log)
+		for index, storage := range brokerConfig.StorageConfigs {
+			o := r.pvc(broker.Id, index, storage, log)
 			brokerVolumes = append(brokerVolumes, o.(*corev1.PersistentVolumeClaim))
 		}
 		if len(brokerVolumes) > 0 {
@@ -649,7 +653,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 				return nil
 			}
 		} else {
-			log.V(1).Info("resource diffs",
+			log.V(1).Info("kafka pod resource diffs",
 				"patch", string(patchResult.Patch),
 				"current", string(patchResult.Current),
 				"modified", string(patchResult.Modified),
