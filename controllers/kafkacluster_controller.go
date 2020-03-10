@@ -58,6 +58,7 @@ type KafkaClusterReconciler struct {
 	DirectClient client.Reader
 	Log          logr.Logger
 	Scheme       *runtime.Scheme
+	Namespaces   []string
 }
 
 // Reconcile reads that state of the cluster for a KafkaCluster object and makes changes based on the state read
@@ -188,27 +189,37 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 
 	var err error
 
-	// Fetch a list of all namespaces for DeleteAllOf requests
-	var namespaces corev1.NamespaceList
-	if err := r.Client.List(ctx, &namespaces); err != nil {
-		return requeueWithError(log, "failed to get namespace list", err)
+	var namespaces []string
+	if r.Namespaces == nil {
+		// Fetch a list of all namespaces for DeleteAllOf requests
+		namespaces = make([]string, 0)
+		var namespaceList corev1.NamespaceList
+		if err := r.Client.List(ctx, &namespaceList); err != nil {
+			return requeueWithError(log, "failed to get namespace list", err)
+		}
+		for _, ns := range namespaceList.Items {
+			namespaces = append(namespaces, ns.Name)
+		}
+	} else {
+		// use configured namespaces
+		namespaces = r.Namespaces
 	}
 
 	// If we haven't deleted all kafkatopics yet, iterate namespaces and delete all kafkatopics
 	// with the matching label.
 	if util.StringSliceContains(cluster.GetFinalizers(), clusterTopicsFinalizer) {
 		log.Info(fmt.Sprintf("Sending delete kafkatopics request to all namespaces for cluster %s/%s", cluster.Namespace, cluster.Name))
-		for _, ns := range namespaces.Items {
+		for _, ns := range namespaces {
 			if err := r.Client.DeleteAllOf(
 				ctx,
 				&v1alpha1.KafkaTopic{},
-				client.InNamespace(ns.Name),
+				client.InNamespace(ns),
 				client.MatchingLabels{clusterRefLabel: clusterLabelString(cluster)},
 			); err != nil {
 				if client.IgnoreNotFound(err) != nil {
 					return requeueWithError(log, "failed to send delete request for children kafkatopics", err)
 				}
-				log.Info(fmt.Sprintf("No matching kafkatopics in namespace: %s", ns.Name))
+				log.Info(fmt.Sprintf("No matching kafkatopics in namespace: %s", ns))
 			}
 
 		}
@@ -244,17 +255,17 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 		// with the matching label.
 		if util.StringSliceContains(cluster.GetFinalizers(), clusterUsersFinalizer) {
 			log.Info(fmt.Sprintf("Sending delete kafkausers request to all namespaces for cluster %s/%s", cluster.Namespace, cluster.Name))
-			for _, ns := range namespaces.Items {
+			for _, ns := range namespaces {
 				if err := r.Client.DeleteAllOf(
 					ctx,
 					&v1alpha1.KafkaUser{},
-					client.InNamespace(ns.Name),
+					client.InNamespace(ns),
 					client.MatchingLabels{clusterRefLabel: clusterLabelString(cluster)},
 				); err != nil {
 					if client.IgnoreNotFound(err) != nil {
 						return requeueWithError(log, "failed to send delete request for children kafkausers", err)
 					}
-					log.Info(fmt.Sprintf("No matching kafkausers in namespace: %s", ns.Name))
+					log.Info(fmt.Sprintf("No matching kafkausers in namespace: %s", ns))
 				}
 			}
 			if cluster, err = r.removeFinalizer(ctx, cluster, clusterUsersFinalizer); err != nil {
