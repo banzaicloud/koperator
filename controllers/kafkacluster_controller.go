@@ -122,18 +122,17 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		if err != nil {
 			switch errors.Cause(err).(type) {
 			case errorfactory.BrokersUnreachable:
-				log.Info("Brokers unreachable, may still be starting up")
+				log.Info("Brokers unreachable, may still be starting up", "error", err.Error())
 				return ctrl.Result{
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
 			case errorfactory.BrokersNotReady:
-				log.Info("Brokers not ready, may still be starting up")
+				log.Info("Brokers not ready, may still be starting up", "error", err.Error())
 				return ctrl.Result{
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
 			case errorfactory.ResourceNotReady:
-				log.Info("A new resource was not found or may not be ready")
-				log.Info(err.Error())
+				log.Info("A new resource was not found or may not be ready", "error", err.Error())
 				return ctrl.Result{
 					RequeueAfter: time.Duration(7) * time.Second,
 				}, nil
