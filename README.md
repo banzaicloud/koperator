@@ -94,7 +94,19 @@ The operator also uses `cert-manager` for issuing certificates to users and brok
 
 > We believe in the `separation of concerns` principle, thus the Kafka operator does not install nor manage Zookeeper or cert-manager. If you would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
 
-#### Install cert-manager
+#### Install the operator and all requirements using Supertubes
+
+Go grab and install the [Supertubes](https://banzaicloud.com/docs/supertubes/overview/) CLI tool.
+```bash
+curl https://getsupertubes.sh | sh
+```
+Run the following command:
+```bash
+supertubes install -a
+```
+#### Install the operator and the requirements independently
+
+##### Install cert-manager
 
 > Cert-manager 0.11.x introduced some API changes. We did not want to drop the 0.10.x line support so we decided to create two releases for the Operator.
 
@@ -192,7 +204,7 @@ helm install --name test --namespace default stable/prometheus-operator \
 --set prometheus.enabled=false
 ```
 
-### Installation
+##### Install Operator with Kustomize
 
 We recommend to use a **custom StorageClass** to leverage the volume binding mode `WaitForFirstConsumer`
 
@@ -223,7 +235,7 @@ kubectl create -n default -f config/samples/kafkacluster-prometheus.yaml
 > In this case you have to install Prometheus with proper configuration if you want the Kafka-Operator to react to alerts. Again, if you need Prometheus and would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
 
 
-### Easy way: installing with Helm
+##### Easy way: installing with Helm
 
 Alternatively, if you are using Helm, you can deploy the operator using a Helm chart [Helm chart](https://github.com/banzaicloud/kafka-operator/tree/master/charts):
 
