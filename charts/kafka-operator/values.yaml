@@ -54,6 +54,13 @@ fullnameOverride: ""
 rbac:
   enabled: true
 
+crd:
+  enabled: true
+
+serviceAccount:
+  enabled: true
+  name: kafka-operator-operator
+
 nodeSelector: {}
 
 tolerations: []
