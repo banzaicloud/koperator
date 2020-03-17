@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -101,7 +102,17 @@ func getKubernetesClient(clusterUID types.UID, role string) (client *vaultapi.Cl
 	if vaultClient, ok := vaultClients[clusterUID]; ok {
 		return vaultClient.RawClient(), nil
 	}
-	vaultClient, err := vault.NewClient(role)
+
+	vaultPath := "kubernetes"
+	if path := os.Getenv("VAULT_PATH"); path != "" {
+		vaultPath = path
+	}
+
+	vaultClient, err := vault.NewClientWithOptions(
+		vault.ClientAuthPath(vaultPath),
+		vault.ClientRole(role),
+	)
+
 	if err != nil {
 		return nil, err
 	}

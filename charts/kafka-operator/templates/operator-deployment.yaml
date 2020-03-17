@@ -92,6 +92,10 @@ spec:
             - name: VAULT_CACERT
               value: /etc/vault/certs/ca.crt
           {{- end }}
+          {{- if .Values.operator.vaultPath }}
+            - name: VAULT_PATH
+              value: {{ .Values.operator.vaultPath }}
+          {{- end }}
           ports:
           {{- if .Values.webhook.enabled }}
             - containerPort: 443
