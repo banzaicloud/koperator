@@ -58,7 +58,7 @@ The documentation of the Kafka operator project is available at the [Banzai Clou
 
 ### Community support
 
-If you encounter problems while using the Logging operator the documentation does not address, [open an issue](https://github.com/banzaicloud/kafka-operator/issues) or talk to us on the Banzai Cloud Slack channel [#kafka-operator](https://pages.banzaicloud.com/invite-slack).
+If you encounter problems while using the Kafka operator the documentation does not address, [open an issue](https://github.com/banzaicloud/kafka-operator/issues) or talk to us on the Banzai Cloud Slack channel [#kafka-operator](https://pages.banzaicloud.com/invite-slack).
 
 ### Commercial support
 
