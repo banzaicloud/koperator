@@ -42,255 +42,29 @@ Apache Kafka is an open-source distributed streaming platform, and some of the m
 
 >We took a different approach to what's out there - we believe for a good reason - please read on to understand more about our [design motivations](docs/features.md) and some of the [scenarios](docs/scenarios.md) which were driving us to create the Banzai Cloud Kafka operator.
 
-## Motivation
-
-At [Banzai Cloud](https://banzaicloud.com) we are building a Kubernetes distribution, [PKE](https://github.com/banzaicloud/pke), and a hybrid-cloud container management platform, [Pipeline](https://github.com/banzaicloud/pipeline), that operate Kafka clusters (among other types) for our customers. Apache Kafka predates Kubernetes and was designed mostly for `static` on-premise environments. State management, node identity, failover, etc all come part and parcel with Kafka, so making it work properly on Kubernetes and on an underlying dynamic environment can be a challenge.
-
-There are already several approaches to operating Kafka on Kubernetes, however, we did not find them appropriate for use in a highly dynamic environment, nor capable of meeting our customers' needs. At the same time, there is substantial interest within the Kafka community for a solution which enables Kafka on Kubernetes, both in the open source and closed source space.
-
-- [Helm chart](https://github.com/confluentinc/cp-helm-charts/tree/master/charts/cp-kafka)
-- [Yaml files](https://github.com/Yolean/kubernetes-kafka)
-- [Strimzi Kafka Operator](https://github.com/strimzi/strimzi-kafka-operator)
-- Confluent operator
-
-Join us as we take a deep dive into some of the details of the most popular pre-existing solutions, as well as our own:
-
-|               | Banzai Cloud | Krallistic | Strimzi | Confluent|
-| ------------- | ------------ | ------------ | ------------ | ------------ |
-| Open source  | Apache 2 | Apache 2|Apache 2| No|
-| Fine grained broker config support  | Yes (learn more) | Limited via StatefulSet|Limited via StatefulSet|Limited via StatefulSet|
-| Fine grained broker volume support  | Yes (learn more) | Limited via StatefulSet|Limited via StatefulSet|Limited via StatefulSet|
-| Monitoring  | Yes | Yes|Yes|Yes|
-| Encryption using SSL  | Yes | Yes|Yes|Yes|
-| Rolling Update  | Yes | No |No|Yes|
-| Cluster external accesses  | Envoy (single LB) | Nodeport |Nodeport or LB/broker|Yes (N/A)|
-| User Management via CRD  | Yes | No |Yes|No|
-| Topic management via CRD  | Yes | No |Yes|No|
-| Reacting to Alerts| Yes (Prometheus + Cruise Control | No |No|No|
-| Graceful Cluster Scaling (up and down)| Yes (using Cruise Control) | No |No|Yes|
-
-*-if you find any of this information inaccurate, please let us know, and we'll fix it*
-
->We took a different approach to what's out there - we believe for a good reason - please read on to understand more about our [design motivations](docs/features.md) and some of the [scenarios](docs/scenarios.md) which were driving us to create the Banzai Cloud Kafka operator.
-
-Finally, our motivation is to build an open source solution and a community which drives the innovation and features of this operator. We are long term contributors and active community members of both Apache Kafka and Kubernetes, and we hope to recreate a similar community around this operator.
-
-If you are willing to kickstart your managed Apache Kafka experience on 5 cloud providers, on-premise or hybrid environments, check out the free developer beta:
-<p align="center">
-  <a href="https://beta.banzaicloud.io">
-  <img src="https://camo.githubusercontent.com/a487fb3128bcd1ef9fc1bf97ead8d6d6a442049a/68747470733a2f2f62616e7a6169636c6f75642e636f6d2f696d672f7472795f706970656c696e655f627574746f6e2e737667">
-  </a>
-</p>
+The **Banzai Cloud Kafka operator** is a core part of [Banzai Cloud Supertubes](/products/supertubes/) that helps you create production-ready Kafka cluster on Kubernetes, with scaling, rebalancing, and alerts based self healing. While the Kafka operator itself is an [open-source project](/products/kafka-operator/), the [Banzai Cloud Supertubes](/products/supertubes/) product extends the functionality of the Kafka operator with commercial features (for example, built-in monitoring and multiple ways of disaster recovery). Read a [detailed comparison of Supertubes and the Kafka operator](https://banzaicloud.com/docs/supertubes/kafka-operator-supertubes-feature-comparison/).
 
 ## Installation
 
-The operator installs the 2.4.0 version of Apache Kafka, and can run on Minikube v0.33.1+ and Kubernetes 1.12.0+.
+For detailed installation instructions, see the [Banzai Cloud Documentation Page](https://banzaicloud.com/docs/supertubes/kafka-operator/install-kafka-operator).
 
-> The operator supports Kafka 2.0+
+## Documentation
 
-As a pre-requisite it needs a Kubernetes cluster (you can create one using [Pipeline](https://github.com/banzaicloud/pipeline)). Also, Kafka requires Zookeeper so you need to first have a Zookeeper cluster if you don't already have one.
+The documentation of the Kafka operator project is available at the [Banzai Cloud Documentation Page](https://banzaicloud.com/docs/supertubes/kafka-operator/).
 
-The operator also uses `cert-manager` for issuing certificates to users and brokers, so you'll need to have it setup in case you haven't already.
+## Support
 
-> We believe in the `separation of concerns` principle, thus the Kafka operator does not install nor manage Zookeeper or cert-manager. If you would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
+{{% include-headless "doc/kafka-operator-supertubes-intro.md" %}}
 
-#### Install the operator and all requirements using Supertubes
+### Community support
 
-Go grab and install the [Supertubes](https://banzaicloud.com/docs/supertubes/overview/) CLI tool.
-```bash
-curl https://getsupertubes.sh | sh
-```
-Run the following command:
-```bash
-supertubes install -a
-```
-#### Install the operator and the requirements independently
+If you encounter problems while using the Kafka operator the documentation does not address, [open an issue](https://github.com/banzaicloud/kafka-operator/issues) or talk to us on the Banzai Cloud Slack channel [#kafka-operator](https://pages.banzaicloud.com/invite-slack).
 
-##### Install cert-manager
+### Commercial support
 
-> Cert-manager 0.11.x introduced some API changes. We did not want to drop the 0.10.x line support so we decided to create two releases for the Operator.
-
-- Operator 0.8.x line supports cert-manager 0.11.x
-- Operator 0.7.x line supports cert-manager 0.10.x
-
-Install cert-manager and CustomResourceDefinitions
-
-```bash
-# Install the CustomResourceDefinitions and cert-manager itself
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml
-```
-
-Or install with helm
-
-```bash
-# Install CustomResourceDefinitions first
-kubectl apply --validate=false -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.11/deploy/manifests/00-crds.yaml
-
-# Add the jetstack helm repo
-helm repo add jetstack https://charts.jetstack.io
-helm repo update
-
-# Install cert-manager into the cluster
-# Using helm3
-# You have to create the namespace before executing following command
-helm install cert-manager --namespace cert-manager --version v0.11.0 jetstack/cert-manager
-# Using previous versions of helm
-helm install --name cert-manager --namespace cert-manager --version v0.11.0 jetstack/cert-manager
-```
-
-##### Install Zookeeper
-
-To install Zookeeper we recommend using the [Pravega's Zookeeper Operator](https://github.com/pravega/zookeeper-operator).
-You can deploy Zookeeper by using the Helm chart which can be found here [chart](https://github.com/pravega/zookeeper-operator/tree/master/charts/zookeeper-operator).
-
-```bash
-# Deprecated, please use Pravega's helm chart
-helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
-# Using helm3
-# You have to create the namespace before executing following command
-helm install zookeeper-operator --namespace=zookeeper banzaicloud-stable/zookeeper-operator
-# Using previous versions of helm
-# Deprecated, please use Pravega's helm chart
-helm install --name zookeeper-operator --namespace=zookeeper banzaicloud-stable/zookeeper-operator
-kubectl create --namespace zookeeper -f - <<EOF
-apiVersion: zookeeper.pravega.io/v1beta1
-kind: ZookeeperCluster
-metadata:
-  name: zookeeper
-  namespace: zookeeper
-spec:
-  replicas: 3
-EOF
-```
-
-##### Install Prometheus-operator
-
-Install the Operator and CustomResourceDefinitions to the `default` namespace
-```bash
-# Install Prometheus-operator and CustomResourceDefinitions
-kubectl apply -n default -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/bundle.yaml
-```
-
-Or install with helm
-```bash
-# Install CustomResourceDefinitions
-kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/monitoring.coreos.com_alertmanagers.yaml
-kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/monitoring.coreos.com_prometheuses.yaml
-kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
-kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
-kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
-kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/monitoring.coreos.com_thanosrulers.yaml
-
-
-# Install only the Prometheus-operator
-# Using helm3
-# You have to create the namespace before executing following command
-helm install test --namespace default stable/prometheus-operator \
-# Using previous versions of helm
-helm install --name test --namespace default stable/prometheus-operator \
---set prometheusOperator.createCustomResource=false \
---set defaultRules.enabled=false \
---set alertmanager.enabled=false \
---set grafana.enabled=false \
---set kubeApiServer.enabled=false \
---set kubelet.enabled=false \
---set kubeControllerManager.enabled=false \
---set coreDNS.enabled=false \
---set kubeEtcd.enabled=false \
---set kubeScheduler.enabled=false \
---set kubeProxy.enabled=false \
---set kubeStateMetrics.enabled=false \
---set nodeExporter.enabled=false \
---set prometheus.enabled=false
-```
-
-##### Install Operator with Kustomize
-
-We recommend to use a **custom StorageClass** to leverage the volume binding mode `WaitForFirstConsumer`
-
-```bash
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: exampleStorageclass
-parameters:
-  type: pd-standard
-provisioner: kubernetes.io/gce-pd
-reclaimPolicy: Delete
-volumeBindingMode: WaitForFirstConsumer
-```
-> Remember to set your Kafka CR properly to use the newly created StorageClass.
-
-1. Set `KUBECONFIG` pointing towards your cluster
-2. Run `make deploy` (deploys the operator in the `kafka` namespace into the cluster)
-3. Set your Kafka configurations in a Kubernetes custom resource (sample: `config/samples/simplekafkacluster.yaml`) and run this command to deploy the Kafka components:
-
-```bash
-# Add your zookeeper svc name to the configuration
-kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
-# If prometheus operator installed create the ServiceMonitors
-kubectl create -n default -f config/samples/kafkacluster-prometheus.yaml
-```
-
-> In this case you have to install Prometheus with proper configuration if you want the Kafka-Operator to react to alerts. Again, if you need Prometheus and would like to have a fully automated and managed experience of Apache Kafka on Kubernetes please try it with [Pipeline](https://github.com/banzaicloud/pipeline).
-
-
-##### Easy way: installing with Helm
-
-Alternatively, if you are using Helm, you can deploy the operator using a Helm chart [Helm chart](https://github.com/banzaicloud/kafka-operator/tree/master/charts):
-
-> To install the 0.7.x version of the operator use `helm install --name=kafka-operator --namespace=kafka --set operator.image.tag=0.7.x banzaicloud-stable/kafka-operator`
-
-```bash
-helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
-# Using helm3
-# You have to create the namespace before executing following command
-helm install kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator
-# Using previous versions of helm
-helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator
-# Add your zookeeper svc name to the configuration
-kubectl create -n kafka -f config/samples/simplekafkacluster.yaml
-# If prometheus operator installed create the ServiceMonitors
-kubectl create -n kafka -f config/samples/kafkacluster-prometheus.yaml
-```
-
-> In this case Prometheus will be installed and configured properly for the Kafka-Operator.
-
-## Test Your Deployment
-
-For simple test code please check out the [test docs](docs/test.md)
-
-For a more in-depth view at using SSL and the `KafkaUser` CRD see the [SSL docs](docs/ssl.md)
-
-For creating topics via with `KafkaTopic` CRD there is an example and more information in the [topics docs](docs/topics.md)
-
-## Development
-
-Check out the [developer docs](docs/developer.md).
-
-## Features
-
-Check out the [supported features](docs/features.md).
-
-## Issues, feature requests and roadmap
-
-Please note that the Kafka operator is constantly under development and new releases might introduce breaking changes. We are striving to keep backward compatibility as much as possible while adding new features at a fast pace. Issues, new features or bugs are tracked on the projects [GitHub page](https://github.com/banzaicloud/kafka-operator/issues) - please feel free to add yours!
-
-To track some of the significant features and future items from the roadmap please visit the [roadmap doc](docs/roadmap.md).
+If you are using the Kafka operator in a production environment and [require commercial support, contact Banzai Cloud](/contact/), the company backing the development of the Kafka operator.
 
 ## Contributing
-
-If you find this project useful here's how you can help:
-
-- Send a pull request with your new features and bug fixes
-- Help new users with issues they may encounter
-- Support the development of this project and star this repo!
-
-When you are opening a PR to Kafka operator the first time we will require you to sign a standard CLA.
-
-## Community
-
-If you have any questions about the Kafka operator, and would like to talk to us and the other members of the Banzai Cloud community, please join our **#kafka-operator** channel on [Slack](https://pages.banzaicloud.com/invite-slack).
 
 If you find this project useful, help us:
 
@@ -298,6 +72,8 @@ If you find this project useful, help us:
 - If you use the Kafka operator in a production environment, add yourself to the list of production [adopters](https://github.com/banzaicloud/kafka-operator/blob/master/ADOPTERS.md).:metal: <br>
 - Help new users with issues they may encounter :muscle:
 - Send a pull request with your new features and bug fixes :rocket:
+
+When you are opening a PR to Kafka operator the first time we will require you to sign a standard CLA. Check out the [developer docs](docs/developer.md).
 
 ## License
 
