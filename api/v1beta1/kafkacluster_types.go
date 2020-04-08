@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -30,6 +29,10 @@ import (
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+const (
+	ServiceAccountNameFormat = "%s-cluster"
+)
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
@@ -346,7 +349,7 @@ func (bConfig *BrokerConfig) GetServiceAccount(KafkaClusterName string) string {
 	if bConfig.ServiceAccountName != "" {
 		return bConfig.ServiceAccountName
 	}
-	return fmt.Sprintf(kafka.ServiceAccountNameFormat, KafkaClusterName)
+	return fmt.Sprintf(ServiceAccountNameFormat, KafkaClusterName)
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for EnvoyConfig

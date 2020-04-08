@@ -18,16 +18,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-)
-
-const (
-	ServiceAccountNameFormat            = "%s-cluster"
 )
 
 func (r *Reconciler) serviceAccount() (runtime.Object, error) {
@@ -39,12 +36,12 @@ func (r *Reconciler) serviceAccount() (runtime.Object, error) {
 
 	if !exists {
 		serviceAccount := &corev1.ServiceAccount{
-			ObjectMeta:                   metav1.ObjectMeta{
-				Namespace: r.KafkaCluster.Namespace,
-				Name:      fmt.Sprintf(ServiceAccountNameFormat, r.KafkaCluster.Name),
-				Labels:                     LabelsForKafka(r.KafkaCluster.Name),
-				Annotations:                nil,
-				OwnerReferences:            []metav1.OwnerReference{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   r.KafkaCluster.Namespace,
+				Name:        fmt.Sprintf(v1beta1.ServiceAccountNameFormat, r.KafkaCluster.Name),
+				Labels:      LabelsForKafka(r.KafkaCluster.Name),
+				Annotations: nil,
+				OwnerReferences: []metav1.OwnerReference{
 					{
 						APIVersion:         r.KafkaCluster.APIVersion,
 						Kind:               r.KafkaCluster.Kind,
@@ -63,11 +60,11 @@ func (r *Reconciler) serviceAccount() (runtime.Object, error) {
 	return nil, nil
 }
 
-func (r *Reconciler) serviceAccountForKafkaClusterExists() (bool, error){
+func (r *Reconciler) serviceAccountForKafkaClusterExists() (bool, error) {
 	serviceAccount := corev1.ServiceAccount{}
 	namespacedName := types.NamespacedName{
 		Namespace: r.KafkaCluster.Namespace,
-		Name:      fmt.Sprintf(ServiceAccountNameFormat, r.KafkaCluster.Name),
+		Name:      fmt.Sprintf(v1beta1.ServiceAccountNameFormat, r.KafkaCluster.Name),
 	}
 
 	err := r.Get(context.Background(), namespacedName, &serviceAccount)
