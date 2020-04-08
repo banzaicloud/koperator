@@ -221,7 +221,7 @@ fi
 			RestartPolicy:                 corev1.RestartPolicyNever,
 			TerminationGracePeriodSeconds: util.Int64Pointer(120),
 			ImagePullSecrets:              brokerConfig.GetImagePullSecrets(),
-			ServiceAccountName:            brokerConfig.GetServiceAccount(),
+			ServiceAccountName:            brokerConfig.GetServiceAccount(r.KafkaCluster.Name),
 			Tolerations:                   brokerConfig.GetTolerations(),
 			NodeSelector:                  brokerConfig.GetNodeSelector(),
 		},
