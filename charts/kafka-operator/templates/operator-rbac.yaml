@@ -144,6 +144,17 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - update
+  - create
+  - watch
+  - list
+  - delete
+- apiGroups:
+  - ""
+  resources:
   - nodes
   verbs:
   - get
