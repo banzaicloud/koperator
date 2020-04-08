@@ -15,9 +15,11 @@
 package v1beta1
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -340,11 +342,11 @@ func (eConfig *EnvoyConfig) GetReplicas() int32 {
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
-func (bConfig *BrokerConfig) GetServiceAccount() string {
+func (bConfig *BrokerConfig) GetServiceAccount(KafkaClusterName string) string {
 	if bConfig.ServiceAccountName != "" {
 		return bConfig.ServiceAccountName
 	}
-	return "default"
+	return fmt.Sprintf(kafka.ServiceAccountNameFormat, KafkaClusterName)
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for EnvoyConfig
