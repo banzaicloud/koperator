@@ -149,7 +149,6 @@ rules:
   - get
   - update
   - create
-  - watch
   - list
   - delete
 - apiGroups:

@@ -18,28 +18,16 @@ import (
 	"fmt"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func (r *Reconciler) serviceAccount() runtime.Object {
 	return &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: r.KafkaCluster.Namespace,
-			Name:      fmt.Sprintf(v1beta1.ServiceAccountNameFormat, r.KafkaCluster.Name),
-			Labels:    LabelsForKafka(r.KafkaCluster.Name),
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         r.KafkaCluster.APIVersion,
-					Kind:               r.KafkaCluster.Kind,
-					Name:               r.KafkaCluster.Name,
-					UID:                r.KafkaCluster.UID,
-					Controller:         util.BoolPointer(true),
-					BlockOwnerDeletion: util.BoolPointer(true),
-				},
-			},
-		},
+		ObjectMeta: templates.ObjectMeta(
+			fmt.Sprintf(v1beta1.ServiceAccountNameFormat, r.KafkaCluster.Name),
+			LabelsForKafka(r.KafkaCluster.Name),
+			r.KafkaCluster),
 	}
 }
