@@ -1,0 +1,26 @@
+name: build-publish-docker-image
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get tag name
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF:10}
+      - uses: docker/build-push-action@v1
+        if: ${{ !startsWith( steps.vars.outputs.tag, 'kafka-' ) }}
+        with:
+          dockerfile: Dockerfile
+          build_args: VERSION=${{ steps.vars.outputs.tag }},GIT_SHA=${{ github.sha }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: adobe/kafka-operator
+          tag_with_ref: true
+          push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          add_git_labels: true
