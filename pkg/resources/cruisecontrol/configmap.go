@@ -148,7 +148,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger)
 	if err != nil {
 		log.Error(err, "Could not marshal cruise control capacity config")
 	}
-	log.Info("Generated capacity config was successful with values:", result)
+	log.Info(fmt.Sprintf("Generated capacity config was successful with values: %s", result))
 
 	return string(result)
 }
