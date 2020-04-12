@@ -250,33 +250,33 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 		}, nil
 	}
 
-	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
-		// If we haven't deleted all kafkausers yet, iterate namespaces and delete all kafkausers
-		// with the matching label.
-		if util.StringSliceContains(cluster.GetFinalizers(), clusterUsersFinalizer) {
-			log.Info(fmt.Sprintf("Sending delete kafkausers request to all namespaces for cluster %s/%s", cluster.Namespace, cluster.Name))
-			for _, ns := range namespaces {
-				if err := r.Client.DeleteAllOf(
-					ctx,
-					&v1alpha1.KafkaUser{},
-					client.InNamespace(ns),
-					client.MatchingLabels{clusterRefLabel: clusterLabelString(cluster)},
-				); err != nil {
-					if client.IgnoreNotFound(err) != nil {
-						return requeueWithError(log, "failed to send delete request for children kafkausers", err)
-					}
-					log.Info(fmt.Sprintf("No matching kafkausers in namespace: %s", ns))
+	// If we haven't deleted all kafkausers yet, iterate namespaces and delete all kafkausers
+	// with the matching label.
+	if util.StringSliceContains(cluster.GetFinalizers(), clusterUsersFinalizer) {
+		log.Info(fmt.Sprintf("Sending delete kafkausers request to all namespaces for cluster %s/%s", cluster.Namespace, cluster.Name))
+		for _, ns := range namespaces {
+			if err := r.Client.DeleteAllOf(
+				ctx,
+				&v1alpha1.KafkaUser{},
+				client.InNamespace(ns),
+				client.MatchingLabels{clusterRefLabel: clusterLabelString(cluster)},
+			); err != nil {
+				if client.IgnoreNotFound(err) != nil {
+					return requeueWithError(log, "failed to send delete request for children kafkausers", err)
 				}
-			}
-			if cluster, err = r.removeFinalizer(ctx, cluster, clusterUsersFinalizer); err != nil {
-				return requeueWithError(log, "failed to remove users finalizer from kafkacluster", err)
+				log.Info(fmt.Sprintf("No matching kafkausers in namespace: %s", ns))
 			}
 		}
+		if cluster, err = r.removeFinalizer(ctx, cluster, clusterUsersFinalizer); err != nil {
+			return requeueWithError(log, "failed to remove users finalizer from kafkacluster", err)
+		}
+	}
+	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
 
 		// Do any necessary PKI cleanup - a PKI backend should make sure any
 		// user finalizations are done before it does its final cleanup
 		log.Info("Tearing down any PKI resources for the kafkacluster")
-		if err = pki.GetPKIManager(r.Client, cluster).FinalizePKI(ctx, log); err != nil {
+		if err = pki.GetPKIManager(r.Client, cluster, v1beta1.PKIBackendSetInClusterCR).FinalizePKI(ctx, log); err != nil {
 			switch err.(type) {
 			case errorfactory.ResourceNotReady:
 				log.Info("The PKI is not ready to be torn down")
@@ -313,10 +313,7 @@ func topicListToStrSlice(list v1alpha1.KafkaTopicList) []string {
 }
 
 func (r *KafkaClusterReconciler) ensureFinalizers(ctx context.Context, cluster *v1beta1.KafkaCluster) (updated *v1beta1.KafkaCluster, err error) {
-	finalizers := []string{clusterFinalizer, clusterTopicsFinalizer}
-	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
-		finalizers = append(finalizers, clusterUsersFinalizer)
-	}
+	finalizers := []string{clusterFinalizer, clusterTopicsFinalizer, clusterUsersFinalizer}
 	for _, finalizer := range finalizers {
 		if util.StringSliceContains(cluster.GetFinalizers(), finalizer) {
 			continue

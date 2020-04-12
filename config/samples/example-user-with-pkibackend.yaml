@@ -1,0 +1,19 @@
+apiVersion: kafka.banzaicloud.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: example-kafkauser-with-pki
+  namespace: kafka
+spec:
+  clusterRef:
+    name: kafka
+  secretName: example-kafkauser-secret
+  topicGrants:
+    - topicName: example-topic
+      accessType: read
+    - topicName: example-topic
+      accessType: write
+  pkiBackendSpec:
+    pkiBackend: "cert-manager"
+    issuerRef:
+      name: "ca-issuer"
+      kind: "ClusterIssuer"

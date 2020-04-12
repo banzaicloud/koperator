@@ -32,8 +32,14 @@ import (
 var MockBackend = v1beta1.PKIBackend("mock")
 
 // GetPKIManager returns a PKI/User manager interface for a given cluster
-func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pki.Manager {
-	switch cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend {
+func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBackend v1beta1.PKIBackend) pki.Manager {
+	var backend v1beta1.PKIBackend
+	if pkiBackend == v1beta1.PKIBackendSetInClusterCR {
+		backend = cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend
+	} else {
+		backend = pkiBackend
+	}
+	switch backend {
 
 	// Use cert-manager for pki backend
 	case v1beta1.PKIBackendCertManager:

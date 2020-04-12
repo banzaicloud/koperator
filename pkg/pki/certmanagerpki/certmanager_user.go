@@ -138,7 +138,7 @@ func (c *certManager) getUserSecret(ctx context.Context, user *v1alpha1.KafkaUse
 
 // clusterCertificateForUser generates a Certificate object for a KafkaUser
 func (c *certManager) clusterCertificateForUser(user *v1alpha1.KafkaUser, scheme *runtime.Scheme) *certv1.Certificate {
-	caName, caKind := c.getCA()
+	caName, caKind := c.getCA(user)
 	cert := &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      user.Name,
@@ -163,8 +163,13 @@ func (c *certManager) clusterCertificateForUser(user *v1alpha1.KafkaUser, scheme
 }
 
 // getCA returns the CA name/kind for the KafkaCluster
-func (c *certManager) getCA() (caName, caKind string) {
-	issuerRef := c.cluster.Spec.ListenersConfig.SSLSecrets.IssuerRef
+func (c *certManager) getCA(user *v1alpha1.KafkaUser) (caName, caKind string) {
+	var issuerRef *certmeta.ObjectReference
+	if user.Spec.PKIBackendSpec.IssuerRef != nil {
+		issuerRef = user.Spec.PKIBackendSpec.IssuerRef
+	} else {
+		issuerRef = c.cluster.Spec.ListenersConfig.SSLSecrets.IssuerRef
+	}
 	if issuerRef != nil {
 		caName = issuerRef.Name
 		caKind = issuerRef.Kind

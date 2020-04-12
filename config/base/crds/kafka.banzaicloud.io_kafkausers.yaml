@@ -3,14 +3,18 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   name: kafkausers.kafka.banzaicloud.io
 spec:
   group: kafka.banzaicloud.io
   names:
     kind: KafkaUser
+    listKind: KafkaUserList
     plural: kafkausers
-  scope: ""
+    singular: kafkauser
+  scope: Namespaced
   subresources:
     status: {}
   validation:
@@ -43,12 +47,40 @@ spec:
               required:
               - name
               type: object
+            createCert:
+              type: boolean
             dnsNames:
               items:
                 type: string
               type: array
             includeJKS:
               type: boolean
+            pkiBackendSpec:
+              properties:
+                issuerRef:
+                  description: ObjectReference is a reference to an object with a
+                    given name, kind and group.
+                  properties:
+                    group:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                pkiBackend:
+                  description: PKIBackend represents an interface implementing the
+                    PKIManager
+                  enum:
+                  - cert-manager
+                  - vault
+                  type: string
+              required:
+              - issuerRef
+              - pkiBackend
+              type: object
             secretName:
               type: string
             topicGrants:

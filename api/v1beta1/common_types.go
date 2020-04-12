@@ -70,6 +70,9 @@ const (
 	PKIBackendCertManager PKIBackend = "cert-manager"
 	// PKIBackendVault invokes vault PKI for user certificate management
 	PKIBackendVault PKIBackend = "vault"
+	// PKIBackendSetInClusterCR used to point the operator to use the PKI set in the cluster CR
+	// for admin and users required for the cluster to run
+	PKIBackendSetInClusterCR PKIBackend = "pki-set-on-cluster-cr"
 )
 
 // GracefulActionState holds information about GracefulAction State
