@@ -364,19 +364,19 @@ func (bConfig *BrokerConfig) GetServiceAccount(KafkaClusterName string) string {
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for EnvoyConfig
-func (eConfig *EnvoyConfig) GetServiceAccount() string {
+func (eConfig *EnvoyConfig) GetServiceAccount(KafkaClusterName string) string {
 	if eConfig.ServiceAccountName != "" {
 		return eConfig.ServiceAccountName
 	}
-	return "default"
+	return fmt.Sprintf(ServiceAccountNameFormat, KafkaClusterName)
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for CruiseControl
-func (cConfig *CruiseControlConfig) GetServiceAccount() string {
+func (cConfig *CruiseControlConfig) GetServiceAccount(KafkaClusterName string) string {
 	if cConfig.ServiceAccountName != "" {
 		return cConfig.ServiceAccountName
 	}
-	return "default"
+	return fmt.Sprintf(ServiceAccountNameFormat, KafkaClusterName)
 }
 
 //GetTolerations returns the tolerations for the given broker
