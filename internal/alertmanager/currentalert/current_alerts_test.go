@@ -103,11 +103,11 @@ func TestGetCurrentAlerts(t *testing.T) {
 			HeadlessServiceEnabled: true,
 			ListenersConfig: v1beta1.ListenersConfig{
 				InternalListeners: []v1beta1.InternalListenerConfig{
-					{
-						Type:                            "plaintext",
-						Name:                            "planitext",
+					{CommonListenerSpec: v1beta1.CommonListenerSpec{
+						Type:          "plaintext",
+						Name:          "planitext",
+						ContainerPort: 29092},
 						UsedForInnerBrokerCommunication: true,
-						ContainerPort:                   29092,
 					},
 				},
 			},

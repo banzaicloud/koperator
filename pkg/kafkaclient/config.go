@@ -41,7 +41,7 @@ func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaC
 	conf.BrokerURI = generateKafkaAddress(cluster)
 	conf.OperationTimeout = kafkaDefaultTimeout
 	if cluster.Spec.ListenersConfig.SSLSecrets != nil && useSSL(cluster) {
-		tlsConfig, err := pki.GetPKIManager(client, cluster, v1beta1.PKIBackendSetInClusterCR).GetControllerTLSConfig()
+		tlsConfig, err := pki.GetPKIManager(client, cluster, v1beta1.PKIBackendProvided).GetControllerTLSConfig()
 		if err != nil {
 			return conf, err
 		}

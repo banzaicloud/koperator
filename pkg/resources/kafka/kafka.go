@@ -210,7 +210,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	// Setup the PKI if using SSL
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		// reconcile the PKI
-		if err := pki.GetPKIManager(r.Client, r.KafkaCluster, v1beta1.PKIBackendSetInClusterCR).ReconcilePKI(context.TODO(), log, r.Scheme, lbIPs); err != nil {
+		if err := pki.GetPKIManager(r.Client, r.KafkaCluster, v1beta1.PKIBackendProvided).ReconcilePKI(context.TODO(), log, r.Scheme, lbIPs); err != nil {
 			return err
 		}
 	}

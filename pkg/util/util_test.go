@@ -207,13 +207,17 @@ func TestConvertStringToInt32(t *testing.T) {
 
 func TestIsSSLEnabledForInternalCommunication(t *testing.T) {
 	lconfig := []v1beta1.InternalListenerConfig{
-		{Type: "ssl"},
+		{
+			CommonListenerSpec: v1beta1.CommonListenerSpec{Type: "ssl"},
+		},
 	}
 	if !IsSSLEnabledForInternalCommunication(lconfig) {
 		t.Error("Expected ssl enabled for internal communication, got disabled")
 	}
 	lconfig = []v1beta1.InternalListenerConfig{
-		{Type: "plaintext"},
+		{
+			CommonListenerSpec: v1beta1.CommonListenerSpec{Type: "plaintext"},
+		},
 	}
 	if IsSSLEnabledForInternalCommunication(lconfig) {
 		t.Error("Expected ssl disabled for internal communication, got enabled")

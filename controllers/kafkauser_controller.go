@@ -146,7 +146,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		if instance.Spec.PKIBackendSpec.PKIBackend != "" {
 			backend = instance.Spec.PKIBackendSpec.PKIBackend
 		} else {
-			backend = v1beta1.PKIBackendSetInClusterCR
+			backend = v1beta1.PKIBackendProvided
 		}
 
 		pkiManager := pki.GetPKIManager(r.Client, cluster, backend)

@@ -225,20 +225,23 @@ type AlertManagerConfig struct {
 
 // ExternalListenerConfig defines the external listener config for Kafka
 type ExternalListenerConfig struct {
-	Type                 string `json:"type"`
-	Name                 string `json:"name"`
+	CommonListenerSpec   `json:",inline"`
 	ExternalStartingPort int32  `json:"externalStartingPort"`
-	ContainerPort        int32  `json:"containerPort"`
 	HostnameOverride     string `json:"hostnameOverride,omitempty"`
 }
 
 // InternalListenerConfig defines the internal listener config for Kafka
 type InternalListenerConfig struct {
-	Type                            string `json:"type"`
-	Name                            string `json:"name"`
-	UsedForInnerBrokerCommunication bool   `json:"usedForInnerBrokerCommunication"`
-	ContainerPort                   int32  `json:"containerPort"`
-	UsedForControllerCommunication  bool   `json:"usedForControllerCommunication,omitempty"`
+	CommonListenerSpec              `json:",inline"`
+	UsedForInnerBrokerCommunication bool `json:"usedForInnerBrokerCommunication"`
+	UsedForControllerCommunication  bool `json:"usedForControllerCommunication,omitempty"`
+}
+
+// CommonListenerSpec defines the common building block for Listener type
+type CommonListenerSpec struct {
+	Type          string `json:"type"`
+	Name          string `json:"name"`
+	ContainerPort int32  `json:"containerPort"`
 }
 
 // +kubebuilder:object:root=true
@@ -281,6 +284,14 @@ func (iIConfig *IstioIngressConfig) GetResources() *corev1.ResourceRequirements 
 			"memory": resource.MustParse("1024Mi"),
 		},
 	}
+}
+
+// GetListenerName returns the prepared listener name
+func (lP *CommonListenerSpec) GetListenerServiceName() string {
+	if !strings.HasPrefix(lP.Name, "tcp-") {
+		return "tcp-" + lP.Name
+	}
+	return lP.Name
 }
 
 // GetReplicas returns replicas used by the Istio Ingress deployment

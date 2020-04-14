@@ -181,11 +181,12 @@ zookeeper.connect=example.zk:2181/`,
 							ZKPath:      test.zkPath,
 							ListenersConfig: v1beta1.ListenersConfig{
 								InternalListeners: []v1beta1.InternalListenerConfig{
-									{
-										Type:                            "plaintext",
-										Name:                            "internal",
+									{CommonListenerSpec: v1beta1.CommonListenerSpec{
+										Type:          "plaintext",
+										Name:          "internal",
+										ContainerPort: 9092,
+									},
 										UsedForInnerBrokerCommunication: true,
-										ContainerPort:                   9092,
 									},
 								},
 							},
