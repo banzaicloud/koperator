@@ -58,11 +58,12 @@ func (r *Reconciler) service(id int32, log logr.Logger) runtime.Object {
 	})
 
 	return &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id),
+		ObjectMeta: templates.ObjectMetaWithAnnotations(fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id),
 			util.MergeLabels(
 				LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
+			r.KafkaCluster.Spec.ListenersConfig.ServiceAnnotations,
 			r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,

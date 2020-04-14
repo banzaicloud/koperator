@@ -47,7 +47,11 @@ func (r *Reconciler) allBrokerService() runtime.Object {
 	}
 
 	return &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, r.KafkaCluster.Name), LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMetaWithAnnotations(
+			fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, r.KafkaCluster.Name),
+			LabelsForKafka(r.KafkaCluster.Name),
+			r.KafkaCluster.Spec.ListenersConfig.ServiceAnnotations,
+			r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
 			SessionAffinity: corev1.ServiceAffinityNone,
