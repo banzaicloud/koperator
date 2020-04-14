@@ -35,7 +35,7 @@ func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1be
 
 	if r.KafkaCluster.Spec.IstioIngressConfig.TLSOptions != nil &&
 		r.KafkaCluster.Spec.IstioIngressConfig.TLSOptions.Mode == v1alpha3.TLSModePassThrough {
-		vServiceSpec.TLS = generateTLSRoutes(r.KafkaCluster, externalListenerConfig, log)
+		vServiceSpec.TLS = generateTlsRoutes(r.KafkaCluster, externalListenerConfig, log)
 
 	} else {
 		vServiceSpec.TCP = generateTcpRoutes(r.KafkaCluster, externalListenerConfig, log)
@@ -51,7 +51,7 @@ func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1be
 	}
 }
 
-func generateTLSRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger) []v1alpha3.TLSRoute {
+func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger) []v1alpha3.TLSRoute {
 	tlsRoutes := make([]v1alpha3.TLSRoute, 0)
 
 	for _, broker := range kc.Spec.Brokers {
