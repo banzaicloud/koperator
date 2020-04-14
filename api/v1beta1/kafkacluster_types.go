@@ -159,12 +159,13 @@ type EnvoyConfig struct {
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller
 type IstioIngressConfig struct {
-	Resources    *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
-	Replicas     int32                        `json:"replicas,omitempty"`
-	NodeSelector map[string]string            `json:"nodeSelector,omitempty"`
-	Tolerations  []corev1.Toleration          `json:"tolerations,omitempty"`
-	Annotations  map[string]string            `json:"annotations,omitempty"`
-	TLSOptions   *v1alpha3.TLSOptions         `json:"gatewayConfig,omitempty"`
+	Resources                 *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
+	Replicas                  int32                        `json:"replicas,omitempty"`
+	NodeSelector              map[string]string            `json:"nodeSelector,omitempty"`
+	Tolerations               []corev1.Toleration          `json:"tolerations,omitempty"`
+	Annotations               map[string]string            `json:"annotations,omitempty"`
+	TLSOptions                *v1alpha3.TLSOptions         `json:"gatewayConfig,omitempty"`
+	VirtualServiceAnnotations map[string]string            `json:"virtualServiceAnnotations,omitempty"`
 }
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
@@ -183,9 +184,10 @@ type StorageConfig struct {
 
 //ListenersConfig defines the Kafka listener types
 type ListenersConfig struct {
-	ExternalListeners []ExternalListenerConfig `json:"externalListeners,omitempty"`
-	InternalListeners []InternalListenerConfig `json:"internalListeners"`
-	SSLSecrets        *SSLSecrets              `json:"sslSecrets,omitempty"`
+	ExternalListeners  []ExternalListenerConfig `json:"externalListeners,omitempty"`
+	InternalListeners  []InternalListenerConfig `json:"internalListeners"`
+	SSLSecrets         *SSLSecrets              `json:"sslSecrets,omitempty"`
+	ServiceAnnotations map[string]string        `json:"serviceAnnotations,omitempty"`
 }
 
 // SSLSecrets defines the Kafka SSL secrets
@@ -414,6 +416,7 @@ func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference
 	return bConfig.ImagePullSecrets
 }
 
+// GetBrokerAnnotations return the annotations which applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerAnnotations() map[string]string {
 	return bConfig.BrokerAnnotations
 }

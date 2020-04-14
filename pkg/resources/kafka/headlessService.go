@@ -48,9 +48,10 @@ func (r *Reconciler) headlessService() runtime.Object {
 	})
 
 	return &corev1.Service{
-		ObjectMeta: templates.ObjectMeta(
+		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.Name),
 			util.MergeLabels(LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster.Labels),
+			r.KafkaCluster.Spec.ListenersConfig.ServiceAnnotations,
 			r.KafkaCluster,
 		),
 		Spec: corev1.ServiceSpec{

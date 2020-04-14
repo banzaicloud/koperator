@@ -1382,6 +1382,10 @@ spec:
                         type: string
                     type: object
                   type: array
+                virtualServiceAnnotations:
+                  additionalProperties:
+                    type: string
+                  type: object
               type: object
             listenersConfig:
               description: ListenersConfig defines the Kafka listener types
@@ -1433,6 +1437,10 @@ spec:
                     - usedForInnerBrokerCommunication
                     type: object
                   type: array
+                serviceAnnotations:
+                  additionalProperties:
+                    type: string
+                  type: object
                 sslSecrets:
                   description: SSLSecrets defines the Kafka SSL secrets
                   properties:
