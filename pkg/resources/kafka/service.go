@@ -33,7 +33,7 @@ func (r *Reconciler) service(id int32, log logr.Logger) runtime.Object {
 
 	for _, iListeners := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
 		usedPorts = append(usedPorts, corev1.ServicePort{
-			Name:       strings.ReplaceAll(iListeners.Name, "_", ""),
+			Name:       strings.ReplaceAll(iListeners.GetListenerServiceName(), "_", ""),
 			Port:       iListeners.ContainerPort,
 			TargetPort: intstr.FromInt(int(iListeners.ContainerPort)),
 			Protocol:   corev1.ProtocolTCP,
@@ -42,7 +42,7 @@ func (r *Reconciler) service(id int32, log logr.Logger) runtime.Object {
 	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
 		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 			usedPorts = append(usedPorts, corev1.ServicePort{
-				Name:       eListener.Name,
+				Name:       eListener.GetListenerServiceName(),
 				Protocol:   corev1.ProtocolTCP,
 				Port:       eListener.ContainerPort,
 				TargetPort: intstr.FromInt(int(eListener.ContainerPort)),

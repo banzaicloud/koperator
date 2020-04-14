@@ -37,7 +37,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
-			Name:          strings.ReplaceAll(eListener.Name, "_", "-"),
+			Name:          strings.ReplaceAll(eListener.GetListenerServiceName(), "_", "-"),
 			ContainerPort: eListener.ContainerPort,
 			Protocol:      corev1.ProtocolTCP,
 		})
@@ -45,7 +45,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 
 	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
-			Name:          strings.ReplaceAll(iListener.Name, "_", "-"),
+			Name:          strings.ReplaceAll(iListener.GetListenerServiceName(), "_", "-"),
 			ContainerPort: iListener.ContainerPort,
 			Protocol:      corev1.ProtocolTCP,
 		})

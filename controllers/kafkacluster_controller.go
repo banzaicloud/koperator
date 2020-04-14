@@ -276,7 +276,7 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 		// Do any necessary PKI cleanup - a PKI backend should make sure any
 		// user finalizations are done before it does its final cleanup
 		log.Info("Tearing down any PKI resources for the kafkacluster")
-		if err = pki.GetPKIManager(r.Client, cluster, v1beta1.PKIBackendSetInClusterCR).FinalizePKI(ctx, log); err != nil {
+		if err = pki.GetPKIManager(r.Client, cluster, v1beta1.PKIBackendProvided).FinalizePKI(ctx, log); err != nil {
 			switch err.(type) {
 			case errorfactory.ResourceNotReady:
 				log.Info("The PKI is not ready to be torn down")

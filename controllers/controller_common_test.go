@@ -78,7 +78,10 @@ func TestNewBrokerConnection(t *testing.T) {
 	cluster.Spec = v1beta1.KafkaClusterSpec{
 		ListenersConfig: v1beta1.ListenersConfig{
 			InternalListeners: []v1beta1.InternalListenerConfig{
-				{ContainerPort: 9092},
+				{CommonListenerSpec: v1beta1.CommonListenerSpec{
+					ContainerPort: 9092,
+				},
+				},
 			},
 		},
 	}
