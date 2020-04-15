@@ -132,7 +132,7 @@ func fullPKI(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, externalHost
 		// A self-signer for the CA Certificate
 		selfSignerForCluster(cluster, scheme),
 		// The CA Certificate
-		caCertForCluster(cluster, scheme),
+		caCertForCluster(cluster),
 		// A cluster issuer backed by the CA certificate - so it can provision secrets
 		// for producers/consumers in other namespaces
 		mainIssuerForCluster(cluster, scheme),
@@ -208,7 +208,7 @@ func selfSignerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme)
 	return selfsigner
 }
 
-func caCertForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *certv1.Certificate {
+func caCertForCluster(cluster *v1beta1.KafkaCluster) *certv1.Certificate {
 	return &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),

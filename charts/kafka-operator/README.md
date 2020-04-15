@@ -56,6 +56,7 @@ Parameter | Description | Default
 `nameOverride` | Release name can be overwritten | `""`
 `fullnameOverride` | Release full name can be overwritten | `""`
 `certManager.namespace` | Operator will look for the cert manager in this namespace | `cert-manager`
+`certManager.enabled` | Operator will integrate with the cert manager | `false`
 `webhook.enabled` | Operator will activate the admission webhooks for custom resources | `true`
 `webhook.certs.generate` | Helm chart will generate cert for the webhook | `true`
 `webhook.certs.secret` | Helm chart will use the secret name applied here for the cert | `kafka-operator-serving-cert`

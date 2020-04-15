@@ -35,6 +35,7 @@ webhook:
 
 certManager:
   namespace: "cert-manager"
+  enabled: false
 
 alertManager:
   enable: true
