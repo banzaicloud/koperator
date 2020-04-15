@@ -3,17 +3,19 @@ TAG ?= $(shell git describe --tags --abbrev=0 --match '[0-9].*[0-9].*[0-9]' 2>/d
 IMG ?= banzaicloud/kafka-operator:$(TAG)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
+CRD_OPTIONS ?= "crd:trivialVersions=true,maxDescLen=0,preserveUnknownFields=false"
 
 RELEASE_TYPE ?= p
 RELEASE_MSG ?= "operator release"
 
 REL_TAG = $(shell ./scripts/increment_version.sh -${RELEASE_TYPE} ${TAG})
 
-GO111MODULE=on
-GOLANGCI_VERSION = 1.18.0
+GOLANGCI_VERSION = 1.21.0
 LICENSEI_VERSION = 0.1.0
 GOPROXY=https://proxy.golang.org
+
+CONTROLLER_GEN_VERSION = v0.2.5
+CONTROLLER_GEN = $(PWD)/bin/controller-gen
 
 KUSTOMIZE_BASE = config/overlays/specific-manager-version
 
@@ -93,8 +95,8 @@ deploy: install-kustomize manifests
 	bin/kustomize build $(KUSTOMIZE_BASE) | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/base/crds output:rbac:artifacts:config=config/base/rbac output:webhook:artifacts:config=config/base/webhook
+manifests: bin/controller-gen
+	cd pkg/sdk && $(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=../../config/base/crds output:rbac:artifacts:config=../../config/base/rbac output:webhook:artifacts:config=../../config/base/webhook
 
 # Run go fmt against code
 fmt:
@@ -105,8 +107,8 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen
-	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths="./..."
+generate: bin/controller-gen
+	cd pkg/sdk && $(CONTROLLER_GEN) object:headerFile=./../../hack/boilerplate.go.txt paths="./..."
 
 # Build the docker image
 docker-build:
@@ -118,13 +120,15 @@ docker-push:
 
 # find or download controller-gen
 # download controller-gen if necessary
-controller-gen:
-ifeq (, $(shell which controller-gen))
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.0
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
-endif
+bin/controller-gen:
+	@ if ! test -x bin/controller-gen; then \
+		set -ex ;\
+		CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
+		cd $$CONTROLLER_GEN_TMP_DIR ;\
+		go mod init tmp ;\
+		GOBIN=$(PWD)/bin go get sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION} ;\
+		rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	fi
 
 check_release:
 	@echo "A new tag (${REL_TAG}) will be pushed to Github, and a new Docker image will be released. Are you sure? [y/N] " && read ans && [ $${ans:-N} == y ]
