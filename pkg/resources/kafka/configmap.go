@@ -69,7 +69,9 @@ log.dirs={{ .StorageConfig }}
 
 {{ .AdvertisedListenersConfig }}
 
+{{ if .SuperUsers }}
 super.users={{ .SuperUsers }}
+{{ end }}
 `
 
 func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, loadBalancerIPs []string, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
