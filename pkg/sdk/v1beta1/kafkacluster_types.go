@@ -23,8 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -51,7 +49,6 @@ type KafkaClusterSpec struct {
 	BrokerConfigGroups   map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
 	Brokers              []Broker                `json:"brokers"`
 	RollingUpgradeConfig RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
-	// +kubebuilder:default=envoy
 	// +kubebuilder:validation:Enum=envoy;istioingress
 	IngressController   string              `json:"ingressController,omitempty"`
 	OneBrokerPerNode    bool                `json:"oneBrokerPerNode"`
@@ -307,7 +304,7 @@ func (iIConfig *IstioIngressConfig) GetReplicas() int32 {
 // GetIngressController returns the default Envoy ingress controller if not specified otherwise
 func (kSpec *KafkaClusterSpec) GetIngressController() string {
 	if kSpec.IngressController == "" {
-		return envoyutils.IngressControllerName
+		return "envoy"
 	}
 	return kSpec.IngressController
 }
