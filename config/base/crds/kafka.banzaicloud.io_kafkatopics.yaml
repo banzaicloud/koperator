@@ -14,31 +14,22 @@ spec:
     listKind: KafkaTopicList
     plural: kafkatopics
     singular: kafkatopic
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: KafkaTopic is the Schema for the kafkatopics API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
-          description: KafkaTopicSpec defines the desired state of KafkaTopic
           properties:
             clusterRef:
-              description: ClusterReference states a reference to a cluster for topic/user
-                provisioning
               properties:
                 name:
                   type: string
@@ -66,10 +57,8 @@ spec:
           - replicationFactor
           type: object
         status:
-          description: KafkaTopicStatus defines the observed state of KafkaTopic
           properties:
             state:
-              description: TopicState defines the state of a KafkaTopic
               type: string
           required:
           - state

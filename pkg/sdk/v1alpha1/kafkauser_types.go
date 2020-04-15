@@ -17,8 +17,6 @@ package v1alpha1
 import (
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/banzaicloud/kafka-operator/pkg/sdk/v1beta1"
 )
 
 // KafkaUserSpec defines the desired state of KafkaUser
@@ -36,7 +34,7 @@ type KafkaUserSpec struct {
 type PKIBackendSpec struct {
 	IssuerRef *cmmeta.ObjectReference `json:"issuerRef"`
 	// +kubebuilder:validation:Enum={"cert-manager","vault"}
-	PKIBackend v1beta1.PKIBackend `json:"pkiBackend"`
+	PKIBackend string `json:"pkiBackend"`
 }
 
 // UserTopicGrant is the desired permissions for the KafkaUser

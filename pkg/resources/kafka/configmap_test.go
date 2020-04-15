@@ -51,7 +51,6 @@ inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
 listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-super.users=
 zookeeper.connect=example.zk:2181/`,
 		},
 		{
@@ -69,7 +68,6 @@ inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
 listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-super.users=
 zookeeper.connect=example.zk:2181/kafka`,
 		},
 		{
@@ -87,7 +85,6 @@ inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
 listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-super.users=
 zookeeper.connect=example.zk:2181/`,
 		},
 		{
@@ -105,7 +102,6 @@ inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
 listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-super.users=
 zookeeper.connect=example.zk:2181,example.zk-1:2181/kafka`,
 		},
 		{
@@ -129,7 +125,6 @@ listener.security.protocol.map=INTERNAL:PLAINTEXT
 listeners=INTERNAL://:9092
 log.dirs=/kafka-logs/kafka
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-super.users=
 zookeeper.connect=example.zk:2181/`,
 		},
 		{
@@ -157,7 +152,6 @@ inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
 listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-super.users=
 zookeeper.connect=example.zk:2181/`,
 		},
 	}

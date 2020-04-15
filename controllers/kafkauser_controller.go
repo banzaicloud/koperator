@@ -144,7 +144,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 
 		var backend v1beta1.PKIBackend
 		if instance.Spec.PKIBackendSpec.PKIBackend != "" {
-			backend = instance.Spec.PKIBackendSpec.PKIBackend
+			backend = v1beta1.PKIBackend(instance.Spec.PKIBackendSpec.PKIBackend)
 		} else {
 			backend = v1beta1.PKIBackendProvided
 		}
