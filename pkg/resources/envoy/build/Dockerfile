@@ -1,4 +1,4 @@
-FROM envoyproxy/envoy:latest
+FROM envoyproxy/envoy:v1.14.1
 
 COPY docker-entrypoint.sh /
 

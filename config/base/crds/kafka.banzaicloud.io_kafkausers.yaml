@@ -20,16 +20,26 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      description: KafkaUser is the Schema for the kafka users API
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
+          description: KafkaUserSpec defines the desired state of KafkaUser
           properties:
             clusterRef:
+              description: ClusterReference states a reference to a cluster for topic/user
+                provisioning
               properties:
                 name:
                   type: string
@@ -49,6 +59,8 @@ spec:
             pkiBackendSpec:
               properties:
                 issuerRef:
+                  description: ObjectReference is a reference to an object with a
+                    given name, kind and group.
                   properties:
                     group:
                       type: string
@@ -72,13 +84,17 @@ spec:
               type: string
             topicGrants:
               items:
+                description: UserTopicGrant is the desired permissions for the KafkaUser
                 properties:
                   accessType:
+                    description: KafkaAccessType hold info about Kafka ACL
                     enum:
                     - read
                     - write
                     type: string
                   patternType:
+                    description: KafkaPatternType hold the Resource Pattern Type of
+                      kafka ACL
                     enum:
                     - literal
                     - match
@@ -97,12 +113,14 @@ spec:
           - secretName
           type: object
         status:
+          description: KafkaUserStatus defines the observed state of KafkaUser
           properties:
             acls:
               items:
                 type: string
               type: array
             state:
+              description: UserState defines the state of a KafkaUser
               type: string
           required:
           - state

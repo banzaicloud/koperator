@@ -96,6 +96,7 @@ func generateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 		clusters = append(clusters, &envoyapi.Cluster{
 			Name:                 fmt.Sprintf("broker-%d", broker.Id),
 			ConnectTimeout:       &duration.Duration{Seconds: 1},
+			ClusterDiscoveryType: &envoyapi.Cluster_Type{Type: envoyapi.Cluster_STRICT_DNS},
 			LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
 			Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
 			Hosts: []*envoycore.Address{

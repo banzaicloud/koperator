@@ -3,7 +3,7 @@ TAG ?= $(shell git describe --tags --abbrev=0 --match '[0-9].*[0-9].*[0-9]' 2>/d
 IMG ?= banzaicloud/kafka-operator:$(TAG)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true,maxDescLen=0,preserveUnknownFields=false"
+CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
 RELEASE_TYPE ?= p
 RELEASE_MSG ?= "operator release"
@@ -43,6 +43,7 @@ bin/golangci-lint-${GOLANGCI_VERSION}:
 .PHONY: lint
 lint: bin/golangci-lint ## Run linter
 	@bin/golangci-lint run -v
+	cd pkg/sdk && golangci-lint run -c ../../.golangci.yml
 
 bin/licensei: bin/licensei-${LICENSEI_VERSION}
 	@ln -sf licensei-${LICENSEI_VERSION} bin/licensei
@@ -74,6 +75,7 @@ install-kubebuilder:
 
 # Run tests
 test: install-kubebuilder generate fmt vet manifests
+	cd pkg/sdk && go test ./...
 	KUBEBUILDER_ASSETS="$${PWD}/bin/kubebuilder/bin" go test ./... -coverprofile cover.out
 
 # Build manager binary
@@ -101,10 +103,12 @@ manifests: bin/controller-gen
 # Run go fmt against code
 fmt:
 	go fmt ./...
+	cd pkg/sdk && go fmt ./...
 
 # Run go vet against code
 vet:
 	go vet ./...
+	cd pkg/sdk && go fmt ./...
 
 # Generate code
 generate: bin/controller-gen
