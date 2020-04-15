@@ -16,21 +16,22 @@ package envoy
 
 import (
 	"fmt"
-	"time"
+
+	"github.com/ghodss/yaml"
+	"github.com/go-logr/logr"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/ptypes/duration"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	"github.com/envoyproxy/go-control-plane/pkg/util"
-	"github.com/ghodss/yaml"
-	"github.com/go-logr/logr"
-	"github.com/gogo/protobuf/jsonpb"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	envoyapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoylistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	ptypes "github.com/gogo/protobuf/types"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	ptypesstruct "github.com/golang/protobuf/ptypes/struct"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -46,11 +47,11 @@ func generateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 	//TODO support multiple external listener by removing [0] (baluchicken)
 	adminConfig := envoybootstrap.Admin{
 		AccessLogPath: "/tmp/admin_access.log",
-		Address: &core.Address{
-			Address: &core.Address_SocketAddress{
-				SocketAddress: &core.SocketAddress{
+		Address: &envoycore.Address{
+			Address: &envoycore.Address_SocketAddress{
+				SocketAddress: &envoycore.SocketAddress{
 					Address: "0.0.0.0",
-					PortSpecifier: &core.SocketAddress_PortValue{
+					PortSpecifier: &envoycore.SocketAddress_PortValue{
 						PortValue: 9901,
 					},
 				},
@@ -58,31 +59,31 @@ func generateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 		},
 	}
 
-	var listeners []envoyapi.Listener
-	var clusters []envoyapi.Cluster
+	var listeners []*envoyapi.Listener
+	var clusters []*envoyapi.Cluster
 
 	for _, broker := range kc.Spec.Brokers {
-		listeners = append(listeners, envoyapi.Listener{
-			Address: core.Address{
-				Address: &core.Address_SocketAddress{
-					SocketAddress: &core.SocketAddress{
+		listeners = append(listeners, &envoyapi.Listener{
+			Address: &envoycore.Address{
+				Address: &envoycore.Address_SocketAddress{
+					SocketAddress: &envoycore.SocketAddress{
 						Address: "0.0.0.0",
-						PortSpecifier: &core.SocketAddress_PortValue{
+						PortSpecifier: &envoycore.SocketAddress_PortValue{
 							PortValue: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ExternalStartingPort + broker.Id),
 						},
 					},
 				},
 			},
-			FilterChains: []listener.FilterChain{
+			FilterChains: []*envoylistener.FilterChain{
 				{
-					Filters: []listener.Filter{
+					Filters: []*envoylistener.Filter{
 						{
-							Name: util.TCPProxy,
-							ConfigType: &listener.Filter_Config{
-								Config: &ptypes.Struct{
-									Fields: map[string]*ptypes.Value{
-										"stat_prefix": {Kind: &ptypes.Value_StringValue{StringValue: fmt.Sprintf("broker_tcp-%d", broker.Id)}},
-										"cluster":     {Kind: &ptypes.Value_StringValue{StringValue: fmt.Sprintf("broker-%d", broker.Id)}},
+							Name: wellknown.TCPProxy,
+							ConfigType: &envoylistener.Filter_Config{
+								Config: &ptypesstruct.Struct{
+									Fields: map[string]*ptypesstruct.Value{
+										"stat_prefix": {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker_tcp-%d", broker.Id)}},
+										"cluster":     {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker-%d", broker.Id)}},
 									},
 								},
 							},
@@ -92,18 +93,17 @@ func generateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 			},
 		})
 
-		clusters = append(clusters, envoyapi.Cluster{
+		clusters = append(clusters, &envoyapi.Cluster{
 			Name:                 fmt.Sprintf("broker-%d", broker.Id),
-			ConnectTimeout:       250 * time.Millisecond,
-			Type:                 envoyapi.Cluster_STRICT_DNS,
+			ConnectTimeout:       &duration.Duration{Seconds: 1},
 			LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
-			Http2ProtocolOptions: &core.Http2ProtocolOptions{},
-			Hosts: []*core.Address{
+			Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
+			Hosts: []*envoycore.Address{
 				{
-					Address: &core.Address_SocketAddress{
-						SocketAddress: &core.SocketAddress{
+					Address: &envoycore.Address_SocketAddress{
+						SocketAddress: &envoycore.SocketAddress{
 							Address: fmt.Sprintf("%s-%d.%s-headless.%s.svc.cluster.local", kc.Name, broker.Id, kc.Name, kc.Namespace),
-							PortSpecifier: &core.SocketAddress_PortValue{
+							PortSpecifier: &envoycore.SocketAddress_PortValue{
 								PortValue: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ContainerPort),
 							},
 						},
