@@ -69,7 +69,7 @@ func (in *KafkaTopic) DeepCopyObject() runtime.Object {
 func (in *KafkaTopicList) DeepCopyInto(out *KafkaTopicList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]KafkaTopic, len(*in))
@@ -166,7 +166,7 @@ func (in *KafkaUser) DeepCopyObject() runtime.Object {
 func (in *KafkaUserList) DeepCopyInto(out *KafkaUserList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]KafkaUser, len(*in))
