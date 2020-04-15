@@ -71,12 +71,15 @@ func init() {
 }
 
 func main() {
-	var namespaces string
-	var metricsAddr string
-	var enableLeaderElection bool
-	var webhookCertDir string
-	var webhookDisabled bool
-	var verboseLogging bool
+	var (
+		namespaces           string
+		metricsAddr          string
+		enableLeaderElection bool
+		webhookCertDir       string
+		webhookDisabled      bool
+		verboseLogging       bool
+		certManagerEnabled   bool
+	)
 
 	flag.StringVar(&namespaces, "namespaces", "", "Comma separated list of namespaces where operator listens for resources")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -85,6 +88,7 @@ func main() {
 	flag.BoolVar(&webhookDisabled, "disable-webhooks", false, "Disable webhooks used to validate custom resources")
 	flag.StringVar(&webhookCertDir, "tls-cert-dir", "/etc/webhook/certs", "The directory with a tls.key and tls.crt for serving HTTPS requests")
 	flag.BoolVar(&verboseLogging, "verbose", false, "Enable verbose logging")
+	flag.BoolVar(&certManagerEnabled, "cert-manager-enabled", false, "Enable cert-manager integration")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.Logger(verboseLogging))
@@ -145,7 +149,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = controllers.SetupKafkaUserWithManager(mgr); err != nil {
+	if err = controllers.SetupKafkaUserWithManager(mgr, certManagerEnabled); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KafkaUser")
 		os.Exit(1)
 	}

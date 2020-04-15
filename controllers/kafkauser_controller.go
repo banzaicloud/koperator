@@ -47,7 +47,7 @@ import (
 var userFinalizer = "finalizer.kafkausers.kafka.banzaicloud.io"
 
 // SetupKafkaUserWithManager registers KafkaUser controller to the manager
-func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
+func SetupKafkaUserWithManager(mgr ctrl.Manager, certManagerNamespace bool) error {
 	// Create a new reconciler
 	r := &KafkaUserReconciler{
 		Client: mgr.GetClient(),
@@ -67,13 +67,15 @@ func SetupKafkaUserWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &certv1.Certificate{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.KafkaUser{},
-	})
-	if err != nil {
-		if _, ok := err.(*meta.NoKindMatchError); !ok {
-			return err
+	if certManagerNamespace {
+		err = c.Watch(&source.Kind{Type: &certv1.Certificate{}}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &v1alpha1.KafkaUser{},
+		})
+		if err != nil {
+			if _, ok := err.(*meta.NoKindMatchError); !ok {
+				return err
+			}
 		}
 	}
 	return nil
