@@ -1,4 +1,4 @@
-{{- if .Values.rbac.enabled }}
+{{- if .Values.operator.serviceAccount.create }}
 apiVersion: v1
 kind: ServiceAccount
 {{- if .Values.imagePullSecrets }}
@@ -8,7 +8,7 @@ imagePullSecrets:
 {{- end }}
 {{- end }}
 metadata:
-  name: {{ include "kafka-operator.fullname" . }}-operator
+  name: {{ include "operator.serviceAccountName" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
@@ -17,6 +17,8 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     app.kubernetes.io/component: operator
+{{- end }}
+{{- if .Values.rbac.enabled }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -248,6 +250,6 @@ roleRef:
   name: {{ include "kafka-operator.fullname" . }}-operator
 subjects:
 - kind: ServiceAccount
-  name: {{ include "kafka-operator.fullname" . }}-operator
+  name: {{ include "operator.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
 {{- end }}

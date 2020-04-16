@@ -34,9 +34,7 @@ spec:
         app: prometheus
         component: alertmanager
     spec:
-      {{- if .Values.rbac.enabled }}
-      serviceAccountName: {{ include "kafka-operator.fullname" . }}-operator
-      {{- end }}
+      serviceAccountName: {{ include "operator.serviceAccountName" .}}
       volumes:
       {{- if .Values.webhook.enabled }}
         - name: serving-cert

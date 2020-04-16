@@ -1,4 +1,4 @@
-{{- if and .Values.rbac.enabled .Values.prometheusMetrics.enabled .Values.prometheusMetrics.authProxy.enabled }}
+{{- if and .Values.prometheusMetrics.authProxy.serviceAccount.create .Values.prometheusMetrics.enabled .Values.prometheusMetrics.authProxy.enabled }}
 apiVersion: v1
 kind: ServiceAccount
 {{- if .Values.imagePullSecrets }}
@@ -8,7 +8,7 @@ imagePullSecrets:
 {{- end }}
 {{- end }}
 metadata:
-  name: {{ include "kafka-operator.fullname" . }}-authproxy
+  name: {{ .Values.prometheusMetrics.authProxy.serviceAccount.name }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
@@ -17,6 +17,8 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     app.kubernetes.io/component: authproxy
+{{- end }}
+{{- if and .Values.rbac.enabled .Values.prometheusMetrics.enabled .Values.prometheusMetrics.authProxy.enabled }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -56,6 +58,6 @@ roleRef:
   name: "{{ include "kafka-operator.fullname" . }}-authproxy"
 subjects:
 - kind: ServiceAccount
-  name: {{ include "kafka-operator.fullname" . }}-authproxy
+  name: {{ .Values.prometheusMetrics.authProxy.serviceAccount.name }}
   namespace: {{ .Release.Namespace }}
 {{- end }}

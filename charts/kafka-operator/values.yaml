@@ -26,6 +26,9 @@ operator:
     requests:
       cpu: 100m
       memory: 128Mi
+  serviceAccount:
+    create: true
+    name: kafka-operator
 
 webhook:
   enabled: true
@@ -48,12 +51,19 @@ prometheusMetrics:
       repository: gcr.io/kubebuilder/kube-rbac-proxy
       tag: v0.4.0
       pullPolicy: IfNotPresent
+    serviceAccount:
+      create: true
+      name: kafka-operator-authproxy
+
 
 nameOverride: ""
 fullnameOverride: ""
 
 rbac:
   enabled: true
+
+crd:
+  enabled: false
 
 nodeSelector: {}
 
