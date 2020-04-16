@@ -1,20 +1,21 @@
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  labels:
-    app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
-    helm.sh/chart: {{ include "kafka-operator.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/version: {{ .Chart.AppVersion }}
-    app.kubernetes.io/component: operator
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
   name: kafkaclusters.kafka.banzaicloud.io
 spec:
   group: kafka.banzaicloud.io
   names:
     kind: KafkaCluster
+    listKind: KafkaClusterList
     plural: kafkaclusters
-  scope: ""
+    singular: kafkacluster
+  preserveUnknownFields: false
+  scope: Namespaced
   subresources:
     status: {}
   validation:
@@ -24,12 +25,12 @@ spec:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -139,8 +140,8 @@ spec:
                                           type: string
                                         type: array
                                     required:
-                                      - key
-                                      - operator
+                                    - key
+                                    - operator
                                     type: object
                                   type: array
                                 matchFields:
@@ -175,8 +176,8 @@ spec:
                                           type: string
                                         type: array
                                     required:
-                                      - key
-                                      - operator
+                                    - key
+                                    - operator
                                     type: object
                                   type: array
                               type: object
@@ -186,8 +187,8 @@ spec:
                               format: int32
                               type: integer
                           required:
-                            - preference
-                            - weight
+                          - preference
+                          - weight
                           type: object
                         type: array
                       requiredDuringSchedulingIgnoredDuringExecution:
@@ -239,8 +240,8 @@ spec:
                                           type: string
                                         type: array
                                     required:
-                                      - key
-                                      - operator
+                                    - key
+                                    - operator
                                     type: object
                                   type: array
                                 matchFields:
@@ -275,14 +276,14 @@ spec:
                                           type: string
                                         type: array
                                     required:
-                                      - key
-                                      - operator
+                                    - key
+                                    - operator
                                     type: object
                                   type: array
                               type: object
                             type: array
                         required:
-                          - nodeSelectorTerms
+                        - nodeSelectorTerms
                         type: object
                     type: object
                   nodeSelector:
@@ -295,13 +296,21 @@ spec:
                     properties:
                       limits:
                         additionalProperties:
-                          type: string
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
                         description: 'Limits describes the maximum amount of compute
                           resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                         type: object
                       requests:
                         additionalProperties:
-                          type: string
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
                         description: 'Requests describes the minimum amount of compute
                           resources required. If Requests is omitted for a container,
                           it defaults to Limits if that is explicitly specified, otherwise
@@ -354,8 +363,8 @@ spec:
                                     referenced
                                   type: string
                               required:
-                                - kind
-                                - name
+                              - kind
+                              - name
                               type: object
                             resources:
                               description: 'Resources represents the minimum resources
@@ -363,13 +372,21 @@ spec:
                               properties:
                                 limits:
                                   additionalProperties:
-                                    type: string
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
                                   description: 'Limits describes the maximum amount
                                     of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                                   type: object
                                 requests:
                                   additionalProperties:
-                                    type: string
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
                                   description: 'Requests describes the minimum amount
                                     of compute resources required. If Requests is
                                     omitted for a container, it defaults to Limits
@@ -409,8 +426,8 @@ spec:
                                           type: string
                                         type: array
                                     required:
-                                      - key
-                                      - operator
+                                    - key
+                                    - operator
                                     type: object
                                   type: array
                                 matchLabels:
@@ -439,8 +456,8 @@ spec:
                               type: string
                           type: object
                       required:
-                        - mountPath
-                        - pvcSpec
+                      - mountPath
+                      - pvcSpec
                       type: object
                     type: array
                   tolerations:
@@ -576,8 +593,8 @@ spec:
                                               type: string
                                             type: array
                                         required:
-                                          - key
-                                          - operator
+                                        - key
+                                        - operator
                                         type: object
                                       type: array
                                     matchFields:
@@ -614,8 +631,8 @@ spec:
                                               type: string
                                             type: array
                                         required:
-                                          - key
-                                          - operator
+                                        - key
+                                        - operator
                                         type: object
                                       type: array
                                   type: object
@@ -625,8 +642,8 @@ spec:
                                   format: int32
                                   type: integer
                               required:
-                                - preference
-                                - weight
+                              - preference
+                              - weight
                               type: object
                             type: array
                           requiredDuringSchedulingIgnoredDuringExecution:
@@ -681,8 +698,8 @@ spec:
                                               type: string
                                             type: array
                                         required:
-                                          - key
-                                          - operator
+                                        - key
+                                        - operator
                                         type: object
                                       type: array
                                     matchFields:
@@ -719,14 +736,14 @@ spec:
                                               type: string
                                             type: array
                                         required:
-                                          - key
-                                          - operator
+                                        - key
+                                        - operator
                                         type: object
                                       type: array
                                   type: object
                                 type: array
                             required:
-                              - nodeSelectorTerms
+                            - nodeSelectorTerms
                             type: object
                         type: object
                       nodeSelector:
@@ -739,13 +756,21 @@ spec:
                         properties:
                           limits:
                             additionalProperties:
-                              type: string
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
                             description: 'Limits describes the maximum amount of compute
                               resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                             type: object
                           requests:
                             additionalProperties:
-                              type: string
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
                             description: 'Requests describes the minimum amount of
                               compute resources required. If Requests is omitted for
                               a container, it defaults to Limits if that is explicitly
@@ -801,8 +826,8 @@ spec:
                                         referenced
                                       type: string
                                   required:
-                                    - kind
-                                    - name
+                                  - kind
+                                  - name
                                   type: object
                                 resources:
                                   description: 'Resources represents the minimum resources
@@ -810,13 +835,21 @@ spec:
                                   properties:
                                     limits:
                                       additionalProperties:
-                                        type: string
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
                                       description: 'Limits describes the maximum amount
                                         of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                                       type: object
                                     requests:
                                       additionalProperties:
-                                        type: string
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
                                       description: 'Requests describes the minimum
                                         amount of compute resources required. If Requests
                                         is omitted for a container, it defaults to
@@ -861,8 +894,8 @@ spec:
                                               type: string
                                             type: array
                                         required:
-                                          - key
-                                          - operator
+                                        - key
+                                        - operator
                                         type: object
                                       type: array
                                     matchLabels:
@@ -892,8 +925,8 @@ spec:
                                   type: string
                               type: object
                           required:
-                            - mountPath
-                            - pvcSpec
+                          - mountPath
+                          - pvcSpec
                           type: object
                         type: array
                       tolerations:
@@ -946,7 +979,7 @@ spec:
                   readOnlyConfig:
                     type: string
                 required:
-                  - id
+                - id
                 type: object
               type: array
             clusterImage:
@@ -973,7 +1006,7 @@ spec:
                         the Operator waits for the task
                       type: integer
                   required:
-                    - RetryDurationMinutes
+                  - RetryDurationMinutes
                   type: object
                 image:
                   type: string
@@ -1000,13 +1033,21 @@ spec:
                   properties:
                     limits:
                       additionalProperties:
-                        type: string
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                       description: 'Limits describes the maximum amount of compute
                         resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                       type: object
                     requests:
                       additionalProperties:
-                        type: string
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                       description: 'Requests describes the minimum amount of compute
                         resources required. If Requests is omitted for a container,
                         it defaults to Limits if that is explicitly specified, otherwise
@@ -1066,8 +1107,8 @@ spec:
                       minimum: 2
                       type: integer
                   required:
-                    - partitions
-                    - replicationFactor
+                  - partitions
+                  - replicationFactor
                   type: object
               type: object
             envoyConfig:
@@ -1108,13 +1149,21 @@ spec:
                   properties:
                     limits:
                       additionalProperties:
-                        type: string
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                       description: 'Limits describes the maximum amount of compute
                         resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                       type: object
                     requests:
                       additionalProperties:
-                        type: string
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                       description: 'Requests describes the minimum amount of compute
                         resources required. If Requests is omitted for a container,
                         it defaults to Limits if that is explicitly specified, otherwise
@@ -1167,8 +1216,8 @@ spec:
               type: boolean
             ingressController:
               enum:
-                - envoy
-                - istioingress
+              - envoy
+              - istioingress
               type: string
             istioIngressConfig:
               description: IstioIngressConfig defines the config for the Istio Ingress
@@ -1273,13 +1322,21 @@ spec:
                   properties:
                     limits:
                       additionalProperties:
-                        type: string
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                       description: 'Limits describes the maximum amount of compute
                         resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                       type: object
                     requests:
                       additionalProperties:
-                        type: string
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                       description: 'Requests describes the minimum amount of compute
                         resources required. If Requests is omitted for a container,
                         it defaults to Limits if that is explicitly specified, otherwise
@@ -1325,6 +1382,10 @@ spec:
                         type: string
                     type: object
                   type: array
+                virtualServiceAnnotations:
+                  additionalProperties:
+                    type: string
+                  type: object
               type: object
             listenersConfig:
               description: ListenersConfig defines the Kafka listener types
@@ -1347,10 +1408,10 @@ spec:
                       type:
                         type: string
                     required:
-                      - containerPort
-                      - externalStartingPort
-                      - name
-                      - type
+                    - containerPort
+                    - externalStartingPort
+                    - name
+                    - type
                     type: object
                   type: array
                 internalListeners:
@@ -1370,12 +1431,16 @@ spec:
                       usedForInnerBrokerCommunication:
                         type: boolean
                     required:
-                      - containerPort
-                      - name
-                      - type
-                      - usedForInnerBrokerCommunication
+                    - containerPort
+                    - name
+                    - type
+                    - usedForInnerBrokerCommunication
                     type: object
                   type: array
+                serviceAnnotations:
+                  additionalProperties:
+                    type: string
+                  type: object
                 sslSecrets:
                   description: SSLSecrets defines the Kafka SSL secrets
                   properties:
@@ -1392,7 +1457,7 @@ spec:
                         name:
                           type: string
                       required:
-                        - name
+                      - name
                       type: object
                     jksPasswordName:
                       type: string
@@ -1400,17 +1465,17 @@ spec:
                       description: PKIBackend represents an interface implementing
                         the PKIManager
                       enum:
-                        - cert-manager
-                        - vault
+                      - cert-manager
+                      - vault
                       type: string
                     tlsSecretName:
                       type: string
                   required:
-                    - jksPasswordName
-                    - tlsSecretName
+                  - jksPasswordName
+                  - tlsSecretName
                   type: object
               required:
-                - internalListeners
+              - internalListeners
               type: object
             monitoringConfig:
               description: MonitoringConfig defines the config for monitoring Kafka
@@ -1425,8 +1490,8 @@ spec:
                 pathToJar:
                   type: string
               required:
-                - jmxImage
-                - pathToJar
+              - jmxImage
+              - pathToJar
               type: object
             oneBrokerPerNode:
               type: boolean
@@ -1441,7 +1506,7 @@ spec:
                     type: string
                   type: array
               required:
-                - labels
+              - labels
               type: object
             readOnlyConfig:
               type: string
@@ -1452,7 +1517,7 @@ spec:
                 failureThreshold:
                   type: integer
               required:
-                - failureThreshold
+              - failureThreshold
               type: object
             vaultConfig:
               description: VaultConfig defines the configuration for a vault PKI backend
@@ -1466,10 +1531,10 @@ spec:
                 userStore:
                   type: string
               required:
-                - authRole
-                - issuePath
-                - pkiPath
-                - userStore
+              - authRole
+              - issuePath
+              - pkiPath
+              - userStore
               type: object
             zkAddresses:
               description: ZKAddresses specifies the ZooKeeper connection string in
@@ -1484,13 +1549,13 @@ spec:
                 the global ZooKeeper namespace.
               type: string
           required:
-            - brokers
-            - cruiseControlConfig
-            - headlessServiceEnabled
-            - listenersConfig
-            - oneBrokerPerNode
-            - rollingUpgradeConfig
-            - zkAddresses
+          - brokers
+          - cruiseControlConfig
+          - headlessServiceEnabled
+          - listenersConfig
+          - oneBrokerPerNode
+          - rollingUpgradeConfig
+          - zkAddresses
           type: object
         status:
           description: KafkaClusterStatus defines the observed state of KafkaCluster
@@ -1543,24 +1608,24 @@ spec:
                                 happened with CC disk rebalance
                               type: string
                           required:
-                            - cruiseControlVolumeState
-                            - errorMessage
+                          - cruiseControlVolumeState
+                          - errorMessage
                           type: object
                         description: VolumeStates holds the information about the
                           CC disk rebalance states and tasks
                         type: object
                     required:
-                      - cruiseControlState
-                      - errorMessage
+                    - cruiseControlState
+                    - errorMessage
                     type: object
                   rackAwarenessState:
                     description: RackAwarenessState holds info about rack awareness
                       status
                     type: string
                 required:
-                  - configurationState
-                  - gracefulActionState
-                  - rackAwarenessState
+                - configurationState
+                - gracefulActionState
+                - rackAwarenessState
                 type: object
               type: object
             cruiseControlTopicStatus:
@@ -1575,22 +1640,22 @@ spec:
                 lastSuccess:
                   type: string
               required:
-                - errorCount
-                - lastSuccess
+              - errorCount
+              - lastSuccess
               type: object
             state:
               description: ClusterState holds info about the cluster state
               type: string
           required:
-            - alertCount
-            - state
+          - alertCount
+          - state
           type: object
       type: object
   version: v1beta1
   versions:
-    - name: v1beta1
-      served: true
-      storage: true
+  - name: v1beta1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
