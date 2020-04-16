@@ -13,7 +13,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
-	github.com/gogo/googleapis v1.3.2 // indirect
+	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/hashicorp/memberlist v0.2.0 // indirect
 	github.com/hashicorp/vault v1.4.0
@@ -24,7 +24,6 @@ require (
 	github.com/jetstack/cert-manager v0.14.2
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lestrrat-go/backoff v1.0.0
-	github.com/lyft/protoc-gen-validate v0.1.0 // indirect
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
@@ -37,4 +36,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.5.2
 )
 
-replace github.com/banzaicloud/kafka-operator/api => ./pkg/sdk
+replace (
+	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.4.0+incompatible
+	github.com/banzaicloud/kafka-operator/api => ./pkg/sdk
+)
