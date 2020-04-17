@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-- Kubernetes 1.13.0+
+- Kubernetes 1.15.0+
 
 ## Installing the chart
 
@@ -37,7 +37,7 @@ The following table lists the configurable parameters of the Banzaicloud Kafka O
 Parameter | Description | Default
 --------- | ----------- | -------
 `operator.image.repository` | Operator container image repository | `banzaicloud/kafka-operator`
-`operator.image.tag` | Operator container image tag | `0.6.0`
+`operator.image.tag` | Operator container image tag | `v0.11.0`
 `operator.image.pullPolicy` | Operator container image pull policy | `IfNotPresent`
 `operator.resources` | CPU/Memory resource requests/limits (YAML) | Memory: `128Mi/256Mi`, CPU: `100m/200m`
 `operator.namespaces` | List of namespaces where Operator watches for custom resources.<br><br>**Note** that the operator still requires to read the cluster-scoped `Node` labels to configure `rack awareness`. Make sure the operator ServiceAccount is granted `get` permissions on this `Node` resource when using limited RBACs.| `""` i.e. all namespaces
