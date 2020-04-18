@@ -167,10 +167,12 @@ type IstioIngressConfig struct {
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
 type MonitoringConfig struct {
-	JmxImage               string `json:"jmxImage"`
-	PathToJar              string `json:"pathToJar"`
+	JmxImage               string `json:"jmxImage,omitempty"`
+	PathToJar              string `json:"pathToJar,omitempty"`
 	KafkaJMXExporterConfig string `json:"kafkaJMXExporterConfig,omitempty"`
 	CCJMXExporterConfig    string `json:"cCJMXExporterConfig,omitempty"`
+	KafkaJMXPort           string `json:"kafkaJMXPort,omitempty"`
+	KafkaJMXOpts           string `json:"kafkaJMXOpts,omitempty"`
 }
 
 // StorageConfig defines the broker storage configuration
@@ -528,6 +530,27 @@ func (mConfig *MonitoringConfig) GetPathToJar() string {
 		return mConfig.PathToJar
 	}
 	return "/opt/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar"
+}
+
+// GetKafkaJMXEnvConfig returns the config for Kafka JMX settings
+func (mConfig *MonitoringConfig) GetJMXEnvConfig() []corev1.EnvVar {
+	var env []corev1.EnvVar
+
+	if mConfig.KafkaJMXPort != "" {
+		env = append(env, corev1.EnvVar{
+			Name:  "JMX_PORT",
+			Value: mConfig.KafkaJMXPort,
+		})
+	}
+
+	if mConfig.KafkaJMXOpts != "" {
+		env = append(env, corev1.EnvVar{
+			Name:  "KAFKA_JMX_OPTS",
+			Value: mConfig.KafkaJMXOpts,
+		})
+	}
+
+	return env
 }
 
 // GetKafkaJMXExporterConfig returns the config for Kafka Prometheus JMX exporter
