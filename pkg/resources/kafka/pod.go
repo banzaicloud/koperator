@@ -52,7 +52,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 		})
 	}
 
-	for _, envVar := range r.KafkaCluster.Spec.Env {
+	for _, envVar := range r.KafkaCluster.Spec.Envs {
 		if envVar.Name == "JMX_PORT" {
 			port, err := strconv.ParseInt(envVar.Value, 10, 32)
 			if err != nil {
@@ -174,7 +174,7 @@ fi
 								},
 							},
 						},
-					}, r.KafkaCluster.Spec.Env...),
+					}, r.KafkaCluster.Spec.Envs...),
 					Command: command,
 					Ports: append(kafkaBrokerContainerPorts, []corev1.ContainerPort{
 						{

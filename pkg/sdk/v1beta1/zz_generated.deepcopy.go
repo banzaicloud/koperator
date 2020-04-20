@@ -465,8 +465,8 @@ func (in *KafkaClusterSpec) DeepCopyInto(out *KafkaClusterSpec) {
 		**out = **in
 	}
 	in.IstioIngressConfig.DeepCopyInto(&out.IstioIngressConfig)
-	if in.Env != nil {
-		in, out := &in.Env, &out.Env
+	if in.Envs != nil {
+		in, out := &in.Envs, &out.Envs
 		*out = make([]v1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])

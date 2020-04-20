@@ -59,7 +59,7 @@ type KafkaClusterSpec struct {
 	VaultConfig         VaultConfig         `json:"vaultConfig,omitempty"`
 	AlertManagerConfig  *AlertManagerConfig `json:"alertManagerConfig,omitempty"`
 	IstioIngressConfig  IstioIngressConfig  `json:"istioIngressConfig,omitempty"`
-	Env                 []corev1.EnvVar     `json:"env,omitempty"`
+	Envs                []corev1.EnvVar     `json:"env,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
