@@ -131,7 +131,7 @@ fi
 							},
 						},
 					},
-					Env: append([]corev1.EnvVar{
+					Env: []corev1.EnvVar{
 						{
 							Name:  "CLASSPATH",
 							Value: "/opt/kafka/libs/extensions/*",
@@ -156,7 +156,7 @@ fi
 								},
 							},
 						},
-					}, r.KafkaCluster.Spec.MonitoringConfig.GetJMXEnvConfig()...),
+					},
 					Command: command,
 					Ports: append(kafkaBrokerContainerPorts, []corev1.ContainerPort{
 						{

@@ -1487,12 +1487,11 @@ spec:
                   type: string
                 kafkaJMXExporterConfig:
                   type: string
-                kafkaJMXOpts:
-                  type: string
-                kafkaJMXPort:
-                  type: string
                 pathToJar:
                   type: string
+              required:
+              - jmxImage
+              - pathToJar
               type: object
             oneBrokerPerNode:
               type: boolean
