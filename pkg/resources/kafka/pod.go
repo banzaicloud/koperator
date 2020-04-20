@@ -16,6 +16,7 @@ package kafka
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -49,6 +50,23 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 			ContainerPort: iListener.ContainerPort,
 			Protocol:      corev1.ProtocolTCP,
 		})
+	}
+
+	for _, envVar := range r.KafkaCluster.Spec.Env {
+		if envVar.Name == "JMX_PORT" {
+			port, err := strconv.ParseInt(envVar.Value, 10, 32)
+			if err != nil {
+				log.Error(err, "can't parse JMX_PORT environment variable")
+			}
+
+			kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
+				Name:          "jmx",
+				ContainerPort: int32(port),
+				Protocol:      corev1.ProtocolTCP,
+			})
+
+			break
+		}
 	}
 
 	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
@@ -131,7 +149,7 @@ fi
 							},
 						},
 					},
-					Env: []corev1.EnvVar{
+					Env: append([]corev1.EnvVar{
 						{
 							Name:  "CLASSPATH",
 							Value: "/opt/kafka/libs/extensions/*",
@@ -156,7 +174,7 @@ fi
 								},
 							},
 						},
-					},
+					}, r.KafkaCluster.Spec.Env...),
 					Command: command,
 					Ports: append(kafkaBrokerContainerPorts, []corev1.ContainerPort{
 						{
