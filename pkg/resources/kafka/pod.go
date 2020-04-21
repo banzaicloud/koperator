@@ -149,7 +149,7 @@ fi
 							},
 						},
 					},
-					Env: append([]corev1.EnvVar{
+					Env: generateEnvConfig(brokerConfig, []corev1.EnvVar{
 						{
 							Name:  "CLASSPATH",
 							Value: "/opt/kafka/libs/extensions/*",
@@ -159,14 +159,6 @@ fi
 							Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus.jar=9020:/etc/jmx-exporter/config.yaml",
 						},
 						{
-							Name:  "KAFKA_HEAP_OPTS",
-							Value: brokerConfig.GetKafkaHeapOpts(),
-						},
-						{
-							Name:  "KAFKA_JVM_PERFORMANCE_OPTS",
-							Value: brokerConfig.GetKafkaPerfJmvOpts(),
-						},
-						{
 							Name: "ENVOY_SIDECAR_STATUS",
 							ValueFrom: &corev1.EnvVarSource{
 								FieldRef: &corev1.ObjectFieldSelector{
@@ -174,7 +166,7 @@ fi
 								},
 							},
 						},
-					}, r.KafkaCluster.Spec.Envs...),
+					}, r.KafkaCluster.Spec.Envs),
 					Command: command,
 					Ports: append(kafkaBrokerContainerPorts, []corev1.ContainerPort{
 						{
@@ -337,4 +329,37 @@ func generateVolumeMountForSSL() []corev1.VolumeMount {
 			MountPath: clientKeystorePath,
 		},
 	}
+}
+
+func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars, clusterEnvVars []corev1.EnvVar) []corev1.EnvVar {
+	envs := map[string]corev1.EnvVar{}
+
+	for _, v := range defaultEnvVars {
+		envs[v.Name] = v
+	}
+
+	for _, v := range clusterEnvVars {
+		envs[v.Name] = v
+	}
+
+	if _, ok := envs["KAFKA_HEAP_OPTS"]; !ok || brokerConfig.KafkaHeapOpts != "" {
+		envs["KAFKA_HEAP_OPTS"] = corev1.EnvVar{
+			Name:  "KAFKA_HEAP_OPTS",
+			Value: brokerConfig.GetKafkaHeapOpts(),
+		}
+	}
+
+	if _, ok := envs["KAFKA_JVM_PERFORMANCE_OPTS"]; !ok || brokerConfig.KafkaJVMPerfOpts != "" {
+		envs["KAFKA_JVM_PERFORMANCE_OPTS"] = corev1.EnvVar{
+			Name:  "KAFKA_JVM_PERFORMANCE_OPTS",
+			Value: brokerConfig.GetKafkaPerfJmvOpts(),
+		}
+	}
+
+	mergedEnv := make([]corev1.EnvVar, 0)
+	for _, v := range envs {
+		mergedEnv = append(mergedEnv, corev1.EnvVar{Name: v.Name, Value: v.Value})
+	}
+
+	return mergedEnv
 }
