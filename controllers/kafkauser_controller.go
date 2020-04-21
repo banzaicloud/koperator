@@ -134,15 +134,16 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		}
 		return requeueWithError(reqLogger, "failed to lookup referenced cluster", err)
 	}
-	// Avoid panic if the user wants to create a kafka user but the cluster is in plaintext mode
-	// TODO: refactor this and use webhook to validate if the cluster is eligible to create a kafka user
-	if cluster.Spec.ListenersConfig.SSLSecrets == nil && instance.Spec.PKIBackendSpec.PKIBackend == "" {
-		return requeueWithError(reqLogger, "could not create kafka user since user specific PKI not configured", errors.New("failed to create kafka user"))
-	}
 
 	var kafkaUser string
 
 	if instance.Spec.GetIfCertShouldBeCreated() {
+
+		// Avoid panic if the user wants to create a kafka user but the cluster is in plaintext mode
+		// TODO: refactor this and use webhook to validate if the cluster is eligible to create a kafka user
+		if cluster.Spec.ListenersConfig.SSLSecrets == nil && instance.Spec.PKIBackendSpec.PKIBackend == "" {
+			return requeueWithError(reqLogger, "could not create kafka user since user specific PKI not configured", errors.New("failed to create kafka user"))
+		}
 
 		var backend v1beta1.PKIBackend
 		if instance.Spec.PKIBackendSpec.PKIBackend != "" {
@@ -196,7 +197,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 			}
 		}
 	} else {
-		kafkaUser = instance.Name
+		kafkaUser = fmt.Sprintf("CN=%s", instance.Name)
 	}
 
 	// check if marked for deletion and remove kafka ACLs
