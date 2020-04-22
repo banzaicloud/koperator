@@ -16,6 +16,7 @@ package kafka
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -49,6 +50,23 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 			ContainerPort: iListener.ContainerPort,
 			Protocol:      corev1.ProtocolTCP,
 		})
+	}
+
+	for _, envVar := range r.KafkaCluster.Spec.Envs {
+		if envVar.Name == "JMX_PORT" {
+			port, err := strconv.ParseInt(envVar.Value, 10, 32)
+			if err != nil {
+				log.Error(err, "can't parse JMX_PORT environment variable")
+			}
+
+			kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
+				Name:          "jmx",
+				ContainerPort: int32(port),
+				Protocol:      corev1.ProtocolTCP,
+			})
+
+			break
+		}
 	}
 
 	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
@@ -131,7 +149,7 @@ fi
 							},
 						},
 					},
-					Env: []corev1.EnvVar{
+					Env: generateEnvConfig(brokerConfig, []corev1.EnvVar{
 						{
 							Name:  "CLASSPATH",
 							Value: "/opt/kafka/libs/extensions/*",
@@ -141,14 +159,6 @@ fi
 							Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus.jar=9020:/etc/jmx-exporter/config.yaml",
 						},
 						{
-							Name:  "KAFKA_HEAP_OPTS",
-							Value: brokerConfig.GetKafkaHeapOpts(),
-						},
-						{
-							Name:  "KAFKA_JVM_PERFORMANCE_OPTS",
-							Value: brokerConfig.GetKafkaPerfJmvOpts(),
-						},
-						{
 							Name: "ENVOY_SIDECAR_STATUS",
 							ValueFrom: &corev1.EnvVarSource{
 								FieldRef: &corev1.ObjectFieldSelector{
@@ -156,7 +166,7 @@ fi
 								},
 							},
 						},
-					},
+					}, r.KafkaCluster.Spec.Envs),
 					Command: command,
 					Ports: append(kafkaBrokerContainerPorts, []corev1.ContainerPort{
 						{
@@ -319,4 +329,37 @@ func generateVolumeMountForSSL() []corev1.VolumeMount {
 			MountPath: clientKeystorePath,
 		},
 	}
+}
+
+func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars, clusterEnvVars []corev1.EnvVar) []corev1.EnvVar {
+	envs := map[string]corev1.EnvVar{}
+
+	for _, v := range defaultEnvVars {
+		envs[v.Name] = v
+	}
+
+	for _, v := range clusterEnvVars {
+		envs[v.Name] = v
+	}
+
+	if _, ok := envs["KAFKA_HEAP_OPTS"]; !ok || brokerConfig.KafkaHeapOpts != "" {
+		envs["KAFKA_HEAP_OPTS"] = corev1.EnvVar{
+			Name:  "KAFKA_HEAP_OPTS",
+			Value: brokerConfig.GetKafkaHeapOpts(),
+		}
+	}
+
+	if _, ok := envs["KAFKA_JVM_PERFORMANCE_OPTS"]; !ok || brokerConfig.KafkaJVMPerfOpts != "" {
+		envs["KAFKA_JVM_PERFORMANCE_OPTS"] = corev1.EnvVar{
+			Name:  "KAFKA_JVM_PERFORMANCE_OPTS",
+			Value: brokerConfig.GetKafkaPerfJmvOpts(),
+		}
+	}
+
+	mergedEnv := make([]corev1.EnvVar, 0)
+	for _, v := range envs {
+		mergedEnv = append(mergedEnv, corev1.EnvVar{Name: v.Name, Value: v.Value})
+	}
+
+	return mergedEnv
 }
