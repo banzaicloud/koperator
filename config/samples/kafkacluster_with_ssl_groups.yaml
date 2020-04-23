@@ -14,7 +14,7 @@ spec:
       - "failure-domain.beta.kubernetes.io/region"
       - "failure-domain.beta.kubernetes.io/zone"
   oneBrokerPerNode: false
-  clusterImage: "banzaicloud/kafka:2.13-2.4.0"
+  clusterImage: "banzaicloud/kafka:2.13-2.5.0-bzc.1"
   readOnlyConfig: |
     auto.create.topics.enable=false
     authorizer.class.name=kafka.security.auth.SimpleAclAuthorizer
