@@ -28,7 +28,7 @@ type KafkaUserSpec struct {
 	TopicGrants    []UserTopicGrant `json:"topicGrants,omitempty"`
 	IncludeJKS     bool             `json:"includeJKS,omitempty"`
 	CreateCert     *bool            `json:"createCert,omitempty"`
-	PKIBackendSpec PKIBackendSpec   `json:"pkiBackendSpec,omitempty"`
+	PKIBackendSpec *PKIBackendSpec  `json:"pkiBackendSpec,omitempty"`
 }
 
 type PKIBackendSpec struct {
