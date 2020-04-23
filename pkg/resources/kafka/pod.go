@@ -16,6 +16,7 @@ package kafka
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -355,10 +356,17 @@ func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars, clust
 			Value: brokerConfig.GetKafkaPerfJmvOpts(),
 		}
 	}
+	//Sort map values by key to avoid diff in sequence
+	keys := make([]string, 0, len(envs))
+
+	for k := range envs {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 
 	mergedEnv := make([]corev1.EnvVar, 0)
-	for _, v := range envs {
-		mergedEnv = append(mergedEnv, corev1.EnvVar{Name: v.Name, Value: v.Value})
+	for _, k := range keys {
+		mergedEnv = append(mergedEnv, corev1.EnvVar{Name: envs[k].Name, Value: envs[k].Value})
 	}
 
 	return mergedEnv
