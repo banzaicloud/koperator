@@ -103,7 +103,7 @@ func generateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 				{
 					Address: &envoycore.Address_SocketAddress{
 						SocketAddress: &envoycore.SocketAddress{
-							Address: fmt.Sprintf("%s-%d.%s-headless.%s.svc.cluster.local", kc.Name, broker.Id, kc.Name, kc.Namespace),
+							Address: fmt.Sprintf("%s-%d.%s-headless.%s.svc.%s", kc.Name, broker.Id, kc.Name, kc.Namespace, kc.Spec.GetClusterDomain()),
 							PortSpecifier: &envoycore.SocketAddress_PortValue{
 								PortValue: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ContainerPort),
 							},

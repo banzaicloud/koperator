@@ -60,6 +60,7 @@ type KafkaClusterSpec struct {
 	AlertManagerConfig  *AlertManagerConfig `json:"alertManagerConfig,omitempty"`
 	IstioIngressConfig  IstioIngressConfig  `json:"istioIngressConfig,omitempty"`
 	Envs                []corev1.EnvVar     `json:"envs,omitempty"`
+	ClusterDomain       string              `json:"clusterDomain,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -308,6 +309,15 @@ func (kSpec *KafkaClusterSpec) GetIngressController() string {
 		return "envoy"
 	}
 	return kSpec.IngressController
+}
+
+// GetDomain returns the default domain if not specified otherwise
+func (kSpec *KafkaClusterSpec) GetClusterDomain() string {
+	if kSpec.ClusterDomain == "" {
+		///return "cluster.local"
+		return "kub.n.tripadvisor.com"
+	}
+	return kSpec.ClusterDomain
 }
 
 // GetZkPath returns the default "/" ZkPath if not specified otherwise

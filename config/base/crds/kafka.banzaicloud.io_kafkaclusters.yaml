@@ -982,6 +982,8 @@ spec:
                 - id
                 type: object
               type: array
+            clusterDomain:
+              type: string
             clusterImage:
               type: string
             clusterWideConfig:

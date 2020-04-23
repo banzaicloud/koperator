@@ -1,6 +1,8 @@
 # Image URL to use all building/pushing image targets
-TAG ?= $(shell git describe --tags --abbrev=0 --match '[0-9].*[0-9].*[0-9]' 2>/dev/null )
-IMG ?= banzaicloud/kafka-operator:$(TAG)
+#TAG ?= $(shell git describe --tags --abbrev=0 --match '[0-9].*[0-9].*[0-9]' 2>/dev/null )
+#IMG ?= banzaicloud/kafka-operator:$(TAG)
+TAG ?= 0.7
+IMG ?= techops-docker.maven.dev.tripadvisor.com/managed-services/banzai-kafka-operator:$(TAG)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
