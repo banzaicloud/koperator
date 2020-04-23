@@ -9,6 +9,7 @@ imagePullSecrets: []
   # - private-registry-key
 
 operator:
+  annotations: {}
   image:
     repository: banzaicloud/kafka-operator
     tag: v0.11.2
