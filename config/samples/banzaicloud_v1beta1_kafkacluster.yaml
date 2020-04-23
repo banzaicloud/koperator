@@ -28,7 +28,7 @@ spec:
   oneBrokerPerNode: false
   # Specify the Kafka Broker related settings
   # clusterImage can specify the whole kafkacluster image in one place
-  #clusterImage: "banzaicloud/kafka:2.13-2.4.0"
+  #clusterImage: "banzaicloud/kafka:2.13-2.5.0-bzc.1"
   # readOnlyConfig specifies the read-only type kafka config cluster wide, all these will be merged with broker specified
   # readOnly configurations, so it can be overwritten per broker.
   #clusterWideConfig specifies the cluster-wide kafka config cluster wide, all these can be overridden per-broker
@@ -65,7 +65,7 @@ spec:
         auto.create.topics.enable=false
       brokerConfig:
         # Docker image used by the operator to create the Broker with id 0
-        #image: "banzaicloud/kafka:2.13-2.4.0"
+        #image: "banzaicloud/kafka:2.13-2.5.0-bzc.1"
         # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
         # through this property
         #resourceRequirements:
@@ -113,7 +113,7 @@ spec:
           #      resources:
           #        requests:
           #          storage: 3Gi
-    - image: "banzaicloud/kafka:2.13-2.4.0"
+    - image: "banzaicloud/kafka:2.13-2.5.0-bzc.1"
       id: 1
       config: |
         auto.create.topics.enable=false
@@ -129,7 +129,7 @@ spec:
       readOnlyConfig: |
         auto.create.topics.enable=false
       brokerConfig:
-        image: "banzaicloud/kafka:2.13-2.4.0"
+        image: "banzaicloud/kafka:2.13-2.5.0-bzc.1"
         storageConfigs:
           - mountPath: "/kafka-logs"
             pvcSpec:
