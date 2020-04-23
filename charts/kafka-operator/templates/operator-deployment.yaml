@@ -25,6 +25,9 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/operator-validating-webhook.yaml") . | sha256sum }}
+        {{- with .Values.operator.annotations -}}
+        {{ toYaml . | nindent 8 }}
+        {{- end }}
       labels:
         control-plane: controller-manager
         controller-tools.k8s.io: "1.0"
