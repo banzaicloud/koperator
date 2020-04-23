@@ -141,12 +141,12 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 
 		// Avoid panic if the user wants to create a kafka user but the cluster is in plaintext mode
 		// TODO: refactor this and use webhook to validate if the cluster is eligible to create a kafka user
-		if cluster.Spec.ListenersConfig.SSLSecrets == nil && instance.Spec.PKIBackendSpec.PKIBackend == "" {
+		if cluster.Spec.ListenersConfig.SSLSecrets == nil && instance.Spec.PKIBackendSpec == nil {
 			return requeueWithError(reqLogger, "could not create kafka user since user specific PKI not configured", errors.New("failed to create kafka user"))
 		}
 
 		var backend v1beta1.PKIBackend
-		if instance.Spec.PKIBackendSpec.PKIBackend != "" {
+		if instance.Spec.PKIBackendSpec != nil {
 			backend = v1beta1.PKIBackend(instance.Spec.PKIBackendSpec.PKIBackend)
 		} else {
 			backend = v1beta1.PKIBackendProvided
