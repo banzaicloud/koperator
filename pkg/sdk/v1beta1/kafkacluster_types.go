@@ -314,8 +314,8 @@ func (kSpec *KafkaClusterSpec) GetIngressController() string {
 // GetDomain returns the default domain if not specified otherwise
 func (kSpec *KafkaClusterSpec) GetClusterDomain() string {
 	if kSpec.ClusterDomain == "" {
-		///return "cluster.local"
-		return "kub.n.tripadvisor.com"
+		return "cluster.local"
+		//return "kub.n.tripadvisor.com"
 	}
 	return kSpec.ClusterDomain
 }

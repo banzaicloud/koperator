@@ -54,7 +54,7 @@ func generateUrlForCC(action, namespace string, options map[string]string, ccEnd
 	if ccEndpoint != "" {
 		return "http://" + ccEndpoint + "/" + basePath + "/" + action + "?" + strings.TrimSuffix(optionURL, "&")
 	}
-	return "http://" + fmt.Sprintf(serviceNameTemplate, clusterName) + "." + namespace + ".svc.cluster.local:8090/" + basePath + "/" + action + "?" + strings.TrimSuffix(optionURL, "&")
+	return "http://" + fmt.Sprintf(serviceNameTemplate, clusterName) + "." + namespace + ".svc.kub.n.tripadvisor.com:8090/" + basePath + "/" + action + "?" + strings.TrimSuffix(optionURL, "&")
 	//TODO only for testing
 	//return "http://localhost:8090/" + basePath + "/" + action + "?" + strings.TrimSuffix(optionURL, "&")
 }
@@ -75,9 +75,9 @@ func postCruiseControl(action, namespace string, options map[string]string, ccEn
 	return rsp, nil
 }
 
-func getCruiseControl(action, namespace string, options map[string]string, ccEndpoint, clusterName string) (*http.Response, error) {
+func getCruiseControl(action, namespace, clusterDomain string, options map[string]string, ccEndpoint, clusterName string) (*http.Response, error) {
 
-	requestURl := generateUrlForCC(action, namespace, options, ccEndpoint, clusterName)
+	requestURl := generateUrlForCC(action, namespace, clusterDomain, options, ccEndpoint, clusterName)
 	rsp, err := http.Get(requestURl)
 	if err != nil {
 		log.Error(err, "error during talking to cruise-control")
@@ -113,7 +113,7 @@ func isKafkaBrokerDiskReady(brokerIdsWithMountPath map[string][]string, namespac
 		"json": "true",
 	}
 
-	rsp, err := getCruiseControl(kafkaClusterStateAction, namespace, options, ccEndpoint, clusterName)
+	rsp, err := getCruiseControl(kafkaClusterStateAction, namespace, clusterDomain, options, ccEndpoint, clusterName)
 	if err != nil {
 		keyVals := []interface{}{
 			"namespace", namespace,
