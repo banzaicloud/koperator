@@ -141,7 +141,8 @@ func (r *CruiseControlTaskReconciler) Reconcile(request ctrl.Request) (ctrl.Resu
 		err = r.handlePodDeleteCCTask(instance, brokersWithDownscaleRequired, log)
 	} else if len(brokersWithDiskRebalanceRequired) > 0 {
 		// create new cc task, set status to running
-		taskId, startTime, err = scale.RebalanceDisks(brokersWithDiskRebalanceRequired, instance.Namespace, instance.Spec.GetKubernetesClusterDomain(), instance.Spec.CruiseControlConfig.CruiseControlEndpoint, instance.Name)
+		cc := scale.NewCruiseControlScaler(instance.Namespace, instance.Spec.GetKubernetesClusterDomain(), instance.Spec.CruiseControlConfig.CruiseControlEndpoint, instance.Name)
+		taskId, startTime, err = cc.RebalanceDisks(brokersWithDiskRebalanceRequired)
 		if err != nil {
 			log.Error(err, "executing disk rebalance cc task failed")
 		} else {
@@ -192,7 +193,8 @@ func (r *CruiseControlTaskReconciler) Reconcile(request ctrl.Request) (ctrl.Resu
 	return reconciled()
 }
 func (r *CruiseControlTaskReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerIds []string, log logr.Logger) error {
-	uTaskId, taskStartTime, scaleErr := scale.UpScaleCluster(brokerIds, kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+	cc := scale.NewCruiseControlScaler(kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+	uTaskId, taskStartTime, scaleErr := cc.UpScaleCluster(brokerIds)
 	if scaleErr != nil {
 		log.Info("cruise control communication error during upscaling broker(s)", "brokerId(s)", brokerIds)
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, scaleErr, fmt.Sprintf("broker id(s): %s", brokerIds))
@@ -206,8 +208,9 @@ func (r *CruiseControlTaskReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.K
 	return nil
 }
 func (r *CruiseControlTaskReconciler) handlePodDeleteCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerIds []string, log logr.Logger) error {
-	uTaskId, taskStartTime, err := scale.DownsizeCluster(brokerIds,
-		kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+
+	cc := scale.NewCruiseControlScaler(kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+	uTaskId, taskStartTime, err := cc.DownsizeCluster(brokerIds)
 	if err != nil {
 		log.Info("cruise control communication error during downscaling broker(s)", "id(s)", brokerIds)
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", brokerIds))
@@ -243,7 +246,8 @@ func (r *CruiseControlTaskReconciler) checkCCTaskState(kafkaCluster *v1beta1.Kaf
 	}
 
 	// check cc task status
-	status, err := scale.GetCCTaskState(ccTaskId, kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+	cc := scale.NewCruiseControlScaler(kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+	status, err := cc.GetCCTaskState(ccTaskId)
 	if err != nil {
 		log.Info("Cruise control communication error checking running task", "taskId", ccTaskId)
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
@@ -324,7 +328,9 @@ func (r *CruiseControlTaskReconciler) checkCCTaskState(kafkaCluster *v1beta1.Kaf
 	// task timed out
 	if len(brokersWithTimedOutCCTask) > 0 {
 		log.Info("Killing Cruise control task", "taskId", ccTaskId)
-		err = scale.KillCCTask(kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+		cc := scale.NewCruiseControlScaler(kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+		err = cc.KillCCTask()
+
 		if err != nil {
 			return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 		}
@@ -374,7 +380,8 @@ func (r *CruiseControlTaskReconciler) checkVolumeCCTaskState(kafkaCluster *v1bet
 	}
 
 	// check cc task status
-	status, err := scale.GetCCTaskState(ccTaskId, kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+	cc := scale.NewCruiseControlScaler(kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+	status, err := cc.GetCCTaskState(ccTaskId)
 	if err != nil {
 		log.Info("Cruise control communication error checking running task", "taskId", ccTaskId)
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
@@ -465,7 +472,9 @@ func (r *CruiseControlTaskReconciler) checkVolumeCCTaskState(kafkaCluster *v1bet
 	// task timed out
 	if len(brokersWithTimedOutCCTask) > 0 {
 		log.Info("Killing Cruise control task", "taskId", ccTaskId)
-		err = scale.KillCCTask(kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+		cc := scale.NewCruiseControlScaler(kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
+
+		err = cc.KillCCTask()
 		if err != nil {
 			return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "cc communication error")
 		}

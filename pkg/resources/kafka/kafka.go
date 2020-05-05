@@ -322,9 +322,9 @@ OUTERLOOP:
 
 	if len(deletedBrokers) > 0 {
 		if !arePodsAlreadyDeleted(deletedBrokers, log) {
-			liveBrokers, err := scale.GetLiveKafkaBrokersFromCruiseControl(
-				generateBrokerIdsFromPodSlice(deletedBrokers),
-				r.KafkaCluster.Namespace, r.KafkaCluster.Spec.GetKubernetesClusterDomain(), r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+			cc := scale.NewCruiseControlScaler(r.KafkaCluster.Namespace, r.KafkaCluster.Spec.GetKubernetesClusterDomain(), r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
+			liveBrokers, err := cc.GetLiveKafkaBrokersFromCruiseControl(generateBrokerIdsFromPodSlice(deletedBrokers))
+
 			if err != nil {
 				log.Error(err, "could not query CC for ALIVE brokers")
 				return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", strings.Join(liveBrokers, ",")))
