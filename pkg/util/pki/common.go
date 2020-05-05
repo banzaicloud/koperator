@@ -100,9 +100,9 @@ func GetInternalDNSNames(cluster *v1beta1.KafkaCluster) (dnsNames []string) {
 // GetCommonName returns the full FQDN for the internal Kafka listener
 func GetCommonName(cluster *v1beta1.KafkaCluster) string {
 	if cluster.Spec.HeadlessServiceEnabled {
-		return fmt.Sprintf("%s.%s.svc.%s", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetClusterDomain())
+		return fmt.Sprintf("%s.%s.svc.%s", fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain())
 	}
-	return fmt.Sprintf("%s.%s.svc.%s", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetClusterDomain())
+	return fmt.Sprintf("%s.%s.svc.%s", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain())
 }
 
 // clusterDNSNames returns all the possible DNS Names for a Kafka Cluster
@@ -177,7 +177,7 @@ func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, additionalHostnames []s
 func ControllerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser {
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetClusterDomain()),
+			fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()),
 			LabelsForKafkaPKI(cluster.Name), cluster,
 		),
 		Spec: v1alpha1.KafkaUserSpec{
