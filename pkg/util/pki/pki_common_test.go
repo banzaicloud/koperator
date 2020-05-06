@@ -66,6 +66,13 @@ func TestGetCommonName(t *testing.T) {
 	if allBrokerCN != expected {
 		t.Error("Expected:", expected, "Got:", allBrokerCN)
 	}
+
+	cluster.Spec = v1beta1.KafkaClusterSpec{HeadlessServiceEnabled: true, KubernetesClusterDomain: "foo.bar"}
+	kubernetesClusterDomainCN := GetCommonName(cluster)
+	expected = "test-cluster-headless.test-namespace.svc.foo.bar"
+	if kubernetesClusterDomainCN != expected {
+		t.Error("Expected:", expected, "Got:", kubernetesClusterDomainCN)
+	}
 }
 
 func TestLabelsForKafkaPKI(t *testing.T) {
@@ -141,7 +148,7 @@ func TestControllerUserForCluster(t *testing.T) {
 
 	expected := &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace),
+			fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()),
 			LabelsForKafkaPKI(cluster.Name), cluster,
 		),
 		Spec: v1alpha1.KafkaUserSpec{

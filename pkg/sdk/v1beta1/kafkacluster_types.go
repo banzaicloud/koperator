@@ -50,16 +50,17 @@ type KafkaClusterSpec struct {
 	Brokers              []Broker                `json:"brokers"`
 	RollingUpgradeConfig RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
 	// +kubebuilder:validation:Enum=envoy;istioingress
-	IngressController   string              `json:"ingressController,omitempty"`
-	OneBrokerPerNode    bool                `json:"oneBrokerPerNode"`
-	PropagateLabels     bool                `json:"propagateLabels,omitempty"`
-	CruiseControlConfig CruiseControlConfig `json:"cruiseControlConfig"`
-	EnvoyConfig         EnvoyConfig         `json:"envoyConfig,omitempty"`
-	MonitoringConfig    MonitoringConfig    `json:"monitoringConfig,omitempty"`
-	VaultConfig         VaultConfig         `json:"vaultConfig,omitempty"`
-	AlertManagerConfig  *AlertManagerConfig `json:"alertManagerConfig,omitempty"`
-	IstioIngressConfig  IstioIngressConfig  `json:"istioIngressConfig,omitempty"`
-	Envs                []corev1.EnvVar     `json:"envs,omitempty"`
+	IngressController       string              `json:"ingressController,omitempty"`
+	OneBrokerPerNode        bool                `json:"oneBrokerPerNode"`
+	PropagateLabels         bool                `json:"propagateLabels,omitempty"`
+	CruiseControlConfig     CruiseControlConfig `json:"cruiseControlConfig"`
+	EnvoyConfig             EnvoyConfig         `json:"envoyConfig,omitempty"`
+	MonitoringConfig        MonitoringConfig    `json:"monitoringConfig,omitempty"`
+	VaultConfig             VaultConfig         `json:"vaultConfig,omitempty"`
+	AlertManagerConfig      *AlertManagerConfig `json:"alertManagerConfig,omitempty"`
+	IstioIngressConfig      IstioIngressConfig  `json:"istioIngressConfig,omitempty"`
+	Envs                    []corev1.EnvVar     `json:"envs,omitempty"`
+	KubernetesClusterDomain string              `json:"kubernetesClusterDomain,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -308,6 +309,14 @@ func (kSpec *KafkaClusterSpec) GetIngressController() string {
 		return "envoy"
 	}
 	return kSpec.IngressController
+}
+
+// GetDomain returns the default domain if not specified otherwise
+func (kSpec *KafkaClusterSpec) GetKubernetesClusterDomain() string {
+	if kSpec.KubernetesClusterDomain == "" {
+		return "cluster.local"
+	}
+	return kSpec.KubernetesClusterDomain
 }
 
 // GetZkPath returns the default "/" ZkPath if not specified otherwise

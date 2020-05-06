@@ -1489,6 +1489,8 @@ spec:
                     type: string
                   type: object
               type: object
+            kubernetesClusterDomain:
+              type: string
             listenersConfig:
               description: ListenersConfig defines the Kafka listener types
               properties:

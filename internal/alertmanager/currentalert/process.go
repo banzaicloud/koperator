@@ -263,7 +263,8 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 		return nil
 	}
 
-	brokerId, err := scale.GetBrokerIDWithLeastPartition(string(labels["namespace"]), cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)
+	cc := scale.NewCruiseControlScaler(string(labels["namespace"]), cr.Spec.GetKubernetesClusterDomain(), cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)
+	brokerId, err := cc.GetBrokerIDWithLeastPartition()
 	if err != nil {
 		return err
 	}

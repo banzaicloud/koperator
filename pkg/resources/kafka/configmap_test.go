@@ -30,6 +30,7 @@ func TestGenerateBrokerConfig(t *testing.T) {
 		readOnlyConfig          string
 		zkAddresses             []string
 		zkPath                  string
+		kubernetesClusterDomain string
 		clusterWideConfig       string
 		perBrokerReadOnlyConfig string
 		perBrokerConfig         string
@@ -41,6 +42,7 @@ func TestGenerateBrokerConfig(t *testing.T) {
 			readOnlyConfig:          ``,
 			zkAddresses:             []string{"example.zk:2181"},
 			zkPath:                  ``,
+			kubernetesClusterDomain: ``,
 			clusterWideConfig:       ``,
 			perBrokerConfig:         ``,
 			perBrokerReadOnlyConfig: ``,
@@ -57,6 +59,7 @@ zookeeper.connect=example.zk:2181/`,
 			testName:                "basicConfigWithZKPath",
 			readOnlyConfig:          ``,
 			zkPath:                  `/kafka`,
+			kubernetesClusterDomain: ``,
 			zkAddresses:             []string{"example.zk:2181"},
 			clusterWideConfig:       ``,
 			perBrokerConfig:         ``,
@@ -74,6 +77,7 @@ zookeeper.connect=example.zk:2181/kafka`,
 			testName:                "basicConfigWithSimpleZkPath",
 			readOnlyConfig:          ``,
 			zkPath:                  `/`,
+			kubernetesClusterDomain: ``,
 			zkAddresses:             []string{"example.zk:2181"},
 			clusterWideConfig:       ``,
 			perBrokerConfig:         ``,
@@ -92,6 +96,7 @@ zookeeper.connect=example.zk:2181/`,
 			readOnlyConfig:          ``,
 			zkPath:                  `/kafka`,
 			zkAddresses:             []string{"example.zk:2181", "example.zk-1:2181"},
+			kubernetesClusterDomain: ``,
 			clusterWideConfig:       ``,
 			perBrokerConfig:         ``,
 			perBrokerReadOnlyConfig: ``,
@@ -109,6 +114,7 @@ zookeeper.connect=example.zk:2181,example.zk-1:2181/kafka`,
 			readOnlyConfig:          ``,
 			zkAddresses:             []string{"example.zk:2181"},
 			zkPath:                  ``,
+			kubernetesClusterDomain: ``,
 			clusterWideConfig:       ``,
 			perBrokerConfig:         ``,
 			perBrokerReadOnlyConfig: ``,
@@ -128,9 +134,28 @@ metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlM
 zookeeper.connect=example.zk:2181/`,
 		},
 		{
-			testName:    "readOnlyRedefinedInOneBroker",
-			zkAddresses: []string{"example.zk:2181"},
-			zkPath:      ``,
+			testName:                "basicConfigWithClusterDomain",
+			readOnlyConfig:          ``,
+			zkAddresses:             []string{"example.zk:2181"},
+			zkPath:                  ``,
+			kubernetesClusterDomain: `foo.bar`,
+			clusterWideConfig:       ``,
+			perBrokerConfig:         ``,
+			perBrokerReadOnlyConfig: ``,
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.foo.bar:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.foo.bar:9092
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT
+listeners=INTERNAL://:9092
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+zookeeper.connect=example.zk:2181/`,
+		},
+		{
+			testName:                "readOnlyRedefinedInOneBroker",
+			zkAddresses:             []string{"example.zk:2181"},
+			zkPath:                  ``,
+			kubernetesClusterDomain: ``,
 			readOnlyConfig: `
 auto.create.topics.enable=false
 control.plane.listener.name=thisisatest
@@ -184,8 +209,9 @@ zookeeper.connect=example.zk:2181/`,
 									},
 								},
 							},
-							ReadOnlyConfig:    test.readOnlyConfig,
-							ClusterWideConfig: test.clusterWideConfig,
+							ReadOnlyConfig:          test.readOnlyConfig,
+							KubernetesClusterDomain: test.kubernetesClusterDomain,
+							ClusterWideConfig:       test.clusterWideConfig,
 							Brokers: []v1beta1.Broker{{
 								Id:             0,
 								ReadOnlyConfig: test.perBrokerReadOnlyConfig,
