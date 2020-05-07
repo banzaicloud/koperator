@@ -113,6 +113,9 @@ func (k *kafkaClient) createWriteACLs(dn string, topic string, patternType saram
 	if err = k.createCommonACLs(dn, topic, patternType); err != nil {
 		return
 	}
+	if err = k.createCommonWriteACLs(dn); err != nil {
+		return
+	}
 
 	// WRITE on topic
 	if err = k.admin.CreateACL(sarama.Resource{
@@ -141,6 +144,33 @@ func (k *kafkaClient) createWriteACLs(dn string, topic string, patternType saram
 	})
 
 	return
+}
+
+func (k *kafkaClient) createCommonWriteACLs(dn string) (err error) {
+	if err = k.admin.CreateACL(sarama.Resource{
+		ResourceType:        sarama.AclResourceCluster,
+		ResourceName:        "*",
+		ResourcePatternType: sarama.AclPatternLiteral,
+	}, sarama.Acl{
+		Principal:      dn,
+		Host:           "*",
+		Operation:      sarama.AclOperationIdempotentWrite,
+		PermissionType: sarama.AclPermissionAllow,
+	}); err != nil {
+		return
+	}
+
+	return k.admin.CreateACL(sarama.Resource{
+		ResourceType:        sarama.AclResourceTransactionalID,
+		ResourceName:        "*",
+		ResourcePatternType: sarama.AclPatternLiteral,
+	}, sarama.Acl{
+		Principal:      dn,
+		Host:           "*",
+		Operation:      sarama.AclOperationAll,
+		PermissionType: sarama.AclPermissionAllow,
+	})
+
 }
 
 func (k *kafkaClient) createCommonACLs(dn string, topic string, patternType sarama.AclResourcePatternType) error {
