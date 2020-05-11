@@ -14,7 +14,9 @@ spec:
     listKind: KafkaClusterList
     plural: kafkaclusters
     singular: kafkacluster
+  {{ if .Values.crds.preserveUnknownFieldsSupported }}
   preserveUnknownFields: false
+  {{ end }}
   scope: Namespaced
   subresources:
     status: {}

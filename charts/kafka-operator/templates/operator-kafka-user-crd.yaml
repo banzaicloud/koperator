@@ -14,7 +14,9 @@ spec:
     listKind: KafkaUserList
     plural: kafkausers
     singular: kafkauser
+  {{ if .Values.crds.preserveUnknownFieldsSupported }}
   preserveUnknownFields: false
+  {{ end }}
   scope: Namespaced
   subresources:
     status: {}
