@@ -8,12 +8,11 @@ require (
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.3.0
 	github.com/banzaicloud/istio-client-go v0.0.0-20200410173743-e1adddc949b3
 	github.com/banzaicloud/istio-operator v0.0.0-20200407070503-3f7dc6953a7b
-	github.com/banzaicloud/k8s-objectmatcher v1.3.0
+	github.com/banzaicloud/k8s-objectmatcher v1.3.2
 	github.com/banzaicloud/kafka-operator/api v0.0.0
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
-	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.3.5
 	github.com/hashicorp/memberlist v0.2.0 // indirect
 	github.com/hashicorp/vault v1.4.0
@@ -30,13 +29,10 @@ require (
 	github.com/pavel-v-chernykh/keystore-go v2.1.0+incompatible
 	github.com/prometheus/common v0.9.1
 	go.opencensus.io v0.22.0 // indirect
-	k8s.io/api v0.17.4
-	k8s.io/apimachinery v0.17.4
-	k8s.io/client-go v0.17.4
-	sigs.k8s.io/controller-runtime v0.5.2
+	k8s.io/api v0.18.2
+	k8s.io/apimachinery v0.18.2
+	k8s.io/client-go v0.18.2
+	sigs.k8s.io/controller-runtime v0.6.0
 )
 
-replace (
-	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.4.0+incompatible
-	github.com/banzaicloud/kafka-operator/api => ./pkg/sdk
-)
+replace github.com/banzaicloud/kafka-operator/api => ./pkg/sdk

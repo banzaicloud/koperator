@@ -22,6 +22,8 @@ import (
 	"sync"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 
@@ -94,6 +96,12 @@ func TestGetCurrentAlerts(t *testing.T) {
 		mgrStopped.Wait()
 	}()
 
+	kafkaNamespace := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: "kafka",
+		},
+	}
+
 	kafkaCluster := &v1beta1.KafkaCluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "kafka",
@@ -130,6 +138,8 @@ func TestGetCurrentAlerts(t *testing.T) {
 			},
 		},
 	}
+	//Create Namespace first
+	ensureCreated(t, kafkaNamespace, mgr)
 
 	ensureCreated(t, kafkaCluster, mgr)
 
