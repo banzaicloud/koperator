@@ -17,6 +17,7 @@ package k8sutil
 import (
 	"context"
 	"reflect"
+	"strings"
 
 	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
@@ -170,7 +171,7 @@ func IsPodContainsTerminatedContainer(pod *corev1.Pod) bool {
 
 // IsPodContainsEvictedContainer returns true if pod status has an evicted reason false otherwise
 func IsPodContainsEvictedContainer(pod *corev1.Pod) bool {
-	if pod.Status.Phase == corev1.PodFailed && pod.Status.Reason == "Evicted" {
+	if pod.Status.Phase == corev1.PodFailed && strings.Contains(pod.Status.Reason, "Evicted") {
 		return true
 	}
 	return false
