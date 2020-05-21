@@ -176,10 +176,14 @@ fi`},
 
 func generatePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) map[string]string {
 	hashedCruiseControlCapacityJson := sha256.Sum256([]byte(GenerateCapacityConfig(kafkaCluster, log)))
+	hashedCruiseControlConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.Config))
+	hashedCruiseControlClusterConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.ClusterConfig))
 
 	annotations := []map[string]string{
 		{
-			"cruiseControlCapacity.json": hex.EncodeToString(hashedCruiseControlCapacityJson[:]),
+			"cruiseControlCapacity.json":      hex.EncodeToString(hashedCruiseControlCapacityJson[:]),
+			"cruiseControlConfig.json":        hex.EncodeToString(hashedCruiseControlConfigJson[:]),
+			"cruiseControlClusterConfig.json": hex.EncodeToString(hashedCruiseControlClusterConfigJson[:]),
 		},
 		util.MonitoringAnnotations(metricsPort),
 	}
