@@ -654,7 +654,9 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		if err != nil {
 			log.Error(err, "could not match objects", "kind", desiredType)
 		} else if patchResult.IsEmpty() {
-			if !k8sutil.IsPodContainsTerminatedContainer(currentPod) && r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync {
+			if !k8sutil.IsPodContainsTerminatedContainer(currentPod) &&
+				r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync &&
+				!k8sutil.IsPodContainsEvictedContainer(currentPod) {
 				log.V(1).Info("resource is in sync")
 				return nil
 			}
