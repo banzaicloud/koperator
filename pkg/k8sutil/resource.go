@@ -168,6 +168,14 @@ func IsPodContainsTerminatedContainer(pod *corev1.Pod) bool {
 	return false
 }
 
+// IsPodContainsEvictedContainer returns true if pod status has an evicted reason false otherwise
+func IsPodContainsEvictedContainer(pod *corev1.Pod) bool {
+	if pod.Status.Phase == corev1.PodFailed && pod.Status.Reason == "Evicted" {
+		return true
+	}
+	return false
+}
+
 func IsPodContainsPendingContainer(pod *corev1.Pod) bool {
 	for _, containerState := range pod.Status.ContainerStatuses {
 		if containerState.State.Waiting != nil {
