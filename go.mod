@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	emperror.dev/errors v0.7.0
-	github.com/Shopify/sarama v1.26.1
+	github.com/Shopify/sarama v1.26.4
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.3.0
 	github.com/banzaicloud/istio-client-go v0.0.0-20200410173743-e1adddc949b3
 	github.com/banzaicloud/istio-operator v0.0.0-20200407070503-3f7dc6953a7b
