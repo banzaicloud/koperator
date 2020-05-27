@@ -143,9 +143,9 @@ func (k *kafkaClient) createWriteACLs(dn string, topic string, patternType saram
 	return
 }
 
-func (k *kafkaClient) createCommonACLs(dn string, topic string, patternType sarama.AclResourcePatternType) error {
+func (k *kafkaClient) createCommonACLs(dn string, topic string, patternType sarama.AclResourcePatternType) (err error) {
 	// DESCRIBE on topic
-	return k.admin.CreateACL(sarama.Resource{
+	if err =  k.admin.CreateACL(sarama.Resource{
 		ResourceType:        sarama.AclResourceTopic,
 		ResourceName:        topic,
 		ResourcePatternType: patternType,
@@ -154,5 +154,22 @@ func (k *kafkaClient) createCommonACLs(dn string, topic string, patternType sara
 		Host:           "*",
 		Operation:      sarama.AclOperationDescribe,
 		PermissionType: sarama.AclPermissionAllow,
-	})
+	}); err != nil {
+		return
+	}
+
+	// DESCRIBE_CONFIGS on topic
+	if err =  k.admin.CreateACL(sarama.Resource{
+		ResourceType:        sarama.AclResourceTopic,
+		ResourceName:        topic,
+		ResourcePatternType: patternType,
+	}, sarama.Acl{
+		Principal:      dn,
+		Host:           "*",
+		Operation:      sarama.AclOperationDescribeConfigs,
+		PermissionType: sarama.AclPermissionAllow,
+	}); err != nil {
+		return
+	}
+	return
 }
