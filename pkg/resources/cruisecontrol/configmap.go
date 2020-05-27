@@ -31,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (r *Reconciler) configMap(log logr.Logger, clientPass string) runtime.Object {
+func (r *Reconciler) configMap(log logr.Logger, clientPass string, config *corev1.ConfigMap) runtime.Object {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
@@ -46,7 +46,7 @@ func (r *Reconciler) configMap(log logr.Logger, clientPass string) runtime.Objec
     zookeeper.connect=%s
 `, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())) +
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass),
-			"capacity.json":       GenerateCapacityConfig(r.KafkaCluster, log),
+			"capacity.json":       GenerateCapacityConfig(r.KafkaCluster, log, config),
 			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,
 			"log4j.properties": `
 log4j.rootLogger = INFO, FILE
@@ -117,12 +117,19 @@ type Capacity struct {
 }
 
 // generateCapacityConfig generates a CC capacity config with default values or returns the manually overridden value if it exists
-func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) string {
+func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, config *corev1.ConfigMap) string {
 	log.Info("Generating capacity config")
 
 	// If there is already a config added manually, use that one
 	if kafkaCluster.Spec.CruiseControlConfig.CapacityConfig != "" {
 		return kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
+	}
+	// During cluster downscale the CR does not contain the required data to generate
+	// the proper capacity json for CC so we are reusing the old one.
+	if config != nil {
+		if data, ok := config.Data["capacity.json"]; ok {
+			return data
+		}
 	}
 
 	capacityConfig := CruiseControlCapacityConfig{}

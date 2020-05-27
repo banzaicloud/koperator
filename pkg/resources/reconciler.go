@@ -44,9 +44,6 @@ type Resource func() runtime.Object
 // ResourceWithLogs function with log parameter
 type ResourceWithLogs func(log logr.Logger) runtime.Object
 
-// ResourceWithLogsAndClientPassword function with log and password parameter
-type ResourceWithLogsAndClientPassword func(log logr.Logger, clientPass string) runtime.Object
-
 // ResourceWithLogAndExternalListenerConfig function with log and externalListenerConfig parameter
 type ResourceWithLogAndExternalListenerConfig func(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig) runtime.Object
 

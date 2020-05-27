@@ -352,7 +352,7 @@ func TestGenerateCapacityConfig(t *testing.T) {
 
 		t.Run(test.testName, func(t *testing.T) {
 			var actual CruiseControlCapacityConfig
-			err := json.Unmarshal([]byte(GenerateCapacityConfig(&test.kafkaCluster, log.NullLogger{})), &actual)
+			err := json.Unmarshal([]byte(GenerateCapacityConfig(&test.kafkaCluster, log.NullLogger{}, nil)), &actual)
 			if err != nil {
 				t.Error(err, "could not actual unmarshal json")
 			}
