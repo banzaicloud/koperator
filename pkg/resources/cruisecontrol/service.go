@@ -17,15 +17,15 @@ package cruisecontrol
 import (
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
-func (r *Reconciler) service(log logr.Logger, clientPass string) runtime.Object {
+func (r *Reconciler) service() runtime.Object {
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(serviceNameTemplate, r.KafkaCluster.Name),

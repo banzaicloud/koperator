@@ -90,16 +90,41 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 
 		if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
-			for _, res := range []resources.ResourceWithLogsAndClientPassword{
-				r.service,
-				r.configMap,
-				r.deployment,
-			} {
-				o := res(log, clientPass)
-				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-				if err != nil {
-					return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+
+			o := r.service()
+			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			}
+
+			var config *corev1.ConfigMap
+			if isBrokerDeletionInProgress(r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState) {
+				key := types.NamespacedName{
+					Name:      fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
+					Namespace: r.KafkaCluster.Namespace,
 				}
+				config = &corev1.ConfigMap{}
+				err := r.Client.Get(context.Background(), key, config)
+				if err != nil && !apierrors.IsNotFound(err) {
+					return errorfactory.New(
+						errorfactory.APIFailure{},
+						err,
+						"getting cruise control configmap failed",
+						"name", key.Name,
+					)
+				}
+			}
+
+			o = r.configMap(log, clientPass, config)
+			err = k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+			}
+
+			o = r.deployment(log, config)
+			err = k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 		}
 	}
@@ -124,4 +149,16 @@ func (r *Reconciler) getClientPassword() (string, error) {
 	clientPass := string(clientSecret.Data[v1alpha1.PasswordKey])
 
 	return clientPass, nil
+}
+
+func isBrokerDeletionInProgress(brokers []v1beta1.Broker, brokerState map[string]v1beta1.BrokerState) bool {
+	if len(brokers) < len(brokerState) {
+		return true
+	}
+	for _, state := range brokerState {
+		if state.GracefulActionState.CruiseControlState.IsDownscale() {
+			return true
+		}
+	}
+	return false
 }
