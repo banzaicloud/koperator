@@ -860,5 +860,5 @@ func GetBrokersWithPendingOrRunningCCTask(kafkaCluster *v1beta1.KafkaCluster) []
 }
 
 func isDesiredStorageValueInvalid(desired, current *corev1.PersistentVolumeClaim) bool {
-	return desired.Spec.Resources.Requests.Storage().Value() <= current.Spec.Resources.Requests.Storage().Value()
+	return desired.Spec.Resources.Requests.Storage().Value() < current.Spec.Resources.Requests.Storage().Value()
 }
