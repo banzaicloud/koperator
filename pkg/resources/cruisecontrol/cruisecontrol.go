@@ -98,7 +98,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 
 			var config *corev1.ConfigMap
-			if isBrokerDeletionInProgress(r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState) {
+			if isBrokerDeletionInProgress(r.KafkaCluster.Status.BrokersState) {
 				key := types.NamespacedName{
 					Name:      fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
 					Namespace: r.KafkaCluster.Namespace,
@@ -114,14 +114,17 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					)
 				}
 			}
+			capacityConfig := GenerateCapacityConfig(r.KafkaCluster, log, config)
 
-			o = r.configMap(log, clientPass, config)
+			o = r.configMap(clientPass, capacityConfig)
 			err = k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 
-			o = r.deployment(log, config)
+			podAnnotations := GeneratePodAnnotations(r.KafkaCluster, log, capacityConfig)
+
+			o = r.deployment(log, podAnnotations)
 			err = k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -151,10 +154,7 @@ func (r *Reconciler) getClientPassword() (string, error) {
 	return clientPass, nil
 }
 
-func isBrokerDeletionInProgress(brokers []v1beta1.Broker, brokerState map[string]v1beta1.BrokerState) bool {
-	if len(brokers) < len(brokerState) {
-		return true
-	}
+func isBrokerDeletionInProgress(brokerState map[string]v1beta1.BrokerState) bool {
 	for _, state := range brokerState {
 		if state.GracefulActionState.CruiseControlState.IsDownscale() {
 			return true

@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) deployment(log logr.Logger, config *corev1.ConfigMap) runtime.Object {
+func (r *Reconciler) deployment(log logr.Logger, podAnnotations map[string]string) runtime.Object {
 
 	volume := []corev1.Volume{}
 	volumeMount := []corev1.VolumeMount{}
@@ -61,7 +61,7 @@ func (r *Reconciler) deployment(log logr.Logger, config *corev1.ConfigMap) runti
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      templates.ObjectMetaLabels(r.KafkaCluster, ccLabelSelector(r.KafkaCluster.Name)),
-					Annotations: generatePodAnnotations(r.KafkaCluster, log, config),
+					Annotations: podAnnotations,
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            r.KafkaCluster.Spec.CruiseControlConfig.GetServiceAccount(r.KafkaCluster.Name),
@@ -174,8 +174,8 @@ fi`},
 	}
 }
 
-func generatePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, config *corev1.ConfigMap) map[string]string {
-	hashedCruiseControlCapacityJson := sha256.Sum256([]byte(GenerateCapacityConfig(kafkaCluster, log, config)))
+func GeneratePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, capacityConfig string) map[string]string {
+	hashedCruiseControlCapacityJson := sha256.Sum256([]byte(capacityConfig))
 	hashedCruiseControlConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.Config))
 	hashedCruiseControlClusterConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.ClusterConfig))
 

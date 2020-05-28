@@ -31,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (r *Reconciler) configMap(log logr.Logger, clientPass string, config *corev1.ConfigMap) runtime.Object {
+func (r *Reconciler) configMap(clientPass, capacityConfig string) runtime.Object {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
@@ -46,7 +46,7 @@ func (r *Reconciler) configMap(log logr.Logger, clientPass string, config *corev
     zookeeper.connect=%s
 `, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())) +
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass),
-			"capacity.json":       GenerateCapacityConfig(r.KafkaCluster, log, config),
+			"capacity.json":       capacityConfig,
 			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,
 			"log4j.properties": `
 log4j.rootLogger = INFO, FILE
@@ -124,8 +124,9 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	if kafkaCluster.Spec.CruiseControlConfig.CapacityConfig != "" {
 		return kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
 	}
-	// During cluster downscale the CR does not contain the required data to generate
-	// the proper capacity json for CC so we are reusing the old one.
+	// During cluster downscale the CR does not contain data for brokers being downscaled which is
+	// required to generate the proper capacity json for CC so we are reusing the old one.
+	// We can only remove brokers from capacity config when they were removed (pods deleted) from CC as well.
 	if config != nil {
 		if data, ok := config.Data["capacity.json"]; ok {
 			return data
