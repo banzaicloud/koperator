@@ -802,7 +802,14 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 					if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
 						return errors.WrapIf(err, "could not apply last state to annotation")
 					}
-					desiredPvc = currentPvc
+
+					if isDesiredStorageValueInvalid(desiredPvc, currentPvc) {
+						return errorfactory.New(errorfactory.InternalError{}, nil, "one can not reduce the size of a PVC", "kind", desiredType)
+					}
+
+					storageSize := desiredPvc.Spec.Resources.Requests.Storage().Value()
+					desiredPvc = currentPvc.DeepCopy()
+					desiredPvc.Spec.Resources.Requests.Storage().Set(storageSize)
 
 					if err := r.Client.Update(context.TODO(), desiredPvc); err != nil {
 						return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
@@ -850,4 +857,8 @@ func GetBrokersWithPendingOrRunningCCTask(kafkaCluster *v1beta1.KafkaCluster) []
 		}
 	}
 	return brokerIDs
+}
+
+func isDesiredStorageValueInvalid(desired, current *corev1.PersistentVolumeClaim) bool {
+	return desired.Spec.Resources.Requests.Storage().Value() < current.Spec.Resources.Requests.Storage().Value()
 }
