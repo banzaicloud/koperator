@@ -808,9 +808,7 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 					}
 
 					storageSize := desiredPvc.Spec.Resources.Requests.Storage().Value()
-					// because we are using generated names
-					desiredPvc.Name = currentPvc.Name
-					desiredPvc.Spec = currentPvc.Spec
+					desiredPvc = currentPvc.DeepCopy()
 					desiredPvc.Spec.Resources.Requests.Storage().Set(storageSize)
 
 					if err := r.Client.Update(context.TODO(), desiredPvc); err != nil {
