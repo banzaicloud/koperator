@@ -807,9 +807,9 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 						return errorfactory.New(errorfactory.InternalError{}, nil, "one can not reduce the size of a PVC", "kind", desiredType)
 					}
 
-					storageSize := desiredPvc.Spec.Resources.Requests.Storage().Value()
+					resReq := desiredPvc.Spec.Resources.Requests
 					desiredPvc = currentPvc.DeepCopy()
-					desiredPvc.Spec.Resources.Requests.Storage().Set(storageSize)
+					desiredPvc.Spec.Resources.Requests = resReq
 
 					if err := r.Client.Update(context.TODO(), desiredPvc); err != nil {
 						return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
