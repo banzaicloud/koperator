@@ -50,7 +50,7 @@ func (r *Reconciler) allBrokerService() runtime.Object {
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, r.KafkaCluster.Name),
 			LabelsForKafka(r.KafkaCluster.Name),
-			r.KafkaCluster.Spec.ListenersConfig.ServiceAnnotations,
+			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
 			r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,

@@ -167,6 +167,17 @@ type IstioIngressConfig struct {
 	VirtualServiceAnnotations map[string]string            `json:"virtualServiceAnnotations,omitempty"`
 }
 
+// GetVirtualServiceAnnotations returns a copy of the VirtualServiceAnnotations field
+func (iIConfig *IstioIngressConfig) GetVirtualServiceAnnotations() map[string]string {
+	annotations := make(map[string]string, len(iIConfig.VirtualServiceAnnotations))
+
+	for key, value := range iIConfig.VirtualServiceAnnotations {
+		annotations[key] = value
+	}
+
+	return annotations
+}
+
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
 type MonitoringConfig struct {
 	JmxImage               string `json:"jmxImage"`
@@ -187,6 +198,17 @@ type ListenersConfig struct {
 	InternalListeners  []InternalListenerConfig `json:"internalListeners"`
 	SSLSecrets         *SSLSecrets              `json:"sslSecrets,omitempty"`
 	ServiceAnnotations map[string]string        `json:"serviceAnnotations,omitempty"`
+}
+
+// GetServiceAnnotations returns a copy of the ServiceAnnotations field.
+func (c ListenersConfig) GetServiceAnnotations() map[string]string {
+	annotations := make(map[string]string, len(c.ServiceAnnotations))
+
+	for key, value := range c.ServiceAnnotations {
+		annotations[key] = value
+	}
+
+	return annotations
 }
 
 // SSLSecrets defines the Kafka SSL secrets
