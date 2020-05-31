@@ -45,7 +45,7 @@ func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1be
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(virtualServiceTemplate, r.KafkaCluster.Name, externalListenerConfig.Name),
 			labelsForIstioIngress(r.KafkaCluster.Name, externalListenerConfig.Name),
-			r.KafkaCluster.Spec.IstioIngressConfig.VirtualServiceAnnotations,
+			r.KafkaCluster.Spec.IstioIngressConfig.GetVirtualServiceAnnotations(),
 			r.KafkaCluster),
 		Spec: vServiceSpec,
 	}

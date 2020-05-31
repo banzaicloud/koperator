@@ -63,7 +63,7 @@ func (r *Reconciler) service(id int32, log logr.Logger) runtime.Object {
 				LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
-			r.KafkaCluster.Spec.ListenersConfig.ServiceAnnotations,
+			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
 			r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
