@@ -63,7 +63,7 @@ rbac:
   enabled: true
 
 crd:
-  enabled: false
+  enabled: true
 
 nodeSelector: {}
 
