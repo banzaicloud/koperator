@@ -211,6 +211,17 @@ func (c ListenersConfig) GetServiceAnnotations() map[string]string {
 	return annotations
 }
 
+// GetServiceAnnotations returns a copy of the ServiceAnnotations field.
+func (c ExternalListenerConfig) GetServiceAnnotations() map[string]string {
+	annotations := make(map[string]string, len(c.ServiceAnnotations))
+
+	for key, value := range c.ServiceAnnotations {
+		annotations[key] = value
+	}
+
+	return annotations
+}
+
 // SSLSecrets defines the Kafka SSL secrets
 type SSLSecrets struct {
 	TLSSecretName   string                  `json:"tlsSecretName"`
@@ -249,8 +260,9 @@ type AlertManagerConfig struct {
 // ExternalListenerConfig defines the external listener config for Kafka
 type ExternalListenerConfig struct {
 	CommonListenerSpec   `json:",inline"`
-	ExternalStartingPort int32  `json:"externalStartingPort"`
-	HostnameOverride     string `json:"hostnameOverride,omitempty"`
+	ExternalStartingPort int32             `json:"externalStartingPort"`
+	HostnameOverride     string            `json:"hostnameOverride,omitempty"`
+	ServiceAnnotations   map[string]string `json:"serviceAnnotations,omitempty"`
 }
 
 // InternalListenerConfig defines the internal listener config for Kafka

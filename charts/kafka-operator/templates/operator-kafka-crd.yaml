@@ -1405,6 +1405,10 @@ spec:
                         type: string
                       name:
                         type: string
+                      serviceAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
                       type:
                         type: string
                     required:

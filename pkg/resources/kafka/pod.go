@@ -364,9 +364,9 @@ func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars, clust
 	}
 	sort.Strings(keys)
 
-	mergedEnv := make([]corev1.EnvVar, 0)
+	var mergedEnv []corev1.EnvVar
 	for _, k := range keys {
-		mergedEnv = append(mergedEnv, corev1.EnvVar{Name: envs[k].Name, Value: envs[k].Value})
+		mergedEnv = append(mergedEnv, envs[k])
 	}
 
 	return mergedEnv
