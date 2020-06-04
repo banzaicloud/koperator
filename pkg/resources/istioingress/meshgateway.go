@@ -21,6 +21,7 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
@@ -33,7 +34,8 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(istioingressutils.MeshGatewayNameTemplate, r.KafkaCluster.Name), labelsForIstioIngress(r.KafkaCluster.Name, externalListenerConfig.Name), r.KafkaCluster),
 		Spec: istioOperatorApi.MeshGatewaySpec{
 			MeshGatewayConfiguration: istioOperatorApi.MeshGatewayConfiguration{
-				Labels: labelsForIstioIngress(r.KafkaCluster.Name, externalListenerConfig.Name),
+				Labels:             labelsForIstioIngress(r.KafkaCluster.Name, externalListenerConfig.Name),
+				ServiceAnnotations: externalListenerConfig.GetServiceAnnotations(),
 				BaseK8sResourceConfigurationWithHPAWithoutImage: istioOperatorApi.BaseK8sResourceConfigurationWithHPAWithoutImage{
 					ReplicaCount: util.Int32Pointer(r.KafkaCluster.Spec.IstioIngressConfig.GetReplicas()),
 					MinReplicas:  util.Int32Pointer(r.KafkaCluster.Spec.IstioIngressConfig.GetReplicas()),
@@ -53,8 +55,9 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 	}
 	if !r.KafkaCluster.Spec.HeadlessServiceEnabled && len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners) > 0 {
 		mgateway.Spec.Ports = append(mgateway.Spec.Ports, corev1.ServicePort{
-			Name: allBrokers,
-			Port: r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort,
+			Name:       allBrokers,
+			TargetPort: intstr.FromInt(int(r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)),
+			Port:       r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort,
 		})
 	}
 	return mgateway
