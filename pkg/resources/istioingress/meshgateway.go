@@ -67,8 +67,9 @@ func generateExternalPorts(clusterSpec v1beta1.KafkaClusterSpec, externalListene
 	generatedPorts := make([]corev1.ServicePort, 0)
 	for _, broker := range clusterSpec.Brokers {
 		generatedPorts = append(generatedPorts, corev1.ServicePort{
-			Name: fmt.Sprintf("broker-%d", broker.Id),
-			Port: externalListenerConfig.ExternalStartingPort + broker.Id,
+			Name:       fmt.Sprintf("broker-%d", broker.Id),
+			TargetPort: intstr.FromInt(int(externalListenerConfig.ExternalStartingPort + broker.Id)),
+			Port:       externalListenerConfig.ExternalStartingPort + broker.Id,
 		})
 	}
 
