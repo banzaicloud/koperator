@@ -164,7 +164,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 
 	// If we're using the default service account, there's no need to create it
-	if !r.KafkaCluster.Spec.UsingDefaultServiceAccount() {
+	if !r.KafkaCluster.UsingDefaultServiceAccount() {
 		o := r.serviceAccount()
 		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 		if err != nil {
