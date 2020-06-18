@@ -398,6 +398,19 @@ func (eConfig *EnvoyConfig) GetReplicas() int32 {
 	return eConfig.Replicas
 }
 
+// UsingDefaultServiceAccount is this kafka cluster using the kubernetes "default" service account
+func (kc *KafkaCluster) UsingDefaultServiceAccount() bool {
+	if kc.Spec.CruiseControlConfig.GetServiceAccount(kc.Name) != "default" {
+		return false
+	}
+	for _, brokerConfig := range kc.Spec.BrokerConfigGroups {
+		if brokerConfig.GetServiceAccount(kc.Name) != "default" {
+			return false
+		}
+	}
+	return true
+}
+
 //GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
 func (bConfig *BrokerConfig) GetServiceAccount(KafkaClusterName string) string {
 	if bConfig.ServiceAccountName != "" {
