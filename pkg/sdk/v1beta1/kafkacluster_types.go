@@ -681,7 +681,10 @@ rules:
   name: kafka_$1_$2_$3
   type: GAUGE
   labels:
-    quantile: "0.$4"`
+    quantile: "0.$4"
+# Export all other java.{lang,nio}* beans using default format
+- pattern: java.lang.+
+- pattern: java.nio.+`
 }
 
 // GetCCJMXExporterConfig returns the config for CC Prometheus JMX exporter
