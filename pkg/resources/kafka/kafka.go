@@ -804,7 +804,8 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 					}
 
 					if isDesiredStorageValueInvalid(desiredPvc, currentPvc) {
-						return errorfactory.New(errorfactory.InternalError{}, nil, "one can not reduce the size of a PVC", "kind", desiredType)
+						return errorfactory.New(errorfactory.InternalError{}, errors.New("could not modify pvc size"),
+							"one can not reduce the size of a PVC", "kind", desiredType)
 					}
 
 					resReq := desiredPvc.Spec.Resources.Requests
