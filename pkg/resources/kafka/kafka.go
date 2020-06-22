@@ -163,15 +163,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating deprecated status failed")
 	}
 
-	// If we're using the default service account, there's no need to create it
-	if !r.KafkaCluster.UsingDefaultServiceAccount() {
-		o := r.serviceAccount()
-		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-		if err != nil {
-			return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
-		}
-	}
-
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
 		o := r.headlessService()
 		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)

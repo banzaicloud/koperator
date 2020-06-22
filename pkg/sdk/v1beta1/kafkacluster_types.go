@@ -15,7 +15,6 @@
 package v1beta1
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
@@ -29,7 +28,8 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 const (
-	ServiceAccountNameFormat = "%s-cluster"
+	// DefaultServiceAccountName name used for the various ServiceAccounts
+	DefaultServiceAccountName = "default"
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
@@ -398,25 +398,12 @@ func (eConfig *EnvoyConfig) GetReplicas() int32 {
 	return eConfig.Replicas
 }
 
-// UsingDefaultServiceAccount is this kafka cluster using the kubernetes "default" service account
-func (kc *KafkaCluster) UsingDefaultServiceAccount() bool {
-	if kc.Spec.CruiseControlConfig.GetServiceAccount(kc.Name) != "default" {
-		return false
-	}
-	for _, brokerConfig := range kc.Spec.BrokerConfigGroups {
-		if brokerConfig.GetServiceAccount(kc.Name) != "default" {
-			return false
-		}
-	}
-	return true
-}
-
 //GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
 func (bConfig *BrokerConfig) GetServiceAccount(KafkaClusterName string) string {
 	if bConfig.ServiceAccountName != "" {
 		return bConfig.ServiceAccountName
 	}
-	return fmt.Sprintf(ServiceAccountNameFormat, KafkaClusterName)
+	return DefaultServiceAccountName
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for EnvoyConfig
@@ -424,7 +411,7 @@ func (eConfig *EnvoyConfig) GetServiceAccount(KafkaClusterName string) string {
 	if eConfig.ServiceAccountName != "" {
 		return eConfig.ServiceAccountName
 	}
-	return fmt.Sprintf(ServiceAccountNameFormat, KafkaClusterName)
+	return DefaultServiceAccountName
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for CruiseControl
@@ -432,7 +419,7 @@ func (cConfig *CruiseControlConfig) GetServiceAccount(KafkaClusterName string) s
 	if cConfig.ServiceAccountName != "" {
 		return cConfig.ServiceAccountName
 	}
-	return fmt.Sprintf(ServiceAccountNameFormat, KafkaClusterName)
+	return DefaultServiceAccountName
 }
 
 //GetTolerations returns the tolerations for the given broker
