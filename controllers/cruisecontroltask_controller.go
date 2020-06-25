@@ -196,7 +196,7 @@ func (r *CruiseControlTaskReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.K
 	cc := scale.NewCruiseControlScaler(kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 	uTaskId, taskStartTime, scaleErr := cc.UpScaleCluster(brokerIds)
 	if scaleErr != nil {
-		log.Info("cruise control communication error during upscaling broker(s)", "brokerId(s)", brokerIds)
+		log.Info("Cannot upscale broker(s)", "brokerId(s)", brokerIds, "error", scaleErr.Error())
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, scaleErr, fmt.Sprintf("broker id(s): %s", brokerIds))
 	}
 	statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerIds, kafkaCluster,
