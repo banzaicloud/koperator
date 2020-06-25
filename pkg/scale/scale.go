@@ -71,20 +71,27 @@ func (cc *CruiseControlScaler) generateUrlForCC(action string, options map[strin
 		return "http://" + cc.endpoint + "/" + basePath + "/" + action + "?" + strings.TrimSuffix(optionURL, "&")
 	}
 	return "http://" + fmt.Sprintf(serviceNameTemplate, cc.clusterName) + "." + cc.namespace + ".svc." + cc.kubernetesClusterDomain + ":8090/" + basePath + "/" + action + "?" + strings.TrimSuffix(optionURL, "&")
-	//TODO only for testing
-	//return "http://localhost:8090/" + basePath + "/" + action + "?" + strings.TrimSuffix(optionURL, "&")
 }
 
 func (cc *CruiseControlScaler) postCruiseControl(action string, options map[string]string) (*http.Response, error) {
 
-	requestURl := cc.generateUrlForCC(action, options)
-	rsp, err := http.Post(requestURl, "text/plain", nil)
+	requestURL := cc.generateUrlForCC(action, options)
+	rsp, err := http.Post(requestURL, "text/plain", nil)
 	if err != nil {
 		log.Error(err, "error during talking to cruise-control")
 		return nil, err
 	}
 	if rsp.StatusCode != 200 && rsp.StatusCode != 202 {
-		log.Error(errors.New("Non 200 response from cruise-control: "+rsp.Status), "error during talking to cruise-control")
+		ccErr, parseErr := parseCCErrorFromResp(rsp.Body)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		closeErr := rsp.Body.Close()
+		if closeErr != nil {
+			return nil, closeErr
+		}
+		log.Error(errCruiseControlNotReturned200, "non-200 response returned by cruise-control",
+			"request", requestURL, "status", rsp.Status, "error message", ccErr)
 		return rsp, errCruiseControlNotReturned200
 	}
 
@@ -93,15 +100,24 @@ func (cc *CruiseControlScaler) postCruiseControl(action string, options map[stri
 
 func (cc *CruiseControlScaler) getCruiseControl(action string, options map[string]string) (*http.Response, error) {
 
-	requestURl := cc.generateUrlForCC(action, options)
-	rsp, err := http.Get(requestURl)
+	requestURL := cc.generateUrlForCC(action, options)
+	rsp, err := http.Get(requestURL)
 	if err != nil {
 		log.Error(err, "error during talking to cruise-control")
 		return nil, err
 	}
 	if rsp.StatusCode != 200 {
-		log.Error(errors.New("Non 200 response from cruise-control: "+rsp.Status), "error during talking to cruise-control")
-		return rsp, errors.New("Non 200 response from cruise-control: " + rsp.Status)
+		ccErr, parseErr := parseCCErrorFromResp(rsp.Body)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		closeErr := rsp.Body.Close()
+		if closeErr != nil {
+			return nil, closeErr
+		}
+		log.Error(errCruiseControlNotReturned200, "non-200 response returned by cruise-control",
+			"request", requestURL, "status", rsp.Status, "error message", ccErr)
+		return rsp, errCruiseControlNotReturned200
 	}
 
 	return rsp, nil
@@ -291,7 +307,7 @@ func (cc *CruiseControlScaler) UpScaleCluster(brokerIds []string) (string, strin
 	ready := bcutil.AreStringSlicesIdentical(liveBrokers, brokerIds)
 
 	if !ready {
-		return "", "", errors.New("broker is not ready yet")
+		return "", "", errors.New("broker(s) not yet ready in cruise-control")
 	}
 
 	options := map[string]string{
@@ -303,17 +319,6 @@ func (cc *CruiseControlScaler) UpScaleCluster(brokerIds []string) (string, strin
 	uResp, err := cc.postCruiseControl(addBrokerAction, options)
 	if err != nil && err != errCruiseControlNotReturned200 {
 		log.Error(err, "can't upscale cluster gracefully since post to cruise-control failed")
-		return "", "", err
-	}
-	if err == errCruiseControlNotReturned200 {
-		log.Info("trying to communicate with cc")
-
-		defer uResp.Body.Close()
-		ccErr, perr := parseCCErrorFromResp(uResp.Body)
-		if perr != nil {
-			return "", "", err
-		}
-		log.Info(ccErr)
 		return "", "", err
 	}
 
@@ -339,17 +344,6 @@ func (cc *CruiseControlScaler) DownsizeCluster(brokerIds []string) (string, stri
 	dResp, err := cc.postCruiseControl(removeBrokerAction, options)
 	if err != nil && err != errCruiseControlNotReturned200 {
 		log.Error(err, "downsize cluster gracefully failed since CC returned non 200")
-		return "", "", err
-	}
-	if err == errCruiseControlNotReturned200 {
-		log.Error(err, "could not communicate with cc")
-
-		defer dResp.Body.Close()
-		ccErr, perr := parseCCErrorFromResp(dResp.Body)
-		if perr != nil {
-			return "", "", err
-		}
-		log.Info(ccErr)
 		return "", "", err
 	}
 
@@ -380,17 +374,6 @@ func (cc *CruiseControlScaler) RebalanceDisks(brokerIdsWithMountPath map[string]
 	rResp, err := cc.postCruiseControl(rebalanceAction, options)
 	if err != nil && err != errCruiseControlNotReturned200 {
 		log.Error(err, "can't rebalance brokers disk gracefully since post to cruise-control failed")
-		return "", "", err
-	}
-	if err == errCruiseControlNotReturned200 {
-		log.Error(err, "could not communicate with cc")
-
-		defer rResp.Body.Close()
-		ccErr, perr := parseCCErrorFromResp(rResp.Body)
-		if perr != nil {
-			return "", "", err
-		}
-		log.Info(ccErr)
 		return "", "", err
 	}
 
