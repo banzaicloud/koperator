@@ -289,6 +289,11 @@ type CommonListenerSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:JSONPath=".status.state",name="Cluster state",type="string"
+// +kubebuilder:printcolumn:JSONPath=".status.alertCount",name="Cluster alert count",type="integer"
+// +kubebuilder:printcolumn:JSONPath=".status.rollingUpgradeStatus.lastSuccess",name="Last successful upgrade",type="string"
+// +kubebuilder:printcolumn:JSONPath=".status.rollingUpgradeStatus.errorCount",name="Upgrade error count",type="string"
+// +kubebuilder:printcolumn:JSONPath=".metadata.creationTimestamp",name="Age",type="date"
 
 // KafkaCluster is the Schema for the kafkaclusters API
 type KafkaCluster struct {

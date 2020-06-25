@@ -8,6 +8,22 @@ metadata:
   creationTimestamp: null
   name: kafkaclusters.kafka.banzaicloud.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.state
+    name: Cluster state
+    type: string
+  - JSONPath: .status.alertCount
+    name: Cluster alert count
+    type: integer
+  - JSONPath: .status.rollingUpgradeStatus.lastSuccess
+    name: Last successful upgrade
+    type: string
+  - JSONPath: .status.rollingUpgradeStatus.errorCount
+    name: Upgrade error count
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
   group: kafka.banzaicloud.io
   names:
     kind: KafkaCluster
