@@ -63,6 +63,9 @@ fullnameOverride: ""
 rbac:
   enabled: true
 
+crd:
+  enabled: true
+
 nodeSelector: {}
 
 tolerations: []
