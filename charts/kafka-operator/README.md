@@ -39,11 +39,15 @@ Parameter | Description | Default
 `operator.image.repository` | Operator container image repository | `banzaicloud/kafka-operator`
 `operator.image.tag` | Operator container image tag | `v0.11.0`
 `operator.image.pullPolicy` | Operator container image pull policy | `IfNotPresent`
+`operator.serviceAccount.name` | ServiceAccount used by the operator pod | `kafka-operator`
+`operator.serviceAccount.create` | If true, create the `operator.serviceAccount.name` service account | `true`
 `operator.resources` | CPU/Memory resource requests/limits (YAML) | Memory: `128Mi/256Mi`, CPU: `100m/200m`
 `operator.namespaces` | List of namespaces where Operator watches for custom resources.<br><br>**Note** that the operator still requires to read the cluster-scoped `Node` labels to configure `rack awareness`. Make sure the operator ServiceAccount is granted `get` permissions on this `Node` resource when using limited RBACs.| `""` i.e. all namespaces
 `operator.annotations` | Operator pod annotations can be set | `{}`
 `prometheusMetrics.enabled` | If true, use direct access for Prometheus metrics | `false`
 `prometheusMetrics.authProxy.enabled` | If true, use auth proxy for Prometheus metrics | `true`
+`prometheusMetrics.authProxy.serviceAccount.create` | If true, create the service account (see `prometheusMetrics.authProxy.serviceAccount.name`) used by prometheus auth proxy | `true`
+`prometheusMetrics.authProxy.serviceAccount.name` | ServiceAccount used by prometheus auth proxy | `kafka-operator-authproxy`
 `prometheusMetrics.authProxy.image.repository` | Auth proxy container image repository | `gcr.io/kubebuilder/kube-rbac-proxy`
 `prometheusMetrics.authProxy.image.tag` | Auth proxy container image tag | `v0.4.0`
 `prometheusMetrics.authProxy.image.pullPolicy` | Auth proxy container image pull policy | `IfNotPresent`
