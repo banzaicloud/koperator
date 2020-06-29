@@ -98,7 +98,9 @@ deploy: install-kustomize manifests
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: bin/controller-gen
-	cd pkg/sdk && $(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=../../config/base/crds output:rbac:artifacts:config=../../config/base/rbac output:webhook:artifacts:config=../../config/base/webhook
+	cd pkg/sdk && $(CONTROLLER_GEN) $(CRD_OPTIONS) webhook paths="./..." output:crd:artifacts:config=../../config/base/crds output:webhook:artifacts:config=../../config/base/webhook
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./controllers/..." output:rbac:artifacts:config=./config/base/rbac
+
 
 # Run go fmt against code
 fmt:
