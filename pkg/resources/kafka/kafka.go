@@ -359,7 +359,9 @@ OUTERLOOP:
 			}
 
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]]; ok &&
-				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded {
+				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded &&
+				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleRequired &&
+				broker.Status.Phase != corev1.PodPending {
 
 				if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
 					log.Info("cc task is still running for broker", "brokerId", broker.Labels["brokerId"], "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
