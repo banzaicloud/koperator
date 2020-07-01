@@ -86,27 +86,16 @@ func GeneratePass(length int) (passw []byte) {
 	return
 }
 
-// EnsureSecretJKS ensures a JKS is present in a certificate secret
-func EnsureSecretJKS(secret *corev1.Secret) (injected *corev1.Secret, err error) {
+// EnsureSecretPassJKS ensures a JKS password is present in a certificate secret
+func EnsureSecretPassJKS(secret *corev1.Secret) (injected *corev1.Secret, err error) {
 
-	// If the JKS is already present - return
-	if _, ok := secret.Data[v1alpha1.TLSJKSKey]; ok {
+	// If the JKS Pass is already present - return
+	if _, ok := secret.Data[v1alpha1.PasswordKey]; ok {
 		return secret, nil
 	}
 
 	injected = secret.DeepCopy()
-
-	jks, passw, err := GenerateJKS(
-		secret.Data[corev1.TLSCertKey],
-		secret.Data[corev1.TLSPrivateKeyKey],
-		secret.Data[v1alpha1.CoreCACertKey],
-	)
-	if err != nil {
-		return
-	}
-
-	injected.Data[v1alpha1.TLSJKSKey] = jks
-	injected.Data[v1alpha1.PasswordKey] = passw
+	injected.Data[v1alpha1.PasswordKey] = GeneratePass(16)
 	return
 }
 

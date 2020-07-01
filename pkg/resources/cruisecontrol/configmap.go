@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -79,11 +80,11 @@ func generateSSLConfig(l *v1beta1.ListenersConfig, clientPass string) (res strin
 	if l.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
 		res = fmt.Sprintf(`
 security.protocol=SSL
-ssl.truststore.location=/var/run/secrets/java.io/keystores/tls.jks
-ssl.keystore.location=/var/run/secrets/java.io/keystores/tls.jks
+ssl.truststore.location=/var/run/secrets/java.io/keystores/%s
+ssl.keystore.location=/var/run/secrets/java.io/keystores/%s
 ssl.keystore.password=%s
 ssl.truststore.password=%s
-`, clientPass, clientPass)
+`, v1alpha1.TLSJKSTrustStore, v1alpha1.TLSJKSKeyStore, clientPass, clientPass)
 	}
 	return
 }
