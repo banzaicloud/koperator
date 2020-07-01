@@ -563,7 +563,7 @@ func (mConfig *MonitoringConfig) GetImage() string {
 	if mConfig.JmxImage != "" {
 		return mConfig.JmxImage
 	}
-	return "banzaicloud/jmx-javaagent:0.12.0"
+	return "banzaicloud/jmx-javaagent:0.13.0"
 }
 
 // GetPathToJar returns the path in the used Image for Prometheus JMX exporter
@@ -571,7 +571,7 @@ func (mConfig *MonitoringConfig) GetPathToJar() string {
 	if mConfig.PathToJar != "" {
 		return mConfig.PathToJar
 	}
-	return "/opt/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar"
+	return "/opt/jmx_exporter/jmx_prometheus_javaagent-0.13.0.jar"
 }
 
 // GetKafkaJMXExporterConfig returns the config for Kafka Prometheus JMX exporter
