@@ -16,14 +16,9 @@ package certmanagerpki
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"emperror.dev/errors"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	certmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
+	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 )
 
 // FinalizeUserCertificate for cert-manager backend auto returns because controller references handle cleanup
@@ -48,6 +49,12 @@ func (c *certManager) ReconcileUserCertificate(ctx context.Context, user *v1alph
 
 	if err != nil && apierrors.IsNotFound(err) {
 		// the certificate does not exist, let's make one
+		// check if jks is required and create password for it
+		if user.Spec.IncludeJKS {
+			if err := c.injectJKSPassword(ctx, user); err != nil {
+				return nil, err
+			}
+		}
 		cert := c.clusterCertificateForUser(user, scheme)
 		if err = c.client.Create(ctx, cert); err != nil {
 			return nil, errorfactory.New(errorfactory.APIFailure{}, err, "could not create user certificate")
@@ -64,22 +71,9 @@ func (c *certManager) ReconcileUserCertificate(ctx context.Context, user *v1alph
 		return nil, err
 	}
 
-	if user.Spec.IncludeJKS {
-		if secret, err = c.injectJKS(ctx, user, secret); err != nil {
-			return nil, err
-		}
-	}
-
 	// Ensure controller reference on user secret
 	if err = c.ensureControllerReference(ctx, user, secret, scheme); err != nil {
 		return nil, err
-	}
-
-	// Ensure that the secret is populated with the required values.
-	for _, v := range secret.Data {
-		if len(v) == 0 {
-			return nil, errorfactory.New(errorfactory.APIFailure{}, errors.New("not all secret value populated"), "secret is not ready")
-		}
 	}
 
 	return &pkicommon.UserCertificate{
@@ -89,17 +83,25 @@ func (c *certManager) ReconcileUserCertificate(ctx context.Context, user *v1alph
 	}, nil
 }
 
-// injectJKS ensures that a secret contains JKS format when requested
-func (c *certManager) injectJKS(ctx context.Context, user *v1alpha1.KafkaUser, secret *corev1.Secret) (*corev1.Secret, error) {
+// injectJKSPassword ensures that a secret contains JKS password when requested
+func (c *certManager) injectJKSPassword(ctx context.Context, user *v1alpha1.KafkaUser) error {
 	var err error
-	if secret, err = certutil.EnsureSecretJKS(secret); err != nil {
-		return nil, errorfactory.New(errorfactory.InternalError{}, err, "could not inject secret with jks")
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      user.Spec.SecretName,
+			Namespace: user.Namespace,
+		},
+		Data: map[string][]byte{},
 	}
-	if err = c.client.Update(ctx, secret); err != nil {
-		return nil, errorfactory.New(errorfactory.APIFailure{}, err, "could not update secret with jks")
+	secret, err = certutil.EnsureSecretPassJKS(secret)
+	if err != nil {
+		return errorfactory.New(errorfactory.InternalError{}, err, "could not inject secret with jks password")
 	}
-	// Fetch the updated secret
-	return c.getUserSecret(ctx, user)
+	if err = c.client.Create(ctx, secret); err != nil {
+		return errorfactory.New(errorfactory.APIFailure{}, err, "could not create secret with jks password")
+	}
+
+	return nil
 }
 
 // ensureControllerReference ensures that a KafkaUser owns a given Secret
@@ -123,17 +125,33 @@ func (c *certManager) getUserCertificate(ctx context.Context, user *v1alpha1.Kaf
 }
 
 // getUserSecret fetches the secret created from a cert-manager Certificate for a user
-func (c *certManager) getUserSecret(ctx context.Context, user *v1alpha1.KafkaUser) (secret *corev1.Secret, err error) {
-	secret = &corev1.Secret{}
-	err = c.client.Get(ctx, types.NamespacedName{Name: user.Spec.SecretName, Namespace: user.Namespace}, secret)
+func (c *certManager) getUserSecret(ctx context.Context, user *v1alpha1.KafkaUser) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	err := c.client.Get(ctx, types.NamespacedName{Name: user.Spec.SecretName, Namespace: user.Namespace}, secret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "user secret not ready")
-		} else {
-			err = errorfactory.New(errorfactory.APIFailure{}, err, "failed to get user secret")
+			return secret, errorfactory.New(errorfactory.ResourceNotReady{}, err, "user secret not ready")
+		}
+		return secret, errorfactory.New(errorfactory.APIFailure{}, err, "failed to get user secret")
+	}
+	if user.Spec.IncludeJKS {
+		if len(secret.Data) != 6 {
+			return secret, errorfactory.New(errorfactory.ResourceNotReady{}, err, "user secret not populated yet")
+		}
+	} else {
+		if len(secret.Data) != 3 {
+			return secret, errorfactory.New(errorfactory.ResourceNotReady{}, err, "user secret not populated yet")
 		}
 	}
-	return
+
+	for _, v := range secret.Data {
+		if len(v) == 0 {
+			return secret, errorfactory.New(errorfactory.ResourceNotReady{},
+				errors.New("not all secret value populated"), "secret is not ready")
+		}
+	}
+
+	return secret, nil
 }
 
 // clusterCertificateForUser generates a Certificate object for a KafkaUser
@@ -154,6 +172,19 @@ func (c *certManager) clusterCertificateForUser(user *v1alpha1.KafkaUser, scheme
 				Kind: caKind,
 			},
 		},
+	}
+	if user.Spec.IncludeJKS {
+		cert.Spec.Keystores = &certv1.CertificateKeystores{
+			JKS: &certv1.JKSKeystore{
+				Create: true,
+				PasswordSecretRef: certmeta.SecretKeySelector{
+					LocalObjectReference: certmeta.LocalObjectReference{
+						Name: user.Spec.SecretName,
+					},
+					Key: v1alpha1.PasswordKey,
+				},
+			},
+		}
 	}
 	if user.Spec.DNSNames != nil && len(user.Spec.DNSNames) > 0 {
 		cert.Spec.DNSNames = user.Spec.DNSNames

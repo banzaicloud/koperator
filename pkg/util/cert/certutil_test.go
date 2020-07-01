@@ -123,7 +123,7 @@ func TestGenerateJKS(t *testing.T) {
 	}
 }
 
-func TestEnsureJKS(t *testing.T) {
+func TestEnsureJKSPassoword(t *testing.T) {
 	cert, key, _, err := GenerateTestCert()
 	if err != nil {
 		t.Error("Failed to generate test certificate")
@@ -136,17 +136,14 @@ func TestEnsureJKS(t *testing.T) {
 		v1alpha1.CoreCACertKey:  cert,
 	}
 
-	if injectedSecret, err := EnsureSecretJKS(secret); err != nil {
+	if injectedSecret, err := EnsureSecretPassJKS(secret); err != nil {
 		t.Error("Expected injected corev1 secret, got error:", err)
 	} else {
-		if _, ok := injectedSecret.Data[v1alpha1.TLSJKSKey]; !ok {
-			t.Error("Expected JKS to be present in injected secret")
-		}
 		if _, ok := injectedSecret.Data[v1alpha1.PasswordKey]; !ok {
 			t.Error("Expected generated password in injected secret")
 		}
 
-		noModify, _ := EnsureSecretJKS(injectedSecret)
+		noModify, _ := EnsureSecretPassJKS(injectedSecret)
 		if !reflect.DeepEqual(noModify.Data, injectedSecret.Data) {
 			t.Error("Expected already injected secret to be returned identical")
 		}

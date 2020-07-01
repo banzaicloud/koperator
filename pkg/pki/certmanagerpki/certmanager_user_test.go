@@ -40,9 +40,12 @@ func newMockUserSecret() *corev1.Secret {
 	secret.Namespace = "test-namespace"
 	cert, key, _, _ := certutil.GenerateTestCert()
 	secret.Data = map[string][]byte{
-		corev1.TLSCertKey:       cert,
-		corev1.TLSPrivateKeyKey: key,
-		v1alpha1.CoreCACertKey:  cert,
+		corev1.TLSCertKey:         cert,
+		corev1.TLSPrivateKeyKey:   key,
+		v1alpha1.TLSJKSKeyStore:   []byte("testkeystore"),
+		v1alpha1.PasswordKey:      []byte("testpassword"),
+		v1alpha1.TLSJKSTrustStore: []byte("testtruststore"),
+		v1alpha1.CoreCACertKey:    cert,
 	}
 	return secret
 }
@@ -64,7 +67,12 @@ func TestReconcileUserCertificate(t *testing.T) {
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 		t.Error("Expected resource not ready error, got:", reflect.TypeOf(err))
 	}
-	manager.client.Create(context.TODO(), newMockUserSecret())
+	if err := manager.client.Delete(context.TODO(), newMockUserSecret()); err != nil {
+		t.Error("could not delete test secret")
+	}
+	if err := manager.client.Create(context.TODO(), newMockUserSecret()); err != nil {
+		t.Error("could not update test secret")
+	}
 	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err != nil {
 		t.Error("Expected no error, got:", err)
 	}

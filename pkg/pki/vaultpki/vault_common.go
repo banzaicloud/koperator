@@ -233,7 +233,7 @@ func dataForUserCert(cert *pkicommon.UserCertificate) map[string]interface{} {
 		v1alpha1.CoreCACertKey:  string(cert.CA),
 	}
 	if cert.JKS != nil && cert.Password != nil {
-		data[v1alpha1.TLSJKSKey] = base64.StdEncoding.EncodeToString(cert.JKS)
+		data[v1alpha1.TLSJKSKeyStore] = base64.StdEncoding.EncodeToString(cert.JKS)
 		data[v1alpha1.PasswordKey] = string(cert.Password)
 	}
 	return data
@@ -261,9 +261,9 @@ func userCertForData(isV2 bool, data map[string]interface{}) (*pkicommon.UserCer
 	cert.Key = []byte(keyStr)
 	cert.CA = []byte(caStr)
 
-	if _, ok := data[v1alpha1.TLSJKSKey]; ok {
+	if _, ok := data[v1alpha1.TLSJKSKeyStore]; ok {
 		var err error
-		jksB64, _ := data[v1alpha1.TLSJKSKey].(string)
+		jksB64, _ := data[v1alpha1.TLSJKSKeyStore].(string)
 		cert.JKS, err = base64.StdEncoding.DecodeString(jksB64)
 		if err != nil {
 			return nil, err

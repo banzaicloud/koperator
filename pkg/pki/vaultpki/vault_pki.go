@@ -102,7 +102,7 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 					corev1.TLSCertKey:       brokerCert.Certificate,
 					corev1.TLSPrivateKeyKey: brokerCert.Key,
 					v1alpha1.CoreCACertKey:  brokerCert.CA,
-					v1alpha1.TLSJKSKey:      brokerCert.JKS,
+					v1alpha1.TLSJKSKeyStore: brokerCert.JKS,
 					v1alpha1.PasswordKey:    brokerCert.Password,
 				},
 			}
@@ -129,7 +129,7 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 					corev1.TLSCertKey:       controllerCert.Certificate,
 					corev1.TLSPrivateKeyKey: controllerCert.Key,
 					v1alpha1.CoreCACertKey:  controllerCert.CA,
-					v1alpha1.TLSJKSKey:      controllerCert.JKS,
+					v1alpha1.TLSJKSKeyStore: controllerCert.JKS,
 					v1alpha1.PasswordKey:    controllerCert.Password,
 				},
 			}

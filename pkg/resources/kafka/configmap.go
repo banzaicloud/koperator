@@ -43,8 +43,8 @@ zookeeper.connect={{ .ZookeeperConnectString }}
 
 {{ if .KafkaCluster.Spec.ListenersConfig.SSLSecrets }}
 
-ssl.keystore.location={{ .ServerKeystorePath }}/{{ .KeystoreFile }}
-ssl.truststore.location={{ .ServerKeystorePath }}/{{ .KeystoreFile }}
+ssl.keystore.location={{ .ServerKeystorePath }}/{{ .KeyStoreFile }}
+ssl.truststore.location={{ .ServerKeystorePath }}/{{ .TrustStoreFile }}
 ssl.keystore.password={{ .ServerKeystorePassword }}
 ssl.truststore.password={{ .ServerKeystorePassword }}
 ssl.client.auth=required
@@ -52,8 +52,8 @@ ssl.client.auth=required
 {{ if .SSLEnabledForInternalCommunication }}
 
 cruise.control.metrics.reporter.security.protocol=SSL
-cruise.control.metrics.reporter.ssl.truststore.location={{ .ClientKeystorePath }}/{{ .KeystoreFile }}
-cruise.control.metrics.reporter.ssl.keystore.location={{ .ClientKeystorePath }}/{{ .KeystoreFile }}
+cruise.control.metrics.reporter.ssl.truststore.location={{ .ClientKeystorePath }}/{{ .TrustStoreFile }}
+cruise.control.metrics.reporter.ssl.keystore.location={{ .ClientKeystorePath }}/{{ .KeyStoreFile }}
 cruise.control.metrics.reporter.ssl.keystore.password={{ .ClientKeystorePassword }}
 
 {{ end }}
@@ -89,7 +89,8 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 		"SuperUsers":                         strings.Join(generateSuperUsers(superUsers), ";"),
 		"ServerKeystorePath":                 serverKeystorePath,
 		"ClientKeystorePath":                 clientKeystorePath,
-		"KeystoreFile":                       v1alpha1.TLSJKSKey,
+		"KeyStoreFile":                       v1alpha1.TLSJKSKeyStore,
+		"TrustStoreFile":                     v1alpha1.TLSJKSTrustStore,
 		"ServerKeystorePassword":             serverPass,
 		"ClientKeystorePassword":             clientPass,
 		"ControlPlaneListener":               generateControlPlaneListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners),

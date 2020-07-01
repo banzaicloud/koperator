@@ -20,7 +20,7 @@ require (
 	github.com/hashicorp/vault/sdk v0.1.14-0.20200406173424-43a93d4a43b1
 	github.com/imdario/mergo v0.3.9
 	github.com/influxdata/influxdb v1.7.6 // indirect
-	github.com/jetstack/cert-manager v0.14.2
+	github.com/jetstack/cert-manager v0.15.1
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lestrrat-go/backoff v1.0.0
 	github.com/onsi/ginkgo v1.11.0
