@@ -6,8 +6,8 @@ metadata:
   name: kafka
 spec:
   monitoringConfig:
-    jmxImage: "banzaicloud/jmx-javaagent:0.12.0"
-    pathToJar: "/opt/jmx_exporter/jmx_prometheus_javaagent-0.12.0.jar"
+    jmxImage: "banzaicloud/jmx-javaagent:0.13.0"
+    pathToJar: "/opt/jmx_exporter/jmx_prometheus_javaagent-0.13.0.jar"
     kafkaJMXExporterConfig: |2
       lowercaseOutputName: true
       lowercaseOutputLabelNames: true
