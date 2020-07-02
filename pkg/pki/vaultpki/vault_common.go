@@ -234,6 +234,7 @@ func dataForUserCert(cert *pkicommon.UserCertificate) map[string]interface{} {
 	}
 	if cert.JKS != nil && cert.Password != nil {
 		data[v1alpha1.TLSJKSKeyStore] = base64.StdEncoding.EncodeToString(cert.JKS)
+		data[v1alpha1.TLSJKSTrustStore] = base64.StdEncoding.EncodeToString(cert.JKS)
 		data[v1alpha1.PasswordKey] = string(cert.Password)
 	}
 	return data
