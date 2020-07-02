@@ -50,7 +50,7 @@ const (
 	UserStateCreated UserState = "created"
 	// TLSJKSKeyStore is where a JKS keystore is stored in a user secret when requested
 	TLSJKSKeyStore string = "keystore.jks"
-	// TLSJKSTrustStore is where a JKS keystore is stored in a user secret when requested
+	// TLSJKSTrustStore is where a JKS truststore is stored in a user secret when requested
 	TLSJKSTrustStore string = "truststore.jks"
 	// CoreCACertKey is where ca ceritificates are stored in user certificates
 	CoreCACertKey string = "ca.crt"
