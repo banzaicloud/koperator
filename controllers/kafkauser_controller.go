@@ -185,6 +185,13 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
 			default:
+				if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
+					reqLogger.Info("Kafka user marked for deletion before creating certificates")
+					if err = r.removeFinalizer(ctx, instance); err != nil {
+						return requeueWithError(reqLogger, "failed to remove finalizer from kafkauser", err)
+					}
+					return reconciled()
+				}
 				return requeueWithError(reqLogger, "failed to reconcile user secret", err)
 			}
 		}
