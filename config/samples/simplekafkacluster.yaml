@@ -23,6 +23,9 @@ spec:
             resources:
               requests:
                 storage: 10Gi
+      brokerAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9020"
   brokers:
     - id: 0
       brokerConfigGroup: "default"
