@@ -185,7 +185,6 @@ func GeneratePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 			"cruiseControlConfig.json":        hex.EncodeToString(hashedCruiseControlConfigJson[:]),
 			"cruiseControlClusterConfig.json": hex.EncodeToString(hashedCruiseControlClusterConfigJson[:]),
 		},
-		util.MonitoringAnnotations(metricsPort),
 	}
 
 	return util.MergeAnnotations(annotations...)

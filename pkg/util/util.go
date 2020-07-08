@@ -91,14 +91,6 @@ func MergeLabels(l ...map[string]string) map[string]string {
 	return res
 }
 
-// MonitoringAnnotations returns specific prometheus annotations
-func MonitoringAnnotations(port int) map[string]string {
-	return map[string]string{
-		"prometheus.io/scrape": "true",
-		"prometheus.io/port":   strconv.Itoa(port),
-	}
-}
-
 func MergeAnnotations(annotations ...map[string]string) map[string]string {
 	rtn := make(map[string]string)
 	for _, a := range annotations {

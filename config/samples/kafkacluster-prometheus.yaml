@@ -44,7 +44,7 @@ kind: ServiceMonitor
 metadata:
   name: cruisecontrol-servicemonitor
   labels:
-    app: kafka
+    app: cruisecontrol
     kafka_cr: kafka
     release: prometheus-operator
 spec:

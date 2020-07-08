@@ -183,17 +183,6 @@ func TestMergeLabels(t *testing.T) {
 	}
 }
 
-func TestMonitoringAnnotations(t *testing.T) {
-	expected := map[string]string{
-		"prometheus.io/scrape": "true",
-		"prometheus.io/port":   "9001",
-	}
-	anntns := MonitoringAnnotations(int(9001))
-	if !reflect.DeepEqual(expected, anntns) {
-		t.Error("Expected:", expected, "Got:", anntns)
-	}
-}
-
 func TestConvertStringToInt32(t *testing.T) {
 	i := ConvertStringToInt32("10")
 	if i != 10 {
@@ -244,7 +233,7 @@ func TestStringSliceRemove(t *testing.T) {
 }
 
 func TestMergeAnnotations(t *testing.T) {
-	annotations := MonitoringAnnotations(8888)
+	annotations := map[string]string{"foo": "bar", "bar": "foo"}
 	annotations2 := map[string]string{"thing": "1", "other_thing": "2"}
 
 	combined := MergeAnnotations(annotations, annotations2)

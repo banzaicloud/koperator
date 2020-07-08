@@ -72,7 +72,7 @@ func ObjectMetaWithAnnotations(name string, labels map[string]string, annotation
 	return o
 }
 
-// ObjectMetaWithGeneratedNameAndAnnotations returns a metav1.ObjectMeta object with labels, ownerReference, generatedname and annotations
+// ObjectMetaWithGeneratedNameAndAnnotations returns a metav1.ObjectMeta object with labels, ownerReference, generatedName and annotations
 func ObjectMetaWithGeneratedNameAndAnnotations(namePrefix string, labels map[string]string, annotations map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	o := ObjectMetaWithGeneratedName(namePrefix, labels, cluster)
 	o.Annotations = annotations
