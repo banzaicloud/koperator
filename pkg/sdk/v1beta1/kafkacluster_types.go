@@ -104,6 +104,9 @@ type BrokerConfig struct {
 	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
 	KafkaHeapOpts      string                        `json:"kafkaHeapOpts,omitempty"`
 	KafkaJVMPerfOpts   string                        `json:"kafkaJvmPerfOpts,omitempty"`
+	// Custom annotations for the broker pods - e.g.: Prometheus scraping annotations:
+	// prometheus.io/scrape: "true"
+	// prometheus.io/port: "9020"
 	BrokerAnnotations  map[string]string             `json:"brokerAnnotations,omitempty"`
 }
 
