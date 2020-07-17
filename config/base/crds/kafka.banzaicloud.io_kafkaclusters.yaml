@@ -62,6 +62,9 @@ spec:
                   brokerAnnotations:
                     additionalProperties:
                       type: string
+                    description: 'Custom annotations for the broker pods - e.g.: Prometheus
+                      scraping annotations: prometheus.io/scrape: "true" prometheus.io/port:
+                      "9020"'
                     type: object
                   config:
                     type: string
@@ -517,6 +520,9 @@ spec:
                       brokerAnnotations:
                         additionalProperties:
                           type: string
+                        description: 'Custom annotations for the broker pods - e.g.:
+                          Prometheus scraping annotations: prometheus.io/scrape: "true"
+                          prometheus.io/port: "9020"'
                         type: object
                       config:
                         type: string
