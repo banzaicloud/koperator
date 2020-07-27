@@ -107,7 +107,7 @@ type BrokerConfig struct {
 	// Custom annotations for the broker pods - e.g.: Prometheus scraping annotations:
 	// prometheus.io/scrape: "true"
 	// prometheus.io/port: "9020"
-	BrokerAnnotations  map[string]string             `json:"brokerAnnotations,omitempty"`
+	BrokerAnnotations map[string]string `json:"brokerAnnotations,omitempty"`
 }
 
 // RackAwareness defines the required fields to enable kafka's rack aware feature
@@ -130,6 +130,9 @@ type CruiseControlConfig struct {
 	Image                 string                        `json:"image,omitempty"`
 	InitContainerImage    string                        `json:"initContainerImage,omitempty"`
 	TopicConfig           *TopicConfig                  `json:"topicConfig,omitempty"`
+	//  Annotations to be applied to CruiseControl pod
+	// +optional
+	CruiseControlAnnotations map[string]string `json:"cruiseControlAnnotations,omitempty"`
 }
 
 // CruiseControlTaskSpec specifies the configuration of the CC Tasks
@@ -463,6 +466,11 @@ func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference
 // GetBrokerAnnotations return the annotations which applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerAnnotations() map[string]string {
 	return bConfig.BrokerAnnotations
+}
+
+// GetCruiseControlAnnotations return the annotations which applied to CruiseControl pod
+func (cConfig *CruiseControlConfig) GetCruiseControlAnnotations() map[string]string {
+	return cConfig.CruiseControlAnnotations
 }
 
 //GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
