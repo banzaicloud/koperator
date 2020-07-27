@@ -1009,6 +1009,11 @@ spec:
                   type: string
                 config:
                   type: string
+                cruiseControlAnnotations:
+                  additionalProperties:
+                    type: string
+                  description: ' Annotations to be applied to CruiseControl pod'
+                  type: object
                 cruiseControlEndpoint:
                   type: string
                 cruiseControlTaskSpec:

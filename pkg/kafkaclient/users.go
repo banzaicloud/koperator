@@ -145,7 +145,7 @@ func (k *kafkaClient) createWriteACLs(dn string, topic string, patternType saram
 
 func (k *kafkaClient) createCommonACLs(dn string, topic string, patternType sarama.AclResourcePatternType) (err error) {
 	// DESCRIBE on topic
-	if err =  k.admin.CreateACL(sarama.Resource{
+	if err = k.admin.CreateACL(sarama.Resource{
 		ResourceType:        sarama.AclResourceTopic,
 		ResourceName:        topic,
 		ResourcePatternType: patternType,
@@ -159,7 +159,7 @@ func (k *kafkaClient) createCommonACLs(dn string, topic string, patternType sara
 	}
 
 	// DESCRIBE_CONFIGS on topic
-	if err =  k.admin.CreateACL(sarama.Resource{
+	if err = k.admin.CreateACL(sarama.Resource{
 		ResourceType:        sarama.AclResourceTopic,
 		ResourceName:        topic,
 		ResourcePatternType: patternType,
