@@ -1,0 +1,25 @@
+topic:
+  name: users
+  partitions-num: 3
+  replication-factor: 1
+server:
+  port: 9080
+spring:
+  kafka:
+    bootstrap-servers:
+      - kafka-all-broker.kafka.svc.cluster.local:29092
+    properties:
+      schema.registry.url: http://schema-registry-svc-kafka.kafka.svc.cluster.local:8081
+    consumer:
+      group-id: group_id
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+    template:
+      default-topic:
+logging:
+  level:
+    root: info
