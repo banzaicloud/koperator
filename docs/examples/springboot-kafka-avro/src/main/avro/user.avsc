@@ -1,0 +1,16 @@
+{
+  "namespace": "io.banzaicloud.blog",
+  "type": "record",
+  "name": "User",
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "avro.java.string": "String"
+    },
+    {
+      "name": "age",
+      "type": "int"
+    }
+  ]
+}

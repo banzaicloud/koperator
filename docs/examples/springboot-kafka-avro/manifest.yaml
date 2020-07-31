@@ -1,0 +1,9 @@
+---
+applications:
+  - name: spring-kafka-avro
+    path: target/kafka-avro-0.0.1-SNAPSHOT.jar
+    memory: 2G
+    instances: 1
+    random-route: true
+    env:
+      SPRING_PROFILES_ACTIVE: paas
