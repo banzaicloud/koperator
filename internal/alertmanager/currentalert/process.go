@@ -139,7 +139,7 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		if err := validators.ValidateAlert(); err != nil {
 			return false, err
 		}
-		err := resizePvc(e.Alert.Labels, e.Alert.Annotations, e.Client)
+		err := resizePvc(e.Log, e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {
 			return false, err
 		}
@@ -238,8 +238,56 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 	return nil
 }
 
-func resizePvc(labels model.LabelSet, annotiations model.LabelSet, client client.Client) error {
-	//TODO
+func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelSet, client client.Client) error {
+	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]), string(labels["namespace"]), client)
+	if err != nil {
+		return err
+	}
+
+	pvc, err := getPvc(string(labels["persistentvolumeclaim"]), string(labels["namespace"]), client)
+	if err != nil {
+		return err
+	}
+
+	for i, broker := range cr.Spec.Brokers {
+		if strconv.Itoa(int(broker.Id)) == pvc.Labels["brokerId"] {
+			var storageConfigs []v1beta1.StorageConfig
+
+			if broker.BrokerConfig == nil {
+				storageConfigs = cr.Spec.BrokerConfigGroups[cr.Spec.Brokers[i].BrokerConfigGroup].StorageConfigs
+			} else {
+				storageConfigs = broker.BrokerConfig.StorageConfigs
+			}
+
+			for i, c := range storageConfigs {
+				if c.MountPath == pvc.Annotations["mountPath"] {
+					size := *c.PvcSpec.Resources.Requests.Storage()
+
+					size.Add(resource.MustParse(string(annotiations["diskSize"])))
+
+					c.PvcSpec.Resources.Requests = corev1.ResourceList{
+						"storage": size,
+					}
+
+					if broker.BrokerConfig == nil {
+						broker.BrokerConfig = &v1beta1.BrokerConfig{
+							StorageConfigs: []v1beta1.StorageConfig{c},
+						}
+					} else {
+						broker.BrokerConfig.StorageConfigs[i] = c
+					}
+				}
+			}
+			cr.Spec.Brokers[i] = broker
+		}
+	}
+
+	err = k8sutil.UpdateCrWithRollingUpgrade(0, cr, client)
+	if err != nil {
+		return err
+	}
+
+	log.Info(fmt.Sprintf("PVC for %s successfully resized to broker %s", pvc.Annotations["mountPath"], pvc.Labels["brokerId"]))
 
 	return nil
 }

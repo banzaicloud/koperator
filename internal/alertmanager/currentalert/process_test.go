@@ -31,6 +31,216 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+func Test_resizePvc(t *testing.T) {
+	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+
+	//Setup test kafka cluster and pvc
+	setupEnvironment(t, testClient)
+
+	testCase := []struct {
+		name      string
+		alertList []model.Alert
+		pvc       corev1.PersistentVolumeClaim
+		cluster   v1beta1.KafkaCluster
+	}{
+		{
+			name: "Resize pvc created by default group",
+			alertList: []model.Alert{
+				{
+					Labels: model.LabelSet{
+						"kafka_cr":              "test-cluster",
+						"namespace":             "kafka",
+						"persistentvolumeclaim": "testPvc",
+						"node":                  "test-node",
+					},
+					Annotations: model.LabelSet{
+						"command":         "resizePvc",
+						"mountPathPrefix": "/kafka-logs",
+						"diskSize":        "2G",
+					},
+				},
+			},
+			pvc: corev1.PersistentVolumeClaim{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "testPvc",
+					Namespace: "kafka",
+					Labels: map[string]string{
+						"app":      "kafka",
+						"brokerId": "0",
+						"kafka_cr": "test-cluster",
+					},
+					Annotations: map[string]string{
+						"mountPath":                          "/kafka-logs",
+						"volume.kubernetes.io/selected-node": "test-node",
+					},
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					StorageClassName: util.StringPointer("gp2"),
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("2Gi"),
+						},
+					},
+				},
+			},
+			cluster: v1beta1.KafkaCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "kafka",
+				},
+				Spec: v1beta1.KafkaClusterSpec{
+					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+						"default": {
+							StorageConfigs: []v1beta1.StorageConfig{
+								{
+									MountPath: "/kafka-logs",
+									PvcSpec: &corev1.PersistentVolumeClaimSpec{
+										Resources: corev1.ResourceRequirements{
+											Requests: corev1.ResourceList{
+												corev1.ResourceStorage: resource.MustParse("4Gi"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Brokers: []v1beta1.Broker{
+						{
+							Id:                int32(0),
+							BrokerConfigGroup: "default",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Resize pvc from broker specific config",
+			alertList: []model.Alert{
+				{
+					Labels: model.LabelSet{
+						"kafka_cr":              "test-cluster",
+						"namespace":             "kafka",
+						"persistentvolumeclaim": "testPvc",
+						"node":                  "test-node",
+					},
+					Annotations: model.LabelSet{
+						"command":         "resizePvc",
+						"mountPathPrefix": "/kafka-logs",
+						"diskSize":        "2G",
+					},
+				},
+			},
+			pvc: corev1.PersistentVolumeClaim{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "testPvc",
+					Namespace: "kafka",
+					Labels: map[string]string{
+						"app":      "kafka",
+						"brokerId": "0",
+						"kafka_cr": "test-cluster",
+					},
+					Annotations: map[string]string{
+						"mountPath":                          "/kafka-logs",
+						"volume.kubernetes.io/selected-node": "test-node",
+					},
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					StorageClassName: util.StringPointer("gp2"),
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("2Gi"),
+						},
+					},
+				},
+			},
+			cluster: v1beta1.KafkaCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "kafka",
+				},
+				Spec: v1beta1.KafkaClusterSpec{
+					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+						"default": {
+							StorageConfigs: []v1beta1.StorageConfig{
+								{
+									MountPath: "/kafka-logs",
+									PvcSpec: &corev1.PersistentVolumeClaimSpec{
+										Resources: corev1.ResourceRequirements{
+											Requests: corev1.ResourceList{
+												corev1.ResourceStorage: resource.MustParse("1Gi"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Brokers: []v1beta1.Broker{
+						{
+							Id:                int32(0),
+							BrokerConfigGroup: "default",
+							BrokerConfig: &v1beta1.BrokerConfig{
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/kafka-logs",
+										PvcSpec: &corev1.PersistentVolumeClaimSpec{
+											Resources: corev1.ResourceRequirements{
+												Requests: corev1.ResourceList{
+													corev1.ResourceStorage: resource.MustParse("4Gi"),
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range testCase {
+		t.Run(tt.name, func(t *testing.T) {
+			err := testClient.Create(context.Background(), &tt.pvc)
+			if err != nil {
+				t.Error("Pvc creation failed", err)
+			}
+
+			err = testClient.Create(context.Background(), &tt.cluster)
+			if err != nil {
+				t.Error("kafka cluster creation failed", err)
+			}
+
+			for _, alert := range tt.alertList {
+				err := resizePvc(logf.NullLogger{}, alert.Labels, alert.Annotations, testClient)
+				if err != nil {
+					t.Errorf("process.addPvc() error = %v", err)
+				}
+			}
+
+			var kafkaCluster v1beta1.KafkaCluster
+			err = testClient.Get(
+				context.Background(),
+				types.NamespacedName{Namespace: "kafka", Name: "test-cluster"},
+				&kafkaCluster)
+			if err != nil {
+				t.Errorf("kafka cr was not found, error = %v", err)
+			}
+
+			brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
+
+			if brokerStorageConfig.PvcSpec.Resources.Requests.Storage().Value() != 6294967296 {
+				t.Error("invalid storage size")
+			}
+
+			testClient.Delete(context.Background(), &kafkaCluster)
+			testClient.Delete(context.Background(), &tt.pvc)
+		})
+	}
+}
+
 func Test_addPvc(t *testing.T) {
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 
