@@ -282,7 +282,7 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 		}
 	}
 
-	err = k8sutil.UpdateCrWithRollingUpgrade(0, cr, client)
+	err = k8sutil.UpdateCr(cr, client)
 	if err != nil {
 		return err
 	}
