@@ -194,7 +194,24 @@ func GetBrokerConfig(broker v1beta1.Broker, clusterSpec v1beta1.KafkaClusterSpec
 	if err != nil {
 		return nil, errors.WrapIf(err, "could not merge brokerConfig with ConfigGroup")
 	}
+
+	bConfig.StorageConfigs = dedupStorageConfigs(bConfig.StorageConfigs)
+
 	return bConfig, nil
+}
+
+func dedupStorageConfigs(elements []v1beta1.StorageConfig) []v1beta1.StorageConfig {
+	encountered := make(map[string]struct{})
+	result := []v1beta1.StorageConfig{}
+
+	for _, v := range elements {
+		if _, ok := encountered[v.MountPath]; !ok {
+			encountered[v.MountPath] = struct{}{}
+			result = append(result, v)
+		}
+	}
+
+	return result
 }
 
 // GetBrokerImage returns the used broker image
