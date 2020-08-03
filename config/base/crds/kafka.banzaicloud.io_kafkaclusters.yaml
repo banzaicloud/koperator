@@ -1150,6 +1150,10 @@ spec:
                         type: string
                     type: object
                   type: array
+                loadBalancerIP:
+                  description: LoadBalancerIP can be used to specify an exact IP for
+                    the LoadBalancer service
+                  type: string
                 loadBalancerSourceRanges:
                   items:
                     type: string

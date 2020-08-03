@@ -39,6 +39,7 @@ func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 			Type:                     corev1.ServiceTypeLoadBalancer,
 			Ports:                    exposedPorts,
 			LoadBalancerSourceRanges: r.KafkaCluster.Spec.EnvoyConfig.GetLoadBalancerSourceRanges(),
+			LoadBalancerIP:           r.KafkaCluster.Spec.EnvoyConfig.LoadBalancerIP,
 		},
 	}
 	return service

@@ -64,7 +64,7 @@ func (r *Reconciler) deployment(log logr.Logger, podAnnotations map[string]strin
 					Annotations: podAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName:            r.KafkaCluster.Spec.CruiseControlConfig.GetServiceAccount(r.KafkaCluster.Name),
+					ServiceAccountName:            r.KafkaCluster.Spec.CruiseControlConfig.GetServiceAccount(),
 					ImagePullSecrets:              r.KafkaCluster.Spec.CruiseControlConfig.GetImagePullSecrets(),
 					Tolerations:                   r.KafkaCluster.Spec.CruiseControlConfig.GetTolerations(),
 					NodeSelector:                  r.KafkaCluster.Spec.CruiseControlConfig.GetNodeSelector(),

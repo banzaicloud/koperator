@@ -160,6 +160,8 @@ type EnvoyConfig struct {
 	Tolerations              []corev1.Toleration           `json:"tolerations,omitempty"`
 	Annotations              map[string]string             `json:"annotations,omitempty"`
 	LoadBalancerSourceRanges []string                      `json:"loadBalancerSourceRanges,omitempty"`
+	// LoadBalancerIP can be used to specify an exact IP for the LoadBalancer service
+	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
 }
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller
@@ -405,7 +407,7 @@ func (eConfig *EnvoyConfig) GetReplicas() int32 {
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
-func (bConfig *BrokerConfig) GetServiceAccount(KafkaClusterName string) string {
+func (bConfig *BrokerConfig) GetServiceAccount() string {
 	if bConfig.ServiceAccountName != "" {
 		return bConfig.ServiceAccountName
 	}
@@ -413,7 +415,7 @@ func (bConfig *BrokerConfig) GetServiceAccount(KafkaClusterName string) string {
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for EnvoyConfig
-func (eConfig *EnvoyConfig) GetServiceAccount(KafkaClusterName string) string {
+func (eConfig *EnvoyConfig) GetServiceAccount() string {
 	if eConfig.ServiceAccountName != "" {
 		return eConfig.ServiceAccountName
 	}
@@ -421,7 +423,7 @@ func (eConfig *EnvoyConfig) GetServiceAccount(KafkaClusterName string) string {
 }
 
 //GetServiceAccount returns the Kubernetes Service Account to use for CruiseControl
-func (cConfig *CruiseControlConfig) GetServiceAccount(KafkaClusterName string) string {
+func (cConfig *CruiseControlConfig) GetServiceAccount() string {
 	if cConfig.ServiceAccountName != "" {
 		return cConfig.ServiceAccountName
 	}
