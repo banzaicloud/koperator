@@ -144,8 +144,8 @@ spec:
                                           type: string
                                         type: array
                                     required:
-                                    - key
-                                    - operator
+                                      - key
+                                      - operator
                                     type: object
                                   type: array
                                 matchFields:
@@ -180,8 +180,8 @@ spec:
                                           type: string
                                         type: array
                                     required:
-                                    - key
-                                    - operator
+                                      - key
+                                      - operator
                                     type: object
                                   type: array
                               type: object
@@ -191,8 +191,8 @@ spec:
                               format: int32
                               type: integer
                           required:
-                          - preference
-                          - weight
+                            - preference
+                            - weight
                           type: object
                         type: array
                       requiredDuringSchedulingIgnoredDuringExecution:
@@ -244,8 +244,8 @@ spec:
                                           type: string
                                         type: array
                                     required:
-                                    - key
-                                    - operator
+                                      - key
+                                      - operator
                                     type: object
                                   type: array
                                 matchFields:
@@ -280,14 +280,14 @@ spec:
                                           type: string
                                         type: array
                                     required:
-                                    - key
-                                    - operator
+                                      - key
+                                      - operator
                                     type: object
                                   type: array
                               type: object
                             type: array
                         required:
-                        - nodeSelectorTerms
+                          - nodeSelectorTerms
                         type: object
                     type: object
                   nodeSelector:
@@ -301,8 +301,8 @@ spec:
                       limits:
                         additionalProperties:
                           anyOf:
-                          - type: integer
-                          - type: string
+                            - type: integer
+                            - type: string
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
                         description: 'Limits describes the maximum amount of compute
@@ -311,8 +311,8 @@ spec:
                       requests:
                         additionalProperties:
                           anyOf:
-                          - type: integer
-                          - type: string
+                            - type: integer
+                            - type: string
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
                         description: 'Requests describes the minimum amount of compute
@@ -341,16 +341,21 @@ spec:
                                 type: string
                               type: array
                             dataSource:
-                              description: This field requires the VolumeSnapshotDataSource
-                                alpha feature gate to be enabled and currently VolumeSnapshot
-                                is the only supported data source. If the provisioner
-                                can support VolumeSnapshot data source, it will create
-                                a new volume and data will be restored to the volume
-                                at the same time. If the provisioner does not support
-                                VolumeSnapshot data source, volume will not be created
-                                and the failure will be reported as an event. In the
-                                future, we plan to support more data source types
-                                and the behavior of the provisioner may change.
+                              description: 'This field can be used to specify either:
+                                * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot
+                                - Beta) * An existing PVC (PersistentVolumeClaim)
+                                * An existing custom resource/object that implements
+                                data population (Alpha) In order to use VolumeSnapshot
+                                object types, the appropriate feature gate must be
+                                enabled (VolumeSnapshotDataSource or AnyVolumeDataSource)
+                                If the provisioner or an external controller can support
+                                the specified data source, it will create a new volume
+                                based on the contents of the specified data source.
+                                If the specified data source is not supported, the
+                                volume will not be created and the failure will be
+                                reported as an event. In the future, we plan to support
+                                more data source types and the behavior of the provisioner
+                                may change.'
                               properties:
                                 apiGroup:
                                   description: APIGroup is the group for the resource
@@ -367,8 +372,8 @@ spec:
                                     referenced
                                   type: string
                               required:
-                              - kind
-                              - name
+                                - kind
+                                - name
                               type: object
                             resources:
                               description: 'Resources represents the minimum resources
@@ -377,8 +382,8 @@ spec:
                                 limits:
                                   additionalProperties:
                                     anyOf:
-                                    - type: integer
-                                    - type: string
+                                      - type: integer
+                                      - type: string
                                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                     x-kubernetes-int-or-string: true
                                   description: 'Limits describes the maximum amount
@@ -387,8 +392,8 @@ spec:
                                 requests:
                                   additionalProperties:
                                     anyOf:
-                                    - type: integer
-                                    - type: string
+                                      - type: integer
+                                      - type: string
                                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                     x-kubernetes-int-or-string: true
                                   description: 'Requests describes the minimum amount
@@ -430,8 +435,8 @@ spec:
                                           type: string
                                         type: array
                                     required:
-                                    - key
-                                    - operator
+                                      - key
+                                      - operator
                                     type: object
                                   type: array
                                 matchLabels:
@@ -452,7 +457,7 @@ spec:
                             volumeMode:
                               description: volumeMode defines what type of volume
                                 is required by the claim. Value of Filesystem is implied
-                                when not included in claim spec. This is a beta feature.
+                                when not included in claim spec.
                               type: string
                             volumeName:
                               description: VolumeName is the binding reference to
@@ -460,8 +465,8 @@ spec:
                               type: string
                           type: object
                       required:
-                      - mountPath
-                      - pvcSpec
+                        - mountPath
+                        - pvcSpec
                       type: object
                     type: array
                   tolerations:
@@ -516,9 +521,9 @@ spec:
                       brokerAnnotations:
                         additionalProperties:
                           type: string
-                        description: 'Custom annotations for the broker pods - e.g.: Prometheus
-                          scraping annotations: prometheus.io/scrape: "true" prometheus.io/port:
-                          "9020"'
+                        description: 'Custom annotations for the broker pods - e.g.:
+                          Prometheus scraping annotations: prometheus.io/scrape: "true"
+                          prometheus.io/port: "9020"'
                         type: object
                       config:
                         type: string
@@ -600,8 +605,8 @@ spec:
                                               type: string
                                             type: array
                                         required:
-                                        - key
-                                        - operator
+                                          - key
+                                          - operator
                                         type: object
                                       type: array
                                     matchFields:
@@ -638,8 +643,8 @@ spec:
                                               type: string
                                             type: array
                                         required:
-                                        - key
-                                        - operator
+                                          - key
+                                          - operator
                                         type: object
                                       type: array
                                   type: object
@@ -649,8 +654,8 @@ spec:
                                   format: int32
                                   type: integer
                               required:
-                              - preference
-                              - weight
+                                - preference
+                                - weight
                               type: object
                             type: array
                           requiredDuringSchedulingIgnoredDuringExecution:
@@ -705,8 +710,8 @@ spec:
                                               type: string
                                             type: array
                                         required:
-                                        - key
-                                        - operator
+                                          - key
+                                          - operator
                                         type: object
                                       type: array
                                     matchFields:
@@ -743,14 +748,14 @@ spec:
                                               type: string
                                             type: array
                                         required:
-                                        - key
-                                        - operator
+                                          - key
+                                          - operator
                                         type: object
                                       type: array
                                   type: object
                                 type: array
                             required:
-                            - nodeSelectorTerms
+                              - nodeSelectorTerms
                             type: object
                         type: object
                       nodeSelector:
@@ -764,8 +769,8 @@ spec:
                           limits:
                             additionalProperties:
                               anyOf:
-                              - type: integer
-                              - type: string
+                                - type: integer
+                                - type: string
                               pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                               x-kubernetes-int-or-string: true
                             description: 'Limits describes the maximum amount of compute
@@ -774,8 +779,8 @@ spec:
                           requests:
                             additionalProperties:
                               anyOf:
-                              - type: integer
-                              - type: string
+                                - type: integer
+                                - type: string
                               pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                               x-kubernetes-int-or-string: true
                             description: 'Requests describes the minimum amount of
@@ -805,17 +810,21 @@ spec:
                                     type: string
                                   type: array
                                 dataSource:
-                                  description: This field requires the VolumeSnapshotDataSource
-                                    alpha feature gate to be enabled and currently
-                                    VolumeSnapshot is the only supported data source.
-                                    If the provisioner can support VolumeSnapshot
-                                    data source, it will create a new volume and data
-                                    will be restored to the volume at the same time.
-                                    If the provisioner does not support VolumeSnapshot
-                                    data source, volume will not be created and the
-                                    failure will be reported as an event. In the future,
-                                    we plan to support more data source types and
-                                    the behavior of the provisioner may change.
+                                  description: 'This field can be used to specify
+                                    either: * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot
+                                    - Beta) * An existing PVC (PersistentVolumeClaim)
+                                    * An existing custom resource/object that implements
+                                    data population (Alpha) In order to use VolumeSnapshot
+                                    object types, the appropriate feature gate must
+                                    be enabled (VolumeSnapshotDataSource or AnyVolumeDataSource)
+                                    If the provisioner or an external controller can
+                                    support the specified data source, it will create
+                                    a new volume based on the contents of the specified
+                                    data source. If the specified data source is not
+                                    supported, the volume will not be created and
+                                    the failure will be reported as an event. In the
+                                    future, we plan to support more data source types
+                                    and the behavior of the provisioner may change.'
                                   properties:
                                     apiGroup:
                                       description: APIGroup is the group for the resource
@@ -833,8 +842,8 @@ spec:
                                         referenced
                                       type: string
                                   required:
-                                  - kind
-                                  - name
+                                    - kind
+                                    - name
                                   type: object
                                 resources:
                                   description: 'Resources represents the minimum resources
@@ -843,8 +852,8 @@ spec:
                                     limits:
                                       additionalProperties:
                                         anyOf:
-                                        - type: integer
-                                        - type: string
+                                          - type: integer
+                                          - type: string
                                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                         x-kubernetes-int-or-string: true
                                       description: 'Limits describes the maximum amount
@@ -853,8 +862,8 @@ spec:
                                     requests:
                                       additionalProperties:
                                         anyOf:
-                                        - type: integer
-                                        - type: string
+                                          - type: integer
+                                          - type: string
                                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                         x-kubernetes-int-or-string: true
                                       description: 'Requests describes the minimum
@@ -901,8 +910,8 @@ spec:
                                               type: string
                                             type: array
                                         required:
-                                        - key
-                                        - operator
+                                          - key
+                                          - operator
                                         type: object
                                       type: array
                                     matchLabels:
@@ -923,8 +932,7 @@ spec:
                                 volumeMode:
                                   description: volumeMode defines what type of volume
                                     is required by the claim. Value of Filesystem
-                                    is implied when not included in claim spec. This
-                                    is a beta feature.
+                                    is implied when not included in claim spec.
                                   type: string
                                 volumeName:
                                   description: VolumeName is the binding reference
@@ -932,8 +940,8 @@ spec:
                                   type: string
                               type: object
                           required:
-                          - mountPath
-                          - pvcSpec
+                            - mountPath
+                            - pvcSpec
                           type: object
                         type: array
                       tolerations:
@@ -986,7 +994,7 @@ spec:
                   readOnlyConfig:
                     type: string
                 required:
-                - id
+                  - id
                 type: object
               type: array
             clusterImage:
@@ -1018,7 +1026,7 @@ spec:
                         the Operator waits for the task
                       type: integer
                   required:
-                  - RetryDurationMinutes
+                    - RetryDurationMinutes
                   type: object
                 image:
                   type: string
@@ -1046,8 +1054,8 @@ spec:
                     limits:
                       additionalProperties:
                         anyOf:
-                        - type: integer
-                        - type: string
+                          - type: integer
+                          - type: string
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                       description: 'Limits describes the maximum amount of compute
@@ -1056,8 +1064,8 @@ spec:
                     requests:
                       additionalProperties:
                         anyOf:
-                        - type: integer
-                        - type: string
+                          - type: integer
+                          - type: string
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                       description: 'Requests describes the minimum amount of compute
@@ -1119,8 +1127,8 @@ spec:
                       minimum: 2
                       type: integer
                   required:
-                  - partitions
-                  - replicationFactor
+                    - partitions
+                    - replicationFactor
                   type: object
               type: object
             envoyConfig:
@@ -1143,6 +1151,10 @@ spec:
                         type: string
                     type: object
                   type: array
+                loadBalancerIP:
+                  description: LoadBalancerIP can be used to specify an exact IP for
+                    the LoadBalancer service
+                  type: string
                 loadBalancerSourceRanges:
                   items:
                     type: string
@@ -1162,8 +1174,8 @@ spec:
                     limits:
                       additionalProperties:
                         anyOf:
-                        - type: integer
-                        - type: string
+                          - type: integer
+                          - type: string
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                       description: 'Limits describes the maximum amount of compute
@@ -1172,8 +1184,8 @@ spec:
                     requests:
                       additionalProperties:
                         anyOf:
-                        - type: integer
-                        - type: string
+                          - type: integer
+                          - type: string
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                       description: 'Requests describes the minimum amount of compute
@@ -1224,12 +1236,114 @@ spec:
                     type: object
                   type: array
               type: object
+            envs:
+              items:
+                description: EnvVar represents an environment variable present in
+                  a Container.
+                properties:
+                  name:
+                    description: Name of the environment variable. Must be a C_IDENTIFIER.
+                    type: string
+                  value:
+                    description: 'Variable references $(VAR_NAME) are expanded using
+                      the previous defined environment variables in the container
+                      and any service environment variables. If a variable cannot
+                      be resolved, the reference in the input string will be unchanged.
+                      The $(VAR_NAME) syntax can be escaped with a double $$, ie:
+                      $$(VAR_NAME). Escaped references will never be expanded, regardless
+                      of whether the variable exists or not. Defaults to "".'
+                    type: string
+                  valueFrom:
+                    description: Source for the environment variable's value. Cannot
+                      be used if value is not empty.
+                    properties:
+                      configMapKeyRef:
+                        description: Selects a key of a ConfigMap.
+                        properties:
+                          key:
+                            description: The key to select.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the ConfigMap or its key
+                              must be defined
+                            type: boolean
+                        required:
+                          - key
+                        type: object
+                      fieldRef:
+                        description: 'Selects a field of the pod: supports metadata.name,
+                          metadata.namespace, metadata.labels, metadata.annotations,
+                          spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP,
+                          status.podIPs.'
+                        properties:
+                          apiVersion:
+                            description: Version of the schema the FieldPath is written
+                              in terms of, defaults to "v1".
+                            type: string
+                          fieldPath:
+                            description: Path of the field to select in the specified
+                              API version.
+                            type: string
+                        required:
+                          - fieldPath
+                        type: object
+                      resourceFieldRef:
+                        description: 'Selects a resource of the container: only resources
+                          limits and requests (limits.cpu, limits.memory, limits.ephemeral-storage,
+                          requests.cpu, requests.memory and requests.ephemeral-storage)
+                          are currently supported.'
+                        properties:
+                          containerName:
+                            description: 'Container name: required for volumes, optional
+                              for env vars'
+                            type: string
+                          divisor:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            description: Specifies the output format of the exposed
+                              resources, defaults to "1"
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          resource:
+                            description: 'Required: resource to select'
+                            type: string
+                        required:
+                          - resource
+                        type: object
+                      secretKeyRef:
+                        description: Selects a key of a secret in the pod's namespace
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                          - key
+                        type: object
+                    type: object
+                required:
+                  - name
+                type: object
+              type: array
             headlessServiceEnabled:
               type: boolean
             ingressController:
               enum:
-              - envoy
-              - istioingress
+                - envoy
+                - istioingress
               type: string
             istioIngressConfig:
               description: IstioIngressConfig defines the config for the Istio Ingress
@@ -1335,8 +1449,8 @@ spec:
                     limits:
                       additionalProperties:
                         anyOf:
-                        - type: integer
-                        - type: string
+                          - type: integer
+                          - type: string
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                       description: 'Limits describes the maximum amount of compute
@@ -1345,8 +1459,8 @@ spec:
                     requests:
                       additionalProperties:
                         anyOf:
-                        - type: integer
-                        - type: string
+                          - type: integer
+                          - type: string
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                       description: 'Requests describes the minimum amount of compute
@@ -1399,6 +1513,8 @@ spec:
                     type: string
                   type: object
               type: object
+            kubernetesClusterDomain:
+              type: string
             listenersConfig:
               description: ListenersConfig defines the Kafka listener types
               properties:
@@ -1424,10 +1540,10 @@ spec:
                       type:
                         type: string
                     required:
-                    - containerPort
-                    - externalStartingPort
-                    - name
-                    - type
+                      - containerPort
+                      - externalStartingPort
+                      - name
+                      - type
                     type: object
                   type: array
                 internalListeners:
@@ -1447,10 +1563,10 @@ spec:
                       usedForInnerBrokerCommunication:
                         type: boolean
                     required:
-                    - containerPort
-                    - name
-                    - type
-                    - usedForInnerBrokerCommunication
+                      - containerPort
+                      - name
+                      - type
+                      - usedForInnerBrokerCommunication
                     type: object
                   type: array
                 serviceAnnotations:
@@ -1473,7 +1589,7 @@ spec:
                         name:
                           type: string
                       required:
-                      - name
+                        - name
                       type: object
                     jksPasswordName:
                       type: string
@@ -1481,17 +1597,17 @@ spec:
                       description: PKIBackend represents an interface implementing
                         the PKIManager
                       enum:
-                      - cert-manager
-                      - vault
+                        - cert-manager
+                        - vault
                       type: string
                     tlsSecretName:
                       type: string
                   required:
-                  - jksPasswordName
-                  - tlsSecretName
+                    - jksPasswordName
+                    - tlsSecretName
                   type: object
               required:
-              - internalListeners
+                - internalListeners
               type: object
             monitoringConfig:
               description: MonitoringConfig defines the config for monitoring Kafka
@@ -1506,8 +1622,8 @@ spec:
                 pathToJar:
                   type: string
               required:
-              - jmxImage
-              - pathToJar
+                - jmxImage
+                - pathToJar
               type: object
             oneBrokerPerNode:
               type: boolean
@@ -1522,7 +1638,7 @@ spec:
                     type: string
                   type: array
               required:
-              - labels
+                - labels
               type: object
             readOnlyConfig:
               type: string
@@ -1533,7 +1649,7 @@ spec:
                 failureThreshold:
                   type: integer
               required:
-              - failureThreshold
+                - failureThreshold
               type: object
             vaultConfig:
               description: VaultConfig defines the configuration for a vault PKI backend
@@ -1547,10 +1663,10 @@ spec:
                 userStore:
                   type: string
               required:
-              - authRole
-              - issuePath
-              - pkiPath
-              - userStore
+                - authRole
+                - issuePath
+                - pkiPath
+                - userStore
               type: object
             zkAddresses:
               description: ZKAddresses specifies the ZooKeeper connection string in
@@ -1565,13 +1681,13 @@ spec:
                 the global ZooKeeper namespace.
               type: string
           required:
-          - brokers
-          - cruiseControlConfig
-          - headlessServiceEnabled
-          - listenersConfig
-          - oneBrokerPerNode
-          - rollingUpgradeConfig
-          - zkAddresses
+            - brokers
+            - cruiseControlConfig
+            - headlessServiceEnabled
+            - listenersConfig
+            - oneBrokerPerNode
+            - rollingUpgradeConfig
+            - zkAddresses
           type: object
         status:
           description: KafkaClusterStatus defines the observed state of KafkaCluster
@@ -1624,24 +1740,24 @@ spec:
                                 happened with CC disk rebalance
                               type: string
                           required:
-                          - cruiseControlVolumeState
-                          - errorMessage
+                            - cruiseControlVolumeState
+                            - errorMessage
                           type: object
                         description: VolumeStates holds the information about the
                           CC disk rebalance states and tasks
                         type: object
                     required:
-                    - cruiseControlState
-                    - errorMessage
+                      - cruiseControlState
+                      - errorMessage
                     type: object
                   rackAwarenessState:
                     description: RackAwarenessState holds info about rack awareness
                       status
                     type: string
                 required:
-                - configurationState
-                - gracefulActionState
-                - rackAwarenessState
+                  - configurationState
+                  - gracefulActionState
+                  - rackAwarenessState
                 type: object
               type: object
             cruiseControlTopicStatus:
@@ -1656,22 +1772,22 @@ spec:
                 lastSuccess:
                   type: string
               required:
-              - errorCount
-              - lastSuccess
+                - errorCount
+                - lastSuccess
               type: object
             state:
               description: ClusterState holds info about the cluster state
               type: string
           required:
-          - alertCount
-          - state
+            - alertCount
+            - state
           type: object
       type: object
   version: v1beta1
   versions:
-  - name: v1beta1
-    served: true
-    storage: true
+    - name: v1beta1
+      served: true
+      storage: true
 status:
   acceptedNames:
     kind: ""
