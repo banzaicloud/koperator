@@ -44,7 +44,7 @@ func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, 
 
 	rackAwarenessState, brokers := rackAwarenessLabelsToReadonlyConfig(pod, cr, rackConfigValues)
 	cr.Spec.Brokers = brokers
-	return rackAwarenessState, updateCr(cr, client)
+	return rackAwarenessState, UpdateCr(cr, client)
 }
 
 func rackAwarenessLabelsToReadonlyConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, rackConfigValues []string) (v1beta1.RackAwarenessState, []v1beta1.Broker) {
@@ -83,7 +83,7 @@ func AddNewBrokerToCr(broker v1beta1.Broker, crName, namespace string, client ru
 	}
 	cr.Spec.Brokers = append(cr.Spec.Brokers, broker)
 
-	return updateCr(cr, client)
+	return UpdateCr(cr, client)
 }
 
 // RemoveBrokerFromCr modifies the CR and removes the given broker from the cluster
@@ -101,7 +101,7 @@ func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient
 		}
 	}
 	cr.Spec.Brokers = tmpBrokers
-	return updateCr(cr, client)
+	return UpdateCr(cr, client)
 }
 
 // AddPvToSpecificBroker adds a new PV to a specific broker
@@ -120,7 +120,7 @@ func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *v1
 		}
 	}
 
-	return updateCr(cr, client)
+	return UpdateCr(cr, client)
 }
 
 // GetCr returns the given cr object
@@ -134,7 +134,7 @@ func GetCr(name, namespace string, client runtimeClient.Client) (*v1beta1.KafkaC
 	return cr, nil
 }
 
-func updateCr(cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
+func UpdateCr(cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 	typeMeta := cr.TypeMeta
 	err := client.Update(context.TODO(), cr)
 	if err != nil {
@@ -149,5 +149,5 @@ func updateCr(cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 func UpdateCrWithRollingUpgrade(errorCount int, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 
 	cr.Status.RollingUpgrade.ErrorCount = errorCount
-	return updateCr(cr, client)
+	return UpdateCr(cr, client)
 }
