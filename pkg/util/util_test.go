@@ -18,10 +18,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 func TestGetBrokerConfig(t *testing.T) {
@@ -71,6 +70,83 @@ func TestGetBrokerConfig(t *testing.T) {
 				StorageConfigs: []v1beta1.StorageConfig{
 					{
 						MountPath: "kafka-test1/log",
+						PvcSpec: &corev1.PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("10Gi")},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := GetBrokerConfig(broker, cluster)
+	if err != nil {
+		t.Error("Error GetBrokerConfig throw an unexpected error")
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("Expected:", expected, "Got:", result)
+	}
+}
+
+func TestGetBrokerConfigUniqueStorage(t *testing.T) {
+	expected := &v1beta1.BrokerConfig{
+		StorageConfigs: []v1beta1.StorageConfig{
+			{
+				MountPath: "kafka-test/log",
+				PvcSpec: &corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("20Gi")},
+					},
+				},
+			},
+			{
+				MountPath: "kafka-test1/log",
+				PvcSpec: &corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("10Gi")},
+					},
+				},
+			},
+		},
+	}
+	broker := v1beta1.Broker{
+		Id:                0,
+		BrokerConfigGroup: "default",
+		BrokerConfig: &v1beta1.BrokerConfig{
+			StorageConfigs: []v1beta1.StorageConfig{
+				{
+					MountPath: "kafka-test/log",
+					PvcSpec: &corev1.PersistentVolumeClaimSpec{
+						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("20Gi")},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	cluster := v1beta1.KafkaClusterSpec{
+		BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+			"default": {
+				StorageConfigs: []v1beta1.StorageConfig{
+					{
+						MountPath: "kafka-test1/log",
+						PvcSpec: &corev1.PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("10Gi")},
+							},
+						},
+					},
+					{
+						MountPath: "kafka-test/log",
 						PvcSpec: &corev1.PersistentVolumeClaimSpec{
 							AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 							Resources: corev1.ResourceRequirements{
