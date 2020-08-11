@@ -27,26 +27,6 @@ jobs:
           paths:
             - /go/pkg/mod
 
-      - restore_cache:
-          name: Restore license cache
-          keys:
-            - licensei-v3-{{ checksum "go.sum" }}
-            - licensei-v3
-
-      - run:
-          name: Download license information for dependencies
-          command: make license-cache
-
-      - save_cache:
-          name: Save license cache
-          key: licensei-v3-{{ checksum "go.sum" }}
-          paths:
-            - .licensei.cache
-
-      - run:
-          name: Check dependency licenses
-          command: make license-check
-
       - run:
           name: Build
           command:
