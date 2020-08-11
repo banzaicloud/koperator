@@ -16,6 +16,7 @@ package currentalert
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -54,9 +55,8 @@ func Test_resizePvc(t *testing.T) {
 						"node":                  "test-node",
 					},
 					Annotations: model.LabelSet{
-						"command":         "resizePvc",
-						"mountPathPrefix": "/kafka-logs",
-						"diskSize":        "2G",
+						"command":     "resizePvc",
+						"incrementBy": "2G",
 					},
 				},
 			},
@@ -125,9 +125,8 @@ func Test_resizePvc(t *testing.T) {
 						"node":                  "test-node",
 					},
 					Annotations: model.LabelSet{
-						"command":         "resizePvc",
-						"mountPathPrefix": "/kafka-logs",
-						"diskSize":        "2G",
+						"command":     "resizePvc",
+						"incrementBy": "2G",
 					},
 				},
 			},
@@ -229,6 +228,7 @@ func Test_resizePvc(t *testing.T) {
 				t.Errorf("kafka cr was not found, error = %v", err)
 			}
 
+			fmt.Println(kafkaCluster.Spec.Brokers)
 			brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
 
 			if brokerStorageConfig.PvcSpec.Resources.Requests.Storage().Value() != 6294967296 {

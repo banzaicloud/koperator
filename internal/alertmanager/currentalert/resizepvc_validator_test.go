@@ -37,10 +37,40 @@ func TestResizePvcValidator_validateAlert(t *testing.T) {
 						"persistentvolumeclaim": "test-pvc",
 					},
 					Annotations: model.LabelSet{
+						"command":     ResizePvcCommand,
+						"incrementBy": "10Gi",
+					},
+				},
+			},
+		},
+		{
+			name: "resizePvc validate failed due to invalid incrementBy annotation",
+			fields: fields{
+				Alert: &currentAlertStruct{
+					Labels: model.LabelSet{
+						"persistentvolumeclaim": "test-pvc",
+					},
+					Annotations: model.LabelSet{
+						"command":     ResizePvcCommand,
+						"incrementBy": "10Gb",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "resizePvc validate failed due to missing incrementBy annotation",
+			fields: fields{
+				Alert: &currentAlertStruct{
+					Labels: model.LabelSet{
+						"persistentvolumeclaim": "test-pvc",
+					},
+					Annotations: model.LabelSet{
 						"command": ResizePvcCommand,
 					},
 				},
 			},
+			wantErr: true,
 		},
 		{
 			name: "resizePvc validate failed due to missing label",

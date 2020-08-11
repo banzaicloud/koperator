@@ -16,6 +16,7 @@ package currentalert
 
 import (
 	emperror "emperror.dev/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 type resizePvcValidator struct {
@@ -34,6 +35,12 @@ func (a resizePvcValidator) validateAlert() error {
 	}
 	if a.Alert.Annotations["command"] != ResizePvcCommand {
 		return emperror.NewWithDetails("unsupported command", "command", a.Alert.Annotations["command"])
+	}
+	if !a.Alert.Annotations["incrementBy"].IsValid() {
+		return emperror.New("incrementBy annotation doesn't exist")
+	}
+	if _, err := resource.ParseQuantity(string(a.Alert.Annotations["incrementBy"])); err != nil {
+		return emperror.NewWithDetails("incrementBy not valid quantity", "incrementBy", a.Alert.Annotations["incrementBy"], "error", err)
 	}
 
 	return nil
