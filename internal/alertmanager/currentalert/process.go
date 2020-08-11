@@ -259,11 +259,16 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 				storageConfigs = broker.BrokerConfig.StorageConfigs
 			}
 
-			for i, c := range storageConfigs {
+			for _, c := range storageConfigs {
 				if c.MountPath == pvc.Annotations["mountPath"] {
 					size := *c.PvcSpec.Resources.Requests.Storage()
 
-					size.Add(resource.MustParse(string(annotiations["diskSize"])))
+					incrementBy, err := resource.ParseQuantity(string(annotiations["incrementBy"]))
+					if err != nil {
+						return err
+					}
+
+					size.Add(incrementBy)
 
 					c.PvcSpec.Resources.Requests = corev1.ResourceList{
 						"storage": size,
@@ -278,7 +283,7 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 					}
 				}
 			}
-			cr.Spec.Brokers[i] = broker
+			cr.Spec.Brokers[i].BrokerConfig = broker.BrokerConfig
 		}
 	}
 
@@ -287,7 +292,7 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 		return err
 	}
 
-	log.Info(fmt.Sprintf("PVC for %s successfully resized to broker %s", pvc.Annotations["mountPath"], pvc.Labels["brokerId"]))
+	log.Info("successfully resized broker pvc", "mount path", pvc.Annotations["mountPath"], "broker id", pvc.Labels["brokerId"])
 
 	return nil
 }
