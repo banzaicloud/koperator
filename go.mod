@@ -4,11 +4,11 @@ go 1.14
 
 require (
 	emperror.dev/errors v0.7.0
-	github.com/Shopify/sarama v1.26.4
+	github.com/Shopify/sarama v1.27.0
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.3.0
 	github.com/banzaicloud/istio-client-go v0.0.0-20200410173743-e1adddc949b3
 	github.com/banzaicloud/istio-operator v0.0.0-20200407070503-3f7dc6953a7b
-	github.com/banzaicloud/k8s-objectmatcher v1.4.0
+	github.com/banzaicloud/k8s-objectmatcher v1.4.1
 	github.com/banzaicloud/kafka-operator/api v0.0.0
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
