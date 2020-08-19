@@ -91,7 +91,9 @@ if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then
     fi
   done
 fi
-/opt/kafka/bin/kafka-server-start.sh /config/broker-config`}
+touch /var/run/wait/do-not-exit-yet
+/opt/kafka/bin/kafka-server-start.sh /config/broker-config
+rm /var/run/wait/do-not-exit-yet`}
 
 	volume = append(volume, dataVolume...)
 	volumeMount = append(volumeMount, dataVolumeMount...)
@@ -144,7 +146,7 @@ fi
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.Handler{
 							Exec: &corev1.ExecAction{
-								Command: []string{"bash", "-c", "kill -s TERM 1"},
+								Command: []string{"bash", "-c", "kill -s TERM $(pidof java)"},
 							},
 						},
 					},
@@ -191,11 +193,21 @@ fi
 							Name:      fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, r.KafkaCluster.Name),
 							MountPath: "/etc/jmx-exporter/",
 						},
+						{
+							Name:      "exitfile",
+							MountPath: "/var/run/wait",
+						},
 					}...),
 					Resources: *brokerConfig.GetResources(),
 				},
 			},
 			Volumes: append(volume, []corev1.Volume{
+				{
+					Name: "exitfile",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 				{
 					Name: brokerConfigMapVolumeMount,
 					VolumeSource: corev1.VolumeSource{
