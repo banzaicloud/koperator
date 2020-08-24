@@ -15,6 +15,8 @@
 package envoy
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -60,7 +62,8 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 			Replicas: util.Int32Pointer(r.KafkaCluster.Spec.EnvoyConfig.GetReplicas()),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labelSelector,
+					Labels:      labelSelector,
+					Annotations: generatePodAnnotations(r.KafkaCluster, log),
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: r.KafkaCluster.Spec.EnvoyConfig.GetServiceAccount(),
@@ -97,4 +100,12 @@ func getExposedContainerPorts(extListeners []v1beta1.ExternalListenerConfig, bro
 		}
 	}
 	return exposedPorts
+}
+
+func generatePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) map[string]string {
+	hashedEnvoyConfig := sha256.Sum256([]byte(GenerateEnvoyConfig(kafkaCluster, log)))
+	annotations := map[string]string{
+		"envoy.yaml.hash": hex.EncodeToString(hashedEnvoyConfig[:]),
+	}
+	return annotations
 }
