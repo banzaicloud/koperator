@@ -38,12 +38,12 @@ import (
 func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(envoyVolumeAndConfigName, labelSelector, r.KafkaCluster),
-		Data:       map[string]string{"envoy.yaml": generateEnvoyConfig(r.KafkaCluster, log)},
+		Data:       map[string]string{"envoy.yaml": GenerateEnvoyConfig(r.KafkaCluster, log)},
 	}
 	return configMap
 }
 
-func generateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
+func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 	//TODO support multiple external listener by removing [0] (baluchicken)
 	adminConfig := envoybootstrap.Admin{
 		AccessLogPath: "/tmp/admin_access.log",
