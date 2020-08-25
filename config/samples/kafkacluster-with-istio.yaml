@@ -18,6 +18,8 @@ spec:
     auto.create.topics.enable=false
   brokerConfigGroups:
     default:
+      brokerAnnotations:
+        sidecar.istio.io/userVolumeMount: '[{"name":"exitfile", "mountPath":"/var/run/wait", "readonly":true}]'
       storageConfigs:
         - mountPath: "/kafka-logs"
           pvcSpec:
