@@ -390,7 +390,7 @@ func (cConfig *CruiseControlConfig) GetInitContainerImage() string {
 	if cConfig.InitContainerImage != "" {
 		return cConfig.InitContainerImage
 	}
-	return "banzaicloud/kafka:2.13-2.5.0-bzc.1"
+	return "banzaicloud/kafka:2.13-2.6.0-bzc.1"
 }
 
 //GetLoadBalancerSourceRanges returns LoadBalancerSourceRanges to use for Envoy generated LoadBalancer
