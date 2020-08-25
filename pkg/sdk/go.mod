@@ -3,9 +3,10 @@ module github.com/banzaicloud/kafka-operator/pkg/sdk
 go 1.14
 
 require (
-	github.com/banzaicloud/istio-client-go v0.0.0-20200410173743-e1adddc949b3
-	github.com/jetstack/cert-manager v0.15.1
-	k8s.io/api v0.18.2
-	k8s.io/apimachinery v0.18.2
-	sigs.k8s.io/controller-runtime v0.6.0
+	github.com/banzaicloud/istio-client-go v0.0.9
+	github.com/google/go-cmp v0.4.1 // indirect
+	github.com/jetstack/cert-manager v0.15.2
+	k8s.io/api v0.18.8
+	k8s.io/apimachinery v0.18.8
+	sigs.k8s.io/controller-runtime v0.6.2
 )
