@@ -573,7 +573,7 @@ func (cConfig *CruiseControlConfig) GetCCImage() string {
 	if cConfig.Image != "" {
 		return cConfig.Image
 	}
-	return "banzaicloud/cruise-control:2.5.0"
+	return "banzaicloud/cruise-control:2.5.11"
 }
 
 // GetImage returns the used image for Prometheus JMX exporter
