@@ -565,7 +565,7 @@ func (eConfig *EnvoyConfig) GetEnvoyImage() string {
 		return eConfig.Image
 	}
 
-	return "banzaicloud/envoy:0.1.0"
+	return "envoyproxy/envoy:v1.14.4"
 }
 
 // GetCCImage returns the used Cruise Control image
