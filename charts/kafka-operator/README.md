@@ -8,16 +8,23 @@
 
 ## Installing the chart
 
+Before installing the chart, you must first install the kafka-operator CustomResourceDefinition resources.
+This is performed in a separate step to allow you to easily uninstall and reinstall kafka-operator without deleting your installed custom resources.
+
+```
+kubectl apply --validate=false -f https://github.com/banzaicloud/kafka-operator/releases/download/v0.12.3/kafka-operator.crds.yaml
+```
+
 To install the chart:
 
 ```
 $ helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com
-$ helm install --name=kafka-operator --namespace=kafka banzaicloud-stable/kafka-operator
+$ helm install kafka-operator --create-namespace --namespace=kafka banzaicloud-stable/kafka-operator
 ```
 
 To install the operator using an already installed cert-manager
 ```bash
-$ helm install --name=kafka-operator --set certManager.namespace=<your cert manager namespace> --namespace=kafka banzaicloud-stable/kafka-operator
+$ helm install kafka-operator --set certManager.namespace=<your cert manager namespace> --namespace=kafka  --create-namespace banzaicloud-stable/kafka-operator
 ```
 
 ## Uninstalling the Chart
