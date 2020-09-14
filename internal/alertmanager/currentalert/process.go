@@ -239,47 +239,47 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 }
 
 func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelSet, client client.Client) error {
-	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]), string(labels["namespace"]), client)
-	if err != nil {
-		return err
-	}
 
 	pvc, err := getPvc(string(labels["persistentvolumeclaim"]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
 	}
 
+	cr, err := k8sutil.GetCr(pvc.Labels["kafka_cr"], string(labels["namespace"]), client)
+	if err != nil {
+		return err
+	}
+
 	for i, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) == pvc.Labels["brokerId"] {
-			var storageConfigs []v1beta1.StorageConfig
-
-			if broker.BrokerConfig == nil {
-				storageConfigs = cr.Spec.BrokerConfigGroups[cr.Spec.Brokers[i].BrokerConfigGroup].StorageConfigs
-			} else {
-				storageConfigs = broker.BrokerConfig.StorageConfigs
+			brokerConfig, err := util.GetBrokerConfig(broker, cr.Spec)
+			if err != nil {
+				return errors.WrapIf(err, "failed to determine broker config")
 			}
 
-			for _, c := range storageConfigs {
-				if c.MountPath == pvc.Annotations["mountPath"] {
-					size := *c.PvcSpec.Resources.Requests.Storage()
+			storageConfigs := brokerConfig.StorageConfigs
+
+			for n, c := range storageConfigs {
+				modifiableConfig := c.DeepCopy()
+				if modifiableConfig.MountPath == pvc.Annotations["mountPath"] {
+					size := *modifiableConfig.PvcSpec.Resources.Requests.Storage()
 
 					incrementBy, err := resource.ParseQuantity(string(annotiations["incrementBy"]))
 					if err != nil {
 						return err
 					}
-
 					size.Add(incrementBy)
 
-					c.PvcSpec.Resources.Requests = corev1.ResourceList{
+					modifiableConfig.PvcSpec.Resources.Requests = corev1.ResourceList{
 						"storage": size,
 					}
 
 					if broker.BrokerConfig == nil {
 						broker.BrokerConfig = &v1beta1.BrokerConfig{
-							StorageConfigs: []v1beta1.StorageConfig{c},
+							StorageConfigs: []v1beta1.StorageConfig{*modifiableConfig},
 						}
 					} else {
-						broker.BrokerConfig.StorageConfigs[i] = c
+						broker.BrokerConfig.StorageConfigs[n] = *modifiableConfig
 					}
 				}
 			}
