@@ -152,7 +152,7 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		}
 		if ds.Down {
 			e.Log.Info("downscale is skipped due to downscale limit")
-			return true, nil
+			return false, nil
 		}
 		err := downScale(e.Log, e.Alert.Labels, e.Client)
 		if err != nil {
@@ -167,7 +167,7 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		}
 		if ds.Up {
 			e.Log.Info("upscale is skipped due to upscale limit")
-			return true, nil
+			return false, nil
 		}
 		err := upScale(e.Log, e.Alert.Labels, e.Alert.Annotations, e.Client)
 		if err != nil {

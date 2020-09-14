@@ -173,7 +173,7 @@ func Test_resizePvc(t *testing.T) {
 					},
 					Brokers: []v1beta1.Broker{
 						{
-							Id:                int32(0),
+							Id: int32(0),
 							BrokerConfig: &v1beta1.BrokerConfig{
 								StorageConfigs: []v1beta1.StorageConfig{
 									{
