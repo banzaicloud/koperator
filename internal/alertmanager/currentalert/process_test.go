@@ -49,10 +49,8 @@ func Test_resizePvc(t *testing.T) {
 			alertList: []model.Alert{
 				{
 					Labels: model.LabelSet{
-						"kafka_cr":              "test-cluster",
 						"namespace":             "kafka",
 						"persistentvolumeclaim": "testPvc",
-						"node":                  "test-node",
 					},
 					Annotations: model.LabelSet{
 						"command":     "resizePvc",
@@ -119,10 +117,8 @@ func Test_resizePvc(t *testing.T) {
 			alertList: []model.Alert{
 				{
 					Labels: model.LabelSet{
-						"kafka_cr":              "test-cluster",
 						"namespace":             "kafka",
 						"persistentvolumeclaim": "testPvc",
-						"node":                  "test-node",
 					},
 					Annotations: model.LabelSet{
 						"command":     "resizePvc",
@@ -178,7 +174,6 @@ func Test_resizePvc(t *testing.T) {
 					Brokers: []v1beta1.Broker{
 						{
 							Id:                int32(0),
-							BrokerConfigGroup: "default",
 							BrokerConfig: &v1beta1.BrokerConfig{
 								StorageConfigs: []v1beta1.StorageConfig{
 									{
@@ -206,6 +201,7 @@ func Test_resizePvc(t *testing.T) {
 			if err != nil {
 				t.Error("Pvc creation failed", err)
 			}
+			defer testClient.Delete(context.Background(), &tt.pvc)
 
 			err = testClient.Create(context.Background(), &tt.cluster)
 			if err != nil {
@@ -215,7 +211,7 @@ func Test_resizePvc(t *testing.T) {
 			for _, alert := range tt.alertList {
 				err := resizePvc(logf.NullLogger{}, alert.Labels, alert.Annotations, testClient)
 				if err != nil {
-					t.Errorf("process.addPvc() error = %v", err)
+					t.Errorf("process.resizePvc() error = %v", err)
 				}
 			}
 
@@ -227,6 +223,7 @@ func Test_resizePvc(t *testing.T) {
 			if err != nil {
 				t.Errorf("kafka cr was not found, error = %v", err)
 			}
+			defer testClient.Delete(context.Background(), &kafkaCluster)
 
 			fmt.Println(kafkaCluster.Spec.Brokers)
 			brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
@@ -234,9 +231,10 @@ func Test_resizePvc(t *testing.T) {
 			if brokerStorageConfig.PvcSpec.Resources.Requests.Storage().Value() != 6294967296 {
 				t.Error("invalid storage size")
 			}
-
-			testClient.Delete(context.Background(), &kafkaCluster)
-			testClient.Delete(context.Background(), &tt.pvc)
+			if kafkaCluster.Spec.BrokerConfigGroups["default"].StorageConfigs[0].PvcSpec.Resources.Requests.Storage().Value() !=
+				tt.cluster.Spec.BrokerConfigGroups["default"].StorageConfigs[0].PvcSpec.Resources.Requests.Storage().Value() {
+				t.Error("request mutated the config group")
+			}
 		})
 	}
 }
