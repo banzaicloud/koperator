@@ -129,13 +129,16 @@ func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Cli
 			IgnoreCCStatus: a.IgnoreCCStatus,
 			Log:            log,
 		}
+		// if alertProcessed is false without an error the alert is skipped because
+		// - cluster is not ready
+		// - alert has to be skipped because of broker upscale/downscale limits
+		// - unknown command is presented
+		// on every other case examineAlert will throw an error
 		alertProcessed, err := e.examineAlert(rollingUpgradeAlertCount)
 		if err != nil {
 			return nil, err
 		}
-		if !alertProcessed {
-			a.alerts[alertFp].Processed = true
-		}
+		a.alerts[alertFp].Processed = alertProcessed
 	}
 	return a.alerts[alertFp], nil
 }
