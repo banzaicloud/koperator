@@ -249,6 +249,10 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 	if err != nil {
 		return err
 	}
+	incrementBy, err := resource.ParseQuantity(string(annotiations["incrementBy"]))
+	if err != nil {
+		return err
+	}
 
 	for i, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) == pvc.Labels["brokerId"] {
@@ -263,16 +267,9 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 				modifiableConfig := c.DeepCopy()
 				if modifiableConfig.MountPath == pvc.Annotations["mountPath"] {
 					size := *modifiableConfig.PvcSpec.Resources.Requests.Storage()
-
-					incrementBy, err := resource.ParseQuantity(string(annotiations["incrementBy"]))
-					if err != nil {
-						return err
-					}
 					size.Add(incrementBy)
 
-					modifiableConfig.PvcSpec.Resources.Requests = corev1.ResourceList{
-						"storage": size,
-					}
+					modifiableConfig.PvcSpec.Resources.Requests["storage"] = size
 
 					if broker.BrokerConfig == nil {
 						broker.BrokerConfig = &v1beta1.BrokerConfig{
