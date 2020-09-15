@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
@@ -46,7 +45,7 @@ func TestMain(m *testing.M) {
 	t := &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "base", "crds")},
 	}
-	banzaicloudv1beta1.AddToScheme(scheme.Scheme)
+	v1beta1.AddToScheme(scheme.Scheme)
 
 	var err error
 	if cfg, err = t.Start(); err != nil {
@@ -77,6 +76,20 @@ func ensureCreated(t *testing.T, object runtime.Object, mgr manager.Manager) fun
 	}
 	return func() {
 		mgr.GetClient().Delete(context.TODO(), object)
+	}
+}
+
+func updateStatus(t *testing.T, object *v1beta1.KafkaCluster, mgr manager.Manager) {
+	object.Status = v1beta1.KafkaClusterStatus{
+		State: v1beta1.KafkaClusterRunning,
+		RollingUpgrade: v1beta1.RollingUpgradeStatus{
+			LastSuccess: "00000-00000",
+			ErrorCount:  0,
+		},
+	}
+	err := mgr.GetClient().Status().Update(context.TODO(), object)
+	if err != nil {
+		t.Fatalf("%+v", err)
 	}
 }
 
@@ -113,7 +126,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 				InternalListeners: []v1beta1.InternalListenerConfig{
 					{CommonListenerSpec: v1beta1.CommonListenerSpec{
 						Type:          "plaintext",
-						Name:          "planitext",
+						Name:          "plaintext",
 						ContainerPort: 29092},
 						UsedForInnerBrokerCommunication: true,
 					},
@@ -130,18 +143,14 @@ func TestGetCurrentAlerts(t *testing.T) {
 				CruiseControlEndpoint: "kafka",
 			},
 		},
-		Status: v1beta1.KafkaClusterStatus{
-			State: "Running",
-			RollingUpgrade: v1beta1.RollingUpgradeStatus{
-				LastSuccess: "00000-00000",
-				ErrorCount:  0,
-			},
-		},
 	}
 	//Create Namespace first
 	ensureCreated(t, kafkaNamespace, mgr)
 
 	ensureCreated(t, kafkaCluster, mgr)
+
+	// We have to update the status of the KafkaCluster CR separately since create drops changes to status field
+	updateStatus(t, kafkaCluster, mgr)
 
 	alerts1 := GetCurrentAlerts()
 	if alerts1 == nil {
@@ -160,6 +169,9 @@ func TestGetCurrentAlerts(t *testing.T) {
 			"kafka_cr":  "kafka",
 			"namespace": "kafka",
 		},
+		Annotations: map[model.LabelName]model.LabelValue{
+			"command": "testing",
+		},
 	}
 
 	testAlert2 := AlertState{
@@ -168,6 +180,9 @@ func TestGetCurrentAlerts(t *testing.T) {
 		Labels: model.LabelSet{
 			"alertname": "PodAlert",
 			"test":      "test",
+		},
+		Annotations: map[model.LabelName]model.LabelValue{
+			"command": "testing",
 		},
 	}
 
