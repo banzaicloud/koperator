@@ -27,6 +27,15 @@ To install the operator using an already installed cert-manager
 $ helm install kafka-operator --set certManager.namespace=<your cert manager namespace> --namespace=kafka  --create-namespace banzaicloud-stable/kafka-operator
 ```
 
+## Upgrading the chart
+
+To upgrade the chart since the helm 3 limitation you have to set a value as well to keep your CRDs.
+If this value is not set your CRDs might be deleted.
+
+```bash
+helm upgrade kafka-operator --set crd.enabled=true --namespace=kafka banzaicloud-stable/kafka-operator
+```
+
 ## Uninstalling the Chart
 
 To uninstall/delete the `kafka-operator` release:
@@ -44,7 +53,7 @@ The following table lists the configurable parameters of the Banzaicloud Kafka O
 Parameter | Description | Default
 --------- | ----------- | -------
 `operator.image.repository` | Operator container image repository | `banzaicloud/kafka-operator`
-`operator.image.tag` | Operator container image tag | `v0.11.0`
+`operator.image.tag` | Operator container image tag | `v0.12.4`
 `operator.image.pullPolicy` | Operator container image pull policy | `IfNotPresent`
 `operator.serviceAccount.name` | ServiceAccount used by the operator pod | `kafka-operator`
 `operator.serviceAccount.create` | If true, create the `operator.serviceAccount.name` service account | `true`
@@ -66,6 +75,7 @@ Parameter | Description | Default
 `tolerations` | Operator pod tolerations can be set | `[]`
 `affinity` | Operator pod affinity can be set | `{}`
 `nameOverride` | Release name can be overwritten | `""`
+`crd.enabled` | Whether to enable CRD installation(used for upgrade only) | `true`
 `fullnameOverride` | Release full name can be overwritten | `""`
 `certManager.namespace` | Operator will look for the cert manager in this namespace | `cert-manager`
 `certManager.enabled` | Operator will integrate with the cert manager | `false`
