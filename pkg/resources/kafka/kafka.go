@@ -198,8 +198,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 		lbIPs = append(lbIPs, lbIP)
 	}
-	//TODO remove after testing
-	//lBIp := "192.168.0.1"
 
 	// Setup the PKI if using SSL
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {

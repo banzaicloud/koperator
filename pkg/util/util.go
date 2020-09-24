@@ -180,6 +180,16 @@ func AreStringSlicesIdentical(a, b []string) bool {
 	return reflect.DeepEqual(a, b)
 }
 
+func GetBrokerIdsFromStatus(brokerStatuses map[string]v1beta1.BrokerState) []int {
+	brokerIds := make([]int, 0, len(brokerStatuses))
+	for brokerId, _ := range brokerStatuses {
+		id, _ := strconv.Atoi(brokerId)
+		brokerIds = append(brokerIds, id)
+	}
+	sort.Ints(brokerIds)
+	return brokerIds
+}
+
 // GetBrokerConfig compose the brokerConfig for a given broker
 func GetBrokerConfig(broker v1beta1.Broker, clusterSpec v1beta1.KafkaClusterSpec) (*v1beta1.BrokerConfig, error) {
 
