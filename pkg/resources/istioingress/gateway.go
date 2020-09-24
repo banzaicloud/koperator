@@ -23,6 +23,7 @@ import (
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig) runtime.Object {
@@ -43,12 +44,15 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 		tlsConfig = kc.Spec.IstioIngressConfig.TLSOptions
 		protocol = v1alpha3.ProtocolTLS
 	}
-	for _, broker := range kc.Spec.Brokers {
+
+	brokerIds := util.GetBrokerIdsFromStatus(kc.Status.BrokersState)
+
+	for _, brokerId := range brokerIds {
 		servers = append(servers, v1alpha3.Server{
 			Port: &v1alpha3.Port{
-				Number:   int(broker.Id + externalListenerConfig.ExternalStartingPort),
+				Number:   int(externalListenerConfig.ExternalStartingPort) + brokerId,
 				Protocol: protocol,
-				Name:     fmt.Sprintf("broker-%d", broker.Id),
+				Name:     fmt.Sprintf("broker-%d", brokerId),
 			},
 			TLS:   tlsConfig,
 			Hosts: []string{"*"},
