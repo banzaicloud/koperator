@@ -45,14 +45,14 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 		protocol = v1alpha3.ProtocolTLS
 	}
 
-	brokerIds := util.GetBrokerIdsFromStatus(kc.Status.BrokersState)
+	brokerIds := util.GetBrokerIdsFromStatus(kc.Status.BrokersState, log)
 
 	for _, brokerId := range brokerIds {
 		servers = append(servers, v1alpha3.Server{
 			Port: &v1alpha3.Port{
 				Number:   int(externalListenerConfig.ExternalStartingPort) + brokerId,
 				Protocol: protocol,
-				Name:     fmt.Sprintf("broker-%d", brokerId),
+				Name:     fmt.Sprintf("tcp-broker-%d", brokerId),
 			},
 			TLS:   tlsConfig,
 			Hosts: []string{"*"},
@@ -63,7 +63,7 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 			Port: &v1alpha3.Port{
 				Number:   int(kc.Spec.ListenersConfig.InternalListeners[0].ContainerPort),
 				Protocol: protocol,
-				Name:     allBrokers,
+				Name:     "tcp-" + allBrokers,
 			},
 			Hosts: []string{"*"},
 			TLS:   tlsConfig,

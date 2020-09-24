@@ -33,7 +33,7 @@ import (
 func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 
 	exposedPorts := getExposedServicePorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners,
-		util.GetBrokerIdsFromStatus(r.KafkaCluster.Status.BrokersState))
+		util.GetBrokerIdsFromStatus(r.KafkaCluster.Status.BrokersState, log))
 
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(envoyutils.EnvoyServiceName, map[string]string{},

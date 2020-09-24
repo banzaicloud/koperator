@@ -63,7 +63,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 	var listeners []*envoyapi.Listener
 	var clusters []*envoyapi.Cluster
 
-	for _, brokerId := range util.GetBrokerIdsFromStatus(kc.Status.BrokersState) {
+	for _, brokerId := range util.GetBrokerIdsFromStatus(kc.Status.BrokersState, log) {
 		listeners = append(listeners, &envoyapi.Listener{
 			Address: &envoycore.Address{
 				Address: &envoycore.Address_SocketAddress{

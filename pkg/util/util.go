@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+	"github.com/go-logr/logr"
 	"github.com/imdario/mergo"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -180,10 +181,13 @@ func AreStringSlicesIdentical(a, b []string) bool {
 	return reflect.DeepEqual(a, b)
 }
 
-func GetBrokerIdsFromStatus(brokerStatuses map[string]v1beta1.BrokerState) []int {
+func GetBrokerIdsFromStatus(brokerStatuses map[string]v1beta1.BrokerState, log logr.Logger) []int {
 	brokerIds := make([]int, 0, len(brokerStatuses))
-	for brokerId, _ := range brokerStatuses {
-		id, _ := strconv.Atoi(brokerId)
+	for brokerId := range brokerStatuses {
+		id, err := strconv.Atoi(brokerId)
+		if err != nil {
+			log.Error(err, "could not parse brokerId properly")
+		}
 		brokerIds = append(brokerIds, id)
 	}
 	sort.Ints(brokerIds)
