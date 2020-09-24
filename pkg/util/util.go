@@ -187,6 +187,7 @@ func GetBrokerIdsFromStatus(brokerStatuses map[string]v1beta1.BrokerState, log l
 		id, err := strconv.Atoi(brokerId)
 		if err != nil {
 			log.Error(err, "could not parse brokerId properly")
+			continue
 		}
 		brokerIds = append(brokerIds, id)
 	}
