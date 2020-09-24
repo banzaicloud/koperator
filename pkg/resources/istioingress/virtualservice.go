@@ -54,7 +54,7 @@ func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1be
 func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger) []v1alpha3.TLSRoute {
 	tlsRoutes := make([]v1alpha3.TLSRoute, 0)
 
-	brokerIds := util.GetBrokerIdsFromStatus(kc.Status.BrokersState)
+	brokerIds := util.GetBrokerIdsFromStatus(kc.Status.BrokersState, log)
 
 	for _, brokerId := range brokerIds {
 		tlsRoutes = append(tlsRoutes, v1alpha3.TLSRoute{
@@ -99,7 +99,7 @@ func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 func generateTcpRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger) []v1alpha3.TCPRoute {
 	tcpRoutes := make([]v1alpha3.TCPRoute, 0)
 
-	brokerIds := util.GetBrokerIdsFromStatus(kc.Status.BrokersState)
+	brokerIds := util.GetBrokerIdsFromStatus(kc.Status.BrokersState, log)
 
 	for _, brokerId := range brokerIds {
 		tcpRoutes = append(tcpRoutes, v1alpha3.TCPRoute{
