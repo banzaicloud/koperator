@@ -32,7 +32,8 @@ import (
 
 func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 
-	exposedPorts := getExposedContainerPorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.Brokers)
+	exposedPorts := getExposedContainerPorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners,
+		util.GetBrokerIdsFromStatus(r.KafkaCluster.Status.BrokersState))
 	volumes := []corev1.Volume{
 		{
 			Name: envoyVolumeAndConfigName,
@@ -87,14 +88,14 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	}
 }
 
-func getExposedContainerPorts(extListeners []v1beta1.ExternalListenerConfig, brokers []v1beta1.Broker) []corev1.ContainerPort {
+func getExposedContainerPorts(extListeners []v1beta1.ExternalListenerConfig, brokerIds []int) []corev1.ContainerPort {
 	var exposedPorts []corev1.ContainerPort
 
 	for _, eListener := range extListeners {
-		for _, broker := range brokers {
+		for _, id := range brokerIds {
 			exposedPorts = append(exposedPorts, corev1.ContainerPort{
-				Name:          fmt.Sprintf("broker-%d", broker.Id),
-				ContainerPort: eListener.ExternalStartingPort + broker.Id,
+				Name:          fmt.Sprintf("broker-%d", id),
+				ContainerPort: eListener.ExternalStartingPort + int32(id),
 				Protocol:      corev1.ProtocolTCP,
 			})
 		}

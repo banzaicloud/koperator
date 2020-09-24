@@ -25,6 +25,7 @@ import (
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 
 	envoyapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -62,14 +63,14 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 	var listeners []*envoyapi.Listener
 	var clusters []*envoyapi.Cluster
 
-	for _, broker := range kc.Spec.Brokers {
+	for _, brokerId := range util.GetBrokerIdsFromStatus(kc.Status.BrokersState) {
 		listeners = append(listeners, &envoyapi.Listener{
 			Address: &envoycore.Address{
 				Address: &envoycore.Address_SocketAddress{
 					SocketAddress: &envoycore.SocketAddress{
 						Address: "0.0.0.0",
 						PortSpecifier: &envoycore.SocketAddress_PortValue{
-							PortValue: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ExternalStartingPort + broker.Id),
+							PortValue: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ExternalStartingPort + int32(brokerId)),
 						},
 					},
 				},
@@ -82,8 +83,8 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 							ConfigType: &envoylistener.Filter_Config{
 								Config: &ptypesstruct.Struct{
 									Fields: map[string]*ptypesstruct.Value{
-										"stat_prefix": {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker_tcp-%d", broker.Id)}},
-										"cluster":     {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker-%d", broker.Id)}},
+										"stat_prefix": {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker_tcp-%d", brokerId)}},
+										"cluster":     {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker-%d", brokerId)}},
 									},
 								},
 							},
@@ -94,7 +95,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 		})
 
 		clusters = append(clusters, &envoyapi.Cluster{
-			Name:                 fmt.Sprintf("broker-%d", broker.Id),
+			Name:                 fmt.Sprintf("broker-%d", brokerId),
 			ConnectTimeout:       &duration.Duration{Seconds: 1},
 			ClusterDiscoveryType: &envoyapi.Cluster_Type{Type: envoyapi.Cluster_STRICT_DNS},
 			LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
@@ -103,7 +104,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 				{
 					Address: &envoycore.Address_SocketAddress{
 						SocketAddress: &envoycore.SocketAddress{
-							Address: fmt.Sprintf("%s-%d.%s-headless.%s.svc.%s", kc.Name, broker.Id, kc.Name, kc.Namespace, kc.Spec.GetKubernetesClusterDomain()),
+							Address: fmt.Sprintf("%s-%d.%s-headless.%s.svc.%s", kc.Name, brokerId, kc.Name, kc.Namespace, kc.Spec.GetKubernetesClusterDomain()),
 							PortSpecifier: &envoycore.SocketAddress_PortValue{
 								PortValue: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ContainerPort),
 							},

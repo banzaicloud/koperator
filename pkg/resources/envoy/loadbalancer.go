@@ -17,12 +17,14 @@ package envoy
 import (
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -30,10 +32,12 @@ import (
 // loadBalancer return a Loadbalancer service for Envoy
 func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 
-	exposedPorts := getExposedServicePorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners, r.KafkaCluster.Spec.Brokers)
+	exposedPorts := getExposedServicePorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners,
+		util.GetBrokerIdsFromStatus(r.KafkaCluster.Status.BrokersState))
 
 	service := &corev1.Service{
-		ObjectMeta: templates.ObjectMetaWithAnnotations(envoyutils.EnvoyServiceName, map[string]string{}, r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations(), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMetaWithAnnotations(envoyutils.EnvoyServiceName, map[string]string{},
+			r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations(), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Selector:                 map[string]string{"app": "envoy"},
 			Type:                     corev1.ServiceTypeLoadBalancer,
@@ -45,15 +49,15 @@ func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 	return service
 }
 
-func getExposedServicePorts(extListeners []v1beta1.ExternalListenerConfig, brokers []v1beta1.Broker) []corev1.ServicePort {
+func getExposedServicePorts(extListeners []v1beta1.ExternalListenerConfig, brokersIds []int) []corev1.ServicePort {
 	var exposedPorts []corev1.ServicePort
 
 	for _, eListener := range extListeners {
-		for _, broker := range brokers {
+		for _, brokerId := range brokersIds {
 			exposedPorts = append(exposedPorts, corev1.ServicePort{
-				Name:       fmt.Sprintf("broker-%d", broker.Id),
-				Port:       eListener.ExternalStartingPort + broker.Id,
-				TargetPort: intstr.FromInt(int(eListener.ExternalStartingPort + broker.Id)),
+				Name:       fmt.Sprintf("broker-%d", brokerId),
+				Port:       eListener.ExternalStartingPort + int32(brokerId),
+				TargetPort: intstr.FromInt(int(eListener.ExternalStartingPort) + brokerId),
 				Protocol:   corev1.ProtocolTCP,
 			})
 		}
