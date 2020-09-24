@@ -49,8 +49,9 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 				},
 				ServiceType: corev1.ServiceTypeLoadBalancer,
 			},
-			Ports: generateExternalPorts(r.KafkaCluster.Spec, externalListenerConfig),
-			Type:  istioOperatorApi.GatewayTypeIngress,
+			Ports: generateExternalPorts(util.GetBrokerIdsFromStatus(r.KafkaCluster.Status.BrokersState),
+				externalListenerConfig),
+			Type: istioOperatorApi.GatewayTypeIngress,
 		},
 	}
 	if !r.KafkaCluster.Spec.HeadlessServiceEnabled && len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners) > 0 {
@@ -63,13 +64,13 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 	return mgateway
 }
 
-func generateExternalPorts(clusterSpec v1beta1.KafkaClusterSpec, externalListenerConfig v1beta1.ExternalListenerConfig) []corev1.ServicePort {
+func generateExternalPorts(brokerIds []int, externalListenerConfig v1beta1.ExternalListenerConfig) []corev1.ServicePort {
 	generatedPorts := make([]corev1.ServicePort, 0)
-	for _, broker := range clusterSpec.Brokers {
+	for _, brokerId := range brokerIds {
 		generatedPorts = append(generatedPorts, corev1.ServicePort{
-			Name:       fmt.Sprintf("broker-%d", broker.Id),
-			TargetPort: intstr.FromInt(int(externalListenerConfig.ExternalStartingPort + broker.Id)),
-			Port:       externalListenerConfig.ExternalStartingPort + broker.Id,
+			Name:       fmt.Sprintf("broker-%d", brokerId),
+			TargetPort: intstr.FromInt(int(externalListenerConfig.ExternalStartingPort) + brokerId),
+			Port:       externalListenerConfig.ExternalStartingPort + int32(brokerId),
 		})
 	}
 

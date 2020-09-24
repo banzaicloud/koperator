@@ -54,18 +54,20 @@ func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1be
 func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger) []v1alpha3.TLSRoute {
 	tlsRoutes := make([]v1alpha3.TLSRoute, 0)
 
-	for _, broker := range kc.Spec.Brokers {
+	brokerIds := util.GetBrokerIdsFromStatus(kc.Status.BrokersState)
+
+	for _, brokerId := range brokerIds {
 		tlsRoutes = append(tlsRoutes, v1alpha3.TLSRoute{
 			Match: []v1alpha3.TLSMatchAttributes{
 				{
-					Port:     util.IntPointer(int(broker.Id + externalListenerConfig.ExternalStartingPort)),
+					Port:     util.IntPointer(int(externalListenerConfig.ExternalStartingPort) + brokerId),
 					SniHosts: []string{"*"},
 				},
 			},
 			Route: []*v1alpha3.RouteDestination{
 				{
 					Destination: &v1alpha3.Destination{
-						Host: fmt.Sprintf("%s-%d", kc.Name, broker.Id),
+						Host: fmt.Sprintf("%s-%d", kc.Name, brokerId),
 						Port: &v1alpha3.PortSelector{Number: uint32(externalListenerConfig.ContainerPort)},
 					},
 				},
@@ -97,17 +99,19 @@ func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 func generateTcpRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger) []v1alpha3.TCPRoute {
 	tcpRoutes := make([]v1alpha3.TCPRoute, 0)
 
-	for _, broker := range kc.Spec.Brokers {
+	brokerIds := util.GetBrokerIdsFromStatus(kc.Status.BrokersState)
+
+	for _, brokerId := range brokerIds {
 		tcpRoutes = append(tcpRoutes, v1alpha3.TCPRoute{
 			Match: []v1alpha3.L4MatchAttributes{
 				{
-					Port: util.IntPointer(int(broker.Id + externalListenerConfig.ExternalStartingPort)),
+					Port: util.IntPointer(int(externalListenerConfig.ExternalStartingPort) + brokerId),
 				},
 			},
 			Route: []*v1alpha3.RouteDestination{
 				{
 					Destination: &v1alpha3.Destination{
-						Host: fmt.Sprintf("%s-%d", kc.Name, broker.Id),
+						Host: fmt.Sprintf("%s-%d", kc.Name, brokerId),
 						Port: &v1alpha3.PortSelector{Number: uint32(externalListenerConfig.ContainerPort)},
 					},
 				},
