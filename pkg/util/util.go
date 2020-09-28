@@ -249,3 +249,11 @@ func GetRandomString(length int) (string, error) {
 	}
 	return b.String(), nil
 }
+
+// computes the max between 2 ints
+func Max(x, y int) int {
+	if x < y {
+		return y
+	}
+	return x
+}
