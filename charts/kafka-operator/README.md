@@ -75,7 +75,7 @@ Parameter | Description | Default
 `tolerations` | Operator pod tolerations can be set | `[]`
 `affinity` | Operator pod affinity can be set | `{}`
 `nameOverride` | Release name can be overwritten | `""`
-`crd.enabled` | Whether to enable CRD installation(used for upgrade only) | `true`
+`crd.enabled` | Whether to enable CRD installation(used for upgrade only) | `false`
 `fullnameOverride` | Release full name can be overwritten | `""`
 `certManager.namespace` | Operator will look for the cert manager in this namespace | `cert-manager`
 `certManager.enabled` | Operator will integrate with the cert manager | `false`
