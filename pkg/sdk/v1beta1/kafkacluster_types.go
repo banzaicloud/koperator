@@ -581,7 +581,7 @@ func (mConfig *MonitoringConfig) GetImage() string {
 	if mConfig.JmxImage != "" {
 		return mConfig.JmxImage
 	}
-	return "banzaicloud/jmx-javaagent:0.13.0"
+	return "banzaicloud/jmx-javaagent:0.14.0"
 }
 
 // GetPathToJar returns the path in the used Image for Prometheus JMX exporter
@@ -589,7 +589,7 @@ func (mConfig *MonitoringConfig) GetPathToJar() string {
 	if mConfig.PathToJar != "" {
 		return mConfig.PathToJar
 	}
-	return "/opt/jmx_exporter/jmx_prometheus_javaagent-0.13.0.jar"
+	return "/opt/jmx_exporter/jmx_prometheus_javaagent-0.14.0.jar"
 }
 
 // GetKafkaJMXExporterConfig returns the config for Kafka Prometheus JMX exporter
@@ -599,6 +599,7 @@ func (mConfig *MonitoringConfig) GetKafkaJMXExporterConfig() string {
 	}
 	// Use upstream defined rules https://github.com/prometheus/jmx_exporter/blob/master/example_configs/kafka-2_0_0.yml
 	return `lowercaseOutputName: true
+cacheRules: true
 rules:
 # Special cases and very specific rules
 - pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)><>Value
