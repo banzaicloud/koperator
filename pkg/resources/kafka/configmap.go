@@ -61,6 +61,7 @@ cruise.control.metrics.reporter.ssl.keystore.password={{ .ClientKeystorePassword
 
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 cruise.control.metrics.reporter.bootstrap.servers={{ .CruiseControlBootstrapServers }}
+cruise.control.metrics.reporter.kubernetes.mode=true
 broker.id={{ .Id }}
 
 {{ if .StorageConfig }}
