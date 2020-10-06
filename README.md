@@ -64,6 +64,10 @@ If you encounter problems while using the Kafka operator the documentation does 
 
 If you are using the Kafka operator in a production environment and [require commercial support, contact Banzai Cloud](https://banzaicloud.com/contact/), the company backing the development of the Kafka operator.
 
+### Engineering blog
+
+To be up-to-date with the Kafka operator and the other open source and commercial products of [Banzai Cloud, subscribe to our blog](https://pages.banzaicloud.com/sign-up-for-the-banzai-cloud-newsletter/).
+
 ## Contributing
 
 If you find this project useful, help us:
