@@ -1058,6 +1058,8 @@ spec:
                   type: array
                 initContainerImage:
                   type: string
+                log4jConfig:
+                  type: string
                 nodeSelector:
                   additionalProperties:
                     type: string
