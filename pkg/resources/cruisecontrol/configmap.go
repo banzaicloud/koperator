@@ -49,28 +49,7 @@ func (r *Reconciler) configMap(clientPass, capacityConfig string) runtime.Object
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass),
 			"capacity.json":       capacityConfig,
 			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,
-			"log4j.properties": `
-log4j.rootLogger = INFO, FILE
-    log4j.appender.FILE=org.apache.log4j.FileAppender
-    log4j.appender.FILE.File=/dev/stdout
-    log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
-    log4j.appender.FILE.layout.conversionPattern=%-6r [%15.15t] %-5p %30.30c %x - %m%n
-`,
-			"log4j2.xml": `
-<?xml version="1.0" encoding="UTF-8"?>
-    <Configuration status="INFO">
-        <Appenders>
-            <File name="Console" fileName="/dev/stdout">
-                <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
-            </File>
-        </Appenders>
-        <Loggers>
-            <Root level="info">
-                <AppenderRef ref="Console" />
-            </Root>
-        </Loggers>
-    </Configuration>
-`,
+			"log4j.properties": r.KafkaCluster.Spec.CruiseControlConfig.GetCCLog4jConfig(),
 		},
 	}
 	return configMap

@@ -127,6 +127,7 @@ type CruiseControlConfig struct {
 	Config                string                        `json:"config,omitempty"`
 	CapacityConfig        string                        `json:"capacityConfig,omitempty"`
 	ClusterConfig         string                        `json:"clusterConfig,omitempty"`
+	Log4jConfig           string                        `json:"log4jConfig,omitempty"`
 	Image                 string                        `json:"image,omitempty"`
 	InitContainerImage    string                        `json:"initContainerImage,omitempty"`
 	TopicConfig           *TopicConfig                  `json:"topicConfig,omitempty"`
@@ -574,6 +575,18 @@ func (cConfig *CruiseControlConfig) GetCCImage() string {
 		return cConfig.Image
 	}
 	return "banzaicloud/cruise-control:2.5.13"
+}
+
+// GetCCLog4jConfig returns the used Cruise Control log4j configuration
+func (cConfig *CruiseControlConfig) GetCCLog4jConfig() string {
+	if cConfig.Log4jConfig != "" {
+		return cConfig.Log4jConfig
+	}
+	return `log4j.rootLogger = INFO, FILE
+    log4j.appender.FILE=org.apache.log4j.FileAppender
+    log4j.appender.FILE.File=/dev/stdout
+    log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
+    log4j.appender.FILE.layout.conversionPattern=%-6r [%15.15t] %-5p %30.30c %x - %m%n`
 }
 
 // GetImage returns the used image for Prometheus JMX exporter
