@@ -16,9 +16,13 @@ package kafka
 
 import (
 	"fmt"
+	"math"
+	"strconv"
+	"strings"
 
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -26,8 +30,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (r *Reconciler) poddisruptionbudget() runtime.Object {
-	minAvailable := r.computeMinAvailable()
+func (r *Reconciler) poddisruptionbudget(log logr.Logger) runtime.Object {
+	minAvailable := r.computeMinAvailable(log)
 
 	return &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
@@ -52,6 +56,46 @@ func (r *Reconciler) poddisruptionbudget() runtime.Object {
 
 // Calculate maxUnavailable as max between brokerCount - 1 (so we only allow 1 broker to be disrupted)
 // and 1 (to cover for 1 broker clusters)
-func (r *Reconciler) computeMinAvailable() intstr.IntOrString {
-	return intstr.FromInt(util.Max(len(r.KafkaCluster.Spec.Brokers)-1, 1))
+func (r *Reconciler) computeMinAvailable(log logr.Logger) intstr.IntOrString {
+
+	/*
+		budget = r.KafkaCluster.Spec.DisruptionBudget.budget (string) ->
+		- can either be %percentage or static number
+
+		Logic:
+
+		Max(1, brokers-budget) - for a static number budget
+
+		Max(1, brokers-brokers*percentage) - for a percentage budget
+
+	*/
+
+	// number of brokers in the KafkaCluster
+	brokers := len(r.KafkaCluster.Spec.Brokers)
+
+	// configured budget in the KafkaCluster
+	disruptionBudget := r.KafkaCluster.Spec.DisruptionBudget.Budget
+
+	budget := 0
+
+	// treat percentage budget
+	if strings.HasSuffix(disruptionBudget, "%") {
+		percentage, err := strconv.ParseFloat(disruptionBudget[:len(disruptionBudget)-1], 4)
+		if err != nil {
+			log.Error(err, "error occurred during parsing the disruption budget")
+		} else {
+			budget = int(math.Floor((percentage * float64(brokers)) / 100))
+		}
+	} else {
+		// treat static number budget
+		staticBudget, err := strconv.ParseInt(disruptionBudget, 10, 0)
+		if err != nil {
+			log.Error(err, "error occurred during parsing the disruption budget")
+		} else {
+			budget = int(staticBudget)
+		}
+
+	}
+
+	return intstr.FromInt(util.Max(1, brokers-budget))
 }

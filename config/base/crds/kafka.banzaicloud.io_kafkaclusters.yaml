@@ -3512,6 +3512,20 @@ spec:
                     type: object
                   type: array
               type: object
+            disruptionBudget:
+              description: DisruptionBudget defines the configuration for PodDisruptionBudget
+              properties:
+                budget:
+                  description: The budget to set for the PDB, can either be static
+                    number or a percentage
+                  pattern: '[0-9]+(\.[0-9]+)?(%)?'
+                  type: string
+                create:
+                  description: If set to true, will create a podDisruptionBudget
+                  type: boolean
+              required:
+              - create
+              type: object
             envoyConfig:
               description: EnvoyConfig defines the config for Envoy
               properties:
@@ -4064,6 +4078,7 @@ spec:
           required:
           - brokers
           - cruiseControlConfig
+          - disruptionBudget
           - headlessServiceEnabled
           - listenersConfig
           - oneBrokerPerNode
