@@ -14,7 +14,7 @@ GOLANGCI_VERSION = 1.21.0
 LICENSEI_VERSION = 0.2.0
 GOPROXY=https://proxy.golang.org
 
-CONTROLLER_GEN_VERSION = v0.2.5
+CONTROLLER_GEN_VERSION = v0.3.0
 CONTROLLER_GEN = $(PWD)/bin/controller-gen
 
 KUSTOMIZE_BASE = config/overlays/specific-manager-version

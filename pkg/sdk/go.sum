@@ -35,7 +35,6 @@ github.com/banzaicloud/istio-client-go v0.0.9 h1:PI/vRqmX5z80/t4UhjsuDHwDIC9WPtk
 github.com/banzaicloud/istio-client-go v0.0.9/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
-github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
 github.com/blang/semver v3.5.0+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
@@ -75,9 +74,9 @@ github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb
 github.com/emicklei/go-restful v2.9.5+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
-github.com/evanphx/json-patch v0.0.0-20200808040245-162e5629780b/go.mod h1:NAJj0yf/KaRKURN6nyi7A9IZydMivZEm9oQLWNjfKDc=
 github.com/evanphx/json-patch v4.2.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/evanphx/json-patch v4.5.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
+github.com/evanphx/json-patch v4.9.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d/go.mod h1:ZZMPRZwes7CROmyNKgQzC3XPs6L/G2EJLHddWejkmf4=
 github.com/fatih/camelcase v1.0.0/go.mod h1:yN2Sb0lFhZJUdVvtELVWefmrXpuZESvPmqwoZc+/fpc=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
@@ -231,7 +230,6 @@ github.com/imdario/mergo v0.3.5/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJ
 github.com/imdario/mergo v0.3.6/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=
 github.com/imdario/mergo v0.3.9/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
-github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jetstack/cert-manager v0.15.2 h1:3P2d0aV0j7hOb5/QK2tSwWHQITb/QQEizGqqdoq+lD4=
 github.com/jetstack/cert-manager v0.15.2/go.mod h1:7V2UW1EzgIWVUWi4uVATMIWXqinFOEqpggdvFdNMhlk=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
@@ -547,15 +545,15 @@ honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 k8s.io/api v0.18.0/go.mod h1:q2HRQkfDzHMBZL9l/y9rH63PkQl4vae0xRT+8prbrK8=
 k8s.io/api v0.18.6/go.mod h1:eeyxr+cwCjMdLAmr2W3RyDI0VvTawSg/3RFFBEnmZGI=
-k8s.io/api v0.18.8 h1:aIKUzJPb96f3fKec2lxtY7acZC9gQNDLVhfSGpxBAC4=
-k8s.io/api v0.18.8/go.mod h1:d/CXqwWv+Z2XEG1LgceeDmHQwpUJhROPx16SlxJgERY=
+k8s.io/api v0.18.9 h1:7VDtivqwbvLOf8hmXSd/PDSSbpCBq49MELg84EYBYiQ=
+k8s.io/api v0.18.9/go.mod h1:9u/h6sUh6FxfErv7QqetX1EB3yBMIYOBXzdcf0Gf0rc=
 k8s.io/apiextensions-apiserver v0.18.0/go.mod h1:18Cwn1Xws4xnWQNC00FLq1E350b9lUF+aOdIWDOZxgo=
 k8s.io/apiextensions-apiserver v0.18.6/go.mod h1:lv89S7fUysXjLZO7ke783xOwVTm6lKizADfvUM/SS/M=
 k8s.io/apimachinery v0.0.0-20190704094733-8f6ac2502e51/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
 k8s.io/apimachinery v0.18.0/go.mod h1:9SnR/e11v5IbyPCGbvJViimtJ0SwHG4nfZFjU77ftcA=
 k8s.io/apimachinery v0.18.6/go.mod h1:OaXp26zu/5J7p0f92ASynJa1pZo06YlV9fG7BoWbCko=
-k8s.io/apimachinery v0.18.8 h1:jimPrycCqgx2QPearX3to1JePz7wSbVLq+7PdBTTwQ0=
-k8s.io/apimachinery v0.18.8/go.mod h1:6sQd+iHEqmOtALqOFjSWp2KZ9F0wlU/nWm0ZgsYWMig=
+k8s.io/apimachinery v0.18.9 h1:3ZABKQx3F3xPWlsGhCfUl8W+JXRRblV6Wo2A3zn0pvY=
+k8s.io/apimachinery v0.18.9/go.mod h1:PF5taHbXgTEJLU+xMypMmYTXTWPJ5LaW8bfsisxnEXk=
 k8s.io/apiserver v0.18.0/go.mod h1:3S2O6FeBBd6XTo0njUrLxiqk8GNy6wWOftjhJcXYnjw=
 k8s.io/apiserver v0.18.6/go.mod h1:Zt2XvTHuaZjBz6EFYzpp+X4hTmgWGy8AthNVnTdm3Wg=
 k8s.io/cli-runtime v0.18.0/go.mod h1:1eXfmBsIJosjn9LjEBUd2WVPoPAY9XGTqTFcPMIBsUQ=
@@ -581,8 +579,8 @@ k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89/go.mod h1:sZAwmy6armz5eXlNoLmJcl
 k8s.io/utils v0.0.0-20200603063816-c1c6865ac451/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.7/go.mod h1:PHgbrJT7lCHcxMU+mDHEm+nx46H4zuuHZkDP6icnhu0=
 sigs.k8s.io/controller-runtime v0.5.1-0.20200416234307-5377effd4043/go.mod h1:j4echH3Y/UPHRpXS65rxGXujda8iWOheMQvDh1uNgaY=
-sigs.k8s.io/controller-runtime v0.6.2 h1:jkAnfdTYBpFwlmBn3pS5HFO06SfxvnTZ1p5PeEF/zAA=
-sigs.k8s.io/controller-runtime v0.6.2/go.mod h1:vhcq/rlnENJ09SIRp3EveTaZ0yqH526hjf9iJdbUJ/E=
+sigs.k8s.io/controller-runtime v0.6.3 h1:SBbr+inLPEKhvlJtrvDcwIpm+uhDvp63Bl72xYJtoOE=
+sigs.k8s.io/controller-runtime v0.6.3/go.mod h1:WlZNXcM0++oyaQt4B7C2lEE5JYRs8vJUzRP4N4JpdAY=
 sigs.k8s.io/controller-tools v0.2.9-0.20200414181213-645d44dca7c0/go.mod h1:YKE/iHvcKITCljdnlqHYe+kAt7ZldvtAwUzQff0k1T0=
 sigs.k8s.io/kustomize v2.0.3+incompatible/go.mod h1:MkjgH3RdOWrievjo6c9T245dYlB5QeXV4WCbnt/PEpU=
 sigs.k8s.io/structured-merge-diff/v3 v3.0.0-20200116222232-67a7b8c61874/go.mod h1:PlARxl6Hbt/+BC80dRLi1qAmnMqwqDg62YvvVkZjemw=
