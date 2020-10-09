@@ -101,6 +101,10 @@ spec:
                     type: string
                   kafkaJvmPerfOpts:
                     type: string
+                  log4jConfig:
+                    description: With the use of this config broker log4jConfig can
+                      be reconfigured, if left empty the default config will be used
+                    type: string
                   nodeAffinity:
                     description: Node affinity is a group of node affinity scheduling
                       rules.
@@ -559,6 +563,11 @@ spec:
                       kafkaHeapOpts:
                         type: string
                       kafkaJvmPerfOpts:
+                        type: string
+                      log4jConfig:
+                        description: With the use of this config broker log4jConfig
+                          can be reconfigured, if left empty the default config will
+                          be used
                         type: string
                       nodeAffinity:
                         description: Node affinity is a group of node affinity scheduling

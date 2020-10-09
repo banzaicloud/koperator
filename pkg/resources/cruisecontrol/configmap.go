@@ -49,7 +49,7 @@ func (r *Reconciler) configMap(clientPass, capacityConfig string) runtime.Object
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass),
 			"capacity.json":       capacityConfig,
 			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,
-			"log4j.properties": r.KafkaCluster.Spec.CruiseControlConfig.GetCCLog4jConfig(),
+			"log4j.properties":    r.KafkaCluster.Spec.CruiseControlConfig.GetCCLog4jConfig(),
 		},
 	}
 	return configMap
