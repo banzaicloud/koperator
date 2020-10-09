@@ -110,7 +110,7 @@ func generateSuperUsers(users []string) (suStrings []string) {
 }
 
 func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIPs []string, serverPass, clientPass string, superUsers []string, log logr.Logger) runtime.Object {
-	return &corev1.ConfigMap{
+	brokerConf := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
 			util.MergeLabels(
@@ -121,6 +121,10 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 		),
 		Data: map[string]string{"broker-config": r.generateBrokerConfig(id, brokerConfig, loadBalancerIPs, serverPass, clientPass, superUsers, log)},
 	}
+	if brokerConfig.Log4jConfig != "" {
+		brokerConf.Data["log4j.properties"] = brokerConfig.Log4jConfig
+	}
+	return brokerConf
 }
 
 func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig, loadBalancerIPs []string, domain, namespace, crName string, headlessServiceEnabled bool) string {

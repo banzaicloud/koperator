@@ -178,12 +178,14 @@ func GeneratePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	hashedCruiseControlCapacityJson := sha256.Sum256([]byte(capacityConfig))
 	hashedCruiseControlConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.Config))
 	hashedCruiseControlClusterConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.ClusterConfig))
+	hashedCruiseControlLogConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.GetCCLog4jConfig()))
 
 	annotations := []map[string]string{
 		{
 			"cruiseControlCapacity.json":      hex.EncodeToString(hashedCruiseControlCapacityJson[:]),
 			"cruiseControlConfig.json":        hex.EncodeToString(hashedCruiseControlConfigJson[:]),
 			"cruiseControlClusterConfig.json": hex.EncodeToString(hashedCruiseControlClusterConfigJson[:]),
+			"cruiseControlLogConfig.json":     hex.EncodeToString(hashedCruiseControlLogConfigJson[:]),
 		},
 		kafkaCluster.Spec.CruiseControlConfig.GetCruiseControlAnnotations(),
 	}
