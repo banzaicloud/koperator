@@ -104,8 +104,7 @@ type BrokerConfig struct {
 	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
 	KafkaHeapOpts      string                        `json:"kafkaHeapOpts,omitempty"`
 	KafkaJVMPerfOpts   string                        `json:"kafkaJvmPerfOpts,omitempty"`
-	// With the use of this config broker log4jConfig can be reconfigured, if left empty
-	// the default config will be used
+	// Override for the default log4j configuration
 	Log4jConfig string `json:"log4jConfig,omitempty"`
 	// Custom annotations for the broker pods - e.g.: Prometheus scraping annotations:
 	// prometheus.io/scrape: "true"
