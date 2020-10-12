@@ -131,11 +131,16 @@ type CruiseControlConfig struct {
 	ClusterConfig         string                        `json:"clusterConfig,omitempty"`
 	Log4jConfig           string                        `json:"log4jConfig,omitempty"`
 	Image                 string                        `json:"image,omitempty"`
-	InitContainerImage    string                        `json:"initContainerImage,omitempty"`
 	TopicConfig           *TopicConfig                  `json:"topicConfig,omitempty"`
 	//  Annotations to be applied to CruiseControl pod
 	// +optional
 	CruiseControlAnnotations map[string]string `json:"cruiseControlAnnotations,omitempty"`
+	// InitContainers add extra initContainers to CruiseControl pod
+	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+	// Volumes define some extra Kubernetes Volumes for the CruiseControl Pods.
+	Volumes []corev1.Volume `json:"volumes,omitempty"`
+	// VolumeMounts define some extra Kubernetes Volume mounts for the CruiseControl Pods.
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
 }
 
 // CruiseControlTaskSpec specifies the configuration of the CC Tasks
@@ -386,14 +391,6 @@ func (cTaskSpec *CruiseControlTaskSpec) GetDurationMinutes() float64 {
 		return 5
 	}
 	return float64(cTaskSpec.RetryDurationMinutes)
-}
-
-//GetInitContainerImage returns the Init container image to use for CruiseControl
-func (cConfig *CruiseControlConfig) GetInitContainerImage() string {
-	if cConfig.InitContainerImage != "" {
-		return cConfig.InitContainerImage
-	}
-	return "banzaicloud/kafka:2.13-2.6.0-bzc.1"
 }
 
 //GetLoadBalancerSourceRanges returns LoadBalancerSourceRanges to use for Envoy generated LoadBalancer
