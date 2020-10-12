@@ -42,6 +42,7 @@ const (
 	jmxVolumePath               = "/opt/jmx-exporter/"
 	jmxVolumeName               = "jmx-jar-data"
 	metricsPort                 = 9020
+	capacityConfigAnnotation    = "cruise-control.banzaicloud.com/broker-capacity-config"
 )
 
 // Reconciler implements the Component Reconciler
@@ -122,7 +123,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 
-			podAnnotations := GeneratePodAnnotations(r.KafkaCluster, log, capacityConfig)
+			podAnnotations := GeneratePodAnnotations(r.KafkaCluster, capacityConfig)
 
 			o = r.deployment(log, podAnnotations)
 			err = k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
