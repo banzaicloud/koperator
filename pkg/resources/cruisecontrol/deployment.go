@@ -19,23 +19,27 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrolmonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
-	"github.com/go-logr/logr"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (r *Reconciler) deployment(log logr.Logger, podAnnotations map[string]string) runtime.Object {
+func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object {
 
-	volume := []corev1.Volume{}
-	volumeMount := []corev1.VolumeMount{}
-	initContainers := []corev1.Container{}
+	volume := make([]corev1.Volume, 0)
+	volumeMount := make([]corev1.VolumeMount, 0)
+	initContainers := make([]corev1.Container, 0)
+
+	initContainers = append(initContainers, r.KafkaCluster.Spec.CruiseControlConfig.InitContainers...)
+	volume = append(volume, r.KafkaCluster.Spec.CruiseControlConfig.Volumes...)
+	volumeMount = append(volumeMount, r.KafkaCluster.Spec.CruiseControlConfig.VolumeMounts...)
 
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster)...)
@@ -190,7 +194,7 @@ func GeneratePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, capacityConfig s
 		ccAnnotationsFromCR,
 	}
 	if value, ok := ccAnnotationsFromCR[capacityConfigAnnotation]; !ok ||
-		value == "static" {
+		value == string(staticCapacityConfig) {
 		hashedCruiseControlCapacityJson := sha256.Sum256([]byte(capacityConfig))
 		annotations = append(annotations,
 			map[string]string{"cruiseControlCapacity.json": hex.EncodeToString(hashedCruiseControlCapacityJson[:])})

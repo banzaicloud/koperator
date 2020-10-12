@@ -33,17 +33,20 @@ import (
 )
 
 const (
-	componentNameTemplate       = "%s-cruisecontrol"
-	serviceNameTemplate         = "%s-cruisecontrol-svc"
-	configAndVolumeNameTemplate = "%s-cruisecontrol-config"
-	deploymentNameTemplate      = "%s-cruisecontrol"
-	keystoreVolume              = "ks-files"
-	keystoreVolumePath          = "/var/run/secrets/java.io/keystores"
-	jmxVolumePath               = "/opt/jmx-exporter/"
-	jmxVolumeName               = "jmx-jar-data"
-	metricsPort                 = 9020
-	capacityConfigAnnotation    = "cruise-control.banzaicloud.com/broker-capacity-config"
+	componentNameTemplate                                = "%s-cruisecontrol"
+	serviceNameTemplate                                  = "%s-cruisecontrol-svc"
+	configAndVolumeNameTemplate                          = "%s-cruisecontrol-config"
+	deploymentNameTemplate                               = "%s-cruisecontrol"
+	keystoreVolume                                       = "ks-files"
+	keystoreVolumePath                                   = "/var/run/secrets/java.io/keystores"
+	jmxVolumePath                                        = "/opt/jmx-exporter/"
+	jmxVolumeName                                        = "jmx-jar-data"
+	metricsPort                                          = 9020
+	capacityConfigAnnotation                             = "cruise-control.banzaicloud.com/broker-capacity-config"
+	staticCapacityConfig        CapacityConfigAnnotation = "static"
 )
+
+type CapacityConfigAnnotation string
 
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
@@ -125,7 +128,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 			podAnnotations := GeneratePodAnnotations(r.KafkaCluster, capacityConfig)
 
-			o = r.deployment(log, podAnnotations)
+			o = r.deployment(podAnnotations)
 			err = k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
