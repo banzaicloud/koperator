@@ -175,6 +175,12 @@ spec:
       jksPasswordName: "test-kafka-operator-pass"
       # create tells the installed cert manager to create the required certs keys
       create: true
+  # disruptionBudget defines the configuration for PodDisruptionBudget
+  disruptionBudget:
+  # create will enable the PodDisruptionBudget when set to true
+    create: false
+  # The budget to set for the PDB, can either be static number or a percentage
+  #   budget: "1"
   # envoyConfig defines the envoy specific config used for externalListeners
   #envoyConfig:
   # replicas describes how many pods will be used for the created envoy proxy
