@@ -30,8 +30,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (r *Reconciler) poddisruptionbudget(log logr.Logger) runtime.Object {
-	minAvailable := r.computeMinAvailable(log)
+func (r *Reconciler) poddisruptionbudget(log logr.Logger) (runtime.Object, error) {
+	minAvailable, err := r.computeMinAvailable(log)
+
+	if err != nil {
+		return nil, err
+
+	}
 
 	return &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
@@ -50,13 +55,13 @@ func (r *Reconciler) poddisruptionbudget(log logr.Logger) runtime.Object {
 				MatchLabels: LabelsForKafka(r.KafkaCluster.Name),
 			},
 		},
-	}
+	}, nil
 
 }
 
 // Calculate maxUnavailable as max between brokerCount - 1 (so we only allow 1 broker to be disrupted)
 // and 1 (to cover for 1 broker clusters)
-func (r *Reconciler) computeMinAvailable(log logr.Logger) intstr.IntOrString {
+func (r *Reconciler) computeMinAvailable(log logr.Logger) (intstr.IntOrString, error) {
 
 	/*
 		budget = r.KafkaCluster.Spec.DisruptionBudget.budget (string) ->
@@ -83,6 +88,7 @@ func (r *Reconciler) computeMinAvailable(log logr.Logger) intstr.IntOrString {
 		percentage, err := strconv.ParseFloat(disruptionBudget[:len(disruptionBudget)-1], 4)
 		if err != nil {
 			log.Error(err, "error occurred during parsing the disruption budget")
+			return intstr.FromInt(-1), err
 		} else {
 			budget = int(math.Floor((percentage * float64(brokers)) / 100))
 		}
@@ -91,11 +97,12 @@ func (r *Reconciler) computeMinAvailable(log logr.Logger) intstr.IntOrString {
 		staticBudget, err := strconv.ParseInt(disruptionBudget, 10, 0)
 		if err != nil {
 			log.Error(err, "error occurred during parsing the disruption budget")
+			return intstr.FromInt(-1), err
 		} else {
 			budget = int(staticBudget)
 		}
 
 	}
 
-	return intstr.FromInt(util.Max(1, brokers-budget))
+	return intstr.FromInt(util.Max(1, brokers-budget)), nil
 }

@@ -48,7 +48,7 @@ type KafkaClusterSpec struct {
 	ClusterWideConfig    string                  `json:"clusterWideConfig,omitempty"`
 	BrokerConfigGroups   map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
 	Brokers              []Broker                `json:"brokers"`
-	DisruptionBudget     DisruptionBudget        `json:"disruptionBudget"`
+	DisruptionBudget     DisruptionBudget        `json:"disruptionBudget,omitempty"`
 	RollingUpgradeConfig RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
 	// +kubebuilder:validation:Enum=envoy;istioingress
 	IngressController       string              `json:"ingressController,omitempty"`
@@ -87,7 +87,8 @@ type RollingUpgradeConfig struct {
 // DisruptionBudget defines the configuration for PodDisruptionBudget
 type DisruptionBudget struct {
 	// If set to true, will create a podDisruptionBudget
-	Create bool `json:"create"`
+	// +optional
+	Create bool `json:"create,omitempty"`
 	// The budget to set for the PDB, can either be static number or a percentage
 	// +kubebuilder:validation:Pattern:="[0-9]+(\\.[0-9]+)?(%)?"
 	Budget string `json:"budget,omitempty"`
