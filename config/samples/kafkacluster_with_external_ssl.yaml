@@ -45,6 +45,8 @@ spec:
                   storage: 10Gi
   rollingUpgradeConfig:
     failureThreshold: 1
+  disruptionBudget:
+    create: false
   listenersConfig:
     externalListeners:
       - type: "ssl"

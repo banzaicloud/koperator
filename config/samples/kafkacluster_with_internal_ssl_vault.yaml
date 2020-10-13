@@ -34,6 +34,8 @@ spec:
       brokerConfigGroup: "default"
   rollingUpgradeConfig:
     failureThreshold: 1
+  disruptionBudget:
+    create: false
   listenersConfig:
     internalListeners:
       - type: "ssl"
