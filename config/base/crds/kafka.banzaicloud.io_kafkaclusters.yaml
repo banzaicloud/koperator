@@ -3502,8 +3502,6 @@ spec:
                 create:
                   description: If set to true, will create a podDisruptionBudget
                   type: boolean
-              required:
-              - create
               type: object
             envoyConfig:
               description: EnvoyConfig defines the config for Envoy
@@ -4057,7 +4055,6 @@ spec:
           required:
           - brokers
           - cruiseControlConfig
-          - disruptionBudget
           - headlessServiceEnabled
           - listenersConfig
           - oneBrokerPerNode
