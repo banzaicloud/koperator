@@ -31,8 +31,6 @@ spec:
       brokerConfigGroup: "default"
   rollingUpgradeConfig:
     failureThreshold: 1
-  disruptionBudget:
-    create: false
   listenersConfig:
     externalListeners:
       - type: "plaintext"
