@@ -308,6 +308,16 @@ spec:
                         - nodeSelectorTerms
                         type: object
                     type: object
+                  nodeNetworkConfig:
+                    description: Network throughput information which is used inside
+                      CruiseControl in kilobit By default it is 1000000 kilobit which
+                      is 1Gigabit
+                    properties:
+                      incomingNetworkThroughPut:
+                        type: string
+                      outgoingNetworkThroughPut:
+                        type: string
+                    type: object
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -778,6 +788,16 @@ spec:
                             required:
                             - nodeSelectorTerms
                             type: object
+                        type: object
+                      nodeNetworkConfig:
+                        description: Network throughput information which is used
+                          inside CruiseControl in kilobit By default it is 1000000
+                          kilobit which is 1Gigabit
+                        properties:
+                          incomingNetworkThroughPut:
+                            type: string
+                          outgoingNetworkThroughPut:
+                            type: string
                         type: object
                       nodeSelector:
                         additionalProperties:

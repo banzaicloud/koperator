@@ -110,6 +110,14 @@ type BrokerConfig struct {
 	// prometheus.io/scrape: "true"
 	// prometheus.io/port: "9020"
 	BrokerAnnotations map[string]string `json:"brokerAnnotations,omitempty"`
+	// Network throughput information which is used inside CruiseControl in kilobit
+	// By default it is 1000000 kilobit which is 1Gigabit
+	NodeNetworkConfig *NodeNetworkConfig `json:"nodeNetworkConfig,omitempty"`
+}
+
+type NodeNetworkConfig struct {
+	IncomingNetworkThroughPut string `json:"incomingNetworkThroughPut,omitempty"`
+	OutgoingNetworkThroughPut string `json:"outgoingNetworkThroughPut,omitempty"`
 }
 
 // RackAwareness defines the required fields to enable kafka's rack aware feature

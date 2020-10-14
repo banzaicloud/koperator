@@ -287,6 +287,10 @@ func TestGenerateCapacityConfig(t *testing.T) {
 						{
 							Id: 3,
 							BrokerConfig: &v1beta1.BrokerConfig{
+								NodeNetworkConfig: &v1beta1.NodeNetworkConfig{
+									IncomingNetworkThroughPut: "200",
+									OutgoingNetworkThroughPut: "200",
+								},
 								StorageConfigs: []v1beta1.StorageConfig{
 									{
 										MountPath: "/path1",
@@ -349,8 +353,8 @@ func TestGenerateCapacityConfig(t *testing.T) {
 						"/path1/kafka": "10737418240"
 					   },
 					   "CPU": "150",
-					   "NW_IN": "1000000",
-					   "NW_OUT": "1000000"
+					   "NW_IN": "200",
+					   "NW_OUT": "200"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					 }
