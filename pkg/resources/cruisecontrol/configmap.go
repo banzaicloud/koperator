@@ -77,8 +77,8 @@ func generateBootstrapServer(headlessEnabled bool, clusterName string) string {
 
 const (
 	storageConfigCPUDefaultValue   = "100"
-	storageConfigNWINDefaultValue  = "10000"
-	storageConfigNWOUTDefaultValue = "10000"
+	storageConfigNWINDefaultValue  = "1000000"
+	storageConfigNWOUTDefaultValue = "1000000"
 )
 
 type CruiseControlCapacityConfig struct {
@@ -115,12 +115,12 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 
 	capacityConfig := CruiseControlCapacityConfig{}
 
-	for _, brokerState := range kafkaCluster.Spec.Brokers {
+	for _, broker := range kafkaCluster.Spec.Brokers {
 		brokerCapacity := BrokerCapacity{
-			BrokerID: fmt.Sprintf("%d", brokerState.Id),
+			BrokerID: fmt.Sprintf("%d", broker.Id),
 			Capacity: Capacity{
-				DISK:  generateBrokerDisks(brokerState, kafkaCluster.Spec, log),
-				CPU:   storageConfigCPUDefaultValue,
+				DISK:  generateBrokerDisks(broker, kafkaCluster.Spec, log),
+				CPU:   generateBrokerCPU(broker, kafkaCluster.Spec, log),
 				NWIN:  storageConfigNWINDefaultValue,
 				NWOUT: storageConfigNWOUTDefaultValue,
 			},
@@ -139,6 +139,16 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	log.Info(fmt.Sprintf("Generated capacity config was successful with values: %s", result))
 
 	return string(result)
+}
+
+func generateBrokerCPU(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) string {
+	brokerConfig, err := util.GetBrokerConfig(broker, kafkaClusterSpec)
+	if err != nil {
+		log.V(warnLevel).Info("could not get cpu resource limits falling back to default value")
+		return storageConfigCPUDefaultValue
+	}
+
+	return strconv.Itoa(int(brokerConfig.GetResources().Limits.Cpu().ScaledValue(-2)))
 }
 
 func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) map[string]string {

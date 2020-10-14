@@ -44,6 +44,7 @@ const (
 	metricsPort                                          = 9020
 	capacityConfigAnnotation                             = "cruise-control.banzaicloud.com/broker-capacity-config"
 	staticCapacityConfig        CapacityConfigAnnotation = "static"
+	warnLevel                                            = -1
 )
 
 type CapacityConfigAnnotation string
