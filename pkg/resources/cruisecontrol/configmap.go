@@ -77,8 +77,8 @@ func generateBootstrapServer(headlessEnabled bool, clusterName string) string {
 
 const (
 	storageConfigCPUDefaultValue   = "100"
-	storageConfigNWINDefaultValue  = "1000000"
-	storageConfigNWOUTDefaultValue = "1000000"
+	storageConfigNWINDefaultValue  = "125000"
+	storageConfigNWOUTDefaultValue = "125000"
 )
 
 type CruiseControlCapacityConfig struct {
@@ -147,8 +147,8 @@ func generateBrokerNetworkIn(broker v1beta1.Broker, kafkaClusterSpec v1beta1.Kaf
 		log.V(warnLevel).Info("could not get incoming network resource limits falling back to default value")
 		return storageConfigNWINDefaultValue
 	}
-	if brokerConfig.NodeNetworkConfig != nil && brokerConfig.NodeNetworkConfig.IncomingNetworkThroughPut != "" {
-		return brokerConfig.NodeNetworkConfig.IncomingNetworkThroughPut
+	if brokerConfig.NetworkConfig != nil && brokerConfig.NetworkConfig.IncomingNetworkThroughPut != "" {
+		return brokerConfig.NetworkConfig.IncomingNetworkThroughPut
 	} else {
 		log.Info("incoming network throughput is not set falling back to default value")
 		return storageConfigNWINDefaultValue
@@ -161,10 +161,10 @@ func generateBrokerNetworkOut(broker v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 		log.V(warnLevel).Info("could not get outgoing network resource limits falling back to default value")
 		return storageConfigNWOUTDefaultValue
 	}
-	if brokerConfig.NodeNetworkConfig != nil && brokerConfig.NodeNetworkConfig.IncomingNetworkThroughPut != "" {
-		return brokerConfig.NodeNetworkConfig.IncomingNetworkThroughPut
+	if brokerConfig.NetworkConfig != nil && brokerConfig.NetworkConfig.OutgoingNetworkThroughPut != "" {
+		return brokerConfig.NetworkConfig.OutgoingNetworkThroughPut
 	} else {
-		log.Info("outogoing network throughput is not set falling back to default value")
+		log.Info("outgoing network throughput is not set falling back to default value")
 		return storageConfigNWOUTDefaultValue
 	}
 }
