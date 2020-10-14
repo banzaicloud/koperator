@@ -110,12 +110,12 @@ type BrokerConfig struct {
 	// prometheus.io/scrape: "true"
 	// prometheus.io/port: "9020"
 	BrokerAnnotations map[string]string `json:"brokerAnnotations,omitempty"`
-	// Network throughput information which is used inside CruiseControl in kilobit
-	// By default it is 1000000 kilobit which is 1Gigabit
-	NodeNetworkConfig *NodeNetworkConfig `json:"nodeNetworkConfig,omitempty"`
+	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.
+	// By default it is set to `125000` which means 1Gbit/s in network throughput.
+	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`
 }
 
-type NodeNetworkConfig struct {
+type NetworkConfig struct {
 	IncomingNetworkThroughPut string `json:"incomingNetworkThroughPut,omitempty"`
 	OutgoingNetworkThroughPut string `json:"outgoingNetworkThroughPut,omitempty"`
 }

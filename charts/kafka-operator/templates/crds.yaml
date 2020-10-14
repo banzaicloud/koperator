@@ -103,6 +103,17 @@ spec:
                   log4jConfig:
                     description: Override for the default log4j configuration
                     type: string
+                  networkConfig:
+                    description: Network throughput information in kB/s used by
+                      Cruise Control to determine broker network capacity. By
+                      default it is set to `125000` which means 1Gbit/s in
+                      network throughput.
+                    properties:
+                      incomingNetworkThroughPut:
+                        type: string
+                      outgoingNetworkThroughPut:
+                        type: string
+                    type: object
                   nodeAffinity:
                     description: Node affinity is a group of node affinity scheduling
                       rules.
@@ -306,16 +317,6 @@ spec:
                         required:
                           - nodeSelectorTerms
                         type: object
-                    type: object
-                  nodeNetworkConfig:
-                    description: Network throughput information which is used inside
-                      CruiseControl in kilobit By default it is 1000000 kilobit which
-                      is 1Gigabit
-                    properties:
-                      incomingNetworkThroughPut:
-                        type: string
-                      outgoingNetworkThroughPut:
-                        type: string
                     type: object
                   nodeSelector:
                     additionalProperties:
@@ -575,6 +576,17 @@ spec:
                       log4jConfig:
                         description: Override for the default log4j configuration
                         type: string
+                      networkConfig:
+                        description: Network throughput information in kB/s used by
+                          Cruise Control to determine broker network capacity. By
+                          default it is set to `125000` which means 1Gbit/s in
+                          network throughput.
+                        properties:
+                          incomingNetworkThroughPut:
+                            type: string
+                          outgoingNetworkThroughPut:
+                            type: string
+                        type: object
                       nodeAffinity:
                         description: Node affinity is a group of node affinity scheduling
                           rules.
@@ -787,16 +799,6 @@ spec:
                             required:
                               - nodeSelectorTerms
                             type: object
-                        type: object
-                      nodeNetworkConfig:
-                        description: Network throughput information which is used
-                          inside CruiseControl in kilobit By default it is 1000000
-                          kilobit which is 1Gigabit
-                        properties:
-                          incomingNetworkThroughPut:
-                            type: string
-                          outgoingNetworkThroughPut:
-                            type: string
                         type: object
                       nodeSelector:
                         additionalProperties:

@@ -206,8 +206,8 @@ func TestGenerateCapacityConfig(t *testing.T) {
 						"/path-from-default/kafka": "10737418240"
 					   },
 					   "CPU": "200",
-					   "NW_IN": "1000000",
-					   "NW_OUT": "1000000"
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					 },
@@ -218,8 +218,8 @@ func TestGenerateCapacityConfig(t *testing.T) {
 						"/path-from-default/kafka": "10737418240"
 					   },
 					   "CPU": "150",
-					   "NW_IN": "1000000",
-					   "NW_OUT": "1000000"
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					 },
@@ -230,8 +230,8 @@ func TestGenerateCapacityConfig(t *testing.T) {
 						"/path-from-default/kafka": "10737418240"
 					   },
 					   "CPU": "150",
-					   "NW_IN": "1000000",
-					   "NW_OUT": "1000000"
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					 },
@@ -243,8 +243,8 @@ func TestGenerateCapacityConfig(t *testing.T) {
 						"/path-from-default/kafka": "10737418240"
 					   },
 					   "CPU": "150",
-					   "NW_IN": "1000000",
-					   "NW_OUT": "1000000"
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					 }
@@ -287,7 +287,7 @@ func TestGenerateCapacityConfig(t *testing.T) {
 						{
 							Id: 3,
 							BrokerConfig: &v1beta1.BrokerConfig{
-								NodeNetworkConfig: &v1beta1.NodeNetworkConfig{
+								NetworkConfig: &v1beta1.NetworkConfig{
 									IncomingNetworkThroughPut: "200",
 									OutgoingNetworkThroughPut: "200",
 								},
@@ -317,8 +317,8 @@ func TestGenerateCapacityConfig(t *testing.T) {
 						"/path-from-default/kafka": "10737418240"
 					   },
 					   "CPU": "150",
-					   "NW_IN": "1000000",
-					   "NW_OUT": "1000000"
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					 },
@@ -329,8 +329,8 @@ func TestGenerateCapacityConfig(t *testing.T) {
 						"/path-from-default/kafka": "10737418240"
 					   },
 					   "CPU": "150",
-					   "NW_IN": "1000000",
-					   "NW_OUT": "1000000"
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					 },
@@ -341,8 +341,8 @@ func TestGenerateCapacityConfig(t *testing.T) {
 						"/path-from-default/kafka": "10737418240"
 					   },
 					   "CPU": "150",
-					   "NW_IN": "1000000",
-					   "NW_OUT": "1000000"
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					 },
