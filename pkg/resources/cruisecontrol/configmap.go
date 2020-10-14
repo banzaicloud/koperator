@@ -121,8 +121,8 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 			Capacity: Capacity{
 				DISK:  generateBrokerDisks(broker, kafkaCluster.Spec, log),
 				CPU:   generateBrokerCPU(broker, kafkaCluster.Spec, log),
-				NWIN:  storageConfigNWINDefaultValue,
-				NWOUT: storageConfigNWOUTDefaultValue,
+				NWIN:  generateBrokerNetworkIn(broker, kafkaCluster.Spec, log),
+				NWOUT: generateBrokerNetworkOut(broker, kafkaCluster.Spec, log),
 			},
 			Doc: "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB.",
 		}
@@ -139,6 +139,34 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	log.Info(fmt.Sprintf("Generated capacity config was successful with values: %s", result))
 
 	return string(result)
+}
+
+func generateBrokerNetworkIn(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) string {
+	brokerConfig, err := util.GetBrokerConfig(broker, kafkaClusterSpec)
+	if err != nil {
+		log.V(warnLevel).Info("could not get incoming network resource limits falling back to default value")
+		return storageConfigNWINDefaultValue
+	}
+	if brokerConfig.NodeNetworkConfig != nil && brokerConfig.NodeNetworkConfig.IncomingNetworkThroughPut != "" {
+		return brokerConfig.NodeNetworkConfig.IncomingNetworkThroughPut
+	} else {
+		log.Info("incoming network throughput is not set falling back to default value")
+		return storageConfigNWINDefaultValue
+	}
+}
+
+func generateBrokerNetworkOut(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) string {
+	brokerConfig, err := util.GetBrokerConfig(broker, kafkaClusterSpec)
+	if err != nil {
+		log.V(warnLevel).Info("could not get outgoing network resource limits falling back to default value")
+		return storageConfigNWOUTDefaultValue
+	}
+	if brokerConfig.NodeNetworkConfig != nil && brokerConfig.NodeNetworkConfig.IncomingNetworkThroughPut != "" {
+		return brokerConfig.NodeNetworkConfig.IncomingNetworkThroughPut
+	} else {
+		log.Info("outogoing network throughput is not set falling back to default value")
+		return storageConfigNWOUTDefaultValue
+	}
 }
 
 func generateBrokerCPU(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) string {
