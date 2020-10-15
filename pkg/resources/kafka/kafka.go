@@ -179,7 +179,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	// Handle PDB
 	if r.KafkaCluster.Spec.DisruptionBudget.Create {
-		o, err := r.poddisruptionbudget(log)
+		o, err := r.podDisruptionBudget(log)
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "failed to compute podDisruptionBudget")
 		}
