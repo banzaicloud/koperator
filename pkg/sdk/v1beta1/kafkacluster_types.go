@@ -90,7 +90,7 @@ type DisruptionBudget struct {
 	// +optional
 	Create bool `json:"create,omitempty"`
 	// The budget to set for the PDB, can either be static number or a percentage
-	// +kubebuilder:validation:Pattern:="[0-9]+(\\.[0-9]+)?(%)?"
+	// +kubebuilder:validation:Pattern:="^[0-9]+$|^[0-9]{1,2}%$|^100%$"
 	Budget string `json:"budget,omitempty"`
 }
 
