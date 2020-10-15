@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (r *Reconciler) poddisruptionbudget(log logr.Logger) (runtime.Object, error) {
+func (r *Reconciler) podDisruptionBudget(log logr.Logger) (runtime.Object, error) {
 	minAvailable, err := r.computeMinAvailable(log)
 
 	if err != nil {
