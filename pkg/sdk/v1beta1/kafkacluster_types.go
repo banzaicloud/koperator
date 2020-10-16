@@ -630,12 +630,12 @@ func (mConfig *MonitoringConfig) GetKafkaJMXExporterConfig() string {
 	}
 	// Use upstream defined rules https://github.com/prometheus/jmx_exporter/blob/master/example_configs/kafka-2_0_0.yml
 	return `lowercaseOutputName: true
-cacheRules: true
 rules:
 # Special cases and very specific rules
 - pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)><>Value
   name: kafka_server_$1_$2
   type: GAUGE
+  cache: true
   labels:
     clientId: "$3"
     topic: "$4"
@@ -643,31 +643,37 @@ rules:
 - pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), brokerHost=(.+), brokerPort=(.+)><>Value
   name: kafka_server_$1_$2
   type: GAUGE
+  cache: true
   labels:
     clientId: "$3"
     broker: "$4:$5"
 - pattern : kafka.coordinator.(\w+)<type=(.+), name=(.+)><>Value
   name: kafka_coordinator_$1_$2_$3
+  cache: true
   type: GAUGE
 
 # Generic per-second counters with 0-2 key/value pairs
 - pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+), (.+)=(.+)><>Count
   name: kafka_$1_$2_$3_total
+  cache: true
   type: COUNTER
   labels:
     "$4": "$5"
     "$6": "$7"
 - pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+)><>Count
   name: kafka_$1_$2_$3_total
+  cache: true
   type: COUNTER
   labels:
     "$4": "$5"
 - pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*><>Count
   name: kafka_$1_$2_$3_total
+  cache: true
   type: COUNTER
 
 - pattern: kafka.server<type=(.+), client-id=(.+)><>([a-z-]+)
   name: kafka_server_quota_$3
+  cache: true
   type: GAUGE
   labels:
     resource: "$1"
@@ -675,6 +681,7 @@ rules:
 
 - pattern: kafka.server<type=(.+), user=(.+), client-id=(.+)><>([a-z-]+)
   name: kafka_server_quota_$4
+  cache: true
   type: GAUGE
   labels:
     resource: "$1"
@@ -684,17 +691,20 @@ rules:
 # Generic gauges with 0-2 key/value pairs
 - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+)><>Value
   name: kafka_$1_$2_$3
+  cache: true
   type: GAUGE
   labels:
     "$4": "$5"
     "$6": "$7"
 - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+)><>Value
   name: kafka_$1_$2_$3
+  cache: true
   type: GAUGE
   labels:
     "$4": "$5"
 - pattern: kafka.(\w+)<type=(.+), name=(.+)><>Value
   name: kafka_$1_$2_$3
+  cache: true
   type: GAUGE
 
 # Emulate Prometheus 'Summary' metrics for the exported 'Histogram's.
@@ -702,12 +712,14 @@ rules:
 # Note that these are missing the '_sum' metric!
 - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+)><>Count
   name: kafka_$1_$2_$3_count
+  cache: true
   type: COUNTER
   labels:
     "$4": "$5"
     "$6": "$7"
 - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.*), (.+)=(.+)><>(\d+)thPercentile
   name: kafka_$1_$2_$3
+  cache: true
   type: GAUGE
   labels:
     "$4": "$5"
@@ -715,19 +727,23 @@ rules:
     quantile: "0.$8"
 - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+)><>Count
   name: kafka_$1_$2_$3_count
+  cache: true
   type: COUNTER
   labels:
     "$4": "$5"
 - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.*)><>(\d+)thPercentile
   name: kafka_$1_$2_$3
+  cache: true
   type: GAUGE
   labels:
     "$4": "$5"
     quantile: "0.$6"
 - pattern: kafka.(\w+)<type=(.+), name=(.+)><>Count
+  cache: true
   name: kafka_$1_$2_$3_count
   type: COUNTER
 - pattern: kafka.(\w+)<type=(.+), name=(.+)><>(\d+)thPercentile
+  cache: true
   name: kafka_$1_$2_$3
   type: GAUGE
   labels:
