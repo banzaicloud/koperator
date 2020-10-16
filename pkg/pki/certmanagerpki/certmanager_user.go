@@ -206,7 +206,8 @@ func (c *certManager) getCA(user *v1alpha1.KafkaUser) (caName, caKind string) {
 		caKind = issuerRef.Kind
 	} else {
 		caKind = certv1.ClusterIssuerKind
-		caName = fmt.Sprintf(pkicommon.BrokerIssuerTemplate, c.cluster.Name)
+		caName = fmt.Sprintf(pkicommon.BrokerClusterIssuerTemplate,
+			c.cluster.Name, c.cluster.Namespace)
 	}
 	// TODO: Do we need to ensure this Issuer is exist?
 	return

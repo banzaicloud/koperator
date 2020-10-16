@@ -78,9 +78,9 @@ func TestGetCommonName(t *testing.T) {
 func TestLabelsForKafkaPKI(t *testing.T) {
 	expected := map[string]string{
 		"app":          "kafka",
-		"kafka_issuer": fmt.Sprintf(BrokerIssuerTemplate, "test"),
+		"kafka_issuer": fmt.Sprintf(BrokerClusterIssuerTemplate, "test", "kafka"),
 	}
-	got := LabelsForKafkaPKI("test")
+	got := LabelsForKafkaPKI("test", "kafka")
 	if !reflect.DeepEqual(got, expected) {
 		t.Error("Expected:", expected, "got:", got)
 	}
@@ -125,7 +125,8 @@ func TestBrokerUserForCluster(t *testing.T) {
 	user := BrokerUserForCluster(cluster, []string{})
 
 	expected := &v1alpha1.KafkaUser{
-		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster), LabelsForKafkaPKI(cluster.Name), cluster),
+		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster),
+			LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerServerCertTemplate, cluster.Name),
 			DNSNames:   GetInternalDNSNames(cluster),
@@ -148,8 +149,9 @@ func TestControllerUserForCluster(t *testing.T) {
 
 	expected := &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()),
-			LabelsForKafkaPKI(cluster.Name), cluster,
+			fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name),
+				cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()),
+			LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster,
 		),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerControllerTemplate, cluster.Name),

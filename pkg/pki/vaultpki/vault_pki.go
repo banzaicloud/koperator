@@ -97,7 +97,8 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 	); err != nil {
 		if apierrors.IsNotFound(err) {
 			serverCert := &corev1.Secret{
-				ObjectMeta: templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerServerCertTemplate, v.cluster.Name), pkicommon.LabelsForKafkaPKI(v.cluster.Name), v.cluster),
+				ObjectMeta: templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerServerCertTemplate, v.cluster.Name),
+					pkicommon.LabelsForKafkaPKI(v.cluster.Name, v.cluster.Namespace), v.cluster),
 				Data: map[string][]byte{
 					corev1.TLSCertKey:       brokerCert.Certificate,
 					corev1.TLSPrivateKeyKey: brokerCert.Key,
@@ -124,7 +125,8 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 	); err != nil {
 		if apierrors.IsNotFound(err) {
 			clientCert := &corev1.Secret{
-				ObjectMeta: templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerControllerTemplate, v.cluster.Name), pkicommon.LabelsForKafkaPKI(v.cluster.Name), v.cluster),
+				ObjectMeta: templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerControllerTemplate, v.cluster.Name),
+					pkicommon.LabelsForKafkaPKI(v.cluster.Name, v.cluster.Namespace), v.cluster),
 				Data: map[string][]byte{
 					corev1.TLSCertKey:       controllerCert.Certificate,
 					corev1.TLSPrivateKeyKey: controllerCert.Key,

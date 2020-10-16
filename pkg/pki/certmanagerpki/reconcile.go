@@ -32,19 +32,15 @@ import (
 
 // reconcile ensures the given kubernetes object
 func reconcile(ctx context.Context, log logr.Logger, client client.Client, object runtime.Object, cluster *v1beta1.KafkaCluster) (err error) {
-	switch object.(type) {
+	switch o := object.(type) {
 	case *certv1.ClusterIssuer:
-		issuer, _ := object.(*certv1.ClusterIssuer)
-		return reconcileClusterIssuer(ctx, log, client, issuer, cluster)
+		return reconcileClusterIssuer(ctx, log, client, o, cluster)
 	case *certv1.Certificate:
-		cert, _ := object.(*certv1.Certificate)
-		return reconcileCertificate(ctx, log, client, cert, cluster)
+		return reconcileCertificate(ctx, log, client, o, cluster)
 	case *corev1.Secret:
-		secret, _ := object.(*corev1.Secret)
-		return reconcileSecret(ctx, log, client, secret, cluster)
+		return reconcileSecret(ctx, log, client, o, cluster)
 	case *v1alpha1.KafkaUser:
-		user, _ := object.(*v1alpha1.KafkaUser)
-		return reconcileUser(ctx, log, client, user, cluster)
+		return reconcileUser(ctx, log, client, o, cluster)
 	default:
 		panic(fmt.Sprintf("Invalid object type: %v", reflect.TypeOf(object)))
 	}
