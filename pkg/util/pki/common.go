@@ -35,8 +35,8 @@ const (
 	BrokerCACertTemplate = "%s-ca-certificate"
 	// BrokerServerCertTemplate is the template used for broker certificate resources
 	BrokerServerCertTemplate = "%s-server-certificate"
-	// BrokerIssuerTemplate is the template used for broker issuer resources
-	BrokerIssuerTemplate = "%s-issuer"
+	// BrokerClusterIssuerTemplate is the template used for broker issuer resources
+	BrokerClusterIssuerTemplate = "%s-%s-issuer"
 	// BrokerControllerTemplate is the template used for operator certificate resources
 	BrokerControllerTemplate = "%s-controller"
 	// BrokerControllerFQDNTemplate is combined with the above and cluster namespace
@@ -153,14 +153,14 @@ func clusterDNSNames(cluster *v1beta1.KafkaCluster) (names []string) {
 }
 
 // LabelsForKafkaPKI returns kubernetes labels for a PKI object
-func LabelsForKafkaPKI(name string) map[string]string {
-	return map[string]string{"app": "kafka", "kafka_issuer": fmt.Sprintf(BrokerIssuerTemplate, name)}
+func LabelsForKafkaPKI(name, namespace string) map[string]string {
+	return map[string]string{"app": "kafka", "kafka_issuer": fmt.Sprintf(BrokerClusterIssuerTemplate, name, namespace)}
 }
 
 // BrokerUserForCluster returns a KafkaUser CR for the broker certificates in a KafkaCluster
 func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, additionalHostnames []string) *v1alpha1.KafkaUser {
 	return &v1alpha1.KafkaUser{
-		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster), LabelsForKafkaPKI(cluster.Name), cluster),
+		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster), LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerServerCertTemplate, cluster.Name),
 			DNSNames:   append(GetInternalDNSNames(cluster), additionalHostnames...),
@@ -177,8 +177,9 @@ func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, additionalHostnames []s
 func ControllerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser {
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()),
-			LabelsForKafkaPKI(cluster.Name), cluster,
+			fmt.Sprintf(BrokerControllerFQDNTemplate,
+				fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()),
+			LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster,
 		),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerControllerTemplate, cluster.Name),

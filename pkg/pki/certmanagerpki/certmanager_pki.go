@@ -182,7 +182,7 @@ func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster 
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
 			Namespace: namespaceCertManager,
-			Labels:    pkicommon.LabelsForKafkaPKI(cluster.Name),
+			Labels:    pkicommon.LabelsForKafkaPKI(cluster.Name, cluster.Namespace),
 		},
 		Data: map[string][]byte{
 			v1alpha1.CoreCACertKey:  caCert,
@@ -194,7 +194,8 @@ func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster 
 }
 
 func selfSignerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *certv1.ClusterIssuer {
-	selfsignerMeta := templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerSelfSignerTemplate, cluster.Name), pkicommon.LabelsForKafkaPKI(cluster.Name), cluster)
+	selfsignerMeta := templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerSelfSignerTemplate, cluster.Name),
+		pkicommon.LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster)
 	selfsignerMeta.Namespace = metav1.NamespaceAll
 	selfsigner := &certv1.ClusterIssuer{
 		ObjectMeta: selfsignerMeta,
@@ -213,7 +214,7 @@ func caCertForCluster(cluster *v1beta1.KafkaCluster) *certv1.Certificate {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
 			Namespace: namespaceCertManager,
-			Labels:    pkicommon.LabelsForKafkaPKI(cluster.Name),
+			Labels:    pkicommon.LabelsForKafkaPKI(cluster.Name, cluster.Namespace),
 		},
 		Spec: certv1.CertificateSpec{
 			SecretName: fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
@@ -228,7 +229,9 @@ func caCertForCluster(cluster *v1beta1.KafkaCluster) *certv1.Certificate {
 }
 
 func mainIssuerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *certv1.ClusterIssuer {
-	clusterIssuerMeta := templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerIssuerTemplate, cluster.Name), pkicommon.LabelsForKafkaPKI(cluster.Name), cluster)
+	clusterIssuerMeta := templates.ObjectMeta(
+		fmt.Sprintf(pkicommon.BrokerClusterIssuerTemplate, cluster.Name, cluster.Namespace),
+		pkicommon.LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster)
 	clusterIssuerMeta.Namespace = metav1.NamespaceAll
 	issuer := &certv1.ClusterIssuer{
 		ObjectMeta: clusterIssuerMeta,
@@ -240,6 +243,5 @@ func mainIssuerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme)
 			},
 		},
 	}
-	controllerutil.SetControllerReference(cluster, issuer, scheme)
 	return issuer
 }
