@@ -93,8 +93,8 @@ func checkSecretPath(path string) string {
 	return path
 }
 
-// getClient retrieves a vault client using the role specified in the cluster configuration
-func getKubernetesClient(clusterUID types.UID, role string) (client *vaultapi.Client, err error) {
+// getVaultClient retrieves a vault client using the role specified in the cluster configuration
+func getVaultClient(clusterUID types.UID, role string) (client *vaultapi.Client, err error) {
 	// return a cached one for the cluster if we have it
 	// otherwise we'll constantly log new token acquisitions
 	if vaultClient, ok := vaultClients[clusterUID]; ok {
