@@ -97,11 +97,11 @@ func ensureVaultSecret(client *vaultapi.Client, userCert *pkicommon.UserCertific
 	storePath := checkSecretPath(user.Spec.SecretName)
 
 	// Do pre-flight check to determine kv backend version
-	mountPath, v2, err := isKVv2(storePath, client)
+	v2, err := isKVv2(client)
 	if err != nil {
 		return err
 	} else if v2 {
-		storePath = addPrefixToVKVPath(storePath, mountPath, "data")
+		storePath = addKVDataTypeToPath(storePath, "data")
 	}
 
 	var present *vaultapi.Secret
@@ -178,23 +178,27 @@ func (v *vaultPKI) FinalizeUserCertificate(ctx context.Context, user *v1alpha1.K
 		return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to revoke user certificate")
 	}
 
-	// Delete entry from user store
-	if _, err = client.Logical().Delete(
-		v.getStorePathForUser(user),
-	); err != nil {
-		return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to delete certificate from user store")
-	}
-
-	// Delete the user secret
-	storePath := checkSecretPath(user.Spec.SecretName)
-
-	mountPath, v2, err := isKVv2(storePath, client)
+	v2, err := isKVv2(client)
 	if err != nil {
 		return
 	}
 
+	storePath := v.getStorePathForUser(user)
+
 	if v2 {
-		storePath = addPrefixToVKVPath(storePath, mountPath, "data")
+		storePath = addKVDataTypeToPath(storePath, "metadata")
+	}
+
+	// Delete entry from user store
+	if _, err = client.Logical().Delete(storePath); err != nil {
+		return errorfactory.New(errorfactory.VaultAPIFailure{}, err, "failed to delete certificate from user store")
+	}
+
+	// Delete the user secret
+	storePath = checkSecretPath(user.Spec.SecretName)
+
+	if v2 {
+		storePath = addKVDataTypeToPath(storePath, "metadata")
 	}
 
 	if _, err = client.Logical().Delete(storePath); err != nil {

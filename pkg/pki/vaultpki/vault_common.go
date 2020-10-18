@@ -18,7 +18,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -94,8 +93,8 @@ func checkSecretPath(path string) string {
 	return path
 }
 
-// getClient retrieves a vault client using the role specified in the cluster configuration
-func getKubernetesClient(clusterUID types.UID, role string) (client *vaultapi.Client, err error) {
+// getVaultClient retrieves a vault client using the role specified in the cluster configuration
+func getVaultClient(clusterUID types.UID, role string) (client *vaultapi.Client, err error) {
 	// return a cached one for the cluster if we have it
 	// otherwise we'll constantly log new token acquisitions
 	if vaultClient, ok := vaultClients[clusterUID]; ok {
@@ -199,11 +198,11 @@ func (v *vaultPKI) getCA(vault *vaultapi.Client) (string, error) {
 // getSecret is a convenience wrapper for reading a vault path
 // It takes care of checking kv version pre-flight
 func getSecret(vault *vaultapi.Client, storePath string) (secret *vaultapi.Secret, v2 bool, err error) {
-	mountPath, v2, err := isKVv2(storePath, vault)
+	v2, err = isKVv2(vault)
 	if err != nil {
 		return nil, false, err
 	} else if v2 {
-		storePath = addPrefixToVKVPath(storePath, mountPath, "data")
+		storePath = addKVDataTypeToPath(storePath, "data")
 	}
 
 	secret, err = vault.Logical().Read(storePath)
@@ -279,72 +278,25 @@ func userCertForData(isV2 bool, data map[string]interface{}) (*pkicommon.UserCer
 	return cert, nil
 }
 
-// Below functions are pulled from github.com/hashicorp/vault/command/kv_helpers.go
-// Unfortunately they are not exported - but are useful for determining how to read/store
-// a user's secret.
-// We use them to simulate `vault kv put`
-
-func kvPreflightVersionRequest(client *vaultapi.Client, path string) (string, int, error) {
-	r := client.NewRequest("GET", "/v1/sys/internal/ui/mounts/"+path)
-	resp, err := client.RawRequest(r)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
+func isKVv2(client *vaultapi.Client) (bool, error) {
+	kv2Config, err := client.Logical().Read("secret/config")
 	if err != nil {
-		// If we get a 404 we are using an older version of vault, default to
-		// version 1
-		if resp != nil && resp.StatusCode == 404 {
-			return "", 1, nil
-		}
-
-		return "", 0, err
+		return false, err
 	}
 
-	secret, err := vaultapi.ParseSecret(resp.Body)
-	if err != nil {
-		return "", 0, err
-	}
-	if secret == nil {
-		return "", 0, errors.New("nil response from pre-flight request")
-	}
-	var mountPath string
-	if mountPathRaw, ok := secret.Data["path"]; ok {
-		mountPath = mountPathRaw.(string)
-	}
-	options := secret.Data["options"]
-	if options == nil {
-		return mountPath, 1, nil
-	}
-	versionRaw := options.(map[string]interface{})["version"]
-	if versionRaw == nil {
-		return mountPath, 1, nil
-	}
-	version := versionRaw.(string)
-	switch version {
-	case "", "1":
-		return mountPath, 1, nil
-	case "2":
-		return mountPath, 2, nil
+	if kv2Config == nil {
+		return false, nil
+	} else if _, ok := kv2Config.Data["cas_required"]; ok {
+		return true, nil
 	}
 
-	return mountPath, 1, nil
+	return false, nil
 }
 
-func isKVv2(path string, client *vaultapi.Client) (string, bool, error) {
-	mountPath, version, err := kvPreflightVersionRequest(client, path)
-	if err != nil {
-		return "", false, err
+func addKVDataTypeToPath(path, dataType string) string {
+	if strings.HasPrefix(path, "secret/"+dataType+"/") {
+		return path
 	}
-
-	return mountPath, version == 2, nil
-}
-
-func addPrefixToVKVPath(p, mountPath, apiPrefix string) string {
-	switch {
-	case p == mountPath, p == strings.TrimSuffix(mountPath, "/"):
-		return path.Join(mountPath, apiPrefix)
-	default:
-		p = strings.TrimPrefix(p, mountPath)
-		return path.Join(mountPath, apiPrefix, p)
-	}
+	suffix := strings.TrimPrefix(path, "secret/")
+	return "secret/" + dataType + "/" + suffix
 }

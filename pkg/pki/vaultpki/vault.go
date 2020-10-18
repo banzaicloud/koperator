@@ -39,7 +39,7 @@ func New(client client.Client, cluster *v1beta1.KafkaCluster) VaultPKI {
 		client:  client,
 		cluster: cluster,
 		getClient: func() (*vaultapi.Client, error) {
-			return getKubernetesClient(cluster.GetUID(), cluster.Spec.VaultConfig.AuthRole)
+			return getVaultClient(cluster.GetUID(), cluster.Spec.VaultConfig.AuthRole)
 		},
 	}
 }
