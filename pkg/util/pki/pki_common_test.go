@@ -78,7 +78,7 @@ func TestGetCommonName(t *testing.T) {
 func TestLabelsForKafkaPKI(t *testing.T) {
 	expected := map[string]string{
 		"app":          "kafka",
-		"kafka_issuer": fmt.Sprintf(BrokerClusterIssuerTemplate, "test", "kafka"),
+		"kafka_issuer": fmt.Sprintf(BrokerClusterIssuerTemplate, "kafka", "test"),
 	}
 	got := LabelsForKafkaPKI("test", "kafka")
 	if !reflect.DeepEqual(got, expected) {

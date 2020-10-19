@@ -230,7 +230,7 @@ func caCertForCluster(cluster *v1beta1.KafkaCluster) *certv1.Certificate {
 
 func mainIssuerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *certv1.ClusterIssuer {
 	clusterIssuerMeta := templates.ObjectMeta(
-		fmt.Sprintf(pkicommon.BrokerClusterIssuerTemplate, cluster.Name, cluster.Namespace),
+		fmt.Sprintf(pkicommon.BrokerClusterIssuerTemplate, cluster.Namespace, cluster.Name),
 		pkicommon.LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster)
 	clusterIssuerMeta.Namespace = metav1.NamespaceAll
 	issuer := &certv1.ClusterIssuer{

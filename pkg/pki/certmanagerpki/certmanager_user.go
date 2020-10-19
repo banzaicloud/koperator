@@ -207,8 +207,13 @@ func (c *certManager) getCA(user *v1alpha1.KafkaUser) (caName, caKind string) {
 	} else {
 		caKind = certv1.ClusterIssuerKind
 		caName = fmt.Sprintf(pkicommon.BrokerClusterIssuerTemplate,
-			c.cluster.Name, c.cluster.Namespace)
+			c.cluster.Namespace, c.cluster.Name)
 	}
-	// TODO: Do we need to ensure this Issuer is exist?
+	//Check if the new cluster issuer with namespaced name exists if not fall back to original one
+	var issuer *certv1.ClusterIssuer
+	err := c.client.Get(context.Background(), types.NamespacedName{Namespace: metav1.NamespaceAll, Name: caName}, issuer)
+	if err != nil && apierrors.IsNotFound(err) {
+		caName = fmt.Sprintf(pkicommon.LegacyBrokerClusterIssuerTemplate, c.cluster.Name)
+	}
 	return
 }
