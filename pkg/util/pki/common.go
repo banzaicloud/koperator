@@ -37,6 +37,8 @@ const (
 	BrokerServerCertTemplate = "%s-server-certificate"
 	// BrokerClusterIssuerTemplate is the template used for broker issuer resources
 	BrokerClusterIssuerTemplate = "%s-%s-issuer"
+	// LegacyBrokerClusterIssuerTemplate is the template used earlier for broker issuer resources
+	LegacyBrokerClusterIssuerTemplate = "%s-issuer"
 	// BrokerControllerTemplate is the template used for operator certificate resources
 	BrokerControllerTemplate = "%s-controller"
 	// BrokerControllerFQDNTemplate is combined with the above and cluster namespace
@@ -154,7 +156,7 @@ func clusterDNSNames(cluster *v1beta1.KafkaCluster) (names []string) {
 
 // LabelsForKafkaPKI returns kubernetes labels for a PKI object
 func LabelsForKafkaPKI(name, namespace string) map[string]string {
-	return map[string]string{"app": "kafka", "kafka_issuer": fmt.Sprintf(BrokerClusterIssuerTemplate, name, namespace)}
+	return map[string]string{"app": "kafka", "kafka_issuer": fmt.Sprintf(BrokerClusterIssuerTemplate, namespace, name)}
 }
 
 // BrokerUserForCluster returns a KafkaUser CR for the broker certificates in a KafkaCluster
