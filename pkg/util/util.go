@@ -156,19 +156,14 @@ func StringSliceRemove(list []string, s string) []string {
 
 // ParsePropertiesFormat parses the properties format configuration into map[string]string
 func ParsePropertiesFormat(properties string) map[string]string {
-	config := map[string]string{}
+	kafkaProperties := strings.Split(strings.TrimSpace(properties), "\n")
+	config := make(map[string]string, len(kafkaProperties))
 
-	splitProps := strings.Split(properties, "\n")
-
-	for _, line := range splitProps {
-		if equal := strings.Index(line, "="); equal >= 0 {
-			if key := strings.TrimSpace(line[:equal]); len(key) > 0 {
-				value := ""
-				if len(line) > equal {
-					value = strings.TrimSpace(line[equal+1:])
-				}
-				config[key] = value
-			}
+	for i := range kafkaProperties {
+		prop := kafkaProperties[i]
+		kvSeparatorIdx := strings.Index(prop, "=")
+		if kvSeparatorIdx >= 0 {
+			config[strings.TrimSpace(prop[:kvSeparatorIdx])] = strings.TrimSpace(prop[kvSeparatorIdx+1:])
 		}
 	}
 
