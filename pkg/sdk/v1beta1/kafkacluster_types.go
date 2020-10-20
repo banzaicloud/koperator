@@ -632,6 +632,11 @@ func (mConfig *MonitoringConfig) GetKafkaJMXExporterConfig() string {
 	return `lowercaseOutputName: true
 rules:
 # Special cases and very specific rules
+- pattern : 'kafka.server<type=app-info><>version: (.*)'
+  name: kafka_server_app_info
+  value: 1.0
+  labels:
+    version: "$1"
 - pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)><>Value
   name: kafka_server_$1_$2
   type: GAUGE
@@ -647,12 +652,74 @@ rules:
   labels:
     clientId: "$3"
     broker: "$4:$5"
+- pattern: kafka.server<type=(.+), cipher=(.+), protocol=(.+), listener=(.+), networkProcessor=(.+)><>connections
+  name: kafka_server_$1_connections_tls_info
+  type: GAUGE
+  cache: true
+  labels:
+    listener: "$2"
+    networkProcessor: "$3"
+    protocol: "$4"
+    cipher: "$5"
+- pattern: kafka.server<type=(.+), clientSoftwareName=(.+), clientSoftwareVersion=(.+), listener=(.+), networkProcessor=(.+)><>connections
+  name: kafka_server_$1_connections_software
+  type: GAUGE
+  cache: true
+  labels:
+    clientSoftwareName: "$2"
+    clientSoftwareVersion: "$3"
+    listener: "$4"
+    networkProcessor: "$5"
+- pattern: kafka.server<type=(.+), listener=(.+), networkProcessor=(.+)><>([a-z-]+)
+  name: kafka_server_$1_$4
+  type: GAUGE
+  cache: true
+  labels:
+    listener: "$2"
+    networkProcessor: "$3"
 - pattern : kafka.coordinator.(\w+)<type=(.+), name=(.+)><>Value
   name: kafka_coordinator_$1_$2_$3
   cache: true
   type: GAUGE
 
-# Generic per-second counters with 0-2 key/value pairs
+# Some percent metrics use *Rate attributes
+# e.g kafka.server<type=(KafkaRequestHandlerPool), name=(RequestHandlerAvgIdlePercent)><>MeanRate
+- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*><>MeanRate
+  name: kafka_$1_$2_$3_meanrate_percent
+  type: GAUGE
+  cache: true
+- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*><>OneMinuteRate
+  name: kafka_$1_$2_$3_oneminuterate_percent
+  type: GAUGE
+  cache: true
+- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*><>FiveMinuteRate
+  name: kafka_$1_$2_$3_fiveminuterate_percent
+  type: GAUGE
+  cache: true
+- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*><>FifteenMinuteRate
+  name: kafka_$1_$2_$3_fifteenminuterate_percent
+  type: GAUGE
+  cache: true
+# Generic gauges for percents
+- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*><>Value
+  name: kafka_$1_$2_$3_percent
+  type: GAUGE
+  cache: true
+- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*, (.+)=(.+)><>Value
+  name: kafka_$1_$2_$3_percent
+  type: GAUGE
+  cache: true
+  labels:
+    "$4": "$5"
+# Generic per-second counters with 0-3 key/value pairs
+- pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+), (.+)=(.+), (.+)=(.+)><>Count
+  name: kafka_$1_$2_$3_total
+  type: COUNTER
+  cache: true
+  labels:
+    "$4": "$5"
+    "$6": "$7"
+    "$8": "$9"
 - pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+), (.+)=(.+)><>Count
   name: kafka_$1_$2_$3_total
   cache: true
@@ -688,7 +755,15 @@ rules:
     user: "$2"
     clientId: "$3"
 
-# Generic gauges with 0-2 key/value pairs
+# Generic gauges with 0-3 key/value pairs
+- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+), (.+)=(.+)><>Value
+  name: kafka_$1_$2_$3
+  type: GAUGE
+  cache: true
+  labels:
+    "$4": "$5"
+    "$6": "$7"
+    "$8": "$9"
 - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+)><>Value
   name: kafka_$1_$2_$3
   cache: true
@@ -748,6 +823,24 @@ rules:
   type: GAUGE
   labels:
     quantile: "0.$4"
+# Catch all other GAUGES with other types with 0-2 key-value pairs
+- pattern : kafka.(\w+)<type=([A-Za-z-]+), (.+)=(.+), (.+)=(.+)><>([A-Za-z-]+)
+  name: kafka_$1_$2_$7
+  type: GAUGE
+  cache: true
+  labels:
+    "$3": "$4"
+    "$5": "$6"
+- pattern : kafka.(\w+)<type=([A-Za-z-]+), (.+)=(.+)><>([A-Za-z-]+)
+  name: kafka_$1_$2_$5
+  type: GAUGE
+  cache: true
+  labels:
+    "$3": "$4"
+- pattern : kafka.(\w+)<type=([A-Za-z-]+)><>([A-Za-z-]+)
+  name: kafka_$1_$2_$3
+  type: GAUGE
+  cache: true
 # Export all other java.{lang,nio}* beans using default format
 - pattern: java.lang.+
 - pattern: java.nio.+`
