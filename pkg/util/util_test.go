@@ -173,10 +173,14 @@ func TestParsePropertiesFormat(t *testing.T) {
 broker.id=1
 advertised.listener=broker-1:29092
 empty.config=
+ trailing.whitespace=foobar
 `
 	props := ParsePropertiesFormat(testProp)
 
-	if props["broker.id"] != "1" || props["advertised.listener"] != "broker-1:29092" || props["empty.config"] != "" {
+	if props["broker.id"] != "1" ||
+		props["advertised.listener"] != "broker-1:29092" ||
+		props["empty.config"] != "" ||
+		props["trailing.whitespace"] != "foobar"{
 		t.Error("Error properties not loaded correctly")
 	}
 }
