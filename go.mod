@@ -39,6 +39,7 @@ require (
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/viper v1.7.1 // indirect
 	go.uber.org/atomic v1.5.1 // indirect
+	go.uber.org/zap v1.10.0
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/grpc v1.27.1 // indirect
 	k8s.io/api v0.18.9

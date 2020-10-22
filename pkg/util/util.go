@@ -25,8 +25,11 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
 	"github.com/imdario/mergo"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
@@ -251,4 +254,32 @@ func Max(x, y int) int {
 		return y
 	}
 	return x
+}
+
+func CreateLogger(debug bool, development bool) logr.Logger {
+	// create encoder config
+	var config zapcore.EncoderConfig
+	if development {
+		config = zap.NewDevelopmentEncoderConfig()
+	} else {
+		config = zap.NewProductionEncoderConfig()
+	}
+	// set human readable timestamp format regardless whether development mode is on
+	config.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	// create the encoder
+	var encoder zapcore.Encoder
+	if development {
+		encoder = zapcore.NewConsoleEncoder(config)
+	} else {
+		encoder = zapcore.NewJSONEncoder(config)
+	}
+
+	// set the log level
+	level := zap.InfoLevel
+	if debug {
+		level = zap.DebugLevel
+	}
+
+	return k8s_zap.New(k8s_zap.UseDevMode(development), k8s_zap.Encoder(encoder), k8s_zap.Level(level))
 }

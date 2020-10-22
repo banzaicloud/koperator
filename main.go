@@ -43,11 +43,11 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/controllers"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
 	// +kubebuilder:scaffold:imports
 )
@@ -77,6 +77,7 @@ func main() {
 		enableLeaderElection bool
 		webhookCertDir       string
 		webhookDisabled      bool
+		developmentLogging   bool
 		verboseLogging       bool
 		certManagerEnabled   bool
 	)
@@ -87,11 +88,12 @@ func main() {
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&webhookDisabled, "disable-webhooks", false, "Disable webhooks used to validate custom resources")
 	flag.StringVar(&webhookCertDir, "tls-cert-dir", "/etc/webhook/certs", "The directory with a tls.key and tls.crt for serving HTTPS requests")
+	flag.BoolVar(&developmentLogging, "development", false, "Enable development logging")
 	flag.BoolVar(&verboseLogging, "verbose", false, "Enable verbose logging")
 	flag.BoolVar(&certManagerEnabled, "cert-manager-enabled", false, "Enable cert-manager integration")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.Logger(verboseLogging))
+	ctrl.SetLogger(util.CreateLogger(verboseLogging, developmentLogging))
 
 	//When operator is started to watch resources in a specific set of namespaces, we use the MultiNamespacedCacheBuilder cache.
 	//In this scenario, it is also suggested to restrict the provided authorization to this namespace by replacing the default
