@@ -20,6 +20,7 @@ operator:
   # set of namespaces where the operator watches resources
   namespaces: ""
   verboseLogging: false
+  developmentLogging: false
   resources:
     limits:
       cpu: 200m
