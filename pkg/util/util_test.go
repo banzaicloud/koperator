@@ -322,3 +322,24 @@ func TestMergeAnnotations(t *testing.T) {
 		t.Error("Annotations didn't combine correctly")
 	}
 }
+
+func TestCreateLogger(t *testing.T) {
+	logger := CreateLogger(false, false)
+	if logger == nil {
+		t.Fatal("created Logger instance should not be nil")
+	}
+	if logger.V(1).Enabled() {
+		t.Error("debug level should not be enabled")
+	}
+	if !logger.V(0).Enabled() {
+		t.Error("info level should be enabled")
+	}
+
+	logger = CreateLogger(true, true)
+	if !logger.V(1).Enabled() {
+		t.Error("debug level should be enabled")
+	}
+	if !logger.V(0).Enabled() {
+		t.Error("info level should be enabled")
+	}
+}
