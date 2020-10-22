@@ -78,6 +78,9 @@ spec:
           {{- if .Values.operator.verboseLogging }}
             - --verbose
           {{- end }}
+          {{ - if .Values.operator.developmentLogging }}
+            - --development
+          {{ - end }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           name: manager
