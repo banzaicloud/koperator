@@ -1,3 +1,72 @@
+{{- $tlsCrt := "" }}
+{{- $tlsKey := "" }}
+{{- $caCrt := "" }}
+{{- if and (.Values.webhook.certs.generate) (.Values.webhook.enabled) -}}
+{{- $ca := genCA "kafka-operator-ca" 3650 }}
+{{- $svcName := include "kafka-operator.fullname" . }}
+{{- $cn := printf "%s-operator.%s.svc" $svcName .Release.Namespace }}
+{{- $altName1 := printf "%s.cluster.local" $cn }}
+{{- $altName2 := printf "%s" $cn }}
+{{- $server := genSignedCert $cn nil (list $altName1 $altName2) 365 $ca }}
+{{- $tlsCrt = b64enc $server.Cert }}
+{{- $tlsKey = b64enc $server.Key }}
+{{- $caCrt =  b64enc $ca.Cert }}
+{{- else if .Values.webhook.enabled }}
+{{- $tlsCrt = required "Required when certs.generate is false" .Values.webhook.certs.server.tls.crt }}
+{{- $tlsKey = required "Required when certs.generate is false" .Values.webhook.certs.server.tls.key }}
+{{- $caCrt = required "Required when certs.generate is false" .Values.webhook.certs.ca.crt }}
+{{- end }}
+
+{{- if .Values.webhook.enabled }}
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
+    helm.sh/chart: {{ include "kafka-operator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/component: webhook
+  name: {{ include "kafka-operator.name" . }}-validating-webhook
+webhooks:
+- clientConfig:
+    caBundle: {{ $caCrt }}
+    service:
+      name: "{{ include "kafka-operator.fullname" . }}-operator"
+      namespace: {{ .Release.Namespace }}
+      path: /validate
+  failurePolicy: Fail
+  name: kafkatopics.kafka.banzaicloud.io
+  rules:
+  - apiGroups:
+    - kafka.banzaicloud.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - kafkatopics
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
+    helm.sh/chart: {{ include "kafka-operator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/component: operator-certificates
+  name: {{ .Values.webhook.certs.secret }}
+  namespace: {{ .Release.Namespace }}
+data:
+  tls.crt: {{ $tlsCrt }}
+  tls.key: {{ $tlsKey }}
+  ca.crt:  {{ $caCrt }}
+{{- end }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,7 +93,9 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/operator-validating-webhook.yaml") . | sha256sum }}
+        {{- if .Values.webhook.enabled }}
+        checksum/config: {{ print $tlsKey $tlsCrt $caCrt | sha256sum }}
+        {{- end }}
         {{- with .Values.operator.annotations -}}
         {{ toYaml . | nindent 8 }}
         {{- end }}
