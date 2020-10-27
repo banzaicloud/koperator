@@ -751,12 +751,12 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		if k8sutil.IsPodContainsTerminatedContainer(currentPod) {
 			for _, containerState := range currentPod.Status.ContainerStatuses {
 				if containerState.State.Terminated != nil {
-					log.Info("terminated container for broker pod", "pod", currentPod.ObjectMeta.Name, "brokerId", currentPod.Labels["brokerId"],
+					log.Info("terminated container for broker pod", "pod", currentPod.GetName(), "brokerId", currentPod.Labels["brokerId"],
 						"containerName", containerState.Name, "exitCode", containerState.State.Terminated.ExitCode, "reason", containerState.State.Terminated.Reason)
 				}
 			}
 		}
-		log.Info("broker pod deleted", "pod", currentPod.ObjectMeta.Name, "brokerId", currentPod.Labels["brokerId"])
+		log.Info("broker pod deleted", "pod", currentPod.GetName(), "brokerId", currentPod.Labels["brokerId"])
 	}
 	return nil
 
