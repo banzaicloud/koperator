@@ -36,7 +36,7 @@ import (
 )
 
 // FinalizeUserCertificate for cert-manager backend auto returns because controller references handle cleanup
-func (c *certManager) FinalizeUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser) (err error) {
+func (c *certManager) FinalizeUserCertificate(_ context.Context, _ *v1alpha1.KafkaUser) (err error) {
 	return
 }
 
@@ -168,7 +168,7 @@ func (c *certManager) clusterCertificateForUser(
 			SecretName:  user.Spec.SecretName,
 			KeyEncoding: certv1.PKCS8,
 			CommonName:  user.GetName(),
-			URISANs:     []string{fmt.Sprintf(uriSanTemplate, clusterDomain, user.GetName())},
+			URISANs:     []string{fmt.Sprintf(spiffeIdTemplate, clusterDomain, user.GetName())},
 			Usages:      []certv1.KeyUsage{certv1.UsageClientAuth, certv1.UsageServerAuth},
 			IssuerRef: certmeta.ObjectReference{
 				Name: caName,
