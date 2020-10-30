@@ -180,7 +180,7 @@ empty.config=
 	if props["broker.id"] != "1" ||
 		props["advertised.listener"] != "broker-1:29092" ||
 		props["empty.config"] != "" ||
-		props["trailing.whitespace"] != "foobar"{
+		props["trailing.whitespace"] != "foobar" {
 		t.Error("Error properties not loaded correctly")
 	}
 }
