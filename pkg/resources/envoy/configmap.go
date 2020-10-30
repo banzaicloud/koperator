@@ -44,6 +44,14 @@ func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
 	return configMap
 }
 
+func generateAddressValue(kc *v1beta1.KafkaCluster, brokerId int) string {
+	if kc.Spec.HeadlessServiceEnabled {
+		return fmt.Sprintf("%s-%d.%s-headless.%s.svc.%s", kc.Name, brokerId, kc.Name, kc.Namespace, kc.Spec.GetKubernetesClusterDomain())
+	}
+	//ClusterIP services are in use
+	return fmt.Sprintf("%s-%d.%s.svc.%s", kc.Name, brokerId, kc.Namespace, kc.Spec.GetKubernetesClusterDomain())
+}
+
 func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 	//TODO support multiple external listener by removing [0] (baluchicken)
 	adminConfig := envoybootstrap.Admin{
@@ -104,7 +112,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 				{
 					Address: &envoycore.Address_SocketAddress{
 						SocketAddress: &envoycore.SocketAddress{
-							Address: fmt.Sprintf("%s-%d.%s-headless.%s.svc.%s", kc.Name, brokerId, kc.Name, kc.Namespace, kc.Spec.GetKubernetesClusterDomain()),
+							Address: generateAddressValue(kc, brokerId),
 							PortSpecifier: &envoycore.SocketAddress_PortValue{
 								PortValue: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ContainerPort),
 							},

@@ -384,7 +384,7 @@ OUTERLOOP:
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "could not delete broker", "id", broker.Labels["brokerId"])
 			}
-			log.Info("broker pod deleted", "brokerId",  broker.Labels["brokerId"], "pod", broker.GetName())
+			log.Info("broker pod deleted", "brokerId", broker.Labels["brokerId"], "pod", broker.GetName())
 			configMapName := fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"])
 			err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(configMapName, LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 			if err != nil {
