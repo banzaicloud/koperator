@@ -27,7 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (v *vaultPKI) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pkicommon.UserCertificate, error) {
+func (v *vaultPKI) ReconcileUserCertificate(
+	ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme, clusterDomain string) (*pkicommon.UserCertificate, error) {
 	client, err := v.getClient()
 	if err != nil {
 		return nil, err

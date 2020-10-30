@@ -41,7 +41,8 @@ func (c *certManager) FinalizeUserCertificate(ctx context.Context, user *v1alpha
 }
 
 // ReconcileUserCertificate ensures a certificate/secret combination using cert-manager
-func (c *certManager) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pkicommon.UserCertificate, error) {
+func (c *certManager) ReconcileUserCertificate(
+	ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme, clusterDomain string) (*pkicommon.UserCertificate, error) {
 	var err error
 	var secret *corev1.Secret
 	// See if we have an existing certificate for this user already
@@ -55,7 +56,7 @@ func (c *certManager) ReconcileUserCertificate(ctx context.Context, user *v1alph
 				return nil, err
 			}
 		}
-		cert := c.clusterCertificateForUser(user, scheme)
+		cert := c.clusterCertificateForUser(user, scheme, clusterDomain)
 		if err = c.client.Create(ctx, cert); err != nil {
 			return nil, errorfactory.New(errorfactory.APIFailure{}, err, "could not create user certificate")
 		}
@@ -155,17 +156,19 @@ func (c *certManager) getUserSecret(ctx context.Context, user *v1alpha1.KafkaUse
 }
 
 // clusterCertificateForUser generates a Certificate object for a KafkaUser
-func (c *certManager) clusterCertificateForUser(user *v1alpha1.KafkaUser, scheme *runtime.Scheme) *certv1.Certificate {
+func (c *certManager) clusterCertificateForUser(
+	user *v1alpha1.KafkaUser, scheme *runtime.Scheme, clusterDomain string) *certv1.Certificate {
 	caName, caKind := c.getCA(user)
 	cert := &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      user.Name,
-			Namespace: user.Namespace,
+			Name:      user.GetName(),
+			Namespace: user.GetNamespace(),
 		},
 		Spec: certv1.CertificateSpec{
 			SecretName:  user.Spec.SecretName,
 			KeyEncoding: certv1.PKCS8,
-			CommonName:  user.Name,
+			CommonName:  user.GetName(),
+			URISANs:     []string{fmt.Sprintf(uriSanTemplate, clusterDomain, user.GetName())},
 			Usages:      []certv1.KeyUsage{certv1.UsageClientAuth, certv1.UsageServerAuth},
 			IssuerRef: certmeta.ObjectReference{
 				Name: caName,

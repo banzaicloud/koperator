@@ -80,7 +80,8 @@ func (m *mockPKIManager) FinalizePKI(ctx context.Context, logger logr.Logger) er
 	return nil
 }
 
-func (m *mockPKIManager) ReconcileUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme) (*pki.UserCertificate, error) {
+func (m *mockPKIManager) ReconcileUserCertificate(
+	ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme, clusterDomain string) (*pki.UserCertificate, error) {
 	return &pki.UserCertificate{}, nil
 }
 

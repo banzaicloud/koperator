@@ -150,6 +150,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
+	clusterDomain := "cluster.local"
 	ctx := context.Background()
 	mock, ln, client := newVaultMock(t)
 	defer ln.Close()
@@ -204,12 +205,12 @@ func TestAll(t *testing.T) {
 		t.Error("Expected no error, got:", err)
 	}
 
-	if _, err := mock.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err != nil {
+	if _, err := mock.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme, clusterDomain); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
 	// Safe to do multiple times
-	if _, err := mock.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err != nil {
+	if _, err := mock.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme, clusterDomain); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 

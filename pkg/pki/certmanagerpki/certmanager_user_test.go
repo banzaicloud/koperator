@@ -58,11 +58,12 @@ func TestFinalizeUserCertificate(t *testing.T) {
 }
 
 func TestReconcileUserCertificate(t *testing.T) {
+	clusterDomain := "cluster.local"
 	manager := newMock(newMockCluster())
 	ctx := context.Background()
 
 	manager.client.Create(context.TODO(), newMockUser())
-	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err == nil {
+	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme, clusterDomain); err == nil {
 		t.Error("Expected resource not ready error, got nil")
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 		t.Error("Expected resource not ready error, got:", reflect.TypeOf(err))
@@ -73,15 +74,15 @@ func TestReconcileUserCertificate(t *testing.T) {
 	if err := manager.client.Create(context.TODO(), newMockUserSecret()); err != nil {
 		t.Error("could not update test secret")
 	}
-	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err != nil {
+	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme, clusterDomain); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
 	// Test error conditions
 	manager = newMock(newMockCluster())
 	manager.client.Create(context.TODO(), newMockUser())
-	manager.client.Create(context.TODO(), manager.clusterCertificateForUser(newMockUser(), scheme.Scheme))
-	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme); err == nil {
+	manager.client.Create(context.TODO(), manager.clusterCertificateForUser(newMockUser(), scheme.Scheme, clusterDomain))
+	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme, clusterDomain); err == nil {
 		t.Error("Expected  error, got nil")
 	}
 }

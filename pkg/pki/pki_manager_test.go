@@ -67,7 +67,7 @@ func TestGetPKIManager(t *testing.T) {
 		t.Error("Expected nil error got:", err)
 	}
 
-	if _, err = mock.ReconcileUserCertificate(ctx, &v1alpha1.KafkaUser{}, scheme.Scheme); err != nil {
+	if _, err = mock.ReconcileUserCertificate(ctx, &v1alpha1.KafkaUser{}, scheme.Scheme, "cluster.local"); err != nil {
 		t.Error("Expected nil error got:", err)
 	}
 
