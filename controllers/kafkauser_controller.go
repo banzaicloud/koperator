@@ -159,7 +159,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 		// using the vault backend, then tried to delete and fix it. Should probably
 		// have the PKIManager export a GetUserCertificate specifically for deletions
 		// that will allow the error to fall through if the certificate doesn't exist.
-		user, err := pkiManager.ReconcileUserCertificate(ctx, instance, r.Scheme)
+		user, err := pkiManager.ReconcileUserCertificate(ctx, instance, r.Scheme, cluster.Spec.GetKubernetesClusterDomain())
 		if err != nil {
 			switch errors.Cause(err).(type) {
 			case errorfactory.ResourceNotReady:

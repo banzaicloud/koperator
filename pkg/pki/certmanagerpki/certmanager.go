@@ -22,6 +22,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const uriSanTemplate = "spiffe://%s/%s"
+
 var namespaceCertManager string
 
 func init() {
