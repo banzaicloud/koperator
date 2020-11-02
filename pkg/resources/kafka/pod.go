@@ -72,9 +72,9 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 
 	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
 
-	volume := []corev1.Volume{}
-	volumeMount := []corev1.VolumeMount{}
-	initContainers := []corev1.Container{}
+	var volume []corev1.Volume
+	var volumeMount []corev1.VolumeMount
+	var initContainers []corev1.Container
 	//TODO remove this bash envoy sidecar checker script once sidecar precedence becomes available to Kubernetes(baluchicken)
 	command := []string{"bash", "-c", `
 if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then
@@ -86,7 +86,7 @@ if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then
     SC=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:15000/ready)
     echo "waiting for envoy proxy to come up";
     sleep 1;
-    if (( "$SC" == "$HEALTHYSTATUSCODE" || "$MAXCOUNT" == "$COUNT" )); then
+    if [[ "$SC" == "$HEALTHYSTATUSCODE" || "$MAXCOUNT" == "$COUNT" ]]; then
       break
     fi
   done
@@ -146,7 +146,18 @@ rm /var/run/wait/do-not-exit-yet`}
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.Handler{
 							Exec: &corev1.ExecAction{
-								Command: []string{"bash", "-c", "kill -s TERM $(pidof java)"},
+								Command: []string{"bash", "-c", `
+if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then
+  HEALTHYSTATUSCODE="200"
+  SC=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:15000/ready)
+  if [[ "$SC" == "$HEALTHYSTATUSCODE" ]]; then
+    kill -s TERM $(pidof java)
+  else
+    kill -s KILL $(pidof java)
+  fi
+else
+  kill -s TERM $(pidof java)
+fi`},
 							},
 						},
 					},
