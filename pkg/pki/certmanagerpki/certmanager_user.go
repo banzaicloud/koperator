@@ -168,7 +168,7 @@ func (c *certManager) clusterCertificateForUser(
 			SecretName:  user.Spec.SecretName,
 			KeyEncoding: certv1.PKCS8,
 			CommonName:  user.GetName(),
-			URISANs:     []string{fmt.Sprintf(spiffeIdTemplate, clusterDomain, user.GetName())},
+			URISANs:     []string{fmt.Sprintf(spiffeIdTemplate, clusterDomain, user.GetNamespace(), user.GetName())},
 			Usages:      []certv1.KeyUsage{certv1.UsageClientAuth, certv1.UsageServerAuth},
 			IssuerRef: certmeta.ObjectReference{
 				Name: caName,
