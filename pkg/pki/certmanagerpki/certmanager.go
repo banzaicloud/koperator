@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const spiffeIdTemplate = "spiffe://%s/%s"
+const spiffeIdTemplate = "spiffe://%s/ns/%s/kafkauser/%s"
 
 var namespaceCertManager string
 
