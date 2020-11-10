@@ -41,10 +41,10 @@ func (r *Reconciler) configMap(clientPass, capacityConfig string) runtime.Object
 		),
 		Data: map[string]string{
 			"cruisecontrol.properties": r.KafkaCluster.Spec.CruiseControlConfig.Config + fmt.Sprintf(`
-    # The Kafka cluster to control.
-    bootstrap.servers=%s:%d
-    # The zookeeper connect of the Kafka cluster
-    zookeeper.connect=%s
+# The Kafka cluster to control.
+bootstrap.servers=%s:%d
+# The zookeeper connect of the Kafka cluster
+zookeeper.connect=%s
 `, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())) +
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass),
 			"capacity.json":       capacityConfig,
