@@ -21,20 +21,20 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/builtin/logical/pki"
 	"github.com/hashicorp/vault/http"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/hashicorp/vault/vault"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
+	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 )
 
 var log = logf.Log.WithName("testing")
@@ -43,7 +43,7 @@ func newMockCluster() *v1beta1.KafkaCluster {
 	cluster := &v1beta1.KafkaCluster{}
 	cluster.Name = "test"
 	cluster.Namespace = "test-namespace"
-	cluster.UID = types.UID("test-uid")
+	cluster.UID = "test-uid"
 	cluster.Spec = v1beta1.KafkaClusterSpec{}
 	cluster.Spec.ListenersConfig = v1beta1.ListenersConfig{}
 	cluster.Spec.ListenersConfig.InternalListeners = []v1beta1.InternalListenerConfig{
@@ -164,7 +164,7 @@ func TestAll(t *testing.T) {
 		t.Fatal("Failed to convert test cert to JKS")
 	}
 
-	if err := mock.ReconcilePKI(ctx, log, scheme.Scheme, []string{}); err == nil {
+	if err := mock.ReconcilePKI(ctx, log, scheme.Scheme, map[string]string{}); err == nil {
 		t.Error("Expected resource not ready, got nil")
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 		t.Error("Expected resource not ready, got:", err)
@@ -188,7 +188,7 @@ func TestAll(t *testing.T) {
 	}))
 
 	// Should be safe to do multiple times
-	if err := mock.ReconcilePKI(ctx, log, scheme.Scheme, []string{}); err != nil {
+	if err := mock.ReconcilePKI(ctx, log, scheme.Scheme, map[string]string{}); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
@@ -197,7 +197,7 @@ func TestAll(t *testing.T) {
 		t.Error("Expected no error, got:", err)
 	}
 
-	if err := mock.ReconcilePKI(ctx, log, scheme.Scheme, []string{}); err != nil {
+	if err := mock.ReconcilePKI(ctx, log, scheme.Scheme, map[string]string{}); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 

@@ -17,11 +17,12 @@ package kafka
 import (
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/resources"
 )
 
 func TestGenerateBrokerConfig(t *testing.T) {
@@ -232,7 +233,7 @@ zookeeper.connect=example.zk:2181/`,
 					},
 				},
 			}
-			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, []string{}, "", "", []string{}, logf.NullLogger{})
+			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]string{}, "", "", []string{}, logf.NullLogger{})
 
 			if generatedConfig != test.expectedConfig {
 				t.Errorf("the expected config is %s, received: %s", test.expectedConfig, generatedConfig)

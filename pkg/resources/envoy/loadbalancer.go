@@ -30,14 +30,15 @@ import (
 )
 
 // loadBalancer return a Loadbalancer service for Envoy
-func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
+func (r *Reconciler) loadBalancer(log logr.Logger, extListener v1beta1.ExternalListenerConfig) runtime.Object {
 
-	exposedPorts := getExposedServicePorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners,
+	exposedPorts := getExposedServicePorts(extListener,
 		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log))
 
 	service := &corev1.Service{
-		ObjectMeta: templates.ObjectMetaWithAnnotations(envoyutils.EnvoyServiceName, map[string]string{},
-			r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations(), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMetaWithAnnotations(
+			fmt.Sprintf(envoyutils.EnvoyServiceName, extListener.Name, r.KafkaCluster.GetName()),
+			map[string]string{}, r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations(), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Selector:                 map[string]string{"app": "envoy"},
 			Type:                     corev1.ServiceTypeLoadBalancer,
@@ -49,18 +50,15 @@ func (r *Reconciler) loadBalancer(log logr.Logger) runtime.Object {
 	return service
 }
 
-func getExposedServicePorts(extListeners []v1beta1.ExternalListenerConfig, brokersIds []int) []corev1.ServicePort {
+func getExposedServicePorts(extListener v1beta1.ExternalListenerConfig, brokersIds []int) []corev1.ServicePort {
 	var exposedPorts []corev1.ServicePort
-
-	for _, eListener := range extListeners {
-		for _, brokerId := range brokersIds {
-			exposedPorts = append(exposedPorts, corev1.ServicePort{
-				Name:       fmt.Sprintf("broker-%d", brokerId),
-				Port:       eListener.ExternalStartingPort + int32(brokerId),
-				TargetPort: intstr.FromInt(int(eListener.ExternalStartingPort) + brokerId),
-				Protocol:   corev1.ProtocolTCP,
-			})
-		}
+	for _, brokerId := range brokersIds {
+		exposedPorts = append(exposedPorts, corev1.ServicePort{
+			Name:       fmt.Sprintf("broker-%d", brokerId),
+			Port:       extListener.ExternalStartingPort + int32(brokerId),
+			TargetPort: intstr.FromInt(int(extListener.ExternalStartingPort) + brokerId),
+			Protocol:   corev1.ProtocolTCP,
+		})
 	}
 	return exposedPorts
 }

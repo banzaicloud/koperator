@@ -18,14 +18,16 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"sort"
+
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
-	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -44,8 +46,6 @@ const (
 	// BrokerControllerFQDNTemplate is combined with the above and cluster namespace
 	// to create a 'fake' full-name for the controller user
 	BrokerControllerFQDNTemplate = "%s.%s.mgt.%s"
-	// CAIntermediateTemplate is the template used for intermediate CA resources
-	CAIntermediateTemplate = "%s-intermediate.%s.%s"
 	// CAFQDNTemplate is the template used for the FQDN of a CA
 	CAFQDNTemplate = "%s-ca.%s.cluster.local"
 )
@@ -55,7 +55,7 @@ type Manager interface {
 	// ReconcilePKI ensures a PKI for a kafka cluster - should be idempotent.
 	// This method should at least setup any issuer needed for user certificates
 	// as well as broker/cruise-control secrets
-	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames []string) error
+	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames map[string]string) error
 
 	// FinalizePKI performs any cleanup steps necessary for a PKI backend
 	FinalizePKI(ctx context.Context, logger logr.Logger) error
@@ -161,12 +161,17 @@ func LabelsForKafkaPKI(name, namespace string) map[string]string {
 }
 
 // BrokerUserForCluster returns a KafkaUser CR for the broker certificates in a KafkaCluster
-func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, additionalHostnames []string) *v1alpha1.KafkaUser {
+func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, additionalHostnames map[string]string) *v1alpha1.KafkaUser {
+	additionalHosts := make([]string, 0, len(additionalHostnames))
+	for _, hostnames := range additionalHostnames {
+		additionalHosts = append(additionalHosts, hostnames)
+	}
+	sort.Strings(additionalHosts)
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster), LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerServerCertTemplate, cluster.Name),
-			DNSNames:   append(GetInternalDNSNames(cluster), additionalHostnames...),
+			DNSNames:   append(GetInternalDNSNames(cluster), additionalHosts...),
 			IncludeJKS: true,
 			ClusterRef: v1alpha1.ClusterReference{
 				Name:      cluster.Name,

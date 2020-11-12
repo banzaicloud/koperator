@@ -19,27 +19,29 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
-	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
+func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalListenerConfig) runtime.Object {
 
-	exposedPorts := getExposedContainerPorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners,
+	configMapName := fmt.Sprintf(envoyVolumeAndConfigName, extListener.Name, r.KafkaCluster.GetName())
+	exposedPorts := getExposedContainerPorts(extListener,
 		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log))
 	volumes := []corev1.Volume{
 		{
-			Name: envoyVolumeAndConfigName,
+			Name: configMapName,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: envoyVolumeAndConfigName},
+					LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
 					DefaultMode:          util.Int32Pointer(0644),
 				},
 			},
@@ -48,14 +50,16 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      envoyVolumeAndConfigName,
+			Name:      configMapName,
 			MountPath: "/etc/envoy",
 			ReadOnly:  true,
 		},
 	}
 
 	return &appsv1.Deployment{
-		ObjectMeta: templates.ObjectMeta(envoyDeploymentName, labelSelector, r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(
+			fmt.Sprintf(envoyDeploymentName, extListener.Name, r.KafkaCluster.GetName()),
+			labelSelector, r.KafkaCluster),
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labelSelector,
@@ -64,7 +68,7 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      labelSelector,
-					Annotations: generatePodAnnotations(r.KafkaCluster, log),
+					Annotations: generatePodAnnotations(r.KafkaCluster, extListener, log),
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: r.KafkaCluster.Spec.EnvoyConfig.GetServiceAccount(),
@@ -88,23 +92,22 @@ func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 	}
 }
 
-func getExposedContainerPorts(extListeners []v1beta1.ExternalListenerConfig, brokerIds []int) []corev1.ContainerPort {
+func getExposedContainerPorts(extListener v1beta1.ExternalListenerConfig, brokerIds []int) []corev1.ContainerPort {
 	var exposedPorts []corev1.ContainerPort
 
-	for _, eListener := range extListeners {
-		for _, id := range brokerIds {
-			exposedPorts = append(exposedPorts, corev1.ContainerPort{
-				Name:          fmt.Sprintf("broker-%d", id),
-				ContainerPort: eListener.ExternalStartingPort + int32(id),
-				Protocol:      corev1.ProtocolTCP,
-			})
-		}
+	for _, id := range brokerIds {
+		exposedPorts = append(exposedPorts, corev1.ContainerPort{
+			Name:          fmt.Sprintf("broker-%d", id),
+			ContainerPort: extListener.ExternalStartingPort + int32(id),
+			Protocol:      corev1.ProtocolTCP,
+		})
 	}
 	return exposedPorts
 }
 
-func generatePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) map[string]string {
-	hashedEnvoyConfig := sha256.Sum256([]byte(GenerateEnvoyConfig(kafkaCluster, log)))
+func generatePodAnnotations(kafkaCluster *v1beta1.KafkaCluster,
+	extListener v1beta1.ExternalListenerConfig, log logr.Logger) map[string]string {
+	hashedEnvoyConfig := sha256.Sum256([]byte(GenerateEnvoyConfig(kafkaCluster, extListener, log)))
 	annotations := map[string]string{
 		"envoy.yaml.hash": hex.EncodeToString(hashedEnvoyConfig[:]),
 	}

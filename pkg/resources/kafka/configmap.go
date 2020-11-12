@@ -22,15 +22,16 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/go-logr/logr"
+	"github.com/imdario/mergo"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	zookeeperutils "github.com/banzaicloud/kafka-operator/pkg/util/zookeeper"
-	"github.com/go-logr/logr"
-	"github.com/imdario/mergo"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var kafkaConfigTemplate = `
@@ -75,7 +76,7 @@ super.users={{ .SuperUsers }}
 {{ end }}
 `
 
-func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, loadBalancerIPs []string, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
+func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, loadBalancerIPs map[string]string, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
 	var out bytes.Buffer
 	t := template.Must(template.New("bConfig-config").Parse(kafkaConfigTemplate))
 	if err := t.Execute(&out, map[string]interface{}{
@@ -109,7 +110,7 @@ func generateSuperUsers(users []string) (suStrings []string) {
 	return
 }
 
-func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIPs []string, serverPass, clientPass string, superUsers []string, log logr.Logger) runtime.Object {
+func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIPs map[string]string, serverPass, clientPass string, superUsers []string, log logr.Logger) runtime.Object {
 	brokerConf := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
@@ -127,12 +128,11 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 	return brokerConf
 }
 
-func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig, loadBalancerIPs []string, domain, namespace, crName string, headlessServiceEnabled bool) string {
-	advertisedListenerConfig := []string{}
+func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig, loadBalancerIPs map[string]string, domain, namespace, crName string, headlessServiceEnabled bool) string {
+	advertisedListenerConfig := make([]string, 0, len(l.ExternalListeners)+len(l.InternalListeners))
 	for _, eListener := range l.ExternalListeners {
-		// use first element of loadBalancerIPs slice for external listener name
 		advertisedListenerConfig = append(advertisedListenerConfig,
-			fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIPs[0], eListener.ExternalStartingPort+id))
+			fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
 	}
 	for _, iListener := range l.InternalListeners {
 		if headlessServiceEnabled {
@@ -147,7 +147,7 @@ func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig, loadB
 }
 
 func generateStorageConfig(sConfig []v1beta1.StorageConfig) string {
-	mountPaths := []string{}
+	mountPaths := make([]string, 0, len(sConfig))
 	for _, storage := range sConfig {
 		mountPaths = append(mountPaths, storage.MountPath+`/kafka`)
 	}
@@ -213,7 +213,7 @@ func getInternalListener(iListeners []v1beta1.InternalListenerConfig, id int32, 
 	return internalListener
 }
 
-func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIPs []string, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
+func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIPs map[string]string, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
 	parsedReadOnlyClusterConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ReadOnlyConfig)
 	var parsedReadOnlyBrokerConfig = map[string]string{}
 
@@ -239,7 +239,7 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 		log.Error(err, "error occurred during merging readOnly config to complete configs")
 	}
 
-	completeConfig := []string{}
+	completeConfig := make([]string, 0, len(completeConfigMap))
 
 	for key, value := range completeConfigMap {
 		completeConfig = append(completeConfig, fmt.Sprintf("%s=%s", key, value))

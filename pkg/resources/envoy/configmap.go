@@ -36,10 +36,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (r *Reconciler) configMap(log logr.Logger) runtime.Object {
+func (r *Reconciler) configMap(log logr.Logger, extListener v1beta1.ExternalListenerConfig) runtime.Object {
 	configMap := &corev1.ConfigMap{
-		ObjectMeta: templates.ObjectMeta(envoyVolumeAndConfigName, labelSelector, r.KafkaCluster),
-		Data:       map[string]string{"envoy.yaml": GenerateEnvoyConfig(r.KafkaCluster, log)},
+		ObjectMeta: templates.ObjectMeta(
+			fmt.Sprintf(envoyVolumeAndConfigName, extListener.Name, r.KafkaCluster.GetName()), labelSelector, r.KafkaCluster),
+		Data: map[string]string{"envoy.yaml": GenerateEnvoyConfig(r.KafkaCluster, extListener, log)},
 	}
 	return configMap
 }
@@ -52,8 +53,7 @@ func generateAddressValue(kc *v1beta1.KafkaCluster, brokerId int) string {
 	return fmt.Sprintf("%s-%d.%s.svc.%s", kc.Name, brokerId, kc.Namespace, kc.Spec.GetKubernetesClusterDomain())
 }
 
-func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
-	//TODO support multiple external listener by removing [0] (baluchicken)
+func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalListenerConfig, log logr.Logger) string {
 	adminConfig := envoybootstrap.Admin{
 		AccessLogPath: "/tmp/admin_access.log",
 		Address: &envoycore.Address{
@@ -78,7 +78,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 					SocketAddress: &envoycore.SocketAddress{
 						Address: "0.0.0.0",
 						PortSpecifier: &envoycore.SocketAddress_PortValue{
-							PortValue: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ExternalStartingPort + int32(brokerId)),
+							PortValue: uint32(elistener.ExternalStartingPort + int32(brokerId)),
 						},
 					},
 				},
@@ -114,7 +114,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, log logr.Logger) string {
 						SocketAddress: &envoycore.SocketAddress{
 							Address: generateAddressValue(kc, brokerId),
 							PortSpecifier: &envoycore.SocketAddress_PortValue{
-								PortValue: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ContainerPort),
+								PortValue: uint32(elistener.ContainerPort),
 							},
 						},
 					},
