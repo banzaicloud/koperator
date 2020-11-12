@@ -19,11 +19,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/go-logr/logr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 var log logr.Logger
@@ -59,7 +60,7 @@ func TestGetPKIManager(t *testing.T) {
 
 	// Test mock functions
 	var err error
-	if err = mock.ReconcilePKI(ctx, log, scheme.Scheme, []string{}); err != nil {
+	if err = mock.ReconcilePKI(ctx, log, scheme.Scheme, map[string]string{}); err != nil {
 		t.Error("Expected nil error got:", err)
 	}
 
@@ -89,7 +90,7 @@ func TestGetPKIManager(t *testing.T) {
 	}
 
 	// Default should be cert-manager also
-	cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend = v1beta1.PKIBackend("")
+	cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend = ""
 	certmanager = GetPKIManager(&mockClient{}, cluster, v1beta1.PKIBackendProvided)
 	pkiType = reflect.TypeOf(certmanager).String()
 	expected = "*certmanagerpki.certManager"

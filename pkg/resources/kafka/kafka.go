@@ -111,13 +111,13 @@ func getCreatedPvcForBroker(c client.Client, brokerID int32, namespace, crName s
 	return foundPvcList.Items, nil
 }
 
-func getLoadBalancerIP(client client.Client, namespace, ingressController, crName string, log logr.Logger) (string, error) {
+func getLoadBalancerIP(client client.Client, namespace, ingressController, crName, extListenerName string) (string, error) {
 	foundLBService := &corev1.Service{}
 	var iControllerServiceName string
 	if ingressController == istioingressutils.IngressControllerName {
 		iControllerServiceName = fmt.Sprintf(istioingressutils.MeshGatewayNameTemplate, crName)
 	} else if ingressController == envoyutils.IngressControllerName {
-		iControllerServiceName = envoyutils.EnvoyServiceName
+		iControllerServiceName = fmt.Sprintf(envoyutils.EnvoyServiceName, extListenerName, crName)
 	}
 
 	err := client.Get(context.TODO(), types.NamespacedName{Name: iControllerServiceName, Namespace: namespace}, foundLBService)
@@ -195,21 +195,18 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errors.WrapIf(err, "failed to reconcile resource")
 	}
 
-	lbIPs := make([]string, 0)
+	lbIPs := make(map[string]string, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
 
-	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
-		// TODO: This is a hack that needs to be banished when the time is right.
-		// Currently we only support one external listener but this will be fixed
-		// sometime in the future
-		if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners[0].HostnameOverride != "" {
-			// first element of slice will be used for external advertised listener
-			lbIPs = append(lbIPs, r.KafkaCluster.Spec.ListenersConfig.ExternalListeners[0].HostnameOverride)
+	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		if eListener.HostnameOverride != "" {
+			lbIPs[eListener.Name] = eListener.HostnameOverride
 		}
-		lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.Namespace, r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.Name, log)
+		lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.GetNamespace(),
+			r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.GetName(), eListener.Name)
 		if err != nil {
 			return err
 		}
-		lbIPs = append(lbIPs, lbIP)
+		lbIPs[eListener.Name] = lbIP
 	}
 
 	// Setup the PKI if using SSL
@@ -508,7 +505,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	// Calling DescribePerBrokerConfig with empty slice will return all config for that broker including the default ones
 	if len(parsedBrokerConfig) > 0 {
 
-		brokerConfigKeys := []string{}
+		brokerConfigKeys := make([]string, 0, len(parsedBrokerConfig))
 		for key := range parsedBrokerConfig {
 			brokerConfigKeys = append(brokerConfigKeys, key)
 		}
@@ -655,7 +652,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		//Since toleration does not support patchStrategy:"merge,retainKeys", we need to add all toleration from the current pod if the toleration is set in the CR
 		if len(desiredPod.Spec.Tolerations) > 0 {
 			desiredPod.Spec.Tolerations = append(desiredPod.Spec.Tolerations, currentPod.Spec.Tolerations...)
-			uniqueTolerations := []corev1.Toleration{}
+			uniqueTolerations := make([]corev1.Toleration, len(desiredPod.Spec.Tolerations), 0)
 			keys := make(map[corev1.Toleration]bool)
 			for _, t := range desiredPod.Spec.Tolerations {
 				if _, value := keys[t]; !value {

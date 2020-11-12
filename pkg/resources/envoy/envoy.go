@@ -25,9 +25,10 @@ import (
 )
 
 const (
-	componentName            = "envoy"
-	envoyVolumeAndConfigName = "envoy-config"
-	envoyDeploymentName      = "envoy"
+	componentName = "envoy"
+	// The deployment and configmap name should made from the external listener name the cluster name to avoid all naming collision
+	envoyVolumeAndConfigName = "envoy-config-%s-%s"
+	envoyDeploymentName      = "envoy-%s-%s"
 )
 
 var labelSelector = map[string]string{
@@ -56,15 +57,17 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciling")
 	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil && r.KafkaCluster.Spec.GetIngressController() == envoyutils.IngressControllerName {
 
-		for _, res := range []resources.ResourceWithLogs{
-			r.loadBalancer,
-			r.configMap,
-			r.deployment,
-		} {
-			o := res(log)
-			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-			if err != nil {
-				return err
+		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+			for _, res := range []resources.ResourceWithLogAndExternalListenerConfig{
+				r.loadBalancer,
+				r.configMap,
+				r.deployment,
+			} {
+				o := res(log, eListener)
+				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
