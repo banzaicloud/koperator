@@ -20,7 +20,7 @@ spec:
         - /manager
         args:
         - --enable-leader-election
-        image: banzaicloud/kafka-operator:latest
+        image: ghcr.io/banzaicloud/kafka-operator:latest
         name: manager
         ports:
         - containerPort: 9001
