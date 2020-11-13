@@ -38,7 +38,8 @@ func (r *Reconciler) loadBalancer(log logr.Logger, extListener v1beta1.ExternalL
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(envoyutils.EnvoyServiceName, extListener.Name, r.KafkaCluster.GetName()),
-			map[string]string{}, r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations(), r.KafkaCluster),
+			labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
+			r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations(), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Selector:                 map[string]string{"app": "envoy"},
 			Type:                     corev1.ServiceTypeLoadBalancer,
