@@ -34,7 +34,7 @@ const (
 // labelsForIstioIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
 func labelsForIstioIngress(crName, eLName string) map[string]string {
-	return map[string]string{"app": "istioingress", "eListenerName": eLName}
+	return map[string]string{"app": "istioingress", "eListenerName": eLName, "kafka_cr": crName}
 }
 
 // Reconciler implements the Component Reconciler

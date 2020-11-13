@@ -31,8 +31,10 @@ const (
 	envoyDeploymentName      = "envoy-%s-%s"
 )
 
-var labelSelector = map[string]string{
-	"app": "envoy",
+// labelsForEnvoyIngress returns the labels for selecting the resources
+// belonging to the given kafka CR name.
+func labelsForEnvoyIngress(crName, eLName string) map[string]string {
+	return map[string]string{"app": "envoyingress", "eListenerName": eLName, "kafka_cr": crName}
 }
 
 // Reconciler implements the Component Reconciler
