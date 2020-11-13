@@ -612,7 +612,7 @@ func (mConfig *MonitoringConfig) GetImage() string {
 	if mConfig.JmxImage != "" {
 		return mConfig.JmxImage
 	}
-	return "banzaicloud/jmx-javaagent:0.14.0"
+	return "ghcr.io/banzaicloud/jmx-javaagent:0.14.0"
 }
 
 // GetPathToJar returns the path in the used Image for Prometheus JMX exporter

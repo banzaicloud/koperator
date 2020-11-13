@@ -52,7 +52,7 @@ The following table lists the configurable parameters of the Banzaicloud Kafka O
 
 Parameter | Description | Default
 --------- | ----------- | -------
-`operator.image.repository` | Operator container image repository | `banzaicloud/kafka-operator`
+`operator.image.repository` | Operator container image repository | `ghcr.io/banzaicloud/kafka-operator`
 `operator.image.tag` | Operator container image tag | `v0.12.4`
 `operator.image.pullPolicy` | Operator container image pull policy | `IfNotPresent`
 `operator.serviceAccount.name` | ServiceAccount used by the operator pod | `kafka-operator`

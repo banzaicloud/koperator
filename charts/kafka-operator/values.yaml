@@ -11,7 +11,7 @@ imagePullSecrets: []
 operator:
   annotations: {}
   image:
-    repository: banzaicloud/kafka-operator
+    repository: ghcr.io/banzaicloud/kafka-operator
     tag: v0.13.1
     pullPolicy: IfNotPresent
   vaultAddress: ""
