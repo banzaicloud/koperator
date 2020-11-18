@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-    helm: banzaicloud/helm@0.0.3
+    helm: banzaicloud/helm@0.0.8
 
 jobs:
   build:
@@ -61,14 +61,12 @@ workflows:
     helm-chart:
         jobs:
             - helm/lint-chart:
-                  chart-path: charts/kafka-operator
                   filters:
                       tags:
                           ignore: /.*/
 
             - helm/publish-chart:
                   context: helm
-                  chart-path: charts/kafka-operator
                   filters:
                       branches:
                           ignore: /.*/
