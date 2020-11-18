@@ -49,7 +49,7 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 				},
 				ServiceType: corev1.ServiceTypeLoadBalancer,
 			},
-			Ports: generateExternalPorts(util.GetBrokerIdsFromStatus(r.KafkaCluster.Status.BrokersState, log),
+			Ports: generateExternalPorts(util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log),
 				externalListenerConfig),
 			Type: istioOperatorApi.GatewayTypeIngress,
 		},

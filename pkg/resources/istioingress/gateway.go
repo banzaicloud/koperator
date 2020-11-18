@@ -45,7 +45,7 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 		protocol = v1alpha3.ProtocolTLS
 	}
 
-	brokerIds := util.GetBrokerIdsFromStatus(kc.Status.BrokersState, log)
+	brokerIds := util.GetBrokerIdsFromStatusAndSpec(kc.Status.BrokersState, kc.Spec.Brokers, log)
 
 	for _, brokerId := range brokerIds {
 		servers = append(servers, v1alpha3.Server{
