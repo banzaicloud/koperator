@@ -33,7 +33,7 @@ import (
 func (r *Reconciler) deployment(log logr.Logger) runtime.Object {
 
 	exposedPorts := getExposedContainerPorts(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners,
-		util.GetBrokerIdsFromStatus(r.KafkaCluster.Status.BrokersState, log))
+		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log))
 	volumes := []corev1.Volume{
 		{
 			Name: envoyVolumeAndConfigName,
