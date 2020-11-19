@@ -181,11 +181,11 @@ func AreStringSlicesIdentical(a, b []string) bool {
 
 // returns the union of the ids of the configured (Spec.Brokers) and the running (BrokerState) brokers
 func GetBrokerIdsFromStatusAndSpec(brokerStatuses map[string]v1beta1.BrokerState, brokers []v1beta1.Broker, log logr.Logger) []int {
-	brokerIdMap := make(map[int]bool)
+	brokerIdMap := make(map[int]struct{})
 
 	// add brokers from spec
 	for _, broker := range brokers {
-		brokerIdMap[int(broker.Id)] = true
+		brokerIdMap[int(broker.Id)] = struct{}{}
 	}
 
 	// add brokers from status
@@ -195,11 +195,11 @@ func GetBrokerIdsFromStatusAndSpec(brokerStatuses map[string]v1beta1.BrokerState
 			log.Error(err, "could not parse brokerId properly")
 			continue
 		}
-		brokerIdMap[id] = true
+		brokerIdMap[id] = struct{}{}
 	}
 
 	// collect unique broker ids
-	brokerIds := make([]int, 0)
+	brokerIds := make([]int, 0, len(brokerIdMap))
 	for id := range brokerIdMap {
 		brokerIds = append(brokerIds, id)
 	}
