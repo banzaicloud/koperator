@@ -21,6 +21,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestGetBrokerConfig(t *testing.T) {
@@ -341,5 +342,99 @@ func TestCreateLogger(t *testing.T) {
 	}
 	if !logger.V(0).Enabled() {
 		t.Error("info level should be enabled")
+	}
+}
+
+func TestGetBrokerIdsFromStatusAndSpec(t *testing.T) {
+	testCases := []struct {
+		states         map[string]v1beta1.BrokerState
+		brokers        []v1beta1.Broker
+		expectedOutput []int
+	}{
+		// the states and the spec matches
+		{
+			map[string]v1beta1.BrokerState{
+				"1": {
+					ConfigurationState: v1beta1.ConfigInSync,
+				},
+				"2": {
+					ConfigurationState: v1beta1.ConfigInSync,
+				},
+				"3": {
+					ConfigurationState: v1beta1.ConfigInSync,
+				},
+			},
+			[]v1beta1.Broker{
+				{
+					Id: 1,
+				},
+				{
+					Id: 2,
+				},
+				{
+					Id: 3,
+				},
+			},
+			[]int{1, 2, 3},
+		},
+		// broker has been deleted from spec
+		{
+			map[string]v1beta1.BrokerState{
+				"1": {
+					ConfigurationState: v1beta1.ConfigInSync,
+				},
+				"2": {
+					ConfigurationState: v1beta1.ConfigInSync,
+				},
+				"3": {
+					ConfigurationState: v1beta1.ConfigInSync,
+				},
+			},
+			[]v1beta1.Broker{
+				{
+					Id: 1,
+				},
+				{
+					Id: 2,
+				},
+			},
+			[]int{1, 2, 3},
+		},
+		// broker is added to spec
+		{
+			map[string]v1beta1.BrokerState{
+				"1": {
+					ConfigurationState: v1beta1.ConfigInSync,
+				},
+				"2": {
+					ConfigurationState: v1beta1.ConfigInSync,
+				},
+			},
+			[]v1beta1.Broker{
+				{
+					Id: 1,
+				},
+				{
+					Id: 2,
+				},
+				{
+					Id: 3,
+				},
+			},
+			[]int{1, 2, 3},
+		},
+	}
+
+	logger := zap.New()
+	for _, testCase := range testCases {
+		brokerIds := GetBrokerIdsFromStatusAndSpec(testCase.states, testCase.brokers, logger)
+		if len(brokerIds) != len(testCase.expectedOutput) {
+			t.Errorf("size of the merged slice of broker ids mismatch - expected: %d, actual: %d", len(testCase.expectedOutput), len(brokerIds))
+		}
+		for i, brokerId := range brokerIds {
+			if brokerId != testCase.expectedOutput[i] {
+				t.Errorf("broker id is not the expected - index: %d, expected: %d, actual: %d", i, testCase.expectedOutput[i], brokerId)
+			}
+		}
 	}
 }
