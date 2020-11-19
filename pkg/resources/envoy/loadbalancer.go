@@ -41,7 +41,7 @@ func (r *Reconciler) loadBalancer(log logr.Logger, extListener v1beta1.ExternalL
 			labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
 			r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations(), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
-			Selector:                 map[string]string{"app": "envoy"},
+			Selector:                 labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
 			Type:                     corev1.ServiceTypeLoadBalancer,
 			Ports:                    exposedPorts,
 			LoadBalancerSourceRanges: r.KafkaCluster.Spec.EnvoyConfig.GetLoadBalancerSourceRanges(),
