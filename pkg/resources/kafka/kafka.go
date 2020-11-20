@@ -115,7 +115,7 @@ func getLoadBalancerIP(client client.Client, namespace, ingressController, crNam
 	foundLBService := &corev1.Service{}
 	var iControllerServiceName string
 	if ingressController == istioingressutils.IngressControllerName {
-		iControllerServiceName = fmt.Sprintf(istioingressutils.MeshGatewayNameTemplate, crName)
+		iControllerServiceName = fmt.Sprintf(istioingressutils.MeshGatewayNameTemplate, extListenerName, crName)
 	} else if ingressController == envoyutils.IngressControllerName {
 		iControllerServiceName = fmt.Sprintf(envoyutils.EnvoyServiceName, extListenerName, crName)
 	}

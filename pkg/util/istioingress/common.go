@@ -18,5 +18,5 @@ const (
 	// IngressControllerName name for istioingress ingress service
 	IngressControllerName = "istioingress"
 	// IngressControllerName name for istioingress gateway service
-	MeshGatewayNameTemplate = "%s-meshgateway"
+	MeshGatewayNameTemplate = "meshgateway-%s-%s"
 )
