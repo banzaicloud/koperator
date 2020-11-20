@@ -84,9 +84,9 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	if r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint == "" {
 
-		err := generateCCTopic(r.KafkaCluster, r.Client, log)
+		err := generateCCTopic(r.KafkaCluster, r.Client, log.WithName("generateCCTopic"))
 		if err != nil {
-			k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, v1beta1.CruiseControlTopicNotReady, log)
+			_ = k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, v1beta1.CruiseControlTopicNotReady, log)
 			return err
 		}
 		statusErr := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, v1beta1.CruiseControlTopicReady, log)
