@@ -76,7 +76,9 @@ func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log lo
 	// for compatibility reasons the only case when we let CC to create its own kafka topics is
 	// when we enable the creation explicitly
 	if propertyValue, present := readOnlyConfigProperties[ccMetricTopicAutoCreate]; present {
-		if autoCreate, _ := strconv.ParseBool(propertyValue); autoCreate {
+		if autoCreate, err := strconv.ParseBool(propertyValue); err != nil {
+			return err
+		} else if autoCreate {
 			log.Info("CruiseControl topics are created by CruiseControl itself")
 			return nil
 		}
