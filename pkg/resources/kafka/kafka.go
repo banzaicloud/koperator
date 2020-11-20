@@ -257,7 +257,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			o := r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
+			o := r.configMap(broker.Id, brokerConfig, clientPass, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -265,7 +265,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		} else {
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 				if brokerState.RackAwarenessState != "" {
-					o := r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
+					o := r.configMap(broker.Id, brokerConfig, clientPass, superUsers, log)
 					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 					if err != nil {
 						return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
@@ -291,7 +291,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		if err != nil {
 			return err
 		}
-		if err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, log); err != nil {
+		if err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, lbIPs, serverPass, log); err != nil {
 			return err
 		}
 	}
@@ -492,7 +492,7 @@ func (r *Reconciler) getServerAndClientDetails() (string, string, []string, erro
 	return serverPass, clientPass, superUsers, nil
 }
 
-func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, log logr.Logger) error {
+func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, lbIPs []string, serverPass string, log logr.Logger) error {
 	kClient, err := kafkaclient.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
@@ -503,7 +503,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 		}
 	}()
 
-	parsedBrokerConfig := util.ParsePropertiesFormat(brokerConfig.Config)
+	parsedBrokerConfig := r.getDynamicConfigs(brokerId, lbIPs, serverPass, brokerConfig, log)
 
 	// Calling DescribePerBrokerConfig with empty slice will return all config for that broker including the default ones
 	if len(parsedBrokerConfig) > 0 {
