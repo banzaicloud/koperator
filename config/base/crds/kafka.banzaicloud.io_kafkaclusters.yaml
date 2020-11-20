@@ -1644,6 +1644,7 @@ spec:
                         type: array
                         x-kubernetes-list-map-keys:
                         - containerPort
+                        - protocol
                         x-kubernetes-list-type: map
                       readinessProbe:
                         description: 'Periodic probe of container service readiness.
