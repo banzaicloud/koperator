@@ -12,6 +12,7 @@ spec:
   clusterImage: "wurstmeister/kafka:2.12-2.1.0"
   readOnlyConfig: |
     auto.create.topics.enable=false
+    cruise.control.metrics.topic.auto.create=true
     authorizer.class.name=kafka.security.auth.SimpleAclAuthorizer
     allow.everyone.if.no.acl.found=false
     ssl.secure.random.implementation=SHA1PRNG

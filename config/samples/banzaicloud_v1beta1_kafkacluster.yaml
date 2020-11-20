@@ -63,6 +63,7 @@ spec:
       # which has type read-only these config changes will trigger rolling upgrade
       readOnlyConfig: |
         auto.create.topics.enable=false
+        cruise.control.metrics.topic.auto.create=true
       brokerConfig:
         # Docker image used by the operator to create the Broker with id 0
         #image: "banzaicloud/kafka:2.13-2.6.0-bzc.1"

@@ -18,6 +18,7 @@ spec:
   clusterImage: "banzaicloud/kafka:2.13-2.6.0-bzc.1"
   readOnlyConfig: |
     auto.create.topics.enable=false
+    cruise.control.metrics.topic.auto.create=true
   brokerConfigGroups:
     default:
       storageConfigs:
