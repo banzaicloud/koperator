@@ -9,7 +9,7 @@ spec:
   zkAddresses:
     - "zookeeper-client.zookeeper:2181"
   oneBrokerPerNode: false
-  clusterImage: "wurstmeister/kafka:2.12-2.1.0"
+  clusterImage: "banzaicloud/kafka:2.13-2.6.0-bzc.1"
   readOnlyConfig: |
     auto.create.topics.enable=false
     cruise.control.metrics.topic.auto.create=true
