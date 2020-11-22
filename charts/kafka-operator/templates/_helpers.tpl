@@ -35,7 +35,7 @@ Create chart name and version as used by the chart label.
 Compute operator deployment serviceAccountName key
 */}}
 {{- define "operator.serviceAccountName" -}}
-{{- if .Values.operator.serviceAccount.create -}}
+{{- if .Values.operator.serviceAccount.name -}}
 {{ default "default" .Values.operator.serviceAccount.name }}
 {{- else -}}
 {{- printf "%s" "default" }}
@@ -46,7 +46,7 @@ Compute operator deployment serviceAccountName key
 Compute operator prometheus metrics auth proxy service account
 */}}
 {{- define "operator.metricsAuthProxy.serviceAccountName" -}}
-{{- if .Values.prometheusMetrics.authProxy.serviceAccount.create -}}
+{{- if .Values.prometheusMetrics.authProxy.serviceAccount.name -}}
 {{ default "default" .Values.prometheusMetrics.authProxy.serviceAccount.name }}
 {{- else -}}
 {{- printf "%s" "default" }}
