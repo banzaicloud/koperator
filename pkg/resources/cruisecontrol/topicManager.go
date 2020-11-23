@@ -79,7 +79,7 @@ func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log lo
 		if autoCreate, err := strconv.ParseBool(propertyValue); err != nil {
 			return err
 		} else if autoCreate {
-			log.Info("CruiseControl topics are created by CruiseControl itself")
+			log.Info("CruiseControl topic has been created by CruiseControl")
 			return nil
 		}
 	}
@@ -106,5 +106,7 @@ func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log lo
 			return errorfactory.New(errorfactory.APIFailure{}, err, "failed to lookup cruise control topic")
 		}
 	}
+
+	log.Info("CruiseControl topic has been created by Operator")
 	return nil
 }
