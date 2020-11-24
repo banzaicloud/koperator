@@ -134,7 +134,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 					var statusErr error
 					// if only per broker configs are changed, do not trigger rolling upgrade by setting ConfigOutOfSync status
 					if containsOnlyPerBrokerConfigs(touchedConfigs) {
-						log.Info("setting per broker config status to out of sync")
+						log.V(1).Info("setting per broker config status to out of sync")
 						statusErr = UpdateBrokerStatus(client, []string{id}, cr, banzaicloudv1beta1.PerBrokerConfigOutOfSync, log)
 					} else {
 						statusErr = UpdateBrokerStatus(client, []string{id}, cr, banzaicloudv1beta1.ConfigOutOfSync, log)

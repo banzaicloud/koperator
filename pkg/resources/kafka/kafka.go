@@ -542,7 +542,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 		recheckPerBrokerConfigUpdate := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(brokerId))].PerBrokerConfigurationState == v1beta1.PerBrokerConfigInSync
 
 		if recheckPerBrokerConfigUpdate {
-			log.Info("setting per broker config status to out of sync")
+			log.V(1).Info("setting per broker config status to out of sync")
 			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster, v1beta1.PerBrokerConfigOutOfSync, log)
 			if statusErr != nil {
 				return errors.WrapIfWithDetails(err, "updating status for per-broker configuration status failed", "brokerId", brokerId)
@@ -556,7 +556,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 			return errorfactory.New(errorfactory.PerBrokerConfigUpdated{}, errors.New("configuration is out of sync"), "per-broker configuration updated")
 		}
 	} else {
-		log.Info("setting per broker config status to in sync")
+		log.V(1).Info("setting per broker config status to in sync")
 		statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster, v1beta1.PerBrokerConfigInSync, log)
 		if statusErr != nil {
 			return errors.WrapIfWithDetails(err, "updating status for per-broker configuration status failed", "brokerId", brokerId)
@@ -639,7 +639,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating status for resource failed", "kind", desiredType)
 		}
 		// Update status to per-broker Config InSync because broker is configured to go
-		log.Info("setting per broker config status to in sync")
+		log.V(1).Info("setting per broker config status to in sync")
 		statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.PerBrokerConfigInSync, log)
 		if statusErr != nil {
 			return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating per broker config status for resource failed", "kind", desiredType)
