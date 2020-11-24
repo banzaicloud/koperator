@@ -16,13 +16,9 @@ spec:
   clusterImage: "banzaicloud/kafka:2.13-2.6.0-bzc.1"
   readOnlyConfig: |
     auto.create.topics.enable=false
-    metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-    cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://localhost:9092
-    cruise.control.metrics.reporter.kubernetes.mode=true
     cruise.control.metrics.topic.auto.create=true
     cruise.control.metrics.topic.num.partitions=1
     cruise.control.metrics.topic.replication.factor=2
-    cruise.control.metrics.topic.min.insync.replicas=1
   brokerConfigGroups:
     default:
       brokerAnnotations:
