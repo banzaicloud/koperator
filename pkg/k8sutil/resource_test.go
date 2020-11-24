@@ -15,6 +15,7 @@
 package k8sutil
 
 import (
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"reflect"
 	"sort"
 	"testing"
@@ -105,7 +106,7 @@ key5=value5`,
 				"broker-config": testCase.CurrentConfigs,
 			},
 		}
-		touchedConfigs := collectTouchedConfigs(current, desired)
+		touchedConfigs := collectTouchedConfigs(current, desired, util.CreateLogger(false, false))
 		sort.Strings(touchedConfigs)
 		if !reflect.DeepEqual(touchedConfigs, testCase.Result) {
 			t.Errorf("comparison failed - expected: %s, actual: %s", testCase.Result, touchedConfigs)
