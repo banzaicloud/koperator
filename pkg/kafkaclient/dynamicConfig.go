@@ -31,7 +31,7 @@ func (k *kafkaClient) DescribeClusterWideConfig() ([]sarama.ConfigEntry, error) 
 	return k.admin.DescribeConfig(sarama.ConfigResource{Type: sarama.BrokerResource, Name: "", ConfigNames: []string{}})
 }
 
-func (k *kafkaClient) AlterPerBrokerConfig(brokerId int32, configChange map[string]*string) error {
+func (k *kafkaClient) AlterPerBrokerConfig(brokerId int32, configChange map[string]*string, validateOnly bool) error {
 	broker := k.GetBroker(brokerId)
 	if broker == nil {
 		return errorfactory.New(errorfactory.BrokersNotReady{}, errors.New("brokerNotReady"), fmt.Sprintf("could not get %d broker", brokerId))
@@ -43,7 +43,7 @@ func (k *kafkaClient) AlterPerBrokerConfig(brokerId int32, configChange map[stri
 	defer broker.Close()
 
 	_, err = broker.AlterConfigs(&sarama.AlterConfigsRequest{
-		ValidateOnly: false,
+		ValidateOnly: validateOnly,
 		Resources: []*sarama.AlterConfigsResource{
 			{
 				Type:          sarama.BrokerResource,

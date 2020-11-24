@@ -49,7 +49,7 @@ type KafkaClient interface {
 	OfflineReplicaCount() (int, error)
 	AllReplicaInSync() (bool, error)
 
-	AlterPerBrokerConfig(int32, map[string]*string) error
+	AlterPerBrokerConfig(int32, map[string]*string, bool) error
 	DescribePerBrokerConfig(int32, []string) ([]*sarama.ConfigEntry, error)
 
 	AlterClusterWideConfig(map[string]*string) error

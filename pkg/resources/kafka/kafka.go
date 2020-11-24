@@ -26,6 +26,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	"github.com/go-logr/logr"
+	"github.com/imdario/mergo"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -506,9 +507,13 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 		return nil
 	}
 
-	perBrokerConfigsFromConfigMap := k8sutil.GetBrokerConfigsFromConfigMap(configMap)
+	mergedConfigs := k8sutil.GetBrokerConfigsFromConfigMap(configMap)
 
-	brokerConfigKeys := make([]string, 0, len(parsedBrokerConfig))
+	if err := mergo.Merge(&mergedConfigs, parsedBrokerConfig); err != nil {
+		return errors.WrapIfWithDetails(err, "error occurred during merging per broker configs")
+	}
+
+	brokerConfigKeys := make([]string, 0, len(parsedBrokerConfig)+len(k8sutil.PerBrokerConfigs))
 	for key := range parsedBrokerConfig {
 		brokerConfigKeys = append(brokerConfigKeys, key)
 	}
@@ -524,17 +529,12 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	if len(response) == 0 {
 		configIdentical = false
 	}
+	changedConfigs := make(map[string]string, 0)
 	for _, conf := range response {
-		if val, ok := parsedBrokerConfig[conf.Name]; ok {
+		if val, ok := mergedConfigs[conf.Name]; ok {
 			if val != conf.Value {
 				configIdentical = false
-				break
-			}
-		}
-		if val, ok := perBrokerConfigsFromConfigMap[conf.Name]; ok {
-			if val != conf.Value {
-				configIdentical = false
-				break
+				changedConfigs[conf.Name] = val
 			}
 		}
 	}
@@ -548,7 +548,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 				return errors.WrapIfWithDetails(err, "updating status for per-broker configuration status failed", "brokerId", brokerId)
 			}
 		}
-		err := kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(parsedBrokerConfig))
+		err := kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(changedConfigs), false)
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "could not alter broker config", "brokerId", brokerId)
 		}
