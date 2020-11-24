@@ -129,7 +129,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			case *corev1.ConfigMap:
 				// Only update status when configmap belongs to broker
 				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
-					touchedConfigs := collectTouchedConfigs(current.(*corev1.ConfigMap), desired.(*corev1.ConfigMap))
+					touchedConfigs := collectTouchedConfigs(current.(*corev1.ConfigMap), desired.(*corev1.ConfigMap), log)
 
 					var statusErr error
 					// if only per broker configs are changed, do not trigger rolling upgrade by setting ConfigOutOfSync status
@@ -185,7 +185,7 @@ func GetBrokerConfigsFromConfigMap(configMap *corev1.ConfigMap) map[string]strin
 
 // collects are the config keys that are either added, removed or updated
 // between the current and the desired ConfigMap
-func collectTouchedConfigs(current, desired *corev1.ConfigMap) []string {
+func collectTouchedConfigs(current, desired *corev1.ConfigMap, log logr.Logger) []string {
 	touchedConfigs := make([]string, 0)
 	currentConfigs := GetBrokerConfigsFromConfigMap(current)
 	desiredConfigs := GetBrokerConfigsFromConfigMap(desired)
@@ -202,6 +202,8 @@ func collectTouchedConfigs(current, desired *corev1.ConfigMap) []string {
 		// deleted config
 		touchedConfigs = append(touchedConfigs, configName)
 	}
+
+	log.V(1).Info("configs have been changed", "configs", touchedConfigs)
 	return touchedConfigs
 }
 
