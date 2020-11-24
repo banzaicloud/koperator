@@ -70,8 +70,8 @@ type CruiseControlTaskTimeout struct{ error }
 // CruiseControlTaskFailure states that CC task was not found (CC restart?) or failed
 type CruiseControlTaskFailure struct{ error }
 
-// PerBrokerConfigUpdated states that per-broker configurations has been updated for a broker
-type PerBrokerConfigUpdated struct{ error }
+// PerBrokerConfigNotReady states that per-broker configurations has been updated for a broker
+type PerBrokerConfigNotReady struct{ error }
 
 // New creates a new error factory error
 func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
@@ -113,8 +113,8 @@ func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 		return CruiseControlTaskTimeout{wrapped}
 	case CruiseControlTaskFailure:
 		return CruiseControlTaskFailure{wrapped}
-	case PerBrokerConfigUpdated:
-		return PerBrokerConfigUpdated{wrapped}
+	case PerBrokerConfigNotReady:
+		return PerBrokerConfigNotReady{wrapped}
 	}
 	return wrapped
 }

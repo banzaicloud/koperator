@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+	"github.com/Shopify/sarama"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	"github.com/go-logr/logr"
-	"github.com/imdario/mergo"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -502,15 +502,17 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 
 	parsedBrokerConfig := util.ParsePropertiesFormat(brokerConfig.Config)
 
-	// Calling DescribePerBrokerConfig with empty slice will return all config for that broker including the default ones
-	if len(parsedBrokerConfig) == 0 && r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(brokerId))].PerBrokerConfigurationState == v1beta1.PerBrokerConfigInSync {
+	currentPerBrokerConfigState := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(brokerId))].PerBrokerConfigurationState
+	if len(parsedBrokerConfig) == 0 && currentPerBrokerConfigState != v1beta1.PerBrokerConfigOutOfSync {
 		return nil
 	}
 
-	mergedConfigs := k8sutil.GetBrokerConfigsFromConfigMap(configMap)
-
-	if err := mergo.Merge(&mergedConfigs, parsedBrokerConfig); err != nil {
-		return errors.WrapIfWithDetails(err, "error occurred during merging per broker configs")
+	// overwrite configs that are generated in the configmap
+	configsFromConfigMap := k8sutil.GetBrokerConfigsFromConfigMap(configMap)
+	for _, perBrokerConfig := range k8sutil.PerBrokerConfigs {
+		if configValue, ok := configsFromConfigMap[perBrokerConfig]; ok {
+			parsedBrokerConfig[perBrokerConfig] = configValue
+		}
 	}
 
 	brokerConfigKeys := make([]string, 0, len(parsedBrokerConfig)+len(k8sutil.PerBrokerConfigs))
@@ -519,41 +521,53 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	}
 	brokerConfigKeys = append(brokerConfigKeys, k8sutil.PerBrokerConfigs...)
 
-	configIdentical := true
-
 	response, err := kClient.DescribePerBrokerConfig(brokerId, brokerConfigKeys)
 	if err != nil {
 		return errors.WrapIfWithDetails(err, "could not describe broker config", "brokerId", brokerId)
 	}
 
-	if len(response) == 0 {
-		configIdentical = false
-	}
-	changedConfigs := make(map[string]string, 0)
-	for _, conf := range response {
-		if val, ok := mergedConfigs[conf.Name]; ok {
-			if val != conf.Value {
-				configIdentical = false
-				changedConfigs[conf.Name] = val
-			}
-		}
-	}
-	if !configIdentical {
-		recheckPerBrokerConfigUpdate := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(brokerId))].PerBrokerConfigurationState == v1beta1.PerBrokerConfigInSync
+	changedConfigs := collectNonIdenticalConfigsFromResponse(response, parsedBrokerConfig)
 
-		if recheckPerBrokerConfigUpdate {
+	if len(changedConfigs) > 0 {
+		if currentPerBrokerConfigState == v1beta1.PerBrokerConfigInSync {
 			log.V(1).Info("setting per broker config status to out of sync")
 			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster, v1beta1.PerBrokerConfigOutOfSync, log)
 			if statusErr != nil {
 				return errors.WrapIfWithDetails(err, "updating status for per-broker configuration status failed", "brokerId", brokerId)
 			}
 		}
-		err := kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(changedConfigs), false)
+
+		// validate the config
+		err := kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(changedConfigs), true)
+		if err != nil {
+			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster, v1beta1.PerBrokerConfigError, log)
+			if statusErr != nil {
+				err = errors.Combine(err, statusErr)
+			}
+			return errors.WrapIfWithDetails(err, "could not validate per-broker broker config", "brokerId", brokerId)
+		}
+
+		// alter the config
+		err = kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(changedConfigs), false)
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "could not alter broker config", "brokerId", brokerId)
 		}
-		if recheckPerBrokerConfigUpdate {
-			return errorfactory.New(errorfactory.PerBrokerConfigUpdated{}, errors.New("configuration is out of sync"), "per-broker configuration updated")
+
+		// request for the updated config
+		response, err := kClient.DescribePerBrokerConfig(brokerId, brokerConfigKeys)
+		if err != nil {
+			return errors.WrapIfWithDetails(err, "could not describe broker config", "brokerId", brokerId)
+		}
+
+		// update per-broker config status
+		notUpdatedConfigs := collectNonIdenticalConfigsFromResponse(response, parsedBrokerConfig)
+		if len(notUpdatedConfigs) > 0 {
+			return errorfactory.New(errorfactory.PerBrokerConfigNotReady{}, errors.New("configuration is out of sync"), "per-broker configuration updated")
+		} else {
+			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster, v1beta1.PerBrokerConfigInSync, log)
+			if statusErr != nil {
+				return errors.WrapIfWithDetails(err, "updating status for per-broker configuration status failed", "brokerId", brokerId)
+			}
 		}
 	} else {
 		log.V(1).Info("setting per broker config status to in sync")
@@ -920,4 +934,17 @@ func GetBrokersWithPendingOrRunningCCTask(kafkaCluster *v1beta1.KafkaCluster) []
 
 func isDesiredStorageValueInvalid(desired, current *corev1.PersistentVolumeClaim) bool {
 	return desired.Spec.Resources.Requests.Storage().Value() < current.Spec.Resources.Requests.Storage().Value()
+}
+
+func collectNonIdenticalConfigsFromResponse(response []*sarama.ConfigEntry, parsedBrokerConfig map[string]string) map[string]string {
+	changedConfigs := make(map[string]string, 0)
+	for _, conf := range response {
+		if val, ok := parsedBrokerConfig[conf.Name]; ok {
+			if val != conf.Value {
+				changedConfigs[conf.Name] = val
+			}
+		}
+	}
+
+	return changedConfigs
 }

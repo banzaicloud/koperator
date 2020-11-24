@@ -175,4 +175,6 @@ const (
 	PerBrokerConfigInSync PerBrokerConfigurationState = "PerBrokerConfigInSync"
 	// PerBrokerConfigOutOfSync states that the generated per-broker brokerConfig is out of sync with the Broker
 	PerBrokerConfigOutOfSync PerBrokerConfigurationState = "PerBrokerConfigOutOfSync"
+	// PerBrokerConfigError states that the generated per-broker brokerConfig can not be set in the Broker
+	PerBrokerConfigError PerBrokerConfigurationState = "PerBrokerConfigError"
 )
