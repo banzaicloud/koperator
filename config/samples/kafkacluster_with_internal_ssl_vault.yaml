@@ -9,9 +9,12 @@ spec:
   zkAddresses:
     - "zookeeper-client.zookeeper:2181"
   oneBrokerPerNode: false
-  clusterImage: "wurstmeister/kafka:2.12-2.1.0"
+  clusterImage: "banzaicloud/kafka:2.13-2.6.0-bzc.1"
   readOnlyConfig: |
     auto.create.topics.enable=false
+    cruise.control.metrics.topic.auto.create=true
+    cruise.control.metrics.topic.num.partitions=1
+    cruise.control.metrics.topic.replication.factor=2
     authorizer.class.name=kafka.security.auth.SimpleAclAuthorizer
     allow.everyone.if.no.acl.found=false
     ssl.secure.random.implementation=SHA1PRNG

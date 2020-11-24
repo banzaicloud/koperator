@@ -17,11 +17,13 @@ package cruisecontrol
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,6 +32,7 @@ import (
 )
 
 const (
+	ccMetricTopicAutoCreate             = "cruise.control.metrics.topic.auto.create"
 	cruiseControlTopicFormat            = "%s-cruise-control-topic"
 	cruiseControlTopicName              = "__CruiseControlMetrics"
 	cruiseControlTopicPartitions        = 12
@@ -68,6 +71,19 @@ func newCruiseControlTopic(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaTopic {
 }
 
 func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log logr.Logger) error {
+	readOnlyConfigProperties := util.ParsePropertiesFormat(cluster.Spec.ReadOnlyConfig)
+
+	// for compatibility reasons the only case when we let CC to create its own kafka topics is
+	// when we enable the creation explicitly
+	if propertyValue, present := readOnlyConfigProperties[ccMetricTopicAutoCreate]; present {
+		if autoCreate, err := strconv.ParseBool(propertyValue); err != nil {
+			return err
+		} else if autoCreate {
+			log.Info("CruiseControl topic has been created by CruiseControl")
+			return nil
+		}
+	}
+
 	existing := &v1alpha1.KafkaTopic{}
 	topic := newCruiseControlTopic(cluster)
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, existing); err != nil {
@@ -90,5 +106,7 @@ func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log lo
 			return errorfactory.New(errorfactory.APIFailure{}, err, "failed to lookup cruise control topic")
 		}
 	}
+
+	log.Info("CruiseControl topic has been created by Operator")
 	return nil
 }
