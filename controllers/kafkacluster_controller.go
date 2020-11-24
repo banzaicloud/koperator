@@ -160,10 +160,10 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 				return ctrl.Result{
 					RequeueAfter: time.Duration(20) * time.Second,
 				}, nil
-			case errorfactory.PerBrokerConfigUpdated:
+			case errorfactory.PerBrokerConfigNotReady:
 				log.V(1).Info("broker configuration was dynamically updated")
 				return ctrl.Result{
-					RequeueAfter: time.Duration(3) * time.Second,
+					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
 			default:
 				return requeueWithError(log, err.Error(), err)
