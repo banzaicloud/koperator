@@ -652,7 +652,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 		//Since toleration does not support patchStrategy:"merge,retainKeys", we need to add all toleration from the current pod if the toleration is set in the CR
 		if len(desiredPod.Spec.Tolerations) > 0 {
 			desiredPod.Spec.Tolerations = append(desiredPod.Spec.Tolerations, currentPod.Spec.Tolerations...)
-			uniqueTolerations := make([]corev1.Toleration, len(desiredPod.Spec.Tolerations), 0)
+			uniqueTolerations := make([]corev1.Toleration, 0, len(desiredPod.Spec.Tolerations))
 			keys := make(map[corev1.Toleration]bool)
 			for _, t := range desiredPod.Spec.Tolerations {
 				if _, value := keys[t]; !value {
