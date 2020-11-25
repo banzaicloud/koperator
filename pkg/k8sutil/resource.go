@@ -22,7 +22,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
@@ -125,25 +124,6 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err := client.Update(context.TODO(), desired); err != nil {
 				return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
 			}
-			switch desired.(type) {
-			case *corev1.ConfigMap:
-				// Only update status when configmap belongs to broker
-				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
-					touchedConfigs := collectTouchedConfigs(current.(*corev1.ConfigMap), desired.(*corev1.ConfigMap), log)
-
-					var statusErr error
-					// if only per broker configs are changed, do not trigger rolling upgrade by setting ConfigOutOfSync status
-					if containsOnlyPerBrokerConfigs(touchedConfigs) {
-						log.V(1).Info("setting per broker config status to out of sync")
-						statusErr = UpdateBrokerStatus(client, []string{id}, cr, banzaicloudv1beta1.PerBrokerConfigOutOfSync, log)
-					} else {
-						statusErr = UpdateBrokerStatus(client, []string{id}, cr, banzaicloudv1beta1.ConfigOutOfSync, log)
-					}
-					if statusErr != nil {
-						return errors.WrapIfWithDetails(err, "updating status for resource failed", "kind", desiredType)
-					}
-				}
-			}
 			log.Info("resource updated")
 		}
 	}
@@ -167,44 +147,6 @@ func CheckIfObjectUpdated(log logr.Logger, desiredType reflect.Type, current, de
 			"original", string(patchResult.Original))
 		return true
 	}
-}
-
-func GetBrokerConfigsFromConfigMap(configMap *corev1.ConfigMap) map[string]string {
-	brokerConfig := configMap.Data["broker-config"]
-	configs := strings.Split(brokerConfig, "\n")
-	m := make(map[string]string)
-	for _, config := range configs {
-		elements := strings.Split(config, "=")
-		if len(elements) != 2 {
-			continue
-		}
-		m[strings.TrimSpace(elements[0])] = strings.TrimSpace(elements[1])
-	}
-	return m
-}
-
-// collects are the config keys that are either added, removed or updated
-// between the current and the desired ConfigMap
-func collectTouchedConfigs(current, desired *corev1.ConfigMap, log logr.Logger) []string {
-	touchedConfigs := make([]string, 0)
-	currentConfigs := GetBrokerConfigsFromConfigMap(current)
-	desiredConfigs := GetBrokerConfigsFromConfigMap(desired)
-
-	for configName, desiredValue := range desiredConfigs {
-		if currentValue, ok := currentConfigs[configName]; !ok || currentValue != desiredValue {
-			// new or updated config
-			touchedConfigs = append(touchedConfigs, configName)
-		}
-		delete(currentConfigs, configName)
-	}
-
-	for configName, _ := range currentConfigs {
-		// deleted config
-		touchedConfigs = append(touchedConfigs, configName)
-	}
-
-	log.V(1).Info("configs have been changed", "configs", touchedConfigs)
-	return touchedConfigs
 }
 
 func IsPodContainsTerminatedContainer(pod *corev1.Pod) bool {

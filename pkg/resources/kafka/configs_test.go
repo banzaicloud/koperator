@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package k8sutil
+package kafka
 
 import (
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"reflect"
 	"sort"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 func TestGetBrokerConfigsFromConfigMap(t *testing.T) {
@@ -36,7 +37,7 @@ key3=value3`,
 		"key2": "value2",
 		"key3": "value3",
 	}
-	actual := GetBrokerConfigsFromConfigMap(configMap)
+	actual := getBrokerConfigsFromConfigMap(configMap)
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("broker config extraction from configmap failed - expected: %s, actual: %s", expected, actual)
 	}
@@ -106,7 +107,7 @@ key5=value5`,
 				"broker-config": testCase.CurrentConfigs,
 			},
 		}
-		touchedConfigs := collectTouchedConfigs(current, desired, util.CreateLogger(false, false))
+		touchedConfigs := collectTouchedConfigs(getBrokerConfigsFromConfigMap(current), getBrokerConfigsFromConfigMap(desired), util.CreateLogger(false, false))
 		sort.Strings(touchedConfigs)
 		if !reflect.DeepEqual(touchedConfigs, testCase.Result) {
 			t.Errorf("comparison failed - expected: %s, actual: %s", testCase.Result, touchedConfigs)
