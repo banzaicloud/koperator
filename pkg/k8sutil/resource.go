@@ -129,7 +129,16 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			case *corev1.ConfigMap:
 				// Only update status when configmap belongs to broker
 				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
-					statusErr := UpdateBrokerStatus(client, []string{id}, cr, banzaicloudv1beta1.ConfigOutOfSync, log)
+					touchedConfigs := collectTouchedConfigs(current.(*corev1.ConfigMap), desired.(*corev1.ConfigMap))
+
+					var statusErr error
+					// if only per broker configs are changed, do not trigger rolling upgrade by setting ConfigOutOfSync status
+					if containsOnlyPerBrokerConfigs(touchedConfigs) {
+						log.Info("setting per broker config status to out of sync")
+						statusErr = UpdateBrokerStatus(client, []string{id}, cr, banzaicloudv1beta1.PerBrokerConfigOutOfSync, log)
+					} else {
+						statusErr = UpdateBrokerStatus(client, []string{id}, cr, banzaicloudv1beta1.ConfigOutOfSync, log)
+					}
 					if statusErr != nil {
 						return errors.WrapIfWithDetails(err, "updating status for resource failed", "kind", desiredType)
 					}
@@ -158,6 +167,42 @@ func CheckIfObjectUpdated(log logr.Logger, desiredType reflect.Type, current, de
 			"original", string(patchResult.Original))
 		return true
 	}
+}
+
+func GetBrokerConfigsFromConfigMap(configMap *corev1.ConfigMap) map[string]string {
+	brokerConfig := configMap.Data["broker-config"]
+	configs := strings.Split(brokerConfig, "\n")
+	m := make(map[string]string)
+	for _, config := range configs {
+		elements := strings.Split(config, "=")
+		if len(elements) != 2 {
+			continue
+		}
+		m[strings.TrimSpace(elements[0])] = strings.TrimSpace(elements[1])
+	}
+	return m
+}
+
+// collects are the config keys that are either added, removed or updated
+// between the current and the desired ConfigMap
+func collectTouchedConfigs(current, desired *corev1.ConfigMap) []string {
+	touchedConfigs := make([]string, 0)
+	currentConfigs := GetBrokerConfigsFromConfigMap(current)
+	desiredConfigs := GetBrokerConfigsFromConfigMap(desired)
+
+	for configName, desiredValue := range desiredConfigs {
+		if currentValue, ok := currentConfigs[configName]; !ok || currentValue != desiredValue {
+			// new or updated config
+			touchedConfigs = append(touchedConfigs, configName)
+		}
+		delete(currentConfigs, configName)
+	}
+
+	for configName, _ := range currentConfigs {
+		// deleted config
+		touchedConfigs = append(touchedConfigs, configName)
+	}
+	return touchedConfigs
 }
 
 func IsPodContainsTerminatedContainer(pod *corev1.Pod) bool {

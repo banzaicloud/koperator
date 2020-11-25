@@ -32,6 +32,9 @@ type ClusterState string
 // ConfigurationState holds info about the configuration state
 type ConfigurationState string
 
+// PerBrokerConfigurationState holds info about the per-broker configuration state
+type PerBrokerConfigurationState string
+
 // PKIBackend represents an interface implementing the PKIManager
 type PKIBackend string
 
@@ -108,6 +111,8 @@ type BrokerState struct {
 	GracefulActionState GracefulActionState `json:"gracefulActionState"`
 	// ConfigurationState holds info about the config
 	ConfigurationState ConfigurationState `json:"configurationState"`
+	// PerBrokerConfigurationState holds info about the per-broker (dynamically updatable) config
+	PerBrokerConfigurationState PerBrokerConfigurationState `json:"perBrokerConfigurationState"`
 }
 
 const (
@@ -161,8 +166,13 @@ const (
 	KafkaClusterRollingUpgrading ClusterState = "ClusterRollingUpgrading"
 	// KafkaClusterRunning states that the cluster is in running state
 	KafkaClusterRunning ClusterState = "ClusterRunning"
+
 	// ConfigInSync states that the generated brokerConfig is in sync with the Broker
 	ConfigInSync ConfigurationState = "ConfigInSync"
 	// ConfigOutOfSync states that the generated brokerConfig is out of sync with the Broker
 	ConfigOutOfSync ConfigurationState = "ConfigOutOfSync"
+	// PerBrokerConfigInSync states that the generated per-broker brokerConfig is in sync with the Broker
+	PerBrokerConfigInSync PerBrokerConfigurationState = "PerBrokerConfigInSync"
+	// PerBrokerConfigOutOfSync states that the generated per-broker brokerConfig is out of sync with the Broker
+	PerBrokerConfigOutOfSync PerBrokerConfigurationState = "PerBrokerConfigOutOfSync"
 )

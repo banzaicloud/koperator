@@ -94,6 +94,8 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {GracefulActionState: state}}
 			case banzaicloudv1beta1.ConfigurationState:
 				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {ConfigurationState: s}}
+			case banzaicloudv1beta1.PerBrokerConfigurationState:
+				cluster.Status.BrokersState = map[string]banzaicloudv1beta1.BrokerState{brokerId: {PerBrokerConfigurationState: s}}
 			case map[string]banzaicloudv1beta1.VolumeState:
 				gracefulActionState := banzaicloudv1beta1.GracefulActionState{
 					VolumeStates: s,
@@ -117,6 +119,8 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 				val.GracefulActionState = state
 			case banzaicloudv1beta1.ConfigurationState:
 				val.ConfigurationState = s
+			case banzaicloudv1beta1.PerBrokerConfigurationState:
+				val.PerBrokerConfigurationState = s
 			case map[string]banzaicloudv1beta1.VolumeState:
 				if val.GracefulActionState.VolumeStates == nil {
 					val.GracefulActionState.VolumeStates = make(map[string]banzaicloudv1beta1.VolumeState)
@@ -145,6 +149,8 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{GracefulActionState: state}
 			case banzaicloudv1beta1.ConfigurationState:
 				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{ConfigurationState: s}
+			case banzaicloudv1beta1.PerBrokerConfigurationState:
+				cluster.Status.BrokersState[brokerId] = banzaicloudv1beta1.BrokerState{PerBrokerConfigurationState: s}
 			case map[string]banzaicloudv1beta1.VolumeState:
 				gracefulActionState := banzaicloudv1beta1.GracefulActionState{
 					VolumeStates: s,

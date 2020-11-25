@@ -251,19 +251,20 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			return errors.WrapIf(err, "failed to reconcile resource")
 		}
 
+		var configMap *corev1.ConfigMap
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			o := r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
-			err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+			configMap = r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
+			err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 			if err != nil {
-				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
 			}
 		} else {
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 				if brokerState.RackAwarenessState != "" {
-					o := r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
-					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+					configMap = r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
+					err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 					if err != nil {
-						return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
+						return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
 					}
 				}
 			}
@@ -286,7 +287,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		if err != nil {
 			return err
 		}
-		if err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, log); err != nil {
+		if err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, configMap, log); err != nil {
 			return err
 		}
 	}
@@ -487,7 +488,7 @@ func (r *Reconciler) getServerAndClientDetails() (string, string, []string, erro
 	return serverPass, clientPass, superUsers, nil
 }
 
-func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, log logr.Logger) error {
+func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, configMap *corev1.ConfigMap, log logr.Logger) error {
 	kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
@@ -501,37 +502,67 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	parsedBrokerConfig := util.ParsePropertiesFormat(brokerConfig.Config)
 
 	// Calling DescribePerBrokerConfig with empty slice will return all config for that broker including the default ones
-	if len(parsedBrokerConfig) > 0 {
+	if len(parsedBrokerConfig) == 0 && r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(brokerId))].PerBrokerConfigurationState == v1beta1.PerBrokerConfigInSync {
+		return nil
+	}
 
-		brokerConfigKeys := make([]string, 0, len(parsedBrokerConfig))
-		for key := range parsedBrokerConfig {
-			brokerConfigKeys = append(brokerConfigKeys, key)
-		}
-		configIdentical := true
+	perBrokerConfigsFromConfigMap := k8sutil.GetBrokerConfigsFromConfigMap(configMap)
 
-		response, err := kClient.DescribePerBrokerConfig(brokerId, brokerConfigKeys)
-		if err != nil {
-			return errors.WrapIfWithDetails(err, "could not describe broker config", "brokerId", brokerId)
-		}
+	brokerConfigKeys := make([]string, 0, len(parsedBrokerConfig))
+	for key := range parsedBrokerConfig {
+		brokerConfigKeys = append(brokerConfigKeys, key)
+	}
+	brokerConfigKeys = append(brokerConfigKeys, k8sutil.PerBrokerConfigs...)
 
-		if len(response) == 0 {
-			configIdentical = false
-		}
-		for _, conf := range response {
-			if val, ok := parsedBrokerConfig[conf.Name]; ok {
-				if val != conf.Value {
-					configIdentical = false
-					break
-				}
+	configIdentical := true
+
+	response, err := kClient.DescribePerBrokerConfig(brokerId, brokerConfigKeys)
+	if err != nil {
+		return errors.WrapIfWithDetails(err, "could not describe broker config", "brokerId", brokerId)
+	}
+
+	if len(response) == 0 {
+		configIdentical = false
+	}
+	for _, conf := range response {
+		if val, ok := parsedBrokerConfig[conf.Name]; ok {
+			if val != conf.Value {
+				configIdentical = false
+				break
 			}
 		}
-		if !configIdentical {
-			err := kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(parsedBrokerConfig))
-			if err != nil {
-				return errors.WrapIfWithDetails(err, "could not alter broker config", "brokerId", brokerId)
+		if val, ok := perBrokerConfigsFromConfigMap[conf.Name]; ok {
+			if val != conf.Value {
+				configIdentical = false
+				break
 			}
 		}
 	}
+	if !configIdentical {
+		recheckPerBrokerConfigUpdate := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(brokerId))].PerBrokerConfigurationState == v1beta1.PerBrokerConfigInSync
+
+		if recheckPerBrokerConfigUpdate {
+			log.Info("setting per broker config status to out of sync")
+			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster, v1beta1.PerBrokerConfigOutOfSync, log)
+			if statusErr != nil {
+				return errors.WrapIfWithDetails(err, "updating status for per-broker configuration status failed", "brokerId", brokerId)
+			}
+		}
+		err := kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(parsedBrokerConfig))
+		if err != nil {
+			return errors.WrapIfWithDetails(err, "could not alter broker config", "brokerId", brokerId)
+		}
+		if recheckPerBrokerConfigUpdate {
+			return errorfactory.New(errorfactory.PerBrokerConfigUpdated{}, errors.New("configuration is out of sync"), "per-broker configuration updated")
+		}
+	} else {
+		log.Info("setting per broker config status to in sync")
+		statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster, v1beta1.PerBrokerConfigInSync, log)
+		if statusErr != nil {
+			return errors.WrapIfWithDetails(err, "updating status for per-broker configuration status failed", "brokerId", brokerId)
+		}
+	}
+
 	return nil
 }
 
@@ -604,9 +635,14 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 
 		// Update status to Config InSync because broker is configured to go
 		statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.ConfigInSync, log)
-
 		if statusErr != nil {
 			return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating status for resource failed", "kind", desiredType)
+		}
+		// Update status to per-broker Config InSync because broker is configured to go
+		log.Info("setting per broker config status to in sync")
+		statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.PerBrokerConfigInSync, log)
+		if statusErr != nil {
+			return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating per broker config status for resource failed", "kind", desiredType)
 		}
 
 		if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleSucceeded {

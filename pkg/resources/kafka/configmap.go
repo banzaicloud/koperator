@@ -25,7 +25,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/imdario/mergo"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -114,7 +113,7 @@ func generateSuperUsers(users []string) (suStrings []string) {
 	return
 }
 
-func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIPs map[string]string, serverPass, clientPass string, superUsers []string, log logr.Logger) runtime.Object {
+func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIPs map[string]string, serverPass, clientPass string, superUsers []string, log logr.Logger) *corev1.ConfigMap {
 	brokerConf := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
