@@ -15,18 +15,36 @@
 package kafka
 
 import (
+	"context"
+	"reflect"
 	"strconv"
+	"strings"
 
 	"emperror.dev/errors"
 	"github.com/Shopify/sarama"
 	"github.com/go-logr/logr"
+
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
+
+// these configurations will not trigger rolling upgrade when updated
+var perBrokerConfigs = []string{
+	// currently hardcoded in configmap.go
+	"ssl.client.auth",
+
+	// listener related config change will trigger rolling upgrade anyways due to pod spec change
+	"listeners",
+	"advertised.listeners",
+}
+
+const securityProtocolMap = "listener.security.protocol.map"
 
 func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, configMap *corev1.ConfigMap, log logr.Logger) error {
 	kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
@@ -47,18 +65,18 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	}
 
 	// overwrite configs that are generated in the configmap
-	configsFromConfigMap := k8sutil.GetBrokerConfigsFromConfigMap(configMap)
-	for _, perBrokerConfig := range k8sutil.PerBrokerConfigs {
+	configsFromConfigMap := getBrokerConfigsFromConfigMap(configMap)
+	for _, perBrokerConfig := range perBrokerConfigs {
 		if configValue, ok := configsFromConfigMap[perBrokerConfig]; ok {
 			parsedBrokerConfig[perBrokerConfig] = configValue
 		}
 	}
 
-	brokerConfigKeys := make([]string, 0, len(parsedBrokerConfig)+len(k8sutil.PerBrokerConfigs))
+	brokerConfigKeys := make([]string, 0, len(parsedBrokerConfig)+len(perBrokerConfigs))
 	for key := range parsedBrokerConfig {
 		brokerConfigKeys = append(brokerConfigKeys, key)
 	}
-	brokerConfigKeys = append(brokerConfigKeys, k8sutil.PerBrokerConfigs...)
+	brokerConfigKeys = append(brokerConfigKeys, perBrokerConfigs...)
 
 	response, err := kClient.DescribePerBrokerConfig(brokerId, brokerConfigKeys)
 	if err != nil {
@@ -159,6 +177,80 @@ func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
 	return nil
 }
 
+func (r *Reconciler) postConfigMapReconcile(log logr.Logger, desired *corev1.ConfigMap) error {
+	desiredType := reflect.TypeOf(desired)
+	current := desired.DeepCopyObject()
+
+	key, err := runtimeClient.ObjectKeyFromObject(current)
+	if err != nil {
+		return errors.WithDetails(err, "kind", desiredType)
+	}
+	log = log.WithValues("kind", desiredType, "name", key.Name)
+
+	err = r.Client.Get(context.TODO(), key, current)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType, "name", key.Name)
+	}
+
+	if k8sutil.CheckIfObjectUpdated(log, desiredType, current, desired) {
+		// Only update status when configmap belongs to broker
+		if id, ok := desired.Labels["brokerId"]; ok {
+			currentConfigs := getBrokerConfigsFromConfigMap(current.(*corev1.ConfigMap))
+			desiredConfigs := getBrokerConfigsFromConfigMap(desired)
+
+			var statusErr error
+			// if only per broker configs are changed, do not trigger rolling upgrade by setting ConfigOutOfSync status
+			if shouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs, log) {
+				log.V(1).Info("setting per broker config status to out of sync")
+				statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{id}, r.KafkaCluster, v1beta1.PerBrokerConfigOutOfSync, log)
+			} else {
+				statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{id}, r.KafkaCluster, v1beta1.ConfigOutOfSync, log)
+			}
+			if statusErr != nil {
+				return errors.WrapIfWithDetails(err, "updating status for resource failed", "kind", desiredType)
+			}
+		}
+	}
+
+	return nil
+}
+
+// collects are the config keys that are either added, removed or updated
+// between the current and the desired ConfigMap
+func collectTouchedConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) []string {
+	touchedConfigs := make([]string, 0)
+
+	for configName, desiredValue := range desiredConfigs {
+		if currentValue, ok := currentConfigs[configName]; !ok || currentValue != desiredValue {
+			// new or updated config
+			touchedConfigs = append(touchedConfigs, configName)
+		}
+		delete(currentConfigs, configName)
+	}
+
+	for configName := range currentConfigs {
+		// deleted config
+		touchedConfigs = append(touchedConfigs, configName)
+	}
+
+	log.V(1).Info("configs have been changed", "configs", touchedConfigs)
+	return touchedConfigs
+}
+
+func getBrokerConfigsFromConfigMap(configMap *corev1.ConfigMap) map[string]string {
+	brokerConfig := configMap.Data["broker-config"]
+	configs := strings.Split(brokerConfig, "\n")
+	m := make(map[string]string)
+	for _, config := range configs {
+		elements := strings.Split(config, "=")
+		if len(elements) != 2 {
+			continue
+		}
+		m[strings.TrimSpace(elements[0])] = strings.TrimSpace(elements[1])
+	}
+	return m
+}
+
 func collectNonIdenticalConfigsFromResponse(response []*sarama.ConfigEntry, parsedBrokerConfig map[string]string) map[string]string {
 	changedConfigs := make(map[string]string, 0)
 	for _, conf := range response {
@@ -170,4 +262,53 @@ func collectNonIdenticalConfigsFromResponse(response []*sarama.ConfigEntry, pars
 	}
 
 	return changedConfigs
+}
+
+func shouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) bool {
+	touchedConfigs := collectTouchedConfigs(currentConfigs, desiredConfigs, log)
+
+OUTERLOOP:
+	for _, config := range touchedConfigs {
+		for _, perBrokerConfig := range perBrokerConfigs {
+			if config == perBrokerConfig {
+				continue OUTERLOOP
+			}
+		}
+
+		// Security protocol cannot be updated for existing listener
+		// a rolling upgrade should be triggered in this case
+		if config == securityProtocolMap {
+			// added or deleted config is ok
+			if currentConfigs[securityProtocolMap] == "" || desiredConfigs[securityProtocolMap] == "" {
+				continue
+			}
+			currentListenerProtocolMap := make(map[string]string, 0)
+			desiredListenerProtocolMap := make(map[string]string, 0)
+			for _, listenerConfig := range strings.Split(currentConfigs[securityProtocolMap], ",") {
+				listenerKeyValue := strings.Split(listenerConfig, ":")
+				if len(listenerKeyValue) != 2 {
+					continue
+				}
+				currentListenerProtocolMap[listenerKeyValue[0]] = listenerKeyValue[1]
+			}
+			for _, listenerConfig := range strings.Split(desiredConfigs[securityProtocolMap], ",") {
+				listenerKeyValue := strings.Split(listenerConfig, ":")
+				if len(listenerKeyValue) != 2 {
+					continue
+				}
+				desiredListenerProtocolMap[listenerKeyValue[0]] = listenerKeyValue[1]
+			}
+
+			for protocolName, desiredListenerProtocol := range desiredListenerProtocolMap {
+				if currentListenerProtocol, ok := currentListenerProtocolMap[protocolName]; ok {
+					if currentListenerProtocol != desiredListenerProtocol {
+						return false
+					}
+				}
+			}
+			continue
+		}
+		return false
+	}
+	return true
 }
