@@ -27,6 +27,7 @@ import (
 	"github.com/imdario/mergo"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -217,12 +218,35 @@ func GetBrokerConfig(broker v1beta1.Broker, clusterSpec v1beta1.KafkaClusterSpec
 		bConfig = broker.BrokerConfig.DeepCopy()
 	}
 
-	err := mergo.Merge(bConfig, clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup], mergo.WithAppendSlice)
+	groupConfig, exists := clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup]
+	if !exists {
+		return nil, errors.NewWithDetails("missing brokerConfigGroup", "key", broker.BrokerConfigGroup)
+	}
+
+	dstAffinity := &corev1.Affinity{}
+	srcAffinity := &corev1.Affinity{}
+
+	if groupConfig.Affinity != nil {
+		dstAffinity = groupConfig.Affinity.DeepCopy()
+	}
+	if bConfig.Affinity != nil {
+		srcAffinity = bConfig.Affinity
+	}
+
+	if err := mergo.Merge(dstAffinity, srcAffinity, mergo.WithOverride); err != nil {
+		return nil, errors.WrapIf(err, "could not merge brokerConfig.Affinity with ConfigGroup.Affinity")
+	}
+
+	err := mergo.Merge(bConfig, groupConfig, mergo.WithAppendSlice)
 	if err != nil {
 		return nil, errors.WrapIf(err, "could not merge brokerConfig with ConfigGroup")
 	}
 
 	bConfig.StorageConfigs = dedupStorageConfigs(bConfig.StorageConfigs)
+
+	if groupConfig.Affinity != nil || bConfig.Affinity != nil {
+		bConfig.Affinity = dstAffinity
+	}
 
 	return bConfig, nil
 }

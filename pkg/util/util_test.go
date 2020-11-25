@@ -19,10 +19,228 @@ import (
 	"testing"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"gotest.tools/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
+
+// we expect the final result will be the two segment's union
+func TestGetBrokerConfigAffinityMergeBrokerNodeAffinityWithGroupsAntiAffinity(t *testing.T) {
+	expected := &corev1.Affinity{
+		NodeAffinity: &corev1.NodeAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+				NodeSelectorTerms: []corev1.NodeSelectorTerm{
+					{
+						MatchFields: []corev1.NodeSelectorRequirement{
+							{Key: "fruit", Operator: "in", Values: []string{"apple"}},
+						},
+					},
+				},
+			},
+			PreferredDuringSchedulingIgnoredDuringExecution: nil,
+		},
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_broker"}},
+					Namespaces:    nil,
+					TopologyKey:   "kubernetes.io/hostname",
+				},
+			},
+			PreferredDuringSchedulingIgnoredDuringExecution: nil,
+		},
+	}
+
+	cluster := v1beta1.KafkaClusterSpec{
+		BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+			"default": {
+				Affinity: &corev1.Affinity{
+					NodeAffinity: &corev1.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+							NodeSelectorTerms: []corev1.NodeSelectorTerm{
+								{
+									MatchExpressions: nil,
+									MatchFields: []corev1.NodeSelectorRequirement{
+										{
+											Key:      "fruit",
+											Operator: "in",
+											Values:   []string{"apple"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	broker := v1beta1.Broker{
+		Id:                0,
+		BrokerConfigGroup: "default",
+		BrokerConfig: &v1beta1.BrokerConfig{
+			Affinity: &corev1.Affinity{
+				PodAntiAffinity: &corev1.PodAntiAffinity{
+					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+						{
+							LabelSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_broker"},
+							},
+							TopologyKey: "kubernetes.io/hostname",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	config, err := GetBrokerConfig(broker, cluster)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.DeepEqual(t, expected, config.Affinity)
+}
+
+// we expect the final result will be the two segment's union
+func TestGetBrokerConfigAffinityMergeEmptyBrokerConfigWithDefaultConfig(t *testing.T) {
+	expected := &corev1.Affinity{
+		NodeAffinity: &corev1.NodeAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+				NodeSelectorTerms: []corev1.NodeSelectorTerm{
+					{
+						MatchFields: []corev1.NodeSelectorRequirement{
+							{Key: "fruit", Operator: "in", Values: []string{"apple"}},
+						},
+					},
+				},
+			},
+			PreferredDuringSchedulingIgnoredDuringExecution: nil,
+		},
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_config_group"}},
+					Namespaces:    nil,
+					TopologyKey:   "kubernetes.io/hostname",
+				},
+			},
+			PreferredDuringSchedulingIgnoredDuringExecution: nil,
+		},
+	}
+
+	cluster := v1beta1.KafkaClusterSpec{
+		BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+			"default": {
+				Affinity: &corev1.Affinity{
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+							{
+								LabelSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_config_group"},
+								},
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+					NodeAffinity: &corev1.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+							NodeSelectorTerms: []corev1.NodeSelectorTerm{
+								{
+									MatchExpressions: nil,
+									MatchFields: []corev1.NodeSelectorRequirement{
+										{
+											Key:      "fruit",
+											Operator: "in",
+											Values:   []string{"apple"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	broker := v1beta1.Broker{
+		Id:                0,
+		BrokerConfigGroup: "default",
+	}
+
+	config, err := GetBrokerConfig(broker, cluster)
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.DeepEqual(t, expected, config.Affinity)
+}
+
+// the equal values got duplicated
+func TestGetBrokerConfigAffinityMergeEqualPodAntiAffinity(t *testing.T) {
+	expected := &corev1.Affinity{
+		NodeAffinity: nil,
+		PodAffinity:  nil,
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_broker"},
+					},
+					TopologyKey: "kubernetes.io/hostname",
+				},
+			},
+			PreferredDuringSchedulingIgnoredDuringExecution: nil,
+		},
+	}
+
+	broker := v1beta1.Broker{
+		Id:                0,
+		BrokerConfigGroup: "default",
+		BrokerConfig: &v1beta1.BrokerConfig{
+			Affinity: &corev1.Affinity{
+				PodAntiAffinity: &corev1.PodAntiAffinity{
+					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+						{
+							LabelSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_broker"},
+							},
+							TopologyKey: "kubernetes.io/hostname",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	cluster := v1beta1.KafkaClusterSpec{
+		BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+			"default": {
+				Affinity: &corev1.Affinity{
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+							{
+								LabelSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_config_group"},
+								},
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	config, err := GetBrokerConfig(broker, cluster)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.DeepEqual(t, expected, config.Affinity)
+}
 
 func TestGetBrokerConfig(t *testing.T) {
 	expected := &v1beta1.BrokerConfig{

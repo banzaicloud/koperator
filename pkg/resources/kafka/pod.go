@@ -136,9 +136,7 @@ rm /var/run/wait/do-not-exit-yet`}
 					},
 				},
 			}...),
-			Affinity: &corev1.Affinity{
-				PodAntiAffinity: generatePodAntiAffinity(r.KafkaCluster.Name, r.KafkaCluster.Spec.OneBrokerPerNode),
-			},
+			Affinity: getAffinity(brokerConfig, r.KafkaCluster),
 			Containers: []corev1.Container{
 				{
 					Name:  "kafka",
@@ -262,10 +260,17 @@ fi`},
 		pod.Spec.Hostname = fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id)
 		pod.Spec.Subdomain = fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.Name)
 	}
-	if brokerConfig.NodeAffinity != nil {
-		pod.Spec.Affinity.NodeAffinity = brokerConfig.NodeAffinity
-	}
+
 	return pod
+}
+
+// getAffinity returns a default `v1.Affinity` which is generated regarding the `OneBrokerPerNode` value
+// or if there is any user Affinity definition provided by the user the latter will be used ignoring the value of `OneBrokerPerNode`
+func getAffinity(bc *v1beta1.BrokerConfig, cluster *v1beta1.KafkaCluster) *corev1.Affinity {
+	if bc.Affinity == nil {
+		return &corev1.Affinity{PodAntiAffinity: generatePodAntiAffinity(cluster.ClusterName, cluster.Spec.OneBrokerPerNode)}
+	}
+	return bc.Affinity
 }
 
 func generatePodAntiAffinity(clusterName string, hardRuleEnabled bool) *corev1.PodAntiAffinity {
