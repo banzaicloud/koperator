@@ -126,7 +126,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 				return errors.WrapIfWithDetails(err, "updating status for per-broker configuration status failed", "brokerId", brokerId)
 			}
 		}
-	} else {
+	} else if currentPerBrokerConfigState != v1beta1.PerBrokerConfigInSync {
 		log.V(1).Info("setting per broker config status to in sync")
 		statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster, v1beta1.PerBrokerConfigInSync, log)
 		if statusErr != nil {
