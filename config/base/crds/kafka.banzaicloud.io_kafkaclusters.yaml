@@ -5052,6 +5052,10 @@ spec:
                     - cruiseControlState
                     - errorMessage
                     type: object
+                  perBrokerConfigurationState:
+                    description: PerBrokerConfigurationState holds info about the
+                      per-broker (dynamically updatable) config
+                    type: string
                   rackAwarenessState:
                     description: RackAwarenessState holds info about rack awareness
                       status
@@ -5059,6 +5063,7 @@ spec:
                 required:
                 - configurationState
                 - gracefulActionState
+                - perBrokerConfigurationState
                 - rackAwarenessState
                 type: object
               type: object
