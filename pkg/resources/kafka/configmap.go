@@ -132,7 +132,7 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig, loadBalancerIPs map[string]string, domain, namespace, crName string, headlessServiceEnabled bool) string {
 	advertisedListenerConfig := make([]string, 0, len(l.ExternalListeners)+len(l.InternalListeners))
 	for _, eListener := range l.ExternalListeners {
-		if eListener.GetAccessMethod() == "loadbalancer" {
+		if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 			advertisedListenerConfig = append(advertisedListenerConfig,
 				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
 		} else {
