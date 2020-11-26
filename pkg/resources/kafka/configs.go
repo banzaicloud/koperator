@@ -220,15 +220,20 @@ func (r *Reconciler) postConfigMapReconcile(log logr.Logger, desired *corev1.Con
 func collectTouchedConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) []string {
 	touchedConfigs := make([]string, 0)
 
+	currentConfigsCopy := make(map[string]string, 0)
+	for k, v := range currentConfigs {
+		currentConfigsCopy[k] = v
+	}
+
 	for configName, desiredValue := range desiredConfigs {
-		if currentValue, ok := currentConfigs[configName]; !ok || currentValue != desiredValue {
+		if currentValue, ok := currentConfigsCopy[configName]; !ok || currentValue != desiredValue {
 			// new or updated config
 			touchedConfigs = append(touchedConfigs, configName)
 		}
-		delete(currentConfigs, configName)
+		delete(currentConfigsCopy, configName)
 	}
 
-	for configName := range currentConfigs {
+	for configName := range currentConfigsCopy {
 		// deleted config
 		touchedConfigs = append(touchedConfigs, configName)
 	}
