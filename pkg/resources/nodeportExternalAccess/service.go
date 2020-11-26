@@ -40,8 +40,8 @@ func (r *Reconciler) service(log logr.Logger, id int32,
 		Spec: corev1.ServiceSpec{
 			Selector: util.MergeLabels(kafka.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
-			Type:                  corev1.ServiceTypeNodePort,
-			Ports:                 []corev1.ServicePort{{
+			Type: corev1.ServiceTypeNodePort,
+			Ports: []corev1.ServicePort{{
 				Name:       fmt.Sprintf("broker-%d", id),
 				Port:       extListener.ContainerPort,
 				NodePort:   extListener.ExternalStartingPort + id,
