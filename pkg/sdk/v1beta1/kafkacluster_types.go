@@ -126,7 +126,7 @@ type BrokerConfig struct {
 	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`
 	// NodePortExternal ip can be used to specify external IP setting in case of
 	// nodeport external listener is enabled
-	NodePortExternalIP string                        `json:"nodePortExternalIP,omitempty"`
+	NodePortExternalIP string `json:"nodePortExternalIP,omitempty"`
 }
 
 type NetworkConfig struct {
@@ -314,6 +314,14 @@ type ExternalListenerConfig struct {
 	// The recommended and default is the loadbalancer but some cases e.g.:
 	// when your cluster does not supports loadbalancer nodeport can be used.
 	AccessMethod string `json:"accessMethod,omitempty"`
+	// externalTrafficPolicy denotes if this Service desires to route external
+	// traffic to node-local or cluster-wide endpoints. "Local" preserves the
+	// client source IP and avoids a second hop for LoadBalancer and Nodeport
+	// type services, but risks potentially imbalanced traffic spreading.
+	// "Cluster" obscures the client source IP and may cause a second hop to
+	// another node, but should have good overall load-spreading.
+	// +optional
+	ExternalTrafficPolicy corev1.ServiceExternalTrafficPolicyType `json:"externalTrafficPolicy,omitempty"`
 }
 
 // InternalListenerConfig defines the internal listener config for Kafka

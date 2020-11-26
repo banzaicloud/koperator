@@ -34,17 +34,17 @@ func (r *Reconciler) service(log logr.Logger, id int32,
 	exposedPorts := getExposedServicePorts(extListener,
 		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log))
 
-
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(serviceName, r.KafkaCluster.GetName(), id, extListener.Name),
 			util.MergeLabels(kafka.LabelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
 			extListener.GetServiceAnnotations(), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
-			Selector:                 util.MergeLabels(kafka.LabelsForKafka(r.KafkaCluster.Name),
+			Selector: util.MergeLabels(kafka.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
-			Type:                     corev1.ServiceTypeNodePort,
-			Ports:                    exposedPorts,
+			Type:                  corev1.ServiceTypeNodePort,
+			Ports:                 exposedPorts,
+			ExternalTrafficPolicy: extListener.ExternalTrafficPolicy,
 		},
 	}
 	if brokerConfig.NodePortExternalIP != "" {
