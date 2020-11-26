@@ -31,6 +31,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	zookeeperutils "github.com/banzaicloud/kafka-operator/pkg/util/zookeeper"
 )
 
@@ -115,7 +116,7 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
 			util.MergeLabels(
-				LabelsForKafka(r.KafkaCluster.Name),
+				kafka.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			r.KafkaCluster,
@@ -131,8 +132,13 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig, loadBalancerIPs map[string]string, domain, namespace, crName string, headlessServiceEnabled bool) string {
 	advertisedListenerConfig := make([]string, 0, len(l.ExternalListeners)+len(l.InternalListeners))
 	for _, eListener := range l.ExternalListeners {
-		advertisedListenerConfig = append(advertisedListenerConfig,
-			fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
+		if eListener.GetAccessMethod() == "loadbalancer" {
+			advertisedListenerConfig = append(advertisedListenerConfig,
+				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
+		} else {
+			advertisedListenerConfig = append(advertisedListenerConfig,
+			fmt.Sprintf("%s://%s-%d-%s:%d", strings.ToUpper(eListener.Name), crName, id, loadBalancerIPs[eListener.Name], 10))
+		}
 	}
 	for _, iListener := range l.InternalListeners {
 		if headlessServiceEnabled {

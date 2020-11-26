@@ -318,6 +318,10 @@ spec:
                         - nodeSelectorTerms
                         type: object
                     type: object
+                  nodePortExternalIP:
+                    description: NodePortExternal ip can be used to specify external
+                      IP setting in case of nodeport external listener is enabled
+                    type: string
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -800,6 +804,10 @@ spec:
                             - nodeSelectorTerms
                             type: object
                         type: object
+                      nodePortExternalIP:
+                        description: NodePortExternal ip can be used to specify external
+                          IP setting in case of nodeport external listener is enabled
+                        type: string
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -3916,6 +3924,16 @@ spec:
                     description: ExternalListenerConfig defines the external listener
                       config for Kafka
                     properties:
+                      accessMethod:
+                        description: 'AccessMethod defines the external listener type.
+                          Two types are supported now LoadBalancer and Nodeport. The
+                          recommended and default is the loadbalancer but some cases
+                          e.g.: when your cluster does not supports loadbalancer nodeport
+                          can be used.'
+                        enum:
+                        - loadbalancer
+                        - nodeport
+                        type: string
                       containerPort:
                         format: int32
                         type: integer

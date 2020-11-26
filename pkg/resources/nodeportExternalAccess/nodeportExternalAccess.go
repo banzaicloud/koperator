@@ -1,4 +1,4 @@
-// Copyright © 2019 Banzai Cloud
+// Copyright © 2020 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,37 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package envoy
+package nodeportExternalAccess
 
 import (
+	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
-	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
-
-	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 const (
-	componentName = "envoy"
-	// The deployment and configmap name should made from the external listener name the cluster name to avoid all naming collision
-	envoyVolumeAndConfigName = "envoy-config-%s-%s"
-	envoyDeploymentName      = "envoy-%s-%s"
+	componentName    = "nodePortExternalAccess"
+	serviceName      = "%s-%d-%s"
 )
-
-// labelsForEnvoyIngress returns the labels for selecting the resources
-// belonging to the given kafka CR name.
-func labelsForEnvoyIngress(crName, eLName string) map[string]string {
-	return map[string]string{"app": "envoyingress", "eListenerName": eLName, "kafka_cr": crName}
-}
 
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
 }
 
-// New creates a new reconciler for Envoy
+// New creates a new reconciler for NodePort based external access
 func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
@@ -52,22 +44,20 @@ func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 	}
 }
 
-// Reconcile implements the reconcile logic for Envoy
+// Reconcile implements the reconcile logic for NodePort based external access
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 
 	log.V(1).Info("Reconciling")
-	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil && r.KafkaCluster.Spec.GetIngressController() == envoyutils.IngressControllerName {
-
+	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
 		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-			if eListener.GetAccessMethod() == "loadbalancer" {
-				for _, res := range []resources.ResourceWithLogAndExternalListenerConfig{
-					r.loadBalancer,
-					r.configMap,
-					r.deployment,
-				} {
-					o := res(log, eListener)
-					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+			if eListener.GetAccessMethod() == "nodePort" {
+				for _, broker := range r.KafkaCluster.Spec.Brokers {
+					brokerConfig, err := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
+					if err != nil {
+						return err
+					}
+					err = k8sutil.Reconcile(log, r.Client, r.service(log, broker.Id, brokerConfig, eListener), r.KafkaCluster)
 					if err != nil {
 						return err
 					}

@@ -18,11 +18,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
 func (r *Reconciler) allBrokerService() runtime.Object {
@@ -49,13 +50,13 @@ func (r *Reconciler) allBrokerService() runtime.Object {
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, r.KafkaCluster.Name),
-			LabelsForKafka(r.KafkaCluster.Name),
+			kafkautils.LabelsForKafka(r.KafkaCluster.Name),
 			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
 			r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
 			SessionAffinity: corev1.ServiceAffinityNone,
-			Selector:        LabelsForKafka(r.KafkaCluster.Name),
+			Selector:        kafkautils.LabelsForKafka(r.KafkaCluster.Name),
 			Ports:           usedPorts,
 		},
 	}

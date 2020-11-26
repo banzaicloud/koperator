@@ -22,6 +22,8 @@ import (
 
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -45,14 +47,14 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger) (runtime.Object, error
 		},
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf("%s-pdb", r.KafkaCluster.Name),
-			util.MergeLabels(LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster.Labels),
+			util.MergeLabels(kafka.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster.Labels),
 			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
 			r.KafkaCluster,
 		),
 		Spec: policyv1beta1.PodDisruptionBudgetSpec{
 			MinAvailable: &minAvailable,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: LabelsForKafka(r.KafkaCluster.Name),
+				MatchLabels: kafka.LabelsForKafka(r.KafkaCluster.Name),
 			},
 		},
 	}, nil
