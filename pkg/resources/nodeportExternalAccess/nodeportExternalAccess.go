@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	componentName    = "nodePortExternalAccess"
-	serviceName      = "%s-%d-%s"
+	componentName = "nodePortExternalAccess"
+	serviceName   = "%s-%d-%s"
 )
 
 // Reconciler implements the Component Reconciler

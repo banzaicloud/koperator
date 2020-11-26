@@ -46,6 +46,7 @@ func (r *Reconciler) loadBalancer(log logr.Logger, extListener v1beta1.ExternalL
 			Ports:                    exposedPorts,
 			LoadBalancerSourceRanges: r.KafkaCluster.Spec.EnvoyConfig.GetLoadBalancerSourceRanges(),
 			LoadBalancerIP:           r.KafkaCluster.Spec.EnvoyConfig.LoadBalancerIP,
+			ExternalTrafficPolicy:    extListener.ExternalTrafficPolicy,
 		},
 	}
 	return service
