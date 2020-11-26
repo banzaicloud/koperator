@@ -88,7 +88,10 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 		"ZookeeperConnectString":             zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath()),
 		"CruiseControlBootstrapServers":      getInternalListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, id, r.KafkaCluster.Spec.GetKubernetesClusterDomain(), r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
 		"StorageConfig":                      generateStorageConfig(bConfig.StorageConfigs),
-		"AdvertisedListenersConfig":          generateAdvertisedListenerConfig(id, r.KafkaCluster.Spec.ListenersConfig, loadBalancerIPs, r.KafkaCluster.Spec.GetKubernetesClusterDomain(), r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
+		"AdvertisedListenersConfig":          generateAdvertisedListenerConfig(id,
+			r.KafkaCluster.Spec.ListenersConfig, loadBalancerIPs, r.KafkaCluster.Spec.GetKubernetesClusterDomain(),
+			r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled,
+			bConfig),
 		"SuperUsers":                         strings.Join(generateSuperUsers(superUsers), ";"),
 		"ServerKeystorePath":                 serverKeystorePath,
 		"ClientKeystorePath":                 clientKeystorePath,
@@ -129,15 +132,22 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 	return brokerConf
 }
 
-func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig, loadBalancerIPs map[string]string, domain, namespace, crName string, headlessServiceEnabled bool) string {
+func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
+	loadBalancerIPs map[string]string, domain, namespace, crName string, headlessServiceEnabled bool, bConfig *v1beta1.BrokerConfig) string {
 	advertisedListenerConfig := make([]string, 0, len(l.ExternalListeners)+len(l.InternalListeners))
 	for _, eListener := range l.ExternalListeners {
 		if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 			advertisedListenerConfig = append(advertisedListenerConfig,
 				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
 		} else {
-			advertisedListenerConfig = append(advertisedListenerConfig,
-				fmt.Sprintf("%s://%s-%d-%s:%d", strings.ToUpper(eListener.Name), crName, id, loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
+			if _, ok := loadBalancerIPs[eListener.Name]; !ok {
+				advertisedListenerConfig = append(advertisedListenerConfig,
+					fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), bConfig.NodePortExternalIP, eListener.ExternalStartingPort+id))
+			} else {
+				advertisedListenerConfig = append(advertisedListenerConfig,
+					fmt.Sprintf("%s://%s-%d-%s%s:%d", strings.ToUpper(eListener.Name), crName, id, namespace, loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
+			}
+
 		}
 	}
 	for _, iListener := range l.InternalListeners {

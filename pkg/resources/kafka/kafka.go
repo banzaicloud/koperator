@@ -195,8 +195,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 		if eListener.HostnameOverride != "" {
 			lbIPs[eListener.Name] = eListener.HostnameOverride
-		}
-		if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
+		} else if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 			lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.GetNamespace(),
 				r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.GetName(), eListener.Name)
 			if err != nil {
