@@ -1652,6 +1652,7 @@ spec:
                         type: array
                         x-kubernetes-list-map-keys:
                         - containerPort
+                        - protocol
                         x-kubernetes-list-type: map
                       readinessProbe:
                         description: 'Periodic probe of container service readiness.
@@ -3925,14 +3926,14 @@ spec:
                       config for Kafka
                     properties:
                       accessMethod:
-                        description: 'AccessMethod defines the external listener type.
-                          Two types are supported now LoadBalancer and Nodeport. The
-                          recommended and default is the loadbalancer but some cases
-                          e.g.: when your cluster does not supports loadbalancer nodeport
-                          can be used.'
+                        description: accessMethod defines the method which the external
+                          listener is exposed through. Two types are supported LoadBalancer
+                          and NodePort. The recommended and default is the LoadBalancer.
+                          NodePort should be used in Kubernetes environments with
+                          no support for provisioning Load Balancers.
                         enum:
-                        - loadbalancer
-                        - nodeport
+                        - LoadBalancer
+                        - NodePort
                         type: string
                       containerPort:
                         format: int32

@@ -196,7 +196,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		if eListener.HostnameOverride != "" {
 			lbIPs[eListener.Name] = eListener.HostnameOverride
 		}
-		if eListener.GetAccessMethod() == "loadbalancer" {
+		if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 			lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.GetNamespace(),
 				r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.GetName(), eListener.Name)
 			if err != nil {

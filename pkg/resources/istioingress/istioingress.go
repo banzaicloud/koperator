@@ -19,6 +19,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,7 +61,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil && r.KafkaCluster.Spec.GetIngressController() == istioingress.IngressControllerName {
 
 		for _, externalListenerConfig := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-			if externalListenerConfig.GetAccessMethod() == "loadbalancer" {
+			if externalListenerConfig.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 				for _, res := range []resources.ResourceWithLogAndExternalListenerConfig{
 					r.meshgateway,
 					r.gateway,

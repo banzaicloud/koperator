@@ -104,10 +104,9 @@ spec:
                     description: Override for the default log4j configuration
                     type: string
                   networkConfig:
-                    description: Network throughput information in kB/s used by
-                      Cruise Control to determine broker network capacity. By
-                      default it is set to `125000` which means 1Gbit/s in
-                      network throughput.
+                    description: Network throughput information in kB/s used by Cruise
+                      Control to determine broker network capacity. By default it
+                      is set to `125000` which means 1Gbit/s in network throughput.
                     properties:
                       incomingNetworkThroughPut:
                         type: string
@@ -318,6 +317,10 @@ spec:
                           - nodeSelectorTerms
                         type: object
                     type: object
+                  nodePortExternalIP:
+                    description: NodePortExternal ip can be used to specify external
+                      IP setting in case of nodeport external listener is enabled
+                    type: string
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -579,8 +582,8 @@ spec:
                       networkConfig:
                         description: Network throughput information in kB/s used by
                           Cruise Control to determine broker network capacity. By
-                          default it is set to `125000` which means 1Gbit/s in
-                          network throughput.
+                          default it is set to `125000` which means 1Gbit/s in network
+                          throughput.
                         properties:
                           incomingNetworkThroughPut:
                             type: string
@@ -800,6 +803,10 @@ spec:
                               - nodeSelectorTerms
                             type: object
                         type: object
+                      nodePortExternalIP:
+                        description: NodePortExternal ip can be used to specify external
+                          IP setting in case of nodeport external listener is enabled
+                        type: string
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -3919,12 +3926,31 @@ spec:
                     description: ExternalListenerConfig defines the external listener
                       config for Kafka
                     properties:
+                      accessMethod:
+                        description: accessMethod defines the method which the external
+                          listener is exposed through. Two types are supported LoadBalancer
+                          and NodePort. The recommended and default is the LoadBalancer.
+                          NodePort should be used in Kubernetes environments with
+                          no support for provisioning Load Balancers.
+                        enum:
+                          - LoadBalancer
+                          - NodePort
+                        type: string
                       containerPort:
                         format: int32
                         type: integer
                       externalStartingPort:
                         format: int32
                         type: integer
+                      externalTrafficPolicy:
+                        description: externalTrafficPolicy denotes if this Service
+                          desires to route external traffic to node-local or cluster-wide
+                          endpoints. "Local" preserves the client source IP and avoids
+                          a second hop for LoadBalancer and Nodeport type services,
+                          but risks potentially imbalanced traffic spreading. "Cluster"
+                          obscures the client source IP and may cause a second hop
+                          to another node, but should have good overall load-spreading.
+                        type: string
                       hostnameOverride:
                         type: string
                       name:
@@ -4190,233 +4216,4 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
-
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.3.0
-  creationTimestamp: null
-  name: kafkatopics.kafka.banzaicloud.io
-spec:
-  group: kafka.banzaicloud.io
-  names:
-    kind: KafkaTopic
-    listKind: KafkaTopicList
-    plural: kafkatopics
-    singular: kafkatopic
-  preserveUnknownFields: false
-  scope: Namespaced
-  subresources:
-    status: {}
-  validation:
-    openAPIV3Schema:
-      description: KafkaTopic is the Schema for the kafkatopics API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: KafkaTopicSpec defines the desired state of KafkaTopic
-          properties:
-            clusterRef:
-              description: ClusterReference states a reference to a cluster for topic/user
-                provisioning
-              properties:
-                name:
-                  type: string
-                namespace:
-                  type: string
-              required:
-                - name
-              type: object
-            config:
-              additionalProperties:
-                type: string
-              type: object
-            name:
-              type: string
-            partitions:
-              format: int32
-              type: integer
-            replicationFactor:
-              format: int32
-              type: integer
-          required:
-            - clusterRef
-            - name
-            - partitions
-            - replicationFactor
-          type: object
-        status:
-          description: KafkaTopicStatus defines the observed state of KafkaTopic
-          properties:
-            state:
-              description: TopicState defines the state of a KafkaTopic
-              type: string
-          required:
-            - state
-          type: object
-      type: object
-  version: v1alpha1
-  versions:
-    - name: v1alpha1
-      served: true
-      storage: true
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
-
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.3.0
-  creationTimestamp: null
-  name: kafkausers.kafka.banzaicloud.io
-spec:
-  group: kafka.banzaicloud.io
-  names:
-    kind: KafkaUser
-    listKind: KafkaUserList
-    plural: kafkausers
-    singular: kafkauser
-  preserveUnknownFields: false
-  scope: Namespaced
-  subresources:
-    status: {}
-  validation:
-    openAPIV3Schema:
-      description: KafkaUser is the Schema for the kafka users API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: KafkaUserSpec defines the desired state of KafkaUser
-          properties:
-            clusterRef:
-              description: ClusterReference states a reference to a cluster for topic/user
-                provisioning
-              properties:
-                name:
-                  type: string
-                namespace:
-                  type: string
-              required:
-                - name
-              type: object
-            createCert:
-              type: boolean
-            dnsNames:
-              items:
-                type: string
-              type: array
-            includeJKS:
-              type: boolean
-            pkiBackendSpec:
-              properties:
-                issuerRef:
-                  description: ObjectReference is a reference to an object with a
-                    given name, kind and group.
-                  properties:
-                    group:
-                      type: string
-                    kind:
-                      type: string
-                    name:
-                      type: string
-                  required:
-                    - name
-                  type: object
-                pkiBackend:
-                  enum:
-                    - cert-manager
-                    - vault
-                  type: string
-              required:
-                - issuerRef
-                - pkiBackend
-              type: object
-            secretName:
-              type: string
-            topicGrants:
-              items:
-                description: UserTopicGrant is the desired permissions for the KafkaUser
-                properties:
-                  accessType:
-                    description: KafkaAccessType hold info about Kafka ACL
-                    enum:
-                      - read
-                      - write
-                    type: string
-                  patternType:
-                    description: KafkaPatternType hold the Resource Pattern Type of
-                      kafka ACL
-                    enum:
-                      - literal
-                      - match
-                      - prefixed
-                      - any
-                    type: string
-                  topicName:
-                    type: string
-                required:
-                  - accessType
-                  - topicName
-                type: object
-              type: array
-          required:
-            - clusterRef
-            - secretName
-          type: object
-        status:
-          description: KafkaUserStatus defines the observed state of KafkaUser
-          properties:
-            acls:
-              items:
-                type: string
-              type: array
-            state:
-              description: UserState defines the state of a KafkaUser
-              type: string
-          required:
-            - state
-          type: object
-      type: object
-  version: v1alpha1
-  versions:
-    - name: v1alpha1
-      served: true
-      storage: true
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
-
-  {{- end }}
+{{- end }}

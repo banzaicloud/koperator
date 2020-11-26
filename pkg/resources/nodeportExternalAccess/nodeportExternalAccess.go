@@ -16,6 +16,7 @@ package nodeportExternalAccess
 
 import (
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -51,7 +52,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciling")
 	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
 		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-			if eListener.GetAccessMethod() == "nodePort" {
+			if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 				for _, broker := range r.KafkaCluster.Spec.Brokers {
 					brokerConfig, err := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
 					if err != nil {

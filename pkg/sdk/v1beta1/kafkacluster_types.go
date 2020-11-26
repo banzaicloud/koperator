@@ -249,9 +249,9 @@ func (c ListenersConfig) GetServiceAnnotations() map[string]string {
 	return annotations
 }
 
-func (c ExternalListenerConfig) GetAccessMethod() string {
+func (c ExternalListenerConfig) GetAccessMethod() corev1.ServiceType {
 	if c.AccessMethod == "" {
-		return "loadbalancer"
+		return corev1.ServiceTypeLoadBalancer
 	}
 	return c.AccessMethod
 }
@@ -308,12 +308,14 @@ type ExternalListenerConfig struct {
 	ExternalStartingPort int32             `json:"externalStartingPort"`
 	HostnameOverride     string            `json:"hostnameOverride,omitempty"`
 	ServiceAnnotations   map[string]string `json:"serviceAnnotations,omitempty"`
-	// +kubebuilder:validation:Enum=loadbalancer;nodeport
-	// AccessMethod defines the external listener type.
-	// Two types are supported now LoadBalancer and Nodeport.
-	// The recommended and default is the loadbalancer but some cases e.g.:
-	// when your cluster does not supports loadbalancer nodeport can be used.
-	AccessMethod string `json:"accessMethod,omitempty"`
+	// +kubebuilder:validation:Enum=LoadBalancer;NodePort
+	// accessMethod defines the method which the external listener is exposed through.
+	// Two types are supported LoadBalancer and NodePort.
+	// The recommended and default is the LoadBalancer.
+	// NodePort should be used in Kubernetes environments with no support for provisioning Load Balancers.
+	// +optional
+	AccessMethod corev1.ServiceType `json:"accessMethod,omitempty"`
+
 	// externalTrafficPolicy denotes if this Service desires to route external
 	// traffic to node-local or cluster-wide endpoints. "Local" preserves the
 	// client source IP and avoids a second hop for LoadBalancer and Nodeport
