@@ -16,15 +16,21 @@ package kafka
 
 import (
 	"bytes"
-	"errors"
+	"context"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"text/template"
 
+	"emperror.dev/errors"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/go-logr/logr"
 	"github.com/imdario/mergo"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -273,4 +279,117 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 	sort.Strings(completeConfig)
 
 	return strings.Join(completeConfig, "\n")
+}
+
+func (r *Reconciler) postConfigMapReconcile(log logr.Logger, desired *corev1.ConfigMap) error {
+	desiredType := reflect.TypeOf(desired)
+	current := desired.DeepCopyObject()
+
+	key, err := runtimeClient.ObjectKeyFromObject(current)
+	if err != nil {
+		return errors.WithDetails(err, "kind", desiredType)
+	}
+	log = log.WithValues("kind", desiredType, "name", key.Name)
+
+	err = r.Client.Get(context.TODO(), key, current)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType, "name", key.Name)
+	}
+
+	if k8sutil.CheckIfObjectUpdated(log, desiredType, current, desired) {
+		// Only update status when configmap belongs to broker
+		if id, ok := desired.Labels["brokerId"]; ok {
+			currentConfigs := getBrokerConfigsFromConfigMap(current.(*corev1.ConfigMap))
+			desiredConfigs := getBrokerConfigsFromConfigMap(desired)
+
+			var statusErr error
+			// if only per broker configs are changed, do not trigger rolling upgrade by setting ConfigOutOfSync status
+			if shouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs, log) {
+				log.V(1).Info("setting per broker config status to out of sync")
+				statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{id}, r.KafkaCluster, v1beta1.PerBrokerConfigOutOfSync, log)
+			} else {
+				statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{id}, r.KafkaCluster, v1beta1.ConfigOutOfSync, log)
+			}
+			if statusErr != nil {
+				return errors.WrapIfWithDetails(err, "updating status for resource failed", "kind", desiredType)
+			}
+		}
+	}
+
+	return nil
+}
+
+func shouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) bool {
+	touchedConfigs := collectTouchedConfigs(currentConfigs, desiredConfigs, log)
+
+OUTERLOOP:
+	for _, config := range touchedConfigs {
+		// Security protocol cannot be updated for existing listener
+		// a rolling upgrade should be triggered in this case
+		if config == securityProtocolMap {
+			// added or deleted config is ok
+			if currentConfigs[securityProtocolMap] == "" || desiredConfigs[securityProtocolMap] == "" {
+				continue
+			}
+			currentListenerProtocolMap := make(map[string]string, 0)
+			desiredListenerProtocolMap := make(map[string]string, 0)
+			for _, listenerConfig := range strings.Split(currentConfigs[securityProtocolMap], ",") {
+				listenerKeyValue := strings.Split(listenerConfig, ":")
+				if len(listenerKeyValue) != 2 {
+					continue
+				}
+				currentListenerProtocolMap[listenerKeyValue[0]] = listenerKeyValue[1]
+			}
+			for _, listenerConfig := range strings.Split(desiredConfigs[securityProtocolMap], ",") {
+				listenerKeyValue := strings.Split(listenerConfig, ":")
+				if len(listenerKeyValue) != 2 {
+					continue
+				}
+				desiredListenerProtocolMap[listenerKeyValue[0]] = listenerKeyValue[1]
+			}
+
+			for protocolName, desiredListenerProtocol := range desiredListenerProtocolMap {
+				if currentListenerProtocol, ok := currentListenerProtocolMap[protocolName]; ok {
+					if currentListenerProtocol != desiredListenerProtocol {
+						return false
+					}
+				}
+			}
+			continue
+		}
+		for _, perBrokerConfig := range perBrokerConfigs {
+			if config == perBrokerConfig {
+				continue OUTERLOOP
+			}
+		}
+		return false
+	}
+	return true
+}
+
+// collects are the config keys that are either added, removed or updated
+// between the current and the desired ConfigMap
+func collectTouchedConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) []string {
+	touchedConfigs := make([]string, 0)
+
+	currentConfigsCopy := make(map[string]string, 0)
+	for k, v := range currentConfigs {
+		currentConfigsCopy[k] = v
+	}
+
+	for configName, desiredValue := range desiredConfigs {
+		if currentValue, ok := currentConfigsCopy[configName]; !ok || currentValue != desiredValue {
+			// new or updated config
+			touchedConfigs = append(touchedConfigs, configName)
+		}
+		delete(currentConfigsCopy, configName)
+	}
+
+	for configName := range currentConfigsCopy {
+		// deleted config
+		touchedConfigs = append(touchedConfigs, configName)
+	}
+
+	log.V(1).Info("configs have been changed", "configs", touchedConfigs)
+	return touchedConfigs
 }
