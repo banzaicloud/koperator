@@ -23,8 +23,8 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 )
 
-func (k *kafkaClient) AlterClusterWideConfig(configChange map[string]*string) error {
-	return k.admin.AlterConfig(sarama.BrokerResource, "", configChange, false)
+func (k *kafkaClient) AlterClusterWideConfig(configChange map[string]*string, validateOnly bool) error {
+	return k.admin.AlterConfig(sarama.BrokerResource, "", configChange, validateOnly)
 }
 
 func (k *kafkaClient) DescribeClusterWideConfig() ([]sarama.ConfigEntry, error) {

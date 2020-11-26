@@ -158,17 +158,24 @@ func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
 	if len(currentConfig) != len(parsedClusterWideConfig) {
 		configIdentical = false
 	}
-	for _, conf := range currentConfig {
-		if val, ok := parsedClusterWideConfig[conf.Name]; ok {
-			if val != conf.Value {
-				configIdentical = false
-				break
+	if configIdentical {
+		for _, conf := range currentConfig {
+			if val, ok := parsedClusterWideConfig[conf.Name]; ok {
+				if val != conf.Value {
+					configIdentical = false
+					break
+				}
 			}
 		}
 	}
-	// TODO add validation to the cluster-wide config update
+
 	if !configIdentical {
-		err = kClient.AlterClusterWideConfig(util.ConvertMapStringToMapStringPointer(parsedClusterWideConfig))
+		err = kClient.AlterClusterWideConfig(util.ConvertMapStringToMapStringPointer(parsedClusterWideConfig), true)
+		if err != nil {
+			return errors.WrapIf(err, "validation of cluster wide config update failed")
+		}
+
+		err = kClient.AlterClusterWideConfig(util.ConvertMapStringToMapStringPointer(parsedClusterWideConfig), false)
 		if err != nil {
 			return errors.WrapIf(err, "could not alter cluster wide broker config")
 		}
