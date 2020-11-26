@@ -52,7 +52,7 @@ type KafkaClient interface {
 	AlterPerBrokerConfig(int32, map[string]*string, bool) error
 	DescribePerBrokerConfig(int32, []string) ([]*sarama.ConfigEntry, error)
 
-	AlterClusterWideConfig(map[string]*string) error
+	AlterClusterWideConfig(map[string]*string, bool) error
 	DescribeClusterWideConfig() ([]sarama.ConfigEntry, error)
 
 	TopicMetaToStatus(meta *sarama.TopicMetadata) *v1alpha1.KafkaTopicStatus
