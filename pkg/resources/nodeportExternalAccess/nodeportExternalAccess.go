@@ -52,7 +52,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciling")
 	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
 		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-			if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
+			if eListener.GetAccessMethod() == corev1.ServiceTypeNodePort {
 				for _, broker := range r.KafkaCluster.Spec.Brokers {
 					brokerConfig, err := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
 					if err != nil {

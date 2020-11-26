@@ -28,11 +28,9 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
+// TODO handle deletion gracefuly from status
 func (r *Reconciler) service(log logr.Logger, id int32,
 	brokerConfig *v1beta1.BrokerConfig, extListener v1beta1.ExternalListenerConfig) runtime.Object {
-
-	exposedPorts := getExposedServicePorts(extListener,
-		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log))
 
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
@@ -43,7 +41,14 @@ func (r *Reconciler) service(log logr.Logger, id int32,
 			Selector: util.MergeLabels(kafka.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
 			Type:                  corev1.ServiceTypeNodePort,
-			Ports:                 exposedPorts,
+			Ports:                 []corev1.ServicePort{{
+				Name:       fmt.Sprintf("broker-%d", id),
+				Port:       extListener.ContainerPort,
+				NodePort:   extListener.ExternalStartingPort + id,
+				TargetPort: intstr.FromInt(int(extListener.ContainerPort)),
+				Protocol:   corev1.ProtocolTCP,
+			},
+			},
 			ExternalTrafficPolicy: extListener.ExternalTrafficPolicy,
 		},
 	}
@@ -51,16 +56,4 @@ func (r *Reconciler) service(log logr.Logger, id int32,
 		service.Spec.ExternalIPs = []string{brokerConfig.NodePortExternalIP}
 	}
 	return service
-}
-
-func getExposedServicePorts(extListener v1beta1.ExternalListenerConfig, brokersIds []int) []corev1.ServicePort {
-	var exposedPorts []corev1.ServicePort
-	for _, brokerId := range brokersIds {
-		exposedPorts = append(exposedPorts, corev1.ServicePort{
-			Name:       fmt.Sprintf("broker-%d", brokerId),
-			TargetPort: intstr.FromInt(int(extListener.ContainerPort)),
-			Protocol:   corev1.ProtocolTCP,
-		})
-	}
-	return exposedPorts
 }
