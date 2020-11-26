@@ -20,6 +20,8 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,7 +32,7 @@ func (r *Reconciler) pvc(brokerId int32, storageIndex int, storage v1beta1.Stora
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
 			fmt.Sprintf(brokerStorageTemplate, r.KafkaCluster.Name, brokerId, storageIndex),
 			util.MergeLabels(
-				LabelsForKafka(r.KafkaCluster.Name),
+				kafka.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", brokerId)},
 			),
 			map[string]string{"mountPath": storage.MountPath}, r.KafkaCluster),

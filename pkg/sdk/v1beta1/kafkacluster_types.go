@@ -124,6 +124,9 @@ type BrokerConfig struct {
 	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.
 	// By default it is set to `125000` which means 1Gbit/s in network throughput.
 	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`
+	// NodePortExternal ip can be used to specify external IP setting in case of
+	// nodeport external listener is enabled
+	NodePortExternalIP string                        `json:"nodePortExternalIP,omitempty"`
 }
 
 type NetworkConfig struct {
@@ -246,6 +249,13 @@ func (c ListenersConfig) GetServiceAnnotations() map[string]string {
 	return annotations
 }
 
+func (c ExternalListenerConfig) GetAccessMethod() string {
+	if c.AccessMethod == "" {
+		return "loadbalancer"
+	}
+	return c.AccessMethod
+}
+
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
 func (c ExternalListenerConfig) GetServiceAnnotations() map[string]string {
 	annotations := make(map[string]string, len(c.ServiceAnnotations))
@@ -298,6 +308,12 @@ type ExternalListenerConfig struct {
 	ExternalStartingPort int32             `json:"externalStartingPort"`
 	HostnameOverride     string            `json:"hostnameOverride,omitempty"`
 	ServiceAnnotations   map[string]string `json:"serviceAnnotations,omitempty"`
+	// +kubebuilder:validation:Enum=loadbalancer;nodeport
+	// AccessMethod defines the external listener type.
+	// Two types are supported now LoadBalancer and Nodeport.
+	// The recommended and default is the loadbalancer but some cases e.g.:
+	// when your cluster does not supports loadbalancer nodeport can be used.
+	AccessMethod string `json:"accessMethod,omitempty"`
 }
 
 // InternalListenerConfig defines the internal listener config for Kafka

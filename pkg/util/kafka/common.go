@@ -29,6 +29,12 @@ const (
 	HeadlessServiceTemplate = "%s-headless"
 )
 
+// LabelsForKafka returns the labels for selecting the resources
+// belonging to the given kafka CR name.
+func LabelsForKafka(name string) map[string]string {
+	return map[string]string{"app": "kafka", "kafka_cr": name}
+}
+
 // commonAclString is the raw representation of an ACL allowing Describe on a Topic
 var commonAclString = "User:%s,Topic,%s,%s,Describe,Allow,*"
 

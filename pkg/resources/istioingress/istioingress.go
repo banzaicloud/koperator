@@ -60,16 +60,17 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil && r.KafkaCluster.Spec.GetIngressController() == istioingress.IngressControllerName {
 
 		for _, externalListenerConfig := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-
-			for _, res := range []resources.ResourceWithLogAndExternalListenerConfig{
-				r.meshgateway,
-				r.gateway,
-				r.virtualService,
-			} {
-				o := res(log, externalListenerConfig)
-				err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-				if err != nil {
-					return err
+			if externalListenerConfig.GetAccessMethod() == "loadbalancer" {
+				for _, res := range []resources.ResourceWithLogAndExternalListenerConfig{
+					r.meshgateway,
+					r.gateway,
+					r.virtualService,
+				} {
+					o := res(log, externalListenerConfig)
+					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}

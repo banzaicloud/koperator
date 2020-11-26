@@ -47,6 +47,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/istioingress"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/nodeportExternalAccess"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
@@ -114,6 +115,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 	reconcilers := []resources.ComponentReconciler{
 		envoy.New(r.Client, instance),
 		istioingress.New(r.Client, instance),
+		nodeportExternalAccess.New(r.Client, instance),
 		kafkamonitoring.New(r.Client, instance),
 		cruisecontrolmonitoring.New(r.Client, instance),
 		kafka.New(r.Client, r.DirectClient, r.Scheme, instance),

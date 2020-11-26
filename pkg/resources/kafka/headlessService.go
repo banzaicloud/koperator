@@ -50,14 +50,14 @@ func (r *Reconciler) headlessService() runtime.Object {
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.Name),
-			util.MergeLabels(LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster.Labels),
+			util.MergeLabels(kafkautils.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster.Labels),
 			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
 			r.KafkaCluster,
 		),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
 			SessionAffinity: corev1.ServiceAffinityNone,
-			Selector:        LabelsForKafka(r.KafkaCluster.Name),
+			Selector:        kafkautils.LabelsForKafka(r.KafkaCluster.Name),
 			Ports:           usedPorts,
 			ClusterIP:       corev1.ClusterIPNone,
 		},

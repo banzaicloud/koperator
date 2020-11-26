@@ -46,6 +46,7 @@ import (
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	istioingressutils "github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
+	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 )
 
@@ -73,12 +74,6 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// labelsForKafka returns the labels for selecting the resources
-// belonging to the given kafka CR name.
-func LabelsForKafka(name string) map[string]string {
-	return map[string]string{"app": "kafka", "kafka_cr": name}
-}
-
 // New creates a new reconciler for Kafka
 func New(client client.Client, directClient client.Reader, scheme *runtime.Scheme, cluster *v1beta1.KafkaCluster) *Reconciler {
 	return &Reconciler{
@@ -94,7 +89,7 @@ func getCreatedPvcForBroker(c client.Client, brokerID int32, namespace, crName s
 	foundPvcList := &corev1.PersistentVolumeClaimList{}
 	matchingLabels := client.MatchingLabels(
 		util.MergeLabels(
-			LabelsForKafka(crName),
+			kafka.LabelsForKafka(crName),
 			map[string]string{"brokerId": fmt.Sprintf("%d", brokerID)},
 		),
 	)
@@ -201,12 +196,14 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		if eListener.HostnameOverride != "" {
 			lbIPs[eListener.Name] = eListener.HostnameOverride
 		}
-		lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.GetNamespace(),
-			r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.GetName(), eListener.Name)
-		if err != nil {
-			return err
+		if eListener.GetAccessMethod() == "loadbalancer" {
+			lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.GetNamespace(),
+				r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.GetName(), eListener.Name)
+			if err != nil {
+				return err
+			}
+			lbIPs[eListener.Name] = lbIP
 		}
-		lbIPs[eListener.Name] = lbIP
 	}
 
 	// Setup the PKI if using SSL
@@ -304,7 +301,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 	podList := &corev1.PodList{}
-	matchingLabels := client.MatchingLabels(LabelsForKafka(r.KafkaCluster.Name))
+	matchingLabels := client.MatchingLabels(kafka.LabelsForKafka(r.KafkaCluster.Name))
 
 	err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
 	if err != nil {
@@ -383,7 +380,7 @@ OUTERLOOP:
 			}
 			log.Info("broker pod deleted", "brokerId", broker.Labels["brokerId"], "pod", broker.GetName())
 			configMapName := fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"])
-			err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(configMapName, LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+			err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(configMapName, kafka.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 			if err != nil {
 				if apierrors.IsNotFound(err) {
 					// can happen when broker was not fully initialized and now is deleted
@@ -396,7 +393,7 @@ OUTERLOOP:
 			}
 			if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
 				serviceName := fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"])
-				err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(serviceName, LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+				err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(serviceName, kafka.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 				if err != nil {
 					if apierrors.IsNotFound(err) {
 						// can happen when broker was not fully initialized and now is deleted
@@ -587,7 +584,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 
 	matchingLabels := client.MatchingLabels(
 		util.MergeLabels(
-			LabelsForKafka(r.KafkaCluster.Name),
+			kafka.LabelsForKafka(r.KafkaCluster.Name),
 			map[string]string{"brokerId": desiredPod.Labels["brokerId"]},
 		),
 	)
@@ -696,7 +693,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 			if r.KafkaCluster.Status.State == v1beta1.KafkaClusterRollingUpgrading {
 				// Check if any kafka pod is in terminating or pending state
 				podList := &corev1.PodList{}
-				matchingLabels := client.MatchingLabels(LabelsForKafka(r.KafkaCluster.Name))
+				matchingLabels := client.MatchingLabels(kafka.LabelsForKafka(r.KafkaCluster.Name))
 				err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
 				if err != nil {
 					return errors.WrapIf(err, "failed to reconcile resource")
@@ -770,7 +767,7 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 
 		matchingLabels := client.MatchingLabels(
 			util.MergeLabels(
-				LabelsForKafka(r.KafkaCluster.Name),
+				kafka.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": brokerId},
 			),
 		)
