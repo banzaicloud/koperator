@@ -31,16 +31,24 @@ package controllers
 
 import (
 	"context"
+	"github.com/banzaicloud/kafka-operator/pkg/webhook"
+	"os"
 	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	cmv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	cmv1alpha3 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha3"
+	ginkoconfig "github.com/onsi/ginkgo/config"
+
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
@@ -62,29 +70,27 @@ var testEnv *envtest.Environment
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
+	ginkoconfig.DefaultReporterConfig.SlowSpecThreshold = 60
+
 	RunSpecsWithDefaultAndCustomReporters(t,
 		"Controller Suite",
 		[]Reporter{printer.NewlineReporter{}})
 }
 
 var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(zap.LoggerTo(GinkgoWriter, true))
+	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "config", "base", "crds")},
 	}
 
+	if os.Getenv("KUBEBUILDER_ASSETS") == "" {
+		err := os.Setenv("KUBEBUILDER_ASSETS", filepath.Join("..", "bin", "kubebuilder", "bin"))
+		Expect(err).ToNot(HaveOccurred())
+	}
+
 	var err error
-
-	err = apiextensionsv1beta1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = banzaicloudv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = banzaicloudv1beta1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
 
 	cfg, err = testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
@@ -92,9 +98,72 @@ var _ = BeforeSuite(func(done Done) {
 
 	// +kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme:             runtime.NewScheme(),
+		MetricsBindAddress: "0",
+		LeaderElection:     false,
+		Port:               8443,
+	})
+
+	Expect(err).ToNot(HaveOccurred())
+	Expect(mgr).ToNot(BeNil())
+
+	err = clientgoscheme.AddToScheme(mgr.GetScheme())
+	Expect(err).NotTo(HaveOccurred())
+	err = cmv1alpha2.AddToScheme(mgr.GetScheme())
+	Expect(err).NotTo(HaveOccurred())
+	err = cmv1alpha3.AddToScheme(mgr.GetScheme())
+	Expect(err).NotTo(HaveOccurred())
+	err = apiextensionsv1beta1.AddToScheme(mgr.GetScheme())
+	Expect(err).NotTo(HaveOccurred())
+	err = banzaicloudv1alpha1.AddToScheme(mgr.GetScheme())
+	Expect(err).NotTo(HaveOccurred())
+	err = banzaicloudv1beta1.AddToScheme(mgr.GetScheme())
+	Expect(err).NotTo(HaveOccurred())
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: mgr.GetScheme()})
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
+
+	kafkaClusterReconciler := KafkaClusterReconciler{
+		Client:       mgr.GetClient(),
+		DirectClient: mgr.GetAPIReader(),
+		Log:          ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
+		Scheme:       mgr.GetScheme(),
+	}
+
+	err = SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = SetupKafkaTopicWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred())
+
+	// TODO parameterize this
+	certManagerEnabled := true
+	err = SetupKafkaUserWithManager(mgr, certManagerEnabled)
+	Expect(err).NotTo(HaveOccurred())
+
+	kafkaClusterCCReconciler := &CruiseControlTaskReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Log:    ctrl.Log.WithName("controller").WithName("CruiseControlTask"),
+	}
+
+	err = SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler)
+	Expect(err).NotTo(HaveOccurred())
+
+	// TODO parameterize cert dir
+	webhookCertDir := ""
+	// TODO parameterize start of webhook
+	webhook.SetupServerHandlers(mgr, webhookCertDir)
+
+	// +kubebuilder:scaffold:builder
+
+	go func() {
+		ctrl.Log.Info("starting manager")
+		err := mgr.Start(ctrl.SetupSignalHandler())
+		Expect(err).ToNot(HaveOccurred())
+	}()
 
 	crd := &apiextensionsv1beta1.CustomResourceDefinition{}
 
