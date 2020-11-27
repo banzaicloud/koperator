@@ -141,8 +141,9 @@ func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
 				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
 		} else {
 			if _, ok := loadBalancerIPs[eListener.Name]; !ok {
+				nodePortExternalIP := bConfig.NodePortExternalIP[eListener.Name]
 				advertisedListenerConfig = append(advertisedListenerConfig,
-					fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), bConfig.NodePortExternalIP, eListener.ExternalStartingPort+id))
+					fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), nodePortExternalIP, eListener.ExternalStartingPort+id))
 			} else {
 				advertisedListenerConfig = append(advertisedListenerConfig,
 					fmt.Sprintf("%s://%s-%d.%s%s:%d", strings.ToUpper(eListener.Name), crName, id, namespace, loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))

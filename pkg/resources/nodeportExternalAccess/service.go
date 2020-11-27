@@ -52,8 +52,8 @@ func (r *Reconciler) service(log logr.Logger, id int32,
 			ExternalTrafficPolicy: extListener.ExternalTrafficPolicy,
 		},
 	}
-	if brokerConfig.NodePortExternalIP != "" {
-		service.Spec.ExternalIPs = []string{brokerConfig.NodePortExternalIP}
+	if nodePortExternalIP, ok := brokerConfig.NodePortExternalIP[extListener.Name]; ok && nodePortExternalIP != "" {
+		service.Spec.ExternalIPs = []string{nodePortExternalIP}
 	}
 	return service
 }
