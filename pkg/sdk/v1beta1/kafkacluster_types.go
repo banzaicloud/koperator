@@ -124,8 +124,10 @@ type BrokerConfig struct {
 	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.
 	// By default it is set to `125000` which means 1Gbit/s in network throughput.
 	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`
-	// NodePortExternal ip can be used to specify external IP setting in case of
-	// nodeport external listener is enabled
+	// The external IP to advertise Kafka broker external listeners that use NodePort type service
+	// to expose the broker outside the Kubernetes cluster. This field is ignored in case of external listeners that use LoadBalancer
+	// type service to expose the broker outside the Kubernetes cluster. Also, when "hostnameOverride" field of the external listener is set
+	// it will override the broker's advertise address according to the description of the "hostnameOverride" field.
 	NodePortExternalIP string `json:"nodePortExternalIP,omitempty"`
 }
 
@@ -305,9 +307,14 @@ type AlertManagerConfig struct {
 // ExternalListenerConfig defines the external listener config for Kafka
 type ExternalListenerConfig struct {
 	CommonListenerSpec   `json:",inline"`
-	ExternalStartingPort int32             `json:"externalStartingPort"`
-	HostnameOverride     string            `json:"hostnameOverride,omitempty"`
-	ServiceAnnotations   map[string]string `json:"serviceAnnotations,omitempty"`
+	ExternalStartingPort int32 `json:"externalStartingPort"`
+	// In case of external listeners using LoadBalancer access method the value of this field is used to advertise the
+	// Kafka broker external listener instead of the public IP of the provisioned LoadBalancer service (e.g. can be used to
+	// advertise the listener using a URL recorded in DNS instead of public IP).
+	// In case of external listeners using NodePort access method the broker instead of node public IP (see "brokerConfig.nodePortExternalIP")
+	// is advertised on the address having the following format: <kafka-cluster-name>-<broker-id>.<namespace><value-specified-in-hostnameOverride-field>
+	HostnameOverride   string            `json:"hostnameOverride,omitempty"`
+	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
 	// +kubebuilder:validation:Enum=LoadBalancer;NodePort
 	// accessMethod defines the method which the external listener is exposed through.
 	// Two types are supported LoadBalancer and NodePort.
