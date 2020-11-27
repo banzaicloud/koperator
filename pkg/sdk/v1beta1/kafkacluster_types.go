@@ -124,11 +124,11 @@ type BrokerConfig struct {
 	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.
 	// By default it is set to `125000` which means 1Gbit/s in network throughput.
 	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`
-	// The external IP to advertise Kafka broker external listeners that use NodePort type service
-	// to expose the broker outside the Kubernetes cluster. This field is ignored in case of external listeners that use LoadBalancer
+	// External listeners that use NodePort type service to expose the broker outside the Kubernetes clusterT and their
+	// external IP to advertise Kafka broker external listener. The external IP value is ignored in case of external listeners that use LoadBalancer
 	// type service to expose the broker outside the Kubernetes cluster. Also, when "hostnameOverride" field of the external listener is set
-	// it will override the broker's advertise address according to the description of the "hostnameOverride" field.
-	NodePortExternalIP string `json:"nodePortExternalIP,omitempty"`
+	// it will override the broker's external listener advertise address according to the description of the "hostnameOverride" field.
+	NodePortExternalIP map[string]string `json:"nodePortExternalIP,omitempty"`
 }
 
 type NetworkConfig struct {

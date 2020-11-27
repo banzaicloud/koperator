@@ -318,15 +318,18 @@ spec:
                         type: object
                     type: object
                   nodePortExternalIP:
-                    description: The external IP to advertise Kafka broker external
-                      listeners that use NodePort type service to expose the broker
-                      outside the Kubernetes cluster. This field is ignored in case
-                      of external listeners that use LoadBalancer type service to
-                      expose the broker outside the Kubernetes cluster. Also, when
-                      "hostnameOverride" field of the external listener is set it
-                      will override the broker's advertise address according to the
-                      description of the "hostnameOverride" field.
-                    type: string
+                    additionalProperties:
+                      type: string
+                    description: External listeners that use NodePort type service
+                      to expose the broker outside the Kubernetes clusterT and their
+                      external IP to advertise Kafka broker external listener. The
+                      external IP value is ignored in case of external listeners that
+                      use LoadBalancer type service to expose the broker outside the
+                      Kubernetes cluster. Also, when "hostnameOverride" field of the
+                      external listener is set it will override the broker's external
+                      listener advertise address according to the description of the
+                      "hostnameOverride" field.
+                    type: object
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -810,15 +813,18 @@ spec:
                             type: object
                         type: object
                       nodePortExternalIP:
-                        description: The external IP to advertise Kafka broker external
-                          listeners that use NodePort type service to expose the broker
-                          outside the Kubernetes cluster. This field is ignored in case
-                          of external listeners that use LoadBalancer type service to
-                          expose the broker outside the Kubernetes cluster. Also, when
-                          "hostnameOverride" field of the external listener is set it
-                          will override the broker's advertise address according to the
-                          description of the "hostnameOverride" field.
-                        type: string
+                        additionalProperties:
+                          type: string
+                        description: External listeners that use NodePort type service
+                          to expose the broker outside the Kubernetes clusterT and their
+                          external IP to advertise Kafka broker external listener. The
+                          external IP value is ignored in case of external listeners that
+                          use LoadBalancer type service to expose the broker outside the
+                          Kubernetes cluster. Also, when "hostnameOverride" field of the
+                          external listener is set it will override the broker's external
+                          listener advertise address according to the description of the
+                          "hostnameOverride" field.
+                        type: object
                       nodeSelector:
                         additionalProperties:
                           type: string
