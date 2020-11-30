@@ -142,6 +142,15 @@ func clusterDNSNames(cluster *v1beta1.KafkaCluster) (names []string) {
 			fmt.Sprintf("%s.%s.svc", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace),
 		)
 
+		// Per Broker notation
+		for _, broker := range cluster.Spec.Brokers {
+			names = append(names,
+				fmt.Sprintf("%s-%d.%s.svc.%s", cluster.Name, broker.Id, cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()),
+				fmt.Sprintf("%s-%d.%s.svc", cluster.Name, broker.Id, cluster.Namespace),
+				fmt.Sprintf("*.%s-%d.%s", cluster.Name, broker.Id, cluster.Namespace),
+			)
+		}
+
 		// Namespace notation
 		names = append(names,
 			fmt.Sprintf("*.%s.%s", fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name), cluster.Namespace),
