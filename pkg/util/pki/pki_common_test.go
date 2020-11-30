@@ -88,6 +88,11 @@ func TestLabelsForKafkaPKI(t *testing.T) {
 
 func TestGetInternalDNSNames(t *testing.T) {
 	cluster := testCluster(t)
+	cluster.Spec.Brokers = []v1beta1.Broker{
+		{
+			Id: 0,
+		},
+	}
 
 	cluster.Spec.HeadlessServiceEnabled = true
 	headlessNames := GetInternalDNSNames(cluster)
@@ -111,6 +116,9 @@ func TestGetInternalDNSNames(t *testing.T) {
 		"test-cluster-all-broker.test-namespace.svc.cluster.local",
 		"*.test-cluster-all-broker.test-namespace.svc",
 		"test-cluster-all-broker.test-namespace.svc",
+		"test-cluster-0.test-namespace.svc.cluster.local",
+		"test-cluster-0.test-namespace.svc",
+		"*.test-cluster-0.test-namespace",
 		"*.test-cluster-all-broker.test-namespace",
 		"test-cluster-all-broker.test-namespace",
 		"test-cluster-all-broker",
