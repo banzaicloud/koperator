@@ -40,6 +40,7 @@ import (
 
 	ginkoconfig "github.com/onsi/ginkgo/config"
 
+	v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -51,6 +52,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	istioclientv1alpha3 "github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	banzaiistiov1beta1 "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
+	cmv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	cmv1alpha3 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha3"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -79,7 +85,12 @@ var _ = BeforeSuite(func(done Done) {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "config", "base", "crds")},
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "config", "base", "crds"),
+			// "https://github.com/jetstack/cert-manager/releases/download/v1.1.0/cert-manager.yaml",
+			filepath.Join("..", "config", "test", "crd", "cert-manager"),
+		},
+		AttachControlPlaneOutput: false,
 	}
 
 	if os.Getenv("KUBEBUILDER_ASSETS") == "" {
@@ -97,15 +108,21 @@ var _ = BeforeSuite(func(done Done) {
 
 	err = k8sscheme.AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
-	/*err = cmv1alpha2.AddToScheme(scheme)
+	err = apiextensionsv1beta1.AddToScheme(scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = v1beta1.AddToScheme(scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = cmv1alpha2.AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
 	err = cmv1alpha3.AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
-	err = apiextensionsv1beta1.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())*/
 	err = banzaicloudv1alpha1.AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
 	err = banzaicloudv1beta1.AddToScheme(scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = banzaiistiov1beta1.AddToScheme(scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = istioclientv1alpha3.AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
@@ -116,13 +133,8 @@ var _ = BeforeSuite(func(done Done) {
 		LeaderElection:     false,
 		Port:               8443,
 	})
-
 	Expect(err).ToNot(HaveOccurred())
 	Expect(mgr).ToNot(BeNil())
-
-	k8sClient, err = client.New(cfg, client.Options{Scheme: mgr.GetScheme()})
-	Expect(err).ToNot(HaveOccurred())
-	Expect(k8sClient).ToNot(BeNil())
 
 	kafkaClusterReconciler := KafkaClusterReconciler{
 		Client:       mgr.GetClient(),
@@ -134,22 +146,22 @@ var _ = BeforeSuite(func(done Done) {
 	err = SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = SetupKafkaTopicWithManager(mgr)
-	Expect(err).NotTo(HaveOccurred())
+	/*err = SetupKafkaTopicWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred())*/
 
 	// TODO parameterize this
-	certManagerEnabled := true
+	/*certManagerEnabled := true
 	err = SetupKafkaUserWithManager(mgr, certManagerEnabled)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())*/
 
-	kafkaClusterCCReconciler := &CruiseControlTaskReconciler{
+	/*kafkaClusterCCReconciler := &CruiseControlTaskReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		Log:    ctrl.Log.WithName("controller").WithName("CruiseControlTask"),
 	}
 
 	err = SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())*/
 
 	// TODO enable webhook
 	// webhookCertDir := ""
@@ -157,12 +169,15 @@ var _ = BeforeSuite(func(done Done) {
 
 	// +kubebuilder:scaffold:builder
 
-	//go func() {
+	go func() {
 		ctrl.Log.Info("starting manager")
 		err = mgr.Start(ctrl.SetupSignalHandler())
 		Expect(err).ToNot(HaveOccurred())
-		//defer GinkgoRecover()
-	//}()
+	}()
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: mgr.GetScheme()})
+	Expect(err).ToNot(HaveOccurred())
+	Expect(k8sClient).ToNot(BeNil())
 
 	crd := &apiextensionsv1beta1.CustomResourceDefinition{}
 
@@ -170,13 +185,13 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaCluster"))
 
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
+	/*err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaTopic"))
 
 	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkausers.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))
+	Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))*/
 
 	close(done)
 }, 600)
