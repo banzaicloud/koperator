@@ -140,13 +140,21 @@ func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
 			advertisedListenerConfig = append(advertisedListenerConfig,
 				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
 		} else {
+			portNumber := eListener.ExternalStartingPort + id
+			if externalIP, ok := bConfig.NodePortExternalIP[eListener.Name]; ok && externalIP != "" {
+				// https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
+				// if specific external IP is set for the NodePort service incoming traffic will be received on Service port
+				// and not nodeport
+				portNumber = eListener.ContainerPort
+			}
+
 			if _, ok := loadBalancerIPs[eListener.Name]; !ok {
 				nodePortExternalIP := bConfig.NodePortExternalIP[eListener.Name]
 				advertisedListenerConfig = append(advertisedListenerConfig,
-					fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), nodePortExternalIP, eListener.ExternalStartingPort+id))
+					fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), nodePortExternalIP, portNumber))
 			} else {
 				advertisedListenerConfig = append(advertisedListenerConfig,
-					fmt.Sprintf("%s://%s-%d.%s%s:%d", strings.ToUpper(eListener.Name), crName, id, namespace, loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
+					fmt.Sprintf("%s://%s-%d-%s.%s%s:%d", strings.ToUpper(eListener.Name), crName, id, eListener.Name, namespace, loadBalancerIPs[eListener.Name], portNumber))
 			}
 
 		}
