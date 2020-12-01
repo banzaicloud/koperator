@@ -17,10 +17,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"sync/atomic"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -57,10 +57,53 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 			Spec: v1beta1.KafkaClusterSpec{
 				ListenersConfig: v1beta1.ListenersConfig{
 					ExternalListeners: []v1beta1.ExternalListenerConfig{},
-					InternalListeners: []v1beta1.InternalListenerConfig{},
+					InternalListeners: []v1beta1.InternalListenerConfig{
+						{
+							CommonListenerSpec: v1beta1.CommonListenerSpec{
+								Type:          "plaintext",
+								Name:          "internal",
+								ContainerPort: 29092,
+							},
+							UsedForInnerBrokerCommunication: true,
+						},
+						{
+							CommonListenerSpec: v1beta1.CommonListenerSpec{
+								Type:          "plaintext",
+								Name:          "controller",
+								ContainerPort: 29093,
+							},
+							UsedForInnerBrokerCommunication: false,
+							UsedForControllerCommunication:  true,
+						},
+					},
 				},
-				Brokers:     []v1beta1.Broker{},
-				ZKAddresses: []string{},
+				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+					"default": {
+						StorageConfigs: []v1beta1.StorageConfig{
+							{
+								MountPath: "/kafka-logs",
+								PvcSpec: &corev1.PersistentVolumeClaimSpec{
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
+									Resources: corev1.ResourceRequirements{
+										Requests: map[corev1.ResourceName]resource.Quantity{
+											corev1.ResourceStorage: resource.MustParse("10Gi"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Brokers: []v1beta1.Broker{
+					{
+						Id:                0,
+						BrokerConfigGroup: "default",
+					},
+				},
+				ClusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.6.0-bzc.1",
+				ZKAddresses:  []string{},
 			},
 		}
 	})
@@ -85,30 +128,28 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 		BeforeEach(func() {
 			kafkaCluster.Spec.IngressController = "envoy"
 
-			kafkaCluster.Spec.ListenersConfig = v1beta1.ListenersConfig{
-				ExternalListeners: []v1beta1.ExternalListenerConfig{
-					{
-						CommonListenerSpec: v1beta1.CommonListenerSpec{
-							Name:          "test",
-							ContainerPort: 9733,
-						},
-						ExternalStartingPort: 11202,
-						HostnameOverride:     "test-host",
-						// ServiceAnnotations:   nil,
+			kafkaCluster.Spec.ListenersConfig.ExternalListeners = []v1beta1.ExternalListenerConfig{
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{
+						Name:          "test",
+						ContainerPort: 9733,
 					},
+					ExternalStartingPort: 11202,
+					HostnameOverride:     "test-host",
+					AccessMethod:         corev1.ServiceTypeLoadBalancer,
+					// ServiceAnnotations:   nil,
 				},
-				InternalListeners: []v1beta1.InternalListenerConfig{},
 			}
 		})
 
 		It("creates envoy related objects", func() {
-			// TODO assert loadbalancer
 			var loadBalancer corev1.Service
 			lbName := fmt.Sprintf("envoy-loadbalancer-test-%s", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: lbName}, &loadBalancer)
 				return err
 			}).Should(Succeed())
+			// TODO assert loadbalancer
 
 			// TODO assert configmap
 			var configMap corev1.ConfigMap
@@ -120,7 +161,7 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 
 			// TODO assert deployment
 			var deployment appsv1.Deployment
-			deploymentName := fmt.Sprintf("envoy-config-test-%s", kafkaCluster.Name)
+			deploymentName := fmt.Sprintf("envoy-test-%s", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, &deployment)
 				return err
