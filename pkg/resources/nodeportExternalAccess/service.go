@@ -32,6 +32,10 @@ import (
 func (r *Reconciler) service(log logr.Logger, id int32,
 	brokerConfig *v1beta1.BrokerConfig, extListener v1beta1.ExternalListenerConfig) runtime.Object {
 
+	nodePort := int32(0)
+	if extListener.ExternalStartingPort > 0 {
+		nodePort = extListener.ExternalStartingPort + id
+	}
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(serviceName, r.KafkaCluster.GetName(), id, extListener.Name),
@@ -44,7 +48,7 @@ func (r *Reconciler) service(log logr.Logger, id int32,
 			Ports: []corev1.ServicePort{{
 				Name:       fmt.Sprintf("broker-%d", id),
 				Port:       extListener.ContainerPort,
-				NodePort:   extListener.ExternalStartingPort + id,
+				NodePort:   nodePort,
 				TargetPort: intstr.FromInt(int(extListener.ContainerPort)),
 				Protocol:   corev1.ProtocolTCP,
 			},
