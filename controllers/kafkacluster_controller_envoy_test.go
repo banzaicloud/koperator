@@ -19,11 +19,12 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"sync/atomic"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -121,25 +122,25 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 		err := k8sClient.Create(context.TODO(), namespaceObj)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
+		By("creating Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err = k8sClient.Create(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	JustAfterEach(func() {
-		By("deleting kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
+		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err := k8sClient.Delete(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 		kafkaCluster = nil
 	})
 
-	When("envoy is not enabled", func() {
-		It("does not create envoy related objects", func() {
-
+	When("Envoy is not enabled", func() {
+		It("does not create Envoy related objects", func() {
+			// TODO
 		})
 	})
 
-	When("envoy is enabled", func() {
+	When("Envoy ingress controller is configured", func() {
 		BeforeEach(func() {
 			kafkaCluster.Spec.IngressController = "envoy"
 
@@ -159,13 +160,13 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 
 		// TODO consider better tests with https://onsi.github.io/ginkgo/#patterns-for-dynamically-generating-tests
 
-		It("creates envoy related objects", func() {
+		It("creates Envoy related objects", func() {
 			var loadBalancer corev1.Service
 			lbName := fmt.Sprintf("envoy-loadbalancer-test-%s", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: lbName}, &loadBalancer)
 				return err
-			}).Should(Succeed())
+			}, 5 * time.Second, 100 * time.Millisecond).Should(Succeed())
 
 			ExpectEnvoyIngressLabels(loadBalancer.Labels, "test", kafkaClusterCRName)
 			Expect(loadBalancer.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
@@ -185,7 +186,7 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: configMapName}, &configMap)
 				return err
-			}).Should(Succeed())
+			}, 5 * time.Second, 100 * time.Millisecond).Should(Succeed())
 
 			ExpectEnvoyIngressLabels(configMap.Labels, "test", kafkaClusterCRName)
 			Expect(configMap.Data).To(HaveKey("envoy.yaml"))
@@ -223,7 +224,7 @@ staticResources:
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, &deployment)
 				return err
-			}).Should(Succeed())
+			}, 5 * time.Second, 100 * time.Millisecond).Should(Succeed())
 
 			ExpectEnvoyIngressLabels(deployment.Labels, "test", kafkaClusterCRName)
 			Expect(deployment.Spec.Selector).NotTo(BeNil())

@@ -89,6 +89,7 @@ var _ = BeforeSuite(func(done Done) {
 			filepath.Join("..", "config", "base", "crds"),
 			// "https://github.com/jetstack/cert-manager/releases/download/v1.1.0/cert-manager.yaml",
 			filepath.Join("..", "config", "test", "crd", "cert-manager"),
+			filepath.Join("..", "config", "test", "crd", "istio"),
 		},
 		AttachControlPlaneOutput: false,
 	}
