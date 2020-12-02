@@ -29,7 +29,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
-var _ = Describe("KafkaCluster", func() {
+var _ = PDescribe("KafkaCluster", func() {
 	var (
 		count        uint64 = 0
 		namespace    string

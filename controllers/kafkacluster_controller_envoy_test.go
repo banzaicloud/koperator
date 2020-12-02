@@ -32,11 +32,18 @@ import (
 
 var _ = Describe("KafkaClusterEnvoyController", func() {
 	var (
-		count        uint64 = 0
-		namespace    string
-		namespaceObj *corev1.Namespace
-		kafkaCluster *v1beta1.KafkaCluster
+		count              uint64 = 0
+		namespace          string
+		namespaceObj       *corev1.Namespace
+		kafkaClusterCRName string
+		kafkaCluster       *v1beta1.KafkaCluster
 	)
+
+	ExpectEnvoyIngressLabels := func(labels map[string]string, eListenerName, crName string) {
+		Expect(labels).To(HaveKeyWithValue("app", "envoyingress"))
+		Expect(labels).To(HaveKeyWithValue("eListenerName", eListenerName))
+		Expect(labels).To(HaveKeyWithValue("kafka_cr", crName))
+	}
 
 	BeforeEach(func() {
 		atomic.AddUint64(&count, 1)
@@ -49,9 +56,10 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 		}
 
 		// create default Kafka cluster spec
+		kafkaClusterCRName = fmt.Sprintf("kafkacluster-%v", count)
 		kafkaCluster = &v1beta1.KafkaCluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("kafkacluster-%v", count),
+				Name:      kafkaClusterCRName,
 				Namespace: namespace,
 			},
 			Spec: v1beta1.KafkaClusterSpec{
@@ -118,6 +126,13 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	JustAfterEach(func() {
+		By("deleting kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
+		err := k8sClient.Delete(context.TODO(), kafkaCluster)
+		Expect(err).NotTo(HaveOccurred())
+		kafkaCluster = nil
+	})
+
 	When("envoy is not enabled", func() {
 		It("does not create envoy related objects", func() {
 
@@ -142,6 +157,8 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 			}
 		})
 
+		// TODO consider better tests with https://onsi.github.io/ginkgo/#patterns-for-dynamically-generating-tests
+
 		It("creates envoy related objects", func() {
 			var loadBalancer corev1.Service
 			lbName := fmt.Sprintf("envoy-loadbalancer-test-%s", kafkaCluster.Name)
@@ -149,9 +166,20 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: lbName}, &loadBalancer)
 				return err
 			}).Should(Succeed())
-			// TODO assert loadbalancer
 
-			// TODO assert configmap
+			ExpectEnvoyIngressLabels(loadBalancer.Labels, "test", kafkaClusterCRName)
+			Expect(loadBalancer.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
+			Expect(loadBalancer.Spec.Selector).To(Equal(map[string]string{
+				"app":           "envoyingress",
+				"eListenerName": "test",
+				"kafka_cr":      kafkaCluster.Name,
+			}))
+			Expect(loadBalancer.Spec.Ports).To(HaveLen(1))
+			Expect(loadBalancer.Spec.Ports[0].Name).To(Equal("broker-0"))
+			Expect(loadBalancer.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
+			Expect(loadBalancer.Spec.Ports[0].Port).To(BeEquivalentTo(11202))
+			Expect(loadBalancer.Spec.Ports[0].TargetPort.IntVal).To(BeEquivalentTo(11202))
+
 			var configMap corev1.ConfigMap
 			configMapName := fmt.Sprintf("envoy-config-test-%s", kafkaCluster.Name)
 			Eventually(func() error {
@@ -159,13 +187,83 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 				return err
 			}).Should(Succeed())
 
-			// TODO assert deployment
+			ExpectEnvoyIngressLabels(configMap.Labels, "test", kafkaClusterCRName)
+			Expect(configMap.Data).To(HaveKey("envoy.yaml"))
+			Expect(configMap.Data["envoy.yaml"]).To(Equal(`admin:
+  accessLogPath: /tmp/admin_access.log
+  address:
+    socketAddress:
+      address: 0.0.0.0
+      portValue: 9901
+staticResources:
+  clusters:
+  - connectTimeout: 1s
+    hosts:
+    - socketAddress:
+        address: kafkacluster-2-0.kafka-envoy-2.svc.cluster.local
+        portValue: 9733
+    http2ProtocolOptions: {}
+    name: broker-0
+    type: STRICT_DNS
+  listeners:
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 11202
+    filterChains:
+    - filters:
+      - config:
+          cluster: broker-0
+          stat_prefix: broker_tcp-0
+        name: envoy.filters.network.tcp_proxy
+`))
+
 			var deployment appsv1.Deployment
 			deploymentName := fmt.Sprintf("envoy-test-%s", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, &deployment)
 				return err
 			}).Should(Succeed())
+
+			ExpectEnvoyIngressLabels(deployment.Labels, "test", kafkaClusterCRName)
+			Expect(deployment.Spec.Selector).NotTo(BeNil())
+			ExpectEnvoyIngressLabels(deployment.Spec.Selector.MatchLabels, "test", kafkaClusterCRName)
+			Expect(deployment.Spec.Replicas).NotTo(BeNil())
+			Expect(*deployment.Spec.Replicas).To(BeEquivalentTo(1))
+			ExpectEnvoyIngressLabels(deployment.Spec.Template.Labels, "test", kafkaClusterCRName)
+			templateSpec := deployment.Spec.Template.Spec
+			Expect(templateSpec.ServiceAccountName).To(Equal("default"))
+			Expect(templateSpec.Containers).To(HaveLen(1))
+			container := templateSpec.Containers[0]
+			Expect(container.Name).To(Equal("envoy"))
+			Expect(container.Image).To(Equal("envoyproxy/envoy:v1.14.4"))
+			Expect(container.Ports).To(ConsistOf(
+				corev1.ContainerPort{
+					Name:          "broker-0",
+					ContainerPort: 11202,
+					Protocol:      "TCP",
+				},
+				corev1.ContainerPort{
+					Name:          "envoy-admin",
+					ContainerPort: 9901,
+					Protocol:      "TCP",
+				},
+			))
+			Expect(container.VolumeMounts).To(ConsistOf(corev1.VolumeMount{
+				Name:      configMapName,
+				ReadOnly:  true,
+				MountPath: "/etc/envoy",
+			}))
+			Expect(container.Resources).To(Equal(corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					"cpu":    resource.MustParse("100m"),
+					"memory": resource.MustParse("100Mi"),
+				},
+				Requests: corev1.ResourceList{
+					"cpu":    resource.MustParse("100m"),
+					"memory": resource.MustParse("100Mi"),
+				},
+			}))
 		})
 	})
 })
