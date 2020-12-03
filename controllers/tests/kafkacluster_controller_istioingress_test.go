@@ -18,9 +18,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"sync/atomic"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -163,7 +165,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: meshGatewayName}, &meshGateway)
 				return err
-			}).Should(Succeed())
+			}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
 
 			meshGatewayConf := meshGateway.Spec.MeshGatewayConfiguration
 			ExpectIstioIngressLabels(meshGatewayConf.Labels, "test", kafkaClusterCRName)
