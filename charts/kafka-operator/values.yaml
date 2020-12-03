@@ -12,7 +12,7 @@ operator:
   annotations: {}
   image:
     repository: ghcr.io/banzaicloud/kafka-operator
-    tag: v0.14.0-rc.4
+    tag: v0.14.0
     pullPolicy: IfNotPresent
   vaultAddress: ""
   # vaultSecret containing a `ca.crt` key with the Vault CA Certificate
