@@ -19,14 +19,13 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"sync/atomic"
-	"time"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sync/atomic"
+	"time"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
@@ -166,7 +165,7 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: lbName}, &loadBalancer)
 				return err
-			}, 5 * time.Second, 100 * time.Millisecond).Should(Succeed())
+			}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
 
 			ExpectEnvoyIngressLabels(loadBalancer.Labels, "test", kafkaClusterCRName)
 			Expect(loadBalancer.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
@@ -186,7 +185,7 @@ var _ = Describe("KafkaClusterEnvoyController", func() {
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: configMapName}, &configMap)
 				return err
-			}, 5 * time.Second, 100 * time.Millisecond).Should(Succeed())
+			}).Should(Succeed())
 
 			ExpectEnvoyIngressLabels(configMap.Labels, "test", kafkaClusterCRName)
 			Expect(configMap.Data).To(HaveKey("envoy.yaml"))
@@ -224,7 +223,7 @@ staticResources:
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, &deployment)
 				return err
-			}, 5 * time.Second, 100 * time.Millisecond).Should(Succeed())
+			}).Should(Succeed())
 
 			ExpectEnvoyIngressLabels(deployment.Labels, "test", kafkaClusterCRName)
 			Expect(deployment.Spec.Selector).NotTo(BeNil())

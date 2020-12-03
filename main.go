@@ -47,6 +47,7 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/controllers"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
 	// +kubebuilder:scaffold:imports
@@ -134,11 +135,12 @@ func main() {
 	}
 
 	kafkaClusterReconciler := &controllers.KafkaClusterReconciler{
-		Client:       mgr.GetClient(),
-		DirectClient: mgr.GetAPIReader(),
-		Scheme:       mgr.GetScheme(),
-		Namespaces:   namespaceList,
-		Log:          ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
+		Client:              mgr.GetClient(),
+		DirectClient:        mgr.GetAPIReader(),
+		Scheme:              mgr.GetScheme(),
+		Namespaces:          namespaceList,
+		Log:                 ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
+		KafkaClientProvider: kafkaclient.NewDefaultProvider(),
 	}
 
 	if err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(kafkaClusterReconciler); err != nil {

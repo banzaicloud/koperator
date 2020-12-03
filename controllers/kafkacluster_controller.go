@@ -39,6 +39,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/pki"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrol"
@@ -58,10 +59,11 @@ var clusterUsersFinalizer = "users.kafkaclusters.kafka.banzaicloud.io"
 // KafkaClusterReconciler reconciles a KafkaCluster object
 type KafkaClusterReconciler struct {
 	client.Client
-	DirectClient client.Reader
-	Log          logr.Logger
-	Scheme       *runtime.Scheme
-	Namespaces   []string
+	DirectClient        client.Reader
+	Log                 logr.Logger
+	Scheme              *runtime.Scheme
+	Namespaces          []string
+	KafkaClientProvider kafkaclient.Provider
 }
 
 // Reconcile reads that state of the cluster for a KafkaCluster object and makes changes based on the state read
@@ -118,7 +120,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 		nodeportExternalAccess.New(r.Client, instance),
 		kafkamonitoring.New(r.Client, instance),
 		cruisecontrolmonitoring.New(r.Client, instance),
-		kafka.New(r.Client, r.DirectClient, r.Scheme, instance),
+		kafka.New(r.Client, r.DirectClient, r.Scheme, instance, r.KafkaClientProvider),
 		cruisecontrol.New(r.Client, instance),
 	}
 
