@@ -10,7 +10,6 @@ require (
 	github.com/banzaicloud/istio-operator v0.0.0-20200407070503-3f7dc6953a7b
 	github.com/banzaicloud/k8s-objectmatcher v1.4.1
 	github.com/banzaicloud/kafka-operator/api v0.0.0
-	github.com/banzaicloud/kafka-operator/pkg/sdk v0.4.1
 	github.com/envoyproxy/go-control-plane v0.9.7
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
