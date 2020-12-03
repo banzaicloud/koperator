@@ -51,7 +51,9 @@ type KafkaClusterSpec struct {
 	DisruptionBudget     DisruptionBudget        `json:"disruptionBudget,omitempty"`
 	RollingUpgradeConfig RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
 	// +kubebuilder:validation:Enum=envoy;istioingress
-	IngressController       string              `json:"ingressController,omitempty"`
+	IngressController string `json:"ingressController,omitempty"`
+	// If true OneBrokerPerNode ensures that each kafka broker will be placed on a different node unless a custom
+	// Affinity definition overrides this behavior
 	OneBrokerPerNode        bool                `json:"oneBrokerPerNode"`
 	PropagateLabels         bool                `json:"propagateLabels,omitempty"`
 	CruiseControlConfig     CruiseControlConfig `json:"cruiseControlConfig"`
@@ -105,7 +107,6 @@ type Broker struct {
 // BrokerConfig defines the broker configuration
 type BrokerConfig struct {
 	Image              string                        `json:"image,omitempty"`
-	NodeAffinity       *corev1.NodeAffinity          `json:"nodeAffinity,omitempty"`
 	Config             string                        `json:"config,omitempty"`
 	StorageConfigs     []StorageConfig               `json:"storageConfigs,omitempty"`
 	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`
@@ -129,6 +130,11 @@ type BrokerConfig struct {
 	// type service to expose the broker outside the Kubernetes cluster. Also, when "hostnameOverride" field of the external listener is set
 	// it will override the broker's external listener advertise address according to the description of the "hostnameOverride" field.
 	NodePortExternalIP map[string]string `json:"nodePortExternalIP,omitempty"`
+	// Any definition received through this field will override the default behaviour of OneBrokerPerNode flag
+	// and the operator supposes that the user is aware of how scheduling is done by kubernetes
+	// Affinity could be set through brokerConfigGroups definitions and can be set for individual brokers as well
+	// where letter setting will override the group setting
+	Affinity *corev1.Affinity `json:"affinity,omitempty" protobuf:"bytes,18,opt,name=affinity"`
 }
 
 type NetworkConfig struct {
