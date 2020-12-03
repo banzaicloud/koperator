@@ -1,4 +1,4 @@
-// Copyright © 2019 Banzai Cloud
+// Copyright © 2020 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package tests
 
 import (
 	"context"
@@ -60,6 +60,7 @@ import (
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -86,16 +87,16 @@ var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
-			filepath.Join("..", "config", "base", "crds"),
+			filepath.Join("..", "..", "config", "base", "crds"),
 			// "https://github.com/jetstack/cert-manager/releases/download/v1.1.0/cert-manager.yaml",
-			filepath.Join("..", "config", "test", "crd", "cert-manager"),
-			filepath.Join("..", "config", "test", "crd", "istio"),
+			filepath.Join("..", "..", "config", "test", "crd", "cert-manager"),
+			filepath.Join("..", "..", "config", "test", "crd", "istio"),
 		},
 		AttachControlPlaneOutput: false,
 	}
 
 	if os.Getenv("KUBEBUILDER_ASSETS") == "" {
-		err := os.Setenv("KUBEBUILDER_ASSETS", filepath.Join("..", "bin", "kubebuilder", "bin"))
+		err := os.Setenv("KUBEBUILDER_ASSETS", filepath.Join("..", "..", "bin", "kubebuilder", "bin"))
 		Expect(err).ToNot(HaveOccurred())
 	}
 
@@ -137,14 +138,14 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(mgr).ToNot(BeNil())
 
-	kafkaClusterReconciler := KafkaClusterReconciler{
+	kafkaClusterReconciler := controllers.KafkaClusterReconciler{
 		Client:       mgr.GetClient(),
 		DirectClient: mgr.GetAPIReader(),
 		Log:          ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
 		Scheme:       mgr.GetScheme(),
 	}
 
-	err = SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
+	err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
 	/*err = SetupKafkaTopicWithManager(mgr)
@@ -195,7 +196,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))*/
 
 	close(done)
-}, 600)
+}, 60)
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
