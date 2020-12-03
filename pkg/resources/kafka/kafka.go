@@ -71,11 +71,12 @@ const (
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
-	Scheme *runtime.Scheme
+	Scheme              *runtime.Scheme
+	kafkaClientProvider kafkaclient.Provider
 }
 
 // New creates a new reconciler for Kafka
-func New(client client.Client, directClient client.Reader, scheme *runtime.Scheme, cluster *v1beta1.KafkaCluster) *Reconciler {
+func New(client client.Client, directClient client.Reader, scheme *runtime.Scheme, cluster *v1beta1.KafkaCluster, kafkaClientProvider kafkaclient.Provider) *Reconciler {
 	return &Reconciler{
 		Scheme: scheme,
 		Reconciler: resources.Reconciler{
@@ -83,6 +84,7 @@ func New(client client.Client, directClient client.Reader, scheme *runtime.Schem
 			DirectClient: directClient,
 			KafkaCluster: cluster,
 		},
+		kafkaClientProvider: kafkaClientProvider,
 	}
 }
 func getCreatedPvcForBroker(c client.Client, brokerID int32, namespace, crName string) ([]corev1.PersistentVolumeClaim, error) {
@@ -486,7 +488,7 @@ func (r *Reconciler) getServerAndClientDetails() (string, string, []string, erro
 }
 
 func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, log logr.Logger) error {
-	kClient, err := kafkaclient.NewFromCluster(r.Client, r.KafkaCluster)
+	kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 	}
@@ -534,7 +536,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 }
 
 func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
-	kClient, err := kafkaclient.NewFromCluster(r.Client, r.KafkaCluster)
+	kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 	}
@@ -708,7 +710,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod) 
 
 				errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
 
-				kClient, err := kafkaclient.NewFromCluster(r.Client, r.KafkaCluster)
+				kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
 				if err != nil {
 					return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 				}

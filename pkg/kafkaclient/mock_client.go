@@ -170,3 +170,7 @@ func (m *mockClusterAdmin) DeleteACL(filter sarama.AclFilter, validateOnly bool)
 		return []sarama.MatchingAcl{sarama.MatchingAcl{}}, nil
 	}
 }
+
+func (m *mockClusterAdmin) DescribeConfig(resource sarama.ConfigResource) ([]sarama.ConfigEntry, error) {
+	return []sarama.ConfigEntry{}, nil
+}

@@ -31,6 +31,7 @@ package tests
 
 import (
 	"context"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"os"
 	"path/filepath"
 	"testing"
@@ -74,7 +75,7 @@ var testEnv *envtest.Environment
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	ginkoconfig.DefaultReporterConfig.SlowSpecThreshold = 60
+	ginkoconfig.DefaultReporterConfig.SlowSpecThreshold = 120
 
 	RunSpecsWithDefaultAndCustomReporters(t,
 		"Controller Suite",
@@ -139,10 +140,11 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(mgr).ToNot(BeNil())
 
 	kafkaClusterReconciler := controllers.KafkaClusterReconciler{
-		Client:       mgr.GetClient(),
-		DirectClient: mgr.GetAPIReader(),
-		Log:          ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
-		Scheme:       mgr.GetScheme(),
+		Client:              mgr.GetClient(),
+		DirectClient:        mgr.GetAPIReader(),
+		Log:                 ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
+		Scheme:              mgr.GetScheme(),
+		KafkaClientProvider: kafkaclient.NewMockProvider(),
 	}
 
 	err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
