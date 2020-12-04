@@ -20,7 +20,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"sync/atomic"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -130,17 +129,7 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 		err = k8sClient.Create(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
-		Eventually(func() (v1beta1.ClusterState, error) {
-			createdKafkaCluster := &v1beta1.KafkaCluster{}
-			err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, createdKafkaCluster)
-			if err != nil {
-				return v1beta1.KafkaClusterReconciling, err
-			}
-			if createdKafkaCluster == nil {
-				return v1beta1.KafkaClusterReconciling, nil
-			}
-			return createdKafkaCluster.Status.State, nil
-		}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1beta1.KafkaClusterRunning))
+		waitClusterRunningState(kafkaCluster, namespace)
 	})
 
 	JustAfterEach(func() {
