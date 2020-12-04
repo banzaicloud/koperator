@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
@@ -66,7 +67,6 @@ var _ = Describe("KafkaCluster", func() {
 							ExternalStartingPort: 11202,
 							HostnameOverride:     "test-host",
 							AccessMethod:         corev1.ServiceTypeLoadBalancer,
-							// ServiceAnnotations:   nil,
 						},
 					},
 					InternalListeners: []v1beta1.InternalListenerConfig{
@@ -116,6 +116,16 @@ var _ = Describe("KafkaCluster", func() {
 				},
 				ClusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.6.0-bzc.1",
 				ZKAddresses:  []string{},
+				MonitoringConfig: v1beta1.MonitoringConfig{
+					CCJMXExporterConfig: "custom_property: custom_value",
+				},
+				CruiseControlConfig: v1beta1.CruiseControlConfig{
+					TopicConfig: &v1beta1.TopicConfig{
+						Partitions:        7,
+						ReplicationFactor: 2,
+					},
+					Config: "some.config=value",
+				},
 			},
 		}
 	})
@@ -152,6 +162,8 @@ var _ = Describe("KafkaCluster", func() {
 	It("should reconciles objects properly", func() {
 		expectEnvoy(kafkaCluster, namespace)
 		expectKafkaMonitoring(kafkaCluster, namespace)
+		expectCruiseControlMonitoring(kafkaCluster, namespace)
+		expectCruiseControl(kafkaCluster, namespace)
 	})
 })
 
@@ -165,4 +177,17 @@ func expectKafkaMonitoring(kafkaCluster *v1beta1.KafkaCluster, namespace string)
 
 	Expect(configMap.Labels).To(And(HaveKeyWithValue("app", "kafka-jmx"), HaveKeyWithValue("kafka_cr", kafkaCluster.Name)))
 	Expect(configMap.Data).To(HaveKeyWithValue("config.yaml", Not(BeEmpty())))
+}
+
+func expectCruiseControlMonitoring(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+	configMap := corev1.ConfigMap{}
+	configMapName := fmt.Sprintf("%s-cc-jmx-exporter", kafkaCluster.Name)
+	logf.Log.Info("name", "name", configMapName)
+	Eventually(func() error {
+		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: namespace}, &configMap)
+		return err
+	}).Should(Succeed())
+
+	Expect(configMap.Labels).To(And(HaveKeyWithValue("app", "cruisecontrol-jmx"), HaveKeyWithValue("kafka_cr", kafkaCluster.Name)))
+	Expect(configMap.Data).To(HaveKeyWithValue("config.yaml", kafkaCluster.Spec.MonitoringConfig.CCJMXExporterConfig))
 }
