@@ -129,6 +129,25 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err = k8sClient.Create(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(func() (v1beta1.ClusterState, error) {
+			createdKafkaCluster := &v1beta1.KafkaCluster{}
+			err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, createdKafkaCluster)
+			if err != nil {
+				return v1beta1.KafkaClusterReconciling, err
+			}
+			if createdKafkaCluster == nil {
+				return v1beta1.KafkaClusterReconciling, nil
+			}
+			return createdKafkaCluster.Status.State, nil
+		}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1beta1.KafkaClusterRunning))
+	})
+
+	JustAfterEach(func() {
+		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
+		err := k8sClient.Delete(context.TODO(), kafkaCluster)
+		Expect(err).NotTo(HaveOccurred())
+		kafkaCluster = nil
 	})
 
 	It("service successfully reconciled", func() {
@@ -137,7 +156,7 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 		Eventually(func() error {
 			err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: svcName}, &svc)
 			return err
-		}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
+		}).Should(Succeed())
 
 		Expect(svc.Labels).To(Equal(map[string]string{
 			"app":      "kafka",
