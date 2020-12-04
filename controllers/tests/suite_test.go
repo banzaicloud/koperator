@@ -109,24 +109,15 @@ var _ = BeforeSuite(func(done Done) {
 
 	scheme := runtime.NewScheme()
 
-	err = k8sscheme.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = apiextensionsv1beta1.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = v1beta1.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = cmv1alpha2.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = cmv1alpha3.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = banzaicloudv1alpha1.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = banzaicloudv1beta1.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = banzaiistiov1beta1.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = istioclientv1alpha3.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sscheme.AddToScheme(scheme)).To(Succeed())
+	Expect(apiextensionsv1beta1.AddToScheme(scheme)).To(Succeed())
+	Expect(v1beta1.AddToScheme(scheme)).To(Succeed())
+	Expect(cmv1alpha2.AddToScheme(scheme)).To(Succeed())
+	Expect(cmv1alpha3.AddToScheme(scheme)).To(Succeed())
+	Expect(banzaicloudv1alpha1.AddToScheme(scheme)).To(Succeed())
+	Expect(banzaicloudv1beta1.AddToScheme(scheme)).To(Succeed())
+	Expect(banzaiistiov1beta1.AddToScheme(scheme)).To(Succeed())
+	Expect(istioclientv1alpha3.AddToScheme(scheme)).To(Succeed())
 
 	// +kubebuilder:scaffold:scheme
 

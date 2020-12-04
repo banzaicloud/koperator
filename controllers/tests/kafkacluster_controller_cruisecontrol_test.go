@@ -17,142 +17,235 @@ package tests
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
-var _ = PDescribe("CruiseControlReconciler", func() {
-	var (
-		count        uint64 = 0
-		namespace    string
-		namespaceObj *corev1.Namespace
-		kafkaCluster *v1beta1.KafkaCluster
-	)
+func expectCruiseControl(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+	expectCruiseControlTopic(kafkaCluster, namespace)
+	expectCruiseControlService(kafkaCluster, namespace)
+	expectCruiseControlConfigMap(kafkaCluster, namespace)
+	expectCruiseControlDeployment(kafkaCluster, namespace)
+}
 
-	BeforeEach(func() {
-		atomic.AddUint64(&count, 1)
+func expectCruiseControlTopic(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+	createdKafkaCluster := &v1beta1.KafkaCluster{}
+	err := k8sClient.Get(context.TODO(), types.NamespacedName{
+		Name:      kafkaCluster.Name,
+		Namespace: namespace,
+	}, createdKafkaCluster)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(createdKafkaCluster.Status.CruiseControlTopicStatus).To(Equal(v1beta1.CruiseControlTopicReady))
 
-		namespace = fmt.Sprintf("kafka-cc-%v", count)
-		namespaceObj = &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: namespace,
+	topic := &v1alpha1.KafkaTopic{}
+	Eventually(func() error {
+		topicObjName := fmt.Sprintf("%s-cruise-control-topic", kafkaCluster.Name)
+		return k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: topicObjName}, topic)
+	}).Should(Succeed())
+
+	Expect(topic).NotTo(BeNil())
+	Expect(topic.Labels).To(HaveKeyWithValue("app", "kafka"))
+	Expect(topic.Labels).To(HaveKeyWithValue("clusterName", kafkaCluster.Name))
+	Expect(topic.Labels).To(HaveKeyWithValue("clusterNamespace", namespace))
+
+	Expect(topic.Spec).To(Equal(v1alpha1.KafkaTopicSpec{
+		Name:              "__CruiseControlMetrics",
+		Partitions:        7,
+		ReplicationFactor: 2,
+		ClusterRef: v1alpha1.ClusterReference{
+			Name:      kafkaCluster.Name,
+			Namespace: namespace,
+		},
+	}))
+}
+
+func expectCruiseControlService(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+	service := &corev1.Service{}
+	Eventually(func() error {
+		return k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: namespace,
+			Name:      fmt.Sprintf("%s-cruisecontrol-svc", kafkaCluster.Name),
+		}, service)
+	}).Should(Succeed())
+
+	Expect(service.Labels).To(HaveKeyWithValue("app", "cruisecontrol"))
+	Expect(service.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(service.Spec.Ports).To(ConsistOf(
+		corev1.ServicePort{
+			Name:       "cc",
+			Protocol:   "TCP",
+			Port:       8090,
+			TargetPort: intstr.FromInt(8090),
+		},
+		corev1.ServicePort{
+			Name:       "metrics",
+			Protocol:   "TCP",
+			Port:       9020,
+			TargetPort: intstr.FromInt(9020),
+		},
+	))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue("kafka_cr", "kafkacluster-1"))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue("app", "cruisecontrol"))
+}
+
+func expectCruiseControlConfigMap(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+	configMap := &corev1.ConfigMap{}
+	Eventually(func() error {
+		return k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: namespace,
+			Name:      fmt.Sprintf("%s-cruisecontrol-config", kafkaCluster.Name),
+		}, configMap)
+	}).Should(Succeed())
+
+	Expect(configMap.Labels).To(HaveKeyWithValue("app", "cruisecontrol"))
+	Expect(configMap.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+
+	Expect(configMap.Data).To(HaveKeyWithValue("cruisecontrol.properties", fmt.Sprintf(`some.config=value
+# The Kafka cluster to control.
+bootstrap.servers=%s-all-broker:29092
+# The zookeeper connect of the Kafka cluster
+zookeeper.connect=/
+`, kafkaCluster.Name)))
+	Expect(configMap.Data).To(HaveKeyWithValue("capacity.json", `{
+    "brokerCapacities": [
+        {
+            "brokerId": "0",
+            "capacity": {
+                "DISK": {
+                    "/kafka-logs/kafka": "10737418240"
+                },
+                "CPU": "150",
+                "NW_IN": "125000",
+                "NW_OUT": "125000"
+            },
+            "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+        }
+    ]
+}`))
+	Expect(configMap.Data).To(HaveKeyWithValue("clusterConfigs.json", ""))
+	Expect(configMap.Data).To(HaveKeyWithValue("log4j.properties", `log4j.rootLogger = INFO, FILE
+log4j.appender.FILE=org.apache.log4j.ConsoleAppender
+log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
+log4j.appender.FILE.layout.conversionPattern=%-6r [%15.15t] %-5p %30.30c %x - %m%n`))
+}
+
+func expectCruiseControlDeployment(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+	deployment := &appsv1.Deployment{}
+	deploymentName := fmt.Sprintf("%s-cruisecontrol", kafkaCluster.Name)
+	Eventually(func() error {
+		return k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: namespace,
+			Name:      deploymentName,
+		}, deployment)
+	}).Should(Succeed())
+
+	Expect(deployment.Labels).To(HaveKeyWithValue("app", "cruisecontrol"))
+	Expect(deployment.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+
+	Expect(deployment.Spec.Selector).NotTo(BeNil())
+	Expect(deployment.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app", "cruisecontrol"))
+	Expect(deployment.Spec.Selector.MatchLabels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+
+	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlCapacity.json"))
+	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlClusterConfig.json"))
+	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlConfig.json"))
+	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlLogConfig.json"))
+
+	// init container
+	Expect(deployment.Spec.Template.Spec.InitContainers).To(HaveLen(1))
+	initContainer := deployment.Spec.Template.Spec.InitContainers[0]
+	Expect(initContainer.Name).To(Equal("jmx-exporter"))
+	Expect(initContainer.Image).To(Equal("ghcr.io/banzaicloud/jmx-javaagent:0.14.0"))
+	Expect(initContainer.Command).To(Equal([]string{"cp", "/opt/jmx_exporter/jmx_prometheus_javaagent-0.14.0.jar", "/opt/jmx-exporter/jmx_prometheus.jar"}))
+	Expect(initContainer.VolumeMounts).To(ConsistOf(corev1.VolumeMount{
+		Name:      "jmx-jar-data",
+		MountPath: "/opt/jmx-exporter/",
+	}))
+
+	// container
+	Expect(deployment.Spec.Template.Spec.Containers).To(HaveLen(1))
+	container := deployment.Spec.Template.Spec.Containers[0]
+	Expect(container.Name).To(Equal(deploymentName))
+	Expect(container.Env).To(ConsistOf(corev1.EnvVar{Name: "KAFKA_OPTS", Value: "-javaagent:/opt/jmx-exporter/jmx_prometheus.jar=9020:/etc/jmx-exporter/config.yaml"}))
+	Expect(container.Lifecycle).NotTo(BeNil())
+	Expect(container.Lifecycle.PreStop).NotTo(BeNil())
+	Expect(container.Lifecycle.PreStop.Exec).NotTo(BeNil())
+	Expect(container.Image).To(Equal("ghcr.io/banzaicloud/cruise-control:2.5.23"))
+	Expect(container.Ports).To(ConsistOf(
+		corev1.ContainerPort{
+			ContainerPort: 8090,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		corev1.ContainerPort{
+			ContainerPort: 9020,
+			Protocol:      corev1.ProtocolTCP,
+		},
+	))
+	Expect(container.Resources).To(Equal(corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse("200m"),
+			"memory": resource.MustParse("512Mi"),
+		},
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("200m"),
+			"memory": resource.MustParse("512Mi"),
+		},
+	}))
+	Expect(container.ReadinessProbe).NotTo(BeNil())
+	Expect(container.ReadinessProbe.Handler).To(Equal(
+		corev1.Handler{
+			TCPSocket: &corev1.TCPSocketAction{
+				Port: intstr.FromInt(8090),
 			},
-		}
+		}))
+	Expect(container.VolumeMounts).To(ConsistOf(
+		corev1.VolumeMount{
+			Name:      fmt.Sprintf("%s-cruisecontrol-config", kafkaCluster.Name),
+			MountPath: "/opt/cruise-control/config",
+		},
+		corev1.VolumeMount{
+			Name:      "jmx-jar-data",
+			MountPath: "/opt/jmx-exporter/",
+		},
+		corev1.VolumeMount{
+			Name:      fmt.Sprintf("%s-cc-jmx-exporter", kafkaCluster.Name),
+			MountPath: "/etc/jmx-exporter/",
+		}))
 
-		// create default Kafka cluster spec
-		kafkaCluster = &v1beta1.KafkaCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("kafkacluster-%v", count),
-				Namespace: namespace,
-			},
-			Spec: v1beta1.KafkaClusterSpec{
-				ListenersConfig: v1beta1.ListenersConfig{
-					ExternalListeners: []v1beta1.ExternalListenerConfig{},
-					InternalListeners: []v1beta1.InternalListenerConfig{},
+	Expect(deployment.Spec.Template.Spec.Volumes).To(ConsistOf(
+		corev1.Volume{
+			Name: fmt.Sprintf("%s-cruisecontrol-config", kafkaCluster.Name),
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf("%s-cruisecontrol-config", kafkaCluster.Name)},
+					DefaultMode:          util.Int32Pointer(0644),
 				},
-				Brokers:     []v1beta1.Broker{},
-				ZKAddresses: []string{},
 			},
-		}
-	})
-
-	JustBeforeEach(func() {
-		By("creating namespace " + namespace)
-		err := k8sClient.Create(context.TODO(), namespaceObj)
-		Expect(err).NotTo(HaveOccurred())
-
-		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err = k8sClient.Create(context.TODO(), kafkaCluster)
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	Context("CruiseControl topics", func() {
-		BeforeEach(func() {
-			kafkaCluster.Spec.CruiseControlConfig = v1beta1.CruiseControlConfig{
-				CruiseControlEndpoint: "test",
-			}
-		})
-
-		PWhen("CC automatic topic creation is disabled in CC config", func() {
-			BeforeEach(func() {
-				kafkaCluster.Spec.ReadOnlyConfig = "cruise.control.metrics.topic.auto.create=false"
-
-				kafkaCluster.Spec.CruiseControlConfig.TopicConfig = &v1beta1.TopicConfig{
-					Partitions:        7,
-					ReplicationFactor: 2,
-				}
-			})
-
-			It("creates CC Kafka topic", func() {
-				topic := &v1alpha1.KafkaTopic{}
-				Eventually(func() error {
-					topicObjName := fmt.Sprintf("%s-cruise-control-topic", kafkaCluster.Name)
-					err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: topicObjName}, topic)
-					if meta.IsNoMatchError(err) || apierrors.IsNotFound(err) {
-						return nil
-					}
-					return err
-				}, 5000, 1000).Should(Succeed())
-
-				Expect(topic).To(BeNil())
-				Expect(topic.Name).To(Equal(fmt.Sprintf("%s-cruise-control-topic", kafkaCluster.Name)))
-				Expect(topic.Labels).To(HaveKeyWithValue("app", "kafka"))
-				Expect(topic.Labels).To(HaveKeyWithValue("clusterName", kafkaCluster.Name))
-				Expect(topic.Labels).To(HaveKeyWithValue("clusterNamespace", namespace))
-
-				Expect(topic.Spec).To(Equal(v1alpha1.KafkaTopicSpec{
-					Name:              "__CruiseControlMetrics",
-					Partitions:        7,
-					ReplicationFactor: 2,
-					ClusterRef: v1alpha1.ClusterReference{
-						Name:      kafkaCluster.Name,
-						Namespace: namespace,
-					},
-				}))
-			})
-		})
-
-		When("CC automatic topic creation is enabled in CC config", func() {
-			BeforeEach(func() {
-				kafkaCluster.Spec.ReadOnlyConfig = "cruise.control.metrics.topic.auto.create=true"
-			})
-
-			It("does not create CC Kafka topic", func() {
-				Consistently(func() ([]v1alpha1.KafkaTopic, error) {
-					topicList := &v1alpha1.KafkaTopicList{}
-					err := k8sClient.List(context.Background(), topicList, client.InNamespace(namespace), client.MatchingLabels{"app": "kafka"})
-					if err != nil {
-						return nil, err
-					}
-					return topicList.Items, nil
-				}).Should(BeEmpty())
-			})
-		})
-	})
-
-	It("reconciles without error when not enabled", func() {
-
-	})
-
-	When("CC is enabled", func() {
-		BeforeEach(func() {
-
-		})
-
-		It("reconciles correctly", func() {
-			// CC topic generation assert is in another ginkgo path
-		})
-	})
-})
+		},
+		corev1.Volume{
+			Name: fmt.Sprintf("%s-cc-jmx-exporter", kafkaCluster.Name),
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf("%s-cc-jmx-exporter", kafkaCluster.Name)},
+					DefaultMode:          util.Int32Pointer(0644),
+				},
+			},
+		},
+		corev1.Volume{
+			Name: "jmx-jar-data",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	))
+}
