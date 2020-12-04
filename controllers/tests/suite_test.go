@@ -31,10 +31,10 @@ package tests
 
 import (
 	"context"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -54,14 +54,16 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	istioclientv1alpha3 "github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
-	banzaiistiov1beta1 "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
 	cmv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	cmv1alpha3 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha3"
+
+	istioclientv1alpha3 "github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	banzaiistiov1beta1 "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/controllers"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -196,3 +198,17 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
+
+func waitClusterRunningState(kafkaCluster *banzaicloudv1beta1.KafkaCluster, namespace string) {
+	Eventually(func() (banzaicloudv1beta1.ClusterState, error) {
+		createdKafkaCluster := &banzaicloudv1beta1.KafkaCluster{}
+		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, createdKafkaCluster)
+		if err != nil {
+			return banzaicloudv1beta1.KafkaClusterReconciling, err
+		}
+		if createdKafkaCluster == nil {
+			return banzaicloudv1beta1.KafkaClusterReconciling, nil
+		}
+		return createdKafkaCluster.Status.State, nil
+	}, 5*time.Second, 100*time.Millisecond).Should(Equal(banzaicloudv1beta1.KafkaClusterRunning))
+}
