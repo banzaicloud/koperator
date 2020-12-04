@@ -132,6 +132,18 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 		By("creating Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err = k8sClient.Create(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(func() (v1beta1.ClusterState, error) {
+			createdKafkaCluster := &v1beta1.KafkaCluster{}
+			err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, createdKafkaCluster)
+			if err != nil {
+				return v1beta1.KafkaClusterReconciling, err
+			}
+			if createdKafkaCluster == nil {
+				return v1beta1.KafkaClusterReconciling, nil
+			}
+			return createdKafkaCluster.Status.State, nil
+		}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1beta1.KafkaClusterRunning))
 	})
 
 	JustAfterEach(func() {
@@ -165,7 +177,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: meshGatewayName}, &meshGateway)
 				return err
-			}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
+			}).Should(Succeed())
 
 			meshGatewayConf := meshGateway.Spec.MeshGatewayConfiguration
 			ExpectIstioIngressLabels(meshGatewayConf.Labels, "test", kafkaClusterCRName)
