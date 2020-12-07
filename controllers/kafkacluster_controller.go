@@ -161,7 +161,7 @@ func (r *KafkaClusterReconciler) Reconcile(request ctrl.Request) (ctrl.Result, e
 					RequeueAfter: time.Duration(20) * time.Second,
 				}, nil
 			case errorfactory.PerBrokerConfigNotReady:
-				log.V(1).Info("broker configuration was dynamically updated")
+				log.V(1).Info("dynamically updated broker configuration hasn't propagated through yet")
 				return ctrl.Result{
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
