@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
@@ -44,7 +45,6 @@ func expectKafka(kafkaCluster *v1beta1.KafkaCluster) {
 	}
 
 	// TODO test reconcile PKI?
-
 	// TODO test reconcileKafkaPodDelete
 }
 
@@ -231,15 +231,88 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 
 	Expect(pod.GenerateName).To(Equal(fmt.Sprintf("%s-%d-", kafkaCluster.Name, broker.Id)))
 	Expect(pod.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+	getContainerName := func(c corev1.Container) string {return c.Name}
 	Expect(pod.Spec.InitContainers).To(ConsistOf(
-		WithTransform(func(c corev1.Container) string {return c.Name}, Equal("cruise-control-reporter")),
-		WithTransform(func(c corev1.Container) string {return c.Name}, Equal("jmx-exporter"))))
+		WithTransform(getContainerName, Equal("cruise-control-reporter")),
+		WithTransform(getContainerName, Equal("jmx-exporter"))))
 
-	// Affinity
-	// Containers
-	// Volumes
-	// RestartPolicy
-	// TerminationGracePeriodSeconds
+	Expect(pod.Spec.Affinity).NotTo(BeNil())
+	Expect(pod.Spec.Affinity.PodAntiAffinity).NotTo(BeNil())
 
-	// optionally other fields
+	Expect(pod.Spec.Containers).To(HaveLen(1))
+	container := pod.Spec.Containers[0]
+	Expect(container.Name).To(Equal("kafka"))
+	Expect(container.Image).To(Equal("ghcr.io/banzaicloud/kafka:2.13-2.6.0-bzc.1"))
+	Expect(container.Lifecycle).NotTo(BeNil())
+	Expect(container.Lifecycle.PreStop).NotTo(BeNil())
+	getEnvName := func(c corev1.EnvVar) string {return c.Name}
+	Expect(container.Env).To(ConsistOf(
+		// the exact value is not interesting
+		WithTransform(getEnvName, Equal("CLASSPATH")),
+		WithTransform(getEnvName, Equal("KAFKA_OPTS")),
+		WithTransform(getEnvName, Equal("KAFKA_JVM_PERFORMANCE_OPTS")),
+
+		// the exact value should be checked
+		corev1.EnvVar{
+			Name: "ENVOY_SIDECAR_STATUS",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath: `metadata.annotations['sidecar.istio.io/status']`,
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "KAFKA_HEAP_OPTS",
+			Value: "-Xmx2G -Xms2G",
+		},
+		))
+
+	getVolumeName := func(vol corev1.Volume) string {return vol.Name}
+	Expect(pod.Spec.Volumes).To(ConsistOf(
+		corev1.Volume{
+			Name: "exitfile",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		corev1.Volume{
+			Name: "broker-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf("%s-config-%d", kafkaCluster.Name, broker.Id)},
+					DefaultMode:          util.Int32Pointer(0644),
+				},
+			},
+		},
+		corev1.Volume{
+			Name: "extensions",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		corev1.Volume{
+			Name: fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, kafkaCluster.Name),
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, kafkaCluster.Name)},
+					DefaultMode:          util.Int32Pointer(0644),
+				},
+			},
+		},
+		corev1.Volume{
+			Name: "jmx-jar-data",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+
+		// the name of the PVC is dynamically created - no exact match
+		WithTransform(getVolumeName, Equal(fmt.Sprintf("kafka-data-%d", broker.Id))),
+		))
+
+	Expect(pod.Spec.RestartPolicy).To(Equal(corev1.RestartPolicyNever))
+	Expect(pod.Spec.TerminationGracePeriodSeconds).To(Equal(util.Int64Pointer(120)))
+
+	// expect some other fields
 }
