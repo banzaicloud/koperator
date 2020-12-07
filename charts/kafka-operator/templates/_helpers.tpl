@@ -46,9 +46,9 @@ Compute operator deployment serviceAccountName key
 Compute operator prometheus metrics auth proxy service account
 */}}
 {{- define "operator.metricsAuthProxy.serviceAccountName" -}}
-{{- if .Values.prometheusMetrics.authProxy.serviceAccount.name -}}
+{{- if .Values.prometheusMetrics.authProxy.serviceAccount.create -}}
 {{ default "default" .Values.prometheusMetrics.authProxy.serviceAccount.name }}
 {{- else -}}
-{{- printf "%s" "default" }}
+{{ default "default" .Values.prometheusMetrics.authProxy.serviceAccount.name }}
 {{- end -}}
 {{- end -}}
