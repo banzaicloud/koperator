@@ -299,8 +299,8 @@ func (r *Reconciler) updateBrokerStatus(log logr.Logger, desired *corev1.ConfigM
 	if k8sutil.CheckIfObjectUpdated(log, desiredType, current, desired) {
 		// Only update status when configmap belongs to broker
 		if id, ok := desired.Labels["brokerId"]; ok {
-			currentConfigs := getBrokerConfigsFromConfigMap(current.(*corev1.ConfigMap))
-			desiredConfigs := getBrokerConfigsFromConfigMap(desired)
+			currentConfigs := util.ParsePropertiesFormat(current.(*corev1.ConfigMap).Data["broker-config"])
+			desiredConfigs := util.ParsePropertiesFormat(desired.Data["broker-config"])
 
 			var statusErr error
 			// if only per broker configs are changed, do not trigger rolling upgrade by setting ConfigOutOfSync status
@@ -331,14 +331,14 @@ OUTERLOOP:
 			if currentConfigs[securityProtocolMapConfigName] == "" || desiredConfigs[securityProtocolMapConfigName] == "" {
 				continue
 			}
-			currentListenerProtocolMap := make(map[string]string, 0)
-			desiredListenerProtocolMap := make(map[string]string, 0)
+			currentListenerProtocolMap := make(map[string]string)
+			desiredListenerProtocolMap := make(map[string]string)
 			for _, listenerConfig := range strings.Split(currentConfigs[securityProtocolMapConfigName], ",") {
-				listenerKeyValue := strings.Split(listenerConfig, ":")
-				if len(listenerKeyValue) != 2 {
+				listenerProtocol := strings.Split(listenerConfig, ":")
+				if len(listenerProtocol) != 2 {
 					continue
 				}
-				currentListenerProtocolMap[listenerKeyValue[0]] = listenerKeyValue[1]
+				currentListenerProtocolMap[strings.TrimSpace(listenerProtocol[0])] = strings.TrimSpace(listenerProtocol[1])
 			}
 			for _, listenerConfig := range strings.Split(desiredConfigs[securityProtocolMapConfigName], ",") {
 				listenerKeyValue := strings.Split(listenerConfig, ":")
@@ -372,7 +372,7 @@ OUTERLOOP:
 func collectTouchedConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) []string {
 	touchedConfigs := make([]string, 0)
 
-	currentConfigsCopy := make(map[string]string, 0)
+	currentConfigsCopy := make(map[string]string)
 	for k, v := range currentConfigs {
 		currentConfigsCopy[k] = v
 	}

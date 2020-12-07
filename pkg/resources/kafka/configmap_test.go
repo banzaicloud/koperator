@@ -403,7 +403,9 @@ key5=value5`,
 				"broker-config": testCase.CurrentConfigs,
 			},
 		}
-		touchedConfigs := collectTouchedConfigs(getBrokerConfigsFromConfigMap(current), getBrokerConfigsFromConfigMap(desired), logger)
+		touchedConfigs := collectTouchedConfigs(
+			util.ParsePropertiesFormat(current.Data["broker-config"]),
+			util.ParsePropertiesFormat(desired.Data["broker-config"]), logger)
 		sort.Strings(touchedConfigs)
 		if !reflect.DeepEqual(touchedConfigs, testCase.Result) {
 			t.Errorf("comparison failed - expected: %s, actual: %s", testCase.Result, touchedConfigs)
