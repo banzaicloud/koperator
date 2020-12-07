@@ -16,7 +16,6 @@ package kafka
 
 import (
 	"reflect"
-	"sort"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -342,7 +341,7 @@ func TestCollectTouchedConfigs(t *testing.T) {
 	testCases := []struct {
 		DesiredConfigs string
 		CurrentConfigs string
-		Result         []string
+		Result         map[string]struct{}
 	}{
 		{
 			DesiredConfigs: `key1=value1
@@ -351,7 +350,7 @@ key3=value3`,
 			CurrentConfigs: `key1=value1
 key2=value2
 key3=value3`,
-			Result: []string{},
+			Result: map[string]struct{}{},
 		},
 		{
 			DesiredConfigs: `key1=value1
@@ -359,7 +358,9 @@ key2=value2`,
 			CurrentConfigs: `key1=value1
 key2=value2
 key3=value3`,
-			Result: []string{"key3"},
+			Result: map[string]struct{}{
+				"key3": {},
+			},
 		},
 		{
 			DesiredConfigs: `key1=value1
@@ -367,7 +368,9 @@ key2=value2
 key3=value3`,
 			CurrentConfigs: `key1=value1
 key2=value2`,
-			Result: []string{"key3"},
+			Result: map[string]struct{}{
+				"key3": {},
+			},
 		},
 		{
 			DesiredConfigs: `key1=value1
@@ -376,7 +379,9 @@ key3=value3`,
 			CurrentConfigs: `key1=value1
 key2=value4
 key3=value3`,
-			Result: []string{"key2"},
+			Result: map[string]struct{}{
+				"key2": {},
+			},
 		},
 		{
 			DesiredConfigs: `key1=value1
@@ -387,7 +392,11 @@ key4=value4`,
 key2=value2
 key3=value3
 key5=value5`,
-			Result: []string{"key1", "key4", "key5"},
+			Result: map[string]struct{}{
+				"key1": {},
+				"key4": {},
+				"key5": {},
+			},
 		},
 	}
 
@@ -406,7 +415,6 @@ key5=value5`,
 		touchedConfigs := collectTouchedConfigs(
 			util.ParsePropertiesFormat(current.Data["broker-config"]),
 			util.ParsePropertiesFormat(desired.Data["broker-config"]), logger)
-		sort.Strings(touchedConfigs)
 		if !reflect.DeepEqual(touchedConfigs, testCase.Result) {
 			t.Errorf("comparison failed - expected: %s, actual: %s", testCase.Result, touchedConfigs)
 		}

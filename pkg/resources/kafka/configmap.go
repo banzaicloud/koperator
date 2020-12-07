@@ -322,55 +322,52 @@ func (r *Reconciler) updateBrokerStatus(log logr.Logger, desired *corev1.ConfigM
 func shouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) bool {
 	touchedConfigs := collectTouchedConfigs(currentConfigs, desiredConfigs, log)
 
-OUTERLOOP:
-	for _, config := range touchedConfigs {
-		// Security protocol cannot be updated for existing listener
-		// a rolling upgrade should be triggered in this case
-		if config == securityProtocolMapConfigName {
-			// added or deleted config is ok
-			if currentConfigs[securityProtocolMapConfigName] == "" || desiredConfigs[securityProtocolMapConfigName] == "" {
-				continue
-			}
-			currentListenerProtocolMap := make(map[string]string)
-			desiredListenerProtocolMap := make(map[string]string)
-			for _, listenerConfig := range strings.Split(currentConfigs[securityProtocolMapConfigName], ",") {
-				listenerProtocol := strings.Split(listenerConfig, ":")
-				if len(listenerProtocol) != 2 {
-					continue
-				}
-				currentListenerProtocolMap[strings.TrimSpace(listenerProtocol[0])] = strings.TrimSpace(listenerProtocol[1])
-			}
-			for _, listenerConfig := range strings.Split(desiredConfigs[securityProtocolMapConfigName], ",") {
-				listenerKeyValue := strings.Split(listenerConfig, ":")
-				if len(listenerKeyValue) != 2 {
-					continue
-				}
-				desiredListenerProtocolMap[listenerKeyValue[0]] = listenerKeyValue[1]
-			}
+	if _, ok := touchedConfigs[securityProtocolMapConfigName]; ok {
+		if listenersSecurityProtocolChanged(currentConfigs, desiredConfigs) {
+			return false
+		}
+	}
 
-			for protocolName, desiredListenerProtocol := range desiredListenerProtocolMap {
-				if currentListenerProtocol, ok := currentListenerProtocolMap[protocolName]; ok {
-					if currentListenerProtocol != desiredListenerProtocol {
-						return false
-					}
-				}
-			}
-			continue
-		}
-		for _, perBrokerConfig := range perBrokerConfigs {
-			if config == perBrokerConfig {
-				continue OUTERLOOP
-			}
-		}
+	for _, perBrokerConfig := range perBrokerConfigs {
+		delete(touchedConfigs, perBrokerConfig)
+	}
+
+	return len(touchedConfigs) == 0
+}
+
+// Security protocol cannot be updated for existing listener
+// a rolling upgrade should be triggered in this case
+func listenersSecurityProtocolChanged(currentConfigs, desiredConfigs map[string]string) bool {
+	// added or deleted config is ok
+	if currentConfigs[securityProtocolMapConfigName] == "" || desiredConfigs[securityProtocolMapConfigName] == "" {
 		return false
 	}
-	return true
+	currentListenerProtocolMap := make(map[string]string)
+	for _, listenerConfig := range strings.Split(currentConfigs[securityProtocolMapConfigName], ",") {
+		listenerProtocol := strings.Split(listenerConfig, ":")
+		if len(listenerProtocol) != 2 {
+			continue
+		}
+		currentListenerProtocolMap[strings.TrimSpace(listenerProtocol[0])] = strings.TrimSpace(listenerProtocol[1])
+	}
+	for _, listenerConfig := range strings.Split(desiredConfigs[securityProtocolMapConfigName], ",") {
+		desiredListenerProtocol := strings.Split(listenerConfig, ":")
+		if len(desiredListenerProtocol) != 2 {
+			continue
+		}
+		if currentListenerProtocolValue, ok := currentListenerProtocolMap[strings.TrimSpace(desiredListenerProtocol[0])]; ok {
+			if currentListenerProtocolValue != strings.TrimSpace(desiredListenerProtocol[1]) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // collects are the config keys that are either added, removed or updated
 // between the current and the desired ConfigMap
-func collectTouchedConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) []string {
-	touchedConfigs := make([]string, 0)
+func collectTouchedConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) map[string]struct{} {
+	touchedConfigs := make(map[string]struct{})
 
 	currentConfigsCopy := make(map[string]string)
 	for k, v := range currentConfigs {
@@ -380,14 +377,14 @@ func collectTouchedConfigs(currentConfigs, desiredConfigs map[string]string, log
 	for configName, desiredValue := range desiredConfigs {
 		if currentValue, ok := currentConfigsCopy[configName]; !ok || currentValue != desiredValue {
 			// new or updated config
-			touchedConfigs = append(touchedConfigs, configName)
+			touchedConfigs[configName] = struct{}{}
 		}
 		delete(currentConfigsCopy, configName)
 	}
 
 	for configName := range currentConfigsCopy {
 		// deleted config
-		touchedConfigs = append(touchedConfigs, configName)
+		touchedConfigs[configName] = struct{}{}
 	}
 
 	log.V(1).Info("configs have been changed", "configs", touchedConfigs)
