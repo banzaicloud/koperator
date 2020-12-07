@@ -35,10 +35,10 @@ Create chart name and version as used by the chart label.
 Compute operator deployment serviceAccountName key
 */}}
 {{- define "operator.serviceAccountName" -}}
-{{- if .Values.operator.serviceAccount.name -}}
+{{- if .Values.operator.serviceAccount.create -}}
 {{ default "default" .Values.operator.serviceAccount.name }}
 {{- else -}}
-{{- printf "%s" "default" }}
+{{ default "default" .Values.operator.serviceAccount.name }}
 {{- end -}}
 {{- end -}}
 
