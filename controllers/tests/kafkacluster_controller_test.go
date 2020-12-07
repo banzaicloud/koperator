@@ -17,9 +17,10 @@ package tests
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"sync/atomic"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -148,19 +149,19 @@ var _ = Describe("KafkaCluster", func() {
 	})
 
 	It("should reconciles objects properly", func() {
-		expectEnvoy(kafkaCluster, namespace)
-		expectKafkaMonitoring(kafkaCluster, namespace)
-		expectCruiseControlMonitoring(kafkaCluster, namespace)
-		expectKafka(kafkaCluster, namespace)
-		expectCruiseControl(kafkaCluster, namespace)
+		expectEnvoy(kafkaCluster)
+		expectKafkaMonitoring(kafkaCluster)
+		expectCruiseControlMonitoring(kafkaCluster)
+		expectKafka(kafkaCluster)
+		expectCruiseControl(kafkaCluster)
 	})
 })
 
-func expectKafkaMonitoring(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+func expectKafkaMonitoring(kafkaCluster *v1beta1.KafkaCluster) {
 	configMap := corev1.ConfigMap{}
 	configMapName := fmt.Sprintf("%s-kafka-jmx-exporter", kafkaCluster.Name)
 	Eventually(func() error {
-		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: namespace}, &configMap)
+		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: kafkaCluster.Namespace}, &configMap)
 		return err
 	}).Should(Succeed())
 
@@ -168,12 +169,12 @@ func expectKafkaMonitoring(kafkaCluster *v1beta1.KafkaCluster, namespace string)
 	Expect(configMap.Data).To(HaveKeyWithValue("config.yaml", Not(BeEmpty())))
 }
 
-func expectCruiseControlMonitoring(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+func expectCruiseControlMonitoring(kafkaCluster *v1beta1.KafkaCluster) {
 	configMap := corev1.ConfigMap{}
 	configMapName := fmt.Sprintf("%s-cc-jmx-exporter", kafkaCluster.Name)
 	logf.Log.Info("name", "name", configMapName)
 	Eventually(func() error {
-		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: namespace}, &configMap)
+		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: kafkaCluster.Namespace}, &configMap)
 		return err
 	}).Should(Succeed())
 

@@ -31,18 +31,18 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
-func expectCruiseControl(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
-	expectCruiseControlTopic(kafkaCluster, namespace)
-	expectCruiseControlService(kafkaCluster, namespace)
-	expectCruiseControlConfigMap(kafkaCluster, namespace)
-	expectCruiseControlDeployment(kafkaCluster, namespace)
+func expectCruiseControl(kafkaCluster *v1beta1.KafkaCluster) {
+	expectCruiseControlTopic(kafkaCluster)
+	expectCruiseControlService(kafkaCluster)
+	expectCruiseControlConfigMap(kafkaCluster)
+	expectCruiseControlDeployment(kafkaCluster)
 }
 
-func expectCruiseControlTopic(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+func expectCruiseControlTopic(kafkaCluster *v1beta1.KafkaCluster) {
 	createdKafkaCluster := &v1beta1.KafkaCluster{}
 	err := k8sClient.Get(context.TODO(), types.NamespacedName{
 		Name:      kafkaCluster.Name,
-		Namespace: namespace,
+		Namespace: kafkaCluster.Namespace,
 	}, createdKafkaCluster)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(createdKafkaCluster.Status.CruiseControlTopicStatus).To(Equal(v1beta1.CruiseControlTopicReady))
@@ -50,13 +50,13 @@ func expectCruiseControlTopic(kafkaCluster *v1beta1.KafkaCluster, namespace stri
 	topic := &v1alpha1.KafkaTopic{}
 	Eventually(func() error {
 		topicObjName := fmt.Sprintf("%s-cruise-control-topic", kafkaCluster.Name)
-		return k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: topicObjName}, topic)
+		return k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: topicObjName}, topic)
 	}).Should(Succeed())
 
 	Expect(topic).NotTo(BeNil())
 	Expect(topic.Labels).To(HaveKeyWithValue("app", "kafka"))
 	Expect(topic.Labels).To(HaveKeyWithValue("clusterName", kafkaCluster.Name))
-	Expect(topic.Labels).To(HaveKeyWithValue("clusterNamespace", namespace))
+	Expect(topic.Labels).To(HaveKeyWithValue("clusterNamespace", kafkaCluster.Namespace))
 
 	Expect(topic.Spec).To(Equal(v1alpha1.KafkaTopicSpec{
 		Name:              "__CruiseControlMetrics",
@@ -64,16 +64,16 @@ func expectCruiseControlTopic(kafkaCluster *v1beta1.KafkaCluster, namespace stri
 		ReplicationFactor: 2,
 		ClusterRef: v1alpha1.ClusterReference{
 			Name:      kafkaCluster.Name,
-			Namespace: namespace,
+			Namespace: kafkaCluster.Namespace,
 		},
 	}))
 }
 
-func expectCruiseControlService(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+func expectCruiseControlService(kafkaCluster *v1beta1.KafkaCluster) {
 	service := &corev1.Service{}
 	Eventually(func() error {
 		return k8sClient.Get(context.Background(), types.NamespacedName{
-			Namespace: namespace,
+			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-cruisecontrol-svc", kafkaCluster.Name),
 		}, service)
 	}).Should(Succeed())
@@ -98,11 +98,11 @@ func expectCruiseControlService(kafkaCluster *v1beta1.KafkaCluster, namespace st
 	Expect(service.Spec.Selector).To(HaveKeyWithValue("app", "cruisecontrol"))
 }
 
-func expectCruiseControlConfigMap(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+func expectCruiseControlConfigMap(kafkaCluster *v1beta1.KafkaCluster) {
 	configMap := &corev1.ConfigMap{}
 	Eventually(func() error {
 		return k8sClient.Get(context.Background(), types.NamespacedName{
-			Namespace: namespace,
+			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-cruisecontrol-config", kafkaCluster.Name),
 		}, configMap)
 	}).Should(Succeed())
@@ -139,12 +139,12 @@ log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
 log4j.appender.FILE.layout.conversionPattern=%-6r [%15.15t] %-5p %30.30c %x - %m%n`))
 }
 
-func expectCruiseControlDeployment(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+func expectCruiseControlDeployment(kafkaCluster *v1beta1.KafkaCluster) {
 	deployment := &appsv1.Deployment{}
 	deploymentName := fmt.Sprintf("%s-cruisecontrol", kafkaCluster.Name)
 	Eventually(func() error {
 		return k8sClient.Get(context.Background(), types.NamespacedName{
-			Namespace: namespace,
+			Namespace: kafkaCluster.Namespace,
 			Name:      deploymentName,
 		}, deployment)
 	}).Should(Succeed())
