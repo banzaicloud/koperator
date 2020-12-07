@@ -163,8 +163,7 @@ func ParsePropertiesFormat(properties string) map[string]string {
 	kafkaProperties := strings.Split(strings.TrimSpace(properties), "\n")
 	config := make(map[string]string, len(kafkaProperties))
 
-	for i := range kafkaProperties {
-		prop := kafkaProperties[i]
+	for _, prop := range kafkaProperties {
 		kvSeparatorIdx := strings.Index(prop, "=")
 		if kvSeparatorIdx >= 0 {
 			config[strings.TrimSpace(prop[:kvSeparatorIdx])] = strings.TrimSpace(prop[kvSeparatorIdx+1:])

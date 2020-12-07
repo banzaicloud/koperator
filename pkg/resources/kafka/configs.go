@@ -15,13 +15,11 @@
 package kafka
 
 import (
-	"strconv"
-	"strings"
-
 	"emperror.dev/errors"
 	"github.com/Shopify/sarama"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	"strconv"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -62,7 +60,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	}
 
 	// overwrite configs from configmap
-	configsFromConfigMap := getBrokerConfigsFromConfigMap(configMap)
+	configsFromConfigMap := util.ParsePropertiesFormat(configMap.Data["broker-config"])
 	for _, perBrokerConfig := range perBrokerConfigs {
 		if configValue, ok := configsFromConfigMap[perBrokerConfig]; ok {
 			fullPerBrokerConfig[perBrokerConfig] = configValue
@@ -175,20 +173,6 @@ func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
 	}
 
 	return nil
-}
-
-func getBrokerConfigsFromConfigMap(configMap *corev1.ConfigMap) map[string]string {
-	brokerConfig := configMap.Data["broker-config"]
-	configs := strings.Split(brokerConfig, "\n")
-	m := make(map[string]string)
-	for _, config := range configs {
-		elements := strings.Split(config, "=")
-		if len(elements) != 2 {
-			continue
-		}
-		m[strings.TrimSpace(elements[0])] = strings.TrimSpace(elements[1])
-	}
-	return m
 }
 
 func shouldUpdatePerBrokerConfig(response []*sarama.ConfigEntry, parsedBrokerConfig map[string]string) bool {
