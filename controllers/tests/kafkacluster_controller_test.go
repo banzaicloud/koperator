@@ -17,10 +17,9 @@ package tests
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sync/atomic"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -145,6 +144,8 @@ var _ = Describe("KafkaCluster", func() {
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err := k8sClient.Delete(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
+
+		waitForClusterDeletion(kafkaCluster)
 		kafkaCluster = nil
 	})
 
