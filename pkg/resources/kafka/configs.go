@@ -29,7 +29,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
-const securityProtocolMap = "listener.security.protocol.map"
+const securityProtocolMapConfigName = "listener.security.protocol.map"
 
 // these configurations will not trigger rolling upgrade when updated
 var perBrokerConfigs = []string{
@@ -40,7 +40,7 @@ var perBrokerConfigs = []string{
 	"listeners",
 	"advertised.listeners",
 
-	securityProtocolMap,
+	securityProtocolMapConfigName,
 }
 
 func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, configMap *corev1.ConfigMap, log logr.Logger) error {

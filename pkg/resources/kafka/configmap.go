@@ -281,7 +281,7 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 	return strings.Join(completeConfig, "\n")
 }
 
-func (r *Reconciler) postConfigMapReconcile(log logr.Logger, desired *corev1.ConfigMap) error {
+func (r *Reconciler) updateBrokerStatus(log logr.Logger, desired *corev1.ConfigMap) error {
 	desiredType := reflect.TypeOf(desired)
 	current := desired.DeepCopyObject()
 
@@ -326,21 +326,21 @@ OUTERLOOP:
 	for _, config := range touchedConfigs {
 		// Security protocol cannot be updated for existing listener
 		// a rolling upgrade should be triggered in this case
-		if config == securityProtocolMap {
+		if config == securityProtocolMapConfigName {
 			// added or deleted config is ok
-			if currentConfigs[securityProtocolMap] == "" || desiredConfigs[securityProtocolMap] == "" {
+			if currentConfigs[securityProtocolMapConfigName] == "" || desiredConfigs[securityProtocolMapConfigName] == "" {
 				continue
 			}
 			currentListenerProtocolMap := make(map[string]string, 0)
 			desiredListenerProtocolMap := make(map[string]string, 0)
-			for _, listenerConfig := range strings.Split(currentConfigs[securityProtocolMap], ",") {
+			for _, listenerConfig := range strings.Split(currentConfigs[securityProtocolMapConfigName], ",") {
 				listenerKeyValue := strings.Split(listenerConfig, ":")
 				if len(listenerKeyValue) != 2 {
 					continue
 				}
 				currentListenerProtocolMap[listenerKeyValue[0]] = listenerKeyValue[1]
 			}
-			for _, listenerConfig := range strings.Split(desiredConfigs[securityProtocolMap], ",") {
+			for _, listenerConfig := range strings.Split(desiredConfigs[securityProtocolMapConfigName], ",") {
 				listenerKeyValue := strings.Split(listenerConfig, ":")
 				if len(listenerKeyValue) != 2 {
 					continue
