@@ -34,11 +34,11 @@ func expectEnvoyIngressLabels(labels map[string]string, eListenerName, crName st
 	Expect(labels).To(HaveKeyWithValue("kafka_cr", crName))
 }
 
-func expectEnvoy(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+func expectEnvoy(kafkaCluster *v1beta1.KafkaCluster) {
 	var loadBalancer corev1.Service
 	lbName := fmt.Sprintf("envoy-loadbalancer-test-%s", kafkaCluster.Name)
 	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: lbName}, &loadBalancer)
+		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
 		return err
 	}).Should(Succeed())
 
@@ -58,7 +58,7 @@ func expectEnvoy(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
 	var configMap corev1.ConfigMap
 	configMapName := fmt.Sprintf("envoy-config-test-%s", kafkaCluster.Name)
 	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: configMapName}, &configMap)
+		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: configMapName}, &configMap)
 		return err
 	}).Should(Succeed())
 
@@ -91,12 +91,12 @@ staticResources:
           cluster: broker-0
           stat_prefix: broker_tcp-0
         name: envoy.filters.network.tcp_proxy
-`, kafkaCluster.Name, namespace)))
+`, kafkaCluster.Name, kafkaCluster.Namespace)))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-%s", kafkaCluster.Name)
 	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, &deployment)
+		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: deploymentName}, &deployment)
 		return err
 	}).Should(Succeed())
 

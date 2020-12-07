@@ -17,39 +17,42 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"strconv"
+
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
-func expectKafka(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
-	expectKafkaAllBrokerService(kafkaCluster, namespace)
-	expectKafkaPDB(kafkaCluster, namespace)
-	expectKafkaPVC(kafkaCluster, namespace)
+func expectKafka(kafkaCluster *v1beta1.KafkaCluster) {
+	expectKafkaAllBrokerService(kafkaCluster)
+	expectKafkaPDB(kafkaCluster)
+	expectKafkaPVC(kafkaCluster)
 
-	// per broker:
-	// TODO expect configmaps
-	// TODO expect service
-	// TODO expect pod
+	for _, broker := range kafkaCluster.Spec.Brokers {
+		expectKafkaBrokerConfigmap(kafkaCluster, broker)
+		expectKafkaBrokerService(kafkaCluster, broker)
+		expectKafkaBrokerPod(kafkaCluster, broker)
+	}
 
 	// TODO test reconcile PKI?
 
 	// TODO test reconcileKafkaPodDelete
 }
 
-func expectKafkaAllBrokerService(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+func expectKafkaAllBrokerService(kafkaCluster *v1beta1.KafkaCluster) {
 	service := &corev1.Service{}
 	Eventually(func() error {
 		return k8sClient.Get(context.Background(), types.NamespacedName{
-			Namespace: namespace,
+			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-all-broker", kafkaCluster.Name),
 		}, service)
 	}).Should(Succeed())
@@ -63,28 +66,28 @@ func expectKafkaAllBrokerService(kafkaCluster *v1beta1.KafkaCluster, namespace s
 	Expect(service.Spec.Selector).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
 	Expect(service.Spec.Ports).To(ConsistOf(
 		corev1.ServicePort{
-			Name: "tcp-internal",
-			Protocol: "TCP",
-			Port: 29092,
+			Name:       "tcp-internal",
+			Protocol:   "TCP",
+			Port:       29092,
 			TargetPort: intstr.FromInt(29092),
 		},
 		corev1.ServicePort{
-			Name: "tcp-controller",
-			Protocol: "TCP",
-			Port: 29093,
+			Name:       "tcp-controller",
+			Protocol:   "TCP",
+			Port:       29093,
 			TargetPort: intstr.FromInt(29093),
 		},
 		corev1.ServicePort{
-			Name: "tcp-test",
-			Protocol: "TCP",
-			Port: 9733,
+			Name:       "tcp-test",
+			Protocol:   "TCP",
+			Port:       9733,
 			TargetPort: intstr.FromInt(9733),
 		}))
 }
 
-func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster) {
 	// get current CR
-	err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, kafkaCluster)
+	err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: kafkaCluster.Namespace}, kafkaCluster)
 
 	// set PDB and reset status
 	kafkaCluster.Spec.DisruptionBudget = v1beta1.DisruptionBudget{
@@ -98,13 +101,13 @@ func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
 	Expect(err).NotTo(HaveOccurred())
 
 	// wait until reconcile finishes
-	waitClusterRunningState(kafkaCluster, namespace)
+	waitClusterRunningState(kafkaCluster, kafkaCluster.Namespace)
 
 	// get created PDB
 	pdb := policyv1beta1.PodDisruptionBudget{}
 	Eventually(func() error {
 		return k8sClient.Get(context.Background(), types.NamespacedName{
-			Namespace: namespace,
+			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-pdb", kafkaCluster.Name),
 		}, &pdb)
 	}).Should(Succeed())
@@ -118,7 +121,7 @@ func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
 	Expect(pdb.Spec.Selector.MatchLabels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
 }
 
-func expectKafkaPVC(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+func expectKafkaPVC(kafkaCluster *v1beta1.KafkaCluster) {
 	// get PVCs
 	pvcs := corev1.PersistentVolumeClaimList{}
 	Eventually(func() error {
@@ -140,4 +143,103 @@ func expectKafkaPVC(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
 			"storage": resource.MustParse("10Gi"),
 		},
 	}))
+}
+
+func expectKafkaBrokerConfigmap(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Broker) {
+	configMap := corev1.ConfigMap{}
+	Eventually(func() error {
+		return k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: kafkaCluster.Namespace,
+			Name:      fmt.Sprintf("%s-config-%d", kafkaCluster.Name, broker.Id),
+		}, &configMap)
+	}).Should(Succeed())
+
+	Expect(configMap.Labels).To(HaveKeyWithValue("app", "kafka"))
+	Expect(configMap.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(configMap.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+
+	Expect(configMap.Data).To(HaveKeyWithValue("broker-config", fmt.Sprintf(`advertised.listeners=TEST://test-host:11202,INTERNAL://kafkacluster-1-0.kafka-1.svc.cluster.local:29092,CONTROLLER://kafkacluster-1-0.kafka-1.svc.cluster.local:29093
+broker.id=%d
+control.plane.listener.name=CONTROLLER
+cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafkacluster-1-0.kafka-1.svc.cluster.local:29092
+cruise.control.metrics.reporter.kubernetes.mode=true
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:
+listeners=INTERNAL://:29092,CONTROLLER://:29093,TEST://:9733
+log.dirs=/kafka-logs/kafka
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+zookeeper.connect=/`, broker.Id)))
+
+	// assert log4j?
+}
+
+func expectKafkaBrokerService(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Broker) {
+	service := corev1.Service{}
+	Eventually(func() error {
+		return k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: kafkaCluster.Namespace,
+			Name:      fmt.Sprintf("%s-%d", kafkaCluster.Name, broker.Id),
+		}, &service)
+	}).Should(Succeed())
+
+	Expect(service.Labels).To(HaveKeyWithValue("app", "kafka"))
+	Expect(service.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(service.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+
+	Expect(service.Spec.Ports).To(ConsistOf(
+		corev1.ServicePort{
+			Name:       "tcp-internal",
+			Protocol:   "TCP",
+			Port:       29092,
+			TargetPort: intstr.FromInt(29092),
+		},
+		corev1.ServicePort{
+			Name:       "tcp-controller",
+			Protocol:   "TCP",
+			Port:       29093,
+			TargetPort: intstr.FromInt(29093),
+		},
+		corev1.ServicePort{
+			Name:       "tcp-test",
+			Protocol:   "TCP",
+			Port:       9733,
+			TargetPort: intstr.FromInt(9733),
+		},
+		corev1.ServicePort{
+			Name:       "metrics",
+			Protocol:   "TCP",
+			Port:       9020,
+			TargetPort: intstr.FromInt(9020),
+		}))
+
+	Expect(service.Spec.Selector).To(HaveKeyWithValue("app", "kafka"))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+	Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
+}
+
+func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Broker) {
+	podList := corev1.PodList{}
+	Eventually(func() ([]corev1.Pod, error) {
+		err := k8sClient.List(context.Background(), &podList,
+			client.ListOption(client.InNamespace(kafkaCluster.Namespace)),
+			client.ListOption(client.MatchingLabels(map[string]string{"app": "kafka", "kafka_cr": kafkaCluster.Name})))
+		return podList.Items, err
+	}).Should(HaveLen(1))
+
+	pod := podList.Items[0]
+
+	Expect(pod.GenerateName).To(Equal(fmt.Sprintf("%s-%d-", kafkaCluster.Name, broker.Id)))
+	Expect(pod.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+	Expect(pod.Spec.InitContainers).To(ConsistOf(
+		WithTransform(func(c corev1.Container) string {return c.Name}, Equal("cruise-control-reporter")),
+		WithTransform(func(c corev1.Container) string {return c.Name}, Equal("jmx-exporter"))))
+
+	// Affinity
+	// Containers
+	// Volumes
+	// RestartPolicy
+	// TerminationGracePeriodSeconds
+
+	// optionally other fields
 }
