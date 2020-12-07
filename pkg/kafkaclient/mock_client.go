@@ -93,7 +93,7 @@ func (m *mockClusterAdmin) DescribeTopics(topics []string) ([]*sarama.TopicMetad
 		return []*sarama.TopicMetadata{}, errors.New("bad describe topics")
 	}
 	switch topics[0] {
-	case "test-topic":
+	case "test-topic", "already-created-topic":
 		return []*sarama.TopicMetadata{
 			&sarama.TopicMetadata{
 				Name:       "test-topic",

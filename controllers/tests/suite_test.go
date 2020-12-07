@@ -31,6 +31,8 @@ package tests
 
 import (
 	"context"
+	"errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -73,6 +75,7 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
+var mockKafkaClients map[types.NamespacedName]kafkaclient.KafkaClient
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -143,8 +146,25 @@ var _ = BeforeSuite(func(done Done) {
 	err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
-	/*err = SetupKafkaTopicWithManager(mgr)
-	Expect(err).NotTo(HaveOccurred())*/
+	mockKafkaClients = make(map[types.NamespacedName]kafkaclient.KafkaClient)
+
+	// mock the creation of Kafka clients
+	controllers.SetNewKafkaFromCluster(
+		func(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, error) {
+			name := types.NamespacedName{
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
+			}
+			if val, ok := mockKafkaClients[name]; ok {
+				return val, nil
+			}
+			mockKafkaClient, _ := kafkaclient.NewMockFromCluster(k8sClient, cluster)
+			mockKafkaClients[name] = mockKafkaClient
+			return mockKafkaClient, nil
+		})
+
+	err = controllers.SetupKafkaTopicWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred())
 
 	// TODO parameterize this
 	/*certManagerEnabled := true
@@ -211,4 +231,19 @@ func waitClusterRunningState(kafkaCluster *banzaicloudv1beta1.KafkaCluster, name
 		}
 		return createdKafkaCluster.Status.State, nil
 	}, 5*time.Second, 100*time.Millisecond).Should(Equal(banzaicloudv1beta1.KafkaClusterRunning))
+}
+
+func waitForClusterDeletion(kafkaCluster *banzaicloudv1beta1.KafkaCluster) {
+	Eventually(func() error {
+		createdKafkaCluster := &banzaicloudv1beta1.KafkaCluster{}
+		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: kafkaCluster.Namespace}, createdKafkaCluster)
+		if err == nil {
+			return errors.New("cluster should be deleted")
+		}
+		if apierrors.IsNotFound(err) {
+			return nil
+		} else {
+			return err
+		}
+	}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
 }

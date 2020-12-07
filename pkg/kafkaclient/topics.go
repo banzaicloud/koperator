@@ -119,7 +119,7 @@ func (k *kafkaClient) EnsurePartitionCount(topic string, desired int32) (changed
 	}
 
 	if len(meta) == 0 {
-		err = errorfactory.New(errorfactory.TopicNotFound{}, err, fmt.Sprintf("could not find topic %s", topic))
+		err = errorfactory.New(errorfactory.TopicNotFound{}, errors.New("empty describe topic response"), fmt.Sprintf("could not find topic %s", topic))
 		return
 	}
 
