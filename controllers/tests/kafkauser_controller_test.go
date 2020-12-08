@@ -17,19 +17,18 @@ package tests
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"sync/atomic"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
-var _ = Describe("KafkaCluster", func() {
+var _ = Describe("KafkaTopic", func() {
 	var (
 		count        uint64 = 0
 		namespace    string
@@ -40,7 +39,7 @@ var _ = Describe("KafkaCluster", func() {
 	BeforeEach(func() {
 		atomic.AddUint64(&count, 1)
 
-		namespace = fmt.Sprintf("kafka-%v", count)
+		namespace = fmt.Sprintf("kafka-user-%v", count)
 		namespaceObj = &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: namespace,
@@ -66,41 +65,25 @@ var _ = Describe("KafkaCluster", func() {
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err := k8sClient.Delete(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
-
-		waitForClusterDeletion(kafkaCluster)
 		kafkaCluster = nil
 	})
 
-	It("should reconciles objects properly", func() {
-		expectEnvoy(kafkaCluster)
-		expectKafkaMonitoring(kafkaCluster)
-		expectCruiseControlMonitoring(kafkaCluster)
-		expectKafka(kafkaCluster)
-		expectCruiseControl(kafkaCluster)
+	It("", func() {
+		// TODO write test
+
+		/*user := v1alpha1.KafkaUser{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("kafkacluster-%v", count),
+				Namespace: namespace,
+			},
+			Spec: v1alpha1.KafkaUserSpec{
+				SecretName:     "",
+				ClusterRef:     v1alpha1.ClusterReference{},
+				DNSNames:       nil,
+				TopicGrants:    nil,
+				IncludeJKS:     false,
+				CreateCert:     nil,
+				PKIBackendSpec: nil,
+			}}*/
 	})
 })
-
-func expectKafkaMonitoring(kafkaCluster *v1beta1.KafkaCluster) {
-	configMap := corev1.ConfigMap{}
-	configMapName := fmt.Sprintf("%s-kafka-jmx-exporter", kafkaCluster.Name)
-	Eventually(func() error {
-		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: kafkaCluster.Namespace}, &configMap)
-		return err
-	}).Should(Succeed())
-
-	Expect(configMap.Labels).To(And(HaveKeyWithValue("app", "kafka-jmx"), HaveKeyWithValue("kafka_cr", kafkaCluster.Name)))
-	Expect(configMap.Data).To(HaveKeyWithValue("config.yaml", Not(BeEmpty())))
-}
-
-func expectCruiseControlMonitoring(kafkaCluster *v1beta1.KafkaCluster) {
-	configMap := corev1.ConfigMap{}
-	configMapName := fmt.Sprintf("%s-cc-jmx-exporter", kafkaCluster.Name)
-	logf.Log.Info("name", "name", configMapName)
-	Eventually(func() error {
-		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: kafkaCluster.Namespace}, &configMap)
-		return err
-	}).Should(Succeed())
-
-	Expect(configMap.Labels).To(And(HaveKeyWithValue("app", "cruisecontrol-jmx"), HaveKeyWithValue("kafka_cr", kafkaCluster.Name)))
-	Expect(configMap.Data).To(HaveKeyWithValue("config.yaml", kafkaCluster.Spec.MonitoringConfig.CCJMXExporterConfig))
-}

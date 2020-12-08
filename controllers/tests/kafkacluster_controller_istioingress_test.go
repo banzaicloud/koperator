@@ -61,65 +61,8 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			},
 		}
 
-		// create default Kafka cluster spec
 		kafkaClusterCRName = fmt.Sprintf("kafkacluster-%v", count)
-		kafkaCluster = &v1beta1.KafkaCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      kafkaClusterCRName,
-				Namespace: namespace,
-			},
-			Spec: v1beta1.KafkaClusterSpec{
-				ListenersConfig: v1beta1.ListenersConfig{
-					ExternalListeners: []v1beta1.ExternalListenerConfig{},
-					InternalListeners: []v1beta1.InternalListenerConfig{
-						{
-							CommonListenerSpec: v1beta1.CommonListenerSpec{
-								Type:          "plaintext",
-								Name:          "internal",
-								ContainerPort: 29092,
-							},
-							UsedForInnerBrokerCommunication: true,
-						},
-						{
-							CommonListenerSpec: v1beta1.CommonListenerSpec{
-								Type:          "plaintext",
-								Name:          "controller",
-								ContainerPort: 29093,
-							},
-							UsedForInnerBrokerCommunication: false,
-							UsedForControllerCommunication:  true,
-						},
-					},
-				},
-				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": {
-						StorageConfigs: []v1beta1.StorageConfig{
-							{
-								MountPath: "/kafka-logs",
-								PvcSpec: &corev1.PersistentVolumeClaimSpec{
-									AccessModes: []corev1.PersistentVolumeAccessMode{
-										corev1.ReadWriteOnce,
-									},
-									Resources: corev1.ResourceRequirements{
-										Requests: map[corev1.ResourceName]resource.Quantity{
-											corev1.ResourceStorage: resource.MustParse("10Gi"),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-				Brokers: []v1beta1.Broker{
-					{
-						Id:                0,
-						BrokerConfigGroup: "default",
-					},
-				},
-				ClusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.6.0-bzc.1",
-				ZKAddresses:  []string{},
-			},
-		}
+		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 	})
 
 	JustBeforeEach(func() {
@@ -131,7 +74,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 		err = k8sClient.Create(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
-		waitClusterRunningState(kafkaCluster, namespace)
+		waitForClusterRunningState(kafkaCluster, namespace)
 	})
 
 	JustAfterEach(func() {
@@ -144,19 +87,6 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 	When("Istio ingress controller is configured", func() {
 		BeforeEach(func() {
 			kafkaCluster.Spec.IngressController = istioingress.IngressControllerName
-
-			kafkaCluster.Spec.ListenersConfig.ExternalListeners = []v1beta1.ExternalListenerConfig{
-				{
-					CommonListenerSpec: v1beta1.CommonListenerSpec{
-						Name:          "test",
-						ContainerPort: 9733,
-					},
-					ExternalStartingPort: 11202,
-					HostnameOverride:     "test-host",
-					AccessMethod:         corev1.ServiceTypeLoadBalancer,
-					// ServiceAnnotations:   nil,
-				},
-			}
 		})
 
 		It("creates Istio ingress related objects", func() {
