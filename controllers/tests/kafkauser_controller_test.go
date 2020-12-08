@@ -157,24 +157,6 @@ var _ = Describe("KafkaTopic", func() {
 						Operation:      sarama.AclOperationRead,
 						PermissionType: sarama.AclPermissionAllow,
 					},
-					{
-						Principal:      "User:CN=kafkauser-1",
-						Host:           "*",
-						Operation:      sarama.AclOperationDescribe,
-						PermissionType: sarama.AclPermissionAllow,
-					},
-					{
-						Principal:      "User:CN=kafkauser-1",
-						Host:           "*",
-						Operation:      sarama.AclOperationDescribeConfigs,
-						PermissionType: sarama.AclPermissionAllow,
-					},
-					{
-						Principal:      "User:CN=kafkauser-1",
-						Host:           "*",
-						Operation:      sarama.AclOperationRead,
-						PermissionType: sarama.AclPermissionAllow,
-					},
 				},
 			},
 			sarama.ResourceAcls{
@@ -208,30 +190,6 @@ var _ = Describe("KafkaTopic", func() {
 						Operation:      sarama.AclOperationCreate,
 						PermissionType: sarama.AclPermissionAllow,
 					},
-					{
-						Principal:      "User:CN=kafkauser-1",
-						Host:           "*",
-						Operation:      sarama.AclOperationDescribe,
-						PermissionType: sarama.AclPermissionAllow,
-					},
-					{
-						Principal:      "User:CN=kafkauser-1",
-						Host:           "*",
-						Operation:      sarama.AclOperationDescribeConfigs,
-						PermissionType: sarama.AclPermissionAllow,
-					},
-					{
-						Principal:      "User:CN=kafkauser-1",
-						Host:           "*",
-						Operation:      sarama.AclOperationWrite,
-						PermissionType: sarama.AclPermissionAllow,
-					},
-					{
-						Principal:      "User:CN=kafkauser-1",
-						Host:           "*",
-						Operation:      sarama.AclOperationCreate,
-						PermissionType: sarama.AclPermissionAllow,
-					},
 				},
 			},
 			sarama.ResourceAcls{
@@ -241,12 +199,6 @@ var _ = Describe("KafkaTopic", func() {
 					ResourcePatternType: sarama.AclPatternLiteral,
 				},
 				Acls: []*sarama.Acl{
-					{
-						Principal:      "User:CN=kafkauser-1",
-						Host:           "*",
-						Operation:      sarama.AclOperationRead,
-						PermissionType: sarama.AclPermissionAllow,
-					},
 					{
 						Principal:      "User:CN=kafkauser-1",
 						Host:           "*",
