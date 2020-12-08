@@ -18,9 +18,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"sync/atomic"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"

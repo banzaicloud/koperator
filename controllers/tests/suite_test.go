@@ -157,14 +157,14 @@ var _ = BeforeSuite(func(done Done) {
 	err = controllers.SetupKafkaUserWithManager(mgr, true)
 	Expect(err).NotTo(HaveOccurred())
 
-	/*kafkaClusterCCReconciler := &CruiseControlTaskReconciler{
+	kafkaClusterCCReconciler := controllers.CruiseControlTaskReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		Log:    ctrl.Log.WithName("controller").WithName("CruiseControlTask"),
 	}
 
-	err = SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler)
-	Expect(err).NotTo(HaveOccurred())*/
+	err = controllers.SetupCruiseControlWithManager(mgr).Complete(&kafkaClusterCCReconciler)
+	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:builder
 
