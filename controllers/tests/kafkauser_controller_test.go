@@ -17,7 +17,11 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/Shopify/sarama"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"k8s.io/apimachinery/pkg/types"
 	"sync/atomic"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,15 +29,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 var _ = Describe("KafkaTopic", func() {
 	var (
-		count        uint64 = 0
-		namespace    string
-		namespaceObj *corev1.Namespace
-		kafkaCluster *v1beta1.KafkaCluster
+		count              uint64 = 0
+		namespace          string
+		namespaceObj       *corev1.Namespace
+		kafkaClusterCRName string
+		kafkaCluster       *v1beta1.KafkaCluster
 	)
 
 	BeforeEach(func() {
@@ -46,7 +52,8 @@ var _ = Describe("KafkaTopic", func() {
 			},
 		}
 
-		kafkaCluster = createMinimalKafkaClusterCR(fmt.Sprintf("kafkacluster-%d", count), namespace)
+		kafkaClusterCRName = fmt.Sprintf("kafkacluster-%d", count)
+		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 	})
 
 	JustBeforeEach(func() {
@@ -62,28 +69,199 @@ var _ = Describe("KafkaTopic", func() {
 	})
 
 	JustAfterEach(func() {
+		resetMockKafkaClient(kafkaCluster)
+
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err := k8sClient.Delete(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 		kafkaCluster = nil
 	})
 
-	It("", func() {
-		// TODO write test
-
-		/*user := v1alpha1.KafkaUser{
+	It("reconciles objects properly", func() {
+		userCRName := fmt.Sprintf("kafkauser-%v", count)
+		user := v1alpha1.KafkaUser{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("kafkacluster-%v", count),
+				Name:      userCRName,
 				Namespace: namespace,
 			},
 			Spec: v1alpha1.KafkaUserSpec{
-				SecretName:     "",
-				ClusterRef:     v1alpha1.ClusterReference{},
-				DNSNames:       nil,
-				TopicGrants:    nil,
-				IncludeJKS:     false,
-				CreateCert:     nil,
-				PKIBackendSpec: nil,
-			}}*/
+				ClusterRef: v1alpha1.ClusterReference{
+					Namespace: namespace,
+					Name:      kafkaClusterCRName,
+				},
+				TopicGrants: []v1alpha1.UserTopicGrant{
+					{
+						TopicName:   "test-topic-1",
+						AccessType:  v1alpha1.KafkaAccessTypeRead,
+						PatternType: v1alpha1.KafkaPatternTypeAny,
+					},
+					{
+						TopicName:   "test-topic-2",
+						AccessType:  v1alpha1.KafkaAccessTypeWrite,
+						PatternType: v1alpha1.KafkaPatternTypeLiteral,
+					},
+				},
+				CreateCert: util.BoolPointer(false), // TODO test when this is true
+			},
+		}
+
+		err := k8sClient.Create(context.TODO(), &user)
+		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(func() (v1alpha1.UserState, error) {
+			user := v1alpha1.KafkaUser{}
+			err := k8sClient.Get(context.Background(), types.NamespacedName{
+				Namespace: kafkaCluster.Namespace,
+				Name:      userCRName,
+			}, &user)
+			if err != nil {
+				return "", err
+			}
+			return user.Status.State, nil
+		}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1alpha1.UserStateCreated))
+
+		// check label on user
+		err = k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: kafkaCluster.Namespace,
+			Name:      userCRName,
+		}, &user)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(user.Labels).To(HaveKeyWithValue("kafkaCluster", fmt.Sprintf("%s.%s", kafkaClusterCRName, namespace)))
+
+		mockKafkaClient := getMockedKafkaClientForCluster(kafkaCluster)
+		acls, _ := mockKafkaClient.ListUserACLs()
+		Expect(acls).To(ContainElements(
+			sarama.ResourceAcls{
+				Resource: sarama.Resource{
+					ResourceType:        sarama.AclResourceTopic,
+					ResourceName:        "test-topic-1",
+					ResourcePatternType: sarama.AclPatternAny,
+				},
+				Acls: []*sarama.Acl{
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationDescribe,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationDescribeConfigs,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationRead,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationDescribe,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationDescribeConfigs,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationRead,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+				},
+			},
+			sarama.ResourceAcls{
+				Resource: sarama.Resource{
+					ResourceType:        sarama.AclResourceTopic,
+					ResourceName:        "test-topic-2",
+					ResourcePatternType: sarama.AclPatternLiteral,
+				},
+				Acls: []*sarama.Acl{
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationDescribe,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationDescribeConfigs,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationWrite,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationCreate,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationDescribe,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationDescribeConfigs,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationWrite,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationCreate,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+				},
+			},
+			sarama.ResourceAcls{
+				Resource: sarama.Resource{
+					ResourceType:        sarama.AclResourceGroup,
+					ResourceName:        "*",
+					ResourcePatternType: sarama.AclPatternLiteral,
+				},
+				Acls: []*sarama.Acl{
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationRead,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+					{
+						Principal:      "User:CN=kafkauser-1",
+						Host:           "*",
+						Operation:      sarama.AclOperationRead,
+						PermissionType: sarama.AclPermissionAllow,
+					},
+				},
+			}))
+
+		Expect(user.Status.ACLs).To(ConsistOf(
+			"User:CN=kafkauser-1,Topic,ANY,test-topic-1,Describe,Allow,*",
+			"User:CN=kafkauser-1,Topic,ANY,test-topic-1,Read,Allow,*",
+			"User:CN=kafkauser-1,Group,LITERAL,*,Read,Allow,*",
+			"User:CN=kafkauser-1,Topic,LITERAL,test-topic-2,Describe,Allow,*",
+			"User:CN=kafkauser-1,Topic,LITERAL,test-topic-2,Create,Allow,*",
+			"User:CN=kafkauser-1,Topic,LITERAL,test-topic-2,Write,Allow,*",
+		))
 	})
 })

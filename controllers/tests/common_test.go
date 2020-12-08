@@ -17,6 +17,7 @@ package tests
 import (
 	"context"
 	"errors"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -134,5 +135,30 @@ func waitForClusterDeletion(kafkaCluster *v1beta1.KafkaCluster) {
 			return err
 		}
 	}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
+}
+
+func getMockedKafkaClientForCluster(kafkaCluster *v1beta1.KafkaCluster) kafkaclient.KafkaClient {
+	name := types.NamespacedName{
+		Name:      kafkaCluster.Name,
+		Namespace: kafkaCluster.Namespace,
+	}
+	if val, ok := mockKafkaClients[name]; ok {
+		return val
+	}
+	mockKafkaClient, _ := kafkaclient.NewMockFromCluster(k8sClient, kafkaCluster)
+	mockKafkaClients[name] = mockKafkaClient
+	return mockKafkaClient
+}
+
+func resetMockKafkaClient(kafkaCluster *v1beta1.KafkaCluster) {
+	// delete all topics
+	mockKafkaClient := getMockedKafkaClientForCluster(kafkaCluster)
+	topics, _ := mockKafkaClient.ListTopics()
+	for topicName := range topics {
+		_ = mockKafkaClient.DeleteTopic(topicName, false)
+	}
+
+	// delete all acls
+	_ = mockKafkaClient.DeleteUserACLs("")
 }
 

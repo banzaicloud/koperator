@@ -70,6 +70,8 @@ var _ = Describe("KafkaTopic", func() {
 	})
 
 	JustAfterEach(func() {
+		resetMockKafkaClient(kafkaCluster)
+
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err := k8sClient.Delete(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
@@ -117,12 +119,7 @@ var _ = Describe("KafkaTopic", func() {
 				return topic.Status.State, nil
 			}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1alpha1.TopicStateCreated))
 
-			name := types.NamespacedName{
-				Name:      kafkaCluster.Name,
-				Namespace: kafkaCluster.Namespace,
-			}
-			mockKafkaClient := mockKafkaClients[name]
-			Expect(mockKafkaClient).NotTo(BeNil())
+			mockKafkaClient := getMockedKafkaClientForCluster(kafkaCluster)
 			detail, err := mockKafkaClient.GetTopic(topicName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(detail).To(Equal(&sarama.TopicDetail{
@@ -162,16 +159,9 @@ var _ = Describe("KafkaTopic", func() {
 		var topicName = "already-created-topic"
 
 		JustBeforeEach(func() {
-			name := types.NamespacedName{
-				Name:      kafkaCluster.Name,
-				Namespace: kafkaCluster.Namespace,
-			}
-			mockKafkaClient, err := kafkaclient.NewMockFromCluster(k8sClient, kafkaCluster)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(mockKafkaClient).NotTo(BeNil())
-			mockKafkaClients[name] = mockKafkaClient
+			mockKafkaClient := getMockedKafkaClientForCluster(kafkaCluster)
 
-			err = mockKafkaClient.CreateTopic(&kafkaclient.CreateTopicOptions{
+			err := mockKafkaClient.CreateTopic(&kafkaclient.CreateTopicOptions{
 				Name:              topicName,
 				Partitions:        11,
 				ReplicationFactor: 13,
@@ -220,12 +210,7 @@ var _ = Describe("KafkaTopic", func() {
 				return topic.Status.State, nil
 			}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1alpha1.TopicStateCreated))
 
-			name := types.NamespacedName{
-				Name:      kafkaCluster.Name,
-				Namespace: kafkaCluster.Namespace,
-			}
-			mockKafkaClient := mockKafkaClients[name]
-			Expect(mockKafkaClient).NotTo(BeNil())
+			mockKafkaClient := getMockedKafkaClientForCluster(kafkaCluster)
 			detail, err := mockKafkaClient.GetTopic(topicName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(detail).To(Equal(&sarama.TopicDetail{

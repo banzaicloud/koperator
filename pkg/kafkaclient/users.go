@@ -59,6 +59,14 @@ func (k *kafkaClient) CreateUserACLs(accessType v1alpha1.KafkaAccessType, patter
 	}
 }
 
+func (k *kafkaClient) ListUserACLs() ([]sarama.ResourceAcls, error) {
+	acls, err := k.admin.ListAcls(sarama.AclFilter{})
+	if err != nil {
+		return nil, err
+	}
+	return acls, nil
+}
+
 // DeleteUserACLs removes all ACLs for a given user
 func (k *kafkaClient) DeleteUserACLs(dn string) (err error) {
 	matches, err := k.admin.DeleteACL(sarama.AclFilter{

@@ -148,16 +148,7 @@ var _ = BeforeSuite(func(done Done) {
 	// mock the creation of Kafka clients
 	controllers.SetNewKafkaFromCluster(
 		func(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, error) {
-			name := types.NamespacedName{
-				Name:      cluster.Name,
-				Namespace: cluster.Namespace,
-			}
-			if val, ok := mockKafkaClients[name]; ok {
-				return val, nil
-			}
-			mockKafkaClient, _ := kafkaclient.NewMockFromCluster(k8sClient, cluster)
-			mockKafkaClients[name] = mockKafkaClient
-			return mockKafkaClient, nil
+			return getMockedKafkaClientForCluster(cluster), nil
 		})
 
 	err = controllers.SetupKafkaTopicWithManager(mgr)
@@ -193,13 +184,13 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaCluster"))
 
-	/*err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
+	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaTopic"))
 
 	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkausers.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))*/
+	Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))
 
 	close(done)
 }, 60)
