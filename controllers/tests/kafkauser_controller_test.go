@@ -17,20 +17,21 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/Shopify/sarama"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	"k8s.io/apimachinery/pkg/types"
 	"sync/atomic"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/Shopify/sarama"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 var _ = Describe("KafkaTopic", func() {

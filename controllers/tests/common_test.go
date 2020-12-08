@@ -17,7 +17,6 @@ package tests
 import (
 	"context"
 	"errors"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -29,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 )
 
 func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
