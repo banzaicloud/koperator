@@ -97,7 +97,7 @@ func (m *mockClusterAdmin) DescribeTopics(topics []string) ([]*sarama.TopicMetad
 	case "test-topic", "already-created-topic":
 		return []*sarama.TopicMetadata{
 			&sarama.TopicMetadata{
-				Name:       "test-topic",
+				Name:       topics[0],
 				Partitions: []*sarama.PartitionMetadata{&sarama.PartitionMetadata{}},
 				Err:        sarama.ErrNoError,
 			},

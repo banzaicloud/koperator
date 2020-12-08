@@ -16,13 +16,11 @@ package tests
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -100,13 +98,7 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 			MonitoringConfig: v1beta1.MonitoringConfig{
 				CCJMXExporterConfig: "custom_property: custom_value",
 			},
-			CruiseControlConfig: v1beta1.CruiseControlConfig{
-				TopicConfig: &v1beta1.TopicConfig{
-					Partitions:        7,
-					ReplicationFactor: 2,
-				},
-				Config: "some.config=value",
-			},
+			ReadOnlyConfig: "cruise.control.metrics.topic.auto.create=true",
 		},
 	}
 }
@@ -120,21 +112,6 @@ func waitForClusterRunningState(kafkaCluster *v1beta1.KafkaCluster, namespace st
 		}
 		return createdKafkaCluster.Status.State, nil
 	}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1beta1.KafkaClusterRunning))
-}
-
-func waitForClusterDeletion(kafkaCluster *v1beta1.KafkaCluster) {
-	Eventually(func() error {
-		createdKafkaCluster := &v1beta1.KafkaCluster{}
-		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: kafkaCluster.Namespace}, createdKafkaCluster)
-		if err == nil {
-			return errors.New("cluster should be deleted")
-		}
-		if apierrors.IsNotFound(err) {
-			return nil
-		} else {
-			return err
-		}
-	}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
 }
 
 func getMockedKafkaClientForCluster(kafkaCluster *v1beta1.KafkaCluster) kafkaclient.KafkaClient {

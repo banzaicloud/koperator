@@ -63,6 +63,7 @@ import (
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/controllers"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
+	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -131,6 +132,8 @@ var _ = BeforeSuite(func(done Done) {
 	})
 	Expect(err).ToNot(HaveOccurred())
 	Expect(mgr).ToNot(BeNil())
+
+	scale.MockNewCruiseControlScaler()
 
 	kafkaClusterReconciler := controllers.KafkaClusterReconciler{
 		Client:              mgr.GetClient(),

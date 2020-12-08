@@ -49,6 +49,14 @@ var _ = Describe("KafkaCluster", func() {
 		}
 
 		kafkaCluster = createMinimalKafkaClusterCR(fmt.Sprintf("kafkacluster-%d", count), namespace)
+		kafkaCluster.Spec.CruiseControlConfig = v1beta1.CruiseControlConfig{
+			TopicConfig: &v1beta1.TopicConfig{
+				Partitions:        7,
+				ReplicationFactor: 2,
+			},
+			Config: "some.config=value",
+		}
+		kafkaCluster.Spec.ReadOnlyConfig = ""
 	})
 
 	JustBeforeEach(func() {
@@ -64,11 +72,12 @@ var _ = Describe("KafkaCluster", func() {
 	})
 
 	JustAfterEach(func() {
+		// in the tests the CC topic might not get deleted
+
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err := k8sClient.Delete(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
-		waitForClusterDeletion(kafkaCluster)
 		kafkaCluster = nil
 	})
 
