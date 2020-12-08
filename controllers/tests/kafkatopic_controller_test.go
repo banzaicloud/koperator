@@ -16,7 +16,6 @@ package tests
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -26,7 +25,6 @@ import (
 
 	"github.com/Shopify/sarama"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -76,7 +74,6 @@ var _ = Describe("KafkaTopic", func() {
 		err := k8sClient.Delete(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
-		waitForClusterDeletion(kafkaCluster)
 		kafkaCluster = nil
 	})
 
@@ -139,19 +136,6 @@ var _ = Describe("KafkaTopic", func() {
 
 			err = k8sClient.Delete(context.TODO(), &topic)
 			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(func() error {
-				createdKafkaTopic := &v1alpha1.KafkaTopic{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, createdKafkaTopic)
-				if err == nil {
-					return errors.New("cluster should be deleted")
-				}
-				if apierrors.IsNotFound(err) {
-					return nil
-				} else {
-					return err
-				}
-			}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
 		})
 	})
 
@@ -229,19 +213,6 @@ var _ = Describe("KafkaTopic", func() {
 
 			err = k8sClient.Delete(context.TODO(), &topic)
 			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(func() error {
-				createdKafkaTopic := &v1alpha1.KafkaTopic{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, createdKafkaTopic)
-				if err == nil {
-					return errors.New("cluster should be deleted")
-				}
-				if apierrors.IsNotFound(err) {
-					return nil
-				} else {
-					return err
-				}
-			}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
 		})
 	})
 })

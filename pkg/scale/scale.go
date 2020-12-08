@@ -43,10 +43,24 @@ const (
 )
 
 var errCruiseControlNotReturned200 = errors.New("non 200 response from cruise-control")
+var newCruiseControlScaler = createNewDefaultCruiseControlScaler
 
 var log = logf.Log.WithName("cruise-control-methods")
 
-type CruiseControlScaler struct {
+type CruiseControlScaler interface {
+	GetLiveKafkaBrokersFromCruiseControl(brokerIds []string) ([]string, error)
+	GetBrokerIDWithLeastPartition() (string, error)
+	UpScaleCluster(brokerIds []string) (string, string, error)
+	DownsizeCluster(brokerIds []string) (string, string, error)
+	RebalanceDisks(brokerIdsWithMountPath map[string][]string) (string, string, error)
+	RebalanceCluster() (string, error)
+	RunPreferedLeaderElectionInCluster() (string, error)
+	KillCCTask() error
+	GetCCTaskState(uTaskId string) (banzaicloudv1beta1.CruiseControlUserTaskState, error)
+}
+
+type cruiseControlScaler struct {
+	CruiseControlScaler
 	namespace               string
 	kubernetesClusterDomain string
 	endpoint                string
@@ -54,7 +68,15 @@ type CruiseControlScaler struct {
 }
 
 func NewCruiseControlScaler(namespace, kubernetesClusterDomain, endpoint, clusterName string) CruiseControlScaler {
-	return CruiseControlScaler{
+	return newCruiseControlScaler(namespace, kubernetesClusterDomain, endpoint, clusterName)
+}
+
+func MockNewCruiseControlScaler() {
+	newCruiseControlScaler = createMockCruiseControlScaler
+}
+
+func createNewDefaultCruiseControlScaler(namespace, kubernetesClusterDomain, endpoint, clusterName string) CruiseControlScaler {
+	return &cruiseControlScaler{
 		namespace:               namespace,
 		kubernetesClusterDomain: kubernetesClusterDomain,
 		endpoint:                endpoint,
@@ -62,7 +84,11 @@ func NewCruiseControlScaler(namespace, kubernetesClusterDomain, endpoint, cluste
 	}
 }
 
-func (cc *CruiseControlScaler) generateUrlForCC(action string, options map[string]string) string {
+func createMockCruiseControlScaler(namespace, kubernetesClusterDomain, endpoint, clusterName string) CruiseControlScaler {
+	return &mockCruiseControlScaler{}
+}
+
+func (cc *cruiseControlScaler) generateUrlForCC(action string, options map[string]string) string {
 	optionURL := ""
 	for option, value := range options {
 		optionURL = optionURL + option + "=" + value + "&"
@@ -73,7 +99,7 @@ func (cc *CruiseControlScaler) generateUrlForCC(action string, options map[strin
 	return "http://" + fmt.Sprintf(serviceNameTemplate, cc.clusterName) + "." + cc.namespace + ".svc." + cc.kubernetesClusterDomain + ":8090/" + basePath + "/" + action + "?" + strings.TrimSuffix(optionURL, "&")
 }
 
-func (cc *CruiseControlScaler) postCruiseControl(action string, options map[string]string) (*http.Response, error) {
+func (cc *cruiseControlScaler) postCruiseControl(action string, options map[string]string) (*http.Response, error) {
 
 	requestURL := cc.generateUrlForCC(action, options)
 	rsp, err := http.Post(requestURL, "text/plain", nil)
@@ -98,7 +124,7 @@ func (cc *CruiseControlScaler) postCruiseControl(action string, options map[stri
 	return rsp, nil
 }
 
-func (cc *CruiseControlScaler) getCruiseControl(action string, options map[string]string) (*http.Response, error) {
+func (cc *cruiseControlScaler) getCruiseControl(action string, options map[string]string) (*http.Response, error) {
 
 	requestURL := cc.generateUrlForCC(action, options)
 	rsp, err := http.Get(requestURL)
@@ -140,7 +166,7 @@ func parseCCErrorFromResp(input io.Reader) (string, error) {
 	return errorFromResponse.ErrorMessage, err
 }
 
-func (cc *CruiseControlScaler) isKafkaBrokerDiskReady(brokerIdsWithMountPath map[string][]string) (bool, error) {
+func (cc *cruiseControlScaler) isKafkaBrokerDiskReady(brokerIdsWithMountPath map[string][]string) (bool, error) {
 	options := map[string]string{
 		"json": "true",
 	}
@@ -202,7 +228,7 @@ func (cc *CruiseControlScaler) isKafkaBrokerDiskReady(brokerIdsWithMountPath map
 }
 
 // Get brokers status from CC from a provided list of broker ids
-func (cc *CruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIds []string) ([]string, error) {
+func (cc *cruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIds []string) ([]string, error) {
 
 	options := map[string]string{
 		"json": "true",
@@ -249,7 +275,7 @@ func (cc *CruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIds []
 }
 
 // GetBrokerIDWithLeastPartition returns
-func (cc *CruiseControlScaler) GetBrokerIDWithLeastPartition() (string, error) {
+func (cc *cruiseControlScaler) GetBrokerIDWithLeastPartition() (string, error) {
 
 	brokerWithLeastPartition := ""
 
@@ -298,7 +324,7 @@ func (cc *CruiseControlScaler) GetBrokerIDWithLeastPartition() (string, error) {
 }
 
 // UpScaleCluster upscales Kafka cluster
-func (cc *CruiseControlScaler) UpScaleCluster(brokerIds []string) (string, string, error) {
+func (cc *cruiseControlScaler) UpScaleCluster(brokerIds []string) (string, string, error) {
 
 	liveBrokers, err := cc.GetLiveKafkaBrokersFromCruiseControl(brokerIds)
 	if err != nil {
@@ -331,7 +357,7 @@ func (cc *CruiseControlScaler) UpScaleCluster(brokerIds []string) (string, strin
 }
 
 // DownsizeCluster downscales Kafka cluster
-func (cc *CruiseControlScaler) DownsizeCluster(brokerIds []string) (string, string, error) {
+func (cc *cruiseControlScaler) DownsizeCluster(brokerIds []string) (string, string, error) {
 
 	options := map[string]string{
 		"brokerid": strings.Join(brokerIds, ","),
@@ -355,7 +381,7 @@ func (cc *CruiseControlScaler) DownsizeCluster(brokerIds []string) (string, stri
 }
 
 // RebalanceDisks rebalances Kafka broker replicas between disks using CC
-func (cc *CruiseControlScaler) RebalanceDisks(brokerIdsWithMountPath map[string][]string) (string, string, error) {
+func (cc *cruiseControlScaler) RebalanceDisks(brokerIdsWithMountPath map[string][]string) (string, string, error) {
 
 	ready, err := cc.isKafkaBrokerDiskReady(brokerIdsWithMountPath)
 	if err != nil {
@@ -385,7 +411,7 @@ func (cc *CruiseControlScaler) RebalanceDisks(brokerIdsWithMountPath map[string]
 }
 
 // RebalanceCluster rebalances Kafka cluster using CC
-func (cc *CruiseControlScaler) RebalanceCluster() (string, error) {
+func (cc *cruiseControlScaler) RebalanceCluster() (string, error) {
 
 	options := map[string]string{
 		"dryrun": "false",
@@ -405,7 +431,7 @@ func (cc *CruiseControlScaler) RebalanceCluster() (string, error) {
 }
 
 // RunPreferedLeaderElectionInCluster runs leader election in  Kafka cluster using CC
-func (cc *CruiseControlScaler) RunPreferedLeaderElectionInCluster() (string, error) {
+func (cc *cruiseControlScaler) RunPreferedLeaderElectionInCluster() (string, error) {
 
 	options := map[string]string{
 		"dryrun": "false",
@@ -426,7 +452,7 @@ func (cc *CruiseControlScaler) RunPreferedLeaderElectionInCluster() (string, err
 }
 
 // KillCCTask kills the specified CC task
-func (cc *CruiseControlScaler) KillCCTask() error {
+func (cc *cruiseControlScaler) KillCCTask() error {
 	options := map[string]string{
 		"json": "true",
 	}
@@ -442,7 +468,7 @@ func (cc *CruiseControlScaler) KillCCTask() error {
 }
 
 // GetCCTaskState checks whether the given CC Task ID finished or not
-func (cc *CruiseControlScaler) GetCCTaskState(uTaskId string) (banzaicloudv1beta1.CruiseControlUserTaskState, error) {
+func (cc *cruiseControlScaler) GetCCTaskState(uTaskId string) (banzaicloudv1beta1.CruiseControlUserTaskState, error) {
 
 	gResp, err := cc.getCruiseControl(getTaskListAction, map[string]string{
 		"json":          "true",
