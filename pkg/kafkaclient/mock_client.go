@@ -163,6 +163,11 @@ func (m *mockClusterAdmin) CreateACL(resource sarama.Resource, acl sarama.Acl) e
 			Resource: resource,
 		}
 	}
+	for _, v := range resourceAcls.Acls {
+		if *v == acl {
+			return nil
+		}
+	}
 	resourceAcls.Acls = append(resourceAcls.Acls, &acl)
 	mockACLs[resource] = resourceAcls
 	return nil
