@@ -24,6 +24,7 @@ import (
 )
 
 var mockTopics = make(map[string]sarama.TopicDetail, 0)
+var mockACLs = make(map[sarama.Resource]*sarama.ResourceAcls, 0)
 
 type mockClusterAdmin struct {
 	sarama.ClusterAdmin
@@ -154,7 +155,25 @@ func (m *mockClusterAdmin) CreateACL(resource sarama.Resource, acl sarama.Acl) e
 	if m.failOps {
 		return errors.New("bad create acl")
 	}
+	var resourceAcls *sarama.ResourceAcls
+	if val, ok := mockACLs[resource]; ok {
+		resourceAcls = val
+	} else {
+		resourceAcls = &sarama.ResourceAcls{
+			Resource: resource,
+		}
+	}
+	resourceAcls.Acls = append(resourceAcls.Acls, &acl)
+	mockACLs[resource] = resourceAcls
 	return nil
+}
+
+func (m *mockClusterAdmin) ListAcls(filter sarama.AclFilter) ([]sarama.ResourceAcls, error) {
+	acls := make([]sarama.ResourceAcls, len(mockACLs))
+	for _, acl := range mockACLs {
+		acls = append(acls, *acl)
+	}
+	return acls, nil
 }
 
 func (m *mockClusterAdmin) DeleteACL(filter sarama.AclFilter, validateOnly bool) ([]sarama.MatchingAcl, error) {
@@ -167,6 +186,8 @@ func (m *mockClusterAdmin) DeleteACL(filter sarama.AclFilter, validateOnly bool)
 	case "with-error":
 		return []sarama.MatchingAcl{sarama.MatchingAcl{Err: sarama.ErrUnknown}}, nil
 	default:
+		// for mock it's enough to erase the whole map
+		mockACLs = make(map[sarama.Resource]*sarama.ResourceAcls, 0)
 		return []sarama.MatchingAcl{sarama.MatchingAcl{}}, nil
 	}
 }
