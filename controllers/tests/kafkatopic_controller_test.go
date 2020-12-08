@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"sync/atomic"
 	"time"
 
@@ -28,12 +27,12 @@ import (
 	"github.com/Shopify/sarama"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
@@ -55,84 +54,7 @@ var _ = Describe("KafkaTopic", func() {
 			},
 		}
 
-		// create default Kafka cluster spec
-		kafkaCluster = &v1beta1.KafkaCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("kafkacluster-%v", count),
-				Namespace: namespace,
-			},
-			Spec: v1beta1.KafkaClusterSpec{
-				ListenersConfig: v1beta1.ListenersConfig{
-					ExternalListeners: []v1beta1.ExternalListenerConfig{
-						{
-							CommonListenerSpec: v1beta1.CommonListenerSpec{
-								Name:          "test",
-								ContainerPort: 9733,
-							},
-							ExternalStartingPort: 11202,
-							HostnameOverride:     "test-host",
-							AccessMethod:         corev1.ServiceTypeLoadBalancer,
-						},
-					},
-					InternalListeners: []v1beta1.InternalListenerConfig{
-						{
-							CommonListenerSpec: v1beta1.CommonListenerSpec{
-								Type:          "plaintext",
-								Name:          "internal",
-								ContainerPort: 29092,
-							},
-							UsedForInnerBrokerCommunication: true,
-						},
-						{
-							CommonListenerSpec: v1beta1.CommonListenerSpec{
-								Type:          "plaintext",
-								Name:          "controller",
-								ContainerPort: 29093,
-							},
-							UsedForInnerBrokerCommunication: false,
-							UsedForControllerCommunication:  true,
-						},
-					},
-				},
-				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": {
-						StorageConfigs: []v1beta1.StorageConfig{
-							{
-								MountPath: "/kafka-logs",
-								PvcSpec: &corev1.PersistentVolumeClaimSpec{
-									AccessModes: []corev1.PersistentVolumeAccessMode{
-										corev1.ReadWriteOnce,
-									},
-									Resources: corev1.ResourceRequirements{
-										Requests: map[corev1.ResourceName]resource.Quantity{
-											corev1.ResourceStorage: resource.MustParse("10Gi"),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-				Brokers: []v1beta1.Broker{
-					{
-						Id:                0,
-						BrokerConfigGroup: "default",
-					},
-				},
-				ClusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.6.0-bzc.1",
-				ZKAddresses:  []string{},
-				MonitoringConfig: v1beta1.MonitoringConfig{
-					CCJMXExporterConfig: "custom_property: custom_value",
-				},
-				CruiseControlConfig: v1beta1.CruiseControlConfig{
-					TopicConfig: &v1beta1.TopicConfig{
-						Partitions:        7,
-						ReplicationFactor: 2,
-					},
-					Config: "some.config=value",
-				},
-			},
-		}
+		kafkaCluster = createMinimalKafkaClusterCR(fmt.Sprintf("kafkacluster-%v", count), namespace)
 	})
 
 	JustBeforeEach(func() {
@@ -144,25 +66,19 @@ var _ = Describe("KafkaTopic", func() {
 		err = k8sClient.Create(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
-		waitClusterRunningState(kafkaCluster, namespace)
+		waitForClusterRunningState(kafkaCluster, namespace)
 	})
 
 	JustAfterEach(func() {
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err := k8sClient.Delete(context.TODO(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
+
+		waitForClusterDeletion(kafkaCluster)
 		kafkaCluster = nil
 	})
 
 	When("the topic does not exist", func() {
-		JustBeforeEach(func() {
-
-		})
-
-		JustAfterEach(func() {
-
-		})
-
 		It("creates properly", func() {
 			topicName := "test-topic"
 			crTopicName := fmt.Sprintf("kafkatopic-%v", count)

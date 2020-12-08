@@ -101,7 +101,7 @@ func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(err).NotTo(HaveOccurred())
 
 	// wait until reconcile finishes
-	waitClusterRunningState(kafkaCluster, kafkaCluster.Namespace)
+	waitForClusterRunningState(kafkaCluster, kafkaCluster.Namespace)
 
 	// get created PDB
 	pdb := policyv1beta1.PodDisruptionBudget{}

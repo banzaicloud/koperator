@@ -31,12 +31,9 @@ package tests
 
 import (
 	"context"
-	"errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -166,10 +163,8 @@ var _ = BeforeSuite(func(done Done) {
 	err = controllers.SetupKafkaTopicWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
-	// TODO parameterize this
-	/*certManagerEnabled := true
-	err = SetupKafkaUserWithManager(mgr, certManagerEnabled)
-	Expect(err).NotTo(HaveOccurred())*/
+	err = controllers.SetupKafkaUserWithManager(mgr, true)
+	Expect(err).NotTo(HaveOccurred())
 
 	/*kafkaClusterCCReconciler := &CruiseControlTaskReconciler{
 		Client: mgr.GetClient(),
@@ -179,10 +174,6 @@ var _ = BeforeSuite(func(done Done) {
 
 	err = SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler)
 	Expect(err).NotTo(HaveOccurred())*/
-
-	// TODO enable webhook
-	// webhookCertDir := ""
-	// webhook.SetupServerHandlers(mgr, webhookCertDir)
 
 	// +kubebuilder:scaffold:builder
 
@@ -218,32 +209,3 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
-
-func waitClusterRunningState(kafkaCluster *banzaicloudv1beta1.KafkaCluster, namespace string) {
-	Eventually(func() (banzaicloudv1beta1.ClusterState, error) {
-		createdKafkaCluster := &banzaicloudv1beta1.KafkaCluster{}
-		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, createdKafkaCluster)
-		if err != nil {
-			return banzaicloudv1beta1.KafkaClusterReconciling, err
-		}
-		if createdKafkaCluster == nil {
-			return banzaicloudv1beta1.KafkaClusterReconciling, nil
-		}
-		return createdKafkaCluster.Status.State, nil
-	}, 5*time.Second, 100*time.Millisecond).Should(Equal(banzaicloudv1beta1.KafkaClusterRunning))
-}
-
-func waitForClusterDeletion(kafkaCluster *banzaicloudv1beta1.KafkaCluster) {
-	Eventually(func() error {
-		createdKafkaCluster := &banzaicloudv1beta1.KafkaCluster{}
-		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: kafkaCluster.Namespace}, createdKafkaCluster)
-		if err == nil {
-			return errors.New("cluster should be deleted")
-		}
-		if apierrors.IsNotFound(err) {
-			return nil
-		} else {
-			return err
-		}
-	}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
-}
