@@ -124,7 +124,7 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 			),
 			r.KafkaCluster,
 		),
-		Data: map[string]string{"broker-config": r.generateBrokerConfig(id, brokerConfig, loadBalancerIPs, serverPass, clientPass, superUsers, log)},
+		Data: map[string]string{kafka.ConfigPropertyName: r.generateBrokerConfig(id, brokerConfig, loadBalancerIPs, serverPass, clientPass, superUsers, log)},
 	}
 	if brokerConfig.Log4jConfig != "" {
 		brokerConf.Data["log4j.properties"] = brokerConfig.Log4jConfig

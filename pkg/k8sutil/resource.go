@@ -133,8 +133,8 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			case *corev1.ConfigMap:
 				// Only update status when configmap belongs to broker
 				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
-					currentConfigs := util.ParsePropertiesFormat(current.(*corev1.ConfigMap).Data["broker-config"])
-					desiredConfigs := util.ParsePropertiesFormat(desired.(*corev1.ConfigMap).Data["broker-config"])
+					currentConfigs := util.ParsePropertiesFormat(current.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
+					desiredConfigs := util.ParsePropertiesFormat(desired.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
 
 					var statusErr error
 					// if only per broker configs are changed, do not trigger rolling upgrade by setting ConfigOutOfSync status
