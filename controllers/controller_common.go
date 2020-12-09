@@ -128,6 +128,6 @@ func applyClusterRefLabel(cluster *v1beta1.KafkaCluster, labels map[string]strin
 	return labels
 }
 
-func SetNewKafkaFromCluster(f func(k8sclient client.Client, cluster *v1beta1.KafkaCluster)(kafkaclient.KafkaClient, error)) {
+func SetNewKafkaFromCluster(f func(k8sclient client.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, error)) {
 	newKafkaFromCluster = f
 }
