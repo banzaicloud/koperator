@@ -15,31 +15,20 @@
 package kafka
 
 import (
+	"strconv"
+
 	"emperror.dev/errors"
 	"github.com/Shopify/sarama"
 	"github.com/go-logr/logr"
+
 	corev1 "k8s.io/api/core/v1"
-	"strconv"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
-
-const securityProtocolMapConfigName = "listener.security.protocol.map"
-
-// these configurations will not trigger rolling upgrade when updated
-var perBrokerConfigs = []string{
-	// currently hardcoded in configmap.go
-	"ssl.client.auth",
-
-	// listener related config change will trigger rolling upgrade anyways due to pod spec change
-	"listeners",
-	"advertised.listeners",
-
-	securityProtocolMapConfigName,
-}
 
 func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, configMap *corev1.ConfigMap, log logr.Logger) error {
 	kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
@@ -61,7 +50,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 
 	// overwrite configs from configmap
 	configsFromConfigMap := util.ParsePropertiesFormat(configMap.Data["broker-config"])
-	for _, perBrokerConfig := range perBrokerConfigs {
+	for _, perBrokerConfig := range kafka.PerBrokerConfigs {
 		if configValue, ok := configsFromConfigMap[perBrokerConfig]; ok {
 			fullPerBrokerConfig[perBrokerConfig] = configValue
 		}
