@@ -182,17 +182,17 @@ key5=value5`,
 	for _, testCase := range testCases {
 		desired := &corev1.ConfigMap{
 			Data: map[string]string{
-				"broker-config": testCase.DesiredConfigs,
+				ConfigPropertyName: testCase.DesiredConfigs,
 			},
 		}
 		current := &corev1.ConfigMap{
 			Data: map[string]string{
-				"broker-config": testCase.CurrentConfigs,
+				ConfigPropertyName: testCase.CurrentConfigs,
 			},
 		}
 		touchedConfigs := collectTouchedConfigs(
-			util.ParsePropertiesFormat(current.Data["broker-config"]),
-			util.ParsePropertiesFormat(desired.Data["broker-config"]), logger)
+			util.ParsePropertiesFormat(current.Data[ConfigPropertyName]),
+			util.ParsePropertiesFormat(desired.Data[ConfigPropertyName]), logger)
 		if !reflect.DeepEqual(touchedConfigs, testCase.Result) {
 			t.Errorf("comparison failed - expected: %s, actual: %s", testCase.Result, touchedConfigs)
 		}

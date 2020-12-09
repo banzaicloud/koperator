@@ -49,7 +49,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	}
 
 	// overwrite configs from configmap
-	configsFromConfigMap := util.ParsePropertiesFormat(configMap.Data["broker-config"])
+	configsFromConfigMap := util.ParsePropertiesFormat(configMap.Data[kafka.ConfigPropertyName])
 	for _, perBrokerConfig := range kafka.PerBrokerConfigs {
 		if configValue, ok := configsFromConfigMap[perBrokerConfig]; ok {
 			fullPerBrokerConfig[perBrokerConfig] = configValue

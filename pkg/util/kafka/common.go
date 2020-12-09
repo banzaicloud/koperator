@@ -28,9 +28,11 @@ const (
 	AllBrokerServiceTemplate = "%s-all-broker"
 	// HeadlessServiceTemplate template for Kafka headless service
 	HeadlessServiceTemplate = "%s-headless"
-)
 
-const securityProtocolMapConfigName = "listener.security.protocol.map"
+	// property name in the ConfigMap's Data field for the broker configuration
+	ConfigPropertyName = "broker-config"
+	securityProtocolMapConfigName = "listener.security.protocol.map"
+)
 
 // these configurations will not trigger rolling upgrade when updated
 var PerBrokerConfigs = []string{
