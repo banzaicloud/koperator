@@ -87,7 +87,7 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 	}
 
 	for _, brokerId := range brokerIds {
-		brokerState, ok := cluster.Status.BrokersState[brokerId]
+		brokerState, ok := brokersState[brokerId]
 		if !ok {
 			brokerState = v1beta1.BrokerState{}
 		}
@@ -119,8 +119,9 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 				brokerState.GracefulActionState.VolumeStates[mountPath] = volumeState
 			}
 		}
-		cluster.Status.BrokersState[brokerId] = brokerState
+		brokersState[brokerId] = brokerState
 	}
+	cluster.Status.BrokersState = brokersState
 }
 
 // DeleteStatus deletes the given broker state from the CR
