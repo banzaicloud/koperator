@@ -231,7 +231,7 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 
 	Expect(pod.GenerateName).To(Equal(fmt.Sprintf("%s-%d-", kafkaCluster.Name, broker.Id)))
 	Expect(pod.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
-	getContainerName := func(c corev1.Container) string {return c.Name}
+	getContainerName := func(c corev1.Container) string { return c.Name }
 	Expect(pod.Spec.InitContainers).To(ConsistOf(
 		WithTransform(getContainerName, Equal("cruise-control-reporter")),
 		WithTransform(getContainerName, Equal("jmx-exporter"))))
@@ -245,7 +245,7 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	Expect(container.Image).To(Equal("ghcr.io/banzaicloud/kafka:2.13-2.6.0-bzc.1"))
 	Expect(container.Lifecycle).NotTo(BeNil())
 	Expect(container.Lifecycle.PreStop).NotTo(BeNil())
-	getEnvName := func(c corev1.EnvVar) string {return c.Name}
+	getEnvName := func(c corev1.EnvVar) string { return c.Name }
 	Expect(container.Env).To(ConsistOf(
 		// the exact value is not interesting
 		WithTransform(getEnvName, Equal("CLASSPATH")),
@@ -258,17 +258,17 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
 					APIVersion: "v1",
-					FieldPath: `metadata.annotations['sidecar.istio.io/status']`,
+					FieldPath:  `metadata.annotations['sidecar.istio.io/status']`,
 				},
 			},
 		},
 		corev1.EnvVar{
-			Name: "KAFKA_HEAP_OPTS",
+			Name:  "KAFKA_HEAP_OPTS",
 			Value: "-Xmx2G -Xms2G",
 		},
-		))
+	))
 
-	getVolumeName := func(vol corev1.Volume) string {return vol.Name}
+	getVolumeName := func(vol corev1.Volume) string { return vol.Name }
 	Expect(pod.Spec.Volumes).To(ConsistOf(
 		corev1.Volume{
 			Name: "exitfile",
@@ -309,7 +309,7 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 
 		// the name of the PVC is dynamically created - no exact match
 		WithTransform(getVolumeName, Equal(fmt.Sprintf("kafka-data-%d", broker.Id))),
-		))
+	))
 
 	Expect(pod.Spec.RestartPolicy).To(Equal(corev1.RestartPolicyNever))
 	Expect(pod.Spec.TerminationGracePeriodSeconds).To(Equal(util.Int64Pointer(120)))

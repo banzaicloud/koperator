@@ -149,7 +149,7 @@ var _ = Describe("KafkaTopic", func() {
 				Name:              topicName,
 				Partitions:        11,
 				ReplicationFactor: 13,
-				Config:            map[string]*string{
+				Config: map[string]*string{
 					"key": util.StringPointer("value"),
 				},
 			})

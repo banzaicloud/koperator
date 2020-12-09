@@ -89,7 +89,9 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, kafkaCluster)
 			Expect(err).NotTo(HaveOccurred())
 
-			getGracefulActionState := func(state v1beta1.BrokerState) v1beta1.CruiseControlState { return state.GracefulActionState.CruiseControlState }
+			getGracefulActionState := func(state v1beta1.BrokerState) v1beta1.CruiseControlState {
+				return state.GracefulActionState.CruiseControlState
+			}
 			Expect(kafkaCluster.Status.BrokersState).To(And(
 				HaveKeyWithValue("0", WithTransform(getGracefulActionState, Equal(v1beta1.GracefulUpscaleSucceeded))),
 				HaveKeyWithValue("1", WithTransform(getGracefulActionState, Equal(v1beta1.GracefulUpscaleSucceeded))),

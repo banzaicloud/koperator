@@ -138,4 +138,3 @@ func resetMockKafkaClient(kafkaCluster *v1beta1.KafkaCluster) {
 	// delete all acls
 	_ = mockKafkaClient.DeleteUserACLs("")
 }
-

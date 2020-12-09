@@ -30,7 +30,7 @@ const (
 	HeadlessServiceTemplate = "%s-headless"
 
 	// property name in the ConfigMap's Data field for the broker configuration
-	ConfigPropertyName = "broker-config"
+	ConfigPropertyName            = "broker-config"
 	securityProtocolMapConfigName = "listener.security.protocol.map"
 )
 
@@ -45,7 +45,6 @@ var PerBrokerConfigs = []string{
 
 	securityProtocolMapConfigName,
 }
-
 
 // LabelsForKafka returns the labels for selecting the resources
 // belonging to the given kafka CR name.
