@@ -24,13 +24,18 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/go-logr/logr"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+
+	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
 // Reconcile reconciles K8S resources
@@ -123,6 +128,26 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 
 			if err := client.Update(context.TODO(), desired); err != nil {
 				return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
+			}
+			switch desired.(type) {
+			case *corev1.ConfigMap:
+				// Only update status when configmap belongs to broker
+				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
+					currentConfigs := util.ParsePropertiesFormat(current.(*corev1.ConfigMap).Data["broker-config"])
+					desiredConfigs := util.ParsePropertiesFormat(desired.(*corev1.ConfigMap).Data["broker-config"])
+
+					var statusErr error
+					// if only per broker configs are changed, do not trigger rolling upgrade by setting ConfigOutOfSync status
+					if kafka.ShouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs, log) {
+						log.V(1).Info("setting per broker config status to out of sync")
+						statusErr = UpdateBrokerStatus(client, []string{id}, cr, v1beta1.PerBrokerConfigOutOfSync, log)
+					} else {
+						statusErr = UpdateBrokerStatus(client, []string{id}, cr, v1beta1.ConfigOutOfSync, log)
+					}
+					if statusErr != nil {
+						return errors.WrapIfWithDetails(err, "updating status for resource failed", "kind", desiredType)
+					}
+				}
 			}
 			log.Info("resource updated")
 		}

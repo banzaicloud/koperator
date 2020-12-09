@@ -16,6 +16,7 @@ package kafka
 
 import (
 	"fmt"
+	"github.com/go-logr/logr"
 	"strings"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
@@ -28,6 +29,21 @@ const (
 	// HeadlessServiceTemplate template for Kafka headless service
 	HeadlessServiceTemplate = "%s-headless"
 )
+
+const securityProtocolMapConfigName = "listener.security.protocol.map"
+
+// these configurations will not trigger rolling upgrade when updated
+var PerBrokerConfigs = []string{
+	// currently hardcoded in configmap.go
+	"ssl.client.auth",
+
+	// listener related config change will trigger rolling upgrade anyways due to pod spec change
+	"listeners",
+	"advertised.listeners",
+
+	securityProtocolMapConfigName,
+}
+
 
 // LabelsForKafka returns the labels for selecting the resources
 // belonging to the given kafka CR name.
@@ -83,4 +99,76 @@ func GrantsToACLStrings(dn string, grants []v1alpha1.UserTopicGrant) []string {
 		}
 	}
 	return acls
+}
+
+func ShouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) bool {
+	touchedConfigs := collectTouchedConfigs(currentConfigs, desiredConfigs, log)
+
+	if _, ok := touchedConfigs[securityProtocolMapConfigName]; ok {
+		if listenersSecurityProtocolChanged(currentConfigs, desiredConfigs) {
+			return false
+		}
+	}
+
+	for _, perBrokerConfig := range PerBrokerConfigs {
+		delete(touchedConfigs, perBrokerConfig)
+	}
+
+	return len(touchedConfigs) == 0
+}
+
+// Security protocol cannot be updated for existing listener
+// a rolling upgrade should be triggered in this case
+func listenersSecurityProtocolChanged(currentConfigs, desiredConfigs map[string]string) bool {
+	// added or deleted config is ok
+	if currentConfigs[securityProtocolMapConfigName] == "" || desiredConfigs[securityProtocolMapConfigName] == "" {
+		return false
+	}
+	currentListenerProtocolMap := make(map[string]string)
+	for _, listenerConfig := range strings.Split(currentConfigs[securityProtocolMapConfigName], ",") {
+		listenerProtocol := strings.Split(listenerConfig, ":")
+		if len(listenerProtocol) != 2 {
+			continue
+		}
+		currentListenerProtocolMap[strings.TrimSpace(listenerProtocol[0])] = strings.TrimSpace(listenerProtocol[1])
+	}
+	for _, listenerConfig := range strings.Split(desiredConfigs[securityProtocolMapConfigName], ",") {
+		desiredListenerProtocol := strings.Split(listenerConfig, ":")
+		if len(desiredListenerProtocol) != 2 {
+			continue
+		}
+		if currentListenerProtocolValue, ok := currentListenerProtocolMap[strings.TrimSpace(desiredListenerProtocol[0])]; ok {
+			if currentListenerProtocolValue != strings.TrimSpace(desiredListenerProtocol[1]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// collects are the config keys that are either added, removed or updated
+// between the current and the desired ConfigMap
+func collectTouchedConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) map[string]struct{} {
+	touchedConfigs := make(map[string]struct{})
+
+	currentConfigsCopy := make(map[string]string)
+	for k, v := range currentConfigs {
+		currentConfigsCopy[k] = v
+	}
+
+	for configName, desiredValue := range desiredConfigs {
+		if currentValue, ok := currentConfigsCopy[configName]; !ok || currentValue != desiredValue {
+			// new or updated config
+			touchedConfigs[configName] = struct{}{}
+		}
+		delete(currentConfigsCopy, configName)
+	}
+
+	for configName := range currentConfigsCopy {
+		// deleted config
+		touchedConfigs[configName] = struct{}{}
+	}
+
+	log.V(1).Info("configs have been changed", "configs", touchedConfigs)
+	return touchedConfigs
 }

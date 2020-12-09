@@ -269,10 +269,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				}
 			}
 		}
-		err = r.updateBrokerStatus(log, configMap)
-		if err != nil {
-			return errors.WrapIfWithDetails(err, "failed to do configmap post-update tasks")
-		}
 
 		pvcs, err := getCreatedPvcForBroker(r.Client, broker.Id, r.KafkaCluster.Namespace, r.KafkaCluster.Name)
 		if err != nil {
