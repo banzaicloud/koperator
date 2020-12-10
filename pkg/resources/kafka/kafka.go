@@ -173,6 +173,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 		}
 	}
+	err := k8sutil.UpdateListenerStatus(r.Client, r.KafkaCluster, log)
+	if err != nil {
+		return errors.WrapIf(err, "failed to update listener statuses")
+	}
 
 	// Handle PDB
 	if r.KafkaCluster.Spec.DisruptionBudget.Create {
@@ -187,7 +191,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 
 	// Handle Pod delete
-	err := r.reconcileKafkaPodDelete(log)
+	err = r.reconcileKafkaPodDelete(log)
 	if err != nil {
 		return errors.WrapIf(err, "failed to reconcile resource")
 	}
