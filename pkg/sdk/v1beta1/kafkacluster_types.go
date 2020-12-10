@@ -74,6 +74,7 @@ type KafkaClusterStatus struct {
 	State                    ClusterState             `json:"state"`
 	RollingUpgrade           RollingUpgradeStatus     `json:"rollingUpgradeStatus,omitempty"`
 	AlertCount               int                      `json:"alertCount"`
+	ListenerStatuses         ListenerStatuses         `json:"listenerStatuses,omitempty"`
 }
 
 // RollingUpgradeStatus defines status of rolling upgrade
@@ -361,6 +362,21 @@ type CommonListenerSpec struct {
 	Type          string `json:"type"`
 	Name          string `json:"name"`
 	ContainerPort int32  `json:"containerPort"`
+}
+
+// ListenerStatuses defines the internal and external listener addresses
+type ListenerStatuses struct {
+	InternalListeners ListenerStatusMap `json:"internalListeners,omitempty"`
+	ExternalListeners ListenerStatusMap `json:"externalListeners,omitempty"`
+}
+
+// ListenerStatus objects can be looked up in ListenerStatusMap by listener name
+type ListenerStatusMap map[string]ListenerStatus
+
+// ListenerStatus holds information about the address of the listener
+type ListenerStatus struct {
+	Host string `json:"host"`
+	Port string `json:"port"`
 }
 
 // +kubebuilder:object:root=true

@@ -5076,6 +5076,43 @@ spec:
               description: CruiseControlTopicStatus holds info about the CC topic
                 status
               type: string
+            listenerStatuses:
+              description: ListenerStatuses defines the internal and external listener
+                addresses
+              properties:
+                externalListeners:
+                  additionalProperties:
+                    description: ListenerStatus holds information about the address
+                      of the listener
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        type: string
+                    required:
+                    - host
+                    - port
+                    type: object
+                  description: ListenerStatus objects can be looked up in ListenerStatusMap
+                    by listener name
+                  type: object
+                internalListeners:
+                  additionalProperties:
+                    description: ListenerStatus holds information about the address
+                      of the listener
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        type: string
+                    required:
+                    - host
+                    - port
+                    type: object
+                  description: ListenerStatus objects can be looked up in ListenerStatusMap
+                    by listener name
+                  type: object
+              type: object
             rollingUpgradeStatus:
               description: RollingUpgradeStatus defines status of rolling upgrade
               properties:
