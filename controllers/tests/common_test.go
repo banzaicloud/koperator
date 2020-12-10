@@ -104,14 +104,37 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 }
 
 func waitForClusterRunningState(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
-	Eventually(func() (v1beta1.ClusterState, error) {
-		createdKafkaCluster := &v1beta1.KafkaCluster{}
-		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, createdKafkaCluster)
-		if err != nil {
-			return v1beta1.KafkaClusterReconciling, err
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch := make(chan struct{}, 1)
+
+	treshold := 10
+	consecutiveRunningState := 0
+
+	go func() {
+		for {
+			time.Sleep(50 * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				createdKafkaCluster := &v1beta1.KafkaCluster{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, createdKafkaCluster)
+				if err != nil || createdKafkaCluster.Status.State != v1beta1.KafkaClusterRunning {
+					consecutiveRunningState = 0
+					continue
+				}
+				consecutiveRunningState++
+				if consecutiveRunningState > treshold {
+					ch <- struct{}{}
+					return
+				}
+			}
 		}
-		return createdKafkaCluster.Status.State, nil
-	}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1beta1.KafkaClusterRunning))
+	}()
+
+	Eventually(ch, 5*time.Second, 50*time.Millisecond).Should(Receive())
 }
 
 func getMockedKafkaClientForCluster(kafkaCluster *v1beta1.KafkaCluster) kafkaclient.KafkaClient {
