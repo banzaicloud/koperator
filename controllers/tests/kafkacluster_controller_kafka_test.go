@@ -44,6 +44,8 @@ func expectKafka(kafkaCluster *v1beta1.KafkaCluster) {
 		expectKafkaBrokerPod(kafkaCluster, broker)
 	}
 
+	expectKafkaCRStatus(kafkaCluster)
+
 	// TODO test reconcile PKI?
 	// TODO test reconcileKafkaPodDelete
 }
@@ -88,6 +90,7 @@ func expectKafkaAllBrokerService(kafkaCluster *v1beta1.KafkaCluster) {
 func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster) {
 	// get current CR
 	err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: kafkaCluster.Namespace}, kafkaCluster)
+	Expect(err).NotTo(HaveOccurred())
 
 	// set PDB and reset status
 	kafkaCluster.Spec.DisruptionBudget = v1beta1.DisruptionBudget{
@@ -315,4 +318,29 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	Expect(pod.Spec.TerminationGracePeriodSeconds).To(Equal(util.Int64Pointer(120)))
 
 	// expect some other fields
+}
+
+func expectKafkaCRStatus(kafkaCluster *v1beta1.KafkaCluster) {
+	err := k8sClient.Get(context.TODO(), types.NamespacedName{
+		Name:      kafkaCluster.Name,
+		Namespace: kafkaCluster.Namespace,
+	}, kafkaCluster)
+	Expect(err).NotTo(HaveOccurred())
+
+	// TODO add more checks on status
+
+	Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
+		InternalListeners: map[string]v1beta1.ListenerStatus{
+			"internal": {
+				Host: "kafkacluster-1-all-broker.kafka-1.svc.cluster.local",
+				Port: 29092,
+			},
+		},
+		ExternalListeners: map[string]v1beta1.ListenerStatus{
+			"test": {
+				Host: "test-host",
+				Port: 9733,
+			},
+		},
+	}))
 }
