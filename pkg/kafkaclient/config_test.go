@@ -1,4 +1,4 @@
-// Copyright © 2019 Banzai Cloud
+// Copyright © 2020 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,9 +17,10 @@ package kafkaclient
 import (
 	"testing"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/pki"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type mockClient struct {
@@ -40,23 +41,6 @@ func newMockCluster() *v1beta1.KafkaCluster {
 		PKIBackend: pki.MockBackend,
 	}
 	return cluster
-}
-
-func TestGenerateKafkaAddress(t *testing.T) {
-	cluster := newMockCluster()
-	cluster.Spec.HeadlessServiceEnabled = true
-	generatedHeadless := generateKafkaAddress(cluster)
-	expected := "test-headless.test.svc.cluster.local:80"
-	if generatedHeadless != expected {
-		t.Error("Expected kafka address:", expected, "Got:", generatedHeadless)
-	}
-
-	cluster.Spec.HeadlessServiceEnabled = false
-	generatedAllBroker := generateKafkaAddress(cluster)
-	expected = "test-all-broker.test.svc.cluster.local:80"
-	if generatedAllBroker != expected {
-		t.Error("Expected kafka address:", expected, "Got:", generatedAllBroker)
-	}
 }
 
 func TestClusterConfig(t *testing.T) {

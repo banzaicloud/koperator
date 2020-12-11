@@ -22,6 +22,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,6 +31,7 @@ import (
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	clientutil "github.com/banzaicloud/kafka-operator/pkg/util/client"
 )
 
 // IsAlreadyOwnedError checks if a controller already own the instance
@@ -255,9 +257,10 @@ func UpdateRollingUpgradeState(c client.Client, cluster *v1beta1.KafkaCluster, t
 	return nil
 }
 
-func UpdateListenerStatus(c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger,
-	intListenerStatuses map[string]v1beta1.ListenerStatus, extListenerStatuses map[string]v1beta1.ListenerStatus) error {
+func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger, extListenerStatuses map[string]v1beta1.ListenerStatus) error {
 	typeMeta := cluster.TypeMeta
+
+	intListenerStatuses := createInternalListenerStatuses(cluster)
 
 	cluster.Status.ListenerStatuses = v1beta1.ListenerStatuses{
 		InternalListeners: intListenerStatuses,
@@ -297,4 +300,18 @@ func UpdateListenerStatus(c client.Client, cluster *v1beta1.KafkaCluster, logger
 	cluster.TypeMeta = typeMeta
 	logger.Info("updated listener statuses")
 	return nil
+}
+
+func createInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) map[string]v1beta1.ListenerStatus {
+	intListenerStatuses := make(map[string]v1beta1.ListenerStatus)
+	internalAddress := clientutil.GenerateKafkaAddressWithoutPort(kafkaCluster)
+	for _, iListener := range kafkaCluster.Spec.ListenersConfig.InternalListeners {
+		if !iListener.UsedForControllerCommunication {
+			intListenerStatuses[iListener.Name] = v1beta1.ListenerStatus{
+				Host: internalAddress,
+				Port: iListener.ContainerPort,
+			}
+		}
+	}
+	return intListenerStatuses
 }

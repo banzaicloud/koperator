@@ -174,8 +174,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	intListenerStatuses := make(map[string]v1beta1.ListenerStatus)
-
 	// Handle PDB
 	if r.KafkaCluster.Spec.DisruptionBudget.Create {
 		o, err := r.podDisruptionBudget(log)
@@ -194,27 +192,11 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errors.WrapIf(err, "failed to reconcile resource")
 	}
 
-	extListenerStatuses := make(map[string]v1beta1.ListenerStatus, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
-
-	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-		var host string
-		if eListener.HostnameOverride != "" {
-			host = eListener.HostnameOverride
-		} else if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
-			lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.GetNamespace(),
-				r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.GetName(), eListener.Name)
-			if err != nil {
-				return err
-			}
-			host = lbIP
-		}
-		extListenerStatuses[eListener.Name] = v1beta1.ListenerStatus{
-			Host: host,
-			Port: eListener.ContainerPort,
-		}
+	extListenerStatuses, err := r.createExternalListenerStatuses()
+	if err != nil {
+		return errors.WrapIf(err, "could not update status for external listeners")
 	}
-
-	err = k8sutil.UpdateListenerStatus(r.Client, r.KafkaCluster, log, intListenerStatuses, extListenerStatuses)
+	err = k8sutil.UpdateListenerStatuses(r.Client, r.KafkaCluster, log, extListenerStatuses)
 	if err != nil {
 		return errors.WrapIf(err, "failed to update listener statuses")
 	}
@@ -815,4 +797,26 @@ func GetBrokersWithPendingOrRunningCCTask(kafkaCluster *v1beta1.KafkaCluster) []
 
 func isDesiredStorageValueInvalid(desired, current *corev1.PersistentVolumeClaim) bool {
 	return desired.Spec.Resources.Requests.Storage().Value() < current.Spec.Resources.Requests.Storage().Value()
+}
+
+func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.ListenerStatus, error) {
+	extListenerStatuses := make(map[string]v1beta1.ListenerStatus, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
+	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		var host string
+		if eListener.HostnameOverride != "" {
+			host = eListener.HostnameOverride
+		} else if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
+			lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.GetNamespace(),
+				r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.GetName(), eListener.Name)
+			if err != nil {
+				return nil, err
+			}
+			host = lbIP
+		}
+		extListenerStatuses[eListener.Name] = v1beta1.ListenerStatus{
+			Host: host,
+			Port: eListener.ContainerPort,
+		}
+	}
+	return extListenerStatuses, nil
 }

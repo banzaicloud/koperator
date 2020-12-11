@@ -16,12 +16,12 @@ package kafkaclient
 
 import (
 	"crypto/tls"
-	"fmt"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/pki"
-	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	clientutil "github.com/banzaicloud/kafka-operator/pkg/util/client"
 )
 
 const kafkaDefaultTimeout = int64(5)
@@ -38,9 +38,9 @@ type KafkaConfig struct {
 // ClusterConfig creates connection options from a KafkaCluster CR
 func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaConfig, error) {
 	conf := &KafkaConfig{}
-	conf.BrokerURI = generateKafkaAddress(cluster)
+	conf.BrokerURI = clientutil.GenerateKafkaAddress(cluster)
 	conf.OperationTimeout = kafkaDefaultTimeout
-	if cluster.Spec.ListenersConfig.SSLSecrets != nil && useSSL(cluster) {
+	if cluster.Spec.ListenersConfig.SSLSecrets != nil && clientutil.UseSSL(cluster) {
 		tlsConfig, err := pki.GetPKIManager(client, cluster, v1beta1.PKIBackendProvided).GetControllerTLSConfig()
 		if err != nil {
 			return conf, err
@@ -49,34 +49,4 @@ func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaC
 		conf.TLSConfig = tlsConfig
 	}
 	return conf, nil
-}
-
-func useSSL(cluster *v1beta1.KafkaCluster) bool {
-	return cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].Type != "plaintext"
-}
-
-func determineInternalListenerForInnerCom(internalListeners []v1beta1.InternalListenerConfig) int {
-	for id, val := range internalListeners {
-		if val.UsedForInnerBrokerCommunication {
-			return id
-		}
-	}
-	return 0
-}
-
-func generateKafkaAddress(cluster *v1beta1.KafkaCluster) string {
-	if cluster.Spec.HeadlessServiceEnabled {
-		return fmt.Sprintf("%s.%s.svc.%s:%d",
-			fmt.Sprintf(kafka.HeadlessServiceTemplate, cluster.Name),
-			cluster.Namespace,
-			cluster.Spec.GetKubernetesClusterDomain(),
-			cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].ContainerPort,
-		)
-	}
-	return fmt.Sprintf("%s.%s.svc.%s:%d",
-		fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name),
-		cluster.Namespace,
-		cluster.Spec.GetKubernetesClusterDomain(),
-		cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].ContainerPort,
-	)
 }
