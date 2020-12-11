@@ -364,19 +364,17 @@ type CommonListenerSpec struct {
 	ContainerPort int32  `json:"containerPort"`
 }
 
-// ListenerStatuses defines the internal and external listener addresses
+// ListenerStatuses holds information about the statuses of the configured listeners.
+// The internal and external listeners are stored in separate maps, and each listener can be looked up by name.
 type ListenerStatuses struct {
-	InternalListeners ListenerStatusMap `json:"internalListeners,omitempty"`
-	ExternalListeners ListenerStatusMap `json:"externalListeners,omitempty"`
+	InternalListeners map[string]ListenerStatus `json:"internalListeners,omitempty"`
+	ExternalListeners map[string]ListenerStatus `json:"externalListeners,omitempty"`
 }
-
-// ListenerStatus objects can be looked up in ListenerStatusMap by listener name
-type ListenerStatusMap map[string]ListenerStatus
 
 // ListenerStatus holds information about the address of the listener
 type ListenerStatus struct {
 	Host string `json:"host"`
-	Port string `json:"port"`
+	Port int32  `json:"port"`
 }
 
 // +kubebuilder:object:root=true

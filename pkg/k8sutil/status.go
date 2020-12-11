@@ -258,11 +258,6 @@ func UpdateRollingUpgradeState(c client.Client, cluster *v1beta1.KafkaCluster, t
 func UpdateListenerStatus(c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
-	cluster.Status.ListenerStatuses = v1beta1.ListenerStatuses{
-		InternalListeners: make(v1beta1.ListenerStatusMap),
-		ExternalListeners: make(v1beta1.ListenerStatusMap),
-	}
-
 	err := c.Status().Update(context.Background(), cluster)
 	if apierrors.IsNotFound(err) {
 		err = c.Update(context.Background(), cluster)
@@ -277,11 +272,6 @@ func UpdateListenerStatus(c client.Client, cluster *v1beta1.KafkaCluster, logger
 		}, cluster)
 		if err != nil {
 			return errors.WrapIf(err, "could not get config for updating listener status")
-		}
-
-		cluster.Status.ListenerStatuses = v1beta1.ListenerStatuses{
-			InternalListeners: make(v1beta1.ListenerStatusMap),
-			ExternalListeners: make(v1beta1.ListenerStatusMap),
 		}
 
 		err = c.Status().Update(context.Background(), cluster)
