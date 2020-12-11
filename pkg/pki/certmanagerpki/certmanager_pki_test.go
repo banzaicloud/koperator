@@ -25,6 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
@@ -97,33 +98,33 @@ func TestReconcilePKI(t *testing.T) {
 	ctx := context.Background()
 
 	manager.client.Create(ctx, newServerSecret())
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, map[string]string{}); err != nil {
+	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatus)); err != nil {
 		if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 			t.Error("Expected not ready error, got:", reflect.TypeOf(err))
 		}
 	}
 
 	manager.client.Create(ctx, newControllerSecret())
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, map[string]string{}); err != nil {
+	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatus)); err != nil {
 		if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 			t.Error("Expected not ready error, got:", reflect.TypeOf(err))
 		}
 	}
 
 	manager.client.Create(ctx, newCASecret())
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, map[string]string{}); err != nil {
+	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatus)); err != nil {
 		t.Error("Expected successful reconcile, got:", err)
 	}
 
 	cluster.Spec.ListenersConfig.SSLSecrets.Create = false
 	manager = newMock(cluster)
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, map[string]string{}); err == nil {
+	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatus)); err == nil {
 		t.Error("Expected error got nil")
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 		t.Error("Expected not ready error, got:", reflect.TypeOf(err))
 	}
 	manager.client.Create(ctx, newPreCreatedSecret())
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, map[string]string{}); err != nil {
+	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatus)); err != nil {
 		t.Error("Expected successful reconcile, got:", err)
 	}
 }

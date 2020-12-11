@@ -77,7 +77,7 @@ super.users={{ .SuperUsers }}
 {{ end }}
 `
 
-func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, loadBalancerIPs map[string]string, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
+func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, extListenerStatuses map[string]v1beta1.ListenerStatus, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
 	var out bytes.Buffer
 	t := template.Must(template.New("bConfig-config").Parse(kafkaConfigTemplate))
 	if err := t.Execute(&out, map[string]interface{}{
@@ -89,7 +89,7 @@ func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, lo
 		"CruiseControlBootstrapServers":      getInternalListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, id, r.KafkaCluster.Spec.GetKubernetesClusterDomain(), r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled),
 		"StorageConfig":                      generateStorageConfig(bConfig.StorageConfigs),
 		"AdvertisedListenersConfig": generateAdvertisedListenerConfig(id,
-			r.KafkaCluster.Spec.ListenersConfig, loadBalancerIPs, r.KafkaCluster.Spec.GetKubernetesClusterDomain(),
+			r.KafkaCluster.Spec.ListenersConfig, extListenerStatuses, r.KafkaCluster.Spec.GetKubernetesClusterDomain(),
 			r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled,
 			bConfig),
 		"SuperUsers":             strings.Join(generateSuperUsers(superUsers), ";"),
@@ -114,7 +114,7 @@ func generateSuperUsers(users []string) (suStrings []string) {
 	return
 }
 
-func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIPs map[string]string, serverPass, clientPass string, superUsers []string, log logr.Logger) *corev1.ConfigMap {
+func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses map[string]v1beta1.ListenerStatus, serverPass, clientPass string, superUsers []string, log logr.Logger) *corev1.ConfigMap {
 	brokerConf := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
@@ -124,7 +124,7 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 			),
 			r.KafkaCluster,
 		),
-		Data: map[string]string{kafka.ConfigPropertyName: r.generateBrokerConfig(id, brokerConfig, loadBalancerIPs, serverPass, clientPass, superUsers, log)},
+		Data: map[string]string{kafka.ConfigPropertyName: r.generateBrokerConfig(id, brokerConfig, extListenerStatuses, serverPass, clientPass, superUsers, log)},
 	}
 	if brokerConfig.Log4jConfig != "" {
 		brokerConf.Data["log4j.properties"] = brokerConfig.Log4jConfig
@@ -133,12 +133,12 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, loa
 }
 
 func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
-	loadBalancerIPs map[string]string, domain, namespace, crName string, headlessServiceEnabled bool, bConfig *v1beta1.BrokerConfig) string {
+	extListenerStatuses map[string]v1beta1.ListenerStatus, domain, namespace, crName string, headlessServiceEnabled bool, bConfig *v1beta1.BrokerConfig) string {
 	advertisedListenerConfig := make([]string, 0, len(l.ExternalListeners)+len(l.InternalListeners))
 	for _, eListener := range l.ExternalListeners {
 		if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 			advertisedListenerConfig = append(advertisedListenerConfig,
-				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), loadBalancerIPs[eListener.Name], eListener.ExternalStartingPort+id))
+				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), extListenerStatuses[eListener.Name].Host, eListener.ExternalStartingPort+id))
 		} else {
 			portNumber := eListener.ExternalStartingPort + id
 			if externalIP, ok := bConfig.NodePortExternalIP[eListener.Name]; ok && externalIP != "" {
@@ -148,13 +148,13 @@ func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
 				portNumber = eListener.ContainerPort
 			}
 
-			if _, ok := loadBalancerIPs[eListener.Name]; !ok {
+			if _, ok := extListenerStatuses[eListener.Name]; !ok {
 				nodePortExternalIP := bConfig.NodePortExternalIP[eListener.Name]
 				advertisedListenerConfig = append(advertisedListenerConfig,
 					fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), nodePortExternalIP, portNumber))
 			} else {
 				advertisedListenerConfig = append(advertisedListenerConfig,
-					fmt.Sprintf("%s://%s-%d-%s.%s%s:%d", strings.ToUpper(eListener.Name), crName, id, eListener.Name, namespace, loadBalancerIPs[eListener.Name], portNumber))
+					fmt.Sprintf("%s://%s-%d-%s.%s%s:%d", strings.ToUpper(eListener.Name), crName, id, eListener.Name, namespace, extListenerStatuses[eListener.Name].Host, portNumber))
 			}
 
 		}
@@ -238,7 +238,7 @@ func getInternalListener(iListeners []v1beta1.InternalListenerConfig, id int32, 
 	return internalListener
 }
 
-func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, loadBalancerIPs map[string]string, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
+func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses map[string]v1beta1.ListenerStatus, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
 	parsedReadOnlyClusterConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ReadOnlyConfig)
 	var parsedReadOnlyBrokerConfig = map[string]string{}
 
@@ -256,7 +256,7 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 	//Generate the Complete Configuration for the Broker
 	completeConfigMap := map[string]string{}
 
-	if err := mergo.Merge(&completeConfigMap, util.ParsePropertiesFormat(r.getConfigString(brokerConfig, id, loadBalancerIPs, serverPass, clientPass, superUsers, log))); err != nil {
+	if err := mergo.Merge(&completeConfigMap, util.ParsePropertiesFormat(r.getConfigString(brokerConfig, id, extListenerStatuses, serverPass, clientPass, superUsers, log))); err != nil {
 		log.Error(err, "error occurred during merging operator generated configs")
 	}
 

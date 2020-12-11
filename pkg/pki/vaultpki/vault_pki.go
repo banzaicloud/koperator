@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
@@ -56,7 +57,7 @@ func (v *vaultPKI) FinalizePKI(_ context.Context, _ logr.Logger) error {
 }
 
 // ReconcilePKI will use the user-provided paths to ensure broker/operator users for a new KafkaCluster
-func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames map[string]string) (err error) {
+func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatus) (err error) {
 	log := logger.WithName("vault_pki")
 
 	log.Info("Retrieving vault client")
@@ -66,7 +67,7 @@ func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme 
 	}
 
 	log.Info("Reconciling broker user in vault")
-	brokerCert, err := v.reconcileBrokerCert(ctx, vault, externalHostnames)
+	brokerCert, err := v.reconcileBrokerCert(ctx, vault, extListenerStatuses)
 	if err != nil {
 		return
 	}
@@ -153,8 +154,8 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 }
 
 func (v *vaultPKI) reconcileBrokerCert(
-	ctx context.Context, vault *vaultapi.Client, externalHostnames map[string]string) (*pkicommon.UserCertificate, error) {
-	return v.reconcileStartupUser(ctx, vault, pkicommon.BrokerUserForCluster(v.cluster, externalHostnames))
+	ctx context.Context, vault *vaultapi.Client, extListenerStatuses map[string]v1beta1.ListenerStatus) (*pkicommon.UserCertificate, error) {
+	return v.reconcileStartupUser(ctx, vault, pkicommon.BrokerUserForCluster(v.cluster, extListenerStatuses))
 }
 
 func (v *vaultPKI) reconcileControllerCert(ctx context.Context, vault *vaultapi.Client) (*pkicommon.UserCertificate, error) {

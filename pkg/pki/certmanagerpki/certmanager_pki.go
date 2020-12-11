@@ -90,10 +90,10 @@ func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error
 	return nil
 }
 
-func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames map[string]string) (err error) {
+func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatus) (err error) {
 	logger.Info("Reconciling cert-manager PKI")
 
-	resources, err := c.kafkapki(ctx, scheme, externalHostnames)
+	resources, err := c.kafkapki(ctx, scheme, extListenerStatuses)
 	if err != nil {
 		return err
 	}
@@ -107,28 +107,28 @@ func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, sche
 	return nil
 }
 
-func (c *certManager) kafkapki(ctx context.Context, scheme *runtime.Scheme, externalHostnames map[string]string) ([]runtime.Object, error) {
+func (c *certManager) kafkapki(ctx context.Context, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatus) ([]runtime.Object, error) {
 	sslConfig := c.cluster.Spec.ListenersConfig.SSLSecrets
 	if sslConfig.Create {
 		if sslConfig.IssuerRef == nil {
-			return fullPKI(c.cluster, scheme, externalHostnames), nil
+			return fullPKI(c.cluster, scheme, extListenerStatuses), nil
 		}
-		return userProvidedIssuerPKI(c.cluster, externalHostnames), nil
+		return userProvidedIssuerPKI(c.cluster, extListenerStatuses), nil
 	}
-	return userProvidedPKI(ctx, c.client, c.cluster, scheme, externalHostnames)
+	return userProvidedPKI(ctx, c.client, c.cluster, scheme, extListenerStatuses)
 }
 
-func userProvidedIssuerPKI(cluster *v1beta1.KafkaCluster, externalHostnames map[string]string) []runtime.Object {
+func userProvidedIssuerPKI(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatus) []runtime.Object {
 	// No need to generate self-signed certs and issuers because the issuer is provided by user
 	return []runtime.Object{
 		// Broker "user"
-		pkicommon.BrokerUserForCluster(cluster, externalHostnames),
+		pkicommon.BrokerUserForCluster(cluster, extListenerStatuses),
 		// Operator user
 		pkicommon.ControllerUserForCluster(cluster),
 	}
 }
 
-func fullPKI(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, externalHostnames map[string]string) []runtime.Object {
+func fullPKI(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatus) []runtime.Object {
 	return []runtime.Object{
 		// A self-signer for the CA Certificate
 		selfSignerForCluster(cluster, scheme),
@@ -138,7 +138,7 @@ func fullPKI(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, externalHost
 		// for producers/consumers in other namespaces
 		mainIssuerForCluster(cluster),
 		// Broker "user"
-		pkicommon.BrokerUserForCluster(cluster, externalHostnames),
+		pkicommon.BrokerUserForCluster(cluster, extListenerStatuses),
 		// Operator user
 		pkicommon.ControllerUserForCluster(cluster),
 	}
@@ -146,7 +146,7 @@ func fullPKI(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, externalHost
 
 func userProvidedPKI(
 	ctx context.Context, client client.Client,
-	cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, externalHostnames map[string]string) ([]runtime.Object, error) {
+	cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatus) ([]runtime.Object, error) {
 	// If we aren't creating the secrets we need a cluster issuer made from the provided secret
 	caSecret, err := caSecretForProvidedCert(ctx, client, cluster, scheme)
 	if err != nil {
@@ -161,7 +161,7 @@ func userProvidedPKI(
 		//
 		// TODO: (tinyzimmer) - Would it be better to allow the KafkaUser to take a user-provided cert/key combination?
 		// It would have to be validated first as signed by whatever the CA is - probably via a webhook.
-		pkicommon.BrokerUserForCluster(cluster, externalHostnames),
+		pkicommon.BrokerUserForCluster(cluster, extListenerStatuses),
 		pkicommon.ControllerUserForCluster(cluster),
 	}, nil
 }

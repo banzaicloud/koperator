@@ -55,7 +55,7 @@ type Manager interface {
 	// ReconcilePKI ensures a PKI for a kafka cluster - should be idempotent.
 	// This method should at least setup any issuer needed for user certificates
 	// as well as broker/cruise-control secrets
-	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames map[string]string) error
+	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames map[string]v1beta1.ListenerStatus) error
 
 	// FinalizePKI performs any cleanup steps necessary for a PKI backend
 	FinalizePKI(ctx context.Context, logger logr.Logger) error
@@ -170,10 +170,10 @@ func LabelsForKafkaPKI(name, namespace string) map[string]string {
 }
 
 // BrokerUserForCluster returns a KafkaUser CR for the broker certificates in a KafkaCluster
-func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, additionalHostnames map[string]string) *v1alpha1.KafkaUser {
-	additionalHosts := make([]string, 0, len(additionalHostnames))
-	for _, hostnames := range additionalHostnames {
-		additionalHosts = append(additionalHosts, hostnames)
+func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatus) *v1alpha1.KafkaUser {
+	additionalHosts := make([]string, 0, len(extListenerStatuses))
+	for _, listenerStatus := range extListenerStatuses {
+		additionalHosts = append(additionalHosts, listenerStatus.Host)
 	}
 	sort.Strings(additionalHosts)
 	return &v1alpha1.KafkaUser{

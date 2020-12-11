@@ -173,10 +173,8 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 		}
 	}
-	err := k8sutil.UpdateListenerStatus(r.Client, r.KafkaCluster, log)
-	if err != nil {
-		return errors.WrapIf(err, "failed to update listener statuses")
-	}
+
+	intListenerStatuses := make(map[string]v1beta1.ListenerStatus)
 
 	// Handle PDB
 	if r.KafkaCluster.Spec.DisruptionBudget.Create {
@@ -191,30 +189,40 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 
 	// Handle Pod delete
-	err = r.reconcileKafkaPodDelete(log)
+	err := r.reconcileKafkaPodDelete(log)
 	if err != nil {
 		return errors.WrapIf(err, "failed to reconcile resource")
 	}
 
-	lbIPs := make(map[string]string, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
+	extListenerStatuses := make(map[string]v1beta1.ListenerStatus, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
 
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		var host string
 		if eListener.HostnameOverride != "" {
-			lbIPs[eListener.Name] = eListener.HostnameOverride
+			host = eListener.HostnameOverride
 		} else if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 			lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.GetNamespace(),
 				r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.GetName(), eListener.Name)
 			if err != nil {
 				return err
 			}
-			lbIPs[eListener.Name] = lbIP
+			host = lbIP
 		}
+		extListenerStatuses[eListener.Name] = v1beta1.ListenerStatus{
+			Host: host,
+			Port: eListener.ContainerPort,
+		}
+	}
+
+	err = k8sutil.UpdateListenerStatus(r.Client, r.KafkaCluster, log, intListenerStatuses, extListenerStatuses)
+	if err != nil {
+		return errors.WrapIf(err, "failed to update listener statuses")
 	}
 
 	// Setup the PKI if using SSL
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		// reconcile the PKI
-		if err := pki.GetPKIManager(r.Client, r.KafkaCluster, v1beta1.PKIBackendProvided).ReconcilePKI(context.TODO(), log, r.Scheme, lbIPs); err != nil {
+		if err := pki.GetPKIManager(r.Client, r.KafkaCluster, v1beta1.PKIBackendProvided).ReconcilePKI(context.TODO(), log, r.Scheme, extListenerStatuses); err != nil {
 			return err
 		}
 	}
@@ -257,7 +265,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		var configMap *corev1.ConfigMap
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			configMap = r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
+			configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, serverPass, clientPass, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
@@ -265,7 +273,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		} else {
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 				if brokerState.RackAwarenessState != "" {
-					configMap = r.configMap(broker.Id, brokerConfig, lbIPs, serverPass, clientPass, superUsers, log)
+					configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, serverPass, clientPass, superUsers, log)
 					err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 					if err != nil {
 						return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
