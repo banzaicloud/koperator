@@ -196,7 +196,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	if err != nil {
 		return errors.WrapIf(err, "could not update status for external listeners")
 	}
-	err = k8sutil.UpdateListenerStatuses(r.Client, r.KafkaCluster, log, extListenerStatuses)
+	err = k8sutil.UpdateListenerStatuses(r.Client, r.KafkaCluster, log, k8sutil.CreateInternalListenerStatuses(r.KafkaCluster), extListenerStatuses)
 	if err != nil {
 		return errors.WrapIf(err, "failed to update listener statuses")
 	}

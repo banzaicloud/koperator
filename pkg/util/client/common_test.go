@@ -15,8 +15,9 @@
 package client
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )

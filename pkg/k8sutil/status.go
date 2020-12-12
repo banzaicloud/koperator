@@ -257,10 +257,8 @@ func UpdateRollingUpgradeState(c client.Client, cluster *v1beta1.KafkaCluster, t
 	return nil
 }
 
-func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger, extListenerStatuses map[string]v1beta1.ListenerStatus) error {
+func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger, intListenerStatuses, extListenerStatuses map[string]v1beta1.ListenerStatus) error {
 	typeMeta := cluster.TypeMeta
-
-	intListenerStatuses := createInternalListenerStatuses(cluster)
 
 	cluster.Status.ListenerStatuses = v1beta1.ListenerStatuses{
 		InternalListeners: intListenerStatuses,
@@ -302,7 +300,7 @@ func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logg
 	return nil
 }
 
-func createInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) map[string]v1beta1.ListenerStatus {
+func CreateInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) map[string]v1beta1.ListenerStatus {
 	intListenerStatuses := make(map[string]v1beta1.ListenerStatus,len(kafkaCluster.Spec.ListenersConfig.InternalListeners))
 	internalAddress := clientutil.GenerateKafkaAddressWithoutPort(kafkaCluster)
 	for _, iListener := range kafkaCluster.Spec.ListenersConfig.InternalListeners {
