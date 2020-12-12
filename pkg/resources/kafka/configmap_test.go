@@ -233,7 +233,7 @@ zookeeper.connect=example.zk:2181/`,
 					},
 				},
 			}
-			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, make(map[string]v1beta1.ListenerStatus), "", "", []string{}, logf.NullLogger{})
+			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, make(map[string]v1beta1.ListenerStatusList), "", "", []string{}, logf.NullLogger{})
 
 			if generatedConfig != test.expectedConfig {
 				t.Errorf("the expected config is %s, received: %s", test.expectedConfig, generatedConfig)

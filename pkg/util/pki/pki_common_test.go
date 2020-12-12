@@ -130,7 +130,7 @@ func TestGetInternalDNSNames(t *testing.T) {
 
 func TestBrokerUserForCluster(t *testing.T) {
 	cluster := testCluster(t)
-	user := BrokerUserForCluster(cluster, make(map[string]v1beta1.ListenerStatus))
+	user := BrokerUserForCluster(cluster, make(map[string]v1beta1.ListenerStatusList))
 
 	expected := &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster),

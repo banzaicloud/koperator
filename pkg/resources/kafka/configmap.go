@@ -77,7 +77,7 @@ super.users={{ .SuperUsers }}
 {{ end }}
 `
 
-func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, extListenerStatuses map[string]v1beta1.ListenerStatus, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
+func (r *Reconciler) getConfigString(bConfig *v1beta1.BrokerConfig, id int32, extListenerStatuses map[string]v1beta1.ListenerStatusList, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
 	var out bytes.Buffer
 	t := template.Must(template.New("bConfig-config").Parse(kafkaConfigTemplate))
 	if err := t.Execute(&out, map[string]interface{}{
@@ -114,7 +114,7 @@ func generateSuperUsers(users []string) (suStrings []string) {
 	return
 }
 
-func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses map[string]v1beta1.ListenerStatus, serverPass, clientPass string, superUsers []string, log logr.Logger) *corev1.ConfigMap {
+func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses map[string]v1beta1.ListenerStatusList, serverPass, clientPass string, superUsers []string, log logr.Logger) *corev1.ConfigMap {
 	brokerConf := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
@@ -133,12 +133,12 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, ext
 }
 
 func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
-	extListenerStatuses map[string]v1beta1.ListenerStatus, domain, namespace, crName string, headlessServiceEnabled bool, bConfig *v1beta1.BrokerConfig) string {
+	extListenerStatuses map[string]v1beta1.ListenerStatusList, domain, namespace, crName string, headlessServiceEnabled bool, bConfig *v1beta1.BrokerConfig) string {
 	advertisedListenerConfig := make([]string, 0, len(l.ExternalListeners)+len(l.InternalListeners))
 	for _, eListener := range l.ExternalListeners {
 		if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 			advertisedListenerConfig = append(advertisedListenerConfig,
-				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), extListenerStatuses[eListener.Name].Host, eListener.ExternalStartingPort+id))
+				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), getHostFromListenerStatus(extListenerStatuses[eListener.Name], id), eListener.ExternalStartingPort+id))
 		} else {
 			portNumber := eListener.ExternalStartingPort + id
 			if externalIP, ok := bConfig.NodePortExternalIP[eListener.Name]; ok && externalIP != "" {
@@ -154,7 +154,7 @@ func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
 					fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), nodePortExternalIP, portNumber))
 			} else {
 				advertisedListenerConfig = append(advertisedListenerConfig,
-					fmt.Sprintf("%s://%s-%d-%s.%s%s:%d", strings.ToUpper(eListener.Name), crName, id, eListener.Name, namespace, extListenerStatuses[eListener.Name].Host, portNumber))
+					fmt.Sprintf("%s://%s-%d-%s.%s%s:%d", strings.ToUpper(eListener.Name), crName, id, eListener.Name, namespace, getHostFromListenerStatus(extListenerStatuses[eListener.Name], id), portNumber))
 			}
 
 		}
@@ -169,6 +169,17 @@ func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
 		}
 	}
 	return fmt.Sprintf("advertised.listeners=%s\n", strings.Join(advertisedListenerConfig, ","))
+}
+
+func getHostFromListenerStatus(status []v1beta1.ListenerStatus, id int32) string {
+	var host string
+	if len(status) == 1 {
+		host = status[0].Host
+	} else {
+		// TODO we should guard this?
+		host = status[id].Host
+	}
+	return host
 }
 
 func generateStorageConfig(sConfig []v1beta1.StorageConfig) string {
@@ -238,7 +249,7 @@ func getInternalListener(iListeners []v1beta1.InternalListenerConfig, id int32, 
 	return internalListener
 }
 
-func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses map[string]v1beta1.ListenerStatus, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
+func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses map[string]v1beta1.ListenerStatusList, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
 	parsedReadOnlyClusterConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ReadOnlyConfig)
 	var parsedReadOnlyBrokerConfig = map[string]string{}
 

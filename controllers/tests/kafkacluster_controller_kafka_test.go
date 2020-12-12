@@ -331,17 +331,17 @@ func expectKafkaCRStatus(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(kafkaCluster.Status.AlertCount).To(Equal(0))
 
 	Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
-		InternalListeners: map[string]v1beta1.ListenerStatus{
-			"internal": {
+		InternalListeners: map[string]v1beta1.ListenerStatusList{
+			"internal": {{
 				Host: "kafkacluster-1-all-broker.kafka-1.svc.cluster.local",
 				Port: 29092,
-			},
+			}},
 		},
-		ExternalListeners: map[string]v1beta1.ListenerStatus{
-			"test": {
+		ExternalListeners: map[string]v1beta1.ListenerStatusList{
+			"test": {{
 				Host: "test-host",
 				Port: 9733,
-			},
+			}},
 		},
 	}))
 }

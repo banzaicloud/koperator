@@ -257,7 +257,7 @@ func UpdateRollingUpgradeState(c client.Client, cluster *v1beta1.KafkaCluster, t
 	return nil
 }
 
-func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger, intListenerStatuses, extListenerStatuses map[string]v1beta1.ListenerStatus) error {
+func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger, intListenerStatuses, extListenerStatuses map[string]v1beta1.ListenerStatusList) error {
 	typeMeta := cluster.TypeMeta
 
 	cluster.Status.ListenerStatuses = v1beta1.ListenerStatuses{
@@ -300,15 +300,15 @@ func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logg
 	return nil
 }
 
-func CreateInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) map[string]v1beta1.ListenerStatus {
-	intListenerStatuses := make(map[string]v1beta1.ListenerStatus,len(kafkaCluster.Spec.ListenersConfig.InternalListeners))
+func CreateInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) map[string]v1beta1.ListenerStatusList {
+	intListenerStatuses := make(map[string]v1beta1.ListenerStatusList, len(kafkaCluster.Spec.ListenersConfig.InternalListeners))
 	internalAddress := clientutil.GenerateKafkaAddressWithoutPort(kafkaCluster)
 	for _, iListener := range kafkaCluster.Spec.ListenersConfig.InternalListeners {
 		if !iListener.UsedForControllerCommunication {
-			intListenerStatuses[iListener.Name] = v1beta1.ListenerStatus{
+			intListenerStatuses[iListener.Name] = []v1beta1.ListenerStatus{{
 				Host: internalAddress,
 				Port: iListener.ContainerPort,
-			}
+			}}
 		}
 	}
 	return intListenerStatuses

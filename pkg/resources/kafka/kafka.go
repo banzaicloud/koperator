@@ -799,8 +799,8 @@ func isDesiredStorageValueInvalid(desired, current *corev1.PersistentVolumeClaim
 	return desired.Spec.Resources.Requests.Storage().Value() < current.Spec.Resources.Requests.Storage().Value()
 }
 
-func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.ListenerStatus, error) {
-	extListenerStatuses := make(map[string]v1beta1.ListenerStatus, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
+func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.ListenerStatusList, error) {
+	extListenerStatuses := make(map[string]v1beta1.ListenerStatusList, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 		var host string
 		if eListener.HostnameOverride != "" {
@@ -813,9 +813,11 @@ func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.Listen
 			}
 			host = lbIP
 		}
-		extListenerStatuses[eListener.Name] = v1beta1.ListenerStatus{
-			Host: host,
-			Port: eListener.ContainerPort,
+		extListenerStatuses[eListener.Name] = v1beta1.ListenerStatusList{
+			{
+				Host: host,
+				Port: eListener.ContainerPort,
+			},
 		}
 	}
 	return extListenerStatuses, nil
