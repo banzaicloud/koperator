@@ -103,6 +103,14 @@ func TestCreateTopic(t *testing.T) {
 
 func TestDeleteTopic(t *testing.T) {
 	client := newOpenedMockClient()
+	if err := client.CreateTopic(&CreateTopicOptions{
+		Name:              "test-topic",
+		Partitions:        1,
+		ReplicationFactor: 1,
+	}); err != nil {
+		t.Error("Expected no error during creation, got:", err)
+	}
+
 	if err := client.DeleteTopic("test-topic", false); err != nil {
 		t.Error("Expected no error, got:", err)
 	}

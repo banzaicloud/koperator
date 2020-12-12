@@ -16,6 +16,7 @@ package kafkaclient
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -23,33 +24,41 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var mockTopics = make(map[string]sarama.TopicDetail, 0)
-var mockACLs = make(map[sarama.Resource]*sarama.ResourceAcls, 0)
-
 type mockClusterAdmin struct {
 	sarama.ClusterAdmin
 	sarama.Client
-	failOps bool
+	sync.Mutex
+	failOps    bool
+	mockTopics map[string]sarama.TopicDetail
+	mockACLs   map[sarama.Resource]*sarama.ResourceAcls
 }
 
 func NewMockFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, error) {
 	return newOpenedMockClient(), nil
 }
 
+func newEmptyMockClusterAdmin(failOps bool) *mockClusterAdmin {
+	return &mockClusterAdmin{
+		mockTopics: make(map[string]sarama.TopicDetail, 0),
+		mockACLs:   make(map[sarama.Resource]*sarama.ResourceAcls, 0),
+		failOps:    failOps,
+	}
+}
+
 func newMockClusterAdmin([]string, *sarama.Config) (sarama.ClusterAdmin, error) {
-	return &mockClusterAdmin{}, nil
+	return newEmptyMockClusterAdmin(false), nil
 }
 
 func newMockKafkaClient([]string, *sarama.Config) (sarama.Client, error) {
-	return &mockClusterAdmin{}, nil
+	return newEmptyMockClusterAdmin(false), nil
 }
 
 func newMockClusterAdminError([]string, *sarama.Config) (sarama.ClusterAdmin, error) {
-	return &mockClusterAdmin{}, errors.New("bad client")
+	return newEmptyMockClusterAdmin(false), errors.New("bad client")
 }
 
 func newMockClusterAdminFailOps([]string, *sarama.Config) (sarama.ClusterAdmin, error) {
-	return &mockClusterAdmin{failOps: true}, nil
+	return newEmptyMockClusterAdmin(true), nil
 }
 
 func newMockOpts() *KafkaConfig {
@@ -83,10 +92,13 @@ func (m *mockClusterAdmin) DescribeCluster() ([]*sarama.Broker, int32, error) {
 }
 
 func (m *mockClusterAdmin) ListTopics() (map[string]sarama.TopicDetail, error) {
+	m.Lock()
+	defer m.Unlock()
+
 	if m.failOps {
 		return map[string]sarama.TopicDetail{}, errors.New("bad list topics")
 	}
-	return mockTopics, nil
+	return shallowCopy(m.mockTopics), nil
 }
 
 func (m *mockClusterAdmin) DescribeTopics(topics []string) ([]*sarama.TopicMetadata, error) {
@@ -118,22 +130,28 @@ func (m *mockClusterAdmin) DescribeTopics(topics []string) ([]*sarama.TopicMetad
 }
 
 func (m *mockClusterAdmin) CreateTopic(name string, detail *sarama.TopicDetail, validateOnly bool) error {
+	m.Lock()
+	defer m.Unlock()
+
 	if m.failOps {
 		return errors.New("bad create topic")
 	}
-	if _, ok := mockTopics[name]; ok {
+	if _, ok := m.mockTopics[name]; ok {
 		return errors.New("already exists")
 	}
-	mockTopics[name] = *detail
+	m.mockTopics[name] = *detail
 	return nil
 }
 
 func (m *mockClusterAdmin) DeleteTopic(name string) error {
+	m.Lock()
+	defer m.Unlock()
+
 	if m.failOps {
 		return errors.New("bad delete topic")
 	}
-	if _, ok := mockTopics[name]; ok {
-		delete(mockTopics, name)
+	if _, ok := m.mockTopics[name]; ok {
+		delete(m.mockTopics, name)
 		return nil
 	} else {
 		return errors.New("does not exist")
@@ -152,11 +170,14 @@ func (m *mockClusterAdmin) CreatePartitions(topic string, count int32, assn [][]
 }
 
 func (m *mockClusterAdmin) CreateACL(resource sarama.Resource, acl sarama.Acl) error {
+	m.Lock()
+	defer m.Unlock()
+
 	if m.failOps {
 		return errors.New("bad create acl")
 	}
 	var resourceAcls *sarama.ResourceAcls
-	if val, ok := mockACLs[resource]; ok {
+	if val, ok := m.mockACLs[resource]; ok {
 		resourceAcls = val
 	} else {
 		resourceAcls = &sarama.ResourceAcls{
@@ -169,19 +190,25 @@ func (m *mockClusterAdmin) CreateACL(resource sarama.Resource, acl sarama.Acl) e
 		}
 	}
 	resourceAcls.Acls = append(resourceAcls.Acls, &acl)
-	mockACLs[resource] = resourceAcls
+	m.mockACLs[resource] = resourceAcls
 	return nil
 }
 
 func (m *mockClusterAdmin) ListAcls(filter sarama.AclFilter) ([]sarama.ResourceAcls, error) {
-	acls := make([]sarama.ResourceAcls, len(mockACLs))
-	for _, acl := range mockACLs {
+	m.Lock()
+	defer m.Unlock()
+
+	acls := make([]sarama.ResourceAcls, len(m.mockACLs))
+	for _, acl := range m.mockACLs {
 		acls = append(acls, *acl)
 	}
 	return acls, nil
 }
 
 func (m *mockClusterAdmin) DeleteACL(filter sarama.AclFilter, validateOnly bool) ([]sarama.MatchingAcl, error) {
+	m.Lock()
+	defer m.Unlock()
+
 	if m.failOps {
 		return []sarama.MatchingAcl{}, errors.New("bad create acl")
 	}
@@ -192,11 +219,19 @@ func (m *mockClusterAdmin) DeleteACL(filter sarama.AclFilter, validateOnly bool)
 		return []sarama.MatchingAcl{sarama.MatchingAcl{Err: sarama.ErrUnknown}}, nil
 	default:
 		// for mock it's enough to erase the whole map
-		mockACLs = make(map[sarama.Resource]*sarama.ResourceAcls, 0)
+		m.mockACLs = make(map[sarama.Resource]*sarama.ResourceAcls, 0)
 		return []sarama.MatchingAcl{sarama.MatchingAcl{}}, nil
 	}
 }
 
 func (m *mockClusterAdmin) DescribeConfig(resource sarama.ConfigResource) ([]sarama.ConfigEntry, error) {
 	return []sarama.ConfigEntry{}, nil
+}
+
+func shallowCopy(original map[string]sarama.TopicDetail) map[string]sarama.TopicDetail {
+	returnMap := make(map[string]sarama.TopicDetail, len(original))
+	for k, v := range original {
+		returnMap[k] = v
+	}
+	return returnMap
 }
