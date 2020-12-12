@@ -327,7 +327,8 @@ func expectKafkaCRStatus(kafkaCluster *v1beta1.KafkaCluster) {
 	}, kafkaCluster)
 	Expect(err).NotTo(HaveOccurred())
 
-	// TODO add more checks on status
+	Expect(kafkaCluster.Status.State).To(Equal(v1beta1.KafkaClusterRunning))
+	Expect(kafkaCluster.Status.AlertCount).To(Equal(0))
 
 	Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
 		InternalListeners: map[string]v1beta1.ListenerStatus{
