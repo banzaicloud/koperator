@@ -72,7 +72,7 @@ func newMockPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pki.
 	return &mockPKIManager{client: client, cluster: cluster}
 }
 
-func (m *mockPKIManager) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatus) error {
+func (m *mockPKIManager) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatusList) error {
 	return nil
 }
 

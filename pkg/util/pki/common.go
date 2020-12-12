@@ -55,7 +55,7 @@ type Manager interface {
 	// ReconcilePKI ensures a PKI for a kafka cluster - should be idempotent.
 	// This method should at least setup any issuer needed for user certificates
 	// as well as broker/cruise-control secrets
-	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames map[string]v1beta1.ListenerStatus) error
+	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames map[string]v1beta1.ListenerStatusList) error
 
 	// FinalizePKI performs any cleanup steps necessary for a PKI backend
 	FinalizePKI(ctx context.Context, logger logr.Logger) error
@@ -170,12 +170,14 @@ func LabelsForKafkaPKI(name, namespace string) map[string]string {
 }
 
 // BrokerUserForCluster returns a KafkaUser CR for the broker certificates in a KafkaCluster
-func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatus) *v1alpha1.KafkaUser {
+func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) *v1alpha1.KafkaUser {
 	additionalHosts := make([]string, 0, len(extListenerStatuses))
 	for _, listenerStatus := range extListenerStatuses {
-		additionalHosts = append(additionalHosts, listenerStatus.Host)
+		for _, status := range listenerStatus {
+			additionalHosts = append(additionalHosts, status.Host)
+		}
 	}
-	sort.Strings(additionalHosts)
+	additionalHosts = sortAndDedupe(additionalHosts)
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster), LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster),
 		Spec: v1alpha1.KafkaUserSpec{
@@ -188,6 +190,20 @@ func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, extListenerStatuses map
 			},
 		},
 	}
+}
+
+func sortAndDedupe(hosts []string) []string {
+	sort.Strings(hosts)
+
+	uniqueHosts := make([]string, 0)
+	lastHost := ""
+	for _, host := range hosts {
+		if lastHost != host {
+			uniqueHosts = append(uniqueHosts, host)
+		}
+		lastHost = host
+	}
+	return uniqueHosts
 }
 
 // ControllerUserForCluster returns a KafkaUser CR for the controller/cc certificates in a KafkaCluster

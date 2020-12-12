@@ -57,7 +57,7 @@ func (v *vaultPKI) FinalizePKI(_ context.Context, _ logr.Logger) error {
 }
 
 // ReconcilePKI will use the user-provided paths to ensure broker/operator users for a new KafkaCluster
-func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatus) (err error) {
+func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatusList) (err error) {
 	log := logger.WithName("vault_pki")
 
 	log.Info("Retrieving vault client")
@@ -154,7 +154,7 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 }
 
 func (v *vaultPKI) reconcileBrokerCert(
-	ctx context.Context, vault *vaultapi.Client, extListenerStatuses map[string]v1beta1.ListenerStatus) (*pkicommon.UserCertificate, error) {
+	ctx context.Context, vault *vaultapi.Client, extListenerStatuses map[string]v1beta1.ListenerStatusList) (*pkicommon.UserCertificate, error) {
 	return v.reconcileStartupUser(ctx, vault, pkicommon.BrokerUserForCluster(v.cluster, extListenerStatuses))
 }
 

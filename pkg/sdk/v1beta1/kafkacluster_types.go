@@ -367,9 +367,12 @@ type CommonListenerSpec struct {
 // ListenerStatuses holds information about the statuses of the configured listeners.
 // The internal and external listeners are stored in separate maps, and each listener can be looked up by name.
 type ListenerStatuses struct {
-	InternalListeners map[string]ListenerStatus `json:"internalListeners,omitempty"`
-	ExternalListeners map[string]ListenerStatus `json:"externalListeners,omitempty"`
+	InternalListeners map[string]ListenerStatusList `json:"internalListeners,omitempty"`
+	ExternalListeners map[string]ListenerStatusList `json:"externalListeners,omitempty"`
 }
+
+// ListenerStatusList can hold various amount of statuses based on the listener configuration.
+type ListenerStatusList []ListenerStatus
 
 // ListenerStatus holds information about the address of the listener
 type ListenerStatus struct {

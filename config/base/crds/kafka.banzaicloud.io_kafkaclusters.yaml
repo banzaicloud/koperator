@@ -5083,33 +5083,41 @@ spec:
               properties:
                 externalListeners:
                   additionalProperties:
-                    description: ListenerStatus holds information about the address
-                      of the listener
-                    properties:
-                      host:
-                        type: string
-                      port:
-                        format: int32
-                        type: integer
-                    required:
-                    - host
-                    - port
-                    type: object
+                    description: ListenerStatusList can hold various amount of statuses
+                      based on the listener configuration.
+                    items:
+                      description: ListenerStatus holds information about the address
+                        of the listener
+                      properties:
+                        host:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                      required:
+                      - host
+                      - port
+                      type: object
+                    type: array
                   type: object
                 internalListeners:
                   additionalProperties:
-                    description: ListenerStatus holds information about the address
-                      of the listener
-                    properties:
-                      host:
-                        type: string
-                      port:
-                        format: int32
-                        type: integer
-                    required:
-                    - host
-                    - port
-                    type: object
+                    description: ListenerStatusList can hold various amount of statuses
+                      based on the listener configuration.
+                    items:
+                      description: ListenerStatus holds information about the address
+                        of the listener
+                      properties:
+                        host:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                      required:
+                      - host
+                      - port
+                      type: object
+                    type: array
                   type: object
               type: object
             rollingUpgradeStatus:
