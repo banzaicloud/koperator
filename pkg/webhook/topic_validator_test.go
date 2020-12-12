@@ -18,10 +18,14 @@ import (
 	"context"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func newMockCluster() *v1beta1.KafkaCluster {
@@ -46,8 +50,18 @@ func newMockTopic() *v1alpha1.KafkaTopic {
 	}
 }
 
+func newMockServerForTopicValidator(cluster *v1beta1.KafkaCluster) (*webhookServer, kafkaclient.KafkaClient) {
+	client := fake.NewFakeClientWithScheme(scheme.Scheme)
+	kafkaClient, _ := kafkaclient.NewMockFromCluster(client, cluster)
+	returnMockedKafkaClient := func(client runtimeClient.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, error) {
+		return kafkaClient, nil
+	}
+	return newMockServerWithClients(client, returnMockedKafkaClient), kafkaClient
+}
+
 func TestValidateTopic(t *testing.T) {
-	server := newMockServer()
+	cluster := newMockCluster()
+	server, broker := newMockServerForTopicValidator(cluster)
 	topic := newMockTopic()
 
 	// Test non-existent kafka cluster
@@ -66,7 +80,6 @@ func TestValidateTopic(t *testing.T) {
 	topic.SetDeletionTimestamp(nil)
 
 	// test cluster marked for deletion
-	cluster := newMockCluster()
 	cluster.SetDeletionTimestamp(&now)
 	server.client.Create(context.TODO(), cluster)
 	if res = server.validateKafkaTopic(topic); !res.Allowed {
@@ -95,8 +108,10 @@ func TestValidateTopic(t *testing.T) {
 	topic.Spec.ReplicationFactor = 1
 
 	// Test overwrite attempt
-	broker, _ := kafkaclient.NewMockFromCluster(server.client, cluster)
-	broker.CreateTopic(&kafkaclient.CreateTopicOptions{Name: "test-topic", ReplicationFactor: 1, Partitions: 2})
+	err := broker.CreateTopic(&kafkaclient.CreateTopicOptions{Name: "test-topic", ReplicationFactor: 1, Partitions: 2})
+	if err != nil {
+		t.Error("creation of topic should have been successful")
+	}
 	topic.Name = "test-topic"
 	if res = server.validateKafkaTopic(topic); res.Allowed {
 		t.Error("Expected not allowed due to existing topic with same name, got allowed")

@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"net/http"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
@@ -30,14 +31,18 @@ import (
 )
 
 func newMockServer() *webhookServer {
+	return newMockServerWithClients(fake.NewFakeClientWithScheme(scheme.Scheme), kafkaclient.NewMockFromCluster)
+}
+
+func newMockServerWithClients(c client.Client, kafkaClientProvider func(client client.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, error)) *webhookServer {
 	certv1.AddToScheme(scheme.Scheme)
 	v1alpha1.AddToScheme(scheme.Scheme)
 	v1beta1.AddToScheme(scheme.Scheme)
 	return &webhookServer{
-		client:              fake.NewFakeClientWithScheme(scheme.Scheme),
+		client:              c,
 		scheme:              scheme.Scheme,
 		deserializer:        serializer.NewCodecFactory(scheme.Scheme).UniversalDeserializer(),
-		newKafkaFromCluster: kafkaclient.NewMockFromCluster,
+		newKafkaFromCluster: kafkaClientProvider,
 	}
 }
 
