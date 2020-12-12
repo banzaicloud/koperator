@@ -303,7 +303,7 @@ func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logg
 }
 
 func createInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) map[string]v1beta1.ListenerStatus {
-	intListenerStatuses := make(map[string]v1beta1.ListenerStatus)
+	intListenerStatuses := make(map[string]v1beta1.ListenerStatus,len(kafkaCluster.Spec.ListenersConfig.InternalListeners))
 	internalAddress := clientutil.GenerateKafkaAddressWithoutPort(kafkaCluster)
 	for _, iListener := range kafkaCluster.Spec.ListenersConfig.InternalListeners {
 		if !iListener.UsedForControllerCommunication {
