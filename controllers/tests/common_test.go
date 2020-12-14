@@ -41,9 +41,9 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 					{
 						CommonListenerSpec: v1beta1.CommonListenerSpec{
 							Name:          "test",
-							ContainerPort: 9733,
+							ContainerPort: 9094,
 						},
-						ExternalStartingPort: 11202,
+						ExternalStartingPort: 19090,
 						HostnameOverride:     "test-host",
 						AccessMethod:         corev1.ServiceTypeLoadBalancer,
 					},
@@ -90,6 +90,14 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 			Brokers: []v1beta1.Broker{
 				{
 					Id:                0,
+					BrokerConfigGroup: "default",
+				},
+				{
+					Id:                1,
+					BrokerConfigGroup: "default",
+				},
+				{
+					Id:                2,
 					BrokerConfigGroup: "default",
 				},
 			},

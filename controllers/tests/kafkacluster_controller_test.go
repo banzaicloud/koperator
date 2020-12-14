@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
@@ -49,6 +51,7 @@ var _ = Describe("KafkaCluster", func() {
 		}
 
 		kafkaCluster = createMinimalKafkaClusterCR(fmt.Sprintf("kafkacluster-%d", count), namespace)
+		kafkaCluster.Spec.ListenersConfig.ExternalListeners[0].HostnameOverride = ""
 		kafkaCluster.Spec.CruiseControlConfig = v1beta1.CruiseControlConfig{
 			TopicConfig: &v1beta1.TopicConfig{
 				Partitions:        7,
@@ -66,6 +69,23 @@ var _ = Describe("KafkaCluster", func() {
 
 		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err = k8sClient.Create(context.TODO(), kafkaCluster)
+		Expect(err).NotTo(HaveOccurred())
+
+		// assign host to envoy LB
+		envoyLBService := &corev1.Service{}
+		Eventually(func() error {
+			return k8sClient.Get(context.TODO(), types.NamespacedName{
+				Name:      fmt.Sprintf("envoy-loadbalancer-test-%s", kafkaCluster.Name),
+				Namespace: namespace,
+			}, envoyLBService)
+		}, 5 * time.Second, 100 * time.Millisecond).Should(Succeed())
+
+		envoyLBService.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
+			Hostname: "test.host.com",
+		}}
+
+		log.Log.V(-1).Info("envoy service updated", "spec", envoyLBService)
+		err = k8sClient.Status().Update(context.TODO(), envoyLBService)
 		Expect(err).NotTo(HaveOccurred())
 
 		waitForClusterRunningState(kafkaCluster, namespace)
