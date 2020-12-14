@@ -129,7 +129,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 					TargetPort: intstr.FromInt(11202),
 				},
 				corev1.ServicePort{
-					Name:       "tcp-all-brokers",
+					Name:       "tcp-all-broker",
 					Port:       29092,
 					TargetPort: intstr.FromInt(29092),
 				}))
@@ -156,7 +156,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 					Port: &v1alpha3.Port{
 						Number:   29092,
 						Protocol: "TCP",
-						Name:     "tcp-all-brokers",
+						Name:     "tcp-all-broker",
 					},
 					Hosts: []string{"*"},
 				}))
