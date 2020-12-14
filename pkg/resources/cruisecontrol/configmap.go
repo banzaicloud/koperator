@@ -32,7 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (r *Reconciler) configMap(clientPass, capacityConfig string) runtime.Object {
+func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logger) runtime.Object {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
@@ -45,7 +45,9 @@ func (r *Reconciler) configMap(clientPass, capacityConfig string) runtime.Object
 bootstrap.servers=%s:%d
 # The zookeeper connect of the Kafka cluster
 zookeeper.connect=%s
-`, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name), r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort, zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())) +
+`, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name),
+generateBootstrapServerPort(log, r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
+zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())) +
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass),
 			"capacity.json":       capacityConfig,
 			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,
@@ -75,13 +77,24 @@ func generateBootstrapServer(headlessEnabled bool, clusterName string) string {
 	return fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, clusterName)
 }
 
+func generateBootstrapServerPort(log logr.Logger, listenerConfig []v1beta1.InternalListenerConfig) int32 {
+	for _, listener := range listenerConfig {
+		if listener.UsedForInnerBrokerCommunication {
+			return listener.ContainerPort
+		}
+	}
+	// This should never happen since there should be least one listener for inner broker communication
+	log.V(1).Info("listener for inner communication not found falling back")
+	return listenerConfig[0].ContainerPort
+}
+
 const (
 	storageConfigCPUDefaultValue   = "100"
 	storageConfigNWINDefaultValue  = "125000"
 	storageConfigNWOUTDefaultValue = "125000"
 )
 
-type CruiseControlCapacityConfig struct {
+type CapacityConfig struct {
 	BrokerCapacities []BrokerCapacity `json:"brokerCapacities"`
 }
 type BrokerCapacity struct {
@@ -113,7 +126,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 		}
 	}
 
-	capacityConfig := CruiseControlCapacityConfig{}
+	capacityConfig := CapacityConfig{}
 
 	for _, broker := range kafkaCluster.Spec.Brokers {
 		brokerCapacity := BrokerCapacity{

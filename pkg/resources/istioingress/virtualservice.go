@@ -78,7 +78,7 @@ func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 		tlsRoutes = append(tlsRoutes, v1alpha3.TLSRoute{
 			Match: []v1alpha3.TLSMatchAttributes{
 				{
-					Port:     util.IntPointer(int(kc.Spec.ListenersConfig.InternalListeners[0].ContainerPort)),
+					Port:     util.IntPointer(int(externalListenerConfig.GetAnyCastPort())),
 					SniHosts: []string{"*"},
 				},
 			},
@@ -86,7 +86,7 @@ func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 				{
 					Destination: &v1alpha3.Destination{
 						Host: fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, kc.Name),
-						Port: &v1alpha3.PortSelector{Number: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ContainerPort)},
+						Port: &v1alpha3.PortSelector{Number: uint32(externalListenerConfig.ContainerPort)},
 					},
 				},
 			},
@@ -122,14 +122,14 @@ func generateTcpRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 		tcpRoutes = append(tcpRoutes, v1alpha3.TCPRoute{
 			Match: []v1alpha3.L4MatchAttributes{
 				{
-					Port: util.IntPointer(int(kc.Spec.ListenersConfig.InternalListeners[0].ContainerPort)),
+					Port: util.IntPointer(int(externalListenerConfig.GetAnyCastPort())),
 				},
 			},
 			Route: []*v1alpha3.RouteDestination{
 				{
 					Destination: &v1alpha3.Destination{
 						Host: fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, kc.Name),
-						Port: &v1alpha3.PortSelector{Number: uint32(kc.Spec.ListenersConfig.ExternalListeners[0].ContainerPort)},
+						Port: &v1alpha3.PortSelector{Number: uint32(externalListenerConfig.ContainerPort)},
 					},
 				},
 			},

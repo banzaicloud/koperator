@@ -264,6 +264,13 @@ func (c ExternalListenerConfig) GetAccessMethod() corev1.ServiceType {
 	return c.AccessMethod
 }
 
+func (c ExternalListenerConfig) GetAnyCastPort() int32 {
+	if c.AnyCastPort == nil {
+		return 29092
+	}
+	return *c.AnyCastPort
+}
+
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
 func (c ExternalListenerConfig) GetServiceAnnotations() map[string]string {
 	annotations := make(map[string]string, len(c.ServiceAnnotations))
@@ -314,6 +321,8 @@ type AlertManagerConfig struct {
 type ExternalListenerConfig struct {
 	CommonListenerSpec   `json:",inline"`
 	ExternalStartingPort int32 `json:"externalStartingPort"`
+	//TODO write some description
+	AnyCastPort          *int32 `json:"anyCastPort,omitempty"`
 	// In case of external listeners using LoadBalancer access method the value of this field is used to advertise the
 	// Kafka broker external listener instead of the public IP of the provisioned LoadBalancer service (e.g. can be used to
 	// advertise the listener using a URL recorded in DNS instead of public IP).
