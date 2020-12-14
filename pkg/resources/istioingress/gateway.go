@@ -24,6 +24,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	kafkautil "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
 func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig) runtime.Object {
@@ -61,9 +62,9 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 	if !kc.Spec.HeadlessServiceEnabled && len(kc.Spec.ListenersConfig.ExternalListeners) > 0 {
 		servers = append(servers, v1alpha3.Server{
 			Port: &v1alpha3.Port{
-				Number:   int(kc.Spec.ListenersConfig.InternalListeners[0].ContainerPort),
+				Number:   int(externalListenerConfig.GetAnyCastPort()),
 				Protocol: protocol,
-				Name:     "tcp-" + allBrokers,
+				Name:     fmt.Sprintf(kafkautil.AllBrokerServiceTemplate, "tcp"),
 			},
 			Hosts: []string{"*"},
 			TLS:   tlsConfig,

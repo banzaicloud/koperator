@@ -27,6 +27,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	istioingressutils "github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
 func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig) runtime.Object {
@@ -56,11 +57,11 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 			Type: istioOperatorApi.GatewayTypeIngress,
 		},
 	}
-	if !r.KafkaCluster.Spec.HeadlessServiceEnabled && len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners) > 0 {
+	if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
 		mgateway.Spec.Ports = append(mgateway.Spec.Ports, corev1.ServicePort{
-			Name:       "tcp-" + allBrokers,
-			TargetPort: intstr.FromInt(int(r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort)),
-			Port:       r.KafkaCluster.Spec.ListenersConfig.InternalListeners[0].ContainerPort,
+			Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
+			TargetPort: intstr.FromInt(int(externalListenerConfig.GetAnyCastPort())),
+			Port:       externalListenerConfig.GetAnyCastPort(),
 		})
 	}
 	return mgateway
