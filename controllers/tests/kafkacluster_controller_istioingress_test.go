@@ -64,6 +64,20 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 
 		kafkaClusterCRName = fmt.Sprintf("kafkacluster-%v", count)
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
+
+		kafkaCluster.Spec.IngressController = istioingress.IngressControllerName
+		kafkaCluster.Spec.ListenersConfig.ExternalListeners = []v1beta1.ExternalListenerConfig{
+			{
+				CommonListenerSpec: v1beta1.CommonListenerSpec{
+					Type:          "plaintext",
+					Name:          "external",
+					ContainerPort: 9094,
+				},
+				// TODO remove this
+				HostnameOverride:     "test-host",
+				ExternalStartingPort: 19090,
+			},
+		}
 	})
 
 	JustBeforeEach(func() {
@@ -92,14 +106,14 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 
 		It("creates Istio ingress related objects", func() {
 			var meshGateway istioOperatorApi.MeshGateway
-			meshGatewayName := fmt.Sprintf("meshgateway-test-%s", kafkaCluster.Name)
+			meshGatewayName := fmt.Sprintf("meshgateway-external-%s", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: meshGatewayName}, &meshGateway)
 				return err
 			}).Should(Succeed())
 
 			meshGatewayConf := meshGateway.Spec.MeshGatewayConfiguration
-			ExpectIstioIngressLabels(meshGatewayConf.Labels, "test", kafkaClusterCRName)
+			ExpectIstioIngressLabels(meshGatewayConf.Labels, "external", kafkaClusterCRName)
 			Expect(meshGatewayConf.ServiceType).To(Equal(corev1.ServiceTypeLoadBalancer))
 			baseConf := meshGatewayConf.BaseK8sResourceConfigurationWithHPAWithoutImage
 			Expect(baseConf.ReplicaCount).To(Equal(util.Int32Pointer(1)))
@@ -125,8 +139,18 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			Expect(meshGateway.Spec.Ports).To(ConsistOf(
 				corev1.ServicePort{
 					Name:       "tcp-broker-0",
-					Port:       11202,
-					TargetPort: intstr.FromInt(11202),
+					Port:       19090,
+					TargetPort: intstr.FromInt(19090),
+				},
+				corev1.ServicePort{
+					Name:       "tcp-broker-1",
+					Port:       19091,
+					TargetPort: intstr.FromInt(19091),
+				},
+				corev1.ServicePort{
+					Name:       "tcp-broker-2",
+					Port:       19092,
+					TargetPort: intstr.FromInt(19092),
 				},
 				corev1.ServicePort{
 					Name:       "tcp-all-broker",
@@ -136,20 +160,34 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			Expect(meshGateway.Spec.Type).To(Equal(istioOperatorApi.GatewayTypeIngress))
 
 			var gateway v1alpha3.Gateway
-			gatewayName := fmt.Sprintf("%s-test-gateway", kafkaCluster.Name)
+			gatewayName := fmt.Sprintf("%s-external-gateway", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: gatewayName}, &gateway)
 				return err
 			}).Should(Succeed())
 
-			ExpectIstioIngressLabels(gateway.Labels, "test", kafkaClusterCRName)
-			ExpectIstioIngressLabels(gateway.Spec.Selector, "test", kafkaClusterCRName)
+			ExpectIstioIngressLabels(gateway.Labels, "external", kafkaClusterCRName)
+			ExpectIstioIngressLabels(gateway.Spec.Selector, "external", kafkaClusterCRName)
 			Expect(gateway.Spec.Servers).To(ConsistOf(
 				v1alpha3.Server{
 					Port: &v1alpha3.Port{
-						Number:   11202,
+						Number:   19090,
 						Protocol: "TCP",
 						Name:     "tcp-broker-0"},
+					Hosts: []string{"*"},
+				},
+				v1alpha3.Server{
+					Port: &v1alpha3.Port{
+						Number:   19091,
+						Protocol: "TCP",
+						Name:     "tcp-broker-1"},
+					Hosts: []string{"*"},
+				},
+				v1alpha3.Server{
+					Port: &v1alpha3.Port{
+						Number:   19092,
+						Protocol: "TCP",
+						Name:     "tcp-broker-2"},
 					Hosts: []string{"*"},
 				},
 				v1alpha3.Server{
@@ -162,23 +200,41 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 				}))
 
 			var virtualService v1alpha3.VirtualService
-			virtualServiceName := fmt.Sprintf("%s-test-virtualservice", kafkaCluster.Name)
+			virtualServiceName := fmt.Sprintf("%s-external-virtualservice", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: virtualServiceName}, &virtualService)
 				return err
 			}).Should(Succeed())
 
-			ExpectIstioIngressLabels(virtualService.Labels, "test", kafkaClusterCRName)
+			ExpectIstioIngressLabels(virtualService.Labels, "external", kafkaClusterCRName)
 			Expect(virtualService.Spec).To(Equal(v1alpha3.VirtualServiceSpec{
 				Hosts:    []string{"*"},
-				Gateways: []string{fmt.Sprintf("%s-test-gateway", kafkaClusterCRName)},
+				Gateways: []string{fmt.Sprintf("%s-external-gateway", kafkaClusterCRName)},
 				TCP: []v1alpha3.TCPRoute{
 					{
-						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(11202)}},
+						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(19090)}},
 						Route: []*v1alpha3.RouteDestination{{
 							Destination: &v1alpha3.Destination{
 								Host: "kafkacluster-1-0",
-								Port: &v1alpha3.PortSelector{Number: 9733},
+								Port: &v1alpha3.PortSelector{Number: 9094},
+							},
+						}},
+					},
+					{
+						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(19091)}},
+						Route: []*v1alpha3.RouteDestination{{
+							Destination: &v1alpha3.Destination{
+								Host: "kafkacluster-1-1",
+								Port: &v1alpha3.PortSelector{Number: 9094},
+							},
+						}},
+					},
+					{
+						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(19092)}},
+						Route: []*v1alpha3.RouteDestination{{
+							Destination: &v1alpha3.Destination{
+								Host: "kafkacluster-1-2",
+								Port: &v1alpha3.PortSelector{Number: 9094},
 							},
 						}},
 					},
@@ -187,10 +243,32 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 						Route: []*v1alpha3.RouteDestination{{
 							Destination: &v1alpha3.Destination{
 								Host: "kafkacluster-1-all-broker",
-								Port: &v1alpha3.PortSelector{Number: 9733},
+								Port: &v1alpha3.PortSelector{Number: 9094},
 							},
 						}},
 					},
+				},
+			}))
+
+			// expect kafkaCluster listener status
+			err = k8sClient.Get(context.TODO(), types.NamespacedName{
+				Name:      kafkaCluster.Name,
+				Namespace: kafkaCluster.Namespace,
+			}, kafkaCluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
+				InternalListeners: map[string]v1beta1.ListenerStatusList{
+					"internal": {{
+						Host: "kafkacluster-1-all-broker.kafka-istioingress-1.svc.cluster.local",
+						Port: 29092,
+					}},
+				},
+				ExternalListeners: map[string]v1beta1.ListenerStatusList{
+					"external": {{
+						Host: "test-host",
+						Port: 9094,
+					}},
 				},
 			}))
 		})
