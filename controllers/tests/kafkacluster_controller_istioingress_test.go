@@ -73,8 +73,6 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 					Name:          "external",
 					ContainerPort: 9094,
 				},
-				// TODO remove this
-				HostnameOverride:     "test-host",
 				ExternalStartingPort: 19090,
 			},
 		}
@@ -87,6 +85,32 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 
 		By("creating Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err = k8sClient.Create(context.TODO(), kafkaCluster)
+		Expect(err).NotTo(HaveOccurred())
+
+		svcName := fmt.Sprintf("meshgateway-external-%s", kafkaCluster.Name)
+		// TODO check how this looks in a real cluster
+		meshGateway := corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      svcName,
+				Namespace: namespace,
+			},
+			Spec: corev1.ServiceSpec{
+				// dummy ports value
+				Ports: []corev1.ServicePort{{Port: 1}},
+			},
+			Status: corev1.ServiceStatus{
+				LoadBalancer: corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
+						{
+							Hostname: "ingress.test.host.com",
+						},
+					},
+				},
+			},
+		}
+		err = k8sClient.Create(context.TODO(), &meshGateway)
+		Expect(err).NotTo(HaveOccurred())
+		err = k8sClient.Status().Update(context.TODO(), &meshGateway)
 		Expect(err).NotTo(HaveOccurred())
 
 		waitForClusterRunningState(kafkaCluster, namespace)
@@ -260,15 +284,68 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
 				InternalListeners: map[string]v1beta1.ListenerStatusList{
 					"internal": {{
-						Host: "kafkacluster-1-all-broker.kafka-istioingress-1.svc.cluster.local",
+						Host: fmt.Sprintf("%s-all-broker.kafka-istioingress-%d.svc.cluster.local", kafkaCluster.Name, count),
 						Port: 29092,
 					}},
 				},
 				ExternalListeners: map[string]v1beta1.ListenerStatusList{
-					"external": {{
-						Host: "test-host",
-						Port: 9094,
+					"external": {
+						{
+							Host: "ingress.test.host.com",
+							Port: 19090,
+						},
+						{
+							Host: "ingress.test.host.com",
+							Port: 19091,
+						},
+						{
+							Host: "ingress.test.host.com",
+							Port: 19092,
+						},
+					},
+				},
+			}))
+		})
+	})
+
+	When("Headless mode is turned off", func() {
+		BeforeEach(func() {
+			kafkaCluster.Spec.HeadlessServiceEnabled = false
+		})
+
+		It("Adds the all brokers service to the listener status", func() {
+			err := k8sClient.Get(context.TODO(), types.NamespacedName{
+				Name:      kafkaCluster.Name,
+				Namespace: kafkaCluster.Namespace,
+			}, kafkaCluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
+				InternalListeners: map[string]v1beta1.ListenerStatusList{
+					"internal": {{
+						Host: fmt.Sprintf("%s-all-broker.kafka-istioingress-%d.svc.cluster.local", kafkaCluster.Name, count),
+						Port: 29092,
 					}},
+				},
+				ExternalListeners: map[string]v1beta1.ListenerStatusList{
+					"external": {
+						{
+							Host: "ingress.test.host.com",
+							Port: 100, // TODO fix this when the all brokers port is added
+						},
+						{
+							Host: "ingress.test.host.com",
+							Port: 19090,
+						},
+						{
+							Host: "ingress.test.host.com",
+							Port: 19091,
+						},
+						{
+							Host: "ingress.test.host.com",
+							Port: 19092,
+						},
+					},
 				},
 			}))
 		})

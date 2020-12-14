@@ -21,11 +21,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"emperror.dev/errors"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	"github.com/go-logr/logr"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -127,7 +127,8 @@ func getLoadBalancerIP(client client.Client, namespace, ingressController, crNam
 	}
 
 	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" && foundLBService.Status.LoadBalancer.Ingress[0].IP == "" {
-		time.Sleep(20 * time.Second)
+		// TODO move this to the delay for the reconcile
+		// time.Sleep(20 * time.Second)
 		return "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("loadbalancer is not created waiting"), "trying")
 	}
 	var loadBalancerExternalAddress string
@@ -813,12 +814,15 @@ func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.Listen
 			}
 			host = lbIP
 		}
-		extListenerStatuses[eListener.Name] = v1beta1.ListenerStatusList{
-			{
+		listenerStatusList := make(v1beta1.ListenerStatusList, 0, len(r.KafkaCluster.Spec.Brokers))
+		for _, broker := range r.KafkaCluster.Spec.Brokers {
+			listenerStatusList = append( listenerStatusList, v1beta1.ListenerStatus{
 				Host: host,
-				Port: eListener.ContainerPort,
-			},
+				Port: eListener.ExternalStartingPort + broker.Id,
+			})
 		}
+
+		extListenerStatuses[eListener.Name] = listenerStatusList
 	}
 	return extListenerStatuses, nil
 }
