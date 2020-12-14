@@ -331,8 +331,7 @@ func expectKafkaCRStatus(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(kafkaCluster.Status.State).To(Equal(v1beta1.KafkaClusterRunning))
 	Expect(kafkaCluster.Status.AlertCount).To(Equal(0))
 
-	// TODO resolve this
-	/*Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
+	Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
 		InternalListeners: map[string]v1beta1.ListenerStatusList{
 			"internal": {{
 				Host: "kafkacluster-1-all-broker.kafka-1.svc.cluster.local",
@@ -355,5 +354,5 @@ func expectKafkaCRStatus(kafkaCluster *v1beta1.KafkaCluster) {
 				},
 			},
 		},
-	}))*/
+	}))
 }

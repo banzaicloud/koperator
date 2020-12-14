@@ -138,7 +138,7 @@ func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
 	for _, eListener := range l.ExternalListeners {
 		if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 			advertisedListenerConfig = append(advertisedListenerConfig,
-				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), getHostFromListenerStatus(extListenerStatuses[eListener.Name], id), eListener.ExternalStartingPort+id))
+				fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), extListenerStatuses[eListener.Name][0].Host, eListener.ExternalStartingPort+id))
 		} else {
 			portNumber := eListener.ExternalStartingPort + id
 			if externalIP, ok := bConfig.NodePortExternalIP[eListener.Name]; ok && externalIP != "" {
@@ -154,7 +154,7 @@ func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
 					fmt.Sprintf("%s://%s:%d", strings.ToUpper(eListener.Name), nodePortExternalIP, portNumber))
 			} else {
 				advertisedListenerConfig = append(advertisedListenerConfig,
-					fmt.Sprintf("%s://%s-%d-%s.%s%s:%d", strings.ToUpper(eListener.Name), crName, id, eListener.Name, namespace, getHostFromListenerStatus(extListenerStatuses[eListener.Name], id), portNumber))
+					fmt.Sprintf("%s://%s-%d-%s.%s%s:%d", strings.ToUpper(eListener.Name), crName, id, eListener.Name, namespace, extListenerStatuses[eListener.Name][0].Host, portNumber))
 			}
 
 		}
@@ -169,17 +169,6 @@ func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
 		}
 	}
 	return fmt.Sprintf("advertised.listeners=%s\n", strings.Join(advertisedListenerConfig, ","))
-}
-
-func getHostFromListenerStatus(status []v1beta1.ListenerStatus, id int32) string {
-	var host string
-	if len(status) == 1 {
-		host = status[0].Host
-	} else {
-		// TODO we should guard this?
-		host = status[id].Host
-	}
-	return host
 }
 
 func generateStorageConfig(sConfig []v1beta1.StorageConfig) string {
