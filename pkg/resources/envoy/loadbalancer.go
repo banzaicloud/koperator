@@ -25,6 +25,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -34,6 +35,14 @@ func (r *Reconciler) loadBalancer(log logr.Logger, extListener v1beta1.ExternalL
 
 	exposedPorts := getExposedServicePorts(extListener,
 		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log))
+
+	if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
+		exposedPorts = append(exposedPorts, corev1.ServicePort{
+			Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
+			TargetPort: intstr.FromInt(int(extListener.GetAnyCastPort())),
+			Port:       extListener.GetAnyCastPort(),
+		})
+	}
 
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(

@@ -30,6 +30,7 @@ const (
 	// The deployment and configmap name should made from the external listener name the cluster name to avoid all naming collision
 	envoyVolumeAndConfigName = "envoy-config-%s-%s"
 	envoyDeploymentName      = "envoy-%s-%s"
+	allBrokerEnvoyConfigName = "all-brokers"
 )
 
 // labelsForEnvoyIngress returns the labels for selecting the resources

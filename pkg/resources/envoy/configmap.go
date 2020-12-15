@@ -17,23 +17,23 @@ package envoy
 import (
 	"fmt"
 
-	"github.com/ghodss/yaml"
-	"github.com/go-logr/logr"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/ptypes/duration"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-
 	envoyapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoylistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/ghodss/yaml"
+	"github.com/go-logr/logr"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/ptypes/duration"
 	ptypesstruct "github.com/golang/protobuf/ptypes/struct"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
 func (r *Reconciler) configMap(log logr.Logger, extListener v1beta1.ExternalListenerConfig) runtime.Object {
@@ -114,6 +114,58 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 					Address: &envoycore.Address_SocketAddress{
 						SocketAddress: &envoycore.SocketAddress{
 							Address: generateAddressValue(kc, brokerId),
+							PortSpecifier: &envoycore.SocketAddress_PortValue{
+								PortValue: uint32(elistener.ContainerPort),
+							},
+						},
+					},
+				},
+			},
+		})
+	}
+	// Create an any cast broker access point
+	if !kc.Spec.HeadlessServiceEnabled {
+		listeners = append(listeners, &envoyapi.Listener{
+			Address: &envoycore.Address{
+				Address: &envoycore.Address_SocketAddress{
+					SocketAddress: &envoycore.SocketAddress{
+						Address: "0.0.0.0",
+						PortSpecifier: &envoycore.SocketAddress_PortValue{
+							PortValue: uint32(elistener.GetAnyCastPort()),
+						},
+					},
+				},
+			},
+			FilterChains: []*envoylistener.FilterChain{
+				{
+					Filters: []*envoylistener.Filter{
+						{
+							Name: wellknown.TCPProxy,
+							ConfigType: &envoylistener.Filter_Config{
+								Config: &ptypesstruct.Struct{
+									Fields: map[string]*ptypesstruct.Value{
+										"stat_prefix": {Kind: &ptypesstruct.Value_StringValue{StringValue: allBrokerEnvoyConfigName}},
+										"cluster":     {Kind: &ptypesstruct.Value_StringValue{StringValue: allBrokerEnvoyConfigName}},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		clusters = append(clusters, &envoyapi.Cluster{
+			Name:                 allBrokerEnvoyConfigName,
+			ConnectTimeout:       &duration.Duration{Seconds: 1},
+			ClusterDiscoveryType: &envoyapi.Cluster_Type{Type: envoyapi.Cluster_STRICT_DNS},
+			LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
+			Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
+			Hosts: []*envoycore.Address{
+				{
+					Address: &envoycore.Address_SocketAddress{
+						SocketAddress: &envoycore.SocketAddress{
+							Address: fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, kc.Name),
 							PortSpecifier: &envoycore.SocketAddress_PortValue{
 								PortValue: uint32(elistener.ContainerPort),
 							},
