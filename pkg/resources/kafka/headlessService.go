@@ -39,6 +39,15 @@ func (r *Reconciler) headlessService() runtime.Object {
 		})
 	}
 
+	//Append external listener ports as well to allow using this service for metadata fetch
+	for _, eListeners := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		usedPorts = append(usedPorts, corev1.ServicePort{
+			Name:     strings.ReplaceAll(eListeners.GetListenerServiceName(), "_", ""),
+			Port:     eListeners.ContainerPort,
+			Protocol: corev1.ProtocolTCP,
+		})
+	}
+
 	// prometheus metrics port for servicemonitor
 	usedPorts = append(usedPorts, corev1.ServicePort{
 		Name:       "metrics",
