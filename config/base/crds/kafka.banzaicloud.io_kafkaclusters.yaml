@@ -4804,6 +4804,10 @@ spec:
                         - LoadBalancer
                         - NodePort
                         type: string
+                      anyCastPort:
+                        description: TODO write some description
+                        format: int32
+                        type: integer
                       containerPort:
                         format: int32
                         type: integer

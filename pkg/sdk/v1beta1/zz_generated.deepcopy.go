@@ -319,6 +319,11 @@ func (in *EnvoyConfig) DeepCopy() *EnvoyConfig {
 func (in *ExternalListenerConfig) DeepCopyInto(out *ExternalListenerConfig) {
 	*out = *in
 	out.CommonListenerSpec = in.CommonListenerSpec
+	if in.AnyCastPort != nil {
+		in, out := &in.AnyCastPort, &out.AnyCastPort
+		*out = new(int32)
+		**out = **in
+	}
 	if in.ServiceAnnotations != nil {
 		in, out := &in.ServiceAnnotations, &out.ServiceAnnotations
 		*out = make(map[string]string, len(*in))
