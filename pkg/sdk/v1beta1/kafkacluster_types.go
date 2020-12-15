@@ -321,7 +321,7 @@ type AlertManagerConfig struct {
 type ExternalListenerConfig struct {
 	CommonListenerSpec   `json:",inline"`
 	ExternalStartingPort int32 `json:"externalStartingPort"`
-	//TODO write some description
+	// AnyCastPort allows you to specify a port which allows kafka cluster access without specifying the exact broker
 	AnyCastPort *int32 `json:"anyCastPort,omitempty"`
 	// In case of external listeners using LoadBalancer access method the value of this field is used to advertise the
 	// Kafka broker external listener instead of the public IP of the provisioned LoadBalancer service (e.g. can be used to
