@@ -17,6 +17,7 @@ package kafka
 import (
 	"context"
 	"fmt"
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	"reflect"
 	"sort"
 	"strconv"
@@ -44,7 +45,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
-	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	istioingressutils "github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
 	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
@@ -108,20 +108,7 @@ func getCreatedPvcForBroker(c client.Client, brokerID int32, namespace, crName s
 	return foundPvcList.Items, nil
 }
 
-func getLoadBalancerIP(client client.Client, namespace, ingressController, crName, extListenerName string) (string, error) {
-	foundLBService := &corev1.Service{}
-	var iControllerServiceName string
-	if ingressController == istioingressutils.IngressControllerName {
-		iControllerServiceName = fmt.Sprintf(istioingressutils.MeshGatewayNameTemplate, extListenerName, crName)
-	} else if ingressController == envoyutils.IngressControllerName {
-		iControllerServiceName = fmt.Sprintf(envoyutils.EnvoyServiceName, extListenerName, crName)
-	}
-
-	err := client.Get(context.TODO(), types.NamespacedName{Name: iControllerServiceName, Namespace: namespace}, foundLBService)
-	if err != nil {
-		return "", err
-	}
-
+func getLoadBalancerIP(foundLBService *corev1.Service) (string, error) {
 	if len(foundLBService.Status.LoadBalancer.Ingress) == 0 {
 		return "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("loadbalancer is not created waiting"), "trying")
 	}
@@ -193,7 +180,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errors.WrapIf(err, "failed to reconcile resource")
 	}
 
-	extListenerStatuses, err := r.createExternalListenerStatuses()
+	extListenerStatuses, err := r.createExternalListenerStatuses(log)
 	if err != nil {
 		return errors.WrapIf(err, "could not update status for external listeners")
 	}
@@ -800,29 +787,77 @@ func isDesiredStorageValueInvalid(desired, current *corev1.PersistentVolumeClaim
 	return desired.Spec.Resources.Requests.Storage().Value() < current.Spec.Resources.Requests.Storage().Value()
 }
 
-func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.ListenerStatusList, error) {
+func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string]v1beta1.ListenerStatusList, error) {
 	extListenerStatuses := make(map[string]v1beta1.ListenerStatusList, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		// obtain host and
 		var host string
+		var foundLBService *corev1.Service
+		var err error
 		if eListener.HostnameOverride != "" {
 			host = eListener.HostnameOverride
 		} else if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
-			lbIP, err := getLoadBalancerIP(r.Client, r.KafkaCluster.GetNamespace(),
-				r.KafkaCluster.Spec.GetIngressController(), r.KafkaCluster.GetName(), eListener.Name)
+			foundLBService, err = getServiceFromExternalListener(r.Client, r.KafkaCluster, eListener.Name)
 			if err != nil {
-				return nil, err
+				return nil, errors.WrapIfWithDetails(err, "could not get service corresponding to the external listener", "externalListenerName", eListener.Name)
+			}
+			lbIP, err := getLoadBalancerIP(foundLBService)
+			if err != nil {
+				return nil, errors.WrapIfWithDetails(err, "could not extract IP from LoadBalancer service", "externalListenerName", eListener.Name)
 			}
 			host = lbIP
 		}
-		listenerStatusList := make(v1beta1.ListenerStatusList, 0, len(r.KafkaCluster.Spec.Brokers))
+		listenerStatusList := make(v1beta1.ListenerStatusList, 0, len(r.KafkaCluster.Spec.Brokers)+1)
 		for _, broker := range r.KafkaCluster.Spec.Brokers {
-			listenerStatusList = append( listenerStatusList, v1beta1.ListenerStatus{
+			listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
 				Host: host,
 				Port: eListener.ExternalStartingPort + broker.Id,
+			})
+		}
+
+		// optionally add all brokers service
+		// TODO remove the check for Istio when envoy is fixed
+		if !r.KafkaCluster.Spec.HeadlessServiceEnabled && r.KafkaCluster.Spec.IngressController == istioingressutils.IngressControllerName {
+			if foundLBService == nil {
+				foundLBService, err = getServiceFromExternalListener(r.Client, r.KafkaCluster, eListener.Name)
+				if err != nil {
+					return nil, errors.WrapIfWithDetails(err, "could not get service corresponding to the external listener", "externalListenerName", eListener.Name)
+				}
+			}
+			var allBrokerPort int32 = 0
+			for _, port := range foundLBService.Spec.Ports {
+				if port.Name == "tcp-all-brokers" {
+					allBrokerPort = port.Port
+					break
+				}
+			}
+			if allBrokerPort == 0 {
+				return nil, errors.NewWithDetails("could not find port with name tcp-all-brokers", "externalListenerName", eListener.Name)
+			}
+			listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
+				Host: host,
+				Port: allBrokerPort,
 			})
 		}
 
 		extListenerStatuses[eListener.Name] = listenerStatusList
 	}
 	return extListenerStatuses, nil
+}
+
+func getServiceFromExternalListener(client client.Client, cluster *v1beta1.KafkaCluster, eListenerName string) (*corev1.Service, error) {
+	foundLBService := &corev1.Service{}
+	var iControllerServiceName string
+	switch cluster.Spec.GetIngressController() {
+	case istioingressutils.IngressControllerName:
+		iControllerServiceName = fmt.Sprintf(istioingressutils.MeshGatewayNameTemplate, eListenerName, cluster.GetName())
+	case envoyutils.IngressControllerName:
+		iControllerServiceName = fmt.Sprintf(envoyutils.EnvoyServiceName, eListenerName, cluster.GetName())
+	}
+
+	err := client.Get(context.TODO(), types.NamespacedName{Name: iControllerServiceName, Namespace: cluster.GetNamespace()}, foundLBService)
+	if err != nil {
+		return nil, errors.WrapIfWithDetails(err, "could not get LoadBalancer service", "serviceName", iControllerServiceName)
+	}
+	return foundLBService, nil
 }

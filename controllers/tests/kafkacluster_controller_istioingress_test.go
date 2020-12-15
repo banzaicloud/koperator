@@ -88,15 +88,20 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		svcName := fmt.Sprintf("meshgateway-external-%s", kafkaCluster.Name)
-		// TODO check how this looks in a real cluster
-		meshGateway := corev1.Service{
+		svcFromMeshGateway := corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      svcName,
 				Namespace: namespace,
 			},
 			Spec: corev1.ServiceSpec{
-				// dummy ports value
-				Ports: []corev1.ServicePort{{Port: 1}},
+				Ports: []corev1.ServicePort{
+					// other ports omitted
+					{
+						Name:     "tcp-all-brokers",
+						Port:     29092, // from MeshGateway (guarded by the tests)
+						Protocol: corev1.ProtocolTCP,
+					},
+				},
 			},
 			Status: corev1.ServiceStatus{
 				LoadBalancer: corev1.LoadBalancerStatus{
@@ -108,9 +113,9 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 				},
 			},
 		}
-		err = k8sClient.Create(context.TODO(), &meshGateway)
+		err = k8sClient.Create(context.TODO(), &svcFromMeshGateway)
 		Expect(err).NotTo(HaveOccurred())
-		err = k8sClient.Status().Update(context.TODO(), &meshGateway)
+		err = k8sClient.Status().Update(context.TODO(), &svcFromMeshGateway)
 		Expect(err).NotTo(HaveOccurred())
 
 		waitForClusterRunningState(kafkaCluster, namespace)
@@ -302,18 +307,22 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 							Host: "ingress.test.host.com",
 							Port: 19092,
 						},
+						{
+							Host: "ingress.test.host.com",
+							Port: 29092,
+						},
 					},
 				},
 			}))
 		})
 	})
 
-	When("Headless mode is turned off", func() {
+	When("Headless mode is turned on", func() {
 		BeforeEach(func() {
-			kafkaCluster.Spec.HeadlessServiceEnabled = false
+			kafkaCluster.Spec.HeadlessServiceEnabled = true
 		})
 
-		It("Adds the all brokers service to the listener status", func() {
+		It("does not add the all-broker service to the listener status", func() {
 			err := k8sClient.Get(context.TODO(), types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
@@ -323,16 +332,12 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
 				InternalListeners: map[string]v1beta1.ListenerStatusList{
 					"internal": {{
-						Host: fmt.Sprintf("%s-all-broker.kafka-istioingress-%d.svc.cluster.local", kafkaCluster.Name, count),
+						Host: fmt.Sprintf("%s-headless.kafka-istioingress-%d.svc.cluster.local", kafkaCluster.Name, count),
 						Port: 29092,
 					}},
 				},
 				ExternalListeners: map[string]v1beta1.ListenerStatusList{
 					"external": {
-						{
-							Host: "ingress.test.host.com",
-							Port: 100, // TODO fix this when the all brokers port is added
-						},
 						{
 							Host: "ingress.test.host.com",
 							Port: 19090,
