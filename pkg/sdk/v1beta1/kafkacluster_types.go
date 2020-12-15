@@ -322,7 +322,7 @@ type ExternalListenerConfig struct {
 	CommonListenerSpec   `json:",inline"`
 	ExternalStartingPort int32 `json:"externalStartingPort"`
 	//TODO write some description
-	AnyCastPort          *int32 `json:"anyCastPort,omitempty"`
+	AnyCastPort *int32 `json:"anyCastPort,omitempty"`
 	// In case of external listeners using LoadBalancer access method the value of this field is used to advertise the
 	// Kafka broker external listener instead of the public IP of the provisioned LoadBalancer service (e.g. can be used to
 	// advertise the listener using a URL recorded in DNS instead of public IP).

@@ -46,8 +46,8 @@ bootstrap.servers=%s:%d
 # The zookeeper connect of the Kafka cluster
 zookeeper.connect=%s
 `, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name),
-generateBootstrapServerPort(log, r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
-zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())) +
+				generateBootstrapServerPort(log, r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
+				zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())) +
 				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass),
 			"capacity.json":       capacityConfig,
 			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,

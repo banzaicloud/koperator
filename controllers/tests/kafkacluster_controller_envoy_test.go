@@ -49,11 +49,15 @@ func expectEnvoy(kafkaCluster *v1beta1.KafkaCluster) {
 		"eListenerName": "test",
 		"kafka_cr":      kafkaCluster.Name,
 	}))
-	Expect(loadBalancer.Spec.Ports).To(HaveLen(1))
+	Expect(loadBalancer.Spec.Ports).To(HaveLen(2))
 	Expect(loadBalancer.Spec.Ports[0].Name).To(Equal("broker-0"))
 	Expect(loadBalancer.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
 	Expect(loadBalancer.Spec.Ports[0].Port).To(BeEquivalentTo(11202))
 	Expect(loadBalancer.Spec.Ports[0].TargetPort.IntVal).To(BeEquivalentTo(11202))
+	Expect(loadBalancer.Spec.Ports[1].Name).To(Equal("tcp-all-broker"))
+	Expect(loadBalancer.Spec.Ports[1].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[1].Port).To(BeEquivalentTo(29092))
+	Expect(loadBalancer.Spec.Ports[1].TargetPort.IntVal).To(BeEquivalentTo(29092))
 
 	var configMap corev1.ConfigMap
 	configMapName := fmt.Sprintf("envoy-config-test-%s", kafkaCluster.Name)
@@ -75,10 +79,18 @@ staticResources:
   - connectTimeout: 1s
     hosts:
     - socketAddress:
-        address: %s-0.%s.svc.cluster.local
+        address: %s-0.%s.svc.%s
         portValue: 9733
     http2ProtocolOptions: {}
     name: broker-0
+    type: STRICT_DNS
+  - connectTimeout: 1s
+    hosts:
+    - socketAddress:
+        address: %s-all-broker.%s.svc.%s
+        portValue: 9733
+    http2ProtocolOptions: {}
+    name: all-brokers
     type: STRICT_DNS
   listeners:
   - address:
@@ -91,7 +103,18 @@ staticResources:
           cluster: broker-0
           stat_prefix: broker_tcp-0
         name: envoy.filters.network.tcp_proxy
-`, kafkaCluster.Name, kafkaCluster.Namespace)))
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 29092
+    filterChains:
+    - filters:
+      - config:
+          cluster: all-brokers
+          stat_prefix: all-brokers
+        name: envoy.filters.network.tcp_proxy
+`, kafkaCluster.Name, kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(),
+		kafkaCluster.Name, kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-%s", kafkaCluster.Name)
@@ -116,12 +139,17 @@ staticResources:
 		corev1.ContainerPort{
 			Name:          "broker-0",
 			ContainerPort: 11202,
-			Protocol:      "TCP",
+			Protocol:      corev1.ProtocolTCP,
+		},
+		corev1.ContainerPort{
+			Name:          "tcp-all-broker",
+			ContainerPort: 29092,
+			Protocol:      corev1.ProtocolTCP,
 		},
 		corev1.ContainerPort{
 			Name:          "envoy-admin",
 			ContainerPort: 9901,
-			Protocol:      "TCP",
+			Protocol:      corev1.ProtocolTCP,
 		},
 	))
 	Expect(container.VolumeMounts).To(ConsistOf(corev1.VolumeMount{

@@ -165,7 +165,8 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 				{
 					Address: &envoycore.Address_SocketAddress{
 						SocketAddress: &envoycore.SocketAddress{
-							Address: fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, kc.Name),
+							Address: fmt.Sprintf(
+								kafkautils.AllBrokerServiceTemplate+".%s.svc.%s", kc.GetName(), kc.GetNamespace(), kc.Spec.GetKubernetesClusterDomain()),
 							PortSpecifier: &envoycore.SocketAddress_PortValue{
 								PortValue: uint32(elistener.ContainerPort),
 							},
