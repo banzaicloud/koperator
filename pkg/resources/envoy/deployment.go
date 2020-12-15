@@ -22,14 +22,14 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
-
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalListenerConfig) runtime.Object {
@@ -37,14 +37,6 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 	configMapName := fmt.Sprintf(envoyVolumeAndConfigName, extListener.Name, r.KafkaCluster.GetName())
 	exposedPorts := getExposedContainerPorts(extListener,
 		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log))
-
-	if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
-		exposedPorts = append(exposedPorts, corev1.ContainerPort{
-			Name:          fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
-			ContainerPort: extListener.GetAnyCastPort(),
-			Protocol:      corev1.ProtocolTCP,
-		})
-	}
 	volumes := []corev1.Volume{
 		{
 			Name: configMapName,
@@ -111,6 +103,12 @@ func getExposedContainerPorts(extListener v1beta1.ExternalListenerConfig, broker
 			Protocol:      corev1.ProtocolTCP,
 		})
 	}
+	exposedPorts = append(exposedPorts, corev1.ContainerPort{
+		Name:          fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
+		ContainerPort: extListener.GetAnyCastPort(),
+		Protocol:      corev1.ProtocolTCP,
+	})
+
 	return exposedPorts
 }
 

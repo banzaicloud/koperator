@@ -54,6 +54,15 @@ func generateAddressValue(kc *v1beta1.KafkaCluster, brokerId int) string {
 	return fmt.Sprintf("%s-%d.%s.svc.%s", kc.Name, brokerId, kc.Namespace, kc.Spec.GetKubernetesClusterDomain())
 }
 
+func generateAnyCastAddressValue(kc *v1beta1.KafkaCluster) string {
+	if kc.Spec.HeadlessServiceEnabled {
+		return fmt.Sprintf("%s-headless.%s.svc.%s", kc.GetName(), kc.GetNamespace(), kc.Spec.GetKubernetesClusterDomain())
+	}
+	//ClusterIP services are in use
+	return fmt.Sprintf(
+		kafkautils.AllBrokerServiceTemplate+".%s.svc.%s", kc.GetName(), kc.GetNamespace(), kc.Spec.GetKubernetesClusterDomain())
+}
+
 func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalListenerConfig, log logr.Logger) string {
 	adminConfig := envoybootstrap.Admin{
 		AccessLogPath: "/tmp/admin_access.log",
@@ -124,58 +133,55 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 		})
 	}
 	// Create an any cast broker access point
-	if !kc.Spec.HeadlessServiceEnabled {
-		listeners = append(listeners, &envoyapi.Listener{
-			Address: &envoycore.Address{
-				Address: &envoycore.Address_SocketAddress{
-					SocketAddress: &envoycore.SocketAddress{
-						Address: "0.0.0.0",
-						PortSpecifier: &envoycore.SocketAddress_PortValue{
-							PortValue: uint32(elistener.GetAnyCastPort()),
-						},
+	listeners = append(listeners, &envoyapi.Listener{
+		Address: &envoycore.Address{
+			Address: &envoycore.Address_SocketAddress{
+				SocketAddress: &envoycore.SocketAddress{
+					Address: "0.0.0.0",
+					PortSpecifier: &envoycore.SocketAddress_PortValue{
+						PortValue: uint32(elistener.GetAnyCastPort()),
 					},
 				},
 			},
-			FilterChains: []*envoylistener.FilterChain{
-				{
-					Filters: []*envoylistener.Filter{
-						{
-							Name: wellknown.TCPProxy,
-							ConfigType: &envoylistener.Filter_Config{
-								Config: &ptypesstruct.Struct{
-									Fields: map[string]*ptypesstruct.Value{
-										"stat_prefix": {Kind: &ptypesstruct.Value_StringValue{StringValue: allBrokerEnvoyConfigName}},
-										"cluster":     {Kind: &ptypesstruct.Value_StringValue{StringValue: allBrokerEnvoyConfigName}},
-									},
+		},
+		FilterChains: []*envoylistener.FilterChain{
+			{
+				Filters: []*envoylistener.Filter{
+					{
+						Name: wellknown.TCPProxy,
+						ConfigType: &envoylistener.Filter_Config{
+							Config: &ptypesstruct.Struct{
+								Fields: map[string]*ptypesstruct.Value{
+									"stat_prefix": {Kind: &ptypesstruct.Value_StringValue{StringValue: allBrokerEnvoyConfigName}},
+									"cluster":     {Kind: &ptypesstruct.Value_StringValue{StringValue: allBrokerEnvoyConfigName}},
 								},
 							},
 						},
 					},
 				},
 			},
-		})
+		},
+	})
 
-		clusters = append(clusters, &envoyapi.Cluster{
-			Name:                 allBrokerEnvoyConfigName,
-			ConnectTimeout:       &duration.Duration{Seconds: 1},
-			ClusterDiscoveryType: &envoyapi.Cluster_Type{Type: envoyapi.Cluster_STRICT_DNS},
-			LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
-			Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
-			Hosts: []*envoycore.Address{
-				{
-					Address: &envoycore.Address_SocketAddress{
-						SocketAddress: &envoycore.SocketAddress{
-							Address: fmt.Sprintf(
-								kafkautils.AllBrokerServiceTemplate+".%s.svc.%s", kc.GetName(), kc.GetNamespace(), kc.Spec.GetKubernetesClusterDomain()),
-							PortSpecifier: &envoycore.SocketAddress_PortValue{
-								PortValue: uint32(elistener.ContainerPort),
-							},
+	clusters = append(clusters, &envoyapi.Cluster{
+		Name:                 allBrokerEnvoyConfigName,
+		ConnectTimeout:       &duration.Duration{Seconds: 1},
+		ClusterDiscoveryType: &envoyapi.Cluster_Type{Type: envoyapi.Cluster_STRICT_DNS},
+		LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
+		Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
+		Hosts: []*envoycore.Address{
+			{
+				Address: &envoycore.Address_SocketAddress{
+					SocketAddress: &envoycore.SocketAddress{
+						Address: generateAnyCastAddressValue(kc),
+						PortSpecifier: &envoycore.SocketAddress_PortValue{
+							PortValue: uint32(elistener.ContainerPort),
 						},
 					},
 				},
 			},
-		})
-	}
+		},
+	})
 
 	config := envoybootstrap.Bootstrap_StaticResources{
 		Listeners: listeners,
