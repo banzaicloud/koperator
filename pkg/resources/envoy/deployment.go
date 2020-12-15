@@ -40,9 +40,9 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 
 	if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
 		exposedPorts = append(exposedPorts, corev1.ContainerPort{
-			Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
+			Name:          fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
 			ContainerPort: extListener.GetAnyCastPort(),
-			Protocol: corev1.ProtocolTCP,
+			Protocol:      corev1.ProtocolTCP,
 		})
 	}
 	volumes := []corev1.Volume{
