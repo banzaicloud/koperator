@@ -27,26 +27,28 @@ import (
 
 func TestGenerateBrokerConfig(t *testing.T) {
 	tests := []struct {
-		testName                string
-		readOnlyConfig          string
-		zkAddresses             []string
-		zkPath                  string
-		kubernetesClusterDomain string
-		clusterWideConfig       string
-		perBrokerReadOnlyConfig string
-		perBrokerConfig         string
-		expectedConfig          string
-		perBrokerStorageConfig  []v1beta1.StorageConfig
+		testName                  string
+		readOnlyConfig            string
+		zkAddresses               []string
+		zkPath                    string
+		kubernetesClusterDomain   string
+		clusterWideConfig         string
+		perBrokerReadOnlyConfig   string
+		perBrokerConfig           string
+		advertisedListenerAddress string
+		expectedConfig            string
+		perBrokerStorageConfig    []v1beta1.StorageConfig
 	}{
 		{
-			testName:                "basicConfig",
-			readOnlyConfig:          ``,
-			zkAddresses:             []string{"example.zk:2181"},
-			zkPath:                  ``,
-			kubernetesClusterDomain: ``,
-			clusterWideConfig:       ``,
-			perBrokerConfig:         ``,
-			perBrokerReadOnlyConfig: ``,
+			testName:                  "basicConfig",
+			readOnlyConfig:            ``,
+			zkAddresses:               []string{"example.zk:2181"},
+			zkPath:                    ``,
+			kubernetesClusterDomain:   ``,
+			clusterWideConfig:         ``,
+			perBrokerConfig:           ``,
+			perBrokerReadOnlyConfig:   ``,
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
@@ -58,14 +60,15 @@ metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlM
 zookeeper.connect=example.zk:2181/`,
 		},
 		{
-			testName:                "basicConfigWithZKPath",
-			readOnlyConfig:          ``,
-			zkPath:                  `/kafka`,
-			kubernetesClusterDomain: ``,
-			zkAddresses:             []string{"example.zk:2181"},
-			clusterWideConfig:       ``,
-			perBrokerConfig:         ``,
-			perBrokerReadOnlyConfig: ``,
+			testName:                  "basicConfigWithZKPath",
+			readOnlyConfig:            ``,
+			zkPath:                    `/kafka`,
+			kubernetesClusterDomain:   ``,
+			zkAddresses:               []string{"example.zk:2181"},
+			clusterWideConfig:         ``,
+			perBrokerConfig:           ``,
+			perBrokerReadOnlyConfig:   ``,
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
@@ -77,14 +80,15 @@ metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlM
 zookeeper.connect=example.zk:2181/kafka`,
 		},
 		{
-			testName:                "basicConfigWithSimpleZkPath",
-			readOnlyConfig:          ``,
-			zkPath:                  `/`,
-			kubernetesClusterDomain: ``,
-			zkAddresses:             []string{"example.zk:2181"},
-			clusterWideConfig:       ``,
-			perBrokerConfig:         ``,
-			perBrokerReadOnlyConfig: ``,
+			testName:                  "basicConfigWithSimpleZkPath",
+			readOnlyConfig:            ``,
+			zkPath:                    `/`,
+			kubernetesClusterDomain:   ``,
+			zkAddresses:               []string{"example.zk:2181"},
+			clusterWideConfig:         ``,
+			perBrokerConfig:           ``,
+			perBrokerReadOnlyConfig:   ``,
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
@@ -96,14 +100,15 @@ metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlM
 zookeeper.connect=example.zk:2181/`,
 		},
 		{
-			testName:                "basicConfigWithMultipleZKAddressAndPath",
-			readOnlyConfig:          ``,
-			zkPath:                  `/kafka`,
-			zkAddresses:             []string{"example.zk:2181", "example.zk-1:2181"},
-			kubernetesClusterDomain: ``,
-			clusterWideConfig:       ``,
-			perBrokerConfig:         ``,
-			perBrokerReadOnlyConfig: ``,
+			testName:                  "basicConfigWithMultipleZKAddressAndPath",
+			readOnlyConfig:            ``,
+			zkPath:                    `/kafka`,
+			zkAddresses:               []string{"example.zk:2181", "example.zk-1:2181"},
+			kubernetesClusterDomain:   ``,
+			clusterWideConfig:         ``,
+			perBrokerConfig:           ``,
+			perBrokerReadOnlyConfig:   ``,
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
@@ -128,6 +133,7 @@ zookeeper.connect=example.zk:2181,example.zk-1:2181/kafka`,
 					MountPath: "/kafka-logs",
 				},
 			},
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
@@ -140,14 +146,15 @@ metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlM
 zookeeper.connect=example.zk:2181/`,
 		},
 		{
-			testName:                "basicConfigWithClusterDomain",
-			readOnlyConfig:          ``,
-			zkAddresses:             []string{"example.zk:2181"},
-			zkPath:                  ``,
-			kubernetesClusterDomain: `foo.bar`,
-			clusterWideConfig:       ``,
-			perBrokerConfig:         ``,
-			perBrokerReadOnlyConfig: ``,
+			testName:                  "basicConfigWithClusterDomain",
+			readOnlyConfig:            ``,
+			zkAddresses:               []string{"example.zk:2181"},
+			zkPath:                    ``,
+			kubernetesClusterDomain:   `foo.bar`,
+			clusterWideConfig:         ``,
+			perBrokerConfig:           ``,
+			perBrokerReadOnlyConfig:   ``,
+			advertisedListenerAddress: `kafka-0.kafka.svc.foo.bar:9092`,
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.foo.bar:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafka-0.kafka.svc.foo.bar:9092
@@ -175,6 +182,7 @@ compression.type=snappy
 			perBrokerReadOnlyConfig: `
 auto.create.topics.enable=true
 `,
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 auto.create.topics.enable=true
 broker.id=0
@@ -207,14 +215,14 @@ zookeeper.connect=example.zk:2181/`,
 							ZKAddresses: test.zkAddresses,
 							ZKPath:      test.zkPath,
 							ListenersConfig: v1beta1.ListenersConfig{
-								InternalListeners: []v1beta1.InternalListenerConfig{
-									{CommonListenerSpec: v1beta1.CommonListenerSpec{
+								InternalListeners: []v1beta1.InternalListenerConfig{{
+									CommonListenerSpec: v1beta1.CommonListenerSpec{
 										Type:          "plaintext",
 										Name:          "internal",
 										ContainerPort: 9092,
 									},
-										UsedForInnerBrokerCommunication: true,
-									},
+									UsedForInnerBrokerCommunication: true,
+								},
 								},
 							},
 							ReadOnlyConfig:          test.readOnlyConfig,
@@ -233,7 +241,17 @@ zookeeper.connect=example.zk:2181/`,
 					},
 				},
 			}
-			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, make(map[string]v1beta1.ListenerStatusList), "", "", []string{}, logf.NullLogger{})
+
+			controllerListenerStatus := map[string]v1beta1.ListenerStatusList{
+				"internal": {
+					{
+						Name:    "broker-0",
+						Address: test.advertisedListenerAddress,
+					},
+				},
+			}
+
+			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{}, map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, "", "", []string{}, logf.NullLogger{})
 
 			if generatedConfig != test.expectedConfig {
 				t.Errorf("the expected config is %s, received: %s", test.expectedConfig, generatedConfig)

@@ -172,7 +172,7 @@ listener.security.protocol.map=INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:
 listeners=INTERNAL://:29092,CONTROLLER://:29093,TEST://:9094
 log.dirs=/kafka-logs/kafka
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-zookeeper.connect=/`, 19090 + broker.Id, broker.Id, broker.Id, broker.Id, broker.Id)))
+zookeeper.connect=/`, 19090+broker.Id, broker.Id, broker.Id, broker.Id, broker.Id)))
 
 	// assert log4j?
 }
@@ -333,24 +333,38 @@ func expectKafkaCRStatus(kafkaCluster *v1beta1.KafkaCluster) {
 
 	Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
 		InternalListeners: map[string]v1beta1.ListenerStatusList{
-			"internal": {{
-				Host: "kafkacluster-1-all-broker.kafka-1.svc.cluster.local",
-				Port: 29092,
-			}},
+			"internal": {
+				{
+					Name:    "any-broker",
+					Address: fmt.Sprintf("%s-all-broker.kafka-1.svc.cluster.local:29092", kafkaCluster.Name),
+				},
+				{
+					Name:    "broker-0",
+					Address: fmt.Sprintf("%s-0.kafka-1.svc.cluster.local:29092", kafkaCluster.Name),
+				},
+				{
+					Name:    "broker-1",
+					Address: fmt.Sprintf("%s-1.kafka-1.svc.cluster.local:29092", kafkaCluster.Name),
+				},
+				{
+					Name:    "broker-2",
+					Address: fmt.Sprintf("%s-2.kafka-1.svc.cluster.local:29092", kafkaCluster.Name),
+				},
+			},
 		},
 		ExternalListeners: map[string]v1beta1.ListenerStatusList{
 			"test": {
-				v1beta1.ListenerStatus{
-					Host: "test.host.com",
-					Port: 19090,
+				{
+					Name:    "broker-0",
+					Address: "test.host.com:19090",
 				},
-				v1beta1.ListenerStatus{
-					Host: "test.host.com",
-					Port: 19091,
+				{
+					Name:    "broker-1",
+					Address: "test.host.com:19091",
 				},
-				v1beta1.ListenerStatus{
-					Host: "test.host.com",
-					Port: 19092,
+				{
+					Name:    "broker-2",
+					Address: "test.host.com:19092",
 				},
 			},
 		},

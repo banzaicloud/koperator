@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -174,7 +175,8 @@ func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, extListenerStatuses map
 	additionalHosts := make([]string, 0, len(extListenerStatuses))
 	for _, listenerStatus := range extListenerStatuses {
 		for _, status := range listenerStatus {
-			additionalHosts = append(additionalHosts, status.Host)
+			host := strings.Split(status.Address, ":")[0]
+			additionalHosts = append(additionalHosts, host)
 		}
 	}
 	additionalHosts = sortAndDedupe(additionalHosts)
