@@ -297,6 +297,10 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 					"external": {
 						{
 							Host: "ingress.test.host.com",
+							Port: 29092,
+						},
+						{
+							Host: "ingress.test.host.com",
 							Port: 19090,
 						},
 						{
@@ -306,10 +310,6 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 						{
 							Host: "ingress.test.host.com",
 							Port: 19092,
-						},
-						{
-							Host: "ingress.test.host.com",
-							Port: 29092,
 						},
 					},
 				},
