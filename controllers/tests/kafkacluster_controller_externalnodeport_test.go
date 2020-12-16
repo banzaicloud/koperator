@@ -17,17 +17,16 @@ package tests
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"sync/atomic"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
@@ -61,10 +60,59 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 					ContainerPort: 9733,
 				},
 				ExternalStartingPort: 31123,
-				HostnameOverride:     "test-host",
 				AccessMethod:         corev1.ServiceTypeNodePort,
 			},
 		}
+		defaultStorageConfig := []v1beta1.StorageConfig{
+			{
+				MountPath: "/kafka-logs",
+				PvcSpec: &corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
+					Resources: corev1.ResourceRequirements{
+						Requests: map[corev1.ResourceName]resource.Quantity{
+							corev1.ResourceStorage: resource.MustParse("10Gi"),
+						},
+					},
+				},
+			},
+		}
+		kafkaCluster.Spec.BrokerConfigGroups = map[string]v1beta1.BrokerConfig{
+			"br-0": {
+				StorageConfigs: defaultStorageConfig,
+				NodePortExternalIP: map[string]string{
+					"test": "1.2.3.4",
+				},
+			},
+			"br-1": {
+				StorageConfigs: defaultStorageConfig,
+				NodePortExternalIP: map[string]string{
+					"test": "1.2.3.5",
+				},
+			},
+			"br-2": {
+				StorageConfigs: defaultStorageConfig,
+				NodePortExternalIP: map[string]string{
+					"test": "1.2.3.6",
+				},
+			},
+		}
+		kafkaCluster.Spec.Brokers = []v1beta1.Broker{
+			{
+				Id:                0,
+				BrokerConfigGroup: "br-0",
+			},
+			{
+				Id:                1,
+				BrokerConfigGroup: "br-1",
+			},
+			{
+				Id:                2,
+				BrokerConfigGroup: "br-2",
+			},
+		}
+
 	})
 
 	JustBeforeEach(func() {
@@ -120,5 +168,52 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 			TargetPort: intstr.FromInt(9733),
 			NodePort:   31123,
 		}))
+
+		// check status
+		err := k8sClient.Get(context.TODO(), types.NamespacedName{
+			Name:      kafkaCluster.Name,
+			Namespace: kafkaCluster.Namespace,
+		}, kafkaCluster)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
+			InternalListeners: map[string]v1beta1.ListenerStatusList{
+				"internal": {
+					{
+						Name:    "any-broker",
+						Address: fmt.Sprintf("%s-all-broker.kafka-nodeport-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+					},
+					{
+						Name:    "broker-0",
+						Address: fmt.Sprintf("%s-0.kafka-nodeport-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+					},
+					{
+						Name:    "broker-1",
+						Address: fmt.Sprintf("%s-1.kafka-nodeport-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+					},
+					{
+						Name:    "broker-2",
+						Address: fmt.Sprintf("%s-2.kafka-nodeport-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+					},
+				},
+			},
+			ExternalListeners: map[string]v1beta1.ListenerStatusList{
+				"test": {
+					{
+						Name:    "broker-0",
+						Address: "1.2.3.4:9733",
+					},
+					{
+						Name:    "broker-1",
+						Address: "1.2.3.5:9733",
+					},
+					{
+						Name:    "broker-2",
+						Address: "1.2.3.6:9733",
+					},
+				},
+			},
+		}))
+
 	})
 })
