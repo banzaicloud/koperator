@@ -180,11 +180,12 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errors.WrapIf(err, "failed to reconcile resource")
 	}
 
-	extListenerStatuses, err := r.createExternalListenerStatuses(log)
+	extListenerStatuses, err := r.createExternalListenerStatuses()
 	if err != nil {
 		return errors.WrapIf(err, "could not update status for external listeners")
 	}
-	err = k8sutil.UpdateListenerStatuses(r.Client, r.KafkaCluster, log, k8sutil.CreateInternalListenerStatuses(r.KafkaCluster), extListenerStatuses)
+	intListenerStatuses, controllerIntListenerStatuses := k8sutil.CreateInternalListenerStatuses(r.KafkaCluster)
+	err = k8sutil.UpdateListenerStatuses(r.Client, r.KafkaCluster, log, intListenerStatuses, extListenerStatuses)
 	if err != nil {
 		return errors.WrapIf(err, "failed to update listener statuses")
 	}
@@ -235,7 +236,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		var configMap *corev1.ConfigMap
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, serverPass, clientPass, superUsers, log)
+			configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
@@ -243,7 +244,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		} else {
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 				if brokerState.RackAwarenessState != "" {
-					configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, serverPass, clientPass, superUsers, log)
+					configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)
 					err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 					if err != nil {
 						return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
@@ -787,7 +788,7 @@ func isDesiredStorageValueInvalid(desired, current *corev1.PersistentVolumeClaim
 	return desired.Spec.Resources.Requests.Storage().Value() < current.Spec.Resources.Requests.Storage().Value()
 }
 
-func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string]v1beta1.ListenerStatusList, error) {
+func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.ListenerStatusList, error) {
 	extListenerStatuses := make(map[string]v1beta1.ListenerStatusList, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 		var host string
@@ -828,17 +829,41 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 			if allBrokerPort == 0 {
 				return nil, errors.NewWithDetails("could not find port with name tcp-all-brokers", "externalListenerName", eListener.Name)
 			}
-			listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
-				Host: host,
-				Port: allBrokerPort,
-			})
+			listenerStatus := v1beta1.ListenerStatus{
+				Name:    "any-broker",
+				Address: fmt.Sprintf("%s:%d", host, allBrokerPort),
+			}
+			listenerStatusList = append(listenerStatusList, listenerStatus)
 		}
 
 		for _, broker := range r.KafkaCluster.Spec.Brokers {
-			listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
-				Host: host,
-				Port: eListener.ExternalStartingPort + broker.Id,
-			})
+			brokerHost := host
+			portNumber := eListener.ExternalStartingPort + broker.Id
+
+			if eListener.GetAccessMethod() != corev1.ServiceTypeLoadBalancer {
+				bConfig, err := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
+				if err != nil {
+					return nil, err
+				}
+
+				if externalIP, ok := bConfig.NodePortExternalIP[eListener.Name]; ok && externalIP != "" {
+					// https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
+					// if specific external IP is set for the NodePort service incoming traffic will be received on Service port
+					// and not nodeport
+					portNumber = eListener.ContainerPort
+				}
+				if _, ok := extListenerStatuses[eListener.Name]; !ok {
+					brokerHost = bConfig.NodePortExternalIP[eListener.Name]
+				} else {
+					brokerHost = fmt.Sprintf("%s-%d-%s.%s%s", r.KafkaCluster.Name, broker.Id, eListener.Name, r.KafkaCluster.Namespace, brokerHost)
+				}
+			}
+
+			listenerStatus := v1beta1.ListenerStatus{
+				Name:    fmt.Sprintf("broker-%d", broker.Id),
+				Address: fmt.Sprintf("%s:%d", brokerHost, portNumber),
+			}
+			listenerStatusList = append(listenerStatusList, listenerStatus)
 		}
 
 		extListenerStatuses[eListener.Name] = listenerStatusList

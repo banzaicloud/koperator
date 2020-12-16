@@ -78,7 +78,7 @@ var _ = Describe("KafkaCluster", func() {
 				Name:      fmt.Sprintf("envoy-loadbalancer-test-%s", kafkaCluster.Name),
 				Namespace: namespace,
 			}, envoyLBService)
-		}, 5 * time.Second, 100 * time.Millisecond).Should(Succeed())
+		}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
 
 		envoyLBService.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
 			Hostname: "test.host.com",

@@ -288,28 +288,42 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 
 			Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
 				InternalListeners: map[string]v1beta1.ListenerStatusList{
-					"internal": {{
-						Host: fmt.Sprintf("%s-all-broker.kafka-istioingress-%d.svc.cluster.local", kafkaCluster.Name, count),
-						Port: 29092,
-					}},
+					"internal": {
+						{
+							Name:    "any-broker",
+							Address: fmt.Sprintf("%s-all-broker.kafka-istioingress-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+						},
+						{
+							Name:    "broker-0",
+							Address: fmt.Sprintf("%s-0.kafka-istioingress-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+						},
+						{
+							Name:    "broker-1",
+							Address: fmt.Sprintf("%s-1.kafka-istioingress-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+						},
+						{
+							Name:    "broker-2",
+							Address: fmt.Sprintf("%s-2.kafka-istioingress-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+						},
+					},
 				},
 				ExternalListeners: map[string]v1beta1.ListenerStatusList{
 					"external": {
 						{
-							Host: "ingress.test.host.com",
-							Port: 29092,
+							Name:    "any-broker",
+							Address: "ingress.test.host.com:29092",
 						},
 						{
-							Host: "ingress.test.host.com",
-							Port: 19090,
+							Name:    "broker-0",
+							Address: "ingress.test.host.com:19090",
 						},
 						{
-							Host: "ingress.test.host.com",
-							Port: 19091,
+							Name:    "broker-1",
+							Address: "ingress.test.host.com:19091",
 						},
 						{
-							Host: "ingress.test.host.com",
-							Port: 19092,
+							Name:    "broker-2",
+							Address: "ingress.test.host.com:19092",
 						},
 					},
 				},
@@ -331,24 +345,38 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 
 			Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
 				InternalListeners: map[string]v1beta1.ListenerStatusList{
-					"internal": {{
-						Host: fmt.Sprintf("%s-headless.kafka-istioingress-%d.svc.cluster.local", kafkaCluster.Name, count),
-						Port: 29092,
-					}},
+					"internal": {
+						{
+							Name:    "headless",
+							Address: fmt.Sprintf("%s-headless.kafka-istioingress-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+						},
+						{
+							Name:    "broker-0",
+							Address: fmt.Sprintf("%s-0.%s-headless.kafka-istioingress-%d.svc.cluster.local:29092", kafkaCluster.Name, kafkaCluster.Name, count),
+						},
+						{
+							Name:    "broker-1",
+							Address: fmt.Sprintf("%s-1.%s-headless.kafka-istioingress-%d.svc.cluster.local:29092", kafkaCluster.Name, kafkaCluster.Name, count),
+						},
+						{
+							Name:    "broker-2",
+							Address: fmt.Sprintf("%s-2.%s-headless.kafka-istioingress-%d.svc.cluster.local:29092", kafkaCluster.Name, kafkaCluster.Name, count),
+						},
+					},
 				},
 				ExternalListeners: map[string]v1beta1.ListenerStatusList{
 					"external": {
 						{
-							Host: "ingress.test.host.com",
-							Port: 19090,
+							Name:    "broker-0",
+							Address: "ingress.test.host.com:19090",
 						},
 						{
-							Host: "ingress.test.host.com",
-							Port: 19091,
+							Name:    "broker-1",
+							Address: "ingress.test.host.com:19091",
 						},
 						{
-							Host: "ingress.test.host.com",
-							Port: 19092,
+							Name:    "broker-2",
+							Address: "ingress.test.host.com:19092",
 						},
 					},
 				},

@@ -376,8 +376,8 @@ type ListenerStatusList []ListenerStatus
 
 // ListenerStatus holds information about the address of the listener
 type ListenerStatus struct {
-	Host string `json:"host"`
-	Port int32  `json:"port"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
 }
 
 // +kubebuilder:object:root=true

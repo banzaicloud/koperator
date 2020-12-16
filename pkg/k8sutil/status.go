@@ -300,16 +300,48 @@ func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logg
 	return nil
 }
 
-func CreateInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) map[string]v1beta1.ListenerStatusList {
+func CreateInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) (map[string]v1beta1.ListenerStatusList, map[string]v1beta1.ListenerStatusList) {
 	intListenerStatuses := make(map[string]v1beta1.ListenerStatusList, len(kafkaCluster.Spec.ListenersConfig.InternalListeners))
+	controllerIntListenerStatuses := make(map[string]v1beta1.ListenerStatusList)
+
 	internalAddress := clientutil.GenerateKafkaAddressWithoutPort(kafkaCluster)
 	for _, iListener := range kafkaCluster.Spec.ListenersConfig.InternalListeners {
-		if !iListener.UsedForControllerCommunication {
-			intListenerStatuses[iListener.Name] = []v1beta1.ListenerStatus{{
-				Host: internalAddress,
-				Port: iListener.ContainerPort,
-			}}
+		listenerStatusList := v1beta1.ListenerStatusList{}
+
+		// add headless or any broker address
+		var name string
+		if kafkaCluster.Spec.HeadlessServiceEnabled {
+			name = "headless"
+		} else {
+			name = "any-broker"
+		}
+		listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
+			Name:    name,
+			Address: fmt.Sprintf("%s:%d", internalAddress, iListener.ContainerPort),
+		})
+
+		// add addresses per broker
+		for _, broker := range kafkaCluster.Spec.Brokers {
+			var address string
+			if kafkaCluster.Spec.HeadlessServiceEnabled {
+				address = fmt.Sprintf("%s-%d.%s-headless.%s.svc.%s:%d", kafkaCluster.Name, broker.Id, kafkaCluster.Name,
+					kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), iListener.ContainerPort)
+			} else {
+				address = fmt.Sprintf("%s-%d.%s.svc.%s:%d", kafkaCluster.Name, broker.Id, kafkaCluster.Namespace,
+					kafkaCluster.Spec.GetKubernetesClusterDomain(), iListener.ContainerPort)
+			}
+			listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
+				Name:    fmt.Sprintf("broker-%d", broker.Id),
+				Address: address,
+			})
+		}
+
+		if iListener.UsedForControllerCommunication {
+			controllerIntListenerStatuses[iListener.Name] = listenerStatusList
+		} else {
+			intListenerStatuses[iListener.Name] = listenerStatusList
 		}
 	}
-	return intListenerStatuses
+
+	return intListenerStatuses, controllerIntListenerStatuses
 }
