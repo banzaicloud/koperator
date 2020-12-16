@@ -790,10 +790,10 @@ func isDesiredStorageValueInvalid(desired, current *corev1.PersistentVolumeClaim
 func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string]v1beta1.ListenerStatusList, error) {
 	extListenerStatuses := make(map[string]v1beta1.ListenerStatusList, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-		// obtain host and
 		var host string
 		var foundLBService *corev1.Service
 		var err error
+
 		if eListener.HostnameOverride != "" {
 			host = eListener.HostnameOverride
 		} else if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
@@ -808,14 +808,8 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 			host = lbIP
 		}
 		listenerStatusList := make(v1beta1.ListenerStatusList, 0, len(r.KafkaCluster.Spec.Brokers)+1)
-		for _, broker := range r.KafkaCluster.Spec.Brokers {
-			listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
-				Host: host,
-				Port: eListener.ExternalStartingPort + broker.Id,
-			})
-		}
 
-		// optionally add all brokers service
+		// optionally add all brokers service to the top of the list
 		// TODO remove the check for Istio when envoy is fixed
 		if !r.KafkaCluster.Spec.HeadlessServiceEnabled && r.KafkaCluster.Spec.IngressController == istioingressutils.IngressControllerName {
 			if foundLBService == nil {
@@ -837,6 +831,13 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 			listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
 				Host: host,
 				Port: allBrokerPort,
+			})
+		}
+
+		for _, broker := range r.KafkaCluster.Spec.Brokers {
+			listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
+				Host: host,
+				Port: eListener.ExternalStartingPort + broker.Id,
 			})
 		}
 
