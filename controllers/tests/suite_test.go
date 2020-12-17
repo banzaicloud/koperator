@@ -135,6 +135,14 @@ var _ = BeforeSuite(func(done Done) {
 
 	scale.MockNewCruiseControlScaler()
 
+	mockKafkaClients = make(map[types.NamespacedName]kafkaclient.KafkaClient)
+
+	// mock the creation of Kafka clients
+	controllers.SetNewKafkaFromCluster(
+		func(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, error) {
+			return getMockedKafkaClientForCluster(cluster), nil
+		})
+
 	kafkaClusterReconciler := controllers.KafkaClusterReconciler{
 		Client:              mgr.GetClient(),
 		DirectClient:        mgr.GetAPIReader(),
@@ -145,14 +153,6 @@ var _ = BeforeSuite(func(done Done) {
 
 	err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
 	Expect(err).NotTo(HaveOccurred())
-
-	mockKafkaClients = make(map[types.NamespacedName]kafkaclient.KafkaClient)
-
-	// mock the creation of Kafka clients
-	controllers.SetNewKafkaFromCluster(
-		func(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, error) {
-			return getMockedKafkaClientForCluster(cluster), nil
-		})
 
 	err = controllers.SetupKafkaTopicWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
