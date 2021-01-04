@@ -4805,9 +4805,8 @@ spec:
                         - NodePort
                         type: string
                       anyCastPort:
-                        description: AnyCastPort allows you to specify a port which
-                          allows kafka cluster access without specifying the exact
-                          broker
+                        description: configuring AnyCastPort allows kafka cluster
+                          access without specifying the exact broker
                         format: int32
                         type: integer
                       containerPort:
