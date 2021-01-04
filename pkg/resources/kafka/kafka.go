@@ -114,9 +114,7 @@ func getLoadBalancerIP(foundLBService *corev1.Service) (string, error) {
 	}
 
 	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" && foundLBService.Status.LoadBalancer.Ingress[0].IP == "" {
-		// TODO move this to the delay for the reconcile
-		// time.Sleep(20 * time.Second)
-		return "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("loadbalancer is not created waiting"), "trying")
+		return "", errorfactory.New(errorfactory.LoadBalancerIPNotReady{}, errors.New("loadbalancer hostname and IP has not been created yet - waiting"), "trying")
 	}
 	var loadBalancerExternalAddress string
 	if foundLBService.Status.LoadBalancer.Ingress[0].Hostname == "" {
@@ -185,7 +183,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errors.WrapIf(err, "could not update status for external listeners")
 	}
 	intListenerStatuses, controllerIntListenerStatuses := k8sutil.CreateInternalListenerStatuses(r.KafkaCluster)
-	err = k8sutil.UpdateListenerStatuses(r.Client, r.KafkaCluster, log, intListenerStatuses, extListenerStatuses)
+	err = k8sutil.UpdateListenerStatuses(r.Client, context.Background(), r.KafkaCluster, log, intListenerStatuses, extListenerStatuses)
 	if err != nil {
 		return errors.WrapIf(err, "failed to update listener statuses")
 	}
@@ -811,8 +809,7 @@ func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.Listen
 		listenerStatusList := make(v1beta1.ListenerStatusList, 0, len(r.KafkaCluster.Spec.Brokers)+1)
 
 		// optionally add all brokers service to the top of the list
-		// TODO support NodePort with any-broker service
-		if !r.KafkaCluster.Spec.HeadlessServiceEnabled && eListener.GetAccessMethod() != corev1.ServiceTypeNodePort {
+		if eListener.GetAccessMethod() != corev1.ServiceTypeNodePort {
 			if foundLBService == nil {
 				foundLBService, err = getServiceFromExternalListener(r.Client, r.KafkaCluster, eListener.Name)
 				if err != nil {

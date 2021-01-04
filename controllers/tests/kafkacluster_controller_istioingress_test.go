@@ -367,6 +367,10 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 				ExternalListeners: map[string]v1beta1.ListenerStatusList{
 					"external": {
 						{
+							Name:    "any-broker",
+							Address: "ingress.test.host.com:29092",
+						},
+						{
 							Name:    "broker-0",
 							Address: "ingress.test.host.com:19090",
 						},

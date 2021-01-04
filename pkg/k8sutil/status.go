@@ -257,7 +257,7 @@ func UpdateRollingUpgradeState(c client.Client, cluster *v1beta1.KafkaCluster, t
 	return nil
 }
 
-func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger, intListenerStatuses, extListenerStatuses map[string]v1beta1.ListenerStatusList) error {
+func UpdateListenerStatuses(c client.Client, ctx context.Context, cluster *v1beta1.KafkaCluster, logger logr.Logger, intListenerStatuses, extListenerStatuses map[string]v1beta1.ListenerStatusList) error {
 	typeMeta := cluster.TypeMeta
 
 	cluster.Status.ListenerStatuses = v1beta1.ListenerStatuses{
@@ -265,15 +265,15 @@ func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logg
 		ExternalListeners: extListenerStatuses,
 	}
 
-	err := c.Status().Update(context.Background(), cluster)
+	err := c.Status().Update(ctx, cluster)
 	if apierrors.IsNotFound(err) {
-		err = c.Update(context.Background(), cluster)
+		err = c.Update(ctx, cluster)
 	}
 	if err != nil {
 		if !apierrors.IsConflict(err) {
 			return errors.WrapIf(err, "could not update listener status")
 		}
-		err := c.Get(context.TODO(), types.NamespacedName{
+		err := c.Get(ctx, types.NamespacedName{
 			Namespace: cluster.Namespace,
 			Name:      cluster.Name,
 		}, cluster)
@@ -286,9 +286,9 @@ func UpdateListenerStatuses(c client.Client, cluster *v1beta1.KafkaCluster, logg
 			ExternalListeners: extListenerStatuses,
 		}
 
-		err = c.Status().Update(context.Background(), cluster)
+		err = c.Status().Update(ctx, cluster)
 		if apierrors.IsNotFound(err) {
-			err = c.Update(context.Background(), cluster)
+			err = c.Update(ctx, cluster)
 		}
 		if err != nil {
 			return errors.WrapIf(err, "could not update listener statuses")
