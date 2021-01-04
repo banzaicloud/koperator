@@ -73,6 +73,9 @@ type CruiseControlTaskFailure struct{ error }
 // PerBrokerConfigNotReady states that per-broker configurations has been updated for a broker
 type PerBrokerConfigNotReady struct{ error }
 
+// LoadBalancerIPNotReady states that the LoadBalancer IP is not yet created
+type LoadBalancerIPNotReady struct{ error }
+
 // New creates a new error factory error
 func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 	wrapped := errors.WrapIfWithDetails(err, msg, wrapArgs...)
@@ -115,6 +118,8 @@ func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 		return CruiseControlTaskFailure{wrapped}
 	case PerBrokerConfigNotReady:
 		return PerBrokerConfigNotReady{wrapped}
+	case LoadBalancerIPNotReady:
+		return LoadBalancerIPNotReady{wrapped}
 	}
 	return wrapped
 }
