@@ -1,6 +1,6 @@
 module github.com/banzaicloud/kafka-operator/pkg/sdk
 
-go 1.14
+go 1.15
 
 require (
 	github.com/banzaicloud/istio-client-go v0.0.9

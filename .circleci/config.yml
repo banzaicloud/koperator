@@ -8,7 +8,7 @@ jobs:
     resource_class: medium+
 
     docker:
-      - image: cimg/go:1.14
+      - image: cimg/go:1.15
 
     steps:
       - checkout
