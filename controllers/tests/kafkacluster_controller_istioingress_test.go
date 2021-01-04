@@ -97,7 +97,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 				Ports: []corev1.ServicePort{
 					// other ports omitted
 					{
-						Name:     "tcp-all-brokers",
+						Name:     "tcp-all-broker",
 						Port:     29092, // from MeshGateway (guarded by the tests)
 						Protocol: corev1.ProtocolTCP,
 					},
