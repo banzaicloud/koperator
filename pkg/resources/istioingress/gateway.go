@@ -59,17 +59,15 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 			Hosts: []string{"*"},
 		})
 	}
-	if !kc.Spec.HeadlessServiceEnabled && len(kc.Spec.ListenersConfig.ExternalListeners) > 0 {
-		servers = append(servers, v1alpha3.Server{
-			Port: &v1alpha3.Port{
-				Number:   int(externalListenerConfig.GetAnyCastPort()),
-				Protocol: protocol,
-				Name:     fmt.Sprintf(kafkautil.AllBrokerServiceTemplate, "tcp"),
-			},
-			Hosts: []string{"*"},
-			TLS:   tlsConfig,
-		})
-	}
+	servers = append(servers, v1alpha3.Server{
+		Port: &v1alpha3.Port{
+			Number:   int(externalListenerConfig.GetAnyCastPort()),
+			Protocol: protocol,
+			Name:     fmt.Sprintf(kafkautil.AllBrokerServiceTemplate, "tcp"),
+		},
+		Hosts: []string{"*"},
+		TLS:   tlsConfig,
+	})
 
 	return servers
 }

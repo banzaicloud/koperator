@@ -30,6 +30,7 @@ import (
 const (
 	// DefaultServiceAccountName name used for the various ServiceAccounts
 	DefaultServiceAccountName = "default"
+	defaultAnyCastPort        = 29092
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
@@ -266,7 +267,7 @@ func (c ExternalListenerConfig) GetAccessMethod() corev1.ServiceType {
 
 func (c ExternalListenerConfig) GetAnyCastPort() int32 {
 	if c.AnyCastPort == nil {
-		return 29092
+		return defaultAnyCastPort
 	}
 	return *c.AnyCastPort
 }
@@ -321,7 +322,7 @@ type AlertManagerConfig struct {
 type ExternalListenerConfig struct {
 	CommonListenerSpec   `json:",inline"`
 	ExternalStartingPort int32 `json:"externalStartingPort"`
-	// AnyCastPort allows you to specify a port which allows kafka cluster access without specifying the exact broker
+	// configuring AnyCastPort allows kafka cluster access without specifying the exact broker
 	AnyCastPort *int32 `json:"anyCastPort,omitempty"`
 	// In case of external listeners using LoadBalancer access method the value of this field is used to advertise the
 	// Kafka broker external listener instead of the public IP of the provisioned LoadBalancer service (e.g. can be used to

@@ -84,7 +84,7 @@ func generateBootstrapServerPort(log logr.Logger, listenerConfig []v1beta1.Inter
 		}
 	}
 	// This should never happen since there should be least one listener for inner broker communication
-	log.V(1).Info("listener for inner communication not found falling back")
+	log.V(1).Info("listener for inner communication not found, falling back to first listener")
 	return listenerConfig[0].ContainerPort
 }
 

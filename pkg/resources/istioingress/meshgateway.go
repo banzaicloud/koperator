@@ -57,13 +57,7 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 			Type: istioOperatorApi.GatewayTypeIngress,
 		},
 	}
-	if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
-		mgateway.Spec.Ports = append(mgateway.Spec.Ports, corev1.ServicePort{
-			Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
-			TargetPort: intstr.FromInt(int(externalListenerConfig.GetAnyCastPort())),
-			Port:       externalListenerConfig.GetAnyCastPort(),
-		})
-	}
+
 	return mgateway
 }
 
@@ -76,6 +70,12 @@ func generateExternalPorts(brokerIds []int, externalListenerConfig v1beta1.Exter
 			Port:       externalListenerConfig.ExternalStartingPort + int32(brokerId),
 		})
 	}
+
+	generatedPorts = append(generatedPorts, corev1.ServicePort{
+		Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
+		TargetPort: intstr.FromInt(int(externalListenerConfig.GetAnyCastPort())),
+		Port:       externalListenerConfig.GetAnyCastPort(),
+	})
 
 	return generatedPorts
 }
