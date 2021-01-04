@@ -118,7 +118,7 @@ func generateTcpRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 			},
 		})
 	}
-	if !kc.Spec.HeadlessServiceEnabled && len(kc.Spec.ListenersConfig.ExternalListeners) > 0 {
+	if !kc.Spec.HeadlessServiceEnabled {
 		tcpRoutes = append(tcpRoutes, v1alpha3.TCPRoute{
 			Match: []v1alpha3.L4MatchAttributes{
 				{
