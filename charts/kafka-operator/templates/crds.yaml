@@ -5056,6 +5056,10 @@ spec:
                       - cruiseControlState
                       - errorMessage
                     type: object
+                  perBrokerConfigurationState:
+                    description: PerBrokerConfigurationState holds info about the
+                      per-broker (dynamically updatable) config
+                    type: string
                   rackAwarenessState:
                     description: RackAwarenessState holds info about rack awareness
                       status
@@ -5063,6 +5067,7 @@ spec:
                 required:
                   - configurationState
                   - gracefulActionState
+                  - perBrokerConfigurationState
                   - rackAwarenessState
                 type: object
               type: object
@@ -5070,6 +5075,48 @@ spec:
               description: CruiseControlTopicStatus holds info about the CC topic
                 status
               type: string
+            listenerStatuses:
+              description: ListenerStatuses holds information about the statuses of
+                the configured listeners. The internal and external listeners are
+                stored in separate maps, and each listener can be looked up by name.
+              properties:
+                externalListeners:
+                  additionalProperties:
+                    description: ListenerStatusList can hold various amount of statuses
+                      based on the listener configuration.
+                    items:
+                      description: ListenerStatus holds information about the address
+                        of the listener
+                      properties:
+                        address:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                        - address
+                        - name
+                      type: object
+                    type: array
+                  type: object
+                internalListeners:
+                  additionalProperties:
+                    description: ListenerStatusList can hold various amount of statuses
+                      based on the listener configuration.
+                    items:
+                      description: ListenerStatus holds information about the address
+                        of the listener
+                      properties:
+                        address:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                        - address
+                        - name
+                      type: object
+                    type: array
+                  type: object
+              type: object
             rollingUpgradeStatus:
               description: RollingUpgradeStatus defines status of rolling upgrade
               properties:
