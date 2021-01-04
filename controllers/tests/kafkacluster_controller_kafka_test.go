@@ -355,6 +355,10 @@ func expectKafkaCRStatus(kafkaCluster *v1beta1.KafkaCluster) {
 		ExternalListeners: map[string]v1beta1.ListenerStatusList{
 			"test": {
 				{
+					Name:    "any-broker",
+					Address: "test.host.com:29092",
+				},
+				{
 					Name:    "broker-0",
 					Address: "test.host.com:19090",
 				},

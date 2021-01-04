@@ -811,8 +811,8 @@ func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.Listen
 		listenerStatusList := make(v1beta1.ListenerStatusList, 0, len(r.KafkaCluster.Spec.Brokers)+1)
 
 		// optionally add all brokers service to the top of the list
-		// TODO remove the check for Istio when envoy is fixed
-		if !r.KafkaCluster.Spec.HeadlessServiceEnabled && r.KafkaCluster.Spec.IngressController == istioingressutils.IngressControllerName {
+		// TODO support NodePort with any-broker service
+		if !r.KafkaCluster.Spec.HeadlessServiceEnabled && eListener.GetAccessMethod() != corev1.ServiceTypeNodePort {
 			if foundLBService == nil {
 				foundLBService, err = getServiceFromExternalListener(r.Client, r.KafkaCluster, eListener.Name)
 				if err != nil {
@@ -821,13 +821,13 @@ func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.Listen
 			}
 			var allBrokerPort int32 = 0
 			for _, port := range foundLBService.Spec.Ports {
-				if port.Name == "tcp-all-brokers" {
+				if port.Name == "tcp-all-broker" {
 					allBrokerPort = port.Port
 					break
 				}
 			}
 			if allBrokerPort == 0 {
-				return nil, errors.NewWithDetails("could not find port with name tcp-all-brokers", "externalListenerName", eListener.Name)
+				return nil, errors.NewWithDetails("could not find port with name tcp-all-broker", "externalListenerName", eListener.Name)
 			}
 			listenerStatus := v1beta1.ListenerStatus{
 				Name:    "any-broker",
