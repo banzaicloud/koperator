@@ -17,7 +17,6 @@ package tests
 import (
 	"context"
 	"fmt"
-
 	. "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -73,9 +72,7 @@ func expectEnvoy(kafkaCluster *v1beta1.KafkaCluster) {
 
 	expectEnvoyIngressLabels(configMap.Labels, "test", kafkaCluster.Name)
 	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
-	// TODO fmt.Sprintf + use kafkacluster domain
-	// GetKubernetesClusterDomain()
-	svcTemplate := kafkaCluster.Name + "-%d." + kafkaCluster.Namespace + ".svc.cluster.local"
+	svcTemplate := fmt.Sprintf("%s-%s.%s.svc.%s", kafkaCluster.Name, "%s", kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())
 	Expect(configMap.Data["envoy.yaml"]).To(Equal(fmt.Sprintf(`admin:
   accessLogPath: /tmp/admin_access.log
   address:
@@ -111,8 +108,8 @@ staticResources:
   - connectTimeout: 1s
     hosts:
     - socketAddress:
-        address: %s-all-broker.%s.svc.%s
-        portValue: 9733
+        address: %s
+        portValue: 9094
     http2ProtocolOptions: {}
     name: all-brokers
     type: STRICT_DNS
@@ -157,7 +154,7 @@ staticResources:
           cluster: all-brokers
           stat_prefix: all-brokers
         name: envoy.filters.network.tcp_proxy
-`, fmt.Sprintf(svcTemplate, 0), fmt.Sprintf(svcTemplate, 1), fmt.Sprintf(svcTemplate, 2))))
+`, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-%s", kafkaCluster.Name)
