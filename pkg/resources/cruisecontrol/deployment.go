@@ -68,6 +68,7 @@ func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object
 					Annotations: podAnnotations,
 				},
 				Spec: corev1.PodSpec{
+					SecurityContext:               r.KafkaCluster.Spec.CruiseControlConfig.PodSecurityPolicy,
 					ServiceAccountName:            r.KafkaCluster.Spec.CruiseControlConfig.GetServiceAccount(),
 					ImagePullSecrets:              r.KafkaCluster.Spec.CruiseControlConfig.GetImagePullSecrets(),
 					Tolerations:                   r.KafkaCluster.Spec.CruiseControlConfig.GetTolerations(),
@@ -88,7 +89,8 @@ func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object
 					}...),
 					Containers: []corev1.Container{
 						{
-							Name: fmt.Sprintf(deploymentNameTemplate, r.KafkaCluster.Name),
+							Name:            fmt.Sprintf(deploymentNameTemplate, r.KafkaCluster.Name),
+							SecurityContext: r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlContainerSecurityContext,
 							Env: []corev1.EnvVar{
 								{
 									Name:  "KAFKA_OPTS",

@@ -136,7 +136,9 @@ type BrokerConfig struct {
 	// and the operator supposes that the user is aware of how scheduling is done by kubernetes
 	// Affinity could be set through brokerConfigGroups definitions and can be set for individual brokers as well
 	// where letter setting will override the group setting
-	Affinity *corev1.Affinity `json:"affinity,omitempty" protobuf:"bytes,18,opt,name=affinity"`
+	Affinity                      *corev1.Affinity           `json:"affinity,omitempty" protobuf:"bytes,18,opt,name=affinity"`
+	PodSecurityPolicy             *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	KafkaContainerSecurityContext *corev1.SecurityContext    `json:"kafkaContainerSecurityContext,omitempty"`
 }
 
 type NetworkConfig struct {
@@ -172,7 +174,9 @@ type CruiseControlConfig struct {
 	// Volumes define some extra Kubernetes Volumes for the CruiseControl Pods.
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
 	// VolumeMounts define some extra Kubernetes Volume mounts for the CruiseControl Pods.
-	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
+	VolumeMounts                          []corev1.VolumeMount       `json:"volumeMounts,omitempty"`
+	PodSecurityPolicy                     *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	CruiseControlContainerSecurityContext *corev1.SecurityContext    `json:"kafkaContainerSecurityContext,omitempty"`
 }
 
 // CruiseControlTaskSpec specifies the configuration of the CC Tasks
