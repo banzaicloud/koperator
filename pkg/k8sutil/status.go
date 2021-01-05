@@ -309,11 +309,9 @@ func CreateInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) (map[str
 		listenerStatusList := v1beta1.ListenerStatusList{}
 
 		// add headless or any broker address
-		var name string
+		name := "any-broker"
 		if kafkaCluster.Spec.HeadlessServiceEnabled {
 			name = "headless"
-		} else {
-			name = "any-broker"
 		}
 		listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
 			Name:    name,
