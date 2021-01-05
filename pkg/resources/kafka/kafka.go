@@ -17,7 +17,6 @@ package kafka
 import (
 	"context"
 	"fmt"
-	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	"reflect"
 	"sort"
 	"strconv"
@@ -45,6 +44,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	istioingressutils "github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
 	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
@@ -183,7 +183,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errors.WrapIf(err, "could not update status for external listeners")
 	}
 	intListenerStatuses, controllerIntListenerStatuses := k8sutil.CreateInternalListenerStatuses(r.KafkaCluster)
-	err = k8sutil.UpdateListenerStatuses(r.Client, context.Background(), r.KafkaCluster, log, intListenerStatuses, extListenerStatuses)
+	err = k8sutil.UpdateListenerStatuses(context.Background(), r.Client, r.KafkaCluster, log, intListenerStatuses, extListenerStatuses)
 	if err != nil {
 		return errors.WrapIf(err, "failed to update listener statuses")
 	}
@@ -383,9 +383,8 @@ OUTERLOOP:
 						log.Info(fmt.Sprintf("Service for Broker %s not found. Continue", broker.Labels["brokerId"]))
 					}
 					return errors.WrapIfWithDetails(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
-				} else {
-					log.V(1).Info("service for broker deleted", "service name", serviceName, "brokerId", broker.Labels["brokerId"])
 				}
+				log.V(1).Info("service for broker deleted", "service name", serviceName, "brokerId", broker.Labels["brokerId"])
 			}
 			for _, volume := range broker.Spec.Volumes {
 				if strings.HasPrefix(volume.Name, kafkaDataVolumeMount) {
@@ -399,9 +398,8 @@ OUTERLOOP:
 							log.Info(fmt.Sprintf("PVC for Broker %s not found. Continue", broker.Labels["brokerId"]))
 						}
 						return errors.WrapIfWithDetails(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
-					} else {
-						log.V(1).Info("pvc for broker deleted", "pvc name", volume.PersistentVolumeClaim.ClaimName, "brokerId", broker.Labels["brokerId"])
 					}
+					log.V(1).Info("pvc for broker deleted", "pvc name", volume.PersistentVolumeClaim.ClaimName, "brokerId", broker.Labels["brokerId"])
 				}
 			}
 			err = k8sutil.DeleteStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster, log)

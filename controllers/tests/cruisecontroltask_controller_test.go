@@ -17,8 +17,9 @@ package tests
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
 	"sync/atomic"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
