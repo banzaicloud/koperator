@@ -38,6 +38,9 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 	var kafkaBrokerContainerPorts []corev1.ContainerPort
 
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		if _, ok := r.KafkaCluster.Status.ListenerStatuses.ExternalListeners[eListener.Name]; !ok {
+			continue
+		}
 		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
 			Name:          strings.ReplaceAll(eListener.GetListenerServiceName(), "_", "-"),
 			ContainerPort: eListener.ContainerPort,

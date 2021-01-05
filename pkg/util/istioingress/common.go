@@ -17,6 +17,8 @@ package istioingress
 const (
 	// IngressControllerName name for istioingress ingress service
 	IngressControllerName = "istioingress"
-	// IngressControllerName name for istioingress gateway service
+	// MeshGatewayNameTemplate name for istioingress gateway service
 	MeshGatewayNameTemplate = "meshgateway-%s-%s"
+	// MeshGatewayNameTemplateWithScope name for istioingress gateway service with scope
+	MeshGatewayNameTemplateWithScope = "meshgateway-%s-%s-%s"
 )

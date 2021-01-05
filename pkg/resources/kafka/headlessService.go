@@ -16,37 +16,26 @@ package kafka
 
 import (
 	"fmt"
-	"strings"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func (r *Reconciler) headlessService() runtime.Object {
 
 	var usedPorts []corev1.ServicePort
-
-	for _, iListeners := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
-		usedPorts = append(usedPorts, corev1.ServicePort{
-			Name:       strings.ReplaceAll(iListeners.GetListenerServiceName(), "_", ""),
-			Port:       iListeners.ContainerPort,
-			TargetPort: intstr.FromInt(int(iListeners.ContainerPort)),
-			Protocol:   corev1.ProtocolTCP,
-		})
-	}
+	// Append internal listener ports
+	usedPorts = append(usedPorts,
+		generateServicePortForIListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners)...)
 
 	//Append external listener ports as well to allow using this service for metadata fetch
-	for _, eListeners := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-		usedPorts = append(usedPorts, corev1.ServicePort{
-			Name:     strings.ReplaceAll(eListeners.GetListenerServiceName(), "_", ""),
-			Port:     eListeners.ContainerPort,
-			Protocol: corev1.ProtocolTCP,
-		})
-	}
+	usedPorts = append(usedPorts,
+		generateServicePortForEListeners(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners)...)
 
 	// prometheus metrics port for servicemonitor
 	usedPorts = append(usedPorts, corev1.ServicePort{

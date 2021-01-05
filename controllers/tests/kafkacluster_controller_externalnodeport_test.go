@@ -234,8 +234,10 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 						ContainerPort: 9733,
 					},
 					ExternalStartingPort: 30100,
-					HostnameOverride:     ".external.nodeport.com",
-					AccessMethod:         corev1.ServiceTypeNodePort,
+					IngressServiceSettings: v1beta1.IngressServiceSettings{
+						HostnameOverride: ".external.nodeport.com",
+					},
+					AccessMethod: corev1.ServiceTypeNodePort,
 				},
 			}
 		})

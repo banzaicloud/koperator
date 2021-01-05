@@ -94,6 +94,8 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 			brokerState = v1beta1.BrokerState{}
 		}
 		switch s := state.(type) {
+		case banzaicloudv1beta1.ExternalListenerConfigNames:
+			brokerState.ExternalListenerConfigNames = s
 		case banzaicloudv1beta1.RackAwarenessState:
 			brokerState.RackAwarenessState = s
 		case banzaicloudv1beta1.GracefulActionState:
@@ -257,7 +259,8 @@ func UpdateRollingUpgradeState(c client.Client, cluster *v1beta1.KafkaCluster, t
 	return nil
 }
 
-func UpdateListenerStatuses(ctx context.Context, c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger, intListenerStatuses, extListenerStatuses map[string]v1beta1.ListenerStatusList) error {
+func UpdateListenerStatuses(ctx context.Context, c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger,
+	intListenerStatuses, extListenerStatuses map[string]v1beta1.ListenerStatusList) error {
 	typeMeta := cluster.TypeMeta
 
 	cluster.Status.ListenerStatuses = v1beta1.ListenerStatuses{

@@ -18,6 +18,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
 	corev1 "k8s.io/api/core/v1"
 
@@ -26,9 +27,11 @@ import (
 )
 
 const (
-	componentName          = "istioingress"
-	gatewayNameTemplate    = "%s-%s-gateway"
-	virtualServiceTemplate = "%s-%s-virtualservice"
+	componentName                   = "istioingress"
+	gatewayNameTemplate             = "%s-%s-gateway"
+	gatewayNameTemplateWithScope    = "%s-%s-%s-gateway"
+	virtualServiceTemplate          = "%s-%s-virtualservice"
+	virtualServiceTemplateWithScope = "%s-%s-%s-virtualservice"
 )
 
 // labelsForIstioIngress returns the labels for selecting the resources
@@ -57,19 +60,29 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 
 	log.V(1).Info("Reconciling")
-	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil && r.KafkaCluster.Spec.GetIngressController() == istioingress.IngressControllerName {
+	if r.KafkaCluster.Spec.GetIngressController() == istioingress.IngressControllerName {
 
-		for _, externalListenerConfig := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-			if externalListenerConfig.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
-				for _, res := range []resources.ResourceWithLogAndExternalListenerConfig{
-					r.meshgateway,
-					r.gateway,
-					r.virtualService,
-				} {
-					o := res(log, externalListenerConfig)
-					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-					if err != nil {
-						return err
+		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+			if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
+
+				ingressConfigs, defaultControllerName, err := util.GetIngressConfigs(r.KafkaCluster.Spec, eListener)
+				if err != nil {
+					return err
+				}
+				for name, ingressConfig := range ingressConfigs {
+					if !util.IsIngressConfigInUse(name, r.KafkaCluster, log) && name != defaultControllerName {
+						continue
+					}
+					for _, res := range []resources.ResourceWithLogAndExternalListenerSpecificInfos{
+						r.meshgateway,
+						r.gateway,
+						r.virtualService,
+					} {
+						o := res(log, eListener, ingressConfig, name, defaultControllerName)
+						err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+						if err != nil {
+							return err
+						}
 					}
 				}
 			}

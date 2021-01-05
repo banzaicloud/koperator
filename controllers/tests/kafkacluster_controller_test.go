@@ -26,8 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -35,10 +33,11 @@ import (
 
 var _ = Describe("KafkaCluster", func() {
 	var (
-		count        uint64 = 0
-		namespace    string
-		namespaceObj *corev1.Namespace
-		kafkaCluster *v1beta1.KafkaCluster
+		count                   uint64 = 0
+		namespace               string
+		namespaceObj            *corev1.Namespace
+		kafkaCluster            *v1beta1.KafkaCluster
+		loadBalancerServiceName string
 	)
 
 	BeforeEach(func() {
@@ -92,7 +91,7 @@ var _ = Describe("KafkaCluster", func() {
 		envoyLBService := &corev1.Service{}
 		Eventually(func() error {
 			return k8sClient.Get(context.TODO(), types.NamespacedName{
-				Name:      fmt.Sprintf("envoy-loadbalancer-test-%s", kafkaCluster.Name),
+				Name:      loadBalancerServiceName,
 				Namespace: namespace,
 			}, envoyLBService)
 		}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
@@ -101,7 +100,7 @@ var _ = Describe("KafkaCluster", func() {
 			Hostname: "test.host.com",
 		}}
 
-		log.Log.V(-1).Info("envoy service updated", "spec", envoyLBService)
+		//logf.Log.V(-1).Info("envoy service updated", "spec", envoyLBService)
 		err = k8sClient.Status().Update(context.TODO(), envoyLBService)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -117,14 +116,117 @@ var _ = Describe("KafkaCluster", func() {
 
 		kafkaCluster = nil
 	})
-
-	It("should reconciles objects properly", func() {
-		expectEnvoy(kafkaCluster)
-		expectKafkaMonitoring(kafkaCluster)
-		expectCruiseControlMonitoring(kafkaCluster)
-		expectKafka(kafkaCluster)
-		expectCruiseControl(kafkaCluster)
+	When("using default configuration", func() {
+		BeforeEach(func() {
+			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-%s", kafkaCluster.Name)
+		})
+		It("should reconciles objects properly", func() {
+			expectEnvoy(kafkaCluster)
+			expectKafkaMonitoring(kafkaCluster)
+			expectCruiseControlMonitoring(kafkaCluster)
+			expectKafka(kafkaCluster, count)
+			expectCruiseControl(kafkaCluster)
+		})
 	})
+	When("configuring one ingress controller config inside the external listener", func() {
+		BeforeEach(func() {
+			testExternalListener := kafkaCluster.Spec.ListenersConfig.ExternalListeners[0]
+			testExternalListener.Config = &v1beta1.Config{
+				DefaultIngressConfig: "az1",
+				IngressConfig: map[string]v1beta1.IngressConfig{
+					"az1": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az1"},
+					}},
+				},
+			}
+			kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
+			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaCluster.Name)
+		})
+		It("should reconcile object properly", func() {
+			expectConfigConfiguredExternalListenerBinding(kafkaCluster, count)
+		})
+	})
+	//Context("configuring one ingress controller config inside the external listener", func() {
+	//	JustBeforeEach(func() {
+	//		testExternalListener := kafkaCluster.Spec.ListenersConfig.ExternalListeners[0]
+	//		testExternalListener.Config = &v1beta1.Config{
+	//			DefaultIngressConfig: "az1",
+	//			IngressConfig: map[string]v1beta1.IngressConfig{
+	//				"az1": {EnvoyConfig: &v1beta1.EnvoyConfig{
+	//					Annotations: map[string]string{"zone": "az1"},
+	//				}},
+	//				"az2": {EnvoyConfig: &v1beta1.EnvoyConfig{
+	//					Annotations: map[string]string{"zone": "az2"},
+	//				}},
+	//			},
+	//		}
+	//
+	//		kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
+	//		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
+	//		err := k8sClient.Create(context.TODO(), kafkaCluster)
+	//		Expect(err).NotTo(HaveOccurred())
+	//
+	//		// assign host to envoy LB
+	//		envoyTestLBServiceAz1 := &corev1.Service{}
+	//		Eventually(func() error {
+	//			return k8sClient.Get(context.TODO(), types.NamespacedName{
+	//				Name:      fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaCluster.Name),
+	//				Namespace: namespace,
+	//			}, envoyTestLBServiceAz1)
+	//		}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
+	//
+	//		envoyTestLBServiceAz1.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
+	//			Hostname: "external.az1.host.com",
+	//		}}
+	//
+	//		//logf.Log.V(-1).Info("envoy service updated", "spec", envoyTestLBService)
+	//		err = k8sClient.Status().Update(context.TODO(), envoyTestLBServiceAz1)
+	//		Expect(err).NotTo(HaveOccurred())
+	//
+	//		envoyTestLBServiceAz2 := &corev1.Service{}
+	//		Eventually(func() error {
+	//			return k8sClient.Get(context.TODO(), types.NamespacedName{
+	//				Name:      fmt.Sprintf("envoy-loadbalancer-test-az2-%s", kafkaCluster.Name),
+	//				Namespace: namespace,
+	//			}, envoyTestLBServiceAz2)
+	//		}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
+	//
+	//		envoyTestLBServiceAz2.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
+	//			Hostname: "external.az2.host.com",
+	//		}}
+	//
+	//		//logf.Log.V(-1).Info("envoy service updated", "spec", envoyTestLBService)
+	//		err = k8sClient.Status().Update(context.TODO(), envoyTestLBServiceAz2)
+	//		Expect(err).NotTo(HaveOccurred())
+	//
+	//		waitForClusterRunningState(kafkaCluster, namespace)
+	//	})
+	//	When("using empty external listener bindings", func() {
+	//		FIt("should handle reconciles objects properly", func() {
+	//			expectKafkaCRStatus(kafkaCluster)
+	//			//expectEmptyExternalListenerBindings(kafkaCluster, count)
+	//		})
+	//	})
+	//	When("using external listener bindings from broker group config", func() {
+	//		BeforeEach(func() {
+	//			defaultBConfigGroup := kafkaCluster.Spec.BrokerConfigGroups["default"]
+	//			defaultBConfigGroup.BrokerIdBindings = []string{"az1"}
+	//			kafkaCluster.Spec.BrokerConfigGroups["default"] = defaultBConfigGroup
+	//		})
+	//		It("should handle object reconcile properly", func() {
+	//			expectExternalListenerGroupBindings(kafkaCluster, count)
+	//		})
+	//	})
+	//	When("using external listener binding list from direct broker config", func() {
+	//		BeforeEach(func() {
+	//			kafkaCluster.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerIdBindings: []string{"az1"}}
+	//			kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIdBindings: []string{"az2"}}
+	//		})
+	//		It("should reconcile objects properly", func() {
+	//			expectExternalListenerBindings(kafkaCluster, count)
+	//		})
+	//	})
+	//})
 })
 
 func expectKafkaMonitoring(kafkaCluster *v1beta1.KafkaCluster) {
@@ -142,7 +244,7 @@ func expectKafkaMonitoring(kafkaCluster *v1beta1.KafkaCluster) {
 func expectCruiseControlMonitoring(kafkaCluster *v1beta1.KafkaCluster) {
 	configMap := corev1.ConfigMap{}
 	configMapName := fmt.Sprintf("%s-cc-jmx-exporter", kafkaCluster.Name)
-	logf.Log.Info("name", "name", configMapName)
+	//logf.Log.Info("name", "name", configMapName)
 	Eventually(func() error {
 		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: kafkaCluster.Namespace}, &configMap)
 		return err

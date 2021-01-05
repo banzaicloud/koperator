@@ -17,6 +17,8 @@ package envoy
 const (
 	// EnvoyServiceName name for loadbalancer service
 	EnvoyServiceName = "envoy-loadbalancer-%s-%s"
+	// EnvoyServiceNameWithScope name for loadbalancer service
+	EnvoyServiceNameWithScope = "envoy-loadbalancer-%s-%s-%s"
 	// IngressControllerName name for envoy ingress service
 	IngressControllerName = "envoy"
 )
