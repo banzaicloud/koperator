@@ -91,19 +91,16 @@ func (r *Reconciler) computeMinAvailable(log logr.Logger) (intstr.IntOrString, e
 		if err != nil {
 			log.Error(err, "error occurred during parsing the disruption budget")
 			return intstr.FromInt(-1), err
-		} else {
-			budget = int(math.Floor((percentage * float64(brokers)) / 100))
 		}
+		budget = int(math.Floor((percentage * float64(brokers)) / 100))
 	} else {
 		// treat static number budget
 		staticBudget, err := strconv.ParseInt(disruptionBudget, 10, 0)
 		if err != nil {
 			log.Error(err, "error occurred during parsing the disruption budget")
 			return intstr.FromInt(-1), err
-		} else {
-			budget = int(staticBudget)
 		}
-
+		budget = int(staticBudget)
 	}
 
 	return intstr.FromInt(util.Max(1, brokers-budget)), nil

@@ -23,6 +23,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,8 +36,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	ccutils "github.com/banzaicloud/kafka-operator/pkg/util/cruisecontrol"
-
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	kafkav1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 )

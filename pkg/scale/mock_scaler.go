@@ -20,10 +20,10 @@ import (
 
 type mockCruiseControlScaler struct {
 	CruiseControlScaler
-	namespace               string
-	kubernetesClusterDomain string
-	endpoint                string
-	clusterName             string
+	//namespace               string
+	//kubernetesClusterDomain string
+	//endpoint                string
+	//clusterName             string
 }
 
 func (mc *mockCruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIds []string) ([]string, error) {

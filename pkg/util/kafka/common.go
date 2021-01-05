@@ -16,8 +16,9 @@ package kafka
 
 import (
 	"fmt"
-	"github.com/go-logr/logr"
 	"strings"
+
+	"github.com/go-logr/logr"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -34,7 +35,7 @@ const (
 	securityProtocolMapConfigName = "listener.security.protocol.map"
 )
 
-// these configurations will not trigger rolling upgrade when updated
+// PerBrokerConfigs configurations will not trigger rolling upgrade when updated
 var PerBrokerConfigs = []string{
 	// currently hardcoded in configmap.go
 	"ssl.client.auth",

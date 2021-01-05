@@ -162,10 +162,10 @@ func generateBrokerNetworkIn(broker v1beta1.Broker, kafkaClusterSpec v1beta1.Kaf
 	}
 	if brokerConfig.NetworkConfig != nil && brokerConfig.NetworkConfig.IncomingNetworkThroughPut != "" {
 		return brokerConfig.NetworkConfig.IncomingNetworkThroughPut
-	} else {
-		log.Info("incoming network throughput is not set falling back to default value")
-		return storageConfigNWINDefaultValue
 	}
+
+	log.Info("incoming network throughput is not set falling back to default value")
+	return storageConfigNWINDefaultValue
 }
 
 func generateBrokerNetworkOut(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) string {
@@ -176,10 +176,10 @@ func generateBrokerNetworkOut(broker v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 	}
 	if brokerConfig.NetworkConfig != nil && brokerConfig.NetworkConfig.OutgoingNetworkThroughPut != "" {
 		return brokerConfig.NetworkConfig.OutgoingNetworkThroughPut
-	} else {
-		log.Info("outgoing network throughput is not set falling back to default value")
-		return storageConfigNWOUTDefaultValue
 	}
+
+	log.Info("outgoing network throughput is not set falling back to default value")
+	return storageConfigNWOUTDefaultValue
 }
 
 func generateBrokerCPU(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) string {

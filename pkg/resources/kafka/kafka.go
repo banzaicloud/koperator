@@ -383,9 +383,8 @@ OUTERLOOP:
 						log.Info(fmt.Sprintf("Service for Broker %s not found. Continue", broker.Labels["brokerId"]))
 					}
 					return errors.WrapIfWithDetails(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
-				} else {
-					log.V(1).Info("service for broker deleted", "service name", serviceName, "brokerId", broker.Labels["brokerId"])
 				}
+				log.V(1).Info("service for broker deleted", "service name", serviceName, "brokerId", broker.Labels["brokerId"])
 			}
 			for _, volume := range broker.Spec.Volumes {
 				if strings.HasPrefix(volume.Name, kafkaDataVolumeMount) {
@@ -399,9 +398,8 @@ OUTERLOOP:
 							log.Info(fmt.Sprintf("PVC for Broker %s not found. Continue", broker.Labels["brokerId"]))
 						}
 						return errors.WrapIfWithDetails(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
-					} else {
-						log.V(1).Info("pvc for broker deleted", "pvc name", volume.PersistentVolumeClaim.ClaimName, "brokerId", broker.Labels["brokerId"])
 					}
+					log.V(1).Info("pvc for broker deleted", "pvc name", volume.PersistentVolumeClaim.ClaimName, "brokerId", broker.Labels["brokerId"])
 				}
 			}
 			err = k8sutil.DeleteStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster, log)

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nodeportExternalAccess
+package nodeportexternalaccess
 
 import (
 	"fmt"
@@ -28,7 +28,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
-// TODO handle deletion gracefuly from status
+// TODO handle deletion gracefully from status
 func (r *Reconciler) service(log logr.Logger, id int32,
 	brokerConfig *v1beta1.BrokerConfig, extListener v1beta1.ExternalListenerConfig) runtime.Object {
 
