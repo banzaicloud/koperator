@@ -36,12 +36,21 @@ import (
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
-func (r *Reconciler) configMap(log logr.Logger, extListener v1beta1.ExternalListenerConfig) runtime.Object {
+func (r *Reconciler) configMap(log logr.Logger, extListener v1beta1.ExternalListenerConfig,
+	_ v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
+	var configMapName string
+	if ingressConfigName == util.IngressConfigGlobalName {
+		configMapName = fmt.Sprintf(envoyVolumeAndConfigName, extListener.Name, r.KafkaCluster.GetName())
+	} else {
+		configMapName = fmt.Sprintf(envoyVolumeAndConfigNameWithScope, extListener.Name,
+			ingressConfigName, r.KafkaCluster.GetName())
+	}
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf(envoyVolumeAndConfigName, extListener.Name, r.KafkaCluster.GetName()),
+			configMapName,
 			labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name), r.KafkaCluster),
-		Data: map[string]string{"envoy.yaml": GenerateEnvoyConfig(r.KafkaCluster, extListener, log)},
+		Data: map[string]string{"envoy.yaml": GenerateEnvoyConfig(r.KafkaCluster, extListener, ingressConfigName,
+			defaultIngressConfigName, log)},
 	}
 	return configMap
 }
@@ -63,7 +72,9 @@ func generateAnyCastAddressValue(kc *v1beta1.KafkaCluster) string {
 		kafkautils.AllBrokerServiceTemplate+".%s.svc.%s", kc.GetName(), kc.GetNamespace(), kc.Spec.GetKubernetesClusterDomain())
 }
 
-func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalListenerConfig, log logr.Logger) string {
+func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalListenerConfig,
+	ingressConfigName, defaultIngressConfigName string, log logr.Logger) string {
+
 	adminConfig := envoybootstrap.Admin{
 		AccessLogPath: "/tmp/admin_access.log",
 		Address: &envoycore.Address{
@@ -82,55 +93,79 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 	var clusters []*envoyapi.Cluster
 
 	for _, brokerId := range util.GetBrokerIdsFromStatusAndSpec(kc.Status.BrokersState, kc.Spec.Brokers, log) {
-		listeners = append(listeners, &envoyapi.Listener{
-			Address: &envoycore.Address{
-				Address: &envoycore.Address_SocketAddress{
-					SocketAddress: &envoycore.SocketAddress{
-						Address: "0.0.0.0",
-						PortSpecifier: &envoycore.SocketAddress_PortValue{
-							PortValue: uint32(elistener.ExternalStartingPort + int32(brokerId)),
+		var err error
+		brokerConfig := &v1beta1.BrokerConfig{}
+		brokerIdPresent := false
+		var requiredBroker v1beta1.Broker
+		// This check is used in case of broker delete. In case of broker delete there is some time when the CC removes the broker
+		// gracefully which means we have to generate the port for that broker as well. At that time the status contains
+		// but the broker spec does not contain the required config values.
+		for _, broker := range kc.Spec.Brokers {
+			if int(broker.Id) == brokerId {
+				brokerIdPresent = true
+				requiredBroker = broker
+				break
+			}
+		}
+		if brokerIdPresent {
+			brokerConfig, err = util.GetBrokerConfig(requiredBroker, kc.Spec)
+			if err != nil {
+				log.Error(err, "could not determine brokerConfig")
+				continue
+			}
+		}
+		if (len(brokerConfig.BrokerIdBindings) == 0 && ingressConfigName == defaultIngressConfigName) ||
+			util.StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+			listeners = append(listeners, &envoyapi.Listener{
+				Address: &envoycore.Address{
+					Address: &envoycore.Address_SocketAddress{
+						SocketAddress: &envoycore.SocketAddress{
+							Address: "0.0.0.0",
+							PortSpecifier: &envoycore.SocketAddress_PortValue{
+								PortValue: uint32(elistener.ExternalStartingPort + int32(brokerId)),
+							},
 						},
 					},
 				},
-			},
-			FilterChains: []*envoylistener.FilterChain{
-				{
-					Filters: []*envoylistener.Filter{
-						{
-							Name: wellknown.TCPProxy,
-							ConfigType: &envoylistener.Filter_Config{
-								Config: &ptypesstruct.Struct{
-									Fields: map[string]*ptypesstruct.Value{
-										"stat_prefix": {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker_tcp-%d", brokerId)}},
-										"cluster":     {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker-%d", brokerId)}},
+				FilterChains: []*envoylistener.FilterChain{
+					{
+						Filters: []*envoylistener.Filter{
+							{
+								Name: wellknown.TCPProxy,
+								ConfigType: &envoylistener.Filter_Config{
+									Config: &ptypesstruct.Struct{
+										Fields: map[string]*ptypesstruct.Value{
+											"stat_prefix": {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker_tcp-%d", brokerId)}},
+											"cluster":     {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker-%d", brokerId)}},
+										},
 									},
 								},
 							},
 						},
 					},
 				},
-			},
-		})
+			})
 
-		clusters = append(clusters, &envoyapi.Cluster{
-			Name:                 fmt.Sprintf("broker-%d", brokerId),
-			ConnectTimeout:       &duration.Duration{Seconds: 1},
-			ClusterDiscoveryType: &envoyapi.Cluster_Type{Type: envoyapi.Cluster_STRICT_DNS},
-			LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
-			Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
-			Hosts: []*envoycore.Address{
-				{
-					Address: &envoycore.Address_SocketAddress{
-						SocketAddress: &envoycore.SocketAddress{
-							Address: generateAddressValue(kc, brokerId),
-							PortSpecifier: &envoycore.SocketAddress_PortValue{
-								PortValue: uint32(elistener.ContainerPort),
+			clusters = append(clusters, &envoyapi.Cluster{
+				Name:                 fmt.Sprintf("broker-%d", brokerId),
+				ConnectTimeout:       &duration.Duration{Seconds: 1},
+				ClusterDiscoveryType: &envoyapi.Cluster_Type{Type: envoyapi.Cluster_STRICT_DNS},
+				LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
+				Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
+				Hosts: []*envoycore.Address{
+					{
+						Address: &envoycore.Address_SocketAddress{
+							SocketAddress: &envoycore.SocketAddress{
+								Address: generateAddressValue(kc, brokerId),
+								PortSpecifier: &envoycore.SocketAddress_PortValue{
+									PortValue: uint32(elistener.ContainerPort),
+								},
 							},
 						},
 					},
 				},
-			},
-		})
+			})
+		}
 	}
 	// Create an any cast broker access point
 	listeners = append(listeners, &envoyapi.Listener{

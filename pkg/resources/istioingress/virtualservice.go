@@ -27,52 +27,72 @@ import (
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
-func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig) runtime.Object {
-	vServiceSpec := v1alpha3.VirtualServiceSpec{
-		Hosts:    []string{"*"},
-		Gateways: []string{fmt.Sprintf(gatewayNameTemplate, r.KafkaCluster.Name, externalListenerConfig.Name)},
+func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
+	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
+
+	var gatewayName, virtualSName string
+	if ingressConfigName == util.IngressConfigGlobalName {
+		gatewayName = fmt.Sprintf(gatewayNameTemplate, r.KafkaCluster.Name, externalListenerConfig.Name)
+		virtualSName = fmt.Sprintf(virtualServiceTemplate, r.KafkaCluster.Name, externalListenerConfig.Name)
+	} else {
+		gatewayName = fmt.Sprintf(gatewayNameTemplateWithScope, r.KafkaCluster.Name, externalListenerConfig.Name, ingressConfigName)
+		virtualSName = fmt.Sprintf(virtualServiceTemplateWithScope, r.KafkaCluster.Name, externalListenerConfig.Name, ingressConfigName)
 	}
 
-	if r.KafkaCluster.Spec.IstioIngressConfig.TLSOptions != nil &&
-		r.KafkaCluster.Spec.IstioIngressConfig.TLSOptions.Mode == v1alpha3.TLSModePassThrough {
-		vServiceSpec.TLS = generateTlsRoutes(r.KafkaCluster, externalListenerConfig, log)
+	vServiceSpec := v1alpha3.VirtualServiceSpec{
+		Hosts:    []string{"*"},
+		Gateways: []string{gatewayName},
+	}
+
+	if ingressConfig.IstioIngressConfig.TLSOptions != nil &&
+		ingressConfig.IstioIngressConfig.TLSOptions.Mode == v1alpha3.TLSModePassThrough {
+		vServiceSpec.TLS = generateTlsRoutes(r.KafkaCluster, externalListenerConfig, log, ingressConfigName, defaultIngressConfigName)
 
 	} else {
-		vServiceSpec.TCP = generateTcpRoutes(r.KafkaCluster, externalListenerConfig, log)
+		vServiceSpec.TCP = generateTcpRoutes(r.KafkaCluster, externalListenerConfig, log, ingressConfigName, defaultIngressConfigName)
 	}
 
 	return &v1alpha3.VirtualService{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
-			fmt.Sprintf(virtualServiceTemplate, r.KafkaCluster.Name, externalListenerConfig.Name),
+			virtualSName,
 			labelsForIstioIngress(r.KafkaCluster.Name, externalListenerConfig.Name),
-			r.KafkaCluster.Spec.IstioIngressConfig.GetVirtualServiceAnnotations(),
+			ingressConfig.IstioIngressConfig.GetVirtualServiceAnnotations(),
 			r.KafkaCluster),
 		Spec: vServiceSpec,
 	}
 }
 
-func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger) []v1alpha3.TLSRoute {
+func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger,
+	ingressConfigName, defaultIngressConfigName string) []v1alpha3.TLSRoute {
 	tlsRoutes := make([]v1alpha3.TLSRoute, 0)
 
 	brokerIds := util.GetBrokerIdsFromStatusAndSpec(kc.Status.BrokersState, kc.Spec.Brokers, log)
 
 	for _, brokerId := range brokerIds {
-		tlsRoutes = append(tlsRoutes, v1alpha3.TLSRoute{
-			Match: []v1alpha3.TLSMatchAttributes{
-				{
-					Port:     util.IntPointer(int(externalListenerConfig.ExternalStartingPort) + brokerId),
-					SniHosts: []string{"*"},
-				},
-			},
-			Route: []*v1alpha3.RouteDestination{
-				{
-					Destination: &v1alpha3.Destination{
-						Host: fmt.Sprintf("%s-%d", kc.Name, brokerId),
-						Port: &v1alpha3.PortSelector{Number: uint32(externalListenerConfig.ContainerPort)},
+		brokerConfig, err := util.GetBrokerConfig(kc.Spec.Brokers[brokerId], kc.Spec)
+		if err != nil {
+			log.Error(err, "could not determine brokerConfig")
+			continue
+		}
+		if (len(brokerConfig.BrokerIdBindings) == 0 && ingressConfigName == defaultIngressConfigName) ||
+			util.StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+			tlsRoutes = append(tlsRoutes, v1alpha3.TLSRoute{
+				Match: []v1alpha3.TLSMatchAttributes{
+					{
+						Port:     util.IntPointer(int(externalListenerConfig.ExternalStartingPort) + brokerId),
+						SniHosts: []string{"*"},
 					},
 				},
-			},
-		})
+				Route: []*v1alpha3.RouteDestination{
+					{
+						Destination: &v1alpha3.Destination{
+							Host: fmt.Sprintf("%s-%d", kc.Name, brokerId),
+							Port: &v1alpha3.PortSelector{Number: uint32(externalListenerConfig.ContainerPort)},
+						},
+					},
+				},
+			})
+		}
 	}
 	if !kc.Spec.HeadlessServiceEnabled && len(kc.Spec.ListenersConfig.ExternalListeners) > 0 {
 		tlsRoutes = append(tlsRoutes, v1alpha3.TLSRoute{
@@ -96,27 +116,37 @@ func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 	return tlsRoutes
 }
 
-func generateTcpRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger) []v1alpha3.TCPRoute {
+func generateTcpRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger,
+	ingressConfigName, defaultIngressConfigName string) []v1alpha3.TCPRoute {
+
 	tcpRoutes := make([]v1alpha3.TCPRoute, 0)
 
 	brokerIds := util.GetBrokerIdsFromStatusAndSpec(kc.Status.BrokersState, kc.Spec.Brokers, log)
 
 	for _, brokerId := range brokerIds {
-		tcpRoutes = append(tcpRoutes, v1alpha3.TCPRoute{
-			Match: []v1alpha3.L4MatchAttributes{
-				{
-					Port: util.IntPointer(int(externalListenerConfig.ExternalStartingPort) + brokerId),
-				},
-			},
-			Route: []*v1alpha3.RouteDestination{
-				{
-					Destination: &v1alpha3.Destination{
-						Host: fmt.Sprintf("%s-%d", kc.Name, brokerId),
-						Port: &v1alpha3.PortSelector{Number: uint32(externalListenerConfig.ContainerPort)},
+		brokerConfig, err := util.GetBrokerConfig(kc.Spec.Brokers[brokerId], kc.Spec)
+		if err != nil {
+			log.Error(err, "could not determine brokerConfig")
+			continue
+		}
+		if (len(brokerConfig.BrokerIdBindings) == 0 && ingressConfigName == defaultIngressConfigName) ||
+			util.StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+			tcpRoutes = append(tcpRoutes, v1alpha3.TCPRoute{
+				Match: []v1alpha3.L4MatchAttributes{
+					{
+						Port: util.IntPointer(int(externalListenerConfig.ExternalStartingPort) + brokerId),
 					},
 				},
-			},
-		})
+				Route: []*v1alpha3.RouteDestination{
+					{
+						Destination: &v1alpha3.Destination{
+							Host: fmt.Sprintf("%s-%d", kc.Name, brokerId),
+							Port: &v1alpha3.PortSelector{Number: uint32(externalListenerConfig.ContainerPort)},
+						},
+					},
+				},
+			})
+		}
 	}
 	if !kc.Spec.HeadlessServiceEnabled {
 		tcpRoutes = append(tcpRoutes, v1alpha3.TCPRoute{

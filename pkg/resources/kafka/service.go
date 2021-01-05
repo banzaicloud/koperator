@@ -16,41 +16,27 @@ package kafka
 
 import (
 	"fmt"
-	"strings"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (r *Reconciler) service(id int32, log logr.Logger) runtime.Object {
+func (r *Reconciler) service(id int32, brokerConfig *v1beta1.BrokerConfig) runtime.Object {
 
 	var usedPorts []corev1.ServicePort
-
-	for _, iListeners := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
-		usedPorts = append(usedPorts, corev1.ServicePort{
-			Name:       strings.ReplaceAll(iListeners.GetListenerServiceName(), "_", ""),
-			Port:       iListeners.ContainerPort,
-			TargetPort: intstr.FromInt(int(iListeners.ContainerPort)),
-			Protocol:   corev1.ProtocolTCP,
-		})
-	}
-	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
-		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-			usedPorts = append(usedPorts, corev1.ServicePort{
-				Name:       eListener.GetListenerServiceName(),
-				Protocol:   corev1.ProtocolTCP,
-				Port:       eListener.ContainerPort,
-				TargetPort: intstr.FromInt(int(eListener.ContainerPort)),
-			})
-		}
-	}
+	// Append internal listener ports
+	usedPorts = append(usedPorts,
+		generateServicePortForIListeners(r.KafkaCluster.Spec.ListenersConfig.InternalListeners)...)
+	// Append external listener ports
+	usedPorts = append(usedPorts,
+		generateServicePortForEListeners(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners)...)
 
 	usedPorts = append(usedPorts, corev1.ServicePort{
 		Name:       "metrics",

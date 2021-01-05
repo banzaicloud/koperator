@@ -44,8 +44,11 @@ type Resource func() runtime.Object
 // ResourceWithLogs function with log parameter
 type ResourceWithLogs func(log logr.Logger) runtime.Object
 
-// ResourceWithLogAndExternalListenerConfig function with log and externalListenerConfig parameter
-type ResourceWithLogAndExternalListenerConfig func(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig) runtime.Object
+// ResourceWithLogAndExternalListenerSpecificInfos function with
+//log and externalListenerConfig and ingressConfig parameter with name and default ingress config name
+type ResourceWithLogAndExternalListenerSpecificInfos func(log logr.Logger,
+	externalListenerConfig v1beta1.ExternalListenerConfig, ingressConfig v1beta1.IngressConfig,
+	ingressConfigName, defaultIngressConfigName string) runtime.Object
 
 // ResourceWithBrokerConfigAndVolume function with brokerConfig, persistentVolumeClaims and log parameters
 type ResourceWithBrokerConfigAndVolume func(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object

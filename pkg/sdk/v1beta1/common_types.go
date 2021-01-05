@@ -35,6 +35,9 @@ type ConfigurationState string
 // PerBrokerConfigurationState holds info about the per-broker configuration state
 type PerBrokerConfigurationState string
 
+// ExternalListenerConfigNames holds the name of the brokerIdBindings
+type ExternalListenerConfigNames []string
+
 // PKIBackend represents an interface implementing the PKIManager
 type PKIBackend string
 
@@ -113,6 +116,8 @@ type BrokerState struct {
 	ConfigurationState ConfigurationState `json:"configurationState"`
 	// PerBrokerConfigurationState holds info about the per-broker (dynamically updatable) config
 	PerBrokerConfigurationState PerBrokerConfigurationState `json:"perBrokerConfigurationState"`
+	// ExternalListenerConfigNames holds info about what listener config is in use with the broker
+	ExternalListenerConfigNames ExternalListenerConfigNames `json:"externalListenerConfigNames,omitempty"`
 }
 
 const (

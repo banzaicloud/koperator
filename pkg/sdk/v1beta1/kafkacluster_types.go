@@ -140,6 +140,9 @@ type BrokerConfig struct {
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// SecurityContext allows to set security context for the kafka container
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+	// BrokerIdBindings allows to set specific loadbalancer to a specific broker mappings.
+	// If left empty, all broker will inherit this loadbalancer
+	BrokerIdBindings []string `json:"brokerIdBindings,omitempty"`
 }
 
 type NetworkConfig struct {
@@ -199,26 +202,29 @@ type EnvoyConfig struct {
 	Image     string                       `json:"image,omitempty"`
 	Resources *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
 	// +kubebuilder:validation:Minimum=1
-	Replicas                 int32                         `json:"replicas,omitempty"`
-	ServiceAccountName       string                        `json:"serviceAccountName,omitempty"`
-	ImagePullSecrets         []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	NodeSelector             map[string]string             `json:"nodeSelector,omitempty"`
-	Tolerations              []corev1.Toleration           `json:"tolerations,omitempty"`
-	Annotations              map[string]string             `json:"annotations,omitempty"`
-	LoadBalancerSourceRanges []string                      `json:"loadBalancerSourceRanges,omitempty"`
+	Replicas           int32                         `json:"replicas,omitempty"`
+	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`
+	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	NodeSelector       map[string]string             `json:"nodeSelector,omitempty"`
+	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
+	// Annotations defines the annotations placed on the envoy ingress controller deployment
+	Annotations              map[string]string `json:"annotations,omitempty"`
+	LoadBalancerSourceRanges []string          `json:"loadBalancerSourceRanges,omitempty"`
 	// LoadBalancerIP can be used to specify an exact IP for the LoadBalancer service
 	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
 }
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller
 type IstioIngressConfig struct {
-	Resources                 *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
-	Replicas                  int32                        `json:"replicas,omitempty"`
-	NodeSelector              map[string]string            `json:"nodeSelector,omitempty"`
-	Tolerations               []corev1.Toleration          `json:"tolerations,omitempty"`
-	Annotations               map[string]string            `json:"annotations,omitempty"`
-	TLSOptions                *v1alpha3.TLSOptions         `json:"gatewayConfig,omitempty"`
-	VirtualServiceAnnotations map[string]string            `json:"virtualServiceAnnotations,omitempty"`
+	Resources *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
+	// +kubebuilder:validation:Minimum=1
+	Replicas     int32               `json:"replicas,omitempty"`
+	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
+	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
+	// Annotations defines the annotations placed on the istio ingress controller deployment
+	Annotations               map[string]string    `json:"annotations,omitempty"`
+	TLSOptions                *v1alpha3.TLSOptions `json:"gatewayConfig,omitempty"`
+	VirtualServiceAnnotations map[string]string    `json:"virtualServiceAnnotations,omitempty"`
 }
 
 func (iIConfig *IstioIngressConfig) GetAnnotations() map[string]string {
@@ -272,8 +278,16 @@ func (c ExternalListenerConfig) GetAnyCastPort() int32 {
 }
 
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
-func (c ExternalListenerConfig) GetServiceAnnotations() map[string]string {
+func (c IngressServiceSettings) GetServiceAnnotations() map[string]string {
 	return cloneAnnotationMap(c.ServiceAnnotations)
+}
+
+// GetServiceType returns the field value of ServiceType defaults to LoadBalancer.
+func (c IngressServiceSettings) GetServiceType() corev1.ServiceType {
+	if c.ServiceType == "" {
+		return corev1.ServiceTypeLoadBalancer
+	}
+	return c.ServiceType
 }
 
 // SSLSecrets defines the Kafka SSL secrets
@@ -311,27 +325,16 @@ type AlertManagerConfig struct {
 	UpScaleLimit int `json:"upScaleLimit,omitempty"`
 }
 
-// ExternalListenerConfig defines the external listener config for Kafka
-type ExternalListenerConfig struct {
-	CommonListenerSpec   `json:",inline"`
-	ExternalStartingPort int32 `json:"externalStartingPort"`
-	// configuring AnyCastPort allows kafka cluster access without specifying the exact broker
-	AnyCastPort *int32 `json:"anyCastPort,omitempty"`
+type IngressServiceSettings struct {
 	// In case of external listeners using LoadBalancer access method the value of this field is used to advertise the
 	// Kafka broker external listener instead of the public IP of the provisioned LoadBalancer service (e.g. can be used to
 	// advertise the listener using a URL recorded in DNS instead of public IP).
 	// In case of external listeners using NodePort access method the broker instead of node public IP (see "brokerConfig.nodePortExternalIP")
 	// is advertised on the address having the following format: <kafka-cluster-name>-<broker-id>.<namespace><value-specified-in-hostnameOverride-field>
-	HostnameOverride   string            `json:"hostnameOverride,omitempty"`
+	HostnameOverride string `json:"hostnameOverride,omitempty"`
+	// ServiceAnnotations defines annotations which will
+	// be placed to the service or services created for the external listener
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
-	// +kubebuilder:validation:Enum=LoadBalancer;NodePort
-	// accessMethod defines the method which the external listener is exposed through.
-	// Two types are supported LoadBalancer and NodePort.
-	// The recommended and default is the LoadBalancer.
-	// NodePort should be used in Kubernetes environments with no support for provisioning Load Balancers.
-	// +optional
-	AccessMethod corev1.ServiceType `json:"accessMethod,omitempty"`
-
 	// externalTrafficPolicy denotes if this Service desires to route external
 	// traffic to node-local or cluster-wide endpoints. "Local" preserves the
 	// client source IP and avoids a second hop for LoadBalancer and Nodeport
@@ -340,6 +343,41 @@ type ExternalListenerConfig struct {
 	// another node, but should have good overall load-spreading.
 	// +optional
 	ExternalTrafficPolicy corev1.ServiceExternalTrafficPolicyType `json:"externalTrafficPolicy,omitempty"`
+	// Service Type string describes ingress methods for a service
+	// Only "NodePort" and "LoadBalancer" is supported.
+	// Default value is LoadBalancer
+	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
+}
+
+// ExternalListenerConfig defines the external listener config for Kafka
+type ExternalListenerConfig struct {
+	CommonListenerSpec     `json:",inline"`
+	IngressServiceSettings `json:",inline"`
+	ExternalStartingPort   int32 `json:"externalStartingPort"`
+	// configuring AnyCastPort allows kafka cluster access without specifying the exact broker
+	AnyCastPort *int32 `json:"anyCastPort,omitempty"`
+	// +kubebuilder:validation:Enum=LoadBalancer;NodePort
+	// accessMethod defines the method which the external listener is exposed through.
+	// Two types are supported LoadBalancer and NodePort.
+	// The recommended and default is the LoadBalancer.
+	// NodePort should be used in Kubernetes environments with no support for provisioning Load Balancers.
+	// +optional
+	AccessMethod corev1.ServiceType `json:"accessMethod,omitempty"`
+	// configuring Config allows to specify ingress controller configuration per external listener
+	// if not set the default IstioIngressConfig or EnvoyConfig will be used from the KafkaClusterSpec
+	Config *Config `json:"config,omitempty"`
+}
+
+// Config defines the external access ingress controller configuration
+type Config struct {
+	DefaultIngressConfig string                   `json:"defaultIngressConfig"`
+	IngressConfig        map[string]IngressConfig `json:"ingressConfig,omitempty"`
+}
+
+type IngressConfig struct {
+	IngressServiceSettings `json:",inline"`
+	IstioIngressConfig     *IstioIngressConfig `json:"istioIngressConfig,omitempty"`
+	EnvoyConfig            *EnvoyConfig        `json:"envoyConfig,omitempty"`
 }
 
 // InternalListenerConfig defines the internal listener config for Kafka

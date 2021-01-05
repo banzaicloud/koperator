@@ -27,17 +27,27 @@ import (
 	kafkautil "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
-func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig) runtime.Object {
+func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
+	_ v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
+	var gatewayName string
+	if ingressConfigName == util.IngressConfigGlobalName {
+		gatewayName = fmt.Sprintf(gatewayNameTemplate, r.KafkaCluster.Name, externalListenerConfig.Name)
+	} else {
+		gatewayName = fmt.Sprintf(gatewayNameTemplateWithScope, r.KafkaCluster.Name, externalListenerConfig.Name, ingressConfigName)
+	}
 	return &v1alpha3.Gateway{
-		ObjectMeta: templates.ObjectMeta(fmt.Sprintf(gatewayNameTemplate, r.KafkaCluster.Name, externalListenerConfig.Name), labelsForIstioIngress(r.KafkaCluster.Name, externalListenerConfig.Name), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMeta(gatewayName,
+			labelsForIstioIngress(r.KafkaCluster.Name, externalListenerConfig.Name), r.KafkaCluster),
 		Spec: v1alpha3.GatewaySpec{
 			Selector: labelsForIstioIngress(r.KafkaCluster.Name, externalListenerConfig.Name),
-			Servers:  generateServers(r.KafkaCluster, externalListenerConfig, log),
+			Servers:  generateServers(r.KafkaCluster, externalListenerConfig, log, ingressConfigName, defaultIngressConfigName),
 		},
 	}
 }
 
-func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger) []v1alpha3.Server {
+func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger,
+	ingressConfigName, defaultIngressConfigName string) []v1alpha3.Server {
+
 	servers := make([]v1alpha3.Server, 0)
 	protocol := v1alpha3.ProtocolTCP
 	var tlsConfig *v1alpha3.TLSOptions
@@ -49,15 +59,23 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 	brokerIds := util.GetBrokerIdsFromStatusAndSpec(kc.Status.BrokersState, kc.Spec.Brokers, log)
 
 	for _, brokerId := range brokerIds {
-		servers = append(servers, v1alpha3.Server{
-			Port: &v1alpha3.Port{
-				Number:   int(externalListenerConfig.ExternalStartingPort) + brokerId,
-				Protocol: protocol,
-				Name:     fmt.Sprintf("tcp-broker-%d", brokerId),
-			},
-			TLS:   tlsConfig,
-			Hosts: []string{"*"},
-		})
+		brokerConfig, err := util.GetBrokerConfig(kc.Spec.Brokers[brokerId], kc.Spec)
+		if err != nil {
+			log.Error(err, "could not determine brokerConfig")
+			continue
+		}
+		if (len(brokerConfig.BrokerIdBindings) == 0 && ingressConfigName == defaultIngressConfigName) ||
+			util.StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+			servers = append(servers, v1alpha3.Server{
+				Port: &v1alpha3.Port{
+					Number:   int(externalListenerConfig.ExternalStartingPort) + brokerId,
+					Protocol: protocol,
+					Name:     fmt.Sprintf("tcp-broker-%d", brokerId),
+				},
+				TLS:   tlsConfig,
+				Hosts: []string{"*"},
+			})
+		}
 	}
 	servers = append(servers, v1alpha3.Server{
 		Port: &v1alpha3.Port{

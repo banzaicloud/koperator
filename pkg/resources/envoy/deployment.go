@@ -32,11 +32,22 @@ import (
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
-func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalListenerConfig) runtime.Object {
+func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalListenerConfig,
+	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
 
-	configMapName := fmt.Sprintf(envoyVolumeAndConfigName, extListener.Name, r.KafkaCluster.GetName())
+	var configMapName string
+	var deploymentName string
+	if ingressConfigName == util.IngressConfigGlobalName {
+		configMapName = fmt.Sprintf(envoyVolumeAndConfigName, extListener.Name, r.KafkaCluster.GetName())
+		deploymentName = fmt.Sprintf(envoyDeploymentName, extListener.Name, r.KafkaCluster.GetName())
+	} else {
+		configMapName = fmt.Sprintf(envoyVolumeAndConfigNameWithScope, extListener.Name, ingressConfigName, r.KafkaCluster.GetName())
+		deploymentName = fmt.Sprintf(envoyDeploymentNameWithScope, extListener.Name, ingressConfigName, r.KafkaCluster.GetName())
+	}
+
 	exposedPorts := getExposedContainerPorts(extListener,
-		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log))
+		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log),
+		r.KafkaCluster.Spec, log, ingressConfigName, defaultIngressConfigName)
 	volumes := []corev1.Volume{
 		{
 			Name: configMapName,
@@ -58,32 +69,35 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 	}
 
 	return &appsv1.Deployment{
-		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf(envoyDeploymentName, extListener.Name, r.KafkaCluster.GetName()),
-			labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name), r.KafkaCluster),
+		ObjectMeta: templates.ObjectMetaWithAnnotations(
+			deploymentName,
+			labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
+			ingressConfig.EnvoyConfig.GetAnnotations(),
+			r.KafkaCluster),
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
 			},
-			Replicas: util.Int32Pointer(r.KafkaCluster.Spec.EnvoyConfig.GetReplicas()),
+			Replicas: util.Int32Pointer(ingressConfig.EnvoyConfig.GetReplicas()),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
-					Annotations: generatePodAnnotations(r.KafkaCluster, extListener, log),
+					Labels: labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
+					Annotations: generatePodAnnotations(r.KafkaCluster, extListener, ingressConfigName,
+						defaultIngressConfigName, log),
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: r.KafkaCluster.Spec.EnvoyConfig.GetServiceAccount(),
-					ImagePullSecrets:   r.KafkaCluster.Spec.EnvoyConfig.GetImagePullSecrets(),
-					Tolerations:        r.KafkaCluster.Spec.EnvoyConfig.GetTolerations(),
-					NodeSelector:       r.KafkaCluster.Spec.EnvoyConfig.GetNodeSelector(),
+					ServiceAccountName: ingressConfig.EnvoyConfig.GetServiceAccount(),
+					ImagePullSecrets:   ingressConfig.EnvoyConfig.GetImagePullSecrets(),
+					Tolerations:        ingressConfig.EnvoyConfig.GetTolerations(),
+					NodeSelector:       ingressConfig.EnvoyConfig.GetNodeSelector(),
 					Containers: []corev1.Container{
 						{
 							Name:  "envoy",
-							Image: r.KafkaCluster.Spec.EnvoyConfig.GetEnvoyImage(),
+							Image: ingressConfig.EnvoyConfig.GetEnvoyImage(),
 							Ports: append(exposedPorts, []corev1.ContainerPort{
 								{Name: "envoy-admin", ContainerPort: 9901, Protocol: corev1.ProtocolTCP}}...),
 							VolumeMounts: volumeMounts,
-							Resources:    *r.KafkaCluster.Spec.EnvoyConfig.GetResources(),
+							Resources:    *ingressConfig.EnvoyConfig.GetResources(),
 						},
 					},
 					Volumes: volumes,
@@ -93,15 +107,40 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 	}
 }
 
-func getExposedContainerPorts(extListener v1beta1.ExternalListenerConfig, brokerIds []int) []corev1.ContainerPort {
+func getExposedContainerPorts(extListener v1beta1.ExternalListenerConfig, brokerIds []int,
+	kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger, ingressConfigName, defaultIngressConfigName string) []corev1.ContainerPort {
 	var exposedPorts []corev1.ContainerPort
 
-	for _, id := range brokerIds {
-		exposedPorts = append(exposedPorts, corev1.ContainerPort{
-			Name:          fmt.Sprintf("broker-%d", id),
-			ContainerPort: extListener.ExternalStartingPort + int32(id),
-			Protocol:      corev1.ProtocolTCP,
-		})
+	for _, brokerId := range brokerIds {
+		var err error
+		brokerConfig := &v1beta1.BrokerConfig{}
+		brokerIdPresent := false
+		var requiredBroker v1beta1.Broker
+		// This check is used in case of broker delete. In case of broker delete there is some time when the CC removes the broker
+		// gracefully which means we have to generate the port for that broker as well. At that time the status contains
+		// but the broker spec does not contain the required config values.
+		for _, broker := range kafkaClusterSpec.Brokers {
+			if int(broker.Id) == brokerId {
+				brokerIdPresent = true
+				requiredBroker = broker
+				break
+			}
+		}
+		if brokerIdPresent {
+			brokerConfig, err = util.GetBrokerConfig(requiredBroker, kafkaClusterSpec)
+			if err != nil {
+				log.Error(err, "could not determine brokerConfig")
+				continue
+			}
+		}
+		if (len(brokerConfig.BrokerIdBindings) == 0 && ingressConfigName == defaultIngressConfigName) ||
+			util.StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+			exposedPorts = append(exposedPorts, corev1.ContainerPort{
+				Name:          fmt.Sprintf("broker-%d", brokerId),
+				ContainerPort: extListener.ExternalStartingPort + int32(brokerId),
+				Protocol:      corev1.ProtocolTCP,
+			})
+		}
 	}
 	exposedPorts = append(exposedPorts, corev1.ContainerPort{
 		Name:          fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
@@ -113,8 +152,10 @@ func getExposedContainerPorts(extListener v1beta1.ExternalListenerConfig, broker
 }
 
 func generatePodAnnotations(kafkaCluster *v1beta1.KafkaCluster,
-	extListener v1beta1.ExternalListenerConfig, log logr.Logger) map[string]string {
-	hashedEnvoyConfig := sha256.Sum256([]byte(GenerateEnvoyConfig(kafkaCluster, extListener, log)))
+	extListener v1beta1.ExternalListenerConfig, ingressConfigName, defaultIngressConfigName string,
+	log logr.Logger) map[string]string {
+	hashedEnvoyConfig := sha256.Sum256([]byte(
+		GenerateEnvoyConfig(kafkaCluster, extListener, ingressConfigName, defaultIngressConfigName, log)))
 	annotations := map[string]string{
 		"envoy.yaml.hash": hex.EncodeToString(hashedEnvoyConfig[:]),
 	}
