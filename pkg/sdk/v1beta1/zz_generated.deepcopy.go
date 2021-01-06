@@ -118,13 +118,13 @@ func (in *BrokerConfig) DeepCopyInto(out *BrokerConfig) {
 		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.PodSecurityPolicy != nil {
-		in, out := &in.PodSecurityPolicy, &out.PodSecurityPolicy
+	if in.PodSecurityContext != nil {
+		in, out := &in.PodSecurityContext, &out.PodSecurityContext
 		*out = new(v1.PodSecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.KafkaContainerSecurityContext != nil {
-		in, out := &in.KafkaContainerSecurityContext, &out.KafkaContainerSecurityContext
+	if in.SecurityContext != nil {
+		in, out := &in.SecurityContext, &out.SecurityContext
 		*out = new(v1.SecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
@@ -232,13 +232,13 @@ func (in *CruiseControlConfig) DeepCopyInto(out *CruiseControlConfig) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.PodSecurityPolicy != nil {
-		in, out := &in.PodSecurityPolicy, &out.PodSecurityPolicy
+	if in.PodSecurityContext != nil {
+		in, out := &in.PodSecurityContext, &out.PodSecurityContext
 		*out = new(v1.PodSecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.CruiseControlContainerSecurityContext != nil {
-		in, out := &in.CruiseControlContainerSecurityContext, &out.CruiseControlContainerSecurityContext
+	if in.SecurityContext != nil {
+		in, out := &in.SecurityContext, &out.SecurityContext
 		*out = new(v1.SecurityContext)
 		(*in).DeepCopyInto(*out)
 	}

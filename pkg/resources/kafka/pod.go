@@ -114,7 +114,7 @@ rm /var/run/wait/do-not-exit-yet`}
 			r.KafkaCluster,
 		),
 		Spec: corev1.PodSpec{
-			SecurityContext: brokerConfig.PodSecurityPolicy,
+			SecurityContext: brokerConfig.PodSecurityContext,
 			InitContainers: append(initContainers, []corev1.Container{
 				{
 					Name:    "cruise-control-reporter",
@@ -160,7 +160,7 @@ fi`},
 							},
 						},
 					},
-					SecurityContext: brokerConfig.KafkaContainerSecurityContext,
+					SecurityContext: brokerConfig.SecurityContext,
 					Env: generateEnvConfig(brokerConfig, []corev1.EnvVar{
 						{
 							Name:  "CLASSPATH",
