@@ -138,7 +138,7 @@ type BrokerConfig struct {
 	// where letter setting will override the group setting
 	Affinity           *corev1.Affinity           `json:"affinity,omitempty" protobuf:"bytes,18,opt,name=affinity"`
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
-	// SecurityContext allow to set security context for the kafka container
+	// SecurityContext allows to set security context for the kafka container
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
 }
 
@@ -177,7 +177,7 @@ type CruiseControlConfig struct {
 	// VolumeMounts define some extra Kubernetes Volume mounts for the CruiseControl Pods.
 	VolumeMounts       []corev1.VolumeMount       `json:"volumeMounts,omitempty"`
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
-	// SecurityContext allow to set security context for the cruise-control container
+	// SecurityContext allows to set security context for the CruiseControl container
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
 }
 
