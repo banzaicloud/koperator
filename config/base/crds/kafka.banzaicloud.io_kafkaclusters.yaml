@@ -910,7 +910,7 @@ spec:
                         type: object
                     type: object
                   securityContext:
-                    description: SecurityContext allow to set security context for
+                    description: SecurityContext allows to set security context for
                       the kafka container
                     properties:
                       allowPrivilegeEscalation:
@@ -2099,7 +2099,7 @@ spec:
                             type: object
                         type: object
                       securityContext:
-                        description: SecurityContext allow to set security context
+                        description: SecurityContext allows to set security context
                           for the kafka container
                         properties:
                           allowPrivilegeEscalation:
@@ -3705,8 +3705,8 @@ spec:
                       type: object
                   type: object
                 securityContext:
-                  description: SecurityContext allow to set security context for the
-                    cruise-control container
+                  description: SecurityContext allows to set security context for
+                    the CruiseControl container
                   properties:
                     allowPrivilegeEscalation:
                       description: 'AllowPrivilegeEscalation controls whether a process
