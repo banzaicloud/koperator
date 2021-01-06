@@ -29,6 +29,8 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 )
 
+const defaultBrokerConfigGroup = "default"
+
 func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 	return &v1beta1.KafkaCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -69,7 +71,7 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 				},
 			},
 			BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-				"default": {
+				defaultBrokerConfigGroup: {
 					StorageConfigs: []v1beta1.StorageConfig{
 						{
 							MountPath: "/kafka-logs",
@@ -90,15 +92,15 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 			Brokers: []v1beta1.Broker{
 				{
 					Id:                0,
-					BrokerConfigGroup: "default",
+					BrokerConfigGroup: defaultBrokerConfigGroup,
 				},
 				{
 					Id:                1,
-					BrokerConfigGroup: "default",
+					BrokerConfigGroup: defaultBrokerConfigGroup,
 				},
 				{
 					Id:                2,
-					BrokerConfigGroup: "default",
+					BrokerConfigGroup: defaultBrokerConfigGroup,
 				},
 			},
 			ClusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.6.0-bzc.1",

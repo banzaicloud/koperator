@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 var _ = Describe("KafkaCluster", func() {
@@ -60,6 +61,22 @@ var _ = Describe("KafkaCluster", func() {
 			Config: "some.config=value",
 		}
 		kafkaCluster.Spec.ReadOnlyConfig = ""
+		// Set some Kafka pod and container related SecurityContext values
+		defaultGroup := kafkaCluster.Spec.BrokerConfigGroups[defaultBrokerConfigGroup]
+		defaultGroup.PodSecurityContext = &corev1.PodSecurityContext{
+			RunAsNonRoot: util.BoolPointer(false),
+		}
+		defaultGroup.SecurityContext = &corev1.SecurityContext{
+			Privileged: util.BoolPointer(true),
+		}
+		kafkaCluster.Spec.BrokerConfigGroups[defaultBrokerConfigGroup] = defaultGroup
+		// Set some CruiseControl pod and container related SecurityContext values
+		kafkaCluster.Spec.CruiseControlConfig.PodSecurityContext = &corev1.PodSecurityContext{
+			RunAsNonRoot: util.BoolPointer(false),
+		}
+		kafkaCluster.Spec.CruiseControlConfig.SecurityContext = &corev1.SecurityContext{
+			Privileged: util.BoolPointer(true),
+		}
 	})
 
 	JustBeforeEach(func() {

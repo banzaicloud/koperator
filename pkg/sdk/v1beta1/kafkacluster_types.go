@@ -136,7 +136,7 @@ type BrokerConfig struct {
 	// and the operator supposes that the user is aware of how scheduling is done by kubernetes
 	// Affinity could be set through brokerConfigGroups definitions and can be set for individual brokers as well
 	// where letter setting will override the group setting
-	Affinity           *corev1.Affinity           `json:"affinity,omitempty" protobuf:"bytes,18,opt,name=affinity"`
+	Affinity           *corev1.Affinity           `json:"affinity,omitempty"`
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// SecurityContext allows to set security context for the kafka container
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`

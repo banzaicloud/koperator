@@ -318,6 +318,10 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	Expect(pod.Spec.RestartPolicy).To(Equal(corev1.RestartPolicyNever))
 	Expect(pod.Spec.TerminationGracePeriodSeconds).To(Equal(util.Int64Pointer(120)))
 
+	// Check if the securityContext values are propagated correctly
+	Expect(pod.Spec.SecurityContext.RunAsNonRoot).To(Equal(util.BoolPointer(false)))
+	Expect(container.SecurityContext.Privileged).To(Equal(util.BoolPointer(true)))
+
 	// expect some other fields
 }
 
