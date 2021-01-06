@@ -272,4 +272,8 @@ func expectCruiseControlDeployment(kafkaCluster *v1beta1.KafkaCluster) {
 			},
 		},
 	))
+
+	// Check if the securityContext values are propagated correctly
+	Expect(deployment.Spec.Template.Spec.SecurityContext.RunAsNonRoot).To(Equal(util.BoolPointer(false)))
+	Expect(container.SecurityContext.Privileged).To(Equal(util.BoolPointer(true)))
 }
