@@ -226,7 +226,8 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	for _, broker := range r.KafkaCluster.Spec.Brokers {
+	reorderedBrokers := r.reorderBrokers(log, r.KafkaCluster.Spec.Brokers)
+	for _, broker := range reorderedBrokers {
 		brokerConfig, err := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
 		if err != nil {
 			return errors.WrapIf(err, "failed to reconcile resource")
@@ -881,4 +882,35 @@ func getServiceFromExternalListener(client client.Client, cluster *v1beta1.Kafka
 		return nil, errors.WrapIfWithDetails(err, "could not get LoadBalancer service", "serviceName", iControllerServiceName)
 	}
 	return foundLBService, nil
+}
+
+func (r *Reconciler) reorderBrokers(log logr.Logger, brokers []v1beta1.Broker) []v1beta1.Broker {
+	kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
+	if err != nil {
+		log.Info("could not create Kafka client, thus could not determine controller")
+		return brokers
+	}
+	defer func() {
+		if err := kClient.Close(); err != nil {
+			log.Error(err, "could not close client")
+		}
+	}()
+
+	_, controllerID, err := kClient.DescribeCluster()
+	if err != nil {
+		log.Info("could not find controller broker")
+		return brokers
+	}
+
+	var controllerBroker v1beta1.Broker
+	reorderedBrokers := make([]v1beta1.Broker, 0, len(brokers))
+	for _, broker := range brokers {
+		if broker.Id == controllerID {
+			controllerBroker = broker
+		} else {
+			reorderedBrokers = append(reorderedBrokers, broker)
+		}
+	}
+	reorderedBrokers = append(reorderedBrokers, controllerBroker)
+	return reorderedBrokers
 }

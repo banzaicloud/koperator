@@ -44,7 +44,7 @@ type KafkaClient interface {
 	DeleteUserACLs(string) error
 
 	Brokers() map[int32]string
-	DescribeCluster() ([]*sarama.Broker, error)
+	DescribeCluster() ([]*sarama.Broker, int32, error)
 
 	OfflineReplicaCount() (int, error)
 	AllReplicaInSync() (bool, error)
@@ -92,7 +92,7 @@ func (k *kafkaClient) Open() error {
 		return err
 	}
 
-	if k.brokers, err = k.DescribeCluster(); err != nil {
+	if k.brokers, _, err = k.DescribeCluster(); err != nil {
 		k.admin.Close()
 		err = errorfactory.New(errorfactory.BrokersNotReady{}, err, "could not describe kafka cluster")
 		return err
@@ -144,8 +144,8 @@ func (k *kafkaClient) GetBroker(id int32) (broker *sarama.Broker) {
 	return
 }
 
-func (k *kafkaClient) DescribeCluster() (brokers []*sarama.Broker, err error) {
-	brokers, _, err = k.admin.DescribeCluster()
+func (k *kafkaClient) DescribeCluster() (brokers []*sarama.Broker, controllerID int32, err error) {
+	brokers, controllerID, err = k.admin.DescribeCluster()
 	return
 }
 
