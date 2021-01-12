@@ -851,7 +851,11 @@ func (r *Reconciler) createExternalListenerStatuses() (map[string]v1beta1.Listen
 				if brokerHost == "" {
 					brokerHost = bConfig.NodePortExternalIP[eListener.Name]
 				} else {
-					brokerHost = fmt.Sprintf("%s-%d-%s.%s%s", r.KafkaCluster.Name, broker.Id, eListener.Name, r.KafkaCluster.Namespace, brokerHost)
+					hostnamePrefix := bConfig.HostnamePrefix
+					if hostnamePrefix == "" {
+						hostnamePrefix = fmt.Sprintf("%s-%d-%s.%s", r.KafkaCluster.Name, broker.Id, eListener.Name, r.KafkaCluster.Namespace)
+					}
+					brokerHost = fmt.Sprintf("%s%s", hostnamePrefix, brokerHost)
 				}
 			}
 

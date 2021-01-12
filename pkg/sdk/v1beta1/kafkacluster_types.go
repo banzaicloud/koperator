@@ -140,6 +140,9 @@ type BrokerConfig struct {
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// SecurityContext allows to set security context for the kafka container
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+	// Hostname prefix it is used together with HostnameOverride to advertise a specific format for the broker address.
+	// The default hostname prefix format is <kafka-cluster-name>-<broker-id>-<listener-name>.<namespace>
+	HostnamePrefix string `json:"hostnamePrefix,omitempty"`
 }
 
 type NetworkConfig struct {
@@ -335,7 +338,8 @@ type ExternalListenerConfig struct {
 	// Kafka broker external listener instead of the public IP of the provisioned LoadBalancer service (e.g. can be used to
 	// advertise the listener using a URL recorded in DNS instead of public IP).
 	// In case of external listeners using NodePort access method the broker instead of node public IP (see "brokerConfig.nodePortExternalIP")
-	// is advertised on the address having the following format: <kafka-cluster-name>-<broker-id>.<namespace><value-specified-in-hostnameOverride-field>
+	// is advertised on the address having the following format: <value-specified-in-hostnamePrefix-field><value-specified-in-hostnameOverride-field>
+	// If hostnamePrefix is missing (or empty) the advertised address will have the following format: <kafka-cluster-name>-<broker-id>-<listener-name>.<namespace><value-specified-in-hostnameOverride-field>
 	HostnameOverride   string            `json:"hostnameOverride,omitempty"`
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
 	// +kubebuilder:validation:Enum=LoadBalancer;NodePort
