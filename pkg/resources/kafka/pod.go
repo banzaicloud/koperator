@@ -141,7 +141,7 @@ rm /var/run/wait/do-not-exit-yet`}
 			Containers: []corev1.Container{
 				{
 					Name:  "kafka",
-					Image: util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.ClusterImage),
+					Image: util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.GetClusterImage()),
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.Handler{
 							Exec: &corev1.ExecAction{
