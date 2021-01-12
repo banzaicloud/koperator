@@ -5683,9 +5683,6 @@ spec:
                   type: string
                 pathToJar:
                   type: string
-              required:
-              - jmxImage
-              - pathToJar
               type: object
             oneBrokerPerNode:
               description: If true OneBrokerPerNode ensures that each kafka broker

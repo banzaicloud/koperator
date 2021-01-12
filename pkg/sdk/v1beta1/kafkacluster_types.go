@@ -234,8 +234,8 @@ func (iIConfig *IstioIngressConfig) GetVirtualServiceAnnotations() map[string]st
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
 type MonitoringConfig struct {
-	JmxImage               string `json:"jmxImage"`
-	PathToJar              string `json:"pathToJar"`
+	JmxImage               string `json:"jmxImage,omitempty"`
+	PathToJar              string `json:"pathToJar,omitempty"`
 	KafkaJMXExporterConfig string `json:"kafkaJMXExporterConfig,omitempty"`
 	CCJMXExporterConfig    string `json:"cCJMXExporterConfig,omitempty"`
 }
