@@ -477,6 +477,14 @@ func (kSpec *KafkaClusterSpec) GetZkPath() string {
 	}
 }
 
+// GetClusterImage returns the default container image for Kafka Cluster
+func (kSpec *KafkaClusterSpec) GetClusterImage() string {
+	if kSpec.ClusterImage != "" {
+		return kSpec.ClusterImage
+	}
+	return "ghcr.io/banzaicloud/kafka:2.13-2.6.0-bzc.1"
+}
+
 func (cTaskSpec *CruiseControlTaskSpec) GetDurationMinutes() float64 {
 	if cTaskSpec.RetryDurationMinutes == 0 {
 		return 5
