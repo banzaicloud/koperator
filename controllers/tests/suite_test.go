@@ -40,7 +40,7 @@ import (
 
 	ginkoconfig "github.com/onsi/ginkgo/config"
 
-	v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -114,7 +114,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	Expect(k8sscheme.AddToScheme(scheme)).To(Succeed())
 	Expect(apiextensionsv1beta1.AddToScheme(scheme)).To(Succeed())
-	Expect(v1beta1.AddToScheme(scheme)).To(Succeed())
+	Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
 	Expect(cmv1alpha2.AddToScheme(scheme)).To(Succeed())
 	Expect(cmv1alpha3.AddToScheme(scheme)).To(Succeed())
 	Expect(banzaicloudv1alpha1.AddToScheme(scheme)).To(Succeed())
