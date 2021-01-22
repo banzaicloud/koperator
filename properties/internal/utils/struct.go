@@ -17,22 +17,45 @@ package utils
 import (
 	"strings"
 
-	"github.com/pkg/errors"
+	"emperror.dev/errors"
 )
 
 const (
-	StructTagDelimiter = ","
-	StructTagSeparator = "="
+	// Delimiter used to separate items in struct tags.
+	structTagDelimiter = ","
+	// Separator used for defining key/value flags in struct tags.
+	structTagSeparator = "="
 )
 
+// StructTag stores information about the struct tags which includes the name of the Key and optional flags like
+// `omitempty` and `default`.
+//
+// The following string can be parsed as StructTag:
+//  s := "properties:test_key,omitempty,default=test_key_default_value"
+//  st, err := ParseStructTag(s)
+// And information can be accessed:
+//  st.Key       // returns "test_key"
+//  st.OmitEmpty // return true
+//  st.Default   // returns "test_key_default_value"
 type StructTag struct {
-	// Key name
+	// Key name which is the first item of a struct tag
 	Key string
 	// Flags
 	OmitEmpty bool
 	Default   string
 }
 
+// Skip method returns true if the Key field of the StructTag is either an empty string or `-` meaning
+// that the struct field should not be considered during marshal/unmarshal.
+//
+// Calling Skip method for st1 or st2 StructTag object will result false:
+//  s1 := "properties:,omitempty,default=test_key_default_value"
+//  st1, err := ParseStructTag(s1)
+//  st1.Skip()
+// Or
+//  s2 := "properties:-,omitempty,default=test_key_default_value"
+//  st2, err := ParseStructTag(s2)
+//  st2.Skip()
 func (t StructTag) Skip() bool {
 	if t.Key == "" || t.Key == "-" {
 		return true
@@ -40,26 +63,30 @@ func (t StructTag) Skip() bool {
 	return false
 }
 
-type StructTagFlag struct {
+// structTagFlag holds information about flags defined for a struct tag in a Key/Value format.
+type structTagFlag struct {
 	Key   string
 	Value string
 }
 
-func (f StructTagFlag) IsValid() bool {
+// IsValid considers a f StructTagFlag valid if Key field is a non-empty string.
+func (f structTagFlag) IsValid() bool {
 	if f.Key != "" {
 		return true
 	}
 	return false
 }
 
-func parseStructTagFlag(s string) (*StructTagFlag, error) {
+// parseStructTagFlag returns a pointer to a StructTagFlag object holding the information resulted from parsing the
+// s string as a struct tag flag.
+func parseStructTagFlag(s string) (*structTagFlag, error) {
 	if s == "" {
-		return nil, errors.Errorf("struct tag flag must not be empty string")
+		return nil, errors.New("struct tag flag must not be empty string")
 	}
 	// Create empty flag
-	flag := StructTagFlag{}
+	flag := structTagFlag{}
 	// Split s by separator to the key and the value of the struct tag flag
-	f := strings.SplitN(s, StructTagSeparator, 2)
+	f := strings.SplitN(s, structTagSeparator, 2)
 	// Set key as it must be always present at this point
 	flag.Key = f[0]
 	// There are flags with values like the "default" flag in the following example:
@@ -70,16 +97,17 @@ func parseStructTagFlag(s string) (*StructTagFlag, error) {
 	return &flag, nil
 }
 
-// ParseStructTag returns a map of struct tags by parsing s.
+// ParseStructTag returns a pointer to a StructTag object holding the information resulted from parsing the
+// s string as a struct tag.
 func ParseStructTag(s string) (*StructTag, error) {
 	// Empty struct tag string is treated as an error
 	if s == "" {
-		return nil, errors.Errorf("struct tag must not be empty string")
+		return nil, errors.New("struct tag must not be empty string")
 	}
 	// Create empty struct tag
 	st := &StructTag{}
 	// Split struct tag by delimiter character
-	items := strings.Split(s, StructTagDelimiter)
+	items := strings.Split(s, structTagDelimiter)
 	st.Key = items[0]
 	// Parse flags if they are present in the struct tag
 	if len(items) > 1 {
@@ -97,7 +125,7 @@ func ParseStructTag(s string) (*StructTag, error) {
 			case "default":
 				st.Default = flag.Value
 			default:
-				return nil, errors.Errorf("struct tag flag `%v` is not supported", f)
+				return nil, errors.NewWithDetails("struct tag flag is not supported", "flag", f)
 			}
 		}
 	}

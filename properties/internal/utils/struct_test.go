@@ -60,7 +60,7 @@ func TestStructTag(t *testing.T) {
 
 func TestStructTagFlag(t *testing.T) {
 	t.Run("IsValid with empty key", func(t *testing.T) {
-		stf := &StructTagFlag{
+		stf := &structTagFlag{
 			Key:   "",
 			Value: "",
 		}
@@ -71,8 +71,8 @@ func TestStructTagFlag(t *testing.T) {
 	})
 
 	t.Run("IsValid with non-empty key", func(t *testing.T) {
-		stf := &StructTagFlag{
-			Key: "ompitempty",
+		stf := &structTagFlag{
+			Key: "omitempty",
 		}
 
 		if !stf.IsValid() {
@@ -89,7 +89,7 @@ func TestParseStructTagFlag(t *testing.T) {
 	})
 
 	t.Run("Bool flag", func(t *testing.T) {
-		expected := &StructTagFlag{
+		expected := &structTagFlag{
 			Key: "omitempty",
 		}
 		stf, err := parseStructTagFlag("omitempty")
@@ -104,7 +104,7 @@ func TestParseStructTagFlag(t *testing.T) {
 	})
 
 	t.Run("Key/value flag", func(t *testing.T) {
-		expected := &StructTagFlag{
+		expected := &structTagFlag{
 			Key:   "default",
 			Value: "default value",
 		}
