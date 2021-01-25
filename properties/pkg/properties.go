@@ -155,6 +155,10 @@ func (p *Properties) Delete(key string) {
 
 // Merge two Properties objects.
 func (p *Properties) Merge(m *Properties) {
+	// Check it t is a nil-pointer and if so just return
+	if m == nil {
+		return
+	}
 	// Acquire read lock for m before iterating over m
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
@@ -173,6 +177,10 @@ func (p *Properties) Merge(m *Properties) {
 // set of Property objects.
 // The order of the keys is not taken into consideration.
 func (p *Properties) Equal(t *Properties) bool {
+	// Check it t is a nil-pointer and if so then return false
+	if t == nil {
+		return false
+	}
 	// Acquire read lock for t before iterating over t
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
