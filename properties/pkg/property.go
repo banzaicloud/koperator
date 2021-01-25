@@ -27,7 +27,8 @@ const (
 	ListSeparator = ","
 )
 
-type PropertyType uint
+// Supported types for Property
+type PropertyType uint8
 
 const (
 	Int PropertyType = iota
@@ -64,6 +65,8 @@ func (p *Property) Comment() string {
 	return p.comment
 }
 
+// Equal checks if the key and value fields for p and t Property objects are the same/equal.
+// It does not take the comment field into the consideration.
 func (p *Property) Equal(t Property) bool {
 	if p.key != t.key || p.value != t.value {
 		return false
@@ -96,6 +99,7 @@ func (p Property) List() ([]string, error) {
 	return strings.Split(p.value, ListSeparator), nil
 }
 
+// GetByType returns the value of p Property in the requested PropertyType type.
 func (p Property) GetByType(t PropertyType) (interface{}, error) {
 	switch t {
 	case Int:
