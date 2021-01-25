@@ -62,6 +62,11 @@ type Properties struct {
 
 // Get a Property using by its name.
 func (p *Properties) Get(key string) (Property, bool) {
+	// Acquire read lock
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	// Get property if exists
 	propByKey, found := p.properties[key]
 	if !found {
 		return Property{}, false
@@ -103,22 +108,25 @@ func (p *Properties) Keys() []string {
 
 // Get number of items in Properties
 func (p *Properties) Len() int {
+	// Acquire read lock
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 	return len(p.keys)
 }
 
 // Add a new Property to Properties with the given name and value.
 func (p *Properties) Set(key string, value interface{}, comment string) error {
-	//prop := Property{
-	//	key:     key,
-	//	value:   fmt.Sprintf("%v", value),
-	//	comment: comment,
-	//}
 	prop := Property{}
 	err := prop.set(key, value, comment)
 	if err != nil {
 		return err
 	}
-	p.Put(prop)
+
+	// Acquire RW lock before updating internal state
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	p.put(prop)
 	return nil
 }
 
@@ -128,6 +136,10 @@ func (p *Properties) Put(property Property) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
+	p.put(property)
+}
+
+func (p *Properties) put(property Property) {
 	if _, found := p.properties[property.key]; !found {
 		p.keys[property.key] = keyIndex{key: property.key, index: p.nextKeyIndex}
 		p.nextKeyIndex++
@@ -154,9 +166,13 @@ func (p *Properties) Merge(m *Properties) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
+	// Acquire RW lock before updating internal state
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	// Merge m to p
 	for _, prop := range m.properties {
-		p.Put(prop)
+		p.put(prop)
 	}
 }
 
@@ -168,8 +184,12 @@ func (p *Properties) Equal(t *Properties) bool {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
+	// Acquire read lock for t before iterating over t
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
 	// Two Properties object cannot be equal if their length is not equal.
-	if p.Len() != t.Len() {
+	if len(p.keys) != len(t.keys) {
 		return false
 	}
 
@@ -199,6 +219,10 @@ func (p *Properties) Equal(t *Properties) bool {
 func (p *Properties) String() string {
 	var props strings.Builder
 
+	// Acquire read lock for t before iterating over t
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
 	for _, key := range p.Keys() {
 		if prop, found := p.Get(key); found {
 			props.WriteString(fmt.Sprintf("%s\n", prop))
@@ -209,6 +233,10 @@ func (p *Properties) String() string {
 
 // Provides a custom JSON Marshal interface
 func (p *Properties) MarshalJSON() ([]byte, error) {
+	// Acquire read lock for t before iterating over t
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
 	props := make(map[string]string)
 
 	for key, prop := range p.properties {
