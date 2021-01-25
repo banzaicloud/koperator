@@ -150,7 +150,7 @@ func (p *Properties) Delete(key string) {
 
 // Merge two Properties objects.
 func (p *Properties) Merge(m *Properties) {
-	//// Acquire read lock for m before iterating over m
+	// Acquire read lock for m before iterating over m
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 

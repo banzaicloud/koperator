@@ -19,6 +19,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"emperror.dev/errors"
 )
 
 const (
@@ -107,7 +109,7 @@ func (p Property) GetByType(t PropertyType) (interface{}, error) {
 	case List:
 		return p.List()
 	default:
-		return nil, fmt.Errorf("unsupported type: %v", t)
+		return nil, errors.NewWithDetails("properties: unsupported type", "type", t)
 	}
 }
 
@@ -118,7 +120,7 @@ func (p *Property) set(k string, v interface{}, c string) error {
 	vValue := reflect.ValueOf(v)
 
 	if !vValue.IsValid() {
-		return &InvalidPropertyError{property: k}
+		return errors.NewWithDetails("properties: invalid property", "property", k)
 	}
 
 	switch vValue.Kind() {
@@ -131,21 +133,22 @@ func (p *Property) set(k string, v interface{}, c string) error {
 	case reflect.Bool:
 		p.value = fmt.Sprintf("%v", v)
 	case reflect.Slice:
+		sliceKind := vValue.Type().Elem().Kind()
 
-		switch vValue.Type().Elem().Kind() {
+		switch sliceKind {
 		case reflect.String:
 			slice, ok := vValue.Interface().([]string)
 			if !ok {
-				return fmt.Errorf("unsupported type for property: %v\n", k)
+				return errors.NewWithDetails("properties: cannot load property into string slice", "property", k)
 			}
 			p.value = strings.Join(slice, ListSeparator)
 
 		default:
-			return fmt.Errorf("unsupported type for property: %v\n", k)
+			return errors.NewWithDetails("properties: unsupported slice type", "property", k, "type", sliceKind)
 		}
 
 	default:
-		return fmt.Errorf("unsupported type for property: %v\n", k)
+		return errors.NewWithDetails("properties: unsupported type", "property", k)
 	}
 
 	return nil
@@ -155,10 +158,10 @@ func (p *Property) set(k string, v interface{}, c string) error {
 func getPropertyFromString(prop string, comment string) (Property, error) {
 	// Get the index of the separator.
 	_, idx, err := GetSeparator(prop)
-	// Return a InvalidPropertyError if getting the separator resulted an error
+	// Return error if getting the separator resulted an error
 	// or the index of the separator is 0 which means that the property is invalid.
 	if err != nil || idx == 0 {
-		return Property{}, &InvalidPropertyError{property: prop}
+		return Property{}, errors.NewWithDetails("properties: invalid property", "property", prop)
 	}
 	// Parse the property name using the separator and remove the escaping of separator characters
 	// as we already know where the key part ends and the value part starts.
@@ -167,12 +170,4 @@ func getPropertyFromString(prop string, comment string) (Property, error) {
 	value := strings.TrimSpace(prop[idx+1:])
 
 	return Property{key: key, value: value, comment: comment}, nil
-}
-
-type InvalidPropertyError struct {
-	property string
-}
-
-func (e *InvalidPropertyError) Error() string {
-	return fmt.Sprintf("invalid property: %s", e.property)
 }

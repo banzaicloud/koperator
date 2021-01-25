@@ -15,8 +15,6 @@
 package properties
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
 	"testing"
 )
@@ -85,39 +83,20 @@ func TestGetSeparator(t *testing.T) {
 
 	t.Run("No separator", func(t *testing.T) {
 		prop := "test.key,test.value"
-		var expectedErr *NoSeparatorFoundError
 
 		_, _, err := GetSeparator(prop)
 
 		if err == nil {
-			t.Errorf("Finding separator in invalid Property string should trigger NoSeparatorFoundError, but it did not.")
-		}
-
-		if !errors.As(err, &expectedErr) {
-			t.Errorf("Triggered error type is expected to be NoSeparatorFoundError.")
-		}
-
-		if err.Error() != fmt.Sprintf("no separator detected for property: %s", prop) {
-			t.Errorf("Malformed error message.")
+			t.Errorf("Finding separator in invalid Property string should trigger an error!")
 		}
 	})
 
 	t.Run("No string", func(t *testing.T) {
 		prop := ""
-		var expectedErr *NoSeparatorFoundError
-
 		_, _, err := GetSeparator(prop)
 
 		if err == nil {
-			t.Errorf("Finding separator in invalid Property string should trigger NoSeparatorFoundError, but it did not.")
-		}
-
-		if !errors.As(err, &expectedErr) {
-			t.Errorf("Triggered error type is expected to be NoSeparatorFoundError.")
-		}
-
-		if err.Error() != fmt.Sprintf("no separator detected for property: %s", prop) {
-			t.Errorf("Malformed error message.")
+			t.Errorf("Finding separator in invalid Property string should trigger an error!")
 		}
 	})
 }

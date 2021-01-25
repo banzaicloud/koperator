@@ -15,9 +15,9 @@
 package properties
 
 import (
-	"fmt"
 	"reflect"
 
+	"emperror.dev/errors"
 	"github.com/banzaicloud/kafka-operator/properties/internal/utils"
 )
 
@@ -28,7 +28,7 @@ type Marshaler interface {
 }
 
 // Marshal returns Properties.
-// If v is nil or not a pointer the Marshal returns an InvalidMarshalError.
+// If v is nil or not a pointer the Marshal returns an error.
 //
 // If v implements the Marshaler interface, Marshal calls the MarshalProperties method.
 func Marshal(v interface{}) (*Properties, error) {
@@ -36,14 +36,14 @@ func Marshal(v interface{}) (*Properties, error) {
 	vValue := reflect.ValueOf(v)
 
 	if !vValue.IsValid() {
-		return nil, &InvalidMarshalError{}
+		return nil, errors.New("properties: cannot marshal (nil)")
 	}
 
 	var vType reflect.Type
 
 	if vValue.Kind() == reflect.Ptr {
 		if vValue.IsNil() {
-			return nil, &InvalidMarshalError{vValue.Type()}
+			return nil, errors.New("properties: cannot marshal nil-pointer object")
 		}
 		vType = vValue.Elem().Type()
 	} else {
@@ -64,7 +64,7 @@ func marshal(v interface{}) (*Properties, error) {
 
 	// The v interface is expected to be a pointer to a struct.
 	if vValue.IsValid() && vType.Kind() != reflect.Struct {
-		return nil, &InvalidMarshalError{vType}
+		return nil, errors.New("properties: cannot marshal non-struct object")
 	}
 
 	properties := NewProperties()
@@ -82,7 +82,7 @@ func marshal(v interface{}) (*Properties, error) {
 		// Parse struct tag and move on to the next field if the tag name is empty.
 		st, err := utils.ParseStructTag(tag)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithDetails(err, "struct-tag", tag)
 		}
 		if st.Key == "" || st.Skip() {
 			continue
@@ -98,35 +98,8 @@ func marshal(v interface{}) (*Properties, error) {
 		}
 		err = properties.Set(st.Key, vFieldValue.Interface(), "")
 		if err != nil {
-			return nil, err
+			return nil, errors.WithDetails(err, "key", st.Key, "value", vFieldValue.Interface())
 		}
 	}
 	return properties, nil
-}
-
-type InvalidMarshalError struct {
-	Type reflect.Type
-}
-
-func (e InvalidMarshalError) Error() string {
-	if e.Type == nil {
-		return "properties: cannot marshal (nil)"
-	}
-
-	return fmt.Sprintf("properties: cannot marshal (%s)", e.Type)
-}
-
-// An MarshalFieldTypeError describes an exported StructField and its Type
-// which value triggered an error due to its unsupported type.
-type MarshalFieldTypeError struct {
-	Field    reflect.StructField
-	Type     reflect.Type
-	ElemType reflect.Type
-}
-
-func (e MarshalFieldTypeError) Error() string {
-	if e.Type.Kind() == reflect.Slice && e.ElemType != nil {
-		return fmt.Sprintf("properties: cannot marshal %q field with type []%s", e.Field.Name, e.ElemType)
-	}
-	return fmt.Sprintf("properties: cannot marshal %q field with type %q", e.Field.Name, e.Type)
 }

@@ -56,29 +56,24 @@ func (s TestMarshalerStruct) MarshalProperties() (*Properties, error) {
 
 func TestMarshal(t *testing.T) {
 	t.Run("Nil value", func(t *testing.T) {
-		var expectedErr InvalidMarshalError
-
-		if _, err := Marshal(nil); err == expectedErr {
-			t.Errorf("Marshal should return with error!\n %v", err)
+		if _, err := Marshal(nil); err == nil {
+			t.Error("Marshal should return with error!")
 		}
 	})
 
 	t.Run("Nil-pointer", func(t *testing.T) {
 		var s *TestStruct = nil
-		var expectedErr InvalidMarshalError
 
-		if _, err := Marshal(s); err == expectedErr {
-			t.Errorf("Marshal should return with error!\n %v", err)
+		if _, err := Marshal(s); err == nil {
+			t.Error("Marshal should return with error!")
 		}
 	})
 
 	t.Run("Non-struct value", func(t *testing.T) {
-		var expectedErr InvalidMarshalError
-
 		s := []string{"item1", "item2"}
 
-		if _, err := Marshal(s); err == expectedErr {
-			t.Errorf("Marshal should return with error!\n %v", err)
+		if _, err := Marshal(s); err == nil {
+			t.Error("Marshal should return with error!")
 		}
 	})
 
@@ -140,7 +135,7 @@ func TestMarshal(t *testing.T) {
 		p, err := Marshal(s)
 
 		if err != nil {
-			t.Errorf("Marshal should not return error!")
+			t.Errorf("Marshal should not return error!\n %v", err)
 		}
 
 		expected := NewProperties()
@@ -157,15 +152,13 @@ func TestMarshal(t *testing.T) {
 	})
 
 	t.Run("Struct with invalid list field", func(t *testing.T) {
-		var expectedErr *MarshalFieldTypeError
-
 		s := TestStructWithInvalidListField{
 			StringField:      "property string",
 			InvalidListField: []int{1, 2, 3},
 		}
 
-		if _, err := Marshal(s); err == expectedErr {
-			t.Errorf("Marshal should not return error!")
+		if _, err := Marshal(s); err == nil {
+			t.Error("Marshal should return with error!")
 		}
 	})
 
@@ -180,7 +173,7 @@ func TestMarshal(t *testing.T) {
 		p, err := Marshal(s)
 
 		if err != nil {
-			t.Errorf("Marshal should not return error!")
+			t.Error("Marshal should return with error!")
 		}
 
 		expected := NewProperties()

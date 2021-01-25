@@ -15,9 +15,9 @@
 package properties
 
 import (
-	"fmt"
 	"reflect"
 
+	"emperror.dev/errors"
 	"github.com/banzaicloud/kafka-operator/properties/internal/utils"
 )
 
@@ -28,7 +28,7 @@ type Unmarshaler interface {
 }
 
 // Unmarshal updates the values of object pointed by v using the data read from p Properties.
-// If v is nil or not a pointer the Unmarshal returns an InvalidUnmarshalError.
+// If v is nil or not a pointer the Unmarshal returns an error.
 //
 // If v implements the Unmarshaler interface, Unmarshal calls the UnmarshalProperties method.
 func Unmarshal(p *Properties, v interface{}) error {
@@ -36,14 +36,14 @@ func Unmarshal(p *Properties, v interface{}) error {
 	vValue := reflect.ValueOf(v)
 
 	if !vValue.IsValid() {
-		return &InvalidUnmarshalError{}
+		return errors.New("properties: cannot unmarshal (nil)")
 	}
 
 	var vType reflect.Type
 
 	if vValue.Kind() == reflect.Ptr {
 		if vValue.IsNil() {
-			return &InvalidUnmarshalError{vValue.Type()}
+			return errors.New("properties: cannot unmarshal (nil-pointer)")
 		}
 		vType = vValue.Elem().Type()
 	} else {
@@ -67,15 +67,17 @@ func unmarshal(p *Properties, v interface{}) error {
 	vValue = reflect.ValueOf(v)
 
 	// The goal is to perform in-place update therefore v interface needs to be a non-nil pointer.
-	if vValue.Kind() != reflect.Ptr || vValue.IsNil() {
-		return &InvalidUnmarshalError{vValue.Type()}
+	if vValue.Kind() != reflect.Ptr {
+		return errors.New("properties: cannot unmarshal into non-pointer object")
+	} else if vValue.IsNil() {
+		return errors.New("properties: cannot unmarshal into nil-pointer object")
 	}
 
 	vType = vValue.Elem().Type()
 
 	// The v interface is expected to be a pointer to a struct.
 	if vType.Kind() != reflect.Struct {
-		return &InvalidUnmarshalError{vType}
+		return errors.New("properties: cannot unmarshal into non-struct object")
 	}
 
 	// Iterate over the fields of the struct and set its values from p Properties
@@ -108,14 +110,14 @@ func unmarshal(p *Properties, v interface{}) error {
 		// it's value if it is present in p Properties.
 		vFieldValue := vValue.Elem().Field(i)
 		if !vFieldValue.CanSet() {
-			return &UnmarshalImmutableFieldError{vTypeField}
+			return errors.NewWithDetails("properties: cannot unmarshal immutable field", "field", vTypeField.Name)
 		}
 
 		// Match type of field with the type of property Property from p Properties
 		var propType PropertyType
 		switch vFieldValue.Kind() {
 		default:
-			return &UnmarshalFieldTypeError{vTypeField, vFieldValue.Type(), nil}
+			return errors.NewWithDetails("properties: cannot unmarshal field with unsupported type", "field", vTypeField.Name, "type", vFieldValue.Type().Name())
 		case reflect.String:
 			propType = String
 		case reflect.Int64:
@@ -128,7 +130,7 @@ func unmarshal(p *Properties, v interface{}) error {
 			vFieldValueElemKind := vFieldValue.Type().Elem().Kind()
 			// Only []string is supported.
 			if vFieldValueElemKind != reflect.String {
-				return &UnmarshalFieldTypeError{vTypeField, vFieldValue.Type(), vFieldValue.Type().Elem()}
+				return errors.NewWithDetails("properties: cannot unmarshal field unsupported slice type", "field", vTypeField.Name, "type", vFieldValue.Type().Elem().Name())
 			}
 			propType = List
 		}
@@ -146,47 +148,4 @@ func unmarshal(p *Properties, v interface{}) error {
 		vFieldValue.Set(newValue)
 	}
 	return nil
-}
-
-// An InvalidUnmarshalError describes an invalid v argument passed to Unmarshal.
-// The v argument to Unmarshal must be a non-nil pointer which points to a struct.
-type InvalidUnmarshalError struct {
-	Type reflect.Type
-}
-
-func (e InvalidUnmarshalError) Error() string {
-	if e.Type == nil {
-		return "properties: cannot unmarshal (nil)"
-	}
-
-	if e.Type.Kind() != reflect.Ptr {
-		return fmt.Sprintf("properties: cannot unmarshal (non-pointer %s)", e.Type)
-	}
-
-	return fmt.Sprintf("properties: cannot unmarshal (%s)", e.Type)
-}
-
-// An UnmarshalFieldTypeError describes an exported StructField and its Type
-// which value triggered an error due to its unsupported type.
-type UnmarshalFieldTypeError struct {
-	Field    reflect.StructField
-	Type     reflect.Type
-	ElemType reflect.Type
-}
-
-func (e UnmarshalFieldTypeError) Error() string {
-	if e.Type.Kind() == reflect.Slice && e.ElemType != nil {
-		return fmt.Sprintf("properties: cannot unmarshal %q field with type []%s", e.Field.Name, e.ElemType)
-	}
-	return fmt.Sprintf("properties: cannot unmarshal %q field with type %q", e.Field.Name, e.Type)
-}
-
-// An UnmarshalImmutableFieldError describes an exported StructField
-// which value cannot be updated as it is immutable.
-type UnmarshalImmutableFieldError struct {
-	Field reflect.StructField
-}
-
-func (e UnmarshalImmutableFieldError) Error() string {
-	return fmt.Sprintf("properties: cannot unmarshal immutable field (%s)", e.Field.Name)
 }

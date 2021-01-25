@@ -16,15 +16,16 @@ package properties
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"log"
 	"os"
 	"strings"
+
+	"emperror.dev/errors"
 )
 
 const (
-	// String containing delimiter characters valid in Java core
+	// String containing delimiter characters valid in Java properties
 	Separators = "=: "
 	// Character used for escaping separators
 	EscapeChar = '\\'
@@ -131,7 +132,7 @@ func EscapeSeparators(s string) string {
 }
 
 // GetSeparator return the separator character and its index if it is fond in the given string.
-// Otherwise a NoSeparatorDetectedError is returned.
+// Otherwise an error is returned.
 func GetSeparator(s string) (string, int, error) {
 	// Index of the detected separator.
 	var sepIdx int
@@ -143,7 +144,7 @@ func GetSeparator(s string) (string, int, error) {
 
 	// Return immediately if s string is empty
 	if length == 0 {
-		return sep, sepIdx, &NoSeparatorFoundError{s}
+		return sep, sepIdx, errors.New("properties: no separator found in empty string")
 	}
 
 	// Convert s string to slice of rune
@@ -178,7 +179,7 @@ func GetSeparator(s string) (string, int, error) {
 
 	// Return with error if no separator is found.
 	if sep == "" && sepIdx == 0 {
-		return sep, sepIdx, &NoSeparatorFoundError{s}
+		return sep, sepIdx, errors.NewWithDetails("properties: no separator found in empty string", "property", s)
 	}
 
 	return sep, sepIdx, nil
@@ -193,7 +194,7 @@ func (l *Loader) Load(r io.Reader) (*Properties, error) {
 	l.load(r)
 
 	if len(l.lines) == 0 {
-		return &Properties{}, fmt.Errorf("no data was loaded")
+		return nil, errors.New("properties: no data was loaded")
 	}
 
 	return l.parse()
@@ -273,7 +274,7 @@ func NewFromString(s string) (*Properties, error) {
 func NewFromFile(path string) (*Properties, error) {
 	file, err := os.OpenFile(path, os.O_RDONLY, os.ModePerm)
 	if err != nil {
-		return &Properties{}, fmt.Errorf("cannot open file at %v", path)
+		return nil, errors.NewWithDetails("properties: cannot open file", "file", path)
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
@@ -283,12 +284,4 @@ func NewFromFile(path string) (*Properties, error) {
 
 	l := NewLoader()
 	return l.Load(file)
-}
-
-type NoSeparatorFoundError struct {
-	Property string
-}
-
-func (e *NoSeparatorFoundError) Error() string {
-	return fmt.Sprintf("no separator detected for property: %s", e.Property)
 }

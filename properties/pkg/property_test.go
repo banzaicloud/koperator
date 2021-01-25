@@ -15,7 +15,6 @@
 package properties
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
@@ -353,20 +352,11 @@ func TestGetPropertyFromString(t *testing.T) {
 
 	t.Run("Parse invalid property string", func(t *testing.T) {
 		prop := "test.key.test.value"
-		var expectedErr *InvalidPropertyError
 
 		_, err := getPropertyFromString(prop, "")
 
 		if err == nil {
-			t.Errorf("Parsing invalid Property string should trigger an InvalidPropertyError, but it did not.")
-		}
-
-		if !errors.As(err, &expectedErr) {
-			t.Errorf("Triggered error type is expected to be InvalidPropertyError.")
-		}
-
-		if err.Error() != fmt.Sprintf("invalid property: %s", prop) {
-			t.Errorf("Malformed error message.")
+			t.Errorf("Parsing invalid Property string should trigger an error!")
 		}
 	})
 }
