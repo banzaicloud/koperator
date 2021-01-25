@@ -119,11 +119,7 @@ func (p *Properties) Set(key string, value interface{}, comment string) error {
 		return err
 	}
 
-	// Acquire RW lock before updating internal state
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-	p.put(prop)
+	p.Put(prop)
 	return nil
 }
 
@@ -181,7 +177,7 @@ func (p *Properties) Equal(t *Properties) bool {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
-	// Acquire read lock for t before iterating over t
+	// Acquire read lock for p before iterating over p
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
