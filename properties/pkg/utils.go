@@ -56,7 +56,7 @@ func UnEscapeSeparators(s string) string {
 	// Iterate over the original string to find separator characters
 	for idx, c := range orig {
 		// Set previous index by making sure that it's value is inbound
-		prevIdx := Max(idx - 1, 0)
+		prevIdx := Max(idx-1, 0)
 		// Iterate over the separator characters.
 		for _, sp := range sep {
 			// If there is a separator match and the previous is an escape character
@@ -101,7 +101,7 @@ func EscapeSeparators(s string) string {
 	// Iterate over the original string to find separator characters
 	for idx, c := range orig {
 		// Set previous index by making sure that it's value is inbound
-		prevIdx := Max(idx - 1, 0)
+		prevIdx := Max(idx-1, 0)
 		// Iterate over the separator characters
 		for _, sp := range sep {
 			// If there is a separator match and the previous is not an escape character
@@ -123,7 +123,7 @@ func EscapeSeparators(s string) string {
 	return string(newSlice)
 }
 
-// GetSeparator return the separator character and its index if it is fond in the given string.
+// GetSeparator return the separator character and its index if it is found in the given string.
 // Otherwise an error is returned.
 func GetSeparator(s string) (string, int, error) {
 	// Index of the detected separator.
@@ -147,8 +147,8 @@ func GetSeparator(s string) (string, int, error) {
 	// Iterate over the input string
 	for idx, c := range r {
 		// Avoid out of bound access
-		prevIdx := Max(idx - 1, 0)
-		// Iterate ofer the list of separators
+		prevIdx := Max(idx-1, 0)
+		// Iterate over the list of separators
 		for _, sp := range separators {
 			// If the current character is a separator and it is not escaped
 			// than separator is found.

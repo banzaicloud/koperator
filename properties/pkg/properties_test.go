@@ -36,7 +36,7 @@ func TestProperties_Get(t *testing.T) {
 	c := "this is a comment"
 
 	p := NewProperties()
-	p.put(Property{k,v,c})
+	p.put(Property{k, v, c})
 
 	t.Run("Get existing Property", func(t *testing.T) {
 		if _, found := p.Get(k); !found {

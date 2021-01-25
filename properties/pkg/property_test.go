@@ -112,7 +112,7 @@ func TestPropertyFloat(t *testing.T) {
 
 	invalidProp := Property{
 		key:   "test.key",
-		value: "not an float",
+		value: "not a float",
 	}
 
 	t.Run("Parsing valid value to float should succeed", func(t *testing.T) {
@@ -149,7 +149,7 @@ func TestPropertyBool(t *testing.T) {
 
 	invalidProp := Property{
 		key:   "test.key",
-		value: "not an boolean",
+		value: "not a boolean",
 	}
 
 	t.Run("Parsing valid value to boolean should succeed", func(t *testing.T) {
