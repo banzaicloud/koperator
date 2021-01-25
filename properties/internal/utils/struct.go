@@ -57,10 +57,7 @@ type StructTag struct {
 //  st2, err := ParseStructTag(s2)
 //  st2.Skip()
 func (t StructTag) Skip() bool {
-	if t.Key == "" || t.Key == "-" {
-		return true
-	}
-	return false
+	return t.Key == "" || t.Key == "-"
 }
 
 // structTagFlag holds information about flags defined for a struct tag in a Key/Value format.
@@ -71,10 +68,7 @@ type structTagFlag struct {
 
 // IsValid considers a f StructTagFlag valid if Key field is a non-empty string.
 func (f structTagFlag) IsValid() bool {
-	if f.Key != "" {
-		return true
-	}
-	return false
+	return f.Key != ""
 }
 
 // parseStructTagFlag returns a pointer to a StructTagFlag object holding the information resulted from parsing the
