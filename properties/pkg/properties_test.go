@@ -36,7 +36,7 @@ func TestProperties_Get(t *testing.T) {
 	c := "this is a comment"
 
 	p := NewProperties()
-	_ = p.Set(k, v, c)
+	p.put(Property{k,v,c})
 
 	t.Run("Get existing Property", func(t *testing.T) {
 		if _, found := p.Get(k); !found {
@@ -57,8 +57,8 @@ func TestProperties_Get(t *testing.T) {
 			comment: c,
 		}
 
-		if prop, _ := p.Get(k); !prop.Equal(expectedProp) {
-			t.Errorf("Mismatch between the returned and the expected Property")
+		if prop, found := p.Get(k); !found || !prop.Equal(expectedProp) {
+			t.Error("Mismatch between the returned and the expected Property")
 		}
 	})
 }
@@ -66,8 +66,8 @@ func TestProperties_Get(t *testing.T) {
 func TestProperties_Keys(t *testing.T) {
 
 	p := NewProperties()
-	_ = p.Set("test.key", "test.value", "this is a comment line")
-	_ = p.Set("test.key2", "test.value2", "this is a comment line")
+	p.put(Property{"test.key", "test.value", "this is a comment line"})
+	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
 
 	t.Run("Get list of keys in Properties", func(t *testing.T) {
 		expectedKeys := []string{
@@ -87,7 +87,7 @@ func TestProperties_Keys(t *testing.T) {
 			"test.key3",
 		}
 
-		_ = p.Set("test.key3", "test.value3", "")
+		p.put(Property{"test.key3", "test.value3", ""})
 
 		if keys := p.Keys(); !cmp.Equal(keys, expectedKeys) {
 			t.Errorf("Mismatch between return and expected list of keys. Expected: %q, got %q", expectedKeys, keys)
@@ -111,8 +111,6 @@ func TestProperties_Keys(t *testing.T) {
 func TestProperties_Set(t *testing.T) {
 
 	p := NewProperties()
-	_ = p.Set("test.key", "test.value", "this is a comment line")
-	_ = p.Set("test.key2", "test.value2", "this is a comment line")
 
 	t.Run("Add new Property with string value to Properties", func(t *testing.T) {
 		expectedProperty := Property{
@@ -121,11 +119,16 @@ func TestProperties_Set(t *testing.T) {
 			comment: "this is a comment line",
 		}
 
-		p.Put(expectedProperty)
+		err := p.Set(expectedProperty.key, expectedProperty.value, expectedProperty.comment)
+
+		if err != nil {
+			t.Error("Adding a new Property should not result an error.")
+		}
+
 		prop, found := p.Get(expectedProperty.key)
 
 		if !found {
-			t.Errorf("Newly added Property is not found.")
+			t.Error("Newly added Property is not found.")
 		}
 
 		if !prop.Equal(expectedProperty) {
@@ -139,7 +142,12 @@ func TestProperties_Set(t *testing.T) {
 			value: "100",
 		}
 
-		_ = p.Set(expectedProperty.key, 100, "")
+		err := p.Set(expectedProperty.key, 100, "")
+
+		if err != nil {
+			t.Error("Adding a new property should not result an error.")
+		}
+
 		prop, found := p.Get(expectedProperty.key)
 
 		if !found {
@@ -155,15 +163,14 @@ func TestProperties_Set(t *testing.T) {
 func TestProperties_Delete(t *testing.T) {
 
 	p := NewProperties()
-	_ = p.Set("test.key", "test.value", "this is a comment line")
-	_ = p.Set("test.key2", "test.value2", "this is a comment line")
+	p.put(Property{"test.key", "test.value", "this is a comment line"})
+	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
 
 	t.Run("Delete existing Property from Properties", func(t *testing.T) {
 
 		p.Delete("test.key2")
-		_, found := p.Get("test.key2")
 
-		if found {
+		if _, found := p.Get("test.key2"); found {
 			t.Errorf("Deleted Property should not be found.")
 		}
 	})
@@ -172,8 +179,8 @@ func TestProperties_Delete(t *testing.T) {
 func TestProperties_Len(t *testing.T) {
 
 	p := NewProperties()
-	_ = p.Set("test.key", "test.value", "this is a comment line")
-	_ = p.Set("test.key2", "test.value2", "this is a comment line")
+	p.put(Property{"test.key", "test.value", "this is a comment line"})
+	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
 
 	t.Run("Get number of Property in Properties", func(t *testing.T) {
 		expected := 2
@@ -187,12 +194,12 @@ func TestProperties_Len(t *testing.T) {
 func TestProperties_Merge(t *testing.T) {
 
 	p1 := NewProperties()
-	_ = p1.Set("test.key", "p1", "this is a comment line")
-	_ = p1.Set("test.key2", "p1", "this is a comment line")
+	p1.put(Property{"test.key", "p1", "this is a comment line"})
+	p1.put(Property{"test.key2", "p1", "this is a comment line"})
 
 	p2 := NewProperties()
-	_ = p2.Set("test.key2", "p2", "this is a comment line")
-	_ = p2.Set("test.key3", "p2", "this is a comment line")
+	p2.put(Property{"test.key2", "p2", "this is a comment line"})
+	p2.put(Property{"test.key3", "p2", "this is a comment line"})
 
 	t.Run("Merge two Properties", func(t *testing.T) {
 		expectedProperties := Properties{
@@ -228,9 +235,9 @@ func TestProperties_Merge(t *testing.T) {
 
 func TestProperties_Equal(t *testing.T) {
 	p := NewProperties()
-	_ = p.Set("test.key", "test.value", "this is a comment line")
-	_ = p.Set("test.key2", "test.value2", "this is a comment line")
-	_ = p.Set("test.key3", "test.value3", "this is a comment line")
+	p.put(Property{"test.key", "test.value", "this is a comment line"})
+	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
+	p.put(Property{"test.key3", "test.value3", "this is a comment line"})
 
 	t.Run("Malformed Properties", func(t *testing.T) {
 		expected := Properties{
@@ -346,9 +353,9 @@ func TestProperties_Equal(t *testing.T) {
 func TestProperties_String(t *testing.T) {
 
 	p := NewProperties()
-	_ = p.Set("test.key", "test.value", "this is a comment line")
-	_ = p.Set("test.key2", "test.value2", "this is a comment line")
-	_ = p.Set("test.key3", "test.value3", "this is a comment line")
+	p.put(Property{"test.key", "test.value", "this is a comment line"})
+	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
+	p.put(Property{"test.key3", "test.value3", "this is a comment line"})
 
 	t.Run("Convert to string", func(t *testing.T) {
 		expectedString := `test.key=test.value
@@ -365,9 +372,9 @@ test.key3=test.value3
 func TestProperties_MarshalJSON(t *testing.T) {
 
 	p := NewProperties()
-	_ = p.Set("test.key", "test.value", "this is a comment line")
-	_ = p.Set("test.key2", "test.value2", "this is a comment line")
-	_ = p.Set("test.key3", "test.value3", "this is a comment line")
+	p.put(Property{"test.key", "test.value", "this is a comment line"})
+	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
+	p.put(Property{"test.key3", "test.value3", "this is a comment line"})
 
 	t.Run("To JSON", func(t *testing.T) {
 		expectedString := `{"properties":{"test.key":"test.value","test.key2":"test.value2","test.key3":"test.value3"}}`
