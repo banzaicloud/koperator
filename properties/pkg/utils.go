@@ -52,15 +52,11 @@ func UnEscapeSeparators(s string) string {
 
 	// Index from where we need to copy the data to the new slice
 	startIdx := 0
-	// Track previous index
-	prevIdx := 0
 
 	// Iterate over the original string to find separator characters
 	for idx, c := range orig {
 		// Set previous index by making sure that it's value is inbound
-		if idx > 0 {
-			prevIdx = idx - 1
-		}
+		prevIdx := Max(idx - 1, 0)
 		// Iterate over the separator characters.
 		for _, sp := range sep {
 			// If there is a separator match and the previous is an escape character
@@ -101,15 +97,11 @@ func EscapeSeparators(s string) string {
 
 	// Index from where we need to copy the data to the new slice
 	startIdx := 0
-	// Track previous index
-	prevIdx := 0
 
 	// Iterate over the original string to find separator characters
 	for idx, c := range orig {
 		// Set previous index by making sure that it's value is inbound
-		if idx > 0 {
-			prevIdx = idx - 1
-		}
+		prevIdx := Max(idx - 1, 0)
 		// Iterate over the separator characters
 		for _, sp := range sep {
 			// If there is a separator match and the previous is not an escape character
@@ -152,15 +144,10 @@ func GetSeparator(s string) (string, int, error) {
 	// Convert Separators to slice of rune
 	separators := []rune(Separators)
 
-	// Track previous index
-	prevIdx := 0
-
 	// Iterate over the input string
 	for idx, c := range r {
 		// Avoid out of bound access
-		if idx > 0 {
-			prevIdx = idx - 1
-		}
+		prevIdx := Max(idx - 1, 0)
 		// Iterate ofer the list of separators
 		for _, sp := range separators {
 			// If the current character is a separator and it is not escaped
@@ -284,4 +271,12 @@ func NewFromFile(path string) (*Properties, error) {
 
 	l := NewLoader()
 	return l.Load(file)
+}
+
+// Max returns the larger of x or y.
+func Max(x, y int) int {
+	if x < y {
+		return y
+	}
+	return x
 }
