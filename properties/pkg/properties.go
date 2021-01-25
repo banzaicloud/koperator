@@ -81,13 +81,11 @@ func (p *Properties) Keys() []string {
 	defer p.mutex.RUnlock()
 
 	// Create an keyIndexList with the size of the keys map
-	keyIdxList := make(keyIndexList, len(p.keys))
+	keyIdxList := make(keyIndexList, 0, len(p.keys))
 
 	// Add keyIndex items from keys map to keyIndexList before sorting
-	idx := 0
 	for _, keyIdx := range p.keys {
-		keyIdxList[idx] = keyIdx
-		idx++
+		keyIdxList = append(keyIdxList, keyIdx)
 	}
 
 	// Sort keys in keyIndexList by their index
@@ -95,12 +93,11 @@ func (p *Properties) Keys() []string {
 
 	// Create a string slice with the size of the keys map
 	// holding the properties keys in order
-	keys := make([]string, len(p.keys))
+	keys := make([]string, 0, len(p.keys))
 
 	// Retrieve the keys from the sorted keyIndexList
-	l := len(keyIdxList)
-	for idx := 0; idx < l; idx++ {
-		keys[idx] = keyIdxList[idx].key
+	for _, keyIdx := range keyIdxList {
+		keys = append(keys, keyIdx.key)
 	}
 
 	return keys
