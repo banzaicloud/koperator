@@ -239,3 +239,53 @@ test value44
 		}
 	})
 }
+
+func TestNewPropertyFromString(t *testing.T) {
+
+	t.Run("Parse valid property string", func(t *testing.T) {
+		prop := "test.key=test value"
+		expected := Property{
+			key:     "test.key",
+			value:   "test value",
+			comment: "",
+		}
+
+		p, err := newPropertyFromString(prop, "")
+
+		if err != nil {
+			t.Errorf("Parsing valid Property string should not result an error: %v", err)
+		}
+
+		if !p.Equal(expected) {
+			t.Errorf("Returned and the expected Property objects mismatch. Expected %v, got %v", expected, p)
+		}
+	})
+
+	t.Run("Parse valid property string with escaped key", func(t *testing.T) {
+		prop := "test\\:key=test value"
+		expected := Property{
+			key:   "test:key",
+			value: "test value",
+		}
+
+		p, err := newPropertyFromString(prop, "")
+
+		if err != nil {
+			t.Errorf("Parsing valid Property string should not result an error: %v", err)
+		}
+
+		if !p.Equal(expected) {
+			t.Errorf("Returned and the expected Property objects mismatch. Expected %v, got %v", expected, p)
+		}
+	})
+
+	t.Run("Parse invalid property string", func(t *testing.T) {
+		prop := "test.key.test.value"
+
+		_, err := newPropertyFromString(prop, "")
+
+		if err == nil {
+			t.Errorf("Parsing invalid Property string should trigger an error!")
+		}
+	})
+}

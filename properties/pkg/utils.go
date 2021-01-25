@@ -230,7 +230,7 @@ func (l *Loader) parse() (*Properties, error) {
 		property.WriteString(line)
 
 		// Parse property from the string
-		p, err := getPropertyFromString(property.String(), comment.String())
+		p, err := newPropertyFromString(property.String(), comment.String())
 		if err != nil {
 			return nil, err
 		}
@@ -279,4 +279,22 @@ func Max(x, y int) int {
 		return y
 	}
 	return x
+}
+
+// Return a new Property by parsing prop string and including the provided comment string.
+func newPropertyFromString(prop string, comment string) (Property, error) {
+	// Get the index of the separator.
+	_, idx, err := GetSeparator(prop)
+	// Return error if getting the separator resulted an error
+	// or the index of the separator is 0 which means that the property is invalid.
+	if err != nil || idx == 0 {
+		return Property{}, errors.NewWithDetails("properties: invalid property", "property", prop)
+	}
+	// Parse the property name using the separator and remove the escaping of separator characters
+	// as we already know where the key part ends and the value part starts.
+	key := UnEscapeSeparators(strings.TrimSpace(prop[0:idx]))
+	// Parse the value part of the property.
+	value := strings.TrimSpace(prop[idx+1:])
+
+	return Property{key: key, value: value, comment: comment}, nil
 }

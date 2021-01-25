@@ -153,21 +153,3 @@ func (p *Property) set(k string, v interface{}, c string) error {
 
 	return nil
 }
-
-// Parse Property from the given string.
-func getPropertyFromString(prop string, comment string) (Property, error) {
-	// Get the index of the separator.
-	_, idx, err := GetSeparator(prop)
-	// Return error if getting the separator resulted an error
-	// or the index of the separator is 0 which means that the property is invalid.
-	if err != nil || idx == 0 {
-		return Property{}, errors.NewWithDetails("properties: invalid property", "property", prop)
-	}
-	// Parse the property name using the separator and remove the escaping of separator characters
-	// as we already know where the key part ends and the value part starts.
-	key := UnEscapeSeparators(strings.TrimSpace(prop[0:idx]))
-	// Parse the value part of the property.
-	value := strings.TrimSpace(prop[idx+1:])
-
-	return Property{key: key, value: value, comment: comment}, nil
-}
