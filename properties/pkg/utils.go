@@ -179,11 +179,6 @@ type Loader struct {
 
 func (l *Loader) Load(r io.Reader) (*Properties, error) {
 	l.load(r)
-
-	if len(l.lines) == 0 {
-		return nil, errors.New("properties: no data was loaded")
-	}
-
 	return l.parse()
 }
 

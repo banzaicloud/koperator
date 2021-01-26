@@ -231,11 +231,14 @@ test value44
 	})
 
 	t.Run("Empty string", func(t *testing.T) {
-		invalidProp := ""
-		_, err := NewFromString(invalidProp)
+		p, err := NewFromString("")
 
-		if err == nil {
-			t.Errorf("Parsing empty string should trigger an Error, but it did not.")
+		if err != nil {
+			t.Errorf("Parsing empty string should not trigger an Error.")
+		}
+
+		if p != nil && p.Len() != 0 {
+			t.Errorf("Parsing empty string should return an empty Properties object.")
 		}
 	})
 }
