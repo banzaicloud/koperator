@@ -17,6 +17,7 @@ package kafka
 import (
 	"testing"
 
+	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -253,8 +254,18 @@ zookeeper.connect=example.zk:2181/`,
 
 			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{}, map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, "", "", []string{}, logf.NullLogger{})
 
-			if generatedConfig != test.expectedConfig {
-				t.Errorf("the expected config is %s, received: %s", test.expectedConfig, generatedConfig)
+			generated, err := properties.NewFromString(generatedConfig)
+			if err != nil {
+				t.Fatalf("failed parsing generated configuration as Properties: %s", generatedConfig)
+			}
+
+			expected, err := properties.NewFromString(test.expectedConfig)
+			if err != nil {
+				t.Fatalf("failed parsing expected configuration as Properties: %s", expected)
+			}
+
+			if !expected.Equal(generated) {
+				t.Errorf("the expected config is:\n%s\nreceived:\n%s\n", test.expectedConfig, generatedConfig)
 			}
 		})
 	}

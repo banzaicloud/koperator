@@ -387,23 +387,6 @@ func TestGetBrokerConfigUniqueStorage(t *testing.T) {
 	}
 }
 
-func TestParsePropertiesFormat(t *testing.T) {
-	testProp := `
-broker.id=1
-advertised.listener=broker-1:29092
-empty.config=
- trailing.whitespace=foobar
-`
-	props := ParsePropertiesFormat(testProp)
-
-	if props["broker.id"] != "1" ||
-		props["advertised.listener"] != "broker-1:29092" ||
-		props["empty.config"] != "" ||
-		props["trailing.whitespace"] != "foobar" {
-		t.Error("Error properties not loaded correctly")
-	}
-}
-
 func TestIntstrPointer(t *testing.T) {
 	i := int(10)
 	ptr := IntstrPointer(i)

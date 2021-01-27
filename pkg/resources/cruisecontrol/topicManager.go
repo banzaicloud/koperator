@@ -17,14 +17,14 @@ package cruisecontrol
 import (
 	"context"
 	"fmt"
-	"strconv"
 
+	"emperror.dev/errors"
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/banzaicloud/kafka-operator/pkg/webhook"
+	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -71,12 +71,15 @@ func newCruiseControlTopic(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaTopic {
 }
 
 func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log logr.Logger) error {
-	readOnlyConfigProperties := util.ParsePropertiesFormat(cluster.Spec.ReadOnlyConfig)
+	readOnlyConfigProperties, err := properties.NewFromString(cluster.Spec.ReadOnlyConfig)
+	if err != nil {
+		return errors.WrapIf(err, "could not parse broker config")
+	}
 
 	// for compatibility reasons the only case when we let CC to create its own kafka topics is
 	// when we enable the creation explicitly
-	if propertyValue, present := readOnlyConfigProperties[ccMetricTopicAutoCreate]; present {
-		if autoCreate, err := strconv.ParseBool(propertyValue); err != nil {
+	if autoCreateProperty, present := readOnlyConfigProperties.Get(ccMetricTopicAutoCreate); present {
+		if autoCreate, err := autoCreateProperty.Bool(); err != nil {
 			return err
 		} else if autoCreate {
 			log.Info("CruiseControl topic has been created by CruiseControl")

@@ -15,6 +15,7 @@
 package kafka
 
 import (
+	"sort"
 	"strconv"
 
 	"emperror.dev/errors"
@@ -28,6 +29,8 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+
+	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 )
 
 func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, configMap *corev1.ConfigMap, log logr.Logger) error {
@@ -41,26 +44,30 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 		}
 	}()
 
-	fullPerBrokerConfig := util.ParsePropertiesFormat(brokerConfig.Config)
+	fullPerBrokerConfig, err := properties.NewFromString(brokerConfig.Config)
+	if err != nil {
+		return errors.WrapIf(err, "could not parse broker configuration")
+	}
 
 	currentPerBrokerConfigState := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(brokerId))].PerBrokerConfigurationState
-	if len(fullPerBrokerConfig) == 0 && currentPerBrokerConfigState != v1beta1.PerBrokerConfigOutOfSync {
+	if fullPerBrokerConfig.Len() == 0 && currentPerBrokerConfigState != v1beta1.PerBrokerConfigOutOfSync {
 		return nil
 	}
 
 	// overwrite configs from configmap
-	configsFromConfigMap := util.ParsePropertiesFormat(configMap.Data[kafka.ConfigPropertyName])
+	configsFromConfigMap, err := properties.NewFromString(configMap.Data[kafka.ConfigPropertyName])
+	if err != nil {
+		return errors.WrapIf(err, "could not parse broker configuration from configmap")
+	}
 	for _, perBrokerConfig := range kafka.PerBrokerConfigs {
-		if configValue, ok := configsFromConfigMap[perBrokerConfig]; ok {
-			fullPerBrokerConfig[perBrokerConfig] = configValue
+		if configProperty, ok := configsFromConfigMap.Get(perBrokerConfig); ok {
+			fullPerBrokerConfig.Put(configProperty)
 		}
 	}
 
-	// query the current configs
-	brokerConfigKeys := make([]string, 0, len(fullPerBrokerConfig))
-	for key := range fullPerBrokerConfig {
-		brokerConfigKeys = append(brokerConfigKeys, key)
-	}
+	// query the current config
+	brokerConfigKeys := fullPerBrokerConfig.Keys()
+	sort.Strings(brokerConfigKeys)
 	response, err := kClient.DescribePerBrokerConfig(brokerId, brokerConfigKeys)
 	if err != nil {
 		return errors.WrapIfWithDetails(err, "could not describe broker config", "brokerId", brokerId)
@@ -76,7 +83,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 		}
 
 		// validate the config
-		err := kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(fullPerBrokerConfig), true)
+		err := kClient.AlterPerBrokerConfig(brokerId, util.ConvertPropertiesToMapStringPointer(fullPerBrokerConfig), true)
 		if err != nil {
 			statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster, v1beta1.PerBrokerConfigError, log)
 			if statusErr != nil {
@@ -86,7 +93,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 		}
 
 		// alter the config
-		err = kClient.AlterPerBrokerConfig(brokerId, util.ConvertMapStringToMapStringPointer(fullPerBrokerConfig), false)
+		err = kClient.AlterPerBrokerConfig(brokerId, util.ConvertPropertiesToMapStringPointer(fullPerBrokerConfig), false)
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "could not alter broker config", "brokerId", brokerId)
 		}
@@ -128,34 +135,28 @@ func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
 		}
 	}()
 
-	configIdentical := true
-
 	currentConfig, err := kClient.DescribeClusterWideConfig()
 	if err != nil {
 		return errors.WrapIf(err, "could not describe cluster wide broker config")
 	}
-	parsedClusterWideConfig := util.ParsePropertiesFormat(r.KafkaCluster.Spec.ClusterWideConfig)
-	if len(currentConfig) != len(parsedClusterWideConfig) {
-		configIdentical = false
-	}
-	if configIdentical {
-		for _, conf := range currentConfig {
-			if val, ok := parsedClusterWideConfig[conf.Name]; ok {
-				if val != conf.Value {
-					configIdentical = false
-					break
-				}
-			}
-		}
+
+	currentClusterWideConfig, err := util.ConvertConfigEntryListToProperties(currentConfig)
+	if err != nil {
+		return errors.WrapIf(err, "could not convert current cluster-wide config to properties")
 	}
 
-	if !configIdentical {
-		err = kClient.AlterClusterWideConfig(util.ConvertMapStringToMapStringPointer(parsedClusterWideConfig), true)
+	parsedClusterWideConfig, err := properties.NewFromString(r.KafkaCluster.Spec.ClusterWideConfig)
+	if err != nil {
+		return errors.WrapIf(err, "could not parse cluster-wide broker config")
+	}
+
+	if !currentClusterWideConfig.Equal(parsedClusterWideConfig) {
+		err = kClient.AlterClusterWideConfig(util.ConvertPropertiesToMapStringPointer(parsedClusterWideConfig), true)
 		if err != nil {
 			return errors.WrapIf(err, "validation of cluster wide config update failed")
 		}
 
-		err = kClient.AlterClusterWideConfig(util.ConvertMapStringToMapStringPointer(parsedClusterWideConfig), false)
+		err = kClient.AlterClusterWideConfig(util.ConvertPropertiesToMapStringPointer(parsedClusterWideConfig), false)
 		if err != nil {
 			return errors.WrapIf(err, "could not alter cluster wide broker config")
 		}
@@ -164,10 +165,14 @@ func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
 	return nil
 }
 
-func shouldUpdatePerBrokerConfig(response []*sarama.ConfigEntry, parsedBrokerConfig map[string]string) bool {
+func shouldUpdatePerBrokerConfig(response []*sarama.ConfigEntry, brokerConfig *properties.Properties) bool {
+	if brokerConfig == nil {
+		return false
+	}
+
 	for _, conf := range response {
-		if val, ok := parsedBrokerConfig[conf.Name]; ok {
-			if val != conf.Value {
+		if val, ok := brokerConfig.Get(conf.Name); ok {
+			if val.Value() != conf.Value {
 				return true
 			}
 		}
