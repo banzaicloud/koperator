@@ -17,6 +17,7 @@ package properties
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -386,6 +387,31 @@ func TestProperties_MarshalJSON(t *testing.T) {
 
 		if !cmp.Equal(string(pJson), expectedString) {
 			t.Errorf("Mismatch in result of converting Properties to JSON. Expected: %v, got %v", expectedString, string(pJson))
+		}
+	})
+}
+
+func TestKeyIndexList(t *testing.T) {
+
+	kIdxList := keyIndexList{
+		keyIndex{"test.key11", 11},
+		keyIndex{"test.key2", 2},
+		keyIndex{"test.key5", 5},
+		keyIndex{"test.key35", 35},
+	}
+
+	t.Run("Swap", func(t *testing.T) {
+		expected := keyIndexList{
+			keyIndex{"test.key35", 35},
+			keyIndex{"test.key2", 2},
+			keyIndex{"test.key5", 5},
+			keyIndex{"test.key11", 11},
+		}
+
+		kIdxList.Swap(0,3)
+
+		if !reflect.DeepEqual(kIdxList, expected) {
+			t.Errorf("Mismatch in result of swaping items keyIndexList. Expected: %v, got %v", expected, kIdxList)
 		}
 	})
 }
