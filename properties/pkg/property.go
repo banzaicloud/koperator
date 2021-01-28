@@ -76,7 +76,10 @@ func (p *Property) Equal(t Property) bool {
 
 // String implements the Stringer interface.
 func (p Property) String() string {
-	return fmt.Sprintf("%s%s%s", EscapeSeparators(p.key), DefaultSeparator, p.value)
+	if p.IsValid() {
+		return fmt.Sprintf("%s%s%s", EscapeSeparators(p.key), DefaultSeparator, p.value)
+	}
+	return ""
 }
 
 // Int converts the Property value to Int64.
