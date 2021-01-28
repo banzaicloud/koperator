@@ -194,6 +194,36 @@ func TestProperties_Len(t *testing.T) {
 
 func TestProperties_Merge(t *testing.T) {
 
+	t.Run("Merge from nil Properties", func(t *testing.T) {
+		dst := NewProperties()
+		dst.put(Property{"test.key", "p1", "this is a comment line"})
+		dst.put(Property{"test.key2", "p1", "this is a comment line"})
+
+		expectedProperties := &Properties{
+			properties: map[string]Property{
+				"test.key": {
+					key:   "test.key",
+					value: "p1",
+				},
+				"test.key2": {
+					key:   "test.key2",
+					value: "p1",
+				},
+			},
+			keys: map[string]keyIndex{
+				"test.key":  {key: "test.key", index: 0},
+				"test.key2": {key: "test.key2", index: 1},
+			},
+		}
+
+		dst.Merge(nil)
+
+		if !dst.Equal(expectedProperties) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expectedProperties, dst)
+		}
+	})
+
 	p1 := NewProperties()
 	p1.put(Property{"test.key", "p1", "this is a comment line"})
 	p1.put(Property{"test.key2", "p1", "this is a comment line"})
@@ -234,11 +264,161 @@ func TestProperties_Merge(t *testing.T) {
 	})
 }
 
+func TestProperties_MergeDefaults(t *testing.T) {
+
+	t.Run("Merge defaults from nil Properties", func(t *testing.T) {
+		dst := NewProperties()
+		dst.put(Property{"test.key", "p1", "this is a comment line"})
+		dst.put(Property{"test.key2", "p1", "this is a comment line"})
+
+		expectedProperties := &Properties{
+			properties: map[string]Property{
+				"test.key": {
+					key:   "test.key",
+					value: "p1",
+				},
+				"test.key2": {
+					key:   "test.key2",
+					value: "p1",
+				},
+			},
+			keys: map[string]keyIndex{
+				"test.key":  {key: "test.key", index: 0},
+				"test.key2": {key: "test.key2", index: 1},
+			},
+		}
+
+		dst.MergeDefaults(nil)
+
+		if !dst.Equal(expectedProperties) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expectedProperties, dst)
+		}
+	})
+
+	t.Run("Merge defaults into empty Properties", func(t *testing.T) {
+		dst := NewProperties()
+
+		src := NewProperties()
+		src.put(Property{"test.key", "p2", "this is a comment line"})
+		src.put(Property{"test.key2", "p2", "this is a comment line"})
+		src.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		expectedProperties := &Properties{
+			properties: map[string]Property{
+				"test.key": {
+					key:   "test.key",
+					value: "p2",
+				},
+				"test.key2": {
+					key:   "test.key2",
+					value: "p2",
+				},
+				"test.key3": {
+					key:   "test.key3",
+					value: "p2",
+				},
+			},
+			keys: map[string]keyIndex{
+				"test.key":  {key: "test.key", index: 0},
+				"test.key2": {key: "test.key2", index: 1},
+				"test.key3": {key: "test.key3", index: 2},
+			},
+		}
+
+		dst.MergeDefaults(src)
+
+		if !dst.Equal(expectedProperties) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expectedProperties, dst)
+		}
+	})
+
+	t.Run("Merge into non-empty Properties", func(t *testing.T) {
+		dst := NewProperties()
+		dst.put(Property{"test.key", "p1", "this is a comment line"})
+		dst.put(Property{"test.key2", "p1", "this is a comment line"})
+
+		src := NewProperties()
+		src.put(Property{"test.key2", "p2", "this is a comment line"})
+		src.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		expectedProperties := &Properties{
+			properties: map[string]Property{
+				"test.key": {
+					key:   "test.key",
+					value: "p1",
+				},
+				"test.key2": {
+					key:   "test.key2",
+					value: "p1",
+				},
+				"test.key3": {
+					key:   "test.key3",
+					value: "p2",
+				},
+			},
+			keys: map[string]keyIndex{
+				"test.key":  {key: "test.key", index: 0},
+				"test.key2": {key: "test.key2", index: 1},
+				"test.key3": {key: "test.key3", index: 2},
+			},
+		}
+
+		dst.MergeDefaults(src)
+
+		if !dst.Equal(expectedProperties) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expectedProperties, dst)
+		}
+	})
+
+	t.Run("No update after merge defaults", func(t *testing.T) {
+		dst := NewProperties()
+		dst.put(Property{"test.key", "p1", "this is a comment line"})
+		dst.put(Property{"test.key2", "p1", "this is a comment line"})
+
+		src := NewProperties()
+		src.put(Property{"test.key", "p2", "this is a comment line"})
+		src.put(Property{"test.key2", "p2", "this is a comment line"})
+
+		expectedProperties := &Properties{
+			properties: map[string]Property{
+				"test.key": {
+					key:   "test.key",
+					value: "p1",
+				},
+				"test.key2": {
+					key:   "test.key2",
+					value: "p1",
+				},
+			},
+			keys: map[string]keyIndex{
+				"test.key":  {key: "test.key", index: 0},
+				"test.key2": {key: "test.key2", index: 1},
+			},
+		}
+
+		dst.MergeDefaults(src)
+
+		if !dst.Equal(expectedProperties) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expectedProperties, dst)
+		}
+	})
+}
+
 func TestProperties_Equal(t *testing.T) {
 	p := NewProperties()
 	p.put(Property{"test.key", "test.value", "this is a comment line"})
 	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
 	p.put(Property{"test.key3", "test.value3", "this is a comment line"})
+
+	t.Run("Nil", func(t *testing.T) {
+		if p.Equal(nil) {
+			t.Errorf("Comparing valid and malformed Properties must not be equal!")
+		}
+	})
 
 	t.Run("Malformed Properties", func(t *testing.T) {
 		expected := Properties{

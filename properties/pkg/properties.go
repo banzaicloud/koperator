@@ -27,6 +27,13 @@ const (
 	DefaultSeparator = "="
 )
 
+type MergeOption uint8
+
+const (
+	AllowOverwrite MergeOption = iota
+	OnlyDefaults
+)
+
 type keyIndex struct {
 	key   string
 	index uint
@@ -153,8 +160,17 @@ func (p *Properties) Delete(key string) {
 	delete(p.properties, key)
 }
 
-// Merge two Properties objects.
+// Merge two Properties objects by updating Property values in p from m.
 func (p *Properties) Merge(m *Properties) {
+	p.merge(m, AllowOverwrite)
+}
+
+// Merge two Properties objects by updating Property values in p from m if format has a default value
+func (p *Properties) MergeDefaults(m *Properties) {
+	p.merge(m, OnlyDefaults)
+}
+
+func (p *Properties) merge(m *Properties, option MergeOption) {
 	// Check it t is a nil-pointer and if so just return
 	if m == nil {
 		return
@@ -168,8 +184,19 @@ func (p *Properties) Merge(m *Properties) {
 	defer p.mutex.Unlock()
 
 	// Merge m to p
-	for _, prop := range m.properties {
-		p.put(prop)
+	for _, mProp := range m.properties {
+		switch option {
+		case OnlyDefaults:
+			pProp, found := p.properties[mProp.key]
+			if found && !pProp.IsEmpty() {
+				continue
+			}
+			fallthrough
+		case AllowOverwrite:
+			fallthrough
+		default:
+			p.put(mProp)
+		}
 	}
 }
 
