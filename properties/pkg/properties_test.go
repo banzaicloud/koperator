@@ -531,6 +531,83 @@ func TestProperties_Equal(t *testing.T) {
 	})
 }
 
+func TestProperties_Sort(t *testing.T) {
+
+	t.Run("Reindex Properties to sort keys alphabetically", func(t *testing.T) {
+		p := NewProperties()
+		p.put(Property{"b.key", "b", "this is a comment line"})
+		p.put(Property{"c.key", "c", "this is a comment line"})
+		p.put(Property{"a.key", "a", "this is a comment line"})
+
+		expected := &Properties{
+			properties: map[string]Property{
+				"a.key": {
+					key:   "a.key",
+					value: "a",
+				},
+				"b.key": {
+					key:   "b.key",
+					value: "b",
+				},
+				"c.key": {
+					key:   "c.key",
+					value: "c",
+				},
+			},
+			keys: map[string]keyIndex{
+				"a.key": {key: "a.key", index: 0},
+				"b.key": {key: "b.key", index: 1},
+				"c.key": {key: "c.key", index: 2},
+			},
+			nextKeyIndex: 3,
+		}
+
+		p.Sort()
+
+		if !cmp.Equal(p, expected) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expected, p)
+		}
+	})
+
+	t.Run("Sort already sorted Properties", func(t *testing.T) {
+		p := NewProperties()
+		p.put(Property{"a.key", "a", "this is a comment line"})
+		p.put(Property{"b.key", "b", "this is a comment line"})
+		p.put(Property{"c.key", "c", "this is a comment line"})
+
+		expected := &Properties{
+			properties: map[string]Property{
+				"a.key": {
+					key: "a.key",
+					value: "a",
+				},
+				"b.key": {
+					key:   "b.key",
+					value: "b",
+				},
+				"c.key": {
+					key:   "c.key",
+					value: "c",
+				},
+			},
+			keys: map[string]keyIndex{
+				"a.key":  {key: "a.key", index: 0},
+				"b.key": {key: "b.key", index: 1},
+				"c.key": {key: "c.key", index: 2},
+			},
+			nextKeyIndex: 3,
+		}
+
+		p.Sort()
+
+		if !cmp.Equal(p, expected) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expected, p)
+		}
+	})
+}
+
 func TestProperties_String(t *testing.T) {
 
 	p := NewProperties()

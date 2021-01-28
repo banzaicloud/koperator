@@ -243,6 +243,30 @@ func (p *Properties) Equal(t *Properties) bool {
 	return true
 }
 
+func (p *Properties) Sort() {
+	// Acquire read/write lock
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	// Collect keys
+	keys := make([]string, 0, len(p.keys))
+	for k := range p.keys {
+		keys = append(keys, k)
+	}
+
+	// Sort keys alphabetically
+	sort.Strings(keys)
+
+	// Reset index counter before reindexing
+	p.nextKeyIndex = 0
+
+	// Reindex
+	for _, key := range keys {
+		p.keys[key] = keyIndex{key, p.nextKeyIndex}
+		p.nextKeyIndex++
+	}
+}
+
 // String returns string representation of Properties.
 func (p *Properties) String() string {
 	var props strings.Builder
