@@ -303,10 +303,90 @@ func (p *Properties) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// Diff calculates the difference between p and m Properties and returns a DiffResult holding all the mismatching Keys
+// with their corresponding Property objects.
+func (p *Properties) Diff(m *Properties) DiffResult {
+	// Check it m is a nil-pointer and if so then return empty PropertiesDiff
+	if m == nil {
+		return DiffResult{}
+	}
+
+	// Acquire read lock for t before iterating over m
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	// Acquire read lock for p before iterating over p
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	// Combine keys from both Properties
+	keys := make(map[string]struct{}, len(p.keys)+len(m.keys))
+	for pKey := range p.keys {
+		keys[pKey] = struct{}{}
+	}
+	for mKey := range m.keys {
+		keys[mKey] = struct{}{}
+	}
+
+	// Get difference of the tow Properties by value
+	diff := make(DiffResult, len(keys))
+
+	for key := range keys {
+		pProp, pFound := p.properties[key]
+		mProp, mFound := m.properties[key]
+
+		switch {
+		case pFound && mFound && pProp.Equal(mProp):
+			continue
+		case pFound && !mFound:
+			diff[key] = [2]Property{
+				pProp,
+				{},
+			}
+		case !pFound && mFound:
+			diff[key] = [2]Property{
+				{},
+				mProp,
+			}
+		default:
+			diff[key] = [2]Property{
+				pProp,
+				mProp,
+			}
+		}
+	}
+	return diff
+}
+
 // NewProperties returns a new and empty Properties object.
 func NewProperties() *Properties {
 	return &Properties{
 		properties: make(map[string]Property, 0),
 		keys:       make(map[string]keyIndex, 0),
 	}
+}
+
+// DiffResult is map-like object holding pair of Property object grouped by keys.
+type DiffResult map[string][2]Property
+
+// Keys returns a list of keys
+func (d DiffResult) Keys() []string {
+	keys := make([]string, 0, len(d))
+	for k := range d {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// String returns a human readable representation of DiffResult.
+func (d DiffResult) String() string {
+	var s strings.Builder
+	for _, k := range d.Keys() {
+		diff, ok := d[k]
+		if ok {
+			s.WriteString(fmt.Sprintf("- %s\n+ %s\n", diff[0], diff[1]))
+		}
+	}
+	return s.String()
 }
