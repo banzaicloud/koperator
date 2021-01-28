@@ -157,3 +157,13 @@ func (p *Property) set(k string, v interface{}, c string) error {
 
 	return nil
 }
+
+// IsValid returns true if Property key is a non-empty string.
+func (p Property) IsValid() bool {
+	return p.key != ""
+}
+
+// IsEmpty returns true if either the key or the value fields are empty.
+func (p Property) IsEmpty() bool {
+	return p.key == "" || p.value == ""
+}
