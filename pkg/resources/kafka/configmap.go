@@ -39,6 +39,14 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	listenerConf := generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, log)
 	config.Merge(listenerConf)
 
+	// Add listener configuration
+	advertisedListenerConf := generateAdvertisedListenerConfig(id, r.KafkaCluster.Spec.ListenersConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses)
+	if len(advertisedListenerConf) > 0 {
+		if err := config.Set("advertised.listeners", advertisedListenerConf); err != nil {
+			log.Error(err, "setting advertised.listeners in broker configuration resulted an error")
+		}
+	}
+
 	// Add control plane listener
 	cclConf := generateControlPlaneListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners)
 	if cclConf != "" {
@@ -109,14 +117,6 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	if storageConf != "" {
 		if err := config.Set("log.dirs", storageConf); err != nil {
 			log.Error(err, "setting log.dirs in broker configuration resulted an error")
-		}
-	}
-
-	// Add listener configuration
-	advertisedListenerConf := generateAdvertisedListenerConfig(id, r.KafkaCluster.Spec.ListenersConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses)
-	if len(advertisedListenerConf) > 0 {
-		if err := config.Set("advertised.listeners", advertisedListenerConf); err != nil {
-			log.Error(err, "setting advertised.listeners in broker configuration resulted an error")
 		}
 	}
 
