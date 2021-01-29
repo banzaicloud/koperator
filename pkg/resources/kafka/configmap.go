@@ -42,72 +42,72 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	// Add control plane listener
 	cclConf := generateControlPlaneListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners)
 	if cclConf != "" {
-		if err := config.Set("control.plane.listener.name", cclConf, ""); err != nil {
+		if err := config.Set("control.plane.listener.name", cclConf); err != nil {
 			log.Error(err, "setting control.plane.listener.name parameter in broker configuration resulted an error")
 		}
 	}
 
 	// Add Zookeeper configuration
-	if err := config.Set("zookeeper.connect", zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath()), ""); err != nil {
+	if err := config.Set("zookeeper.connect", zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())); err != nil {
 		log.Error(err, "setting zookeeper.connect parameter in broker configuration resulted an error")
 	}
 
 	// Add SSL configuration
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
-		if err := config.Set("ssl.keystore.location", serverKeystorePath+"/"+v1alpha1.TLSJKSKeyStore, ""); err != nil {
+		if err := config.Set("ssl.keystore.location", serverKeystorePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
 			log.Error(err, "setting ssl.keystore.location parameter in broker configuration resulted an error")
 		}
-		if err := config.Set("ssl.truststore.location", serverKeystorePath+"/"+v1alpha1.TLSJKSTrustStore, ""); err != nil {
+		if err := config.Set("ssl.truststore.location", serverKeystorePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
 			log.Error(err, "setting ssl.truststore.location parameter in broker configuration resulted an error")
 		}
-		if err := config.Set("ssl.keystore.password", serverPass, ""); err != nil {
+		if err := config.Set("ssl.keystore.password", serverPass); err != nil {
 			log.Error(err, "setting ssl.keystore.password parameter in broker configuration resulted an error")
 		}
-		if err := config.Set("ssl.truststore.password", serverPass, ""); err != nil {
+		if err := config.Set("ssl.truststore.password", serverPass); err != nil {
 			log.Error(err, "setting ssl.truststore.password parameter in broker configuration resulted an error")
 		}
-		if err := config.Set("ssl.client.auth", "required", ""); err != nil {
+		if err := config.Set("ssl.client.auth", "required"); err != nil {
 			log.Error(err, "setting ssl.client.auth parameter in broker configuration resulted an error")
 		}
 
 		// Add Cruise Control SSL configuration
 		if util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
-			if err := config.Set("cruise.control.metrics.reporter.security.protocol", "SSL", ""); err != nil {
+			if err := config.Set("cruise.control.metrics.reporter.security.protocol", "SSL"); err != nil {
 				log.Error(err, "setting cruise.control.metrics.reporter.security.protocol in broker configuration resulted an error")
 			}
-			if err := config.Set("cruise.control.metrics.reporter.ssl.truststore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSTrustStore, ""); err != nil {
+			if err := config.Set("cruise.control.metrics.reporter.ssl.truststore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
 				log.Error(err, "setting cruise.control.metrics.reporter.ssl.truststore.location in broker configuration resulted an error")
 			}
-			if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSKeyStore, ""); err != nil {
+			if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
 				log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.location parameter in broker configuration resulted an error")
 			}
-			if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.password", clientPass, ""); err != nil {
+			if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.password", clientPass); err != nil {
 				log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.password parameter in broker configuration resulted an error")
 			}
 		}
 	}
 
 	// Add Cruise Control Metrics Reporter configuration
-	if err := config.Set("metric.reporters", "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter", ""); err != nil {
+	if err := config.Set("metric.reporters", "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"); err != nil {
 		log.Error(err, "setting metric.reporters in broker configuration resulted an error")
 	}
 	bootstrapServers := getInternalListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, id, r.KafkaCluster.Spec.GetKubernetesClusterDomain(), r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled)
-	if err := config.Set("cruise.control.metrics.reporter.bootstrap.servers", bootstrapServers, ""); err != nil {
+	if err := config.Set("cruise.control.metrics.reporter.bootstrap.servers", bootstrapServers); err != nil {
 		log.Error(err, "setting cruise.control.metrics.reporter.bootstrap.servers in broker configuration resulted an error")
 	}
-	if err := config.Set("cruise.control.metrics.reporter.kubernetes.mode", true, ""); err != nil {
+	if err := config.Set("cruise.control.metrics.reporter.kubernetes.mode", true); err != nil {
 		log.Error(err, "setting cruise.control.metrics.reporter.kubernetes.mode in broker configuration resulted an error")
 	}
 
 	// Kafka Broker configuration
-	if err := config.Set("broker.id", id, ""); err != nil {
+	if err := config.Set("broker.id", id); err != nil {
 		log.Error(err, "setting broker.id in broker configuration resulted an error")
 	}
 
 	// Storage configuration
 	storageConf := generateStorageConfig(bConfig.StorageConfigs)
 	if storageConf != "" {
-		if err := config.Set("log.dirs", storageConf, ""); err != nil {
+		if err := config.Set("log.dirs", storageConf); err != nil {
 			log.Error(err, "setting log.dirs in broker configuration resulted an error")
 		}
 	}
@@ -115,7 +115,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	// Add listener configuration
 	advertisedListenerConf := generateAdvertisedListenerConfig(id, r.KafkaCluster.Spec.ListenersConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses)
 	if len(advertisedListenerConf) > 0 {
-		if err := config.Set("advertised.listeners", advertisedListenerConf, ""); err != nil {
+		if err := config.Set("advertised.listeners", advertisedListenerConf); err != nil {
 			log.Error(err, "setting advertised.listeners in broker configuration resulted an error")
 		}
 	}
@@ -123,7 +123,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	// Add superuser configuration
 	su := strings.Join(generateSuperUsers(superUsers), ";")
 	if su != "" {
-		if err := config.Set("super.users", su, ""); err != nil {
+		if err := config.Set("super.users", su); err != nil {
 			log.Error(err, "setting super.users in broker configuration resulted an error")
 		}
 	}
@@ -227,13 +227,13 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger)
 	}
 
 	config := properties.NewProperties()
-	if err := config.Set("listener.security.protocol.map", securityProtocolMapConfig, ""); err != nil {
+	if err := config.Set("listener.security.protocol.map", securityProtocolMapConfig); err != nil {
 		log.Error(err, "setting listener.security.protocol.map parameter in broker configuration resulted an error")
 	}
-	if err := config.Set("inter.broker.listener.name", interBrokerListenerName, ""); err != nil {
+	if err := config.Set("inter.broker.listener.name", interBrokerListenerName); err != nil {
 		log.Error(err, "setting inter.broker.listener.name parameter in broker configuration resulted an error")
 	}
-	if err := config.Set("listeners", listenerConfig, ""); err != nil {
+	if err := config.Set("listeners", listenerConfig); err != nil {
 		log.Error(err, "setting listeners parameter in broker configuration resulted an error")
 	}
 

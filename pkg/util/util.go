@@ -315,7 +315,7 @@ func ConvertConfigEntryListToProperties(config []sarama.ConfigEntry) (*propertie
 	p := properties.NewProperties()
 
 	for _, c := range config {
-		err := p.Set(c.Name, c.Value, "")
+		err := p.Set(c.Name, c.Value)
 		if err != nil {
 			return nil, err
 		}
