@@ -16,7 +16,6 @@ package k8sutil
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -136,12 +135,12 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
 					currentConfigs, err := properties.NewFromString(current.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
 					if err != nil {
-						return errors.WrapIf(err, fmt.Sprintf("could not parse the current configuration for broker with id: %s", id))
+						return errors.WrapWithDetails(err, "could not parse the current configuration for broker", "brokerId", id)
 					}
 
 					desiredConfigs, err := properties.NewFromString(desired.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
 					if err != nil {
-						return errors.WrapIf(err, fmt.Sprintf("could not parse the desired configuration for broker with id: %s", id))
+						return errors.WrapWithDetails(err, "could not parse the current configuration for broker", "brokerId", id)
 					}
 
 					// Check if there is drift in the configuration and return in case there is none
