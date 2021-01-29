@@ -133,8 +133,6 @@ github.com/banzaicloud/istio-operator v0.0.0-20200407070503-3f7dc6953a7b h1:Zd2s
 github.com/banzaicloud/istio-operator v0.0.0-20200407070503-3f7dc6953a7b/go.mod h1:ZsHnkYOQmq/OhsTX/apqgSoT2Jt5qkr15zuoVcj48Xk=
 github.com/banzaicloud/k8s-objectmatcher v1.4.1 h1:/HaUqQzTa5E+pLqG9qelRKUdrzU1Nl2BYPHDut7e1oU=
 github.com/banzaicloud/k8s-objectmatcher v1.4.1/go.mod h1:j+N22VwgVfa0ajVtNxOz2G72aSOL21lpB7qV2GDrr/I=
-github.com/banzaicloud/kafka-operator/properties v0.0.0-20210128180953-6e7201a76903 h1:h1J3g8SaG7yL676wlEZmOf3YT6IT+k2YxIsde/pGGTA=
-github.com/banzaicloud/kafka-operator/properties v0.0.0-20210128180953-6e7201a76903/go.mod h1:jIIqAV7qnSaht82ZFmeyFfQzaIUxRdzgZmb1D8mk1H4=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 h1:xJ4a3vCFaGF/jqvzLMYoU8P317H5OQ+Via4RmuPwCS0=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
