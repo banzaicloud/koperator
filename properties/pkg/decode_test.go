@@ -90,11 +90,11 @@ func TestUnmarshal(t *testing.T) {
 		expectedList := []string{"test value1", "test value2"}
 
 		p := NewProperties()
-		_ = p.Set("string.field", expectedString, "")
-		_ = p.Set("int.field", expectedInt, "")
-		_ = p.Set("bool.field", expectedBool, "")
-		_ = p.Set("float.field", expectedFloat, "")
-		_ = p.Set("list.field", expectedList, "")
+		_ = p.Set("string.field", expectedString)
+		_ = p.Set("int.field", expectedInt)
+		_ = p.Set("bool.field", expectedBool)
+		_ = p.Set("float.field", expectedFloat)
+		_ = p.Set("list.field", expectedList)
 
 		err := Unmarshal(p, s)
 
@@ -130,7 +130,7 @@ func TestUnmarshal(t *testing.T) {
 
 		expectedValue := "after unmarshal"
 		p := NewProperties()
-		_ = p.Set("custom.field", expectedValue, "")
+		_ = p.Set("custom.field", expectedValue)
 
 		err := Unmarshal(p, s)
 

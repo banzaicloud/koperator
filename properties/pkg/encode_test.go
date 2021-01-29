@@ -50,7 +50,7 @@ type TestMarshalerStruct struct {
 
 func (s TestMarshalerStruct) MarshalProperties() (*Properties, error) {
 	p := NewProperties()
-	_ = p.Set("custom.marshaller.called", "true", "")
+	_ = p.Set("custom.marshaller.called", "true")
 	return p, nil
 }
 
@@ -109,11 +109,11 @@ func TestMarshal(t *testing.T) {
 		}
 
 		expected := NewProperties()
-		_ = expected.Set("string.field", "property string", "")
-		_ = expected.Set("int.field", 100, "")
-		_ = expected.Set("bool.field", true, "")
-		_ = expected.Set("float.field", 128.9, "")
-		_ = expected.Set("list.field", []string{"test value1", "test value2"}, "")
+		_ = expected.Set("string.field", "property string")
+		_ = expected.Set("int.field", 100)
+		_ = expected.Set("bool.field", true)
+		_ = expected.Set("float.field", 128.9)
+		_ = expected.Set("list.field", []string{"test value1", "test value2"})
 
 		if !p.Equal(expected) {
 			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n", expected, p)
@@ -139,12 +139,12 @@ func TestMarshal(t *testing.T) {
 		}
 
 		expected := NewProperties()
-		_ = expected.Set("string.field", "property string", "")
-		_ = expected.Set("int.field", 100, "")
-		_ = expected.Set("bool.field", true, "")
-		_ = expected.Set("float.field", 128.9, "")
-		_ = expected.Set("list.field", "test value1,test value2", "")
-		_ = expected.Set("omitempty.field", "omitempty property field", "")
+		_ = expected.Set("string.field", "property string")
+		_ = expected.Set("int.field", 100)
+		_ = expected.Set("bool.field", true)
+		_ = expected.Set("float.field", 128.9)
+		_ = expected.Set("list.field", "test value1,test value2")
+		_ = expected.Set("omitempty.field", "omitempty property field")
 
 		if !cmp.Equal(p, expected, cmp.AllowUnexported(Properties{}), cmp.AllowUnexported(Property{})) {
 			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n\n %v\n", expected, p, cmp.Diff(expected, p))
@@ -177,7 +177,7 @@ func TestMarshal(t *testing.T) {
 		}
 
 		expected := NewProperties()
-		_ = expected.Set("custom.marshaller.called", "true", "")
+		_ = expected.Set("custom.marshaller.called", "true")
 
 		if !cmp.Equal(p, expected, cmp.AllowUnexported(Properties{}), cmp.AllowUnexported(Property{})) {
 			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n\n %v\n", expected, p, cmp.Diff(expected, p))
