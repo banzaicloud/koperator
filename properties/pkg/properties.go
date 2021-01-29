@@ -333,8 +333,8 @@ func (p *Properties) Diff(m *Properties) DiffResult {
 		keys[mKey] = struct{}{}
 	}
 
-	// Get difference of the tow Properties by value
-	diff := make(DiffResult, len(keys))
+	// Get difference of the two Properties by value
+	diff := make(DiffResult)
 
 	for key := range keys {
 		pProp, pFound := p.properties[key]
