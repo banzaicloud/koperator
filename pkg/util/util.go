@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	samara "github.com/Shopify/sarama"
+	"github.com/Shopify/sarama"
 	"github.com/go-logr/logr"
 	"github.com/imdario/mergo"
 	"go.uber.org/zap"
@@ -310,8 +310,8 @@ func CreateLogger(debug bool, development bool) logr.Logger {
 	return k8s_zap.New(k8s_zap.UseDevMode(development), k8s_zap.Encoder(encoder), k8s_zap.Level(level))
 }
 
-// ConvertConfigEntryListToProperties function takes []samara.ConfigEntry and coverts it to Properties object
-func ConvertConfigEntryListToProperties(config []samara.ConfigEntry) (*properties.Properties, error) {
+// ConvertConfigEntryListToProperties function takes []sarama.ConfigEntry and coverts it to Properties object
+func ConvertConfigEntryListToProperties(config []sarama.ConfigEntry) (*properties.Properties, error) {
 	p := properties.NewProperties()
 
 	for _, c := range config {
