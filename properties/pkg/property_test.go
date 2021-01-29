@@ -310,3 +310,49 @@ func TestPropertySet(t *testing.T) {
 		}
 	})
 }
+
+func TestPropertyIsValid(t *testing.T) {
+
+	t.Run("Empty key and value fields", func(t *testing.T) {
+		prop := &Property{}
+
+		if prop.IsValid() {
+			t.Errorf("Property object with empty key and value fields is considered invalid!")
+		}
+	})
+
+	t.Run("Non-empty key field", func(t *testing.T) {
+		prop := &Property{"test.key", "", ""}
+
+		if !prop.IsValid() {
+			t.Errorf("Property object with empty key and value fields is considered invalid!")
+		}
+	})
+}
+
+func TestPropertyIsEmpty(t *testing.T) {
+
+	t.Run("Empty key and value fields", func(t *testing.T) {
+		prop := &Property{}
+
+		if !prop.IsEmpty() {
+			t.Errorf("Property object with empty key and value fields is considered empty!")
+		}
+	})
+
+	t.Run("Empty key field", func(t *testing.T) {
+		prop := &Property{"test.key", "", ""}
+
+		if !prop.IsEmpty() {
+			t.Errorf("Property object with non-empty key and empty value fields is considered empty!")
+		}
+	})
+
+	t.Run("Non-empty key and value fields", func(t *testing.T) {
+		prop := &Property{"test.key", "test.value", ""}
+
+		if prop.IsEmpty() {
+			t.Errorf("Property object with non-empty key and value fields is not considered empty!")
+		}
+	})
+}

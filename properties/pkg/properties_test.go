@@ -17,6 +17,8 @@ package properties
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -193,6 +195,36 @@ func TestProperties_Len(t *testing.T) {
 
 func TestProperties_Merge(t *testing.T) {
 
+	t.Run("Merge from nil Properties", func(t *testing.T) {
+		dst := NewProperties()
+		dst.put(Property{"test.key", "p1", "this is a comment line"})
+		dst.put(Property{"test.key2", "p1", "this is a comment line"})
+
+		expectedProperties := &Properties{
+			properties: map[string]Property{
+				"test.key": {
+					key:   "test.key",
+					value: "p1",
+				},
+				"test.key2": {
+					key:   "test.key2",
+					value: "p1",
+				},
+			},
+			keys: map[string]keyIndex{
+				"test.key":  {key: "test.key", index: 0},
+				"test.key2": {key: "test.key2", index: 1},
+			},
+		}
+
+		dst.Merge(nil)
+
+		if !dst.Equal(expectedProperties) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expectedProperties, dst)
+		}
+	})
+
 	p1 := NewProperties()
 	p1.put(Property{"test.key", "p1", "this is a comment line"})
 	p1.put(Property{"test.key2", "p1", "this is a comment line"})
@@ -233,11 +265,161 @@ func TestProperties_Merge(t *testing.T) {
 	})
 }
 
+func TestProperties_MergeDefaults(t *testing.T) {
+
+	t.Run("Merge defaults from nil Properties", func(t *testing.T) {
+		dst := NewProperties()
+		dst.put(Property{"test.key", "p1", "this is a comment line"})
+		dst.put(Property{"test.key2", "p1", "this is a comment line"})
+
+		expectedProperties := &Properties{
+			properties: map[string]Property{
+				"test.key": {
+					key:   "test.key",
+					value: "p1",
+				},
+				"test.key2": {
+					key:   "test.key2",
+					value: "p1",
+				},
+			},
+			keys: map[string]keyIndex{
+				"test.key":  {key: "test.key", index: 0},
+				"test.key2": {key: "test.key2", index: 1},
+			},
+		}
+
+		dst.MergeDefaults(nil)
+
+		if !dst.Equal(expectedProperties) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expectedProperties, dst)
+		}
+	})
+
+	t.Run("Merge defaults into empty Properties", func(t *testing.T) {
+		dst := NewProperties()
+
+		src := NewProperties()
+		src.put(Property{"test.key", "p2", "this is a comment line"})
+		src.put(Property{"test.key2", "p2", "this is a comment line"})
+		src.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		expectedProperties := &Properties{
+			properties: map[string]Property{
+				"test.key": {
+					key:   "test.key",
+					value: "p2",
+				},
+				"test.key2": {
+					key:   "test.key2",
+					value: "p2",
+				},
+				"test.key3": {
+					key:   "test.key3",
+					value: "p2",
+				},
+			},
+			keys: map[string]keyIndex{
+				"test.key":  {key: "test.key", index: 0},
+				"test.key2": {key: "test.key2", index: 1},
+				"test.key3": {key: "test.key3", index: 2},
+			},
+		}
+
+		dst.MergeDefaults(src)
+
+		if !dst.Equal(expectedProperties) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expectedProperties, dst)
+		}
+	})
+
+	t.Run("Merge into non-empty Properties", func(t *testing.T) {
+		dst := NewProperties()
+		dst.put(Property{"test.key", "p1", "this is a comment line"})
+		dst.put(Property{"test.key2", "p1", "this is a comment line"})
+
+		src := NewProperties()
+		src.put(Property{"test.key2", "p2", "this is a comment line"})
+		src.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		expectedProperties := &Properties{
+			properties: map[string]Property{
+				"test.key": {
+					key:   "test.key",
+					value: "p1",
+				},
+				"test.key2": {
+					key:   "test.key2",
+					value: "p1",
+				},
+				"test.key3": {
+					key:   "test.key3",
+					value: "p2",
+				},
+			},
+			keys: map[string]keyIndex{
+				"test.key":  {key: "test.key", index: 0},
+				"test.key2": {key: "test.key2", index: 1},
+				"test.key3": {key: "test.key3", index: 2},
+			},
+		}
+
+		dst.MergeDefaults(src)
+
+		if !dst.Equal(expectedProperties) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expectedProperties, dst)
+		}
+	})
+
+	t.Run("No update after merge defaults", func(t *testing.T) {
+		dst := NewProperties()
+		dst.put(Property{"test.key", "p1", "this is a comment line"})
+		dst.put(Property{"test.key2", "p1", "this is a comment line"})
+
+		src := NewProperties()
+		src.put(Property{"test.key", "p2", "this is a comment line"})
+		src.put(Property{"test.key2", "p2", "this is a comment line"})
+
+		expectedProperties := &Properties{
+			properties: map[string]Property{
+				"test.key": {
+					key:   "test.key",
+					value: "p1",
+				},
+				"test.key2": {
+					key:   "test.key2",
+					value: "p1",
+				},
+			},
+			keys: map[string]keyIndex{
+				"test.key":  {key: "test.key", index: 0},
+				"test.key2": {key: "test.key2", index: 1},
+			},
+		}
+
+		dst.MergeDefaults(src)
+
+		if !dst.Equal(expectedProperties) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expectedProperties, dst)
+		}
+	})
+}
+
 func TestProperties_Equal(t *testing.T) {
 	p := NewProperties()
 	p.put(Property{"test.key", "test.value", "this is a comment line"})
 	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
 	p.put(Property{"test.key3", "test.value3", "this is a comment line"})
+
+	t.Run("Nil", func(t *testing.T) {
+		if p.Equal(nil) {
+			t.Errorf("Comparing valid and malformed Properties must not be equal!")
+		}
+	})
 
 	t.Run("Malformed Properties", func(t *testing.T) {
 		expected := Properties{
@@ -350,6 +532,83 @@ func TestProperties_Equal(t *testing.T) {
 	})
 }
 
+func TestProperties_Sort(t *testing.T) {
+
+	t.Run("Reindex Properties to sort keys alphabetically", func(t *testing.T) {
+		p := NewProperties()
+		p.put(Property{"b.key", "b", "this is a comment line"})
+		p.put(Property{"c.key", "c", "this is a comment line"})
+		p.put(Property{"a.key", "a", "this is a comment line"})
+
+		expected := &Properties{
+			properties: map[string]Property{
+				"a.key": {
+					key:   "a.key",
+					value: "a",
+				},
+				"b.key": {
+					key:   "b.key",
+					value: "b",
+				},
+				"c.key": {
+					key:   "c.key",
+					value: "c",
+				},
+			},
+			keys: map[string]keyIndex{
+				"a.key": {key: "a.key", index: 0},
+				"b.key": {key: "b.key", index: 1},
+				"c.key": {key: "c.key", index: 2},
+			},
+			nextKeyIndex: 3,
+		}
+
+		p.Sort()
+
+		if !cmp.Equal(p, expected) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expected, p)
+		}
+	})
+
+	t.Run("Sort already sorted Properties", func(t *testing.T) {
+		p := NewProperties()
+		p.put(Property{"a.key", "a", "this is a comment line"})
+		p.put(Property{"b.key", "b", "this is a comment line"})
+		p.put(Property{"c.key", "c", "this is a comment line"})
+
+		expected := &Properties{
+			properties: map[string]Property{
+				"a.key": {
+					key:   "a.key",
+					value: "a",
+				},
+				"b.key": {
+					key:   "b.key",
+					value: "b",
+				},
+				"c.key": {
+					key:   "c.key",
+					value: "c",
+				},
+			},
+			keys: map[string]keyIndex{
+				"a.key": {key: "a.key", index: 0},
+				"b.key": {key: "b.key", index: 1},
+				"c.key": {key: "c.key", index: 2},
+			},
+			nextKeyIndex: 3,
+		}
+
+		p.Sort()
+
+		if !cmp.Equal(p, expected) {
+			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
+				expected, p)
+		}
+	})
+}
+
 func TestProperties_String(t *testing.T) {
 
 	p := NewProperties()
@@ -386,6 +645,356 @@ func TestProperties_MarshalJSON(t *testing.T) {
 
 		if !cmp.Equal(string(pJson), expectedString) {
 			t.Errorf("Mismatch in result of converting Properties to JSON. Expected: %v, got %v", expectedString, string(pJson))
+		}
+	})
+}
+
+func TestKeyIndexList(t *testing.T) {
+
+	kIdxList := keyIndexList{
+		keyIndex{"test.key11", 11},
+		keyIndex{"test.key2", 2},
+		keyIndex{"test.key5", 5},
+		keyIndex{"test.key35", 35},
+	}
+
+	t.Run("Swap", func(t *testing.T) {
+		expected := keyIndexList{
+			keyIndex{"test.key35", 35},
+			keyIndex{"test.key2", 2},
+			keyIndex{"test.key5", 5},
+			keyIndex{"test.key11", 11},
+		}
+
+		kIdxList.Swap(0, 3)
+
+		if !reflect.DeepEqual(kIdxList, expected) {
+			t.Errorf("Mismatch in result of swaping items keyIndexList. Expected: %v, got %v", expected, kIdxList)
+		}
+	})
+}
+
+func TestProperties_Diff(t *testing.T) {
+
+	t.Run("Difference when both Properties are empty", func(t *testing.T) {
+		p1 := NewProperties()
+		p2 := NewProperties()
+
+		expectedDiffMap := DiffResult{}
+
+		diff := p1.Diff(p2)
+
+		if !cmp.Equal(diff, expectedDiffMap) {
+			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedDiffMap, diff)
+		}
+
+		keys := diff.Keys()
+		expectedKeys := make([]string, 0)
+
+		if !cmp.Equal(keys, expectedKeys) {
+			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedKeys, keys)
+		}
+
+		l := len(diff)
+		expectedLen := len(expectedDiffMap)
+
+		if l != expectedLen {
+			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedLen, l)
+		}
+	})
+
+	t.Run("Difference when left Properties is empty", func(t *testing.T) {
+		p1 := NewProperties()
+		p2 := NewProperties()
+
+		p2.put(Property{"test.key", "p2", "this is a comment line"})
+		p2.put(Property{"test.key2", "p2", "this is a comment line"})
+		p2.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		expectedDiffMap := DiffResult{
+			"test.key": [2]Property{
+				{},
+				{"test.key", "p2", "this is a comment line"},
+			},
+			"test.key2": [2]Property{
+				{},
+				{"test.key2", "p2", "this is a comment line"},
+			},
+			"test.key3": [2]Property{
+				{},
+				{"test.key3", "p2", "this is a comment line"},
+			},
+		}
+
+		diff := p1.Diff(p2)
+
+		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
+			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %q\nGot: %q\n",
+				expectedDiffMap, diff)
+		}
+
+		keys := diff.Keys()
+		sort.Strings(keys)
+		expectedKeys := []string{"test.key", "test.key2", "test.key3"}
+
+		if !cmp.Equal(keys, expectedKeys) {
+			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedKeys, keys)
+		}
+
+		l := len(diff)
+		expectedLen := len(expectedDiffMap)
+
+		if l != expectedLen {
+			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedLen, l)
+		}
+	})
+
+	t.Run("Difference when some keys are missing from the left Properties", func(t *testing.T) {
+		p1 := NewProperties()
+		p1.put(Property{"test.key2", "p1", "this is a comment line"})
+
+		p2 := NewProperties()
+		p2.put(Property{"test.key", "p2", "this is a comment line"})
+		p2.put(Property{"test.key2", "p2", "this is a comment line"})
+		p2.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		expectedDiffMap := DiffResult{
+			"test.key": [2]Property{
+				{},
+				{"test.key", "p2", "this is a comment line"},
+			},
+			"test.key2": [2]Property{
+				{"test.key2", "p1", "this is a comment line"},
+				{"test.key2", "p2", "this is a comment line"},
+			},
+			"test.key3": [2]Property{
+				{},
+				{"test.key3", "p2", "this is a comment line"},
+			},
+		}
+
+		diff := p1.Diff(p2)
+
+		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
+			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %q\nGot: %q\n",
+				expectedDiffMap, diff)
+		}
+
+		keys := diff.Keys()
+		sort.Strings(keys)
+		expectedKeys := []string{"test.key", "test.key2", "test.key3"}
+
+		if !cmp.Equal(keys, expectedKeys) {
+			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedKeys, keys)
+		}
+
+		l := len(diff)
+		expectedLen := len(expectedDiffMap)
+
+		if l != expectedLen {
+			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedLen, l)
+		}
+	})
+
+	t.Run("Difference when some keys are missing from the right Properties", func(t *testing.T) {
+		p1 := NewProperties()
+		p1.put(Property{"test.key", "p1", "this is a comment line"})
+		p1.put(Property{"test.key2", "p1", "this is a comment line"})
+		p1.put(Property{"test.key3", "p1", "this is a comment line"})
+
+		p2 := NewProperties()
+		p2.put(Property{"test.key", "p2", "this is a comment line"})
+
+		expectedDiffMap := DiffResult{
+			"test.key": [2]Property{
+				{"test.key", "p1", "this is a comment line"},
+				{"test.key", "p2", "this is a comment line"},
+			},
+			"test.key2": [2]Property{
+				{"test.key2", "p1", "this is a comment line"},
+				{},
+			},
+			"test.key3": [2]Property{
+				{"test.key3", "p1", "this is a comment line"},
+				{},
+			},
+		}
+
+		diff := p1.Diff(p2)
+
+		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
+			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %q\nGot: %q\n",
+				expectedDiffMap, diff)
+		}
+
+		keys := diff.Keys()
+		sort.Strings(keys)
+		expectedKeys := []string{"test.key", "test.key2", "test.key3"}
+
+		if !cmp.Equal(keys, expectedKeys) {
+			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedKeys, keys)
+		}
+
+		l := len(diff)
+		expectedLen := len(expectedDiffMap)
+
+		if l != expectedLen {
+			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedLen, l)
+		}
+	})
+
+	t.Run("Difference identical Properties", func(t *testing.T) {
+		p1 := NewProperties()
+		p1.put(Property{"test.key", "p2", "this is a comment line"})
+		p1.put(Property{"test.key2", "p2", "this is a comment line"})
+		p1.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		p2 := NewProperties()
+		p2.put(Property{"test.key", "p2", "this is a comment line"})
+		p2.put(Property{"test.key2", "p2", "this is a comment line"})
+		p2.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		expectedDiffMap := DiffResult{}
+
+		diff := p1.Diff(p2)
+
+		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
+			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedDiffMap, diff)
+		}
+
+		keys := diff.Keys()
+		sort.Strings(keys)
+		expectedKeys := make([]string, 0)
+
+		if !cmp.Equal(keys, expectedKeys) {
+			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedKeys, keys)
+		}
+
+		l := len(diff)
+		expectedLen := len(expectedDiffMap)
+
+		if l != expectedLen {
+			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedLen, l)
+		}
+
+	})
+
+	t.Run("Difference nil Properties", func(t *testing.T) {
+		p1 := NewProperties()
+		p1.put(Property{"test.key", "p2", "this is a comment line"})
+		p1.put(Property{"test.key2", "p2", "this is a comment line"})
+		p1.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		expectedDiffMap := DiffResult{}
+
+		diff := p1.Diff(nil)
+
+		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
+			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedDiffMap, diff)
+		}
+
+		keys := diff.Keys()
+		sort.Strings(keys)
+		expectedKeys := make([]string, 0)
+
+		if !cmp.Equal(keys, expectedKeys) {
+			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedKeys, keys)
+		}
+
+		l := len(diff)
+		expectedLen := len(expectedDiffMap)
+
+		if l != expectedLen {
+			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedLen, l)
+		}
+	})
+
+	t.Run("Difference of nearly identical Properties", func(t *testing.T) {
+		p1 := NewProperties()
+		p1.put(Property{"test.key", "p2", "this is a comment line"})
+		p1.put(Property{"test.key2", "p1", "this is a comment line"})
+		p1.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		p2 := NewProperties()
+		p2.put(Property{"test.key", "p2", "this is a comment line"})
+		p2.put(Property{"test.key2", "p2", "this is a comment line"})
+		p2.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		expectedDiffMap := DiffResult{
+			"test.key2": [2]Property{
+				{"test.key2", "p1", "this is a comment line"},
+				{"test.key2", "p2", "this is a comment line"},
+			},
+		}
+
+		diff := p1.Diff(p2)
+
+		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
+			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedDiffMap, diff)
+		}
+
+		keys := diff.Keys()
+		sort.Strings(keys)
+		expectedKeys := []string{"test.key2"}
+
+		if !cmp.Equal(keys, expectedKeys) {
+			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedKeys, keys)
+		}
+
+		l := len(diff)
+		expectedLen := len(expectedDiffMap)
+
+		if l != expectedLen {
+			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedLen, l)
+		}
+	})
+}
+
+func TestProperties_DiffMap(t *testing.T) {
+
+	diffMap := DiffResult{
+		"test.key": [2]Property{
+			{"test.key", "p1", "this is a comment line"},
+			{"test.key", "p2", "this is a comment line"},
+		},
+		"test.key2": [2]Property{
+			{"test.key2", "p1", "this is a comment line"},
+			{},
+		},
+		"test.key3": [2]Property{
+			{"test.key3", "p1", "this is a comment line"},
+			{},
+		},
+	}
+
+	t.Run("Keys", func(t *testing.T) {
+
+		keys := diffMap.Keys()
+		sort.Strings(keys)
+
+		expectedKeys := []string{"test.key", "test.key2", "test.key3"}
+
+		if !cmp.Equal(keys, expectedKeys) {
+			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
+				expectedKeys, keys)
 		}
 	})
 }

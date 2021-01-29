@@ -44,6 +44,7 @@ bin/golangci-lint-${GOLANGCI_VERSION}:
 lint: bin/golangci-lint ## Run linter
 	@bin/golangci-lint run -v
 	cd pkg/sdk && golangci-lint run -c ../../.golangci.yml
+	cd properties && golangci-lint run -c ../.golangci.yml
 
 bin/licensei: bin/licensei-${LICENSEI_VERSION}
 	@ln -sf licensei-${LICENSEI_VERSION} bin/licensei
@@ -77,6 +78,7 @@ install-kubebuilder:
 test: install-kubebuilder generate fmt vet manifests
 	cd pkg/sdk && go test ./...
 	KUBEBUILDER_ASSETS="$${PWD}/bin/kubebuilder/bin" go test ./... -coverprofile cover.out
+	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
 # Build manager binary
 manager: generate fmt vet
@@ -106,11 +108,13 @@ manifests: bin/controller-gen
 fmt:
 	go fmt ./...
 	cd pkg/sdk && go fmt ./...
+	cd properties && go fmt ./...
 
 # Run go vet against code
 vet:
 	go vet ./...
 	cd pkg/sdk && go fmt ./...
+	cd properties && go vet ./...
 
 # Generate code
 generate: bin/controller-gen
