@@ -15,7 +15,6 @@
 package kafka
 
 import (
-	"sort"
 	"strconv"
 
 	"emperror.dev/errors"
@@ -67,7 +66,6 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 
 	// query the current config
 	brokerConfigKeys := fullPerBrokerConfig.Keys()
-	sort.Strings(brokerConfigKeys)
 	response, err := kClient.DescribePerBrokerConfig(brokerId, brokerConfigKeys)
 	if err != nil {
 		return errors.WrapIfWithDetails(err, "could not describe broker config", "brokerId", brokerId)
