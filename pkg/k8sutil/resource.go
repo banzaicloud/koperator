@@ -34,8 +34,8 @@ import (
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 )
 
 // Reconcile reconciles K8S resources
@@ -133,8 +133,20 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			case *corev1.ConfigMap:
 				// Only update status when configmap belongs to broker
 				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
-					currentConfigs := util.ParsePropertiesFormat(current.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
-					desiredConfigs := util.ParsePropertiesFormat(desired.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
+					currentConfigs, err := properties.NewFromString(current.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
+					if err != nil {
+						return errors.WrapWithDetails(err, "could not parse the current configuration for broker", "brokerId", id)
+					}
+
+					desiredConfigs, err := properties.NewFromString(desired.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
+					if err != nil {
+						return errors.WrapWithDetails(err, "could not parse the current configuration for broker", "brokerId", id)
+					}
+
+					// Check if there is drift in the configuration and return in case there is none
+					if currentConfigs.Equal(desiredConfigs) {
+						return nil
+					}
 
 					var statusErr error
 					// if only per broker configs are changed, do not trigger rolling upgrade by setting ConfigOutOfSync status

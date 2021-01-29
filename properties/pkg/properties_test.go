@@ -116,12 +116,11 @@ func TestProperties_Set(t *testing.T) {
 
 	t.Run("Add new Property with string value to Properties", func(t *testing.T) {
 		expectedProperty := Property{
-			key:     "test.key3",
-			value:   "test.value3",
-			comment: "this is a comment line",
+			key:   "test.key3",
+			value: "test.value3",
 		}
 
-		err := p.Set(expectedProperty.key, expectedProperty.value, expectedProperty.comment)
+		err := p.Set(expectedProperty.key, expectedProperty.value)
 
 		if err != nil {
 			t.Error("Adding a new Property should not result an error.")
@@ -144,7 +143,107 @@ func TestProperties_Set(t *testing.T) {
 			value: "100",
 		}
 
-		err := p.Set(expectedProperty.key, 100, "")
+		err := p.Set(expectedProperty.key, 100)
+
+		if err != nil {
+			t.Error("Adding a new property should not result an error.")
+		}
+
+		prop, found := p.Get(expectedProperty.key)
+
+		if !found {
+			t.Errorf("Newly added Property is not found.")
+		}
+
+		if !prop.Equal(expectedProperty) {
+			t.Errorf("Mismatch between return and expected list of keys. Expected: %v, got %v", prop, expectedProperty)
+		}
+	})
+
+	t.Run("Add new Property with string slice value to Properties", func(t *testing.T) {
+		expectedProperty := Property{
+			key:   "test.key3",
+			value: "value1,value2,value3",
+		}
+
+		err := p.Set(expectedProperty.key, []string{"value1", "value2", "value3"})
+
+		if err != nil {
+			t.Error("Adding a new property should not result an error.")
+		}
+
+		prop, found := p.Get(expectedProperty.key)
+
+		if !found {
+			t.Errorf("Newly added Property is not found.")
+		}
+
+		if !prop.Equal(expectedProperty) {
+			t.Errorf("Mismatch between return and expected list of keys. Expected: %v, got %v", prop, expectedProperty)
+		}
+	})
+}
+
+func TestProperties_SetWithComment(t *testing.T) {
+
+	p := NewProperties()
+
+	t.Run("Add new Property with string value to Properties", func(t *testing.T) {
+		expectedProperty := Property{
+			key:     "test.key3",
+			value:   "test.value3",
+			comment: "this is a comment line",
+		}
+
+		err := p.SetWithComment(expectedProperty.key, expectedProperty.value, expectedProperty.comment)
+
+		if err != nil {
+			t.Error("Adding a new Property should not result an error.")
+		}
+
+		prop, found := p.Get(expectedProperty.key)
+
+		if !found {
+			t.Error("Newly added Property is not found.")
+		}
+
+		if !prop.Equal(expectedProperty) {
+			t.Errorf("Mismatch between return and expected list of keys. Expected: %q, got %q", prop, expectedProperty)
+		}
+	})
+
+	t.Run("Add new Property with integer value to Properties", func(t *testing.T) {
+		expectedProperty := Property{
+			key:     "test.key3",
+			value:   "100",
+			comment: "this is a comment line",
+		}
+
+		err := p.SetWithComment(expectedProperty.key, 100, expectedProperty.comment)
+
+		if err != nil {
+			t.Error("Adding a new property should not result an error.")
+		}
+
+		prop, found := p.Get(expectedProperty.key)
+
+		if !found {
+			t.Errorf("Newly added Property is not found.")
+		}
+
+		if !prop.Equal(expectedProperty) {
+			t.Errorf("Mismatch between return and expected list of keys. Expected: %v, got %v", prop, expectedProperty)
+		}
+	})
+
+	t.Run("Add new Property with string slice value to Properties", func(t *testing.T) {
+		expectedProperty := Property{
+			key:     "test.key3",
+			value:   "value1,value2,value3",
+			comment: "this is a comment line",
+		}
+
+		err := p.SetWithComment(expectedProperty.key, []string{"value1", "value2", "value3"}, expectedProperty.comment)
 
 		if err != nil {
 			t.Error("Adding a new property should not result an error.")

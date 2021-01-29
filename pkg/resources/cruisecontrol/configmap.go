@@ -28,11 +28,44 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	zookeeperutils "github.com/banzaicloud/kafka-operator/pkg/util/zookeeper"
+	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 
 	corev1 "k8s.io/api/core/v1"
 )
 
 func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logger) runtime.Object {
+	ccConfig := properties.NewProperties()
+
+	// Add base Cruise Control configuration
+	conf, err := properties.NewFromString(r.KafkaCluster.Spec.CruiseControlConfig.Config)
+	if err != nil {
+		log.Error(err, "parsing Cruise Control configuration failed", "config", r.KafkaCluster.Spec.CruiseControlConfig.Config)
+	}
+	ccConfig.Merge(conf)
+
+	// Set bootstrap servers
+	bootstrapServers := fmt.Sprintf("%s:%d",
+		generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name),
+		generateBootstrapServerPort(log, r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
+	)
+	if err = ccConfig.Set("bootstrap.servers", bootstrapServers); err != nil {
+		log.Error(err, "setting bootstrap.servers in Cruise Control configuration failed", "config", bootstrapServers)
+	}
+
+	// Add Zookeeper configuration
+	zkConnect := zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())
+	if err = ccConfig.Set("zookeeper.connect", zkConnect); err != nil {
+		log.Error(err, "setting zookeeper.connect in Cruise Control configuration failed", "config", zkConnect)
+	}
+
+	// Add SSL configuration
+	sslConf := generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass, log)
+	if sslConf.Len() != 0 {
+		ccConfig.Merge(sslConf)
+	}
+
+	ccConfig.Sort()
+
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
@@ -40,34 +73,36 @@ func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logge
 			r.KafkaCluster,
 		),
 		Data: map[string]string{
-			"cruisecontrol.properties": r.KafkaCluster.Spec.CruiseControlConfig.Config + fmt.Sprintf(`
-# The Kafka cluster to control.
-bootstrap.servers=%s:%d
-# The zookeeper connect of the Kafka cluster
-zookeeper.connect=%s
-`, generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name),
-				generateBootstrapServerPort(log, r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
-				zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())) +
-				generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass),
-			"capacity.json":       capacityConfig,
-			"clusterConfigs.json": r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,
-			"log4j.properties":    r.KafkaCluster.Spec.CruiseControlConfig.GetCCLog4jConfig(),
+			"cruisecontrol.properties": ccConfig.String(),
+			"capacity.json":            capacityConfig,
+			"clusterConfigs.json":      r.KafkaCluster.Spec.CruiseControlConfig.ClusterConfig,
+			"log4j.properties":         r.KafkaCluster.Spec.CruiseControlConfig.GetCCLog4jConfig(),
 		},
 	}
 	return configMap
 }
 
-func generateSSLConfig(l *v1beta1.ListenersConfig, clientPass string) (res string) {
+func generateSSLConfig(l *v1beta1.ListenersConfig, clientPass string, log logr.Logger) *properties.Properties {
+	sslConf := properties.NewProperties()
+
 	if l.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
-		res = fmt.Sprintf(`
-security.protocol=SSL
-ssl.truststore.location=/var/run/secrets/java.io/keystores/%s
-ssl.keystore.location=/var/run/secrets/java.io/keystores/%s
-ssl.keystore.password=%s
-ssl.truststore.password=%s
-`, v1alpha1.TLSJKSTrustStore, v1alpha1.TLSJKSKeyStore, clientPass, clientPass)
+		if err := sslConf.Set("security.protocol", "SSL"); err != nil {
+			log.Error(err, "settings security.protocol in Cruise Control configuration failed")
+		}
+		if err := sslConf.Set("ssl.truststore.location", v1alpha1.TLSJKSTrustStore); err != nil {
+			log.Error(err, "settings ssl.truststore.location in Cruise Control configuration failed")
+		}
+		if err := sslConf.Set("ssl.keystore.location", v1alpha1.TLSJKSKeyStore); err != nil {
+			log.Error(err, "settings ssl.keystore.location in Cruise Control configuration failed")
+		}
+		if err := sslConf.Set("ssl.keystore.password", clientPass); err != nil {
+			log.Error(err, "settings ssl.keystore.password in Cruise Control configuration failed")
+		}
+		if err := sslConf.Set("ssl.truststore.password", clientPass); err != nil {
+			log.Error(err, "settings ssl.truststore.password in Cruise Control configuration failed")
+		}
 	}
-	return
+	return sslConf
 }
 
 func generateBootstrapServer(headlessEnabled bool, clusterName string) string {

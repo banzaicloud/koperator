@@ -3,13 +3,14 @@ module github.com/banzaicloud/kafka-operator
 go 1.15
 
 require (
-	emperror.dev/errors v0.7.0
+	emperror.dev/errors v0.8.0
 	github.com/Shopify/sarama v1.27.1
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.3.1
 	github.com/banzaicloud/istio-client-go v0.0.9
 	github.com/banzaicloud/istio-operator v0.0.0-20200407070503-3f7dc6953a7b
 	github.com/banzaicloud/k8s-objectmatcher v1.4.1
 	github.com/banzaicloud/kafka-operator/api v0.0.0
+	github.com/banzaicloud/kafka-operator/properties v0.0.0
 	github.com/envoyproxy/go-control-plane v0.9.7
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
@@ -33,12 +34,10 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/pavel-v-chernykh/keystore-go v2.1.0+incompatible
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.4.1 // indirect
 	github.com/prometheus/common v0.9.1
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/viper v1.7.1 // indirect
-	go.uber.org/atomic v1.5.1 // indirect
 	go.uber.org/zap v1.10.0
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/grpc v1.27.1 // indirect
@@ -50,4 +49,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.6.3
 )
 
-replace github.com/banzaicloud/kafka-operator/api => ./pkg/sdk
+replace (
+	github.com/banzaicloud/kafka-operator/api => ./pkg/sdk
+	github.com/banzaicloud/kafka-operator/properties => ./properties
+)

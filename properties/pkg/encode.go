@@ -96,7 +96,7 @@ func marshal(v interface{}) (*Properties, error) {
 		if vFieldValue.IsZero() && st.OmitEmpty {
 			continue
 		}
-		err = properties.Set(st.Key, vFieldValue.Interface(), "")
+		err = properties.Set(st.Key, vFieldValue.Interface())
 		if err != nil {
 			return nil, errors.WithDetails(err, "key", st.Key, "value", vFieldValue.Interface())
 		}

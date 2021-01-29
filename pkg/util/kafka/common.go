@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 	"github.com/go-logr/logr"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
@@ -62,7 +63,7 @@ var createAclString = "User:%s,Topic,%s,%s,Create,Allow,*"
 // writeAclString is the raw representation of an ACL allowing Write on a Topic
 var writeAclString = "User:%s,Topic,%s,%s,Write,Allow,*"
 
-// reacAclString is the raw representation of an ACL allowing Read on a Topic
+// readAclString is the raw representation of an ACL allowing Read on a Topic
 var readAclString = "User:%s,Topic,%s,%s,Read,Allow,*"
 
 // readGroupAclString is the raw representation of an ACL allowing Read on ConsumerGroups
@@ -103,74 +104,65 @@ func GrantsToACLStrings(dn string, grants []v1alpha1.UserTopicGrant) []string {
 	return acls
 }
 
-func ShouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) bool {
-	touchedConfigs := collectTouchedConfigs(currentConfigs, desiredConfigs, log)
+func ShouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs *properties.Properties, log logr.Logger) bool {
+	// Get the diff of the configuration
+	configDiff := currentConfigs.Diff(desiredConfigs)
 
-	if _, ok := touchedConfigs[securityProtocolMapConfigName]; ok {
-		if listenersSecurityProtocolChanged(currentConfigs, desiredConfigs) {
+	// Return if there is no drift in the configuration
+	if len(configDiff) == 0 {
+		return true
+	}
+
+	log.V(1).Info("configs have been changed", "configs", configDiff)
+
+	if diff, ok := configDiff[securityProtocolMapConfigName]; ok {
+		if listenersSecurityProtocolChanged(diff[0].Value(), diff[1].Value()) {
 			return false
 		}
 	}
 
 	for _, perBrokerConfig := range PerBrokerConfigs {
-		delete(touchedConfigs, perBrokerConfig)
+		delete(configDiff, perBrokerConfig)
 	}
 
-	return len(touchedConfigs) == 0
+	return len(configDiff) == 0
 }
 
 // Security protocol cannot be updated for existing listener
 // a rolling upgrade should be triggered in this case
-func listenersSecurityProtocolChanged(currentConfigs, desiredConfigs map[string]string) bool {
+func listenersSecurityProtocolChanged(current, desired string) bool {
 	// added or deleted config is ok
-	if currentConfigs[securityProtocolMapConfigName] == "" || desiredConfigs[securityProtocolMapConfigName] == "" {
+	if current == "" || desired == "" {
 		return false
 	}
-	currentListenerProtocolMap := make(map[string]string)
-	for _, listenerConfig := range strings.Split(currentConfigs[securityProtocolMapConfigName], ",") {
-		listenerProtocol := strings.Split(listenerConfig, ":")
-		if len(listenerProtocol) != 2 {
-			continue
-		}
-		currentListenerProtocolMap[strings.TrimSpace(listenerProtocol[0])] = strings.TrimSpace(listenerProtocol[1])
+	currentConfig := newListenerSecurityProtocolMap(current)
+	desiredConfig := newListenerSecurityProtocolMap(desired)
+
+	if len(currentConfig) != len(desiredConfig) {
+		return true
 	}
-	for _, listenerConfig := range strings.Split(desiredConfigs[securityProtocolMapConfigName], ",") {
-		desiredListenerProtocol := strings.Split(listenerConfig, ":")
-		if len(desiredListenerProtocol) != 2 {
-			continue
-		}
-		if currentListenerProtocolValue, ok := currentListenerProtocolMap[strings.TrimSpace(desiredListenerProtocol[0])]; ok {
-			if currentListenerProtocolValue != strings.TrimSpace(desiredListenerProtocol[1]) {
-				return true
-			}
+
+	for dKey, dConf := range desiredConfig {
+		if cConf, ok := currentConfig[dKey]; ok && cConf != dConf {
+			return true
 		}
 	}
 	return false
 }
 
-// collects are the config keys that are either added, removed or updated
-// between the current and the desired ConfigMap
-func collectTouchedConfigs(currentConfigs, desiredConfigs map[string]string, log logr.Logger) map[string]struct{} {
-	touchedConfigs := make(map[string]struct{})
+type listenerSecurityProtocolMap map[string]string
 
-	currentConfigsCopy := make(map[string]string)
-	for k, v := range currentConfigs {
-		currentConfigsCopy[k] = v
-	}
+func newListenerSecurityProtocolMap(s string) listenerSecurityProtocolMap {
+	listenerSecProtoMap := make(listenerSecurityProtocolMap)
 
-	for configName, desiredValue := range desiredConfigs {
-		if currentValue, ok := currentConfigsCopy[configName]; !ok || currentValue != desiredValue {
-			// new or updated config
-			touchedConfigs[configName] = struct{}{}
+	for _, listenerConfig := range strings.Split(s, ",") {
+		listenerProto := strings.SplitN(listenerConfig, ":", 2)
+		// listenerProto must have 2 parts and it is considered as invalid if it does not.
+		if len(listenerProto) != 2 {
+			continue
 		}
-		delete(currentConfigsCopy, configName)
+		listenerSecProtoMap[strings.TrimSpace(listenerProto[0])] = strings.TrimSpace(listenerProto[1])
 	}
 
-	for configName := range currentConfigsCopy {
-		// deleted config
-		touchedConfigs[configName] = struct{}{}
-	}
-
-	log.V(1).Info("configs have been changed", "configs", touchedConfigs)
-	return touchedConfigs
+	return listenerSecProtoMap
 }

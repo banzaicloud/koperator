@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+	"github.com/Shopify/sarama"
 	"github.com/go-logr/logr"
 	"github.com/imdario/mergo"
 	"go.uber.org/zap"
@@ -33,6 +34,7 @@ import (
 	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 )
 
 const (
@@ -128,12 +130,14 @@ func IsSSLEnabledForInternalCommunication(l []v1beta1.InternalListenerConfig) (e
 	return enabled
 }
 
-// ConvertMapStringToMapStringPointer converts a simple map[string]string to map[string]*string
-func ConvertMapStringToMapStringPointer(inputMap map[string]string) map[string]*string {
+// ConvertPropertiesToMapStringPointer converts a Properties object to map[string]*string
+func ConvertPropertiesToMapStringPointer(pp *properties.Properties) map[string]*string {
 
-	result := map[string]*string{}
-	for key, value := range inputMap {
-		result[key] = StringPointer(value)
+	result := make(map[string]*string, pp.Len())
+	for _, key := range pp.Keys() {
+		if p, ok := pp.Get(key); ok {
+			result[key] = StringPointer(p.Value())
+		}
 	}
 	return result
 }
@@ -156,21 +160,6 @@ func StringSliceRemove(list []string, s string) []string {
 		}
 	}
 	return list
-}
-
-// ParsePropertiesFormat parses the properties format configuration into map[string]string
-func ParsePropertiesFormat(properties string) map[string]string {
-	kafkaProperties := strings.Split(strings.TrimSpace(properties), "\n")
-	config := make(map[string]string, len(kafkaProperties))
-
-	for _, prop := range kafkaProperties {
-		kvSeparatorIdx := strings.Index(prop, "=")
-		if kvSeparatorIdx >= 0 {
-			config[strings.TrimSpace(prop[:kvSeparatorIdx])] = strings.TrimSpace(prop[kvSeparatorIdx+1:])
-		}
-	}
-
-	return config
 }
 
 func AreStringSlicesIdentical(a, b []string) bool {
@@ -319,4 +308,18 @@ func CreateLogger(debug bool, development bool) logr.Logger {
 	}
 
 	return k8s_zap.New(k8s_zap.UseDevMode(development), k8s_zap.Encoder(encoder), k8s_zap.Level(level))
+}
+
+// ConvertConfigEntryListToProperties function takes []sarama.ConfigEntry and coverts it to Properties object
+func ConvertConfigEntryListToProperties(config []sarama.ConfigEntry) (*properties.Properties, error) {
+	p := properties.NewProperties()
+
+	for _, c := range config {
+		err := p.Set(c.Name, c.Value)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return p, nil
 }

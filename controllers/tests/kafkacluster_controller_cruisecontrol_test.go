@@ -110,10 +110,8 @@ func expectCruiseControlConfigMap(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(configMap.Labels).To(HaveKeyWithValue("app", "cruisecontrol"))
 	Expect(configMap.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
 
-	Expect(configMap.Data).To(HaveKeyWithValue("cruisecontrol.properties", fmt.Sprintf(`some.config=value
-# The Kafka cluster to control.
-bootstrap.servers=%s-all-broker:29092
-# The zookeeper connect of the Kafka cluster
+	Expect(configMap.Data).To(HaveKeyWithValue("cruisecontrol.properties", fmt.Sprintf(`bootstrap.servers=%s-all-broker:29092
+some.config=value
 zookeeper.connect=/
 `, kafkaCluster.Name)))
 	Expect(configMap.Data).To(HaveKeyWithValue("capacity.json", `{

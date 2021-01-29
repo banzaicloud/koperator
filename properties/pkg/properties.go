@@ -119,7 +119,12 @@ func (p *Properties) Len() int {
 }
 
 // Add a new Property to Properties with the given name and value.
-func (p *Properties) Set(key string, value interface{}, comment string) error {
+func (p *Properties) Set(key string, value interface{}) error {
+	return p.SetWithComment(key, value, "")
+}
+
+// Add a new Property to Properties with the given name and value.
+func (p *Properties) SetWithComment(key string, value interface{}, comment string) error {
 	prop := Property{}
 	err := prop.set(key, value, comment)
 	if err != nil {
@@ -328,8 +333,8 @@ func (p *Properties) Diff(m *Properties) DiffResult {
 		keys[mKey] = struct{}{}
 	}
 
-	// Get difference of the tow Properties by value
-	diff := make(DiffResult, len(keys))
+	// Get difference of the two Properties by value
+	diff := make(DiffResult)
 
 	for key := range keys {
 		pProp, pFound := p.properties[key]
