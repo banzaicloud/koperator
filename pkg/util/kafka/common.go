@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"strings"
 
+	"emperror.dev/errors"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 	"github.com/go-logr/logr"
 
@@ -165,4 +167,69 @@ func newListenerSecurityProtocolMap(s string) listenerSecurityProtocolMap {
 	}
 
 	return listenerSecProtoMap
+}
+
+const (
+	// BrokerHostnameTemplate defines the hostname template for Kafka brokers in the following format:
+	// 	<KAFKA_CLUSTER_NAME>-<BROKER_ID>
+	BrokerHostnameTemplate = "%s-%d"
+	// BrokerHostnameTemplate defines the domain template for Kafka brokers in the following format:
+	// 	<K8S_NAMESPACE>.svc.<K8S_CLUSTER_DOMAIN>
+	ServiceDomainNameTemplate = "%s.svc.%s"
+)
+
+func GetClusterServiceDomainName(cluster *v1beta1.KafkaCluster) string {
+	return fmt.Sprintf(ServiceDomainNameTemplate, cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain())
+}
+
+func GetBrokerServiceFqdn(cluster *v1beta1.KafkaCluster, broker *v1beta1.Broker) string {
+	hostname := fmt.Sprintf(BrokerHostnameTemplate, cluster.Name, broker.Id)
+	svcDomainName := GetClusterServiceDomainName(cluster)
+	return fmt.Sprintf("%s.%s", hostname, svcDomainName)
+}
+
+func GetClusterServiceFqdn(cluster *v1beta1.KafkaCluster) string {
+	tmpl := AllBrokerServiceTemplate
+	if cluster.Spec.HeadlessServiceEnabled {
+		tmpl = HeadlessServiceTemplate
+	}
+	return fmt.Sprintf("%s.%s",
+		fmt.Sprintf(tmpl, cluster.Name),
+		GetClusterServiceDomainName(cluster))
+}
+
+func GetBootstrapServers(cluster *v1beta1.KafkaCluster) (string, error) {
+	return getBootstrapServers(cluster, false)
+}
+
+func GetBootstrapServersService(cluster *v1beta1.KafkaCluster) (string, error) {
+	return getBootstrapServers(cluster, true)
+}
+
+func getBootstrapServers(cluster *v1beta1.KafkaCluster, useService bool) (string, error) {
+	var listener v1beta1.InternalListenerConfig
+	var bootstrapServersList []string
+
+	for _, lc := range cluster.Spec.ListenersConfig.InternalListeners {
+		if lc.UsedForInnerBrokerCommunication && !lc.UsedForControllerCommunication {
+			listener = lc
+			break
+		}
+	}
+
+	if listener.Name == "" {
+		return "", errors.New("no suitable listener found for using as Kafka bootstrap server configuration")
+	}
+
+	if useService {
+		bootstrapServersList = append(bootstrapServersList,
+			fmt.Sprintf("%s:%d", GetClusterServiceFqdn(cluster), listener.ContainerPort))
+	} else {
+		for _, broker := range cluster.Spec.Brokers {
+			fqdn := GetBrokerServiceFqdn(cluster, &broker)
+			bootstrapServersList = append(bootstrapServersList,
+				fmt.Sprintf("%s:%d", fqdn, listener.ContainerPort))
+		}
+	}
+	return strings.Join(bootstrapServersList, ","), nil
 }

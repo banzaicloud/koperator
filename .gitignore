@@ -38,3 +38,5 @@ bin/*
 cover.out
 
 manager_image_patch.yaml
+
+.idea

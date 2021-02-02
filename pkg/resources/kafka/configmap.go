@@ -27,7 +27,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
-	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	zookeeperutils "github.com/banzaicloud/kafka-operator/pkg/util/zookeeper"
 	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 )
@@ -99,7 +99,10 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	if err := config.Set("metric.reporters", "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"); err != nil {
 		log.Error(err, "setting metric.reporters in broker configuration resulted an error")
 	}
-	bootstrapServers := getInternalListener(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, id, r.KafkaCluster.Spec.GetKubernetesClusterDomain(), r.KafkaCluster.Namespace, r.KafkaCluster.Name, r.KafkaCluster.Spec.HeadlessServiceEnabled)
+	bootstrapServers, err := kafkautils.GetBootstrapServersService(r.KafkaCluster)
+	if err != nil {
+		log.Error(err, "getting Kafka bootstrap servers for Cruise Control failed")
+	}
 	if err := config.Set("cruise.control.metrics.reporter.bootstrap.servers", bootstrapServers); err != nil {
 		log.Error(err, "setting cruise.control.metrics.reporter.bootstrap.servers in broker configuration resulted an error")
 	}
@@ -143,12 +146,12 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, ext
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
 			util.MergeLabels(
-				kafka.LabelsForKafka(r.KafkaCluster.Name),
+				kafkautils.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			r.KafkaCluster,
 		),
-		Data: map[string]string{kafka.ConfigPropertyName: r.generateBrokerConfig(id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)},
+		Data: map[string]string{kafkautils.ConfigPropertyName: r.generateBrokerConfig(id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)},
 	}
 	if brokerConfig.Log4jConfig != "" {
 		brokerConf.Data["log4j.properties"] = brokerConfig.Log4jConfig
@@ -238,23 +241,6 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger)
 	}
 
 	return config
-}
-
-func getInternalListener(iListeners []v1beta1.InternalListenerConfig, id int32, domain, namespace, crName string, headlessServiceEnabled bool) string {
-
-	internalListener := ""
-
-	for _, iListener := range iListeners {
-		if iListener.UsedForInnerBrokerCommunication {
-			if headlessServiceEnabled {
-				internalListener = fmt.Sprintf("%s://%s-%d.%s-headless.%s.svc.%s:%d", strings.ToUpper(iListener.Name), crName, id, crName, namespace, domain, iListener.ContainerPort)
-			} else {
-				internalListener = fmt.Sprintf("%s://%s-%d.%s.svc.%s:%d", strings.ToUpper(iListener.Name), crName, id, namespace, domain, iListener.ContainerPort)
-			}
-		}
-	}
-
-	return internalListener
 }
 
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList, serverPass, clientPass string, superUsers []string, log logr.Logger) string {
