@@ -165,7 +165,7 @@ func expectKafkaBrokerConfigmap(kafkaCluster *v1beta1.KafkaCluster, broker v1bet
 	Expect(configMap.Data).To(HaveKeyWithValue("broker-config", fmt.Sprintf(`advertised.listeners=TEST://test.host.com:%d,INTERNAL://kafkacluster-1-%d.kafka-1.svc.cluster.local:29092,CONTROLLER://kafkacluster-1-%d.kafka-1.svc.cluster.local:29093
 broker.id=%d
 control.plane.listener.name=CONTROLLER
-cruise.control.metrics.reporter.bootstrap.servers=INTERNAL://kafkacluster-1-%d.kafka-1.svc.cluster.local:29092
+cruise.control.metrics.reporter.bootstrap.servers=kafkacluster-1-all-broker.kafka-1.svc.cluster.local:29092
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:
@@ -173,7 +173,7 @@ listeners=INTERNAL://:29092,CONTROLLER://:29093,TEST://:9094
 log.dirs=/kafka-logs/kafka
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 zookeeper.connect=/
-`, 19090+broker.Id, broker.Id, broker.Id, broker.Id, broker.Id)))
+`, 19090+broker.Id, broker.Id, broker.Id, broker.Id)))
 
 	// assert log4j?
 }

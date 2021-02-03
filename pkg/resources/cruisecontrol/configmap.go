@@ -43,11 +43,10 @@ func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logge
 	}
 	ccConfig.Merge(conf)
 
-	// Set bootstrap servers
-	bootstrapServers := fmt.Sprintf("%s:%d",
-		generateBootstrapServer(r.KafkaCluster.Spec.HeadlessServiceEnabled, r.KafkaCluster.Name),
-		generateBootstrapServerPort(log, r.KafkaCluster.Spec.ListenersConfig.InternalListeners),
-	)
+	bootstrapServers, err := kafkautils.GetBootstrapServersService(r.KafkaCluster)
+	if err != nil {
+		log.Error(err, "getting Kafka bootstrap servers for Cruise Control failed")
+	}
 	if err = ccConfig.Set("bootstrap.servers", bootstrapServers); err != nil {
 		log.Error(err, "setting bootstrap.servers in Cruise Control configuration failed", "config", bootstrapServers)
 	}
@@ -103,24 +102,6 @@ func generateSSLConfig(l *v1beta1.ListenersConfig, clientPass string, log logr.L
 		}
 	}
 	return sslConf
-}
-
-func generateBootstrapServer(headlessEnabled bool, clusterName string) string {
-	if headlessEnabled {
-		return fmt.Sprintf(kafkautils.HeadlessServiceTemplate, clusterName)
-	}
-	return fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, clusterName)
-}
-
-func generateBootstrapServerPort(log logr.Logger, listenerConfig []v1beta1.InternalListenerConfig) int32 {
-	for _, listener := range listenerConfig {
-		if listener.UsedForInnerBrokerCommunication {
-			return listener.ContainerPort
-		}
-	}
-	// This should never happen since there should be least one listener for inner broker communication
-	log.V(1).Info("listener for inner communication not found, falling back to first listener")
-	return listenerConfig[0].ContainerPort
 }
 
 const (

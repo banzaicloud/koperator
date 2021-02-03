@@ -17,8 +17,12 @@ package kafka
 import (
 	"testing"
 
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestShouldRefreshOnlyPerBrokerConfigs(t *testing.T) {
@@ -101,4 +105,244 @@ ssl.client.auth=modified_value_4
 			t.Errorf("test case %d failed: %s", i, testCase.Description)
 		}
 	}
+}
+
+const defaultBrokerConfigGroup = "default"
+
+var MinimalKafkaCluster = &v1beta1.KafkaCluster{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "kafka-cluster",
+		Namespace: "kafka-ns",
+	},
+	Spec: v1beta1.KafkaClusterSpec{
+		ListenersConfig: v1beta1.ListenersConfig{
+			ExternalListeners: []v1beta1.ExternalListenerConfig{
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{
+						Name:          "test",
+						ContainerPort: 9094,
+					},
+					ExternalStartingPort: 19090,
+					AccessMethod:         corev1.ServiceTypeLoadBalancer,
+				},
+			},
+			InternalListeners: []v1beta1.InternalListenerConfig{
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{
+						Type:          "plaintext",
+						Name:          "internal",
+						ContainerPort: 29092,
+					},
+					UsedForInnerBrokerCommunication: true,
+				},
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{
+						Type:          "plaintext",
+						Name:          "controller",
+						ContainerPort: 29093,
+					},
+					UsedForInnerBrokerCommunication: false,
+					UsedForControllerCommunication:  true,
+				},
+			},
+		},
+		BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+			defaultBrokerConfigGroup: {
+				StorageConfigs: []v1beta1.StorageConfig{
+					{
+						MountPath: "/kafka-logs",
+						PvcSpec: &corev1.PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: map[corev1.ResourceName]resource.Quantity{
+									corev1.ResourceStorage: resource.MustParse("10Gi"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Brokers: []v1beta1.Broker{
+			{
+				Id:                0,
+				BrokerConfigGroup: defaultBrokerConfigGroup,
+			},
+			{
+				Id:                1,
+				BrokerConfigGroup: defaultBrokerConfigGroup,
+			},
+			{
+				Id:                2,
+				BrokerConfigGroup: defaultBrokerConfigGroup,
+			},
+		},
+	},
+}
+
+func TestGetClusterServiceDomainName(t *testing.T) {
+	t.Run("Without cluster domain override", func(t *testing.T) {
+		cluster := MinimalKafkaCluster.DeepCopy()
+		cluster.Namespace = "kafka-ns"
+		cluster.Spec.KubernetesClusterDomain = ""
+		svcName := GetClusterServiceDomainName(cluster)
+		expected := "kafka-ns.svc.cluster.local"
+
+		if svcName != expected {
+			t.Errorf("Mismatch in service domain name. Expected: %v, got %v", expected, svcName)
+		}
+	})
+
+	t.Run("With cluster domain override", func(t *testing.T) {
+		cluster := MinimalKafkaCluster.DeepCopy()
+		cluster.Namespace = "kafka-ns2"
+		cluster.Spec.KubernetesClusterDomain = "foo.bar"
+		svcName := GetClusterServiceDomainName(cluster)
+		expected := "kafka-ns2.svc.foo.bar"
+
+		if svcName != expected {
+			t.Errorf("Mismatch in service domain name. Expected: %v, got %v", expected, svcName)
+		}
+	})
+}
+
+func TestGetBrokerServiceFqdn(t *testing.T) {
+	broker := &v1beta1.Broker{
+		Id:                1,
+		BrokerConfigGroup: defaultBrokerConfigGroup,
+	}
+
+	t.Run("Without cluster domain override", func(t *testing.T) {
+		cluster := MinimalKafkaCluster.DeepCopy()
+		cluster.Name = "kafka-cluster"
+		cluster.Namespace = "kafka-ns"
+		cluster.Spec.KubernetesClusterDomain = ""
+		fqdn := GetBrokerServiceFqdn(cluster, broker)
+		expectedFqdn := "kafka-cluster-1.kafka-ns.svc.cluster.local"
+
+		if fqdn != expectedFqdn {
+			t.Errorf("Mismatch in broker service fqdn. Expected: %v, got %v", expectedFqdn, fqdn)
+		}
+	})
+
+	t.Run("With cluster domain override", func(t *testing.T) {
+		cluster := MinimalKafkaCluster.DeepCopy()
+		cluster.Name = "kafka-cluster1"
+		cluster.Namespace = "kafka-ns2"
+		cluster.Spec.KubernetesClusterDomain = "foo.bar"
+		fqdn := GetBrokerServiceFqdn(cluster, broker)
+		expectedFqdn := "kafka-cluster1-1.kafka-ns2.svc.foo.bar"
+
+		if fqdn != expectedFqdn {
+			t.Errorf("Mismatch in broker service fqdn. Expected: %v, got %v", expectedFqdn, fqdn)
+		}
+	})
+}
+
+func TestGetBootstrapServersService(t *testing.T) {
+
+	t.Run("Without headless service and cluster domain override", func(t *testing.T) {
+		cluster := MinimalKafkaCluster.DeepCopy()
+		cluster.Spec.HeadlessServiceEnabled = false
+		cluster.Spec.KubernetesClusterDomain = ""
+		expected := "kafka-cluster-all-broker.kafka-ns.svc.cluster.local:29092"
+
+		bootstrapServers, err := GetBootstrapServersService(cluster)
+
+		if err != nil {
+			t.Errorf("Should not return error. Got %v", err)
+		}
+
+		if bootstrapServers != expected {
+			t.Errorf("Mismatch in cluster service bootstrap servers string. Expected: %v, got %v", expected, bootstrapServers)
+		}
+	})
+
+	t.Run("With headless service and cluster domain override", func(t *testing.T) {
+		cluster := MinimalKafkaCluster.DeepCopy()
+		cluster.Spec.HeadlessServiceEnabled = true
+		cluster.Spec.KubernetesClusterDomain = "foo.bar"
+		expected := "kafka-cluster-headless.kafka-ns.svc.foo.bar:29092"
+
+		bootstrapServers, err := GetBootstrapServersService(cluster)
+
+		if err != nil {
+			t.Errorf("Should not return error. Got %v", err)
+		}
+
+		if bootstrapServers != expected {
+			t.Errorf("Mismatch in cluster service bootstrap servers string. Expected: %v, got %v", expected, bootstrapServers)
+		}
+	})
+
+	t.Run("With headless service but without cluster domain override", func(t *testing.T) {
+		cluster := MinimalKafkaCluster.DeepCopy()
+		cluster.Spec.HeadlessServiceEnabled = true
+		cluster.Spec.KubernetesClusterDomain = ""
+		expected := "kafka-cluster-headless.kafka-ns.svc.cluster.local:29092"
+
+		bootstrapServers, err := GetBootstrapServersService(cluster)
+
+		if err != nil {
+			t.Errorf("Should not return error. Got %v", err)
+		}
+
+		if bootstrapServers != expected {
+			t.Errorf("Mismatch in cluster service bootstrap servers string. Expected: %v, got %v", expected, bootstrapServers)
+		}
+	})
+
+	t.Run("With cluster domain override but without headless service", func(t *testing.T) {
+		cluster := MinimalKafkaCluster.DeepCopy()
+		cluster.Spec.HeadlessServiceEnabled = false
+		cluster.Spec.KubernetesClusterDomain = "foo.bar"
+		expected := "kafka-cluster-all-broker.kafka-ns.svc.foo.bar:29092"
+
+		bootstrapServers, err := GetBootstrapServersService(cluster)
+
+		if err != nil {
+			t.Errorf("Should not return error. Got %v", err)
+		}
+
+		if bootstrapServers != expected {
+			t.Errorf("Mismatch in cluster service bootstrap servers string. Expected: %v, got %v", expected, bootstrapServers)
+		}
+	})
+}
+
+func TestGetBootstrapServers(t *testing.T) {
+
+	t.Run("Without cluster domain override", func(t *testing.T) {
+		cluster := MinimalKafkaCluster.DeepCopy()
+		cluster.Spec.KubernetesClusterDomain = ""
+		expected := "kafka-cluster-0.kafka-ns.svc.cluster.local:29092,kafka-cluster-1.kafka-ns.svc.cluster.local:29092,kafka-cluster-2.kafka-ns.svc.cluster.local:29092"
+
+		bootstrapServers, err := GetBootstrapServers(cluster)
+
+		if err != nil {
+			t.Errorf("Should not return error. Got %v", err)
+		}
+
+		if bootstrapServers != expected {
+			t.Errorf("Mismatch in broker service bootstrap servers string. Expected: %v, got %v", expected, bootstrapServers)
+		}
+	})
+
+	t.Run("With cluster domain override", func(t *testing.T) {
+		cluster := MinimalKafkaCluster.DeepCopy()
+		cluster.Spec.KubernetesClusterDomain = "foo.bar"
+		expected := "kafka-cluster-0.kafka-ns.svc.foo.bar:29092,kafka-cluster-1.kafka-ns.svc.foo.bar:29092,kafka-cluster-2.kafka-ns.svc.foo.bar:29092"
+
+		bootstrapServers, err := GetBootstrapServers(cluster)
+
+		if err != nil {
+			t.Errorf("Should not return error. Got %v", err)
+		}
+
+		if bootstrapServers != expected {
+			t.Errorf("Mismatch in cluster service bootstrap servers string. Expected: %v, got %v", expected, bootstrapServers)
+		}
+	})
 }
