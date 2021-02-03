@@ -871,9 +871,10 @@ func TestGetIngressConfigs(t *testing.T) {
 func TestIsIngressConfigInUse(t *testing.T) {
 	logger := zap.New()
 	testCases := []struct {
-		cluster        *v1beta1.KafkaCluster
-		iConfigName    string
-		expectedOutput bool
+		cluster           *v1beta1.KafkaCluster
+		iConfigName       string
+		defaultConfigName string
+		expectedOutput    bool
 	}{
 		// Only the global config is in use
 		{
@@ -955,9 +956,29 @@ func TestIsIngressConfigInUse(t *testing.T) {
 			},
 			expectedOutput: false,
 		},
+		// Config is in use as a default config
+		{
+			iConfigName:       "bar",
+			defaultConfigName: "bar",
+			cluster: &v1beta1.KafkaCluster{Spec: v1beta1.KafkaClusterSpec{
+				Brokers: []v1beta1.Broker{
+					{Id: 0, BrokerConfig: &v1beta1.BrokerConfig{
+						BrokerIdBindings: []string{},
+					}},
+					{Id: 1, BrokerConfig: &v1beta1.BrokerConfig{
+						BrokerIdBindings: []string{},
+					}},
+					{Id: 2, BrokerConfig: &v1beta1.BrokerConfig{
+						BrokerIdBindings: []string{},
+					}},
+				},
+			},
+			},
+			expectedOutput: true,
+		},
 	}
 	for _, testCase := range testCases {
-		result := IsIngressConfigInUse(testCase.iConfigName, testCase.cluster, logger)
+		result := IsIngressConfigInUse(testCase.iConfigName, testCase.defaultConfigName, testCase.cluster, logger)
 		if result != testCase.expectedOutput {
 			t.Errorf("result does not match with the expected output - expected: %v, actual: %v", result, testCase.expectedOutput)
 		}

@@ -71,17 +71,17 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 	return &appsv1.Deployment{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			deploymentName,
-			labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
+			labelsForEnvoyIngress(r.KafkaCluster.GetName(), annotationName),
 			ingressConfig.EnvoyConfig.GetAnnotations(),
 			r.KafkaCluster),
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
+				MatchLabels: labelsForEnvoyIngress(r.KafkaCluster.GetName(), annotationName),
 			},
 			Replicas: util.Int32Pointer(ingressConfig.EnvoyConfig.GetReplicas()),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
+					Labels: labelsForEnvoyIngress(r.KafkaCluster.GetName(), annotationName),
 					Annotations: generatePodAnnotations(r.KafkaCluster, extListener, ingressConfigName,
 						defaultIngressConfigName, log),
 				},

@@ -34,19 +34,19 @@ func expectEnvoyIngressLabels(labels map[string]string, eListenerName, crName st
 	Expect(labels).To(HaveKeyWithValue("kafka_cr", crName))
 }
 
-func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerName string) {
+func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
 	var loadBalancer corev1.Service
-	lbName := fmt.Sprintf("envoy-loadbalancer-%s-%s", eListenerName, kafkaCluster.Name)
+	lbName := fmt.Sprintf("envoy-loadbalancer-%s-%s", eListenerTemplate, kafkaCluster.Name)
 	Eventually(func() error {
 		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
 		return err
 	}).Should(Succeed())
 
-	expectEnvoyIngressLabels(loadBalancer.Labels, eListenerName, kafkaCluster.Name)
+	expectEnvoyIngressLabels(loadBalancer.Labels, eListenerTemplate, kafkaCluster.Name)
 	Expect(loadBalancer.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 	Expect(loadBalancer.Spec.Selector).To(Equal(map[string]string{
 		"app":           "envoyingress",
-		"eListenerName": eListenerName,
+		"eListenerName": eListenerTemplate,
 		"kafka_cr":      kafkaCluster.Name,
 	}))
 	Expect(loadBalancer.Spec.Ports).To(HaveLen(4))
@@ -65,15 +65,15 @@ func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerName s
 	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(29092))
 }
 
-func expectEnvoyConfigMap(kafkaCluster *v1beta1.KafkaCluster, eListenerName string) {
+func expectEnvoyConfigMap(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
 	var configMap corev1.ConfigMap
-	configMapName := fmt.Sprintf("envoy-config-%s-%s", eListenerName, kafkaCluster.Name)
+	configMapName := fmt.Sprintf("envoy-config-%s-%s", eListenerTemplate, kafkaCluster.Name)
 	Eventually(func() error {
 		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: configMapName}, &configMap)
 		return err
 	}).Should(Succeed())
 
-	expectEnvoyIngressLabels(configMap.Labels, eListenerName, kafkaCluster.Name)
+	expectEnvoyIngressLabels(configMap.Labels, eListenerTemplate, kafkaCluster.Name)
 	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
 	svcTemplate := fmt.Sprintf("%s-%s.%s.svc.%s", kafkaCluster.Name, "%s", kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())
 	Expect(configMap.Data["envoy.yaml"]).To(Equal(fmt.Sprintf(`admin:
@@ -160,20 +160,20 @@ staticResources:
 `, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))))
 }
 
-func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerName string) {
+func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
 	var deployment appsv1.Deployment
-	deploymentName := fmt.Sprintf("envoy-%s-%s", eListenerName, kafkaCluster.Name)
+	deploymentName := fmt.Sprintf("envoy-%s-%s", eListenerTemplate, kafkaCluster.Name)
 	Eventually(func() error {
 		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: deploymentName}, &deployment)
 		return err
 	}).Should(Succeed())
 
-	expectEnvoyIngressLabels(deployment.Labels, eListenerName, kafkaCluster.Name)
+	expectEnvoyIngressLabels(deployment.Labels, eListenerTemplate, kafkaCluster.Name)
 	Expect(deployment.Spec.Selector).NotTo(BeNil())
-	expectEnvoyIngressLabels(deployment.Spec.Selector.MatchLabels, eListenerName, kafkaCluster.Name)
+	expectEnvoyIngressLabels(deployment.Spec.Selector.MatchLabels, eListenerTemplate, kafkaCluster.Name)
 	Expect(deployment.Spec.Replicas).NotTo(BeNil())
 	Expect(*deployment.Spec.Replicas).To(BeEquivalentTo(1))
-	expectEnvoyIngressLabels(deployment.Spec.Template.Labels, eListenerName, kafkaCluster.Name)
+	expectEnvoyIngressLabels(deployment.Spec.Template.Labels, eListenerTemplate, kafkaCluster.Name)
 	templateSpec := deployment.Spec.Template.Spec
 	Expect(templateSpec.ServiceAccountName).To(Equal("default"))
 	Expect(templateSpec.Containers).To(HaveLen(1))
@@ -208,7 +208,7 @@ func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerName str
 		},
 	))
 	Expect(container.VolumeMounts).To(ConsistOf(corev1.VolumeMount{
-		Name:      fmt.Sprintf("envoy-config-%s-%s", eListenerName, kafkaCluster.Name),
+		Name:      fmt.Sprintf("envoy-config-%s-%s", eListenerTemplate, kafkaCluster.Name),
 		ReadOnly:  true,
 		MountPath: "/etc/envoy",
 	}))
@@ -224,10 +224,10 @@ func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerName str
 	}))
 }
 
-func expectEnvoyWithoutConfig(kafkaCluster *v1beta1.KafkaCluster) {
-	for _, eListener := range kafkaCluster.Spec.ListenersConfig.ExternalListeners {
-		expectEnvoyLoadBalancer(kafkaCluster, eListener.Name)
-		expectEnvoyConfigMap(kafkaCluster, eListener.Name)
-		expectEnvoyDeployment(kafkaCluster, eListener.Name)
+func expectEnvoy(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplates []string) {
+	for _, eListenerName := range eListenerTemplates {
+		expectEnvoyLoadBalancer(kafkaCluster, eListenerName)
+		expectEnvoyConfigMap(kafkaCluster, eListenerName)
+		expectEnvoyDeployment(kafkaCluster, eListenerName)
 	}
 }

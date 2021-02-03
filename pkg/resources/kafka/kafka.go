@@ -812,7 +812,7 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 		}
 		listenerStatusList := make(v1beta1.ListenerStatusList, 0, len(r.KafkaCluster.Spec.Brokers)+1)
 		for iConfigName, iConfig := range ingressConfigs {
-			if !util.IsIngressConfigInUse(iConfigName, r.KafkaCluster, log) && iConfigName != defaultControllerName {
+			if !util.IsIngressConfigInUse(iConfigName, defaultControllerName, r.KafkaCluster, log) {
 				continue
 			}
 			if iConfig.HostnameOverride != "" {
