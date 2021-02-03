@@ -75,7 +75,8 @@ func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 			continue
 		}
 		if (len(brokerConfig.BrokerIdBindings) == 0 && ingressConfigName == defaultIngressConfigName) ||
-			util.StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+			util.StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) ||
+			ingressConfigName == "" {
 			tlsRoutes = append(tlsRoutes, v1alpha3.TLSRoute{
 				Match: []v1alpha3.TLSMatchAttributes{
 					{
@@ -129,8 +130,7 @@ func generateTcpRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 			log.Error(err, "could not determine brokerConfig")
 			continue
 		}
-		if (len(brokerConfig.BrokerIdBindings) == 0 && ingressConfigName == defaultIngressConfigName) ||
-			util.StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+		if util.ShouldIncludeBroker(brokerConfig, defaultIngressConfigName, ingressConfigName) {
 			tcpRoutes = append(tcpRoutes, v1alpha3.TCPRoute{
 				Match: []v1alpha3.L4MatchAttributes{
 					{
