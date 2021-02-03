@@ -123,14 +123,14 @@ var _ = Describe("KafkaCluster", func() {
 			externalListenerHostName = "test.host.com"
 		})
 		It("should reconciles objects properly", func() {
-			expectEnvoyWithoutConfig(kafkaCluster)
+			expectEnvoy(kafkaCluster, []string{"test"})
 			expectKafkaMonitoring(kafkaCluster)
 			expectCruiseControlMonitoring(kafkaCluster)
 			expectKafka(kafkaCluster, count)
 			expectCruiseControl(kafkaCluster)
 		})
 	})
-	When("configuring one ingress controller config inside the external listener", func() {
+	When("configuring one ingress envoy controller config inside the external listener without bindings", func() {
 		BeforeEach(func() {
 			testExternalListener := kafkaCluster.Spec.ListenersConfig.ExternalListeners[0]
 			testExternalListener.Config = &v1beta1.Config{
@@ -147,6 +147,106 @@ var _ = Describe("KafkaCluster", func() {
 		})
 		It("should reconcile object properly", func() {
 			expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster, count)
+			expectEnvoy(kafkaCluster, []string{"test-az1"})
+		})
+	})
+	When("configuring two ingress envoy controller config inside the external listener without bindings", func() {
+		BeforeEach(func() {
+			testExternalListener := kafkaCluster.Spec.ListenersConfig.ExternalListeners[0]
+			testExternalListener.Config = &v1beta1.Config{
+				DefaultIngressConfig: "az1",
+				IngressConfig: map[string]v1beta1.IngressConfig{
+					"az1": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az1"},
+					},
+					},
+					"az2": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az2"},
+					},
+					},
+				},
+			}
+			kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
+			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaCluster.Name)
+			externalListenerHostName = "external.az1.host.com"
+		})
+		It("should reconcile object properly", func() {
+			expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster, count)
+			expectEnvoy(kafkaCluster, []string{"test-az1"})
+		})
+	})
+	When("configuring two ingress envoy controller config inside the external listener without using the default", func() {
+		BeforeEach(func() {
+			testExternalListener := kafkaCluster.Spec.ListenersConfig.ExternalListeners[0]
+			testExternalListener.Config = &v1beta1.Config{
+				DefaultIngressConfig: "az1",
+				IngressConfig: map[string]v1beta1.IngressConfig{
+					"az1": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az1"},
+					},
+					},
+					"az2": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az2"},
+					},
+					},
+				},
+			}
+			kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
+			defaultBrokerConfig := kafkaCluster.Spec.BrokerConfigGroups["default"]
+			defaultBrokerConfig.BrokerIdBindings = []string{"az2"}
+			kafkaCluster.Spec.BrokerConfigGroups["default"] = defaultBrokerConfig
+			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-az2-%s", kafkaCluster.Name)
+			externalListenerHostName = "external.az2.host.com"
+		})
+		It("should reconcile object properly", func() {
+			expectEnvoy(kafkaCluster, []string{"test-az2"})
+		})
+	})
+	When("configuring two ingress envoy controller config inside the external listener using both as bindings", func() {
+		BeforeEach(func() {
+			testExternalListener := kafkaCluster.Spec.ListenersConfig.ExternalListeners[0]
+			testExternalListener.Config = &v1beta1.Config{
+				DefaultIngressConfig: "az1",
+				IngressConfig: map[string]v1beta1.IngressConfig{
+					"az1": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az1"},
+					},
+					},
+					"az2": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az2"},
+					},
+					},
+				},
+			}
+			kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
+			defaultBrokerConfig := kafkaCluster.Spec.BrokerConfigGroups["default"]
+			defaultBrokerConfig.BrokerIdBindings = []string{"az2", "az1"}
+			kafkaCluster.Spec.BrokerConfigGroups["default"] = defaultBrokerConfig
+			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaCluster.Name)
+			externalListenerHostName = "external.az1.host.com"
+		})
+		JustBeforeEach(func() {
+			// assign host to envoy LB
+			envoyLBService := &corev1.Service{}
+			Eventually(func() error {
+				return k8sClient.Get(context.TODO(), types.NamespacedName{
+					Name:      fmt.Sprintf("envoy-loadbalancer-test-az2-%s", kafkaCluster.Name),
+					Namespace: namespace,
+				}, envoyLBService)
+			}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
+
+			envoyLBService.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
+				Hostname: "external.az2.host.com",
+			}}
+
+			//logf.Log.V(-1).Info("envoy service updated", "spec", envoyLBService)
+			err := k8sClient.Status().Update(context.TODO(), envoyLBService)
+			Expect(err).NotTo(HaveOccurred())
+			waitForClusterRunningState(kafkaCluster, namespace)
+		})
+		FIt("should reconcile object properly", func() {
+			expectEnvoy(kafkaCluster, []string{"test-az1"})
+			expectEnvoy(kafkaCluster, []string{"test-az2"})
 		})
 	})
 })
