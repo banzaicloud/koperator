@@ -114,8 +114,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 				continue
 			}
 		}
-		if (len(brokerConfig.BrokerIdBindings) == 0 && ingressConfigName == defaultIngressConfigName) ||
-			util.StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+		if util.ShouldIncludeBroker(brokerConfig, defaultIngressConfigName, ingressConfigName) {
 			listeners = append(listeners, &envoyapi.Listener{
 				Address: &envoycore.Address{
 					Address: &envoycore.Address_SocketAddress{

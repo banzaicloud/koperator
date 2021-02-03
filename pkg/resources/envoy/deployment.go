@@ -133,8 +133,7 @@ func getExposedContainerPorts(extListener v1beta1.ExternalListenerConfig, broker
 				continue
 			}
 		}
-		if (len(brokerConfig.BrokerIdBindings) == 0 && ingressConfigName == defaultIngressConfigName) ||
-			util.StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+		if util.ShouldIncludeBroker(brokerConfig, defaultIngressConfigName, ingressConfigName) {
 			exposedPorts = append(exposedPorts, corev1.ContainerPort{
 				Name:          fmt.Sprintf("broker-%d", brokerId),
 				ContainerPort: extListener.ExternalStartingPort + int32(brokerId),

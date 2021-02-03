@@ -224,6 +224,15 @@ func IsIngressConfigInUse(iConfigName string, cluster *v1beta1.KafkaCluster, log
 	return false
 }
 
+// ShouldIncludeBroker returns true if the broker should be included as a resource on external listener resources
+func ShouldIncludeBroker(brokerConfig *v1beta1.BrokerConfig, defaultIngressConfigName, ingressConfigName string) bool {
+	if len(brokerConfig.BrokerIdBindings) == 0 && (ingressConfigName == defaultIngressConfigName || defaultIngressConfigName == "") ||
+		StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+		return true
+	}
+	return false
+}
+
 // GetIngressConfigs compose the ingress configuration for a given externalListener
 func GetIngressConfigs(kafkaClusterSpec v1beta1.KafkaClusterSpec,
 	eListenerConfig v1beta1.ExternalListenerConfig) (map[string]v1beta1.IngressConfig, string, error) {
