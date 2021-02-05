@@ -66,27 +66,11 @@ func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListen
 func getExposedServicePorts(extListener v1beta1.ExternalListenerConfig, brokersIds []int,
 	kafkaClusterSpec v1beta1.KafkaClusterSpec, ingressConfigName, defaultIngressConfigName string, log logr.Logger) []corev1.ServicePort {
 	var exposedPorts []corev1.ServicePort
-	var err error
 	for _, brokerId := range brokersIds {
-		brokerConfig := &v1beta1.BrokerConfig{}
-		brokerIdPresent := false
-		var requiredBroker v1beta1.Broker
-		// This check is used in case of broker delete. In case of broker delete there is some time when the CC removes the broker
-		// gracefully which means we have to generate the port for that broker as well. At that time the status contains
-		// but the broker spec does not contain the required config values.
-		for _, broker := range kafkaClusterSpec.Brokers {
-			if int(broker.Id) == brokerId {
-				brokerIdPresent = true
-				requiredBroker = broker
-				break
-			}
-		}
-		if brokerIdPresent {
-			brokerConfig, err = util.GetBrokerConfig(requiredBroker, kafkaClusterSpec)
-			if err != nil {
-				log.Error(err, "could not determine brokerConfig")
-				continue
-			}
+		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kafkaClusterSpec, brokerId)
+		if err != nil {
+			log.Error(err, "could not determine brokerConfig")
+			continue
 		}
 		if util.ShouldIncludeBroker(brokerConfig, defaultIngressConfigName, ingressConfigName) {
 

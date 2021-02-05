@@ -140,8 +140,8 @@ type BrokerConfig struct {
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// SecurityContext allows to set security context for the kafka container
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
-	// BrokerIdBindings allows to set specific loadbalancer to a specific broker mappings.
-	// If left empty, all broker will inherit this loadbalancer
+	// BrokerIdBindings allows to set specific ingress to a specific broker mappings.
+	// If left empty, all broker will inherit the default one specified under external listeners config
 	BrokerIdBindings []string `json:"brokerIdBindings,omitempty"`
 }
 
