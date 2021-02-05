@@ -879,8 +879,7 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 				if err != nil {
 					return nil, err
 				}
-				if len(brokerConfig.BrokerIdBindings) == 0 ||
-					util.StringSliceContains(brokerConfig.BrokerIdBindings, iConfigName) {
+				if util.ShouldIncludeBroker(brokerConfig, defaultControllerName, iConfigName) {
 					listenerStatus := v1beta1.ListenerStatus{
 						Name:    fmt.Sprintf("broker-%d", broker.Id),
 						Address: fmt.Sprintf("%s:%d", brokerHost, portNumber),

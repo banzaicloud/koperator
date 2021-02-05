@@ -231,3 +231,233 @@ func expectEnvoy(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplates []string
 		expectEnvoyDeployment(kafkaCluster, eListenerName)
 	}
 }
+
+func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
+	var loadBalancer corev1.Service
+	lbName := fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaCluster.Name)
+	Eventually(func() error {
+		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
+		return err
+	}).Should(Succeed())
+	Expect(loadBalancer.Spec.Ports).To(HaveLen(2))
+	Expect(loadBalancer.Spec.Ports[0].Name).To(Equal("broker-0"))
+	Expect(loadBalancer.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[0].Port).To(BeEquivalentTo(19090))
+	Expect(loadBalancer.Spec.Ports[0].TargetPort.IntVal).To(BeEquivalentTo(19090))
+
+	Expect(loadBalancer.Spec.Ports[1].Name).To(Equal("tcp-all-broker"))
+	Expect(loadBalancer.Spec.Ports[1].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[1].Port).To(BeEquivalentTo(29092))
+	Expect(loadBalancer.Spec.Ports[1].TargetPort.IntVal).To(BeEquivalentTo(29092))
+
+	var deployment appsv1.Deployment
+	deploymentName := fmt.Sprintf("envoy-test-az1-%s", kafkaCluster.Name)
+	Eventually(func() error {
+		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: deploymentName}, &deployment)
+		return err
+	}).Should(Succeed())
+	templateSpec := deployment.Spec.Template.Spec
+	Expect(templateSpec.Containers).To(HaveLen(1))
+	container := templateSpec.Containers[0]
+	Expect(container.Ports).To(ConsistOf(
+		corev1.ContainerPort{
+			Name:          "broker-0",
+			ContainerPort: 19090,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		corev1.ContainerPort{
+			Name:          "tcp-all-broker",
+			ContainerPort: 29092,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		corev1.ContainerPort{
+			Name:          "envoy-admin",
+			ContainerPort: 9901,
+			Protocol:      corev1.ProtocolTCP,
+		},
+	))
+
+	var configMap corev1.ConfigMap
+	configMapName := fmt.Sprintf("envoy-config-test-az1-%s", kafkaCluster.Name)
+	Eventually(func() error {
+		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: configMapName}, &configMap)
+		return err
+	}).Should(Succeed())
+	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
+	svcTemplate := fmt.Sprintf("%s-%s.%s.svc.%s", kafkaCluster.Name, "%s", kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())
+	Expect(configMap.Data["envoy.yaml"]).To(Equal(fmt.Sprintf(`admin:
+  accessLogPath: /tmp/admin_access.log
+  address:
+    socketAddress:
+      address: 0.0.0.0
+      portValue: 9901
+staticResources:
+  clusters:
+  - connectTimeout: 1s
+    hosts:
+    - socketAddress:
+        address: %s
+        portValue: 9094
+    http2ProtocolOptions: {}
+    name: broker-0
+    type: STRICT_DNS
+  - connectTimeout: 1s
+    hosts:
+    - socketAddress:
+        address: %s
+        portValue: 9094
+    http2ProtocolOptions: {}
+    name: all-brokers
+    type: STRICT_DNS
+  listeners:
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 19090
+    filterChains:
+    - filters:
+      - config:
+          cluster: broker-0
+          stat_prefix: broker_tcp-0
+        name: envoy.filters.network.tcp_proxy
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 29092
+    filterChains:
+    - filters:
+      - config:
+          cluster: all-brokers
+          stat_prefix: all-brokers
+        name: envoy.filters.network.tcp_proxy
+`, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "all-broker"))))
+}
+
+func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
+	var loadBalancer corev1.Service
+	lbName := fmt.Sprintf("envoy-loadbalancer-test-az2-%s", kafkaCluster.Name)
+	Eventually(func() error {
+		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
+		return err
+	}).Should(Succeed())
+	Expect(loadBalancer.Spec.Ports).To(HaveLen(3))
+	Expect(loadBalancer.Spec.Ports[0].Name).To(Equal("broker-1"))
+	Expect(loadBalancer.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[0].Port).To(BeEquivalentTo(19091))
+	Expect(loadBalancer.Spec.Ports[0].TargetPort.IntVal).To(BeEquivalentTo(19091))
+
+	Expect(loadBalancer.Spec.Ports[1].Name).To(Equal("broker-2"))
+	Expect(loadBalancer.Spec.Ports[1].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[1].Port).To(BeEquivalentTo(19092))
+	Expect(loadBalancer.Spec.Ports[1].TargetPort.IntVal).To(BeEquivalentTo(19092))
+
+	Expect(loadBalancer.Spec.Ports[2].Name).To(Equal("tcp-all-broker"))
+	Expect(loadBalancer.Spec.Ports[2].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(29092))
+	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(29092))
+
+	var deployment appsv1.Deployment
+	deploymentName := fmt.Sprintf("envoy-test-az2-%s", kafkaCluster.Name)
+	Eventually(func() error {
+		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: deploymentName}, &deployment)
+		return err
+	}).Should(Succeed())
+	templateSpec := deployment.Spec.Template.Spec
+	Expect(templateSpec.Containers).To(HaveLen(1))
+	container := templateSpec.Containers[0]
+	Expect(container.Ports).To(ConsistOf(
+		corev1.ContainerPort{
+			Name:          "broker-1",
+			ContainerPort: 19091,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		corev1.ContainerPort{
+			Name:          "broker-2",
+			ContainerPort: 19092,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		corev1.ContainerPort{
+			Name:          "tcp-all-broker",
+			ContainerPort: 29092,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		corev1.ContainerPort{
+			Name:          "envoy-admin",
+			ContainerPort: 9901,
+			Protocol:      corev1.ProtocolTCP,
+		},
+	))
+
+	var configMap corev1.ConfigMap
+	configMapName := fmt.Sprintf("envoy-config-test-az2-%s", kafkaCluster.Name)
+	Eventually(func() error {
+		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: configMapName}, &configMap)
+		return err
+	}).Should(Succeed())
+	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
+	svcTemplate := fmt.Sprintf("%s-%s.%s.svc.%s", kafkaCluster.Name, "%s", kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())
+	Expect(configMap.Data["envoy.yaml"]).To(Equal(fmt.Sprintf(`admin:
+  accessLogPath: /tmp/admin_access.log
+  address:
+    socketAddress:
+      address: 0.0.0.0
+      portValue: 9901
+staticResources:
+  clusters:
+  - connectTimeout: 1s
+    hosts:
+    - socketAddress:
+        address: %s
+        portValue: 9094
+    http2ProtocolOptions: {}
+    name: broker-1
+    type: STRICT_DNS
+  - connectTimeout: 1s
+    hosts:
+    - socketAddress:
+        address: %s
+        portValue: 9094
+    http2ProtocolOptions: {}
+    name: broker-2
+    type: STRICT_DNS
+  - connectTimeout: 1s
+    hosts:
+    - socketAddress:
+        address: %s
+        portValue: 9094
+    http2ProtocolOptions: {}
+    name: all-brokers
+    type: STRICT_DNS
+  listeners:
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 19091
+    filterChains:
+    - filters:
+      - config:
+          cluster: broker-1
+          stat_prefix: broker_tcp-1
+        name: envoy.filters.network.tcp_proxy
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 19092
+    filterChains:
+    - filters:
+      - config:
+          cluster: broker-2
+          stat_prefix: broker_tcp-2
+        name: envoy.filters.network.tcp_proxy
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 29092
+    filterChains:
+    - filters:
+      - config:
+          cluster: all-brokers
+          stat_prefix: all-brokers
+        name: envoy.filters.network.tcp_proxy
+`, fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))))
+}

@@ -188,7 +188,7 @@ func appendListenerConfigs(advertisedListenerConfig []string, id int32,
 			}
 		}
 	}
-	//TODO write something about why we need to sort this
+	//We have to sort this since we are using map to store listener statuses
 	sort.Strings(advertisedListenerConfig)
 	return advertisedListenerConfig
 }

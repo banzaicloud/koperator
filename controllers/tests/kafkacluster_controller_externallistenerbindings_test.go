@@ -96,3 +96,52 @@ func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1
 			}))
 	}
 }
+
+func expectBrokerConfigmapForAz1ExternalListener(kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
+	configMap := corev1.ConfigMap{}
+	Eventually(func() error {
+		return k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: kafkaCluster.Namespace,
+			Name:      fmt.Sprintf("%s-config-%d", kafkaCluster.Name, 0),
+		}, &configMap)
+	}).Should(Succeed())
+
+	brokerConfig, err := properties.NewFromString(configMap.Data["broker-config"])
+	Expect(err).NotTo(HaveOccurred())
+	advertisedListener, found := brokerConfig.Get("advertised.listeners")
+	Expect(found).To(BeTrue())
+	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az1.host.com:%d",
+		randomGenTestNumber, 0, randomGenTestNumber, randomGenTestNumber, 0, randomGenTestNumber, 19090)))
+}
+
+func expectBrokerConfigmapForAz2ExternalListener(kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
+	configMap := corev1.ConfigMap{}
+	Eventually(func() error {
+		return k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: kafkaCluster.Namespace,
+			Name:      fmt.Sprintf("%s-config-%d", kafkaCluster.Name, 1),
+		}, &configMap)
+	}).Should(Succeed())
+
+	brokerConfig, err := properties.NewFromString(configMap.Data["broker-config"])
+	Expect(err).NotTo(HaveOccurred())
+	advertisedListener, found := brokerConfig.Get("advertised.listeners")
+	Expect(found).To(BeTrue())
+	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az2.host.com:%d",
+		randomGenTestNumber, 1, randomGenTestNumber, randomGenTestNumber, 1, randomGenTestNumber, 19091)))
+
+	configMap = corev1.ConfigMap{}
+	Eventually(func() error {
+		return k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: kafkaCluster.Namespace,
+			Name:      fmt.Sprintf("%s-config-%d", kafkaCluster.Name, 2),
+		}, &configMap)
+	}).Should(Succeed())
+
+	brokerConfig, err = properties.NewFromString(configMap.Data["broker-config"])
+	Expect(err).NotTo(HaveOccurred())
+	advertisedListener, found = brokerConfig.Get("advertised.listeners")
+	Expect(found).To(BeTrue())
+	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az2.host.com:%d",
+		randomGenTestNumber, 2, randomGenTestNumber, randomGenTestNumber, 2, randomGenTestNumber, 19092)))
+}
