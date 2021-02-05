@@ -239,7 +239,8 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	getContainerName := func(c corev1.Container) string { return c.Name }
 	Expect(pod.Spec.InitContainers).To(ConsistOf(
 		WithTransform(getContainerName, Equal("cruise-control-reporter")),
-		WithTransform(getContainerName, Equal("jmx-exporter"))))
+		WithTransform(getContainerName, Equal("jmx-exporter")),
+		WithTransform(getContainerName, Equal("test-initcontainer"))))
 
 	Expect(pod.Spec.Affinity).NotTo(BeNil())
 	Expect(pod.Spec.Affinity.PodAntiAffinity).NotTo(BeNil())
@@ -307,6 +308,12 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 		},
 		corev1.Volume{
 			Name: "jmx-jar-data",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		corev1.Volume{
+			Name: "test-volume",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},

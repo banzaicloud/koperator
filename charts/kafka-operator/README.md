@@ -12,7 +12,7 @@ Before installing the chart, you must first install the kafka-operator CustomRes
 This is performed in a separate step to allow you to easily uninstall and reinstall kafka-operator without deleting your installed custom resources.
 
 ```
-kubectl apply --validate=false -f https://github.com/banzaicloud/kafka-operator/releases/download/v0.12.3/kafka-operator.crds.yaml
+kubectl create --validate=false -f https://github.com/banzaicloud/kafka-operator/releases/download/v0.14.0/kafka-operator.crds.yaml
 ```
 
 To install the chart:

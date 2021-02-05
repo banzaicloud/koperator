@@ -19,6 +19,8 @@ CONTROLLER_GEN = $(PWD)/bin/controller-gen
 
 KUSTOMIZE_BASE = config/overlays/specific-manager-version
 
+HELM_CRD_PATH = charts/kafka-operator/templates/crds.yaml
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -88,12 +90,18 @@ manager: generate fmt vet
 run: generate fmt vet manifests
 	go run ./main.go
 
-# Install CRDs into a cluster
+# Install CRDs into a cluster by manually creating or replacing the CRD depending on whether is currently existing
+# Apply is not applicable as the last-applied-configuration annotation would exceed the size limit enforced by the api server
 install: manifests
-	kubectl apply -f config/base/crds
+ifeq ($(shell kubectl get -f config/base/crds >/dev/null 2>&1; echo $$?), 1)
+	kubectl create -f config/base/crds
+else
+	kubectl replace -f config/base/crds
+endif
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: install-kustomize manifests
+deploy: install-kustomize install
+	# creates the kafka namespace
 	bin/kustomize build config | kubectl apply -f -
 	./scripts/image_patch.sh "${KUSTOMIZE_BASE}/manager_image_patch.yaml" ${IMG}
 	bin/kustomize build $(KUSTOMIZE_BASE) | kubectl apply -f -
@@ -102,7 +110,12 @@ deploy: install-kustomize manifests
 manifests: bin/controller-gen
 	cd pkg/sdk && $(CONTROLLER_GEN) $(CRD_OPTIONS) webhook paths="./..." output:crd:artifacts:config=../../config/base/crds output:webhook:artifacts:config=../../config/base/webhook
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./controllers/..." output:rbac:artifacts:config=./config/base/rbac
-
+	## Regenerate CRDs for the helm chart
+	echo "{{- if .Values.crd.enabled }}" > $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_kafkaclusters.yaml >> $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_kafkatopics.yaml >> $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_kafkausers.yaml >> $(HELM_CRD_PATH)
+	echo "{{- end }}" >> $(HELM_CRD_PATH)
 
 # Run go fmt against code
 fmt:

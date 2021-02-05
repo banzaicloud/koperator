@@ -2,9 +2,7 @@
 namespace: kafka
 
 resources:
-  - crds/kafka.banzaicloud.io_kafkaclusters.yaml
   - crds/kafka.banzaicloud.io_kafkatopics.yaml
-  - crds/kafka.banzaicloud.io_kafkausers.yaml
   - rbac/role.yaml
   - rbac/role_binding.yaml
   - rbac/leader_election_role.yaml
