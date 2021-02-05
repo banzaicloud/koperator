@@ -705,9 +705,9 @@ spec:
                       "9020"'
                     type: object
                   brokerIdBindings:
-                    description: BrokerIdBindings allows to set specific loadbalancer
-                      to a specific broker mappings. If left empty, all broker will
-                      inherit this loadbalancer
+                    description: BrokerIdBindings allows to set specific ingress to
+                      a specific broker mappings. If left empty, all broker will inherit
+                      the default one specified under external listeners config
                     items:
                       type: string
                     type: array
@@ -1892,9 +1892,10 @@ spec:
                           prometheus.io/port: "9020"'
                         type: object
                       brokerIdBindings:
-                        description: BrokerIdBindings allows to set specific loadbalancer
+                        description: BrokerIdBindings allows to set specific ingress
                           to a specific broker mappings. If left empty, all broker
-                          will inherit this loadbalancer
+                          will inherit the default one specified under external listeners
+                          config
                         items:
                           type: string
                         type: array

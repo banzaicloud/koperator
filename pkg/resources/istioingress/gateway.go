@@ -24,7 +24,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
-	kafkautil "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
 func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
@@ -59,7 +59,7 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 	brokerIds := util.GetBrokerIdsFromStatusAndSpec(kc.Status.BrokersState, kc.Spec.Brokers, log)
 
 	for _, brokerId := range brokerIds {
-		brokerConfig, err := util.GetBrokerConfig(kc.Spec.Brokers[brokerId], kc.Spec)
+		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kc.Spec, brokerId)
 		if err != nil {
 			log.Error(err, "could not determine brokerConfig")
 			continue
@@ -80,7 +80,7 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 		Port: &v1alpha3.Port{
 			Number:   int(externalListenerConfig.GetAnyCastPort()),
 			Protocol: protocol,
-			Name:     fmt.Sprintf(kafkautil.AllBrokerServiceTemplate, "tcp"),
+			Name:     fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
 		},
 		Hosts: []string{"*"},
 		TLS:   tlsConfig,
