@@ -23,6 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -36,11 +37,16 @@ func (r *Reconciler) loadBalancer(log logr.Logger, extListener v1beta1.ExternalL
 	exposedPorts := getExposedServicePorts(extListener,
 		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log))
 
+	annotations := r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations()
+
+	// remove lastApplied annotation so that it isn't considering in object comparison code
+	delete(annotations, patch.LastAppliedConfig)
+
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(envoyutils.EnvoyServiceName, extListener.Name, r.KafkaCluster.GetName()),
 			labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
-			r.KafkaCluster.Spec.EnvoyConfig.GetAnnotations(), r.KafkaCluster),
+			annotations, r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Selector:                 labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
 			Type:                     corev1.ServiceTypeLoadBalancer,
