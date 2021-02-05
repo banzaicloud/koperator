@@ -69,6 +69,20 @@ var _ = Describe("KafkaCluster", func() {
 		defaultGroup.SecurityContext = &corev1.SecurityContext{
 			Privileged: util.BoolPointer(true),
 		}
+		defaultGroup.InitContainers = []corev1.Container{{
+			Name:  "test-initcontainer",
+			Image: "busybox:latest",
+		}}
+		defaultGroup.Volumes = []corev1.Volume{{
+			Name: "test-volume",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		}}
+		defaultGroup.VolumeMounts = []corev1.VolumeMount{{
+			Name:      "test-volume",
+			MountPath: "/test/path",
+		}}
 		kafkaCluster.Spec.BrokerConfigGroups[defaultBrokerConfigGroup] = defaultGroup
 		// Set some CruiseControl pod and container related SecurityContext values
 		kafkaCluster.Spec.CruiseControlConfig.PodSecurityContext = &corev1.PodSecurityContext{
@@ -101,7 +115,6 @@ var _ = Describe("KafkaCluster", func() {
 			Hostname: externalListenerHostName,
 		}}
 
-		//logf.Log.V(-1).Info("envoy service updated", "spec", envoyLBService)
 		err = k8sClient.Status().Update(context.TODO(), envoyLBService)
 		Expect(err).NotTo(HaveOccurred())
 

@@ -75,9 +75,9 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 
 	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
 
-	var volume []corev1.Volume
-	var volumeMount []corev1.VolumeMount
-	var initContainers []corev1.Container
+	volume := brokerConfig.Volumes
+	volumeMount := brokerConfig.VolumeMounts
+	initContainers := brokerConfig.InitContainers
 	//TODO remove this bash envoy sidecar checker script once sidecar precedence becomes available to Kubernetes(baluchicken)
 	command := []string{"bash", "-c", `
 if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then

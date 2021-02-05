@@ -144,6 +144,12 @@ type BrokerConfig struct {
 	// If left empty, all broker will inherit the default one specified under external listeners config
 	// Only used when ExternalListeners.Config is populated
 	BrokerIngressMapping []string `json:"brokerIngressMapping,omitempty"`
+	// InitContainers add extra initContainers to the Kafka broker pod
+	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+	// Volumes define some extra Kubernetes Volumes for the Kafka broker Pods.
+	Volumes []corev1.Volume `json:"volumes,omitempty"`
+	// VolumeMounts define some extra Kubernetes Volume mounts for the Kafka broker Pods.
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
 }
 
 type NetworkConfig struct {
