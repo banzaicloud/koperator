@@ -703,6 +703,13 @@ spec:
                       scraping annotations: prometheus.io/scrape: "true" prometheus.io/port:
                       "9020"'
                     type: object
+                  brokerIdBindings:
+                    description: BrokerIdBindings allows to set specific ingress to
+                      a specific broker mappings. If left empty, all broker will inherit
+                      the default one specified under external listeners config
+                    items:
+                      type: string
+                    type: array
                   config:
                     type: string
                   image:
@@ -1883,6 +1890,14 @@ spec:
                           Prometheus scraping annotations: prometheus.io/scrape: "true"
                           prometheus.io/port: "9020"'
                         type: object
+                      brokerIdBindings:
+                        description: BrokerIdBindings allows to set specific ingress
+                          to a specific broker mappings. If left empty, all broker
+                          will inherit the default one specified under external listeners
+                          config
+                        items:
+                          type: string
+                        type: array
                       config:
                         type: string
                       image:
@@ -5165,6 +5180,8 @@ spec:
                 annotations:
                   additionalProperties:
                     type: string
+                  description: Annotations defines the annotations placed on the envoy
+                    ingress controller deployment
                   type: object
                 image:
                   type: string
@@ -5380,6 +5397,8 @@ spec:
                 annotations:
                   additionalProperties:
                     type: string
+                  description: Annotations defines the annotations placed on the istio
+                    ingress controller deployment
                   type: object
                 gatewayConfig:
                   properties:
@@ -5469,6 +5488,7 @@ spec:
                   type: object
                 replicas:
                   format: int32
+                  minimum: 1
                   type: integer
                 resourceRequirements:
                   description: ResourceRequirements describes the compute resource
@@ -5566,6 +5586,389 @@ spec:
                           access without specifying the exact broker
                         format: int32
                         type: integer
+                      config:
+                        description: configuring Config allows to specify ingress
+                          controller configuration per external listener if not set
+                          the default IstioIngressConfig or EnvoyConfig will be used
+                          from the KafkaClusterSpec
+                        properties:
+                          defaultIngressConfig:
+                            type: string
+                          ingressConfig:
+                            additionalProperties:
+                              properties:
+                                envoyConfig:
+                                  description: EnvoyConfig defines the config for
+                                    Envoy
+                                  properties:
+                                    annotations:
+                                      additionalProperties:
+                                        type: string
+                                      description: Annotations defines the annotations
+                                        placed on the envoy ingress controller deployment
+                                      type: object
+                                    image:
+                                      type: string
+                                    imagePullSecrets:
+                                      items:
+                                        description: LocalObjectReference contains
+                                          enough information to let you locate the
+                                          referenced object inside the same namespace.
+                                        properties:
+                                          name:
+                                            description: 'Name of the referent. More
+                                              info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                              TODO: Add other useful fields. apiVersion,
+                                              kind, uid?'
+                                            type: string
+                                        type: object
+                                      type: array
+                                    loadBalancerIP:
+                                      description: LoadBalancerIP can be used to specify
+                                        an exact IP for the LoadBalancer service
+                                      type: string
+                                    loadBalancerSourceRanges:
+                                      items:
+                                        type: string
+                                      type: array
+                                    nodeSelector:
+                                      additionalProperties:
+                                        type: string
+                                      type: object
+                                    replicas:
+                                      format: int32
+                                      minimum: 1
+                                      type: integer
+                                    resourceRequirements:
+                                      description: ResourceRequirements describes
+                                        the compute resource requirements.
+                                      properties:
+                                        limits:
+                                          additionalProperties:
+                                            anyOf:
+                                              - type: integer
+                                              - type: string
+                                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                            x-kubernetes-int-or-string: true
+                                          description: 'Limits describes the maximum
+                                            amount of compute resources allowed. More
+                                            info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                                          type: object
+                                        requests:
+                                          additionalProperties:
+                                            anyOf:
+                                              - type: integer
+                                              - type: string
+                                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                            x-kubernetes-int-or-string: true
+                                          description: 'Requests describes the minimum
+                                            amount of compute resources required.
+                                            If Requests is omitted for a container,
+                                            it defaults to Limits if that is explicitly
+                                            specified, otherwise to an implementation-defined
+                                            value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                                          type: object
+                                      type: object
+                                    serviceAccountName:
+                                      type: string
+                                    tolerations:
+                                      items:
+                                        description: The pod this Toleration is attached
+                                          to tolerates any taint that matches the
+                                          triple <key,value,effect> using the matching
+                                          operator <operator>.
+                                        properties:
+                                          effect:
+                                            description: Effect indicates the taint
+                                              effect to match. Empty means match all
+                                              taint effects. When specified, allowed
+                                              values are NoSchedule, PreferNoSchedule
+                                              and NoExecute.
+                                            type: string
+                                          key:
+                                            description: Key is the taint key that
+                                              the toleration applies to. Empty means
+                                              match all taint keys. If the key is
+                                              empty, operator must be Exists; this
+                                              combination means to match all values
+                                              and all keys.
+                                            type: string
+                                          operator:
+                                            description: Operator represents a key's
+                                              relationship to the value. Valid operators
+                                              are Exists and Equal. Defaults to Equal.
+                                              Exists is equivalent to wildcard for
+                                              value, so that a pod can tolerate all
+                                              taints of a particular category.
+                                            type: string
+                                          tolerationSeconds:
+                                            description: TolerationSeconds represents
+                                              the period of time the toleration (which
+                                              must be of effect NoExecute, otherwise
+                                              this field is ignored) tolerates the
+                                              taint. By default, it is not set, which
+                                              means tolerate the taint forever (do
+                                              not evict). Zero and negative values
+                                              will be treated as 0 (evict immediately)
+                                              by the system.
+                                            format: int64
+                                            type: integer
+                                          value:
+                                            description: Value is the taint value
+                                              the toleration matches to. If the operator
+                                              is Exists, the value should be empty,
+                                              otherwise just a regular string.
+                                            type: string
+                                        type: object
+                                      type: array
+                                  type: object
+                                externalTrafficPolicy:
+                                  description: externalTrafficPolicy denotes if this
+                                    Service desires to route external traffic to node-local
+                                    or cluster-wide endpoints. "Local" preserves the
+                                    client source IP and avoids a second hop for LoadBalancer
+                                    and Nodeport type services, but risks potentially
+                                    imbalanced traffic spreading. "Cluster" obscures
+                                    the client source IP and may cause a second hop
+                                    to another node, but should have good overall
+                                    load-spreading.
+                                  type: string
+                                hostnameOverride:
+                                  description: 'In case of external listeners using
+                                    LoadBalancer access method the value of this field
+                                    is used to advertise the Kafka broker external
+                                    listener instead of the public IP of the provisioned
+                                    LoadBalancer service (e.g. can be used to advertise
+                                    the listener using a URL recorded in DNS instead
+                                    of public IP). In case of external listeners using
+                                    NodePort access method the broker instead of node
+                                    public IP (see "brokerConfig.nodePortExternalIP")
+                                    is advertised on the address having the following
+                                    format: <kafka-cluster-name>-<broker-id>.<namespace><value-specified-in-hostnameOverride-field>'
+                                  type: string
+                                istioIngressConfig:
+                                  description: IstioIngressConfig defines the config
+                                    for the Istio Ingress Controller
+                                  properties:
+                                    annotations:
+                                      additionalProperties:
+                                        type: string
+                                      description: Annotations defines the annotations
+                                        placed on the istio ingress controller deployment
+                                      type: object
+                                    gatewayConfig:
+                                      properties:
+                                        caCertificates:
+                                          description: REQUIRED if mode is `MUTUAL`.
+                                            The path to a file containing certificate
+                                            authority certificates to use in verifying
+                                            a presented client side certificate.
+                                          type: string
+                                        cipherSuites:
+                                          description: 'Optional: If specified, only
+                                            support the specified cipher list. Otherwise
+                                            default to the default cipher list supported
+                                            by Envoy.'
+                                          items:
+                                            type: string
+                                          type: array
+                                        credentialName:
+                                          description: The credentialName stands for
+                                            a unique identifier that can be used to
+                                            identify the serverCertificate and the
+                                            privateKey. The credentialName appended
+                                            with suffix "-cacert" is used to identify
+                                            the CaCertificates associated with this
+                                            server. Gateway workloads capable of fetching
+                                            credentials from a remote credential store
+                                            such as Kubernetes secrets, will be configured
+                                            to retrieve the serverCertificate and
+                                            the privateKey using credentialName, instead
+                                            of using the file system paths specified
+                                            above. If using mutual TLS, gateway workload
+                                            instances will retrieve the CaCertificates
+                                            using credentialName-cacert. The semantics
+                                            of the name are platform dependent.  In
+                                            Kubernetes, the default Istio supplied
+                                            credential server expects the credentialName
+                                            to match the name of the Kubernetes secret
+                                            that holds the server certificate, the
+                                            private key, and the CA certificate (if
+                                            using mutual TLS). Set the `ISTIO_META_USER_SDS`
+                                            metadata variable in the gateway's proxy
+                                            to enable the dynamic credential fetching
+                                            feature.
+                                          type: string
+                                        httpsRedirect:
+                                          description: If set to true, the load balancer
+                                            will send a 301 redirect for all http
+                                            connections, asking the clients to use
+                                            HTTPS.
+                                          type: boolean
+                                        maxProtocolVersion:
+                                          description: 'Optional: Maximum TLS protocol
+                                            version.'
+                                          type: string
+                                        minProtocolVersion:
+                                          description: 'Optional: Minimum TLS protocol
+                                            version.'
+                                          type: string
+                                        mode:
+                                          description: 'Optional: Indicates whether
+                                            connections to this port should be secured
+                                            using TLS. The value of this field determines
+                                            how TLS is enforced.'
+                                          type: string
+                                        privateKey:
+                                          description: REQUIRED if mode is `SIMPLE`
+                                            or `MUTUAL`. The path to the file holding
+                                            the server's private key.
+                                          type: string
+                                        serverCertificate:
+                                          description: REQUIRED if mode is `SIMPLE`
+                                            or `MUTUAL`. The path to the file holding
+                                            the server-side TLS certificate to use.
+                                          type: string
+                                        subjectAltNames:
+                                          description: A list of alternate names to
+                                            verify the subject identity in the certificate
+                                            presented by the client.
+                                          items:
+                                            type: string
+                                          type: array
+                                        verifyCertificateHash:
+                                          description: 'An optional list of hex-encoded
+                                            SHA-256 hashes of the authorized client
+                                            certificates. Both simple and colon separated
+                                            formats are acceptable. Note: When both
+                                            verify_certificate_hash and verify_certificate_spki
+                                            are specified, a hash matching either
+                                            value will result in the certificate being
+                                            accepted.'
+                                          items:
+                                            type: string
+                                          type: array
+                                        verifyCertificateSpki:
+                                          description: 'An optional list of base64-encoded
+                                            SHA-256 hashes of the SKPIs of authorized
+                                            client certificates. Note: When both verify_certificate_hash
+                                            and verify_certificate_spki are specified,
+                                            a hash matching either value will result
+                                            in the certificate being accepted.'
+                                          items:
+                                            type: string
+                                          type: array
+                                      type: object
+                                    nodeSelector:
+                                      additionalProperties:
+                                        type: string
+                                      type: object
+                                    replicas:
+                                      format: int32
+                                      minimum: 1
+                                      type: integer
+                                    resourceRequirements:
+                                      description: ResourceRequirements describes
+                                        the compute resource requirements.
+                                      properties:
+                                        limits:
+                                          additionalProperties:
+                                            anyOf:
+                                              - type: integer
+                                              - type: string
+                                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                            x-kubernetes-int-or-string: true
+                                          description: 'Limits describes the maximum
+                                            amount of compute resources allowed. More
+                                            info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                                          type: object
+                                        requests:
+                                          additionalProperties:
+                                            anyOf:
+                                              - type: integer
+                                              - type: string
+                                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                            x-kubernetes-int-or-string: true
+                                          description: 'Requests describes the minimum
+                                            amount of compute resources required.
+                                            If Requests is omitted for a container,
+                                            it defaults to Limits if that is explicitly
+                                            specified, otherwise to an implementation-defined
+                                            value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                                          type: object
+                                      type: object
+                                    tolerations:
+                                      items:
+                                        description: The pod this Toleration is attached
+                                          to tolerates any taint that matches the
+                                          triple <key,value,effect> using the matching
+                                          operator <operator>.
+                                        properties:
+                                          effect:
+                                            description: Effect indicates the taint
+                                              effect to match. Empty means match all
+                                              taint effects. When specified, allowed
+                                              values are NoSchedule, PreferNoSchedule
+                                              and NoExecute.
+                                            type: string
+                                          key:
+                                            description: Key is the taint key that
+                                              the toleration applies to. Empty means
+                                              match all taint keys. If the key is
+                                              empty, operator must be Exists; this
+                                              combination means to match all values
+                                              and all keys.
+                                            type: string
+                                          operator:
+                                            description: Operator represents a key's
+                                              relationship to the value. Valid operators
+                                              are Exists and Equal. Defaults to Equal.
+                                              Exists is equivalent to wildcard for
+                                              value, so that a pod can tolerate all
+                                              taints of a particular category.
+                                            type: string
+                                          tolerationSeconds:
+                                            description: TolerationSeconds represents
+                                              the period of time the toleration (which
+                                              must be of effect NoExecute, otherwise
+                                              this field is ignored) tolerates the
+                                              taint. By default, it is not set, which
+                                              means tolerate the taint forever (do
+                                              not evict). Zero and negative values
+                                              will be treated as 0 (evict immediately)
+                                              by the system.
+                                            format: int64
+                                            type: integer
+                                          value:
+                                            description: Value is the taint value
+                                              the toleration matches to. If the operator
+                                              is Exists, the value should be empty,
+                                              otherwise just a regular string.
+                                            type: string
+                                        type: object
+                                      type: array
+                                    virtualServiceAnnotations:
+                                      additionalProperties:
+                                        type: string
+                                      type: object
+                                  type: object
+                                serviceAnnotations:
+                                  additionalProperties:
+                                    type: string
+                                  description: ServiceAnnotations defines annotations
+                                    which will be placed to the service or services
+                                    created for the external listener
+                                  type: object
+                                serviceType:
+                                  description: Service Type string describes ingress
+                                    methods for a service Only "NodePort" and "LoadBalancer"
+                                    is supported. Default value is LoadBalancer
+                                  type: string
+                              type: object
+                            type: object
+                        required:
+                          - defaultIngressConfig
+                        type: object
                       containerPort:
                         format: int32
                         type: integer
@@ -5597,7 +6000,15 @@ spec:
                       serviceAnnotations:
                         additionalProperties:
                           type: string
+                        description: ServiceAnnotations defines annotations which
+                          will be placed to the service or services created for the
+                          external listener
                         type: object
+                      serviceType:
+                        description: Service Type string describes ingress methods
+                          for a service Only "NodePort" and "LoadBalancer" is supported.
+                          Default value is LoadBalancer
+                        type: string
                       type:
                         type: string
                     required:
@@ -5762,6 +6173,12 @@ spec:
                   configurationState:
                     description: ConfigurationState holds info about the config
                     type: string
+                  externalListenerConfigNames:
+                    description: ExternalListenerConfigNames holds info about what
+                      listener config is in use with the broker
+                    items:
+                      type: string
+                    type: array
                   gracefulActionState:
                     description: GracefulActionState holds info about cc action status
                     properties:
