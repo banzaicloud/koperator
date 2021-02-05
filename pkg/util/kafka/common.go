@@ -236,7 +236,7 @@ func getBootstrapServers(cluster *v1beta1.KafkaCluster, useService bool) (string
 
 // GatherBrokerConfigIfAvailable return the brokerConfig for a specific Id if available
 func GatherBrokerConfigIfAvailable(kafkaClusterSpec v1beta1.KafkaClusterSpec, brokerId int) (*v1beta1.BrokerConfig, error) {
-	var brokerConfig *v1beta1.BrokerConfig
+	brokerConfig := &v1beta1.BrokerConfig{}
 	brokerIdPresent := false
 	var requiredBroker v1beta1.Broker
 	// This check is used in case of broker delete. In case of broker delete there is some time when the CC removes the broker
