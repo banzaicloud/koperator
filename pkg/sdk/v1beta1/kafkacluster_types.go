@@ -499,7 +499,13 @@ func (eConfig *EnvoyConfig) GetLoadBalancerSourceRanges() []string {
 
 //GetAnnotations returns Annotations to use for Envoy generated LoadBalancer
 func (eConfig *EnvoyConfig) GetAnnotations() map[string]string {
-	return eConfig.Annotations
+	annotations := make(map[string]string, len(eConfig.Annotations))
+
+	for key, value := range eConfig.Annotations {
+		annotations[key] = value
+	}
+
+	return annotations
 }
 
 // GetReplicas returns replicas used by the Envoy deployment
