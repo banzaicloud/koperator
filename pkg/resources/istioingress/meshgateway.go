@@ -47,7 +47,7 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 						Resources:      r.KafkaCluster.Spec.IstioIngressConfig.GetResources(),
 						NodeSelector:   r.KafkaCluster.Spec.IstioIngressConfig.NodeSelector,
 						Tolerations:    r.KafkaCluster.Spec.IstioIngressConfig.Tolerations,
-						PodAnnotations: r.KafkaCluster.Spec.IstioIngressConfig.Annotations,
+						PodAnnotations: r.KafkaCluster.Spec.IstioIngressConfig.GetAnnotations(),
 					},
 				},
 				ServiceType: corev1.ServiceTypeLoadBalancer,
