@@ -222,12 +222,12 @@ type IstioIngressConfig struct {
 }
 
 func (iIConfig *IstioIngressConfig) GetAnnotations() map[string]string {
-	return CloneAnnotationMap(iIConfig.Annotations)
+	return cloneAnnotationMap(iIConfig.Annotations)
 }
 
 // GetVirtualServiceAnnotations returns a copy of the VirtualServiceAnnotations field
 func (iIConfig *IstioIngressConfig) GetVirtualServiceAnnotations() map[string]string {
-	return CloneAnnotationMap(iIConfig.VirtualServiceAnnotations)
+	return cloneAnnotationMap(iIConfig.VirtualServiceAnnotations)
 }
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
@@ -254,7 +254,7 @@ type ListenersConfig struct {
 
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
 func (c ListenersConfig) GetServiceAnnotations() map[string]string {
-	return CloneAnnotationMap(c.ServiceAnnotations)
+	return cloneAnnotationMap(c.ServiceAnnotations)
 }
 
 func (c ExternalListenerConfig) GetAccessMethod() corev1.ServiceType {
@@ -273,7 +273,7 @@ func (c ExternalListenerConfig) GetAnyCastPort() int32 {
 
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
 func (c ExternalListenerConfig) GetServiceAnnotations() map[string]string {
-	return CloneAnnotationMap(c.ServiceAnnotations)
+	return cloneAnnotationMap(c.ServiceAnnotations)
 }
 
 // SSLSecrets defines the Kafka SSL secrets
@@ -485,7 +485,7 @@ func (eConfig *EnvoyConfig) GetLoadBalancerSourceRanges() []string {
 
 //GetAnnotations returns Annotations to use for Envoy generated LoadBalancer
 func (eConfig *EnvoyConfig) GetAnnotations() map[string]string {
-	return CloneAnnotationMap(eConfig.Annotations)
+	return cloneAnnotationMap(eConfig.Annotations)
 }
 
 // GetReplicas returns replicas used by the Envoy deployment
@@ -557,12 +557,12 @@ func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference
 
 // GetBrokerAnnotations return the annotations which applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerAnnotations() map[string]string {
-	return CloneAnnotationMap(bConfig.BrokerAnnotations)
+	return cloneAnnotationMap(bConfig.BrokerAnnotations)
 }
 
 // GetCruiseControlAnnotations return the annotations which applied to CruiseControl pod
 func (cConfig *CruiseControlConfig) GetCruiseControlAnnotations() map[string]string {
-	return CloneAnnotationMap(cConfig.CruiseControlAnnotations)
+	return cloneAnnotationMap(cConfig.CruiseControlAnnotations)
 }
 
 //GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
@@ -921,7 +921,7 @@ func (mConfig *MonitoringConfig) GetCCJMXExporterConfig() string {
 `
 }
 
-func CloneAnnotationMap(original map[string]string) map[string]string {
+func cloneAnnotationMap(original map[string]string) map[string]string {
 	m := make(map[string]string, len(original))
 	for k, v := range original {
 		m[k] = v
