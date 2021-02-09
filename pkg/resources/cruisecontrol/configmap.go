@@ -88,10 +88,10 @@ func generateSSLConfig(l *v1beta1.ListenersConfig, clientPass string, log logr.L
 		if err := sslConf.Set("security.protocol", "SSL"); err != nil {
 			log.Error(err, "settings security.protocol in Cruise Control configuration failed")
 		}
-		if err := sslConf.Set("ssl.truststore.location", v1alpha1.TLSJKSTrustStore); err != nil {
+		if err := sslConf.Set("ssl.truststore.location", keystoreVolumePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
 			log.Error(err, "settings ssl.truststore.location in Cruise Control configuration failed")
 		}
-		if err := sslConf.Set("ssl.keystore.location", v1alpha1.TLSJKSKeyStore); err != nil {
+		if err := sslConf.Set("ssl.keystore.location", keystoreVolumePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
 			log.Error(err, "settings ssl.keystore.location in Cruise Control configuration failed")
 		}
 		if err := sslConf.Set("ssl.keystore.password", clientPass); err != nil {
