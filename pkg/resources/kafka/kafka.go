@@ -816,7 +816,7 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 				continue
 			}
 			if iConfig.HostnameOverride != "" {
-				host = eListener.HostnameOverride
+				host = iConfig.HostnameOverride
 			} else if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 				foundLBService, err = getServiceFromExternalListener(r.Client, r.KafkaCluster, eListener.Name, iConfigName)
 				if err != nil {
