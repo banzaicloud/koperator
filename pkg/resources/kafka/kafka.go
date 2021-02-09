@@ -902,15 +902,17 @@ func (r *Reconciler) reorderBrokers(log logr.Logger, brokers []v1beta1.Broker) [
 		return brokers
 	}
 
-	var controllerBroker v1beta1.Broker
+	var controllerBroker *v1beta1.Broker
 	reorderedBrokers := make([]v1beta1.Broker, 0, len(brokers))
-	for _, broker := range brokers {
-		if broker.Id == controllerID {
-			controllerBroker = broker
+	for i := range brokers {
+		if brokers[i].Id == controllerID {
+			controllerBroker = &brokers[i]
 		} else {
-			reorderedBrokers = append(reorderedBrokers, broker)
+			reorderedBrokers = append(reorderedBrokers, brokers[i])
 		}
 	}
-	reorderedBrokers = append(reorderedBrokers, controllerBroker)
+	if controllerBroker != nil {
+		reorderedBrokers = append(reorderedBrokers, *controllerBroker)
+	}
 	return reorderedBrokers
 }
