@@ -59,7 +59,7 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 						PodAnnotations: ingressConfig.IstioIngressConfig.GetAnnotations(),
 					},
 				},
-				ServiceType: externalListenerConfig.GetServiceType(),
+				ServiceType: ingressConfig.GetServiceType(),
 			},
 			Ports: generateExternalPorts(r.KafkaCluster.Spec,
 				util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log),
