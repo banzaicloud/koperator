@@ -53,7 +53,7 @@ func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListen
 			ingressConfig.IngressServiceSettings.GetServiceAnnotations(), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Selector:                 labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName),
-			Type:                     extListener.GetServiceType(),
+			Type:                     ingressConfig.GetServiceType(),
 			Ports:                    exposedPorts,
 			LoadBalancerSourceRanges: ingressConfig.EnvoyConfig.GetLoadBalancerSourceRanges(),
 			LoadBalancerIP:           ingressConfig.EnvoyConfig.LoadBalancerIP,
