@@ -48,7 +48,7 @@ func (r *Reconciler) configMap(log logr.Logger, extListener v1beta1.ExternalList
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			configMapName,
-			labelsForEnvoyIngress(r.KafkaCluster.GetName(), annotationName), r.KafkaCluster),
+			labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName), r.KafkaCluster),
 		Data: map[string]string{"envoy.yaml": GenerateEnvoyConfig(r.KafkaCluster, extListener, ingressConfigName,
 			defaultIngressConfigName, log)},
 	}

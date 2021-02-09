@@ -37,9 +37,9 @@ func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.Ext
 	}
 	return &v1alpha3.Gateway{
 		ObjectMeta: templates.ObjectMeta(gatewayName,
-			labelsForIstioIngress(r.KafkaCluster.Name, annotationName), r.KafkaCluster),
+			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName), r.KafkaCluster),
 		Spec: v1alpha3.GatewaySpec{
-			Selector: labelsForIstioIngress(r.KafkaCluster.Name, annotationName),
+			Selector: labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName),
 			Servers:  generateServers(r.KafkaCluster, externalListenerConfig, log, ingressConfigName, defaultIngressConfigName),
 		},
 	}
