@@ -847,8 +847,14 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 				if allBrokerPort == 0 {
 					return nil, errors.NewWithDetails("could not find port with name tcp-all-broker", "externalListenerName", eListener.Name)
 				}
+				var anyBrokerStatusName string
+				if iConfigName == util.IngressConfigGlobalName {
+					anyBrokerStatusName = "any-broker"
+				} else {
+					anyBrokerStatusName = fmt.Sprintf("any-broker-%s", iConfigName)
+				}
 				listenerStatus := v1beta1.ListenerStatus{
-					Name:    "any-broker",
+					Name:    anyBrokerStatusName,
 					Address: fmt.Sprintf("%s:%d", host, allBrokerPort),
 				}
 				listenerStatusList = append(listenerStatusList, listenerStatus)
@@ -888,6 +894,9 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 				}
 			}
 		}
+		// We have to sort the listener status list since the ingress config is a
+		// map and we are using that for the generation
+		sort.Sort(listenerStatusList)
 
 		extListenerStatuses[eListener.Name] = listenerStatusList
 	}
