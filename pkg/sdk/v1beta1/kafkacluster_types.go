@@ -404,6 +404,18 @@ type ListenerStatuses struct {
 // ListenerStatusList can hold various amount of statuses based on the listener configuration.
 type ListenerStatusList []ListenerStatus
 
+func (l ListenerStatusList) Len() int {
+	return len(l)
+}
+
+func (l ListenerStatusList) Less(i, j int) bool {
+	return l[i].Name < l[j].Name
+}
+
+func (l ListenerStatusList) Swap(i, j int) {
+	l[i], l[j] = l[j], l[i]
+}
+
 // ListenerStatus holds information about the address of the listener
 type ListenerStatus struct {
 	Name    string `json:"name"`

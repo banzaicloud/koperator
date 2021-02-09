@@ -32,9 +32,17 @@ import (
 func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
 
+	var meshgatewayName string
+	if ingressConfigName == util.IngressConfigGlobalName {
+		meshgatewayName = fmt.Sprintf(istioingressutils.MeshGatewayNameTemplate, externalListenerConfig.Name, r.KafkaCluster.GetName())
+	} else {
+		meshgatewayName = fmt.Sprintf(istioingressutils.MeshGatewayNameTemplateWithScope,
+			externalListenerConfig.Name, ingressConfigName, r.KafkaCluster.GetName())
+	}
+
 	mgateway := &istioOperatorApi.MeshGateway{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf(istioingressutils.MeshGatewayNameTemplate, externalListenerConfig.Name, r.KafkaCluster.Name),
+			meshgatewayName,
 			labelsForIstioIngress(r.KafkaCluster.Name, annotationName), r.KafkaCluster),
 		Spec: istioOperatorApi.MeshGatewaySpec{
 			MeshGatewayConfiguration: istioOperatorApi.MeshGatewayConfiguration{
