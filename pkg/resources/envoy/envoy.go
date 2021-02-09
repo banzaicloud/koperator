@@ -39,7 +39,7 @@ const (
 	allBrokerEnvoyConfigName          = "all-brokers"
 )
 
-var annotationName string
+var eListenerLabelName string
 
 // labelsForEnvoyIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
@@ -81,9 +81,9 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 						continue
 					}
 					if name == util.IngressConfigGlobalName {
-						annotationName = eListener.Name
+						eListenerLabelName = eListener.Name
 					} else {
-						annotationName = fmt.Sprintf("%s-%s", eListener.Name, name)
+						eListenerLabelName = fmt.Sprintf("%s-%s", eListener.Name, name)
 					}
 					for _, res := range []resources.ResourceWithLogAndExternalListenerSpecificInfos{
 						r.service,

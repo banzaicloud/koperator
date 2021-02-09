@@ -49,10 +49,10 @@ func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListen
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			serviceName,
-			labelsForEnvoyIngress(r.KafkaCluster.GetName(), annotationName),
+			labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName),
 			ingressConfig.IngressServiceSettings.GetServiceAnnotations(), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
-			Selector:                 labelsForEnvoyIngress(r.KafkaCluster.GetName(), annotationName),
+			Selector:                 labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName),
 			Type:                     extListener.GetServiceType(),
 			Ports:                    exposedPorts,
 			LoadBalancerSourceRanges: ingressConfig.EnvoyConfig.GetLoadBalancerSourceRanges(),
