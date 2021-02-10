@@ -38,6 +38,9 @@ import (
 
 func (r *Reconciler) configMap(log logr.Logger, extListener v1beta1.ExternalListenerConfig,
 	_ v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
+
+	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
+
 	var configMapName string
 	if ingressConfigName == util.IngressConfigGlobalName {
 		configMapName = fmt.Sprintf(envoyVolumeAndConfigName, extListener.Name, r.KafkaCluster.GetName())

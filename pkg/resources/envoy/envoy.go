@@ -15,8 +15,6 @@
 package envoy
 
 import (
-	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -38,8 +36,6 @@ const (
 	envoyDeploymentNameWithScope      = "envoy-%s-%s-%s"
 	allBrokerEnvoyConfigName          = "all-brokers"
 )
-
-var eListenerLabelName string
 
 // labelsForEnvoyIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
@@ -79,11 +75,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				for name, ingressConfig := range ingressConfigs {
 					if !util.IsIngressConfigInUse(name, defaultControllerName, r.KafkaCluster, log) {
 						continue
-					}
-					if name == util.IngressConfigGlobalName {
-						eListenerLabelName = eListener.Name
-					} else {
-						eListenerLabelName = fmt.Sprintf("%s-%s", eListener.Name, name)
 					}
 					for _, res := range []resources.ResourceWithLogAndExternalListenerSpecificInfos{
 						r.service,

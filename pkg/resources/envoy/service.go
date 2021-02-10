@@ -34,6 +34,8 @@ import (
 func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListenerConfig,
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
 
+	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
+
 	// Determine Service Name from the configuration
 	var serviceName string
 	if ingressConfigName == util.IngressConfigGlobalName {
