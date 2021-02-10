@@ -128,6 +128,12 @@ spec:
             resources:
               requests:
                 storage: 10Gi
+      brokerConfig:
+        # BrokerIngressMapping allows to set specific ingress to a specific broker mappings.
+        # If left empty, all broker will inherit the default one specified under external listeners config
+        # Only used when ExternalListeners.Config is populated
+        brokerIngressMapping:
+          - " ingress-az1"
     - id: 2
       readOnlyConfig: |
         auto.create.topics.enable=false
@@ -156,6 +162,87 @@ spec:
         # containerPort describes what port should be used by the broker to handle the communication
         # originates from outside of the cluster
         containerPort: 9094
+        # Config allows to specify ingress controller configuration per external listener
+        config:
+          # defaultIngressConfig describes which ingress configuration to use
+          # when non set on the brokerIngressMapping field inside BrokerConfig
+          defaultIngressConfig: "az2"
+            # ingressConfig bundles the two available ingress configuration envoy and istio ingress
+            ingressConfig:
+              # Ingress config name should be unique per external listener
+              ingress-az1:
+                # In case of external listeners using LoadBalancer access method the value of this field is used to advertise the
+                # Kafka broker external listener instead of the public IP of the provisioned LoadBalancer service (e.g. can be used to
+                # advertise the listener using a URL recorded in DNS instead of public IP).
+                # In case of external listeners using NodePort access method the broker instead of node public IP (see "brokerConfig.nodePortExternalIP")
+                # is advertised on the address having the following format: <kafka-cluster-name>-<broker-id>.<namespace><value-specified-in-hostnameOverride-field>
+                # hostnameOverride:
+                # ServiceAnnotations defines annotations which will
+                # be placed to the service or services created for the external listener
+                # serviceAnnotations:
+                # externalTrafficPolicy denotes if this Service desires to route external
+                # traffic to node-local or cluster-wide endpoints. "Local" preserves the
+                # client source IP and avoids a second hop for LoadBalancer and Nodeport
+                # type services, but risks potentially imbalanced traffic spreading.
+                # "Cluster" obscures the client source IP and may cause a second hop to
+                # another node, but should have good overall load-spreading.
+                # externalTrafficPolicy:
+                # Service Type string describes ingress methods for a service
+                # Only "NodePort" and "LoadBalancer" is supported.
+                # Default value is LoadBalancer
+                # serviceType:
+                # envoyConfig defines the envoy specific config used for ingress-az1 external listener
+                envoyConfig:
+                  #  replicas describes how many pods will be used for the created envoy proxy
+                  #  replicas: 1
+                  # image describes the Envoy docker image
+                  #  image: "banzaicloud/envoy:0.1.0"
+                  # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
+                  # through this property
+                  # resourceRequirements:
+                  #  limits:
+                  #    memory: "300Mi"
+                  #    cpu: "200m"
+                  #  requests:
+                  #    memory: "300Mi"
+                  #    cpu: "200m"
+                  # serviceAccountName specifies the serviceAccount used for envoy
+                  # serviceAccountName: "envoy"
+                  # imagePullSecrets specifies the secret to use when using private registry
+                  # imagePullSecrets: "k8ssecret"
+                  # nodeSelector can be specified, which set the pod to fit on a node
+                  # nodeSelector:
+                  # tolerations can be specified, which set the pod's tolerations
+                  # tolerations:
+                  # annotations can be used to place annotation to the envoy created loadbalancer
+                   annotations:
+                     az1
+                  # loadBalancerSourceRanges refers to the k8s resource used in loadbalancer type services
+                  # loadBalancerSourceRanges:
+              ingress-az1-istio:
+                istioIngressConfig:
+                  # annotations can be used to place annotation to the envoy created loadbalancer
+                  annotations:
+                    istio-az1
+                  # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
+                  # through this property
+                  # resourceRequirements:
+                  #  limits:
+                  #    memory: "300Mi"
+                  #    cpu: "200m"
+                  #  requests:
+                  #    memory: "300Mi"
+                  #    cpu: "200m"
+                  #  replicas describes how many pods will be used for the created envoy proxy
+                  #  replicas: 1
+                  # nodeSelector can be specified, which set the pod to fit on a node
+                  # nodeSelector:
+                  # tolerations can be specified, which set the pod's tolerations
+                  # tolerations:
+                  # allows to set the created gateway configuration
+                  # gatewayConfig:
+                  # annotations will be placed on the created virtual service
+                  # virtualServiceAnnotations:
     # internalListeners specifies settings required to access kafka externally
     internalListeners:
       # type defines the used security type ssl, plaintext are the two supported ones
