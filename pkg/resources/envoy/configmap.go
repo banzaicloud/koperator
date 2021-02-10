@@ -98,7 +98,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 			log.Error(err, "could not determine brokerConfig")
 			continue
 		}
-		if util.ShouldIncludeBroker(brokerConfig, defaultIngressConfigName, ingressConfigName) {
+		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
 			listeners = append(listeners, &envoyapi.Listener{
 				Address: &envoycore.Address{
 					Address: &envoycore.Address_SocketAddress{

@@ -61,7 +61,7 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 				},
 				ServiceType: ingressConfig.GetServiceType(),
 			},
-			Ports: generateExternalPorts(r.KafkaCluster.Spec,
+			Ports: generateExternalPorts(r.KafkaCluster,
 				util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log),
 				externalListenerConfig, log, ingressConfigName, defaultIngressConfigName),
 			Type: istioOperatorApi.GatewayTypeIngress,
@@ -70,17 +70,18 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 
 	return mgateway
 }
-func generateExternalPorts(kc v1beta1.KafkaClusterSpec, brokerIds []int,
+
+func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
 	externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger, ingressConfigName, defaultIngressConfigName string) []istioOperatorApi.ServicePort {
 
 	generatedPorts := make([]istioOperatorApi.ServicePort, 0)
 	for _, brokerId := range brokerIds {
-		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kc, brokerId)
+		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kc.Spec, brokerId)
 		if err != nil {
 			log.Error(err, "could not determine brokerConfig")
 			continue
 		}
-		if util.ShouldIncludeBroker(brokerConfig, defaultIngressConfigName, ingressConfigName) {
+		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
 			generatedPorts = append(generatedPorts, istioOperatorApi.ServicePort{
 				ServicePort: corev1.ServicePort{
 					Name:       fmt.Sprintf("tcp-broker-%d", brokerId),

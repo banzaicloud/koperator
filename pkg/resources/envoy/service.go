@@ -44,7 +44,7 @@ func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListen
 
 	exposedPorts := getExposedServicePorts(extListener,
 		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log),
-		r.KafkaCluster.Spec, ingressConfigName, defaultIngressConfigName, log)
+		r.KafkaCluster, ingressConfigName, defaultIngressConfigName, log)
 
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
@@ -64,15 +64,15 @@ func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListen
 }
 
 func getExposedServicePorts(extListener v1beta1.ExternalListenerConfig, brokersIds []int,
-	kafkaClusterSpec v1beta1.KafkaClusterSpec, ingressConfigName, defaultIngressConfigName string, log logr.Logger) []corev1.ServicePort {
+	kafkaCluster *v1beta1.KafkaCluster, ingressConfigName, defaultIngressConfigName string, log logr.Logger) []corev1.ServicePort {
 	var exposedPorts []corev1.ServicePort
 	for _, brokerId := range brokersIds {
-		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kafkaClusterSpec, brokerId)
+		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kafkaCluster.Spec, brokerId)
 		if err != nil {
 			log.Error(err, "could not determine brokerConfig")
 			continue
 		}
-		if util.ShouldIncludeBroker(brokerConfig, defaultIngressConfigName, ingressConfigName) {
+		if util.ShouldIncludeBroker(brokerConfig, kafkaCluster.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
 
 			exposedPorts = append(exposedPorts, corev1.ServicePort{
 				Name:       fmt.Sprintf("broker-%d", brokerId),

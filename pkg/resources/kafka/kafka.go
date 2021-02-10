@@ -885,7 +885,7 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 				if err != nil {
 					return nil, err
 				}
-				if util.ShouldIncludeBroker(brokerConfig, defaultControllerName, iConfigName) {
+				if util.ShouldIncludeBroker(brokerConfig, r.KafkaCluster.Status, int(broker.Id), defaultControllerName, iConfigName) {
 					listenerStatus := v1beta1.ListenerStatus{
 						Name:    fmt.Sprintf("broker-%d", broker.Id),
 						Address: fmt.Sprintf("%s:%d", brokerHost, portNumber),
