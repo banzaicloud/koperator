@@ -15,6 +15,7 @@
 package util
 
 import (
+	"fmt"
 	"math/rand"
 	"reflect"
 	"sort"
@@ -225,6 +226,17 @@ func IsIngressConfigInUse(iConfigName, defaultConfigName string, cluster *v1beta
 		}
 	}
 	return false
+}
+
+// ConstructEListenerLabelName construct an eListener label name based on ingress config name and listener name
+func ConstructEListenerLabelName(ingressConfigName, eListenerName string) string {
+	var eListenerLabelName string
+	if ingressConfigName == IngressConfigGlobalName {
+		eListenerLabelName = eListenerName
+	} else {
+		eListenerLabelName = fmt.Sprintf("%s-%s", eListenerName, ingressConfigName)
+	}
+	return eListenerLabelName
 }
 
 // ShouldIncludeBroker returns true if the broker should be included as a resource on external listener resources

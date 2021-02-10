@@ -21,8 +21,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
 
-	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
@@ -36,8 +34,6 @@ const (
 	virtualServiceTemplate          = "%s-%s-virtualservice"
 	virtualServiceTemplateWithScope = "%s-%s-%s-virtualservice"
 )
-
-var eListenerLabelName string
 
 // labelsForIstioIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
@@ -77,11 +73,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				for name, ingressConfig := range ingressConfigs {
 					if !util.IsIngressConfigInUse(name, defaultControllerName, r.KafkaCluster, log) {
 						continue
-					}
-					if name == util.IngressConfigGlobalName {
-						eListenerLabelName = eListener.Name
-					} else {
-						eListenerLabelName = fmt.Sprintf("%s-%s", eListener.Name, name)
 					}
 					for _, res := range []resources.ResourceWithLogAndExternalListenerSpecificInfos{
 						r.meshgateway,
