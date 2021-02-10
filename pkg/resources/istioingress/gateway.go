@@ -64,7 +64,7 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 			log.Error(err, "could not determine brokerConfig")
 			continue
 		}
-		if util.ShouldIncludeBroker(brokerConfig, defaultIngressConfigName, ingressConfigName) {
+		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
 			servers = append(servers, v1alpha3.Server{
 				Port: &v1alpha3.Port{
 					Number:   int(externalListenerConfig.ExternalStartingPort) + brokerId,
