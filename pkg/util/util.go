@@ -213,10 +213,10 @@ func IsIngressConfigInUse(iConfigName, defaultConfigName string, cluster *v1beta
 			log.Error(err, "could not determine if ingressConfig is in use")
 			return false
 		}
-		if len(brokerConfig.BrokerIdBindings) == 0 && iConfigName == defaultConfigName {
+		if len(brokerConfig.BrokerIngressMapping) == 0 && iConfigName == defaultConfigName {
 			return true
 		}
-		if StringSliceContains(brokerConfig.BrokerIdBindings, iConfigName) {
+		if StringSliceContains(brokerConfig.BrokerIngressMapping, iConfigName) {
 			return true
 		}
 	}
@@ -243,8 +243,8 @@ func ConstructEListenerLabelName(ingressConfigName, eListenerName string) string
 func ShouldIncludeBroker(brokerConfig *v1beta1.BrokerConfig, status v1beta1.KafkaClusterStatus, brokerId int,
 	defaultIngressConfigName, ingressConfigName string) bool {
 	if brokerConfig != nil {
-		if len(brokerConfig.BrokerIdBindings) == 0 && (ingressConfigName == defaultIngressConfigName || defaultIngressConfigName == "") ||
-			StringSliceContains(brokerConfig.BrokerIdBindings, ingressConfigName) {
+		if len(brokerConfig.BrokerIngressMapping) == 0 && (ingressConfigName == defaultIngressConfigName || defaultIngressConfigName == "") ||
+			StringSliceContains(brokerConfig.BrokerIngressMapping, ingressConfigName) {
 			return true
 		}
 	}

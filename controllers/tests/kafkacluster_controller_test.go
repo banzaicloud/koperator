@@ -193,7 +193,7 @@ var _ = Describe("KafkaCluster", func() {
 			}
 			kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
 			defaultBrokerConfig := kafkaCluster.Spec.BrokerConfigGroups["default"]
-			defaultBrokerConfig.BrokerIdBindings = []string{"az2"}
+			defaultBrokerConfig.BrokerIngressMapping = []string{"az2"}
 			kafkaCluster.Spec.BrokerConfigGroups["default"] = defaultBrokerConfig
 			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-az2-%s", kafkaCluster.Name)
 			externalListenerHostName = "external.az2.host.com"
@@ -287,8 +287,8 @@ var _ = Describe("KafkaCluster with two config external listener", func() {
 
 	When("configuring two ingress envoy controller config inside the external listener using both as bindings", func() {
 		BeforeEach(func() {
-			kafkaCluster.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerIdBindings: []string{"az1"}}
-			kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIdBindings: []string{"az2"}}
+			kafkaCluster.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az1"}}
+			kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az2"}}
 		})
 		It("should reconcile object properly", func() {
 			expectEnvoyWithConfigAz1(kafkaCluster)

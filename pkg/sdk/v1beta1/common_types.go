@@ -35,7 +35,7 @@ type ConfigurationState string
 // PerBrokerConfigurationState holds info about the per-broker configuration state
 type PerBrokerConfigurationState string
 
-// ExternalListenerConfigNames holds the name of the brokerIdBindings
+// ExternalListenerConfigNames type describes a collection of external listener names
 type ExternalListenerConfigNames []string
 
 // PKIBackend represents an interface implementing the PKIManager

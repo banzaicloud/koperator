@@ -140,9 +140,10 @@ type BrokerConfig struct {
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// SecurityContext allows to set security context for the kafka container
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
-	// BrokerIdBindings allows to set specific ingress to a specific broker mappings.
+	// BrokerIngressMapping allows to set specific ingress to a specific broker mappings.
 	// If left empty, all broker will inherit the default one specified under external listeners config
-	BrokerIdBindings []string `json:"brokerIdBindings,omitempty"`
+	// Only used when ExternalListeners.Config is populated
+	BrokerIngressMapping []string `json:"brokerIngressMapping,omitempty"`
 }
 
 type NetworkConfig struct {
@@ -363,8 +364,9 @@ type ExternalListenerConfig struct {
 	// NodePort should be used in Kubernetes environments with no support for provisioning Load Balancers.
 	// +optional
 	AccessMethod corev1.ServiceType `json:"accessMethod,omitempty"`
-	// configuring Config allows to specify ingress controller configuration per external listener
-	// if not set the default IstioIngressConfig or EnvoyConfig will be used from the KafkaClusterSpec
+	// Config allows to specify ingress controller configuration per external listener
+	// if set overrides the the default `KafkaClusterSpec.IstioIngressConfig` or `KafkaClusterSpec.EnvoyConfig` for this external listener.
+	// +optional
 	Config *Config `json:"config,omitempty"`
 }
 
