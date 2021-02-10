@@ -6,6 +6,7 @@ metadata:
   name: kafka
 spec:
   headlessServiceEnabled: true
+  zkPath: "/toyota"
   zkAddresses:
     - "zookeeper-client.zookeeper:2181"
   propagateLabels: false
@@ -33,13 +34,13 @@ spec:
     - id: 0
       brokerConfigGroup: "default"
       brokerConfig:
-        brokerIdBindings:
-          - "az1"
+        brokerIngressMapping:
+          - " ingress-az1"
     - id: 1
       brokerConfigGroup: "default"
       brokerConfig:
-        brokerIdBindings:
-          - "az1"
+        brokerIngressMapping:
+          - "ingress-az2"
     - id: 2
       brokerConfigGroup: "default"
   rollingUpgradeConfig:
@@ -63,11 +64,11 @@ spec:
         config:
           defaultIngressConfig: "az2"
           ingressConfig:
-            az1:
+            ingress-az1:
               envoyConfig:
                 annotations:
                   zone: az1
-            az2:
+            ingress-az2:
               envoyConfig:
                 annotations:
                   zone: az2

@@ -704,10 +704,11 @@ spec:
                       scraping annotations: prometheus.io/scrape: "true" prometheus.io/port:
                       "9020"'
                     type: object
-                  brokerIdBindings:
-                    description: BrokerIdBindings allows to set specific ingress to
-                      a specific broker mappings. If left empty, all broker will inherit
-                      the default one specified under external listeners config
+                  brokerIngressMapping:
+                    description: BrokerIngressMapping allows to set specific ingress
+                      to a specific broker mappings. If left empty, all broker will
+                      inherit the default one specified under external listeners config
+                      Only used when ExternalListeners.Config is populated
                     items:
                       type: string
                     type: array
@@ -1891,11 +1892,11 @@ spec:
                           Prometheus scraping annotations: prometheus.io/scrape: "true"
                           prometheus.io/port: "9020"'
                         type: object
-                      brokerIdBindings:
-                        description: BrokerIdBindings allows to set specific ingress
+                      brokerIngressMapping:
+                        description: BrokerIngressMapping allows to set specific ingress
                           to a specific broker mappings. If left empty, all broker
                           will inherit the default one specified under external listeners
-                          config
+                          config Only used when ExternalListeners.Config is populated
                         items:
                           type: string
                         type: array
@@ -5588,10 +5589,9 @@ spec:
                         format: int32
                         type: integer
                       config:
-                        description: configuring Config allows to specify ingress
-                          controller configuration per external listener if not set
-                          the default IstioIngressConfig or EnvoyConfig will be used
-                          from the KafkaClusterSpec
+                        description: Config allows to specify ingress controller configuration
+                          per external listener if set overrides the the default `KafkaClusterSpec.IstioIngressConfig`
+                          or `KafkaClusterSpec.EnvoyConfig` for this external listener.
                         properties:
                           defaultIngressConfig:
                             type: string

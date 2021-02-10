@@ -497,8 +497,8 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 		}
 		// Update status what externalListener configs are in use
 		var externalConfigNames v1beta1.ExternalListenerConfigNames
-		if len(bConfig.BrokerIdBindings) > 0 {
-			externalConfigNames = bConfig.BrokerIdBindings
+		if len(bConfig.BrokerIngressMapping) > 0 {
+			externalConfigNames = bConfig.BrokerIngressMapping
 		} else {
 			for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 				if eListener.Config != nil {

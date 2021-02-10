@@ -888,7 +888,7 @@ func TestIsIngressConfigInUse(t *testing.T) {
 				Spec: v1beta1.KafkaClusterSpec{
 					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 						"default": {
-							BrokerIdBindings: []string{"foo"},
+							BrokerIngressMapping: []string{"foo"},
 						},
 					},
 					Brokers: []v1beta1.Broker{
@@ -906,13 +906,13 @@ func TestIsIngressConfigInUse(t *testing.T) {
 			cluster: &v1beta1.KafkaCluster{Spec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
 					{Id: 0, BrokerConfig: &v1beta1.BrokerConfig{
-						BrokerIdBindings: []string{"foo"},
+						BrokerIngressMapping: []string{"foo"},
 					}},
 					{Id: 1, BrokerConfig: &v1beta1.BrokerConfig{
-						BrokerIdBindings: []string{"foo"},
+						BrokerIngressMapping: []string{"foo"},
 					}},
 					{Id: 2, BrokerConfig: &v1beta1.BrokerConfig{
-						BrokerIdBindings: []string{"foo"},
+						BrokerIngressMapping: []string{"foo"},
 					}},
 				},
 			},
@@ -925,7 +925,7 @@ func TestIsIngressConfigInUse(t *testing.T) {
 			cluster: &v1beta1.KafkaCluster{Spec: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 					"default": {
-						BrokerIdBindings: []string{"foo"},
+						BrokerIngressMapping: []string{"foo"},
 					},
 				},
 				Brokers: []v1beta1.Broker{
@@ -943,13 +943,13 @@ func TestIsIngressConfigInUse(t *testing.T) {
 			cluster: &v1beta1.KafkaCluster{Spec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
 					{Id: 0, BrokerConfig: &v1beta1.BrokerConfig{
-						BrokerIdBindings: []string{"foo"},
+						BrokerIngressMapping: []string{"foo"},
 					}},
 					{Id: 1, BrokerConfig: &v1beta1.BrokerConfig{
-						BrokerIdBindings: []string{"foo"},
+						BrokerIngressMapping: []string{"foo"},
 					}},
 					{Id: 2, BrokerConfig: &v1beta1.BrokerConfig{
-						BrokerIdBindings: []string{"foo"},
+						BrokerIngressMapping: []string{"foo"},
 					}},
 				},
 			},
@@ -963,13 +963,13 @@ func TestIsIngressConfigInUse(t *testing.T) {
 			cluster: &v1beta1.KafkaCluster{Spec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
 					{Id: 0, BrokerConfig: &v1beta1.BrokerConfig{
-						BrokerIdBindings: []string{},
+						BrokerIngressMapping: []string{},
 					}},
 					{Id: 1, BrokerConfig: &v1beta1.BrokerConfig{
-						BrokerIdBindings: []string{},
+						BrokerIngressMapping: []string{},
 					}},
 					{Id: 2, BrokerConfig: &v1beta1.BrokerConfig{
-						BrokerIdBindings: []string{},
+						BrokerIngressMapping: []string{},
 					}},
 				},
 			},

@@ -128,8 +128,8 @@ func (in *BrokerConfig) DeepCopyInto(out *BrokerConfig) {
 		*out = new(v1.SecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.BrokerIdBindings != nil {
-		in, out := &in.BrokerIdBindings, &out.BrokerIdBindings
+	if in.BrokerIngressMapping != nil {
+		in, out := &in.BrokerIngressMapping, &out.BrokerIngressMapping
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
