@@ -123,6 +123,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				svc := desired.(*corev1.Service)
 				svc.ResourceVersion = current.(*corev1.Service).ResourceVersion
 				svc.Spec.ClusterIP = current.(*corev1.Service).Spec.ClusterIP
+				svc.Spec.HealthCheckNodePort = current.(*corev1.Service).Spec.HealthCheckNodePort
 				desired = svc
 			}
 
