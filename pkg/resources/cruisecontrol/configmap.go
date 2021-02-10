@@ -108,6 +108,7 @@ const (
 	storageConfigCPUDefaultValue   = "100"
 	storageConfigNWINDefaultValue  = "125000"
 	storageConfigNWOUTDefaultValue = "125000"
+	defaultDoc                     = "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 )
 
 type CapacityConfig struct {
@@ -153,13 +154,16 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 				NWIN:  generateBrokerNetworkIn(broker, kafkaCluster.Spec, log),
 				NWOUT: generateBrokerNetworkOut(broker, kafkaCluster.Spec, log),
 			},
-			Doc: "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB.",
+			Doc: defaultDoc,
 		}
 
 		log.Info("The following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
 
 		capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
 	}
+
+	// adding default broker capacity config
+	capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, generateDefaultBrokerCapacity())
 
 	result, err := json.MarshalIndent(capacityConfig, "", "    ")
 	if err != nil {
@@ -168,6 +172,24 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	log.Info(fmt.Sprintf("Generated capacity config was successful with values: %s", result))
 
 	return string(result)
+}
+
+// generates default broker capacity
+// the exact values do not matter as for every broker it is set explicitly above
+// upon broker deletion CruiseControl does not use these value, it requires to detect that a broker exists
+func generateDefaultBrokerCapacity() BrokerCapacity {
+	return BrokerCapacity{
+		BrokerID: "-1",
+		Capacity: Capacity{
+			DISK: map[string]string{
+				"/kafka-logs/kafka": "10737418240",
+			},
+			CPU:   "100",
+			NWIN:  "125000",
+			NWOUT: "125000",
+		},
+		Doc: defaultDoc,
+	}
 }
 
 func generateBrokerNetworkIn(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) string {
@@ -228,7 +250,7 @@ func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Logger, brokerState v1beta1.Broker, brokerDisks map[string]string) {
 	for _, storageConfig := range brokerConfigGroup.StorageConfigs {
 		int64Value, isConvertible := util.QuantityPointer(storageConfig.PvcSpec.Resources.Requests["storage"]).AsInt64()
-		if isConvertible == false {
+		if !isConvertible {
 			log.Info("Could not convert 'storage' quantity to Int64 in brokerConfig for broker",
 				"brokerId", brokerState.Id)
 		}

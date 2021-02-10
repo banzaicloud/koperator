@@ -151,6 +151,18 @@ zookeeper.connect=/
                 "NW_OUT": "125000"
             },
             "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+        },
+        {
+            "brokerId": "-1",
+            "capacity": {
+                "DISK": {
+                    "/kafka-logs/kafka": "10737418240"
+                },
+                "CPU": "100",
+                "NW_IN": "125000",
+                "NW_OUT": "125000"
+            },
+            "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
         }
     ]
 }`))
