@@ -86,8 +86,8 @@ func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
 		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
 			generatedPorts = append(generatedPorts, istioOperatorApi.ServicePort{
 				ServicePort: corev1.ServicePort{
-					Name:       fmt.Sprintf("tcp-broker-%d", brokerId),
-					Port:       externalListenerConfig.ExternalStartingPort + int32(brokerId),
+					Name: fmt.Sprintf("tcp-broker-%d", brokerId),
+					Port: externalListenerConfig.ExternalStartingPort + int32(brokerId),
 				},
 				TargetPort: util.Int32Pointer(int32(int(externalListenerConfig.ExternalStartingPort) + brokerId)),
 			})
