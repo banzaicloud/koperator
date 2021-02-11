@@ -21,7 +21,6 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
@@ -61,20 +60,24 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 	return mgateway
 }
 
-func generateExternalPorts(brokerIds []int, externalListenerConfig v1beta1.ExternalListenerConfig) []corev1.ServicePort {
-	generatedPorts := make([]corev1.ServicePort, 0)
+func generateExternalPorts(brokerIds []int, externalListenerConfig v1beta1.ExternalListenerConfig) []istioOperatorApi.ServicePort {
+	generatedPorts := make([]istioOperatorApi.ServicePort, 0)
 	for _, brokerId := range brokerIds {
-		generatedPorts = append(generatedPorts, corev1.ServicePort{
-			Name:       fmt.Sprintf("tcp-broker-%d", brokerId),
-			TargetPort: intstr.FromInt(int(externalListenerConfig.ExternalStartingPort) + brokerId),
-			Port:       externalListenerConfig.ExternalStartingPort + int32(brokerId),
+		generatedPorts = append(generatedPorts, istioOperatorApi.ServicePort{
+			ServicePort: corev1.ServicePort{
+				Name: fmt.Sprintf("tcp-broker-%d", brokerId),
+				Port: externalListenerConfig.ExternalStartingPort + int32(brokerId),
+			},
+			TargetPort: util.Int32Pointer(int32(int(externalListenerConfig.ExternalStartingPort) + brokerId)),
 		})
 	}
 
-	generatedPorts = append(generatedPorts, corev1.ServicePort{
-		Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
-		TargetPort: intstr.FromInt(int(externalListenerConfig.GetAnyCastPort())),
-		Port:       externalListenerConfig.GetAnyCastPort(),
+	generatedPorts = append(generatedPorts, istioOperatorApi.ServicePort{
+		ServicePort: corev1.ServicePort{
+			Name: fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
+			Port: externalListenerConfig.GetAnyCastPort(),
+		},
+		TargetPort: util.Int32Pointer(int32(int(externalListenerConfig.GetAnyCastPort()))),
 	})
 
 	return generatedPorts

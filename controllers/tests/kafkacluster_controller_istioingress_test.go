@@ -20,17 +20,14 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	istioOperatorApi "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
-	istioOperatorApi "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -166,26 +163,35 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			Expect(actualResourceJSON).To(Equal(expectedResourceJSON))
 
 			Expect(meshGateway.Spec.Ports).To(ConsistOf(
-				corev1.ServicePort{
-					Name:       "tcp-broker-0",
-					Port:       19090,
-					TargetPort: intstr.FromInt(19090),
+				istioOperatorApi.ServicePort{
+					ServicePort: corev1.ServicePort{
+						Name: "tcp-broker-0",
+						Port: 19090,
+					},
+					TargetPort: util.Int32Pointer(19090),
 				},
-				corev1.ServicePort{
-					Name:       "tcp-broker-1",
-					Port:       19091,
-					TargetPort: intstr.FromInt(19091),
+				istioOperatorApi.ServicePort{
+					ServicePort: corev1.ServicePort{
+						Name: "tcp-broker-1",
+						Port: 19091,
+					},
+					TargetPort: util.Int32Pointer(19091),
 				},
-				corev1.ServicePort{
-					Name:       "tcp-broker-2",
-					Port:       19092,
-					TargetPort: intstr.FromInt(19092),
+				istioOperatorApi.ServicePort{
+					ServicePort: corev1.ServicePort{
+						Name: "tcp-broker-2",
+						Port: 19092,
+					},
+					TargetPort: util.Int32Pointer(19092),
 				},
-				corev1.ServicePort{
-					Name:       "tcp-all-broker",
-					Port:       29092,
-					TargetPort: intstr.FromInt(29092),
-				}))
+				istioOperatorApi.ServicePort{
+					ServicePort: corev1.ServicePort{
+						Name: "tcp-all-broker",
+						Port: 29092,
+					},
+					TargetPort: util.Int32Pointer(29092),
+				},
+			))
 			Expect(meshGateway.Spec.Type).To(Equal(istioOperatorApi.GatewayTypeIngress))
 
 			var gateway v1alpha3.Gateway
