@@ -490,20 +490,26 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			ExpectIstioIngressLabels(meshGatewayConf.Labels, "external-az1", kafkaClusterCRName)
 
 			Expect(meshGateway.Spec.Ports).To(ConsistOf(
-				corev1.ServicePort{
-					Name:       "tcp-broker-0",
-					Port:       19090,
-					TargetPort: intstr.FromInt(19090),
+				istioOperatorApi.ServicePort{
+					ServicePort: corev1.ServicePort{
+						Name: "tcp-broker-0",
+						Port: 19090,
+					},
+					TargetPort: util.Int32Pointer(int32(19090)),
 				},
-				corev1.ServicePort{
-					Name:       "tcp-broker-2",
-					Port:       19092,
-					TargetPort: intstr.FromInt(19092),
+				istioOperatorApi.ServicePort{
+					ServicePort: corev1.ServicePort{
+						Name: "tcp-broker-2",
+						Port: 19092,
+					},
+					TargetPort: util.Int32Pointer(int32(19092)),
 				},
-				corev1.ServicePort{
-					Name:       "tcp-all-broker",
-					Port:       29092,
-					TargetPort: intstr.FromInt(29092),
+				istioOperatorApi.ServicePort{
+					ServicePort: corev1.ServicePort{
+						Name: "tcp-all-broker",
+						Port: 29092,
+					},
+					TargetPort: util.Int32Pointer(int32(29092)),
 				}))
 
 			var gateway v1alpha3.Gateway
@@ -591,15 +597,19 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			ExpectIstioIngressLabels(meshGatewayConf.Labels, "external-az2", kafkaClusterCRName)
 
 			Expect(meshGateway.Spec.Ports).To(ConsistOf(
-				corev1.ServicePort{
-					Name:       "tcp-broker-1",
-					Port:       19091,
-					TargetPort: intstr.FromInt(19091),
+				istioOperatorApi.ServicePort{
+					ServicePort: corev1.ServicePort{
+						Name: "tcp-broker-1",
+						Port: 19091,
+					},
+					TargetPort: util.Int32Pointer(int32(19091)),
 				},
-				corev1.ServicePort{
-					Name:       "tcp-all-broker",
-					Port:       29092,
-					TargetPort: intstr.FromInt(29092),
+				istioOperatorApi.ServicePort{
+					ServicePort: corev1.ServicePort{
+						Name: "tcp-all-broker",
+						Port: 29092,
+					},
+					TargetPort: util.Int32Pointer(int32(29092)),
 				}))
 
 			gatewayName = fmt.Sprintf("%s-external-az2-gateway", kafkaCluster.Name)
