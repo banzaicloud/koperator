@@ -126,13 +126,22 @@ type Capacity struct {
 	NWOUT string            `json:"NW_OUT"`
 }
 
+type JBODInvariantCapacityConfig struct {
+	Capacities []interface{} `json:"brokerCapacities"`
+}
+
 // generateCapacityConfig generates a CC capacity config with default values or returns the manually overridden value if it exists
 func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, config *corev1.ConfigMap) string {
 	log.Info("Generating capacity config")
 
 	// If there is already a config added manually, use that one
 	if kafkaCluster.Spec.CruiseControlConfig.CapacityConfig != "" {
-		return kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
+		userProvidedCapacityConfig := kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
+		updatedProvidedCapacityConfig := ensureContainsDefaultBrokerCapacity(userProvidedCapacityConfig)
+		if updatedProvidedCapacityConfig != "" {
+			return updatedProvidedCapacityConfig
+		}
+		return userProvidedCapacityConfig
 	}
 	// During cluster downscale the CR does not contain data for brokers being downscaled which is
 	// required to generate the proper capacity json for CC so we are reusing the old one.
@@ -171,6 +180,39 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	}
 	log.Info(fmt.Sprintf("Generated capacity config was successful with values: %s", result))
 
+	return string(result)
+}
+
+func ensureContainsDefaultBrokerCapacity(data string) string {
+	config := JBODInvariantCapacityConfig{}
+	err := json.Unmarshal([]byte(data), &config)
+	if err != nil {
+		// could not parse the config, let's not generate error on this
+		return ""
+	}
+	for _, brokerConfig := range config.Capacities {
+		brokerConfigMap, ok := brokerConfig.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		var brokerId interface{}
+		brokerId, ok = brokerConfigMap["brokerId"]
+		if !ok {
+			continue
+		}
+		if brokerId == "-1" {
+			return ""
+		}
+	}
+
+	// should add default broker capacity config
+	config.Capacities = append(config.Capacities, generateDefaultBrokerCapacity())
+
+	result, err := json.MarshalIndent(config, "", "    ")
+	if err != nil {
+		// could not marshal the object, let's skip raising an error
+		return ""
+	}
 	return string(result)
 }
 
