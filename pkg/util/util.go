@@ -213,10 +213,8 @@ func IsIngressConfigInUse(iConfigName, defaultConfigName string, cluster *v1beta
 			log.Error(err, "could not determine if ingressConfig is in use")
 			return false
 		}
-		if len(brokerConfig.BrokerIngressMapping) == 0 && iConfigName == defaultConfigName {
-			return true
-		}
-		if StringSliceContains(brokerConfig.BrokerIngressMapping, iConfigName) {
+		if len(brokerConfig.BrokerIngressMapping) == 0 && iConfigName == defaultConfigName ||
+			StringSliceContains(brokerConfig.BrokerIngressMapping, iConfigName) {
 			return true
 		}
 	}
@@ -230,13 +228,11 @@ func IsIngressConfigInUse(iConfigName, defaultConfigName string, cluster *v1beta
 
 // ConstructEListenerLabelName construct an eListener label name based on ingress config name and listener name
 func ConstructEListenerLabelName(ingressConfigName, eListenerName string) string {
-	var eListenerLabelName string
 	if ingressConfigName == IngressConfigGlobalName {
-		eListenerLabelName = eListenerName
-	} else {
-		eListenerLabelName = fmt.Sprintf("%s-%s", eListenerName, ingressConfigName)
+		return eListenerName
 	}
-	return eListenerLabelName
+
+	return fmt.Sprintf("%s-%s", eListenerName, ingressConfigName)
 }
 
 // ShouldIncludeBroker returns true if the broker should be included as a resource on external listener resources
