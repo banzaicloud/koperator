@@ -17,7 +17,7 @@ package properties
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/gomega"
 )
 
 type TestUnmarshalStruct struct {
@@ -48,39 +48,44 @@ func (t *TestUnmarshalerStruct) UnmarshalProperties(p *Properties) error {
 
 func TestUnmarshal(t *testing.T) {
 	t.Run("Nil interface", func(t *testing.T) {
-
+		g := NewGomegaWithT(t)
 		p := NewProperties()
+		err := Unmarshal(p, nil)
 
-		if err := Unmarshal(p, nil); err == nil {
-			t.Errorf("Unmarshal should return with error!\n %v", err)
-		}
+		g.Expect(err).Should(HaveOccurred(),
+			"Unmarshal should return an error for nil interface!")
 	})
 
-	t.Run("Nil pointer", func(t *testing.T) {
+	t.Run("Empty struct pointer", func(t *testing.T) {
 		var s *TestUnmarshalStruct
 
+		g := NewGomegaWithT(t)
 		p := NewProperties()
+		err := Unmarshal(p, s)
 
-		if err := Unmarshal(p, s); err == nil {
-			t.Errorf("Unmarshal should return with error!\n %v", err)
-		}
+		g.Expect(err).Should(HaveOccurred(),
+			"Passing empty struct pointer to unmarshal should return an error!")
 	})
 
 	t.Run("Load to non struct type", func(t *testing.T) {
 		var s string
 
+		g := NewGomegaWithT(t)
 		p := NewProperties()
+		err := Unmarshal(p, s)
 
-		if err := Unmarshal(p, s); err == nil {
-			t.Errorf("Unmarshal should return with error!\n %v", err)
-		}
+		g.Expect(err).Should(HaveOccurred(),
+			"Passing string to unmarshal should return an error!")
 
-		if err := Unmarshal(p, &s); err == nil {
-			t.Errorf("Unmarshal should return with error!\n %v", err)
-		}
+		err = Unmarshal(p, &s)
+
+		g.Expect(err).Should(HaveOccurred(),
+			"Passing string pointer to unmarshal should return an error!")
 	})
 
-	t.Run("Load to struct", func(t *testing.T) {
+	t.Run("Unmarshal to struct", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := &TestUnmarshalStruct{}
 
 		expectedString := "property string"
@@ -98,32 +103,22 @@ func TestUnmarshal(t *testing.T) {
 
 		err := Unmarshal(p, s)
 
-		if err != nil {
-			t.Errorf("Unmarshal should not return with error!\n %v", err)
-		}
+		g.Expect(err).Should(Succeed())
 
-		if s.StringField != expectedString {
-			t.Errorf("Mismatch in expected and actual value of struct field!\nExpected: %v\nGot: %v\n", expectedString, s.StringField)
-		}
+		g.Expect(s.StringField).Should(Equal(expectedString))
 
-		if s.IntField != expectedInt {
-			t.Errorf("Mismatch in expected and actual value of struct field!\nExpected: %v\nGot: %v\n", expectedInt, s.IntField)
-		}
+		g.Expect(s.IntField).Should(Equal(expectedInt))
 
-		if s.BoolField != expectedBool {
-			t.Errorf("Mismatch in expected and actual value of struct field!\nExpected: %v\nGot: %v\n", expectedBool, s.BoolField)
-		}
+		g.Expect(s.BoolField).Should(Equal(expectedBool))
 
-		if s.FloatField != expectedFloat {
-			t.Errorf("Mismatch in expected and actual value of struct field!\nExpected: %v\nGot: %v\n", expectedFloat, s.FloatField)
-		}
+		g.Expect(s.FloatField).Should(Equal(expectedFloat))
 
-		if !cmp.Equal(s.ListField, expectedList) {
-			t.Errorf("Mismatch in expected and actual value of struct field!\nExpected: %v\nGot: %v\n", expectedList, s.ListField)
-		}
+		g.Expect(s.ListField).Should(Equal(expectedList))
 	})
 
 	t.Run("Struct implementing Unmarshaler interface", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := &TestUnmarshalerStruct{
 			CustomField: "before unmarshal",
 		}
@@ -134,12 +129,8 @@ func TestUnmarshal(t *testing.T) {
 
 		err := Unmarshal(p, s)
 
-		if err != nil {
-			t.Errorf("Marshal should not return error!")
-		}
+		g.Expect(err).Should(Succeed())
 
-		if s.CustomField != expectedValue {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n", expectedValue, s.CustomField)
-		}
+		g.Expect(s.CustomField).Should(Equal(expectedValue))
 	})
 }

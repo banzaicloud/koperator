@@ -17,7 +17,7 @@ package properties
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/gomega"
 )
 
 type TestStruct struct {
@@ -56,42 +56,52 @@ func (s TestMarshalerStruct) MarshalProperties() (*Properties, error) {
 
 func TestMarshal(t *testing.T) {
 	t.Run("Nil value", func(t *testing.T) {
-		if _, err := Marshal(nil); err == nil {
-			t.Error("Marshal should return with error!")
-		}
+		g := NewGomegaWithT(t)
+
+		_, err := Marshal(nil)
+
+		g.Expect(err).Should(HaveOccurred())
 	})
 
 	t.Run("Nil-pointer", func(t *testing.T) {
-		var s *TestStruct = nil
+		g := NewGomegaWithT(t)
 
-		if _, err := Marshal(s); err == nil {
-			t.Error("Marshal should return with error!")
-		}
+		var s *TestStruct = nil
+		_, err := Marshal(s)
+
+		g.Expect(err).Should(HaveOccurred())
 	})
 
 	t.Run("Non-struct value", func(t *testing.T) {
-		s := []string{"item1", "item2"}
+		g := NewGomegaWithT(t)
 
-		if _, err := Marshal(s); err == nil {
-			t.Error("Marshal should return with error!")
-		}
+		s := []string{"item1", "item2"}
+		_, err := Marshal(s)
+
+		g.Expect(err).Should(HaveOccurred())
 	})
 
 	t.Run("Empty struct", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := TestStruct{}
-		if _, err := Marshal(s); err != nil {
-			t.Errorf("Marshal should not return error!\n %v", err)
-		}
+
+		_, err := Marshal(s)
+		g.Expect(err).Should(Succeed())
 	})
 
 	t.Run("Pointer to empty struct", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := TestStruct{}
-		if _, err := Marshal(&s); err != nil {
-			t.Errorf("Marshal should not return error!\n %v", err)
-		}
+
+		_, err := Marshal(&s)
+		g.Expect(err).Should(Succeed())
 	})
 
 	t.Run("Struct", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := TestStruct{
 			StringField:        "property string",
 			IntField:           100,
@@ -102,11 +112,10 @@ func TestMarshal(t *testing.T) {
 			EmptyPropertyField: "empty property field",
 			SkipPropertyField:  "skip property field",
 		}
+
 		p, err := Marshal(s)
 
-		if err != nil {
-			t.Errorf("Marshal should not return error!\n %v", err)
-		}
+		g.Expect(err).Should(Succeed())
 
 		expected := NewProperties()
 		_ = expected.Set("string.field", "property string")
@@ -115,12 +124,12 @@ func TestMarshal(t *testing.T) {
 		_ = expected.Set("float.field", 128.9)
 		_ = expected.Set("list.field", []string{"test value1", "test value2"})
 
-		if !p.Equal(expected) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n", expected, p)
-		}
+		g.Expect(p).Should(Equal(expected))
 	})
 
 	t.Run("Pointer to struct", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := &TestStruct{
 			StringField:        "property string",
 			IntField:           100,
@@ -134,9 +143,7 @@ func TestMarshal(t *testing.T) {
 		}
 		p, err := Marshal(s)
 
-		if err != nil {
-			t.Errorf("Marshal should not return error!\n %v", err)
-		}
+		g.Expect(err).Should(Succeed())
 
 		expected := NewProperties()
 		_ = expected.Set("string.field", "property string")
@@ -146,23 +153,25 @@ func TestMarshal(t *testing.T) {
 		_ = expected.Set("list.field", "test value1,test value2")
 		_ = expected.Set("omitempty.field", "omitempty property field")
 
-		if !cmp.Equal(p, expected, cmp.AllowUnexported(Properties{}), cmp.AllowUnexported(Property{})) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n\n %v\n", expected, p, cmp.Diff(expected, p))
-		}
+		g.Expect(p).Should(Equal(expected))
 	})
 
 	t.Run("Struct with invalid list field", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := TestStructWithInvalidListField{
 			StringField:      "property string",
 			InvalidListField: []int{1, 2, 3},
 		}
 
-		if _, err := Marshal(s); err == nil {
-			t.Error("Marshal should return with error!")
-		}
+		_, err := Marshal(s)
+
+		g.Expect(err).Should(HaveOccurred())
 	})
 
 	t.Run("Struct implementing Marshaler interface", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := &TestMarshalerStruct{
 			StringField: "property string",
 			IntField:    100,
@@ -172,15 +181,11 @@ func TestMarshal(t *testing.T) {
 		}
 		p, err := Marshal(s)
 
-		if err != nil {
-			t.Error("Marshal should return with error!")
-		}
+		g.Expect(err).Should(Succeed())
 
 		expected := NewProperties()
 		_ = expected.Set("custom.marshaller.called", "true")
 
-		if !cmp.Equal(p, expected, cmp.AllowUnexported(Properties{}), cmp.AllowUnexported(Property{})) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n\n %v\n", expected, p, cmp.Diff(expected, p))
-		}
+		g.Expect(p).Should(Equal(expected))
 	})
 }
