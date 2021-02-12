@@ -137,9 +137,9 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	// If there is already a config added manually, use that one
 	if kafkaCluster.Spec.CruiseControlConfig.CapacityConfig != "" {
 		userProvidedCapacityConfig := kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
-		updatedProvidedCapacityConfig := ensureContainsDefaultBrokerCapacity(userProvidedCapacityConfig)
-		if updatedProvidedCapacityConfig != "" {
-			return updatedProvidedCapacityConfig
+		updatedProvidedCapacityConfig := ensureContainsDefaultBrokerCapacity([]byte(userProvidedCapacityConfig), log)
+		if updatedProvidedCapacityConfig != nil {
+			return string(updatedProvidedCapacityConfig)
 		}
 		return userProvidedCapacityConfig
 	}
@@ -183,12 +183,12 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	return string(result)
 }
 
-func ensureContainsDefaultBrokerCapacity(data string) string {
+func ensureContainsDefaultBrokerCapacity(data []byte, log logr.Logger) []byte {
 	config := JBODInvariantCapacityConfig{}
-	err := json.Unmarshal([]byte(data), &config)
+	err := json.Unmarshal(data, &config)
 	if err != nil {
-		// could not parse the config, let's not generate error on this
-		return ""
+		log.Info("could not unmarshal the user-provided broker capacity config")
+		return nil
 	}
 	for _, brokerConfig := range config.Capacities {
 		brokerConfigMap, ok := brokerConfig.(map[string]interface{})
@@ -201,7 +201,7 @@ func ensureContainsDefaultBrokerCapacity(data string) string {
 			continue
 		}
 		if brokerId == "-1" {
-			return ""
+			return nil
 		}
 	}
 
@@ -210,10 +210,10 @@ func ensureContainsDefaultBrokerCapacity(data string) string {
 
 	result, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
-		// could not marshal the object, let's skip raising an error
-		return ""
+		log.Info("could not marshal the modified broker capacity config")
+		return nil
 	}
-	return string(result)
+	return result
 }
 
 // generates default broker capacity
