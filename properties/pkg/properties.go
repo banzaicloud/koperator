@@ -87,6 +87,10 @@ func (p *Properties) Keys() []string {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
+	return p.unsafeKeys()
+}
+
+func (p *Properties) unsafeKeys() []string {
 	// Create an keyIndexList with the size of the keys map
 	keyIdxList := make(keyIndexList, 0, len(p.keys))
 
@@ -189,10 +193,10 @@ func (p *Properties) merge(m *Properties, option MergeOption) {
 	defer p.mutex.Unlock()
 
 	// Merge m to p
-	for _, mProp := range m.properties {
+	for _, key := range m.unsafeKeys() {
 		switch option {
 		case OnlyDefaults:
-			pProp, found := p.properties[mProp.key]
+			pProp, found := p.properties[key]
 			if found && !pProp.IsEmpty() {
 				continue
 			}
@@ -200,6 +204,7 @@ func (p *Properties) merge(m *Properties, option MergeOption) {
 		case AllowOverwrite:
 			fallthrough
 		default:
+			mProp, _ := m.properties[key]
 			p.put(mProp)
 		}
 	}
