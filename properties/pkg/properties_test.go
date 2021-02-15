@@ -27,8 +27,8 @@ func TestNewProperties(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	p := NewProperties()
-	g.Expect(len(p.keys)).Should(Equal(0))
-	g.Expect(len(p.properties)).Should(Equal(0))
+	g.Expect(p.keys).Should(BeEmpty())
+	g.Expect(p.properties).Should(BeEmpty())
 }
 
 func TestProperties_Get(t *testing.T) {
@@ -129,11 +129,11 @@ func TestProperties_Set(t *testing.T) {
 		}
 
 		err := p.Set(expectedProperty.key, expectedProperty.value)
-		g.Expect(err).Should(Succeed())
+		g.Expect(err).Should(BeNil())
 
 		prop, found := p.Get(expectedProperty.key)
 		g.Expect(found).Should(BeTrue())
-		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
+		g.Expect(prop).Should(BeEquivalentTo(expectedProperty))
 	})
 
 	t.Run("Add new Property with integer value to Properties", func(t *testing.T) {
@@ -145,11 +145,11 @@ func TestProperties_Set(t *testing.T) {
 		}
 
 		err := p.Set(expectedProperty.key, 100)
-		g.Expect(err).Should(Succeed())
+		g.Expect(err).Should(BeNil())
 
 		prop, found := p.Get(expectedProperty.key)
 		g.Expect(found).Should(BeTrue())
-		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
+		g.Expect(prop).Should(BeEquivalentTo(expectedProperty))
 	})
 
 	t.Run("Add new Property with string slice value to Properties", func(t *testing.T) {
@@ -161,11 +161,11 @@ func TestProperties_Set(t *testing.T) {
 		}
 
 		err := p.Set(expectedProperty.key, []string{"value1", "value2", "value3"})
-		g.Expect(err).Should(Succeed())
+		g.Expect(err).Should(BeNil())
 
 		prop, found := p.Get(expectedProperty.key)
 		g.Expect(found).Should(BeTrue())
-		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
+		g.Expect(prop).Should(BeEquivalentTo(expectedProperty))
 	})
 }
 
@@ -183,11 +183,11 @@ func TestProperties_SetWithComment(t *testing.T) {
 		}
 
 		err := p.SetWithComment(expectedProperty.key, expectedProperty.value, expectedProperty.comment)
-		g.Expect(err).Should(Succeed())
+		g.Expect(err).Should(BeNil())
 
 		prop, found := p.Get(expectedProperty.key)
 		g.Expect(found).Should(BeTrue())
-		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
+		g.Expect(prop).Should(BeEquivalentTo(expectedProperty))
 	})
 
 	t.Run("Add new Property with integer value to Properties", func(t *testing.T) {
@@ -200,11 +200,11 @@ func TestProperties_SetWithComment(t *testing.T) {
 		}
 
 		err := p.SetWithComment(expectedProperty.key, 100, expectedProperty.comment)
-		g.Expect(err).Should(Succeed())
+		g.Expect(err).Should(BeNil())
 
 		prop, found := p.Get(expectedProperty.key)
 		g.Expect(found).Should(BeTrue())
-		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
+		g.Expect(prop).Should(BeEquivalentTo(expectedProperty))
 	})
 
 	t.Run("Add new Property with string slice value to Properties", func(t *testing.T) {
@@ -217,11 +217,11 @@ func TestProperties_SetWithComment(t *testing.T) {
 		}
 
 		err := p.SetWithComment(expectedProperty.key, []string{"value1", "value2", "value3"}, expectedProperty.comment)
-		g.Expect(err).Should(Succeed())
+		g.Expect(err).Should(BeNil())
 
 		prop, found := p.Get(expectedProperty.key)
 		g.Expect(found).Should(BeTrue())
-		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
+		g.Expect(prop).Should(BeEquivalentTo(expectedProperty))
 	})
 }
 
@@ -281,7 +281,7 @@ func TestProperties_Merge(t *testing.T) {
 		}
 
 		dst.Merge(nil)
-		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
+		g.Expect(dst).Should(BeEquivalentTo(expectedProperties))
 	})
 
 	t.Run("Merge two Properties", func(t *testing.T) {
@@ -322,7 +322,7 @@ func TestProperties_Merge(t *testing.T) {
 		src.put(Property{"test.key3", "p2", "this is a comment line"})
 
 		dst.Merge(src)
-		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
+		g.Expect(dst).Should(BeEquivalentTo(expectedProperties))
 	})
 }
 
@@ -356,7 +356,7 @@ func TestProperties_MergeDefaults(t *testing.T) {
 		}
 
 		dst.MergeDefaults(nil)
-		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
+		g.Expect(dst).Should(BeEquivalentTo(expectedProperties))
 	})
 
 	t.Run("Merge defaults into empty Properties", func(t *testing.T) {
@@ -396,7 +396,7 @@ func TestProperties_MergeDefaults(t *testing.T) {
 		}
 
 		dst.MergeDefaults(src)
-		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
+		g.Expect(dst).Should(BeEquivalentTo(expectedProperties))
 	})
 
 	t.Run("Merge into non-empty Properties", func(t *testing.T) {
@@ -437,7 +437,7 @@ func TestProperties_MergeDefaults(t *testing.T) {
 		}
 
 		dst.MergeDefaults(src)
-		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
+		g.Expect(dst).Should(BeEquivalentTo(expectedProperties))
 	})
 
 	t.Run("No update after merge defaults", func(t *testing.T) {
@@ -472,7 +472,7 @@ func TestProperties_MergeDefaults(t *testing.T) {
 		}
 
 		dst.MergeDefaults(src)
-		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
+		g.Expect(dst).Should(BeEquivalentTo(expectedProperties))
 	})
 }
 
@@ -611,16 +611,19 @@ func TestProperties_Sort(t *testing.T) {
 		expected := &Properties{
 			properties: map[string]Property{
 				"a.key": {
-					key:   "a.key",
-					value: "a",
+					key:     "a.key",
+					value:   "a",
+					comment: "this is a comment line",
 				},
 				"b.key": {
-					key:   "b.key",
-					value: "b",
+					key:     "b.key",
+					value:   "b",
+					comment: "this is a comment line",
 				},
 				"c.key": {
-					key:   "c.key",
-					value: "c",
+					key:     "c.key",
+					value:   "c",
+					comment: "this is a comment line",
 				},
 			},
 			keys: map[string]keyIndex{
@@ -632,9 +635,7 @@ func TestProperties_Sort(t *testing.T) {
 		}
 
 		p.Sort()
-
-		g.Expect(p.Keys()).Should(Equal(expected.Keys()))
-		g.Expect(p.Equal(expected)).Should(BeTrue())
+		g.Expect(p).Should(BeEquivalentTo(expected))
 	})
 
 	t.Run("Sort already sorted Properties", func(t *testing.T) {
@@ -648,16 +649,19 @@ func TestProperties_Sort(t *testing.T) {
 		expected := &Properties{
 			properties: map[string]Property{
 				"a.key": {
-					key:   "a.key",
-					value: "a",
+					key:     "a.key",
+					value:   "a",
+					comment: "this is a comment line",
 				},
 				"b.key": {
-					key:   "b.key",
-					value: "b",
+					key:     "b.key",
+					value:   "b",
+					comment: "this is a comment line",
 				},
 				"c.key": {
-					key:   "c.key",
-					value: "c",
+					key:     "c.key",
+					value:   "c",
+					comment: "this is a comment line",
 				},
 			},
 			keys: map[string]keyIndex{
@@ -669,9 +673,7 @@ func TestProperties_Sort(t *testing.T) {
 		}
 
 		p.Sort()
-
-		g.Expect(p.Keys()).Should(Equal(expected.Keys()))
-		g.Expect(p.Equal(expected)).Should(BeTrue())
+		g.Expect(p).Should(BeEquivalentTo(expected))
 	})
 }
 
@@ -706,7 +708,7 @@ func TestProperties_MarshalJSON(t *testing.T) {
 		expectedString := []byte(`{"properties":{"test.key":"test.value","test.key2":"test.value2","test.key3":"test.value3"}}`)
 
 		pJson, err := json.Marshal(&p)
-		g.Expect(err).Should(Succeed())
+		g.Expect(err).Should(BeNil())
 		g.Expect(pJson).Should(Equal(expectedString))
 	})
 }
