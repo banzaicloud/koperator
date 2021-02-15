@@ -15,161 +15,134 @@
 package properties
 
 import (
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestGetSeparator(t *testing.T) {
 
 	t.Run("Found '=' separator", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := "="
 		i := 8
 		prop := "test.key=test.value"
 
 		sep, idx, err := GetSeparator(prop)
-
-		if err != nil {
-			t.Errorf("Finding %q separator in %q string resulted an error: %v", s, prop, err)
-		}
-
-		if sep != s {
-			t.Errorf("Returned separator does not match. Expected: %v, got %v", s, sep)
-		}
-
-		if idx != i {
-			t.Errorf("Returned index of the spearator does not match. Expected: %v, got %v", i, idx)
-		}
+		g.Expect(err).Should(Succeed())
+		g.Expect(sep).Should(Equal(s))
+		g.Expect(idx).Should(Equal(i))
 	})
 
 	t.Run("Found ':' separator", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := ":"
 		i := 8
 		prop := "test.key:test.value"
 
 		sep, idx, err := GetSeparator(prop)
-
-		if err != nil {
-			t.Errorf("Finding %q separator in %q string resulted an error: %v", s, prop, err)
-		}
-
-		if sep != s {
-			t.Errorf("Returned separator does not match. Expected: %v, got %v", s, sep)
-		}
-
-		if idx != i {
-			t.Errorf("Returned index of the spearator does not match. Expected: %v, got %v", i, idx)
-		}
+		g.Expect(err).Should(Succeed())
+		g.Expect(sep).Should(Equal(s))
+		g.Expect(idx).Should(Equal(i))
 	})
 
 	t.Run("Found ' ' separator", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		s := " "
 		i := 8
 		prop := "test.key test.value"
 
 		sep, idx, err := GetSeparator(prop)
-
-		if err != nil {
-			t.Errorf("Finding %q separator in %q string resulted an error: %v", s, prop, err)
-		}
-
-		if sep != s {
-			t.Errorf("Returned separator does not match. Expected: %v, got %v", s, sep)
-		}
-
-		if idx != i {
-			t.Errorf("Returned index of the spearator does not match. Expected: %v, got %v", i, idx)
-		}
+		g.Expect(err).Should(Succeed())
+		g.Expect(sep).Should(Equal(s))
+		g.Expect(idx).Should(Equal(i))
 	})
 
 	t.Run("No separator", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := "test.key,test.value"
 
 		_, _, err := GetSeparator(prop)
-
-		if err == nil {
-			t.Errorf("Finding separator in invalid Property string should trigger an error!")
-		}
+		g.Expect(err).Should(HaveOccurred())
 	})
 
 	t.Run("No string", func(t *testing.T) {
-		prop := ""
-		_, _, err := GetSeparator(prop)
+		g := NewGomegaWithT(t)
 
-		if err == nil {
-			t.Errorf("Finding separator in invalid Property string should trigger an error!")
-		}
+		prop := ""
+
+		_, _, err := GetSeparator(prop)
+		g.Expect(err).Should(HaveOccurred())
 	})
 }
 
 func TestUnEscapeSeparators(t *testing.T) {
 
 	t.Run("Remove escaping of separators", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := "\\=test\\:key\\=test\\ value\\:"
 		expected := "=test:key=test value:"
 
 		result := UnEscapeSeparators(prop)
-
-		if expected != result {
-			t.Errorf("Removing escaping of separators resulted a mismatch. Expected %v, got %v", expected, result)
-		}
+		g.Expect(result).Should(Equal(expected))
 	})
 
 	t.Run("Do nothing", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := "=test:key=test value:"
 		expected := "=test:key=test value:"
 
 		result := UnEscapeSeparators(prop)
-
-		if expected != result {
-			t.Errorf("Removing escaping of separators resulted a mismatch. Expected %v, got %v", expected, result)
-		}
+		g.Expect(result).Should(Equal(expected))
 	})
 
 	t.Run("Empty string", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := ""
 		expected := ""
 
 		result := UnEscapeSeparators(prop)
-
-		if expected != result {
-			t.Errorf("Removing escaping of separators resulted a mismatch. Expected %v, got %v", expected, result)
-		}
+		g.Expect(result).Should(Equal(expected))
 	})
 }
 
 func TestEscapeSeparators(t *testing.T) {
 
 	t.Run("Escaping separators", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := "=test:key=test value:"
 		expected := "\\=test\\:key\\=test\\ value\\:"
 
 		result := EscapeSeparators(prop)
-
-		if expected != result {
-			t.Errorf("Escaping of separators resulted a mismatch. Expected %v, got %v", expected, result)
-		}
+		g.Expect(result).Should(Equal(expected))
 	})
 
 	t.Run("Do nothing", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := "\\=test\\:key\\=test\\ value\\:"
 		expected := "\\=test\\:key\\=test\\ value\\:"
 
 		result := EscapeSeparators(prop)
-
-		if expected != result {
-			t.Errorf("Escaping of separators resulted a mismatch. Expected %v, got %v", expected, result)
-		}
+		g.Expect(result).Should(Equal(expected))
 	})
 
 	t.Run("Empty string", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := ""
 		expected := ""
 
 		result := EscapeSeparators(prop)
-
-		if expected != result {
-			t.Errorf("Removing escaping of separators resulted a mismatch. Expected %v, got %v", expected, result)
-		}
+		g.Expect(result).Should(Equal(expected))
 	})
 }
 
@@ -189,12 +162,13 @@ test value44
 	p, err := NewFromString(propString)
 
 	t.Run("Getting Properties from string result no error", func(t *testing.T) {
-		if err != nil {
-			t.Errorf("Parsing valid Properties string should not result an error: %v", err)
-		}
+		g := NewGomegaWithT(t)
+
+		g.Expect(err).Should(Succeed())
 	})
 
 	t.Run("Get Properties from string", func(t *testing.T) {
+		g := NewGomegaWithT(t)
 
 		expected := []string{
 			"test.key",
@@ -203,49 +177,49 @@ test value44
 			"test.key4",
 		}
 
-		k := p.Keys()
-
-		if !reflect.DeepEqual(k, expected) {
-			t.Errorf("Keys in Properties mismatch. Expected %v, got %v", expected, k)
-		}
+		g.Expect(p.Keys()).Should(Equal(expected))
 	})
 
 	t.Run("Multiline Property", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := "test.key4"
 		expected := "test.value41 test=value42 test:value43 test value44"
 
 		v, _ := p.Get(prop)
 
-		if !reflect.DeepEqual(v.Value(), expected) {
-			t.Errorf("Value of multiline Property does not match. Expected %v, got %v", expected, v.Value())
-		}
+		g.Expect(v.Value()).Should(Equal(expected))
 	})
 
 	t.Run("Invalid property string should trigger an error", func(t *testing.T) {
-		invalidProp := "INVALID.PROPERTY"
-		_, err := NewFromString(invalidProp)
+		g := NewGomegaWithT(t)
 
-		if err == nil {
-			t.Errorf("Parsing invalid Properties should trigger an InvalidPropertyError, but it did not.")
-		}
+		invalidProp := "INVALID.PROPERTY"
+
+		_, err := NewFromString(invalidProp)
+		g.Expect(err).Should(HaveOccurred())
 	})
 
 	t.Run("Empty string", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
+		expected := &Properties{
+			properties: map[string]Property{},
+			keys:       map[string]keyIndex{},
+		}
+
 		p, err := NewFromString("")
-
-		if err != nil {
-			t.Errorf("Parsing empty string should not trigger an Error.")
-		}
-
-		if p != nil && p.Len() != 0 {
-			t.Errorf("Parsing empty string should return an empty Properties object.")
-		}
+		g.Expect(err).Should(Succeed())
+		g.Expect(p).Should(Equal(expected))
+		g.Expect(p.Len()).Should(Equal(0))
 	})
 }
 
 func TestNewPropertyFromString(t *testing.T) {
 
 	t.Run("Parse valid property string", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := "test.key=test value"
 		expected := Property{
 			key:     "test.key",
@@ -254,17 +228,13 @@ func TestNewPropertyFromString(t *testing.T) {
 		}
 
 		p, err := newPropertyFromString(prop, "")
-
-		if err != nil {
-			t.Errorf("Parsing valid Property string should not result an error: %v", err)
-		}
-
-		if !p.Equal(expected) {
-			t.Errorf("Returned and the expected Property objects mismatch. Expected %v, got %v", expected, p)
-		}
+		g.Expect(err).Should(Succeed())
+		g.Expect(p).Should(Equal(expected))
 	})
 
 	t.Run("Parse valid property string with escaped key", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := "test\\:key=test value"
 		expected := Property{
 			key:   "test:key",
@@ -272,23 +242,16 @@ func TestNewPropertyFromString(t *testing.T) {
 		}
 
 		p, err := newPropertyFromString(prop, "")
-
-		if err != nil {
-			t.Errorf("Parsing valid Property string should not result an error: %v", err)
-		}
-
-		if !p.Equal(expected) {
-			t.Errorf("Returned and the expected Property objects mismatch. Expected %v, got %v", expected, p)
-		}
+		g.Expect(err).Should(Succeed())
+		g.Expect(p).Should(Equal(expected))
 	})
 
 	t.Run("Parse invalid property string", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		prop := "test.key.test.value"
 
 		_, err := newPropertyFromString(prop, "")
-
-		if err == nil {
-			t.Errorf("Parsing invalid Property string should trigger an error!")
-		}
+		g.Expect(err).Should(HaveOccurred())
 	})
 }

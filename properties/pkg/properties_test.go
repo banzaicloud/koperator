@@ -17,19 +17,18 @@ package properties
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"sort"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/gomega"
 )
 
 func TestNewProperties(t *testing.T) {
-	p := NewProperties()
+	g := NewGomegaWithT(t)
 
-	if len(p.keys) != 0 && len(p.properties) != 0 {
-		t.Errorf("Newly created Properties is not empty")
-	}
+	p := NewProperties()
+	g.Expect(len(p.keys)).Should(Equal(0))
+	g.Expect(len(p.properties)).Should(Equal(0))
 }
 
 func TestProperties_Get(t *testing.T) {
@@ -41,27 +40,31 @@ func TestProperties_Get(t *testing.T) {
 	p.put(Property{k, v, c})
 
 	t.Run("Get existing Property", func(t *testing.T) {
-		if _, found := p.Get(k); !found {
-			t.Errorf("Existing Property is not found. Expected: %v, got %v", found, !found)
-		}
+		g := NewGomegaWithT(t)
+
+		_, found := p.Get(k)
+		g.Expect(found).Should(BeTrue())
 	})
 
 	t.Run("Get nonexistent Property", func(t *testing.T) {
-		if _, found := p.Get(k + "-"); found {
-			t.Errorf("None existing Property found. Expected: %v, got %v", !found, found)
-		}
+		g := NewGomegaWithT(t)
+
+		_, found := p.Get(k + "-")
+		g.Expect(found).Should(BeFalse())
 	})
 
 	t.Run("Expected Property is returned", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedProp := Property{
 			key:     k,
 			value:   v,
 			comment: c,
 		}
 
-		if prop, found := p.Get(k); !found || !prop.Equal(expectedProp) {
-			t.Error("Mismatch between the returned and the expected Property")
-		}
+		prop, found := p.Get(k)
+		g.Expect(found).Should(BeTrue())
+		g.Expect(prop).Should(Equal(expectedProp))
 	})
 }
 
@@ -72,17 +75,20 @@ func TestProperties_Keys(t *testing.T) {
 	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
 
 	t.Run("Get list of keys in Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedKeys := []string{
 			"test.key",
 			"test.key2",
 		}
 
-		if keys := p.Keys(); !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch between return and expected list of keys. Expected: %q, got %q", expectedKeys, keys)
-		}
+		keys := p.Keys()
+		g.Expect(keys).Should(Equal(expectedKeys))
 	})
 
 	t.Run("Get list of keys in Properties after adding a new Property", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedKeys := []string{
 			"test.key",
 			"test.key2",
@@ -91,12 +97,13 @@ func TestProperties_Keys(t *testing.T) {
 
 		p.put(Property{"test.key3", "test.value3", ""})
 
-		if keys := p.Keys(); !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch between return and expected list of keys. Expected: %q, got %q", expectedKeys, keys)
-		}
+		keys := p.Keys()
+		g.Expect(keys).Should(Equal(expectedKeys))
 	})
 
 	t.Run("Get list of keys in Properties after deleting a Property", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedKeys := []string{
 			"test.key2",
 			"test.key3",
@@ -104,9 +111,8 @@ func TestProperties_Keys(t *testing.T) {
 
 		p.Delete("test.key")
 
-		if keys := p.Keys(); !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch in list of keys after deletion. Expected: %q, got %q", expectedKeys, keys)
-		}
+		keys := p.Keys()
+		g.Expect(keys).Should(Equal(expectedKeys))
 	})
 }
 
@@ -115,72 +121,51 @@ func TestProperties_Set(t *testing.T) {
 	p := NewProperties()
 
 	t.Run("Add new Property with string value to Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedProperty := Property{
 			key:   "test.key3",
 			value: "test.value3",
 		}
 
 		err := p.Set(expectedProperty.key, expectedProperty.value)
-
-		if err != nil {
-			t.Error("Adding a new Property should not result an error.")
-		}
+		g.Expect(err).Should(Succeed())
 
 		prop, found := p.Get(expectedProperty.key)
-
-		if !found {
-			t.Error("Newly added Property is not found.")
-		}
-
-		if !prop.Equal(expectedProperty) {
-			t.Errorf("Mismatch between return and expected list of keys. Expected: %q, got %q", prop, expectedProperty)
-		}
+		g.Expect(found).Should(BeTrue())
+		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
 	})
 
 	t.Run("Add new Property with integer value to Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedProperty := Property{
 			key:   "test.key3",
 			value: "100",
 		}
 
 		err := p.Set(expectedProperty.key, 100)
-
-		if err != nil {
-			t.Error("Adding a new property should not result an error.")
-		}
+		g.Expect(err).Should(Succeed())
 
 		prop, found := p.Get(expectedProperty.key)
-
-		if !found {
-			t.Errorf("Newly added Property is not found.")
-		}
-
-		if !prop.Equal(expectedProperty) {
-			t.Errorf("Mismatch between return and expected list of keys. Expected: %v, got %v", prop, expectedProperty)
-		}
+		g.Expect(found).Should(BeTrue())
+		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
 	})
 
 	t.Run("Add new Property with string slice value to Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedProperty := Property{
 			key:   "test.key3",
 			value: "value1,value2,value3",
 		}
 
 		err := p.Set(expectedProperty.key, []string{"value1", "value2", "value3"})
-
-		if err != nil {
-			t.Error("Adding a new property should not result an error.")
-		}
+		g.Expect(err).Should(Succeed())
 
 		prop, found := p.Get(expectedProperty.key)
-
-		if !found {
-			t.Errorf("Newly added Property is not found.")
-		}
-
-		if !prop.Equal(expectedProperty) {
-			t.Errorf("Mismatch between return and expected list of keys. Expected: %v, got %v", prop, expectedProperty)
-		}
+		g.Expect(found).Should(BeTrue())
+		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
 	})
 }
 
@@ -189,6 +174,8 @@ func TestProperties_SetWithComment(t *testing.T) {
 	p := NewProperties()
 
 	t.Run("Add new Property with string value to Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedProperty := Property{
 			key:     "test.key3",
 			value:   "test.value3",
@@ -196,23 +183,16 @@ func TestProperties_SetWithComment(t *testing.T) {
 		}
 
 		err := p.SetWithComment(expectedProperty.key, expectedProperty.value, expectedProperty.comment)
-
-		if err != nil {
-			t.Error("Adding a new Property should not result an error.")
-		}
+		g.Expect(err).Should(Succeed())
 
 		prop, found := p.Get(expectedProperty.key)
-
-		if !found {
-			t.Error("Newly added Property is not found.")
-		}
-
-		if !prop.Equal(expectedProperty) {
-			t.Errorf("Mismatch between return and expected list of keys. Expected: %q, got %q", prop, expectedProperty)
-		}
+		g.Expect(found).Should(BeTrue())
+		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
 	})
 
 	t.Run("Add new Property with integer value to Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedProperty := Property{
 			key:     "test.key3",
 			value:   "100",
@@ -220,23 +200,16 @@ func TestProperties_SetWithComment(t *testing.T) {
 		}
 
 		err := p.SetWithComment(expectedProperty.key, 100, expectedProperty.comment)
-
-		if err != nil {
-			t.Error("Adding a new property should not result an error.")
-		}
+		g.Expect(err).Should(Succeed())
 
 		prop, found := p.Get(expectedProperty.key)
-
-		if !found {
-			t.Errorf("Newly added Property is not found.")
-		}
-
-		if !prop.Equal(expectedProperty) {
-			t.Errorf("Mismatch between return and expected list of keys. Expected: %v, got %v", prop, expectedProperty)
-		}
+		g.Expect(found).Should(BeTrue())
+		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
 	})
 
 	t.Run("Add new Property with string slice value to Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedProperty := Property{
 			key:     "test.key3",
 			value:   "value1,value2,value3",
@@ -244,20 +217,11 @@ func TestProperties_SetWithComment(t *testing.T) {
 		}
 
 		err := p.SetWithComment(expectedProperty.key, []string{"value1", "value2", "value3"}, expectedProperty.comment)
-
-		if err != nil {
-			t.Error("Adding a new property should not result an error.")
-		}
+		g.Expect(err).Should(Succeed())
 
 		prop, found := p.Get(expectedProperty.key)
-
-		if !found {
-			t.Errorf("Newly added Property is not found.")
-		}
-
-		if !prop.Equal(expectedProperty) {
-			t.Errorf("Mismatch between return and expected list of keys. Expected: %v, got %v", prop, expectedProperty)
-		}
+		g.Expect(found).Should(BeTrue())
+		g.Expect(prop.Equal(expectedProperty)).Should(BeTrue())
 	})
 }
 
@@ -268,12 +232,12 @@ func TestProperties_Delete(t *testing.T) {
 	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
 
 	t.Run("Delete existing Property from Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
 
 		p.Delete("test.key2")
 
-		if _, found := p.Get("test.key2"); found {
-			t.Errorf("Deleted Property should not be found.")
-		}
+		_, found := p.Get("test.key2")
+		g.Expect(found).Should(BeFalse())
 	})
 }
 
@@ -283,18 +247,15 @@ func TestProperties_Len(t *testing.T) {
 	p.put(Property{"test.key", "test.value", "this is a comment line"})
 	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
 
-	t.Run("Get number of Property in Properties", func(t *testing.T) {
-		expected := 2
-
-		if p.Len() != expected {
-			t.Errorf("Incorrect number of Property. Expected: %v, got %v", expected, p.Len())
-		}
-	})
+	g := NewGomegaWithT(t)
+	g.Expect(p.Len()).Should(Equal(2))
 }
 
 func TestProperties_Merge(t *testing.T) {
 
 	t.Run("Merge from nil Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		dst := NewProperties()
 		dst.put(Property{"test.key", "p1", "this is a comment line"})
 		dst.put(Property{"test.key2", "p1", "this is a comment line"})
@@ -302,50 +263,46 @@ func TestProperties_Merge(t *testing.T) {
 		expectedProperties := &Properties{
 			properties: map[string]Property{
 				"test.key": {
-					key:   "test.key",
-					value: "p1",
+					key:     "test.key",
+					value:   "p1",
+					comment: "this is a comment line",
 				},
 				"test.key2": {
-					key:   "test.key2",
-					value: "p1",
+					key:     "test.key2",
+					value:   "p1",
+					comment: "this is a comment line",
 				},
 			},
 			keys: map[string]keyIndex{
 				"test.key":  {key: "test.key", index: 0},
 				"test.key2": {key: "test.key2", index: 1},
 			},
+			nextKeyIndex: 2,
 		}
 
 		dst.Merge(nil)
-
-		if !dst.Equal(expectedProperties) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
-				expectedProperties, dst)
-		}
+		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
 	})
 
-	p1 := NewProperties()
-	p1.put(Property{"test.key", "p1", "this is a comment line"})
-	p1.put(Property{"test.key2", "p1", "this is a comment line"})
-
-	p2 := NewProperties()
-	p2.put(Property{"test.key2", "p2", "this is a comment line"})
-	p2.put(Property{"test.key3", "p2", "this is a comment line"})
-
 	t.Run("Merge two Properties", func(t *testing.T) {
-		expectedProperties := Properties{
+		g := NewGomegaWithT(t)
+
+		expectedProperties := &Properties{
 			properties: map[string]Property{
 				"test.key": {
-					key:   "test.key",
-					value: "p1",
+					key:     "test.key",
+					value:   "p1",
+					comment: "this is a comment line",
 				},
 				"test.key2": {
-					key:   "test.key2",
-					value: "p2",
+					key:     "test.key2",
+					value:   "p2",
+					comment: "this is a comment line",
 				},
 				"test.key3": {
-					key:   "test.key3",
-					value: "p2",
+					key:     "test.key3",
+					value:   "p2",
+					comment: "this is a comment line",
 				},
 			},
 			keys: map[string]keyIndex{
@@ -353,20 +310,27 @@ func TestProperties_Merge(t *testing.T) {
 				"test.key2": {key: "test.key2", index: 1},
 				"test.key3": {key: "test.key3", index: 2},
 			},
+			nextKeyIndex: 3,
 		}
 
-		p1.Merge(p2)
+		dst := NewProperties()
+		dst.put(Property{"test.key", "p1", "this is a comment line"})
+		dst.put(Property{"test.key2", "p1", "this is a comment line"})
 
-		if !p1.Equal(&expectedProperties) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
-				&expectedProperties, p1)
-		}
+		src := NewProperties()
+		src.put(Property{"test.key2", "p2", "this is a comment line"})
+		src.put(Property{"test.key3", "p2", "this is a comment line"})
+
+		dst.Merge(src)
+		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
 	})
 }
 
 func TestProperties_MergeDefaults(t *testing.T) {
 
 	t.Run("Merge defaults from nil Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		dst := NewProperties()
 		dst.put(Property{"test.key", "p1", "this is a comment line"})
 		dst.put(Property{"test.key2", "p1", "this is a comment line"})
@@ -374,29 +338,30 @@ func TestProperties_MergeDefaults(t *testing.T) {
 		expectedProperties := &Properties{
 			properties: map[string]Property{
 				"test.key": {
-					key:   "test.key",
-					value: "p1",
+					key:     "test.key",
+					value:   "p1",
+					comment: "this is a comment line",
 				},
 				"test.key2": {
-					key:   "test.key2",
-					value: "p1",
+					key:     "test.key2",
+					value:   "p1",
+					comment: "this is a comment line",
 				},
 			},
 			keys: map[string]keyIndex{
 				"test.key":  {key: "test.key", index: 0},
 				"test.key2": {key: "test.key2", index: 1},
 			},
+			nextKeyIndex: 2,
 		}
 
 		dst.MergeDefaults(nil)
-
-		if !dst.Equal(expectedProperties) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
-				expectedProperties, dst)
-		}
+		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
 	})
 
 	t.Run("Merge defaults into empty Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		dst := NewProperties()
 
 		src := NewProperties()
@@ -407,16 +372,19 @@ func TestProperties_MergeDefaults(t *testing.T) {
 		expectedProperties := &Properties{
 			properties: map[string]Property{
 				"test.key": {
-					key:   "test.key",
-					value: "p2",
+					key:     "test.key",
+					value:   "p2",
+					comment: "this is a comment line",
 				},
 				"test.key2": {
-					key:   "test.key2",
-					value: "p2",
+					key:     "test.key2",
+					value:   "p2",
+					comment: "this is a comment line",
 				},
 				"test.key3": {
-					key:   "test.key3",
-					value: "p2",
+					key:     "test.key3",
+					value:   "p2",
+					comment: "this is a comment line",
 				},
 			},
 			keys: map[string]keyIndex{
@@ -424,17 +392,16 @@ func TestProperties_MergeDefaults(t *testing.T) {
 				"test.key2": {key: "test.key2", index: 1},
 				"test.key3": {key: "test.key3", index: 2},
 			},
+			nextKeyIndex: 3,
 		}
 
 		dst.MergeDefaults(src)
-
-		if !dst.Equal(expectedProperties) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
-				expectedProperties, dst)
-		}
+		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
 	})
 
 	t.Run("Merge into non-empty Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		dst := NewProperties()
 		dst.put(Property{"test.key", "p1", "this is a comment line"})
 		dst.put(Property{"test.key2", "p1", "this is a comment line"})
@@ -446,16 +413,19 @@ func TestProperties_MergeDefaults(t *testing.T) {
 		expectedProperties := &Properties{
 			properties: map[string]Property{
 				"test.key": {
-					key:   "test.key",
-					value: "p1",
+					key:     "test.key",
+					value:   "p1",
+					comment: "this is a comment line",
 				},
 				"test.key2": {
-					key:   "test.key2",
-					value: "p1",
+					key:     "test.key2",
+					value:   "p1",
+					comment: "this is a comment line",
 				},
 				"test.key3": {
-					key:   "test.key3",
-					value: "p2",
+					key:     "test.key3",
+					value:   "p2",
+					comment: "this is a comment line",
 				},
 			},
 			keys: map[string]keyIndex{
@@ -463,17 +433,16 @@ func TestProperties_MergeDefaults(t *testing.T) {
 				"test.key2": {key: "test.key2", index: 1},
 				"test.key3": {key: "test.key3", index: 2},
 			},
+			nextKeyIndex: 3,
 		}
 
 		dst.MergeDefaults(src)
-
-		if !dst.Equal(expectedProperties) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
-				expectedProperties, dst)
-		}
+		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
 	})
 
 	t.Run("No update after merge defaults", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		dst := NewProperties()
 		dst.put(Property{"test.key", "p1", "this is a comment line"})
 		dst.put(Property{"test.key2", "p1", "this is a comment line"})
@@ -485,26 +454,25 @@ func TestProperties_MergeDefaults(t *testing.T) {
 		expectedProperties := &Properties{
 			properties: map[string]Property{
 				"test.key": {
-					key:   "test.key",
-					value: "p1",
+					key:     "test.key",
+					value:   "p1",
+					comment: "this is a comment line",
 				},
 				"test.key2": {
-					key:   "test.key2",
-					value: "p1",
+					key:     "test.key2",
+					value:   "p1",
+					comment: "this is a comment line",
 				},
 			},
 			keys: map[string]keyIndex{
 				"test.key":  {key: "test.key", index: 0},
 				"test.key2": {key: "test.key2", index: 1},
 			},
+			nextKeyIndex: 2,
 		}
 
 		dst.MergeDefaults(src)
-
-		if !dst.Equal(expectedProperties) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
-				expectedProperties, dst)
-		}
+		g.Expect(dst.Equal(expectedProperties)).Should(BeTrue())
 	})
 }
 
@@ -515,13 +483,14 @@ func TestProperties_Equal(t *testing.T) {
 	p.put(Property{"test.key3", "test.value3", "this is a comment line"})
 
 	t.Run("Nil", func(t *testing.T) {
-		if p.Equal(nil) {
-			t.Errorf("Comparing valid and malformed Properties must not be equal!")
-		}
+		g := NewGomegaWithT(t)
+		g.Expect(p.Equal(nil)).Should(BeFalse())
 	})
 
 	t.Run("Malformed Properties", func(t *testing.T) {
-		expected := Properties{
+		g := NewGomegaWithT(t)
+
+		expected := &Properties{
 			properties: map[string]Property{
 				"test.key": {
 					key:   "test.key",
@@ -540,13 +509,13 @@ func TestProperties_Equal(t *testing.T) {
 			nextKeyIndex: 3,
 		}
 
-		if p.Equal(&expected) {
-			t.Errorf("Comparing valid and malformed Properties must not be equal!")
-		}
+		g.Expect(p.Equal(expected)).ShouldNot(BeTrue())
 	})
 
 	t.Run("Mismatch in number of keys", func(t *testing.T) {
-		expected := Properties{
+		g := NewGomegaWithT(t)
+
+		expected := &Properties{
 			properties: map[string]Property{
 				"test.key": {
 					key:   "test.key",
@@ -564,13 +533,13 @@ func TestProperties_Equal(t *testing.T) {
 			nextKeyIndex: 2,
 		}
 
-		if p.Equal(&expected) {
-			t.Errorf("Comparing Properties two objects with different set of keys must not be equal!")
-		}
+		g.Expect(p.Equal(expected)).ShouldNot(BeTrue())
 	})
 
 	t.Run("Mismatch in keys", func(t *testing.T) {
-		expected := Properties{
+		g := NewGomegaWithT(t)
+
+		expected := &Properties{
 			properties: map[string]Property{
 				"test.key": {
 					key:   "test.key",
@@ -593,13 +562,13 @@ func TestProperties_Equal(t *testing.T) {
 			nextKeyIndex: 3,
 		}
 
-		if p.Equal(&expected) {
-			t.Errorf("Comparing Properties two objects with different set of keys must not be equal!")
-		}
+		g.Expect(p.Equal(expected)).ShouldNot(BeTrue())
 	})
 
 	t.Run("Property for key not equal", func(t *testing.T) {
-		expected := Properties{
+		g := NewGomegaWithT(t)
+
+		expected := &Properties{
 			properties: map[string]Property{
 				"test.key": {
 					key:     "test.key",
@@ -625,15 +594,15 @@ func TestProperties_Equal(t *testing.T) {
 			nextKeyIndex: 3,
 		}
 
-		if p.Equal(&expected) {
-			t.Errorf("Comparing Properties two objects with same set of keys, but different Property objects must not be equal!")
-		}
+		g.Expect(p.Equal(expected)).Should(BeFalse())
 	})
 }
 
 func TestProperties_Sort(t *testing.T) {
 
 	t.Run("Reindex Properties to sort keys alphabetically", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		p := NewProperties()
 		p.put(Property{"b.key", "b", "this is a comment line"})
 		p.put(Property{"c.key", "c", "this is a comment line"})
@@ -664,13 +633,13 @@ func TestProperties_Sort(t *testing.T) {
 
 		p.Sort()
 
-		if !cmp.Equal(p, expected) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
-				expected, p)
-		}
+		g.Expect(p.Keys()).Should(Equal(expected.Keys()))
+		g.Expect(p.Equal(expected)).Should(BeTrue())
 	})
 
 	t.Run("Sort already sorted Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		p := NewProperties()
 		p.put(Property{"a.key", "a", "this is a comment line"})
 		p.put(Property{"b.key", "b", "this is a comment line"})
@@ -701,10 +670,8 @@ func TestProperties_Sort(t *testing.T) {
 
 		p.Sort()
 
-		if !cmp.Equal(p, expected) {
-			t.Errorf("Mismatch in expected and returned Properties!\nExpected: %q\nGot: %q\n",
-				expected, p)
-		}
+		g.Expect(p.Keys()).Should(Equal(expected.Keys()))
+		g.Expect(p.Equal(expected)).Should(BeTrue())
 	})
 }
 
@@ -716,14 +683,13 @@ func TestProperties_String(t *testing.T) {
 	p.put(Property{"test.key3", "test.value3", "this is a comment line"})
 
 	t.Run("Convert to string", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expectedString := `test.key=test.value
 test.key2=test.value2
 test.key3=test.value3
 `
-
-		if !cmp.Equal(fmt.Sprint(p), expectedString) {
-			t.Errorf("Mismatch in result of converting Properties to string. Expected: %v, got %v", expectedString, fmt.Sprint(p))
-		}
+		g.Expect(fmt.Sprint(p)).Should(Equal(expectedString))
 	})
 }
 
@@ -735,16 +701,13 @@ func TestProperties_MarshalJSON(t *testing.T) {
 	p.put(Property{"test.key3", "test.value3", "this is a comment line"})
 
 	t.Run("To JSON", func(t *testing.T) {
-		expectedString := `{"properties":{"test.key":"test.value","test.key2":"test.value2","test.key3":"test.value3"}}`
+		g := NewGomegaWithT(t)
+
+		expectedString := []byte(`{"properties":{"test.key":"test.value","test.key2":"test.value2","test.key3":"test.value3"}}`)
+
 		pJson, err := json.Marshal(&p)
-
-		if err != nil {
-			t.Errorf("Converting Properties to JSON resulted an error: %s", err)
-		}
-
-		if !cmp.Equal(string(pJson), expectedString) {
-			t.Errorf("Mismatch in result of converting Properties to JSON. Expected: %v, got %v", expectedString, string(pJson))
-		}
+		g.Expect(err).Should(Succeed())
+		g.Expect(pJson).Should(Equal(expectedString))
 	})
 }
 
@@ -758,6 +721,8 @@ func TestKeyIndexList(t *testing.T) {
 	}
 
 	t.Run("Swap", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		expected := keyIndexList{
 			keyIndex{"test.key35", 35},
 			keyIndex{"test.key2", 2},
@@ -766,46 +731,33 @@ func TestKeyIndexList(t *testing.T) {
 		}
 
 		kIdxList.Swap(0, 3)
-
-		if !reflect.DeepEqual(kIdxList, expected) {
-			t.Errorf("Mismatch in result of swaping items keyIndexList. Expected: %v, got %v", expected, kIdxList)
-		}
+		g.Expect(kIdxList).Should(Equal(expected))
 	})
 }
 
 func TestProperties_Diff(t *testing.T) {
 
 	t.Run("Difference when both Properties are empty", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		p1 := NewProperties()
 		p2 := NewProperties()
 
 		expectedDiffMap := DiffResult{}
 
 		diff := p1.Diff(p2)
-
-		if !cmp.Equal(diff, expectedDiffMap) {
-			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedDiffMap, diff)
-		}
+		g.Expect(diff).Should(Equal(expectedDiffMap))
 
 		keys := diff.Keys()
 		expectedKeys := make([]string, 0)
+		g.Expect(keys).Should(Equal(expectedKeys))
 
-		if !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedKeys, keys)
-		}
-
-		l := len(diff)
-		expectedLen := len(expectedDiffMap)
-
-		if l != expectedLen {
-			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedLen, l)
-		}
+		g.Expect(len(diff)).Should(Equal(len(expectedDiffMap)))
 	})
 
 	t.Run("Difference when left Properties is empty", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		p1 := NewProperties()
 		p2 := NewProperties()
 
@@ -829,31 +781,19 @@ func TestProperties_Diff(t *testing.T) {
 		}
 
 		diff := p1.Diff(p2)
-
-		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
-			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %q\nGot: %q\n",
-				expectedDiffMap, diff)
-		}
+		g.Expect(diff).Should(Equal(expectedDiffMap))
 
 		keys := diff.Keys()
 		sort.Strings(keys)
 		expectedKeys := []string{"test.key", "test.key2", "test.key3"}
+		g.Expect(keys).Should(Equal(expectedKeys))
 
-		if !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedKeys, keys)
-		}
-
-		l := len(diff)
-		expectedLen := len(expectedDiffMap)
-
-		if l != expectedLen {
-			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedLen, l)
-		}
+		g.Expect(len(diff)).Should(Equal(len(expectedDiffMap)))
 	})
 
 	t.Run("Difference when some keys are missing from the left Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		p1 := NewProperties()
 		p1.put(Property{"test.key2", "p1", "this is a comment line"})
 
@@ -878,31 +818,19 @@ func TestProperties_Diff(t *testing.T) {
 		}
 
 		diff := p1.Diff(p2)
-
-		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
-			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %q\nGot: %q\n",
-				expectedDiffMap, diff)
-		}
+		g.Expect(diff).Should(Equal(expectedDiffMap))
 
 		keys := diff.Keys()
 		sort.Strings(keys)
 		expectedKeys := []string{"test.key", "test.key2", "test.key3"}
+		g.Expect(keys).Should(Equal(expectedKeys))
 
-		if !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedKeys, keys)
-		}
-
-		l := len(diff)
-		expectedLen := len(expectedDiffMap)
-
-		if l != expectedLen {
-			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedLen, l)
-		}
+		g.Expect(len(diff)).Should(Equal(len(expectedDiffMap)))
 	})
 
 	t.Run("Difference when some keys are missing from the right Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		p1 := NewProperties()
 		p1.put(Property{"test.key", "p1", "this is a comment line"})
 		p1.put(Property{"test.key2", "p1", "this is a comment line"})
@@ -927,31 +855,19 @@ func TestProperties_Diff(t *testing.T) {
 		}
 
 		diff := p1.Diff(p2)
-
-		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
-			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %q\nGot: %q\n",
-				expectedDiffMap, diff)
-		}
+		g.Expect(diff).Should(Equal(expectedDiffMap))
 
 		keys := diff.Keys()
 		sort.Strings(keys)
 		expectedKeys := []string{"test.key", "test.key2", "test.key3"}
+		g.Expect(keys).Should(Equal(expectedKeys))
 
-		if !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedKeys, keys)
-		}
-
-		l := len(diff)
-		expectedLen := len(expectedDiffMap)
-
-		if l != expectedLen {
-			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedLen, l)
-		}
+		g.Expect(len(diff)).Should(Equal(len(expectedDiffMap)))
 	})
 
 	t.Run("Difference identical Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		p1 := NewProperties()
 		p1.put(Property{"test.key", "p2", "this is a comment line"})
 		p1.put(Property{"test.key2", "p2", "this is a comment line"})
@@ -965,32 +881,20 @@ func TestProperties_Diff(t *testing.T) {
 		expectedDiffMap := DiffResult{}
 
 		diff := p1.Diff(p2)
-
-		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
-			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedDiffMap, diff)
-		}
+		g.Expect(diff).Should(Equal(expectedDiffMap))
 
 		keys := diff.Keys()
 		sort.Strings(keys)
 		expectedKeys := make([]string, 0)
+		g.Expect(keys).Should(Equal(expectedKeys))
 
-		if !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedKeys, keys)
-		}
-
-		l := len(diff)
-		expectedLen := len(expectedDiffMap)
-
-		if l != expectedLen {
-			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedLen, l)
-		}
+		g.Expect(len(diff)).Should(Equal(len(expectedDiffMap)))
 
 	})
 
 	t.Run("Difference nil Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		p1 := NewProperties()
 		p1.put(Property{"test.key", "p2", "this is a comment line"})
 		p1.put(Property{"test.key2", "p2", "this is a comment line"})
@@ -999,31 +903,19 @@ func TestProperties_Diff(t *testing.T) {
 		expectedDiffMap := DiffResult{}
 
 		diff := p1.Diff(nil)
-
-		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
-			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedDiffMap, diff)
-		}
+		g.Expect(diff).Should(Equal(expectedDiffMap))
 
 		keys := diff.Keys()
 		sort.Strings(keys)
 		expectedKeys := make([]string, 0)
+		g.Expect(keys).Should(Equal(expectedKeys))
 
-		if !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedKeys, keys)
-		}
-
-		l := len(diff)
-		expectedLen := len(expectedDiffMap)
-
-		if l != expectedLen {
-			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedLen, l)
-		}
+		g.Expect(len(diff)).Should(Equal(len(expectedDiffMap)))
 	})
 
 	t.Run("Difference of nearly identical Properties", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
 		p1 := NewProperties()
 		p1.put(Property{"test.key", "p2", "this is a comment line"})
 		p1.put(Property{"test.key2", "p1", "this is a comment line"})
@@ -1042,28 +934,14 @@ func TestProperties_Diff(t *testing.T) {
 		}
 
 		diff := p1.Diff(p2)
-
-		if !cmp.Equal(diff, expectedDiffMap, cmp.AllowUnexported(Property{})) {
-			t.Errorf("Mismatch in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedDiffMap, diff)
-		}
+		g.Expect(diff).Should(Equal(expectedDiffMap))
 
 		keys := diff.Keys()
 		sort.Strings(keys)
 		expectedKeys := []string{"test.key2"}
+		g.Expect(keys).Should(Equal(expectedKeys))
 
-		if !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedKeys, keys)
-		}
-
-		l := len(diff)
-		expectedLen := len(expectedDiffMap)
-
-		if l != expectedLen {
-			t.Errorf("Mismatch in length of the expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedLen, l)
-		}
+		g.Expect(len(diff)).Should(Equal(len(expectedDiffMap)))
 	})
 }
 
@@ -1085,15 +963,11 @@ func TestProperties_DiffMap(t *testing.T) {
 	}
 
 	t.Run("Keys", func(t *testing.T) {
+		g := NewGomegaWithT(t)
 
 		keys := diffMap.Keys()
 		sort.Strings(keys)
-
 		expectedKeys := []string{"test.key", "test.key2", "test.key3"}
-
-		if !cmp.Equal(keys, expectedKeys) {
-			t.Errorf("Mismatch in the list of keys in expected and returned DiffResult!\nExpected: %v\nGot: %v\n",
-				expectedKeys, keys)
-		}
+		g.Expect(keys).Should(Equal(expectedKeys))
 	})
 }
