@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	emperror.dev/errors v0.8.0
-	github.com/Shopify/sarama v1.27.1
+	github.com/Shopify/sarama v1.28.0
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.3.1
 	github.com/banzaicloud/istio-client-go v0.0.9
 	github.com/banzaicloud/istio-operator v0.0.0-20210205182203-f814d51d90ff
@@ -15,7 +15,6 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/protobuf v1.4.2
-	github.com/golang/snappy v0.0.2 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/hashicorp/go-hclog v0.12.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
@@ -26,7 +25,6 @@ require (
 	github.com/imdario/mergo v0.3.11
 	github.com/influxdata/influxdb v1.7.6 // indirect
 	github.com/jetstack/cert-manager v0.15.2
-	github.com/klauspost/compress v1.11.1 // indirect
 	github.com/lestrrat-go/backoff v1.0.0
 	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
