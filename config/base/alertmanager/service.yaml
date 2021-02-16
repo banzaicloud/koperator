@@ -10,6 +10,5 @@ spec:
   - name: alerts
     port: 9001
     targetPort: alerts
-    protocol: TCP
   selector:
     control-plane: controller-manager

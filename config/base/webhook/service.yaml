@@ -8,6 +8,5 @@ spec:
   ports:
     - port: 443
       targetPort: 443
-      protocol: TCP
   selector:
     control-plane: controller-manager
