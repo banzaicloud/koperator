@@ -148,7 +148,7 @@ type BrokerConfig struct {
 	InitContainers []corev1.Container `json:"initContainers,omitempty"`
 	// Volumes define some extra Kubernetes Volumes for the Kafka broker Pods.
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
-	// VolumeMounts define some extra Kubernetes Volume mounts for the Kafka broker Pods.
+	// VolumeMounts define some extra Kubernetes VolumeMounts for the Kafka broker Pods.
 	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
 }
 

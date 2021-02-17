@@ -2312,8 +2312,8 @@ spec:
                       type: object
                     type: array
                   volumeMounts:
-                    description: VolumeMounts define some extra Kubernetes Volume
-                      mounts for the Kafka broker Pods.
+                    description: VolumeMounts define some extra Kubernetes VolumeMounts
+                      for the Kafka broker Pods.
                     items:
                       description: VolumeMount describes a mounting of a Volume within
                         a container.
@@ -5934,8 +5934,8 @@ spec:
                           type: object
                         type: array
                       volumeMounts:
-                        description: VolumeMounts define some extra Kubernetes Volume
-                          mounts for the Kafka broker Pods.
+                        description: VolumeMounts define some extra Kubernetes VolumeMounts
+                          for the Kafka broker Pods.
                         items:
                           description: VolumeMount describes a mounting of a Volume
                             within a container.

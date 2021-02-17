@@ -69,20 +69,40 @@ var _ = Describe("KafkaCluster", func() {
 		defaultGroup.SecurityContext = &corev1.SecurityContext{
 			Privileged: util.BoolPointer(true),
 		}
-		defaultGroup.InitContainers = []corev1.Container{{
-			Name:  "test-initcontainer",
-			Image: "busybox:latest",
-		}}
-		defaultGroup.Volumes = []corev1.Volume{{
-			Name: "test-volume",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
+		defaultGroup.InitContainers = []corev1.Container{
+			{
+				Name:  "test-initcontainer",
+				Image: "busybox:latest",
 			},
-		}}
-		defaultGroup.VolumeMounts = []corev1.VolumeMount{{
-			Name:      "test-volume",
-			MountPath: "/test/path",
-		}}
+			{
+				Name:  "a-test-initcontainer",
+				Image: "test/image:latest",
+			},
+		}
+		defaultGroup.Volumes = []corev1.Volume{
+			{
+				Name: "test-volume",
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			},
+			{
+				Name: "a-test-volume",
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			},
+		}
+		defaultGroup.VolumeMounts = []corev1.VolumeMount{
+			{
+				Name:      "test-volume",
+				MountPath: "/test/path",
+			},
+			{
+				Name:      "a-test-volume",
+				MountPath: "/a/test/path",
+			},
+		}
 		kafkaCluster.Spec.BrokerConfigGroups[defaultBrokerConfigGroup] = defaultGroup
 		// Set some CruiseControl pod and container related SecurityContext values
 		kafkaCluster.Spec.CruiseControlConfig.PodSecurityContext = &corev1.PodSecurityContext{
