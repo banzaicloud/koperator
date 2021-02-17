@@ -116,6 +116,21 @@ spec:
           #      resources:
           #        requests:
           #          storage: 3Gi
+        # Define an extra initContainer and volume that copies a jar form a custom image to the broker container
+        #initContainers:
+        #  - name: "copy-jar"
+        #    image: "custom-image:latest"
+        #    command: "cp"
+        #    args: ["/path/to/jar", "/jars/"]
+        #    volumeMounts:
+        #      - mountPath: "/jars"
+        #        name: "jars"
+        #volumes:
+        #  - name: "jars"
+        #    emptyDir: {}
+        #volumeMounts:
+        #  - mountPath: "/opt/kafka/libs/extra-jars"
+        #    name: "jars"
     - image: "ghcr.io/banzaicloud/kafka:2.13-2.6.0-bzc.1"
       id: 1
       config: |
