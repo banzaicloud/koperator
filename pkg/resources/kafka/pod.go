@@ -74,10 +74,8 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 	}
 
 	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
+	hasSSLSecrets := r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil
 
-	volume := brokerConfig.Volumes
-	volumeMount := brokerConfig.VolumeMounts
-	initContainers := brokerConfig.InitContainers
 	//TODO remove this bash envoy sidecar checker script once sidecar precedence becomes available to Kubernetes(baluchicken)
 	command := []string{"bash", "-c", `
 if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then
@@ -98,14 +96,6 @@ touch /var/run/wait/do-not-exit-yet
 /opt/kafka/bin/kafka-server-start.sh /config/broker-config
 rm /var/run/wait/do-not-exit-yet`}
 
-	volume = append(volume, dataVolume...)
-	volumeMount = append(volumeMount, dataVolumeMount...)
-
-	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
-		volume = append(volume, generateVolumesForSSL(r.KafkaCluster)...)
-		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
-	}
-
 	pod := &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
 			fmt.Sprintf("%s-%d-", r.KafkaCluster.Name, id),
@@ -118,29 +108,8 @@ rm /var/run/wait/do-not-exit-yet`}
 		),
 		Spec: corev1.PodSpec{
 			SecurityContext: brokerConfig.PodSecurityContext,
-			InitContainers: append(initContainers, []corev1.Container{
-				{
-					Name:    "cruise-control-reporter",
-					Image:   r.KafkaCluster.Spec.CruiseControlConfig.GetCCImage(),
-					Command: []string{"/bin/sh", "-cex", "cp -v /opt/cruise-control/cruise-control/build/dependant-libs/cruise-control-metrics-reporter.jar /opt/kafka/libs/extensions/cruise-control-metrics-reporter.jar"},
-					VolumeMounts: []corev1.VolumeMount{{
-						Name:      "extensions",
-						MountPath: "/opt/kafka/libs/extensions",
-					}},
-				},
-				{
-					Name:    "jmx-exporter",
-					Image:   r.KafkaCluster.Spec.MonitoringConfig.GetImage(),
-					Command: []string{"cp", r.KafkaCluster.Spec.MonitoringConfig.GetPathToJar(), "/opt/jmx-exporter/jmx_prometheus.jar"},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      jmxVolumeName,
-							MountPath: jmxVolumePath,
-						},
-					},
-				},
-			}...),
-			Affinity: getAffinity(brokerConfig, r.KafkaCluster),
+			InitContainers:  getInitContainers(brokerConfig.InitContainers, r.KafkaCluster.Spec),
+			Affinity:        getAffinity(brokerConfig, r.KafkaCluster),
 			Containers: []corev1.Container{
 				{
 					Name:  "kafka",
@@ -190,69 +159,11 @@ fi`},
 							Name:          "metrics",
 						},
 					}...),
-					VolumeMounts: append(volumeMount, []corev1.VolumeMount{
-						{
-							Name:      brokerConfigMapVolumeMount,
-							MountPath: "/config",
-						},
-						{
-							Name:      "extensions",
-							MountPath: "/opt/kafka/libs/extensions",
-						},
-						{
-							Name:      jmxVolumeName,
-							MountPath: jmxVolumePath,
-						},
-						{
-							Name:      fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, r.KafkaCluster.Name),
-							MountPath: "/etc/jmx-exporter/",
-						},
-						{
-							Name:      "exitfile",
-							MountPath: "/var/run/wait",
-						},
-					}...),
-					Resources: *brokerConfig.GetResources(),
+					VolumeMounts: getVolumeMounts(brokerConfig.VolumeMounts, dataVolumeMount, r.KafkaCluster.Name, hasSSLSecrets),
+					Resources:    *brokerConfig.GetResources(),
 				},
 			},
-			Volumes: append(volume, []corev1.Volume{
-				{
-					Name: "exitfile",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
-				},
-				{
-					Name: brokerConfigMapVolumeMount,
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id)},
-							DefaultMode:          util.Int32Pointer(0644),
-						},
-					},
-				},
-				{
-					Name: "extensions",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
-				},
-				{
-					Name: fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, r.KafkaCluster.Name),
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, r.KafkaCluster.Name)},
-							DefaultMode:          util.Int32Pointer(0644),
-						},
-					},
-				},
-				{
-					Name: jmxVolumeName,
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
-				},
-			}...),
+			Volumes:                       getVolumes(brokerConfig.Volumes, dataVolume, r.KafkaCluster.Name, hasSSLSecrets, id),
 			RestartPolicy:                 corev1.RestartPolicyNever,
 			TerminationGracePeriodSeconds: util.Int64Pointer(120),
 			ImagePullSecrets:              brokerConfig.GetImagePullSecrets(),
@@ -267,6 +178,141 @@ fi`},
 	}
 
 	return pod
+}
+
+func getInitContainers(brokerConfigInitContainers []corev1.Container, kafkaClusterSpec v1beta1.KafkaClusterSpec) []corev1.Container {
+	initContainers := make([]corev1.Container, 0, len(brokerConfigInitContainers))
+	for _, initContainer := range brokerConfigInitContainers {
+		initContainers = append(initContainers, initContainer)
+	}
+
+	initContainers = append(initContainers, []corev1.Container{
+		{
+			Name:    "cruise-control-reporter",
+			Image:   kafkaClusterSpec.CruiseControlConfig.GetCCImage(),
+			Command: []string{"/bin/sh", "-cex", "cp -v /opt/cruise-control/cruise-control/build/dependant-libs/cruise-control-metrics-reporter.jar /opt/kafka/libs/extensions/cruise-control-metrics-reporter.jar"},
+			VolumeMounts: []corev1.VolumeMount{{
+				Name:      "extensions",
+				MountPath: "/opt/kafka/libs/extensions",
+			}},
+		},
+		{
+			Name:    "jmx-exporter",
+			Image:   kafkaClusterSpec.MonitoringConfig.GetImage(),
+			Command: []string{"cp", kafkaClusterSpec.MonitoringConfig.GetPathToJar(), "/opt/jmx-exporter/jmx_prometheus.jar"},
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      jmxVolumeName,
+					MountPath: jmxVolumePath,
+				},
+			},
+		},
+	}...)
+
+	sort.Slice(initContainers, func(i, j int) bool {
+		return initContainers[i].Name < initContainers[j].Name
+	})
+
+	return initContainers
+}
+
+func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMount,
+	kafkaClusterName string, hasSSLSecrets bool) []corev1.VolumeMount {
+	volumeMounts := make([]corev1.VolumeMount, 0, len(brokerConfigVolumeMounts))
+	for _, volumeMount := range brokerConfigVolumeMounts {
+		volumeMounts = append(volumeMounts, volumeMount)
+	}
+
+	volumeMounts = append(volumeMounts, dataVolumeMount...)
+
+	if hasSSLSecrets {
+		volumeMounts = append(volumeMounts, generateVolumeMountForSSL()...)
+	}
+
+	volumeMounts = append(volumeMounts, []corev1.VolumeMount{
+		{
+			Name:      brokerConfigMapVolumeMount,
+			MountPath: "/config",
+		},
+		{
+			Name:      "extensions",
+			MountPath: "/opt/kafka/libs/extensions",
+		},
+		{
+			Name:      jmxVolumeName,
+			MountPath: jmxVolumePath,
+		},
+		{
+			Name:      fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, kafkaClusterName),
+			MountPath: "/etc/jmx-exporter/",
+		},
+		{
+			Name:      "exitfile",
+			MountPath: "/var/run/wait",
+		},
+	}...)
+
+	sort.Slice(volumeMounts, func(i, j int) bool {
+		return volumeMounts[i].Name < volumeMounts[j].Name
+	})
+
+	return volumeMounts
+}
+
+func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, kafkaClusterName string, hasSSLSecrets bool, id int32) []corev1.Volume {
+	volumes := make([]corev1.Volume, 0, len(brokerConfigVolumes))
+	// clone the brokerConfig volumes
+	volumes = append(volumes, brokerConfigVolumes...)
+	volumes = append(volumes, dataVolume...)
+
+	if hasSSLSecrets {
+		volumes = append(volumes, generateVolumesForSSL(kafkaClusterName)...)
+	}
+
+	volumes = append(volumes, []corev1.Volume{
+		{
+			Name: "exitfile",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: brokerConfigMapVolumeMount,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(brokerConfigTemplate+"-%d", kafkaClusterName, id)},
+					DefaultMode:          util.Int32Pointer(0644),
+				},
+			},
+		},
+		{
+			Name: "extensions",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, kafkaClusterName),
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, kafkaClusterName)},
+					DefaultMode:          util.Int32Pointer(0644),
+				},
+			},
+		},
+		{
+			Name: jmxVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	}...)
+
+	sort.Slice(volumes, func(i, j int) bool {
+		return volumes[i].Name < volumes[j].Name
+	})
+
+	return volumes
 }
 
 // getAffinity returns a default `v1.Affinity` which is generated regarding the `OneBrokerPerNode` value
@@ -327,13 +373,13 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volu
 	return
 }
 
-func generateVolumesForSSL(cluster *v1beta1.KafkaCluster) []corev1.Volume {
+func generateVolumesForSSL(clusterName string) []corev1.Volume {
 	return []corev1.Volume{
 		{
 			Name: serverKeystoreVolume,
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName:  fmt.Sprintf(pkicommon.BrokerServerCertTemplate, cluster.Name),
+					SecretName:  fmt.Sprintf(pkicommon.BrokerServerCertTemplate, clusterName),
 					DefaultMode: util.Int32Pointer(0644),
 				},
 			},
@@ -342,7 +388,7 @@ func generateVolumesForSSL(cluster *v1beta1.KafkaCluster) []corev1.Volume {
 			Name: clientKeystoreVolume,
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName:  fmt.Sprintf(pkicommon.BrokerControllerTemplate, cluster.Name),
+					SecretName:  fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName),
 					DefaultMode: util.Int32Pointer(0644),
 				},
 			},

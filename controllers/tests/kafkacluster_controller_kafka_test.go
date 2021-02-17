@@ -237,10 +237,12 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	Expect(pod.GenerateName).To(Equal(fmt.Sprintf("%s-%d-", kafkaCluster.Name, broker.Id)))
 	Expect(pod.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
 	getContainerName := func(c corev1.Container) string { return c.Name }
-	Expect(pod.Spec.InitContainers).To(ConsistOf(
-		WithTransform(getContainerName, Equal("cruise-control-reporter")),
-		WithTransform(getContainerName, Equal("jmx-exporter")),
-		WithTransform(getContainerName, Equal("test-initcontainer"))))
+	// test exact order, because if the slice reorders, it triggers another reconcile cycle
+	Expect(pod.Spec.InitContainers).To(HaveLen(4))
+	Expect(pod.Spec.InitContainers[0]).To(WithTransform(getContainerName, Equal("a-test-initcontainer")))
+	Expect(pod.Spec.InitContainers[1]).To(WithTransform(getContainerName, Equal("cruise-control-reporter")))
+	Expect(pod.Spec.InitContainers[2]).To(WithTransform(getContainerName, Equal("jmx-exporter")))
+	Expect(pod.Spec.InitContainers[3]).To(WithTransform(getContainerName, Equal("test-initcontainer")))
 
 	Expect(pod.Spec.Affinity).NotTo(BeNil())
 	Expect(pod.Spec.Affinity.PodAntiAffinity).NotTo(BeNil())
@@ -273,15 +275,52 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 			Value: "-Xmx2G -Xms2G",
 		},
 	))
+	Expect(container.VolumeMounts).To(HaveLen(8))
+	Expect(container.VolumeMounts[0]).To(Equal(corev1.VolumeMount{
+			Name:      "a-test-volume",
+			MountPath: "/a/test/path",
+	}))
+	Expect(container.VolumeMounts[1]).To(Equal(corev1.VolumeMount{
+		Name:      "broker-config",
+		MountPath: "/config",
+	}))
+	Expect(container.VolumeMounts[2]).To(Equal(corev1.VolumeMount{
+		Name:      "exitfile",
+		MountPath: "/var/run/wait",
+	}))
+	Expect(container.VolumeMounts[3]).To(Equal(corev1.VolumeMount{
+		Name:      "extensions",
+		MountPath: "/opt/kafka/libs/extensions",
+	}))
+	Expect(container.VolumeMounts[4]).To(Equal(corev1.VolumeMount{
+		Name:      "jmx-jar-data",
+		MountPath: "/opt/jmx-exporter/",
+	}))
+	Expect(container.VolumeMounts[5]).To(Equal(corev1.VolumeMount{
+		Name:      "kafka-data-0",
+		MountPath: "/kafka-logs",
+	}))
 
-	getVolumeName := func(vol corev1.Volume) string { return vol.Name }
-	Expect(pod.Spec.Volumes).To(ConsistOf(
+	Expect(container.VolumeMounts[6]).To(Equal(corev1.VolumeMount{
+		Name:      fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, kafkaCluster.Name),
+		MountPath: "/etc/jmx-exporter/",
+	}))
+	Expect(container.VolumeMounts[7]).To(Equal(corev1.VolumeMount{
+		Name:      "test-volume",
+		MountPath: "/test/path",
+	}))
+
+
+	// test exact order, because if the slice reorders, it triggers another reconcile cycle
+	Expect(pod.Spec.Volumes).To(HaveLen(8))
+	Expect(pod.Spec.Volumes[0]).To(Equal(
 		corev1.Volume{
-			Name: "exitfile",
+			Name: "a-test-volume",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
-		},
+		}))
+	Expect(pod.Spec.Volumes[1]).To(Equal(
 		corev1.Volume{
 			Name: "broker-config",
 			VolumeSource: corev1.VolumeSource{
@@ -290,13 +329,33 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 					DefaultMode:          util.Int32Pointer(0644),
 				},
 			},
-		},
+		}))
+	Expect(pod.Spec.Volumes[2]).To(Equal(
+		corev1.Volume{
+			Name: "exitfile",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		}))
+	Expect(pod.Spec.Volumes[3]).To(Equal(
 		corev1.Volume{
 			Name: "extensions",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
-		},
+		}))
+	Expect(pod.Spec.Volumes[4]).To(Equal(
+		corev1.Volume{
+			Name: "jmx-jar-data",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		}))
+	// the name of the PVC is dynamically created - no exact match
+	Expect(pod.Spec.Volumes[5]).To(
+		WithTransform(func(vol corev1.Volume) string { return vol.Name },
+			Equal("kafka-data-0")))
+	Expect(pod.Spec.Volumes[6]).To(Equal(
 		corev1.Volume{
 			Name: fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, kafkaCluster.Name),
 			VolumeSource: corev1.VolumeSource{
@@ -305,23 +364,14 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 					DefaultMode:          util.Int32Pointer(0644),
 				},
 			},
-		},
-		corev1.Volume{
-			Name: "jmx-jar-data",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
-		},
+		}))
+	Expect(pod.Spec.Volumes[7]).To(Equal(
 		corev1.Volume{
 			Name: "test-volume",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
-		},
-
-		// the name of the PVC is dynamically created - no exact match
-		WithTransform(getVolumeName, Equal("kafka-data-0")),
-	))
+		}))
 
 	Expect(pod.Spec.RestartPolicy).To(Equal(corev1.RestartPolicyNever))
 	Expect(pod.Spec.TerminationGracePeriodSeconds).To(Equal(util.Int64Pointer(120)))
