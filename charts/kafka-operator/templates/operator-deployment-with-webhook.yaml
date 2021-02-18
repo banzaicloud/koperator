@@ -156,7 +156,7 @@ spec:
           {{- if .Values.operator.developmentLogging }}
             - --development
           {{- end }}
-          image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
+          image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           name: manager
           env:

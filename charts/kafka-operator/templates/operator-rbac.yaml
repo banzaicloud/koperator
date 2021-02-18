@@ -190,22 +190,6 @@ rules:
   - update
   - patch
   - delete
-{{- if contains "0.7." .Values.operator.image.tag }}
-- apiGroups:
-  - certmanager.k8s.io
-  resources:
-  - issuers
-  - clusterissuers
-  - certificates
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-{{- else }}
 - apiGroups:
     - cert-manager.io
   resources:
@@ -232,7 +216,6 @@ rules:
   - patch
   - update
   - watch
-{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
