@@ -277,8 +277,8 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	))
 	Expect(container.VolumeMounts).To(HaveLen(8))
 	Expect(container.VolumeMounts[0]).To(Equal(corev1.VolumeMount{
-			Name:      "a-test-volume",
-			MountPath: "/a/test/path",
+		Name:      "a-test-volume",
+		MountPath: "/a/test/path",
 	}))
 	Expect(container.VolumeMounts[1]).To(Equal(corev1.VolumeMount{
 		Name:      "broker-config",
@@ -309,7 +309,6 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 		Name:      "test-volume",
 		MountPath: "/test/path",
 	}))
-
 
 	// test exact order, because if the slice reorders, it triggers another reconcile cycle
 	Expect(pod.Spec.Volumes).To(HaveLen(8))
