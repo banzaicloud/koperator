@@ -30,7 +30,6 @@ import (
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 )
@@ -72,11 +71,6 @@ func (c *certManager) ReconcileUserCertificate(
 		return nil, err
 	}
 
-	// Ensure controller reference on user secret
-	if err = c.ensureControllerReference(ctx, user, secret, scheme); err != nil {
-		return nil, err
-	}
-
 	return &pkicommon.UserCertificate{
 		CA:          secret.Data[v1alpha1.CoreCACertKey],
 		Certificate: secret.Data[corev1.TLSCertKey],
@@ -102,19 +96,6 @@ func (c *certManager) injectJKSPassword(ctx context.Context, user *v1alpha1.Kafk
 		return errorfactory.New(errorfactory.APIFailure{}, err, "could not create secret with jks password")
 	}
 
-	return nil
-}
-
-// ensureControllerReference ensures that a KafkaUser owns a given Secret
-func (c *certManager) ensureControllerReference(ctx context.Context, user *v1alpha1.KafkaUser, secret *corev1.Secret, scheme *runtime.Scheme) error {
-	err := controllerutil.SetControllerReference(user, secret, scheme)
-	if err != nil && !k8sutil.IsAlreadyOwnedError(err) {
-		return errorfactory.New(errorfactory.InternalError{}, err, "error checking controller reference on user secret")
-	} else if err == nil {
-		if err = c.client.Update(ctx, secret); err != nil {
-			return errorfactory.New(errorfactory.APIFailure{}, err, "could not update secret with controller reference")
-		}
-	}
 	return nil
 }
 
