@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-version=3.0.0-alpha.1 # latest stable version
+version=3.0.0-beta.1 # latest stable version
 arch=amd64
 opsys=$(echo "$(uname -s)" | awk '{print tolower($0)}')
 

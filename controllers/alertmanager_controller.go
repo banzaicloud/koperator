@@ -20,8 +20,8 @@ import (
 
 	"github.com/banzaicloud/kafka-operator/internal/alertmanager"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const (

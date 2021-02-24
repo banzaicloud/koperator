@@ -1,7 +1,33 @@
-version: "2"
+version: "3"
 domain: banzaicloud.io
+layout: go.kubebuilder.io/v3
+projectName: kafka-operator
 repo: github.com/banzaicloud/kafka-operator
 resources:
-- group: kafka
-  version: v1beta1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: banzaicloud.io
+  group: kafka
   kind: KafkaCluster
+  path: github.com/banzaicloud/kafka-operator/pkg/sdk/v1beta1
+  version: v1beta1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: banzaicloud.io
+  group: kafka
+  kind: KafkaTopic
+  path: github.com/banzaicloud/kafka-operator/pkg/sdk/v1alpha1
+  version: v1beta1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: banzaicloud.io
+  group: kafka
+  kind: KafkaUser
+  path: github.com/banzaicloud/kafka-operator/pkg/sdk/v1alpha1
+  version: v1alpha1

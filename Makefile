@@ -30,7 +30,49 @@ endif
 
 export PATH := $(PWD)/bin:$(PATH)
 
+##@ General
+
+
 all: test manager
+
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+
+
+
+##@ Development
+
+manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	cd pkg/sdk && $(CONTROLLER_GEN) $(CRD_OPTIONS) webhook paths="./..." output:crd:artifacts:config=../../config/base/crds output:webhook:artifacts:config=../../config/base/webhook
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./controllers/..." output:rbac:artifacts:config=./config/base/rbac
+	## Regenerate CRDs for the helm chart
+	echo "{{- if .Values.crd.enabled }}" > $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_kafkaclusters.yaml >> $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_kafkatopics.yaml >> $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_kafkausers.yaml >> $(HELM_CRD_PATH)
+	echo "{{- end }}" >> $(HELM_CRD_PATH)
+
+fmt: ## Run go fmt against code
+	go fmt ./...
+	cd pkg/sdk && go fmt ./...
+	cd properties && go fmt ./...
+
+vet: ## Run go vet against code
+	go vet ./...
+	cd pkg/sdk && go fmt ./...
+	cd properties && go vet ./...
+
+generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	cd pkg/sdk && $(CONTROLLER_GEN) object:headerFile=./../../hack/boilerplate.go.txt paths="./..."
+
+ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
+test: manifests generate fmt vet ## Run tests.
+	cd pkg/sdk && go test ./...
+	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
+	mkdir -p ${ENVTEST_ASSETS_DIR}
+	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.0/hack/setup-envtest.sh
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
 .PHONY: check
 check: test lint ## Run tests and linters
@@ -64,94 +106,65 @@ license-check: bin/licensei ## Run license check
 license-cache: bin/licensei ## Generate license cache
 	bin/licensei cache
 
-# Install kustomize
-install-kustomize:
-	@ if ! which bin/kustomize &>/dev/null; then\
-		scripts/install_kustomize.sh;\
-	fi
 
-# Install kubebuilder
-install-kubebuilder:
-	@ if ! which bin/kubebuilder/bin/kubebuilder &>/dev/null; then\
-		scripts/install_kubebuilder.sh;\
-	fi
+##@ Build
 
-# Run tests
-test: install-kubebuilder generate fmt vet manifests
-	cd pkg/sdk && go test ./...
-	KUBEBUILDER_ASSETS="$${PWD}/bin/kubebuilder/bin" go test ./... -coverprofile cover.out
-	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
-
-# Build manager binary
-manager: generate fmt vet
+build: generate fmt vet ## Build manager binary.
 	go build -o bin/manager main.go
 
-# Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
+run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
-# Install CRDs into a cluster by manually creating or replacing the CRD depending on whether is currently existing
+manager: build
+
+
+docker-build: ## Build the docker image
+	docker build . -t ${IMG}
+
+
+docker-push: ## Push the docker image
+	docker push ${IMG}
+
+
+##@ Deployment
+
+controller-gen: ## Download controller-gen locally if necessary.
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION})
+
+KUSTOMIZE = $(shell pwd)/bin/kustomize
+kustomize: ## Download kustomize locally if necessary.
+	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+
+# go-get-tool will 'go get' any package $2 and install it to $1.
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+define go-get-tool
+@[ -f $(1) ] || { \
+set -e ;\
+TMP_DIR=$$(mktemp -d) ;\
+cd $$TMP_DIR ;\
+go mod init tmp ;\
+echo "Downloading $(2)" ;\
+GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
+rm -rf $$TMP_DIR ;\
+}
+endef
+
+
 # Apply is not applicable as the last-applied-configuration annotation would exceed the size limit enforced by the api server
-install: manifests
+install: manifests kustomize ## Install CRDs into a cluster by manually creating or replacing the CRD depending on whether is currently existing.
 ifeq ($(shell kubectl get -f config/base/crds >/dev/null 2>&1; echo $$?), 1)
 	kubectl create -f config/base/crds
 else
 	kubectl replace -f config/base/crds
 endif
 
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: install-kustomize install
+
+deploy: kustomize install ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 	# creates the kafka namespace
 	bin/kustomize build config | kubectl apply -f -
 	./scripts/image_patch.sh "${KUSTOMIZE_BASE}/manager_image_patch.yaml" ${IMG}
 	bin/kustomize build $(KUSTOMIZE_BASE) | kubectl apply -f -
 
-# Generate manifests e.g. CRD, RBAC etc.
-manifests: bin/controller-gen
-	cd pkg/sdk && $(CONTROLLER_GEN) $(CRD_OPTIONS) webhook paths="./..." output:crd:artifacts:config=../../config/base/crds output:webhook:artifacts:config=../../config/base/webhook
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./controllers/..." output:rbac:artifacts:config=./config/base/rbac
-	## Regenerate CRDs for the helm chart
-	echo "{{- if .Values.crd.enabled }}" > $(HELM_CRD_PATH)
-	cat config/base/crds/kafka.banzaicloud.io_kafkaclusters.yaml >> $(HELM_CRD_PATH)
-	cat config/base/crds/kafka.banzaicloud.io_kafkatopics.yaml >> $(HELM_CRD_PATH)
-	cat config/base/crds/kafka.banzaicloud.io_kafkausers.yaml >> $(HELM_CRD_PATH)
-	echo "{{- end }}" >> $(HELM_CRD_PATH)
-
-# Run go fmt against code
-fmt:
-	go fmt ./...
-	cd pkg/sdk && go fmt ./...
-	cd properties && go fmt ./...
-
-# Run go vet against code
-vet:
-	go vet ./...
-	cd pkg/sdk && go fmt ./...
-	cd properties && go vet ./...
-
-# Generate code
-generate: bin/controller-gen
-	cd pkg/sdk && $(CONTROLLER_GEN) object:headerFile=./../../hack/boilerplate.go.txt paths="./..."
-
-# Build the docker image
-docker-build:
-	docker build . -t ${IMG}
-
-# Push the docker image
-docker-push:
-	docker push ${IMG}
-
-# find or download controller-gen
-# download controller-gen if necessary
-bin/controller-gen:
-	@ if ! test -x bin/controller-gen; then \
-		set -ex ;\
-		CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-		cd $$CONTROLLER_GEN_TMP_DIR ;\
-		go mod init tmp ;\
-		GOBIN=$(PWD)/bin go get sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION} ;\
-		rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	fi
 
 check_release:
 	@echo "A new tag (${REL_TAG}) will be pushed to Github, and a new Docker image will be released. Are you sure? [y/N] " && read ans && [ $${ans:-N} == y ]

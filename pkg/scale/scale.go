@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"strings"
 
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	bcutil "github.com/banzaicloud/kafka-operator/pkg/util"
