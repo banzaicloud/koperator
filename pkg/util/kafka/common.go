@@ -249,6 +249,7 @@ func GatherBrokerConfigIfAvailable(kafkaClusterSpec v1beta1.KafkaClusterSpec, br
 			return brokerConfig, nil
 		}
 	}
-
-	return nil, errors.NewWithDetails("broker config was not found", "brokerId", brokerId)
+	// When broker is missing from the spec no broker config is available.
+	// That means broker is under deletion, which is not an error.
+	return nil, nil
 }
