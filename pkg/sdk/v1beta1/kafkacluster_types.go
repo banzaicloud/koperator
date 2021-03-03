@@ -716,7 +716,7 @@ func (cConfig *CruiseControlConfig) GetCCImage() string {
 	if cConfig.Image != "" {
 		return cConfig.Image
 	}
-	return "ghcr.io/banzaicloud/cruise-control:2.5.28"
+	return "ghcr.io/banzaicloud/cruise-control:2.5.37"
 }
 
 // GetCCLog4jConfig returns the used Cruise Control log4j configuration
@@ -724,10 +724,67 @@ func (cConfig *CruiseControlConfig) GetCCLog4jConfig() string {
 	if cConfig.Log4jConfig != "" {
 		return cConfig.Log4jConfig
 	}
-	return `log4j.rootLogger = INFO, FILE
-log4j.appender.FILE=org.apache.log4j.ConsoleAppender
-log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
-log4j.appender.FILE.layout.conversionPattern=%-6r [%15.15t] %-5p %30.30c %x - %m%n`
+	return `rootLogger.level=INFO
+appenders=console, kafkaCruiseControlAppender, operationAppender, requestAppender
+
+property.filename=./logs
+
+appender.console.type=Console
+appender.console.name=STDOUT
+appender.console.layout.type=PatternLayout
+appender.console.layout.pattern=[%d] %p %m (%c)%n
+
+appender.kafkaCruiseControlAppender.type=RollingFile
+appender.kafkaCruiseControlAppender.name=kafkaCruiseControlFile
+appender.kafkaCruiseControlAppender.fileName=${filename}/kafkacruisecontrol.log
+appender.kafkaCruiseControlAppender.filePattern=${filename}/kafkacruisecontrol.log.%d{yyyy-MM-dd-HH}
+appender.kafkaCruiseControlAppender.layout.type=PatternLayout
+appender.kafkaCruiseControlAppender.layout.pattern=[%d] %p %m (%c)%n
+appender.kafkaCruiseControlAppender.policies.type=Policies
+appender.kafkaCruiseControlAppender.policies.time.type=TimeBasedTriggeringPolicy
+appender.kafkaCruiseControlAppender.policies.time.interval=1
+
+appender.operationAppender.type=RollingFile
+appender.operationAppender.name=operationFile
+appender.operationAppender.fileName=${filename}/kafkacruisecontrol-operation.log
+appender.operationAppender.filePattern=${filename}/kafkacruisecontrol-operation.log.%d{yyyy-MM-dd}
+appender.operationAppender.layout.type=PatternLayout
+appender.operationAppender.layout.pattern=[%d] %p [%c] %m %n
+appender.operationAppender.policies.type=Policies
+appender.operationAppender.policies.time.type=TimeBasedTriggeringPolicy
+appender.operationAppender.policies.time.interval=1
+
+appender.requestAppender.type=RollingFile
+appender.requestAppender.name=requestFile
+appender.requestAppender.fileName=${filename}/kafkacruisecontrol-request.log
+appender.requestAppender.filePattern=${filename}/kafkacruisecontrol-request.log.%d{yyyy-MM-dd-HH}
+appender.requestAppender.layout.type=PatternLayout
+appender.requestAppender.layout.pattern=[%d] %p %m (%c)%n
+appender.requestAppender.policies.type=Policies
+appender.requestAppender.policies.time.type=TimeBasedTriggeringPolicy
+appender.requestAppender.policies.time.interval=1
+
+# Loggers
+logger.cruisecontrol.name=com.linkedin.kafka.cruisecontrol
+logger.cruisecontrol.level=info
+logger.cruisecontrol.appenderRef.kafkaCruiseControlAppender.ref=kafkaCruiseControlFile
+
+logger.detector.name=com.linkedin.kafka.cruisecontrol.detector
+logger.detector.level=info
+logger.detector.appenderRef.kafkaCruiseControlAppender.ref=kafkaCruiseControlFile
+
+logger.operationLogger.name=operationLogger
+logger.operationLogger.level=info
+logger.operationLogger.appenderRef.operationAppender.ref=operationFile
+
+logger.CruiseControlPublicAccessLogger.name=CruiseControlPublicAccessLogger
+logger.CruiseControlPublicAccessLogger.level=info
+logger.CruiseControlPublicAccessLogger.appenderRef.requestAppender.ref=requestFile
+
+rootLogger.appenderRefs=console, kafkaCruiseControlAppender
+rootLogger.appenderRef.console.ref=STDOUT
+rootLogger.appenderRef.kafkaCruiseControlAppender.ref=kafkaCruiseControlFile
+`
 }
 
 // GetImage returns the used image for Prometheus JMX exporter
