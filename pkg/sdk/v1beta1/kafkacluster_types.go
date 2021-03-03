@@ -783,7 +783,8 @@ logger.CruiseControlPublicAccessLogger.appenderRef.requestAppender.ref=requestFi
 
 rootLogger.appenderRefs=console, kafkaCruiseControlAppender
 rootLogger.appenderRef.console.ref=STDOUT
-rootLogger.appenderRef.kafkaCruiseControlAppender.ref=kafkaCruiseControlFile`
+rootLogger.appenderRef.kafkaCruiseControlAppender.ref=kafkaCruiseControlFile
+`
 }
 
 // GetImage returns the used image for Prometheus JMX exporter
