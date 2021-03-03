@@ -105,7 +105,7 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 					BrokerConfigGroup: defaultBrokerConfigGroup,
 				},
 			},
-			ClusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.6.0-bzc.1",
+			ClusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.7.0-bzc.1",
 			ZKAddresses:  []string{},
 			MonitoringConfig: v1beta1.MonitoringConfig{
 				CCJMXExporterConfig: "custom_property: custom_value",
