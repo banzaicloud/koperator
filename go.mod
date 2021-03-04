@@ -34,6 +34,7 @@ require (
 	github.com/pavel-v-chernykh/keystore-go v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.4.1 // indirect
 	github.com/prometheus/common v0.9.1
+	github.com/shirou/gopsutil v3.20.12+incompatible // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/viper v1.7.1 // indirect
 	go.uber.org/zap v1.10.0
