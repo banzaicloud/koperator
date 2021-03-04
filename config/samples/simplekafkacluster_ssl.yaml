@@ -45,9 +45,14 @@ spec:
   listenersConfig:
     internalListeners:
       - type: "ssl"
-        name: "ssl"
+        name: "internal"
         containerPort: 29092
         usedForInnerBrokerCommunication: true
+      - type: "ssl"
+        name: "controller"
+        containerPort: 29093
+        usedForInnerBrokerCommunication: false
+        usedForControllerCommunication: true
     sslSecrets:
       tlsSecretName: "test-kafka-operator"
       jksPasswordName: "test-kafka-operator-pass"
