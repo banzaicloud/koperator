@@ -77,7 +77,7 @@ install-kubebuilder:
 	fi
 
 # Run tests
-test: install-kubebuilder generate fmt vet manifests
+test: install-kubebuilder generate fmt vet
 	cd pkg/sdk && go test ./...
 	KUBEBUILDER_ASSETS="$${PWD}/bin/kubebuilder/bin" go test ./... -coverprofile cover.out
 	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
@@ -87,7 +87,7 @@ manager: generate fmt vet
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
+run: generate fmt vet
 	go run ./main.go
 
 # Install CRDs into a cluster by manually creating or replacing the CRD depending on whether is currently existing
