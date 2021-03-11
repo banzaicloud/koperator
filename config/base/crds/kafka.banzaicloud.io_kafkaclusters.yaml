@@ -10884,6 +10884,19 @@ spec:
                       containerPort:
                         format: int32
                         type: integer
+                      externalListenerForHostname:
+                        description: If set to a non-empty value, the Kafka brokers
+                          will use the external hostname for inter broker communication.
+                          The internal lister will will share the same hostname with
+                          the external listener that is referenced here.
+                        type: string
+                      internalStartingPort:
+                        description: This following options are helpful when you want
+                          to run a Kafka cluster over multiple Kubernetes clusters.
+                          The broker internal ports are computed as the sum of the
+                          internalStartingPort and the broker id.
+                        format: int32
+                        type: integer
                       name:
                         type: string
                       type:
