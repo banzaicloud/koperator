@@ -5,6 +5,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.3.0
+    strategy.spinnaker.io/versioned: 'false'
+    strategy.spinnaker.io/replace: 'true'
   creationTimestamp: null
   name: kafkaclusters.kafka.banzaicloud.io
 spec:
@@ -30,7 +32,7 @@ spec:
     listKind: KafkaClusterList
     plural: kafkaclusters
     singular: kafkacluster
-  preserveUnknownFields: false
+  preserveUnknownFields: true
   scope: Namespaced
   subresources:
     status: {}

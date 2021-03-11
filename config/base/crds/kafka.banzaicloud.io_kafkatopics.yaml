@@ -5,6 +5,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.3.0
+    strategy.spinnaker.io/versioned: 'false'
+    strategy.spinnaker.io/replace: 'true'
   creationTimestamp: null
   name: kafkatopics.kafka.banzaicloud.io
 spec:
@@ -14,7 +16,7 @@ spec:
     listKind: KafkaTopicList
     plural: kafkatopics
     singular: kafkatopic
-  preserveUnknownFields: false
+  preserveUnknownFields: true
   scope: Namespaced
   subresources:
     status: {}
