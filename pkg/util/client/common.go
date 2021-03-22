@@ -22,7 +22,7 @@ import (
 )
 
 func UseSSL(cluster *v1beta1.KafkaCluster) bool {
-	return cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].Type != "plaintext"
+	return cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].Type.IsSSL()
 }
 
 func determineInternalListenerForInnerCom(internalListeners []v1beta1.InternalListenerConfig) int {

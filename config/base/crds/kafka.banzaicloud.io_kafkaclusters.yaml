@@ -11066,6 +11066,14 @@ spec:
                             Default value is LoadBalancer
                           type: string
                         type:
+                          description: 'SecurityProtocol is the protocol used to communicate
+                            with brokers. Valid values are: plaintext, ssl, sasl_plaintext,
+                            sasl_ssl.'
+                          enum:
+                          - ssl
+                          - plaintext
+                          - sasl_ssl
+                          - sasl_plaintext
                           type: string
                       required:
                       - containerPort
@@ -11085,6 +11093,14 @@ spec:
                         name:
                           type: string
                         type:
+                          description: 'SecurityProtocol is the protocol used to communicate
+                            with brokers. Valid values are: plaintext, ssl, sasl_plaintext,
+                            sasl_ssl.'
+                          enum:
+                          - ssl
+                          - plaintext
+                          - sasl_ssl
+                          - sasl_plaintext
                           type: string
                         usedForControllerCommunication:
                           type: boolean

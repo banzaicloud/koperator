@@ -101,6 +101,7 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 					CommonListenerSpec: v1beta1.CommonListenerSpec{
 						Name:          "test",
 						ContainerPort: 9733,
+						Type:          "plaintext",
 					},
 					ExternalStartingPort: 31123,
 					AccessMethod:         corev1.ServiceTypeNodePort,
@@ -232,6 +233,7 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 					CommonListenerSpec: v1beta1.CommonListenerSpec{
 						Name:          "test",
 						ContainerPort: 9733,
+						Type:          "plaintext",
 					},
 					ExternalStartingPort: 30100,
 					IngressServiceSettings: v1beta1.IngressServiceSettings{
