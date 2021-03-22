@@ -126,7 +126,7 @@ func ConvertStringToInt32(s string) int32 {
 func IsSSLEnabledForInternalCommunication(l []v1beta1.InternalListenerConfig) (enabled bool) {
 
 	for _, listener := range l {
-		if strings.ToLower(listener.Type) == "ssl" {
+		if listener.Type.IsSSL() {
 			enabled = true
 			break
 		}

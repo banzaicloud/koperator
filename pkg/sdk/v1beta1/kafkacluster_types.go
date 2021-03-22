@@ -397,9 +397,10 @@ type InternalListenerConfig struct {
 
 // CommonListenerSpec defines the common building block for Listener type
 type CommonListenerSpec struct {
-	Type          string `json:"type"`
-	Name          string `json:"name"`
-	ContainerPort int32  `json:"containerPort"`
+	// +kubebuilder:validation:Enum=ssl;plaintext;sasl_ssl;sasl_plaintext
+	Type          SecurityProtocol `json:"type"`
+	Name          string           `json:"name"`
+	ContainerPort int32            `json:"containerPort"`
 }
 
 // ListenerStatuses holds information about the statuses of the configured listeners.

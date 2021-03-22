@@ -14,6 +14,8 @@
 
 package v1beta1
 
+import "strings"
+
 // RackAwarenessState stores info about rack awareness status
 type RackAwarenessState string
 
@@ -31,6 +33,10 @@ type ClusterState string
 
 // ConfigurationState holds info about the configuration state
 type ConfigurationState string
+
+// SecurityProtocol is the protocol used to communicate with brokers.
+// Valid values are: plaintext, ssl, sasl_plaintext, sasl_ssl.
+type SecurityProtocol string
 
 // PerBrokerConfigurationState holds info about the per-broker configuration state
 type PerBrokerConfigurationState string
@@ -69,6 +75,31 @@ func (r CruiseControlState) Complete() CruiseControlState {
 	default:
 		return r
 	}
+}
+
+// IsSSL determines if the receiver is using SSL
+func (r SecurityProtocol) IsSSL() bool {
+	return r.Equal(SecurityProtocolSaslSSL) || r.Equal(SecurityProtocolSSL)
+}
+
+// IsSasl determines if the receiver is using Sasl
+func (r SecurityProtocol) IsSasl() bool {
+	return r.Equal(SecurityProtocolSaslSSL) || r.Equal(SecurityProtocolSaslPlaintext)
+}
+
+// IsPlaintext determines if the receiver is using plaintext
+func (r SecurityProtocol) IsPlaintext() bool {
+	return r.Equal(SecurityProtocolPlaintext) || r.Equal(SecurityProtocolSaslPlaintext)
+}
+
+// ToUpperString converts SecurityProtocol to an upper string
+func (r SecurityProtocol) ToUpperString() string {
+	return strings.ToUpper(string(r))
+}
+
+// Equal checks the equality between two SecurityProtocols
+func (r SecurityProtocol) Equal(s SecurityProtocol) bool {
+	return r.ToUpperString() == s.ToUpperString()
 }
 
 const (
@@ -182,4 +213,13 @@ const (
 	PerBrokerConfigOutOfSync PerBrokerConfigurationState = "PerBrokerConfigOutOfSync"
 	// PerBrokerConfigError states that the generated per-broker brokerConfig can not be set in the Broker
 	PerBrokerConfigError PerBrokerConfigurationState = "PerBrokerConfigError"
+
+	// SecurityProtocolSSL
+	SecurityProtocolSSL SecurityProtocol = "ssl"
+	// SecurityProtocolPlaintext
+	SecurityProtocolPlaintext SecurityProtocol = "plaintext"
+	// SecurityProtocolSaslSSL
+	SecurityProtocolSaslSSL SecurityProtocol = "sasl_ssl"
+	// SecurityProtocolSaslPlaintext
+	SecurityProtocolSaslPlaintext SecurityProtocol = "sasl_plaintext"
 )

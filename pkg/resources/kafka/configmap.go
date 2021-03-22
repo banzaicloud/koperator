@@ -228,13 +228,13 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger,
 				log.Error(errors.New("inter broker listener name already set"), "config error")
 			}
 		}
-		UpperedListenerType := strings.ToUpper(iListener.Type)
+		UpperedListenerType := iListener.Type.ToUpperString()
 		UpperedListenerName := strings.ToUpper(iListener.Name)
 		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
 	}
 	for _, eListener := range l.ExternalListeners {
-		UpperedListenerType := strings.ToUpper(eListener.Type)
+		UpperedListenerType := eListener.Type.ToUpperString()
 		UpperedListenerName := strings.ToUpper(eListener.Name)
 		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
