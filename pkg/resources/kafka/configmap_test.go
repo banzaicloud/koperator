@@ -17,10 +17,11 @@ package kafka
 import (
 	"testing"
 
-	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
@@ -37,6 +38,7 @@ func TestGenerateBrokerConfig(t *testing.T) {
 		perBrokerReadOnlyConfig   string
 		perBrokerConfig           string
 		advertisedListenerAddress string
+		listenerType              string
 		expectedConfig            string
 		perBrokerStorageConfig    []v1beta1.StorageConfig
 	}{
@@ -50,6 +52,7 @@ func TestGenerateBrokerConfig(t *testing.T) {
 			perBrokerConfig:           ``,
 			perBrokerReadOnlyConfig:   ``,
 			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
@@ -70,6 +73,7 @@ zookeeper.connect=example.zk:2181/`,
 			perBrokerConfig:           ``,
 			perBrokerReadOnlyConfig:   ``,
 			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
@@ -90,6 +94,7 @@ zookeeper.connect=example.zk:2181/kafka`,
 			perBrokerConfig:           ``,
 			perBrokerReadOnlyConfig:   ``,
 			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
@@ -110,6 +115,7 @@ zookeeper.connect=example.zk:2181/`,
 			perBrokerConfig:           ``,
 			perBrokerReadOnlyConfig:   ``,
 			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
@@ -135,6 +141,7 @@ zookeeper.connect=example.zk:2181,example.zk-1:2181/kafka`,
 				},
 			},
 			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
@@ -156,6 +163,7 @@ zookeeper.connect=example.zk:2181/`,
 			perBrokerConfig:           ``,
 			perBrokerReadOnlyConfig:   ``,
 			advertisedListenerAddress: `kafka-0.kafka.svc.foo.bar:9092`,
+			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.foo.bar:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.foo.bar:9092
@@ -184,6 +192,7 @@ compression.type=snappy
 auto.create.topics.enable=true
 `,
 			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 auto.create.topics.enable=true
 broker.id=0
@@ -192,6 +201,27 @@ cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.clu
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
+listeners=INTERNAL://:9092
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+zookeeper.connect=example.zk:2181/`,
+		},
+		{
+			testName:                  "configWithSasl",
+			readOnlyConfig:            ``,
+			zkAddresses:               []string{"example.zk:2181"},
+			zkPath:                    ``,
+			kubernetesClusterDomain:   ``,
+			clusterWideConfig:         ``,
+			perBrokerConfig:           ``,
+			perBrokerReadOnlyConfig:   ``,
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "sasl_plaintext",
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.kubernetes.mode=true
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:SASL_PLAINTEXT
 listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 zookeeper.connect=example.zk:2181/`,
@@ -218,7 +248,7 @@ zookeeper.connect=example.zk:2181/`,
 							ListenersConfig: v1beta1.ListenersConfig{
 								InternalListeners: []v1beta1.InternalListenerConfig{{
 									CommonListenerSpec: v1beta1.CommonListenerSpec{
-										Type:          "plaintext",
+										Type:          v1beta1.SecurityProtocol(test.listenerType),
 										Name:          "internal",
 										ContainerPort: 9092,
 									},
