@@ -745,8 +745,10 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 					}
 
 					resReq := desiredPvc.Spec.Resources.Requests
+					labels := desiredPvc.Labels
 					desiredPvc = currentPvc.DeepCopy()
 					desiredPvc.Spec.Resources.Requests = resReq
+					desiredPvc.Labels = labels
 
 					if err := r.Client.Update(context.TODO(), desiredPvc); err != nil {
 						return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
