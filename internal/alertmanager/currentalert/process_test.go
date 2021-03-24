@@ -21,6 +21,7 @@ import (
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -428,6 +429,156 @@ func Test_addPvc(t *testing.T) {
 		})
 	}
 
+}
+
+func Test_upScale(t *testing.T) {
+	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+
+	testCases := []struct {
+		testName        string
+		kafkaCluster    v1beta1.KafkaCluster
+		alert           model.Alert
+		expectedBrokers []v1beta1.Broker
+	}{
+		{
+			testName: "upScale with config group",
+			kafkaCluster: v1beta1.KafkaCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+				Spec: v1beta1.KafkaClusterSpec{
+					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+						"default": {
+							StorageConfigs: []v1beta1.StorageConfig{
+								{
+									MountPath: "/kafka-logs",
+									PvcSpec: &corev1.PersistentVolumeClaimSpec{
+										AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+										Resources: corev1.ResourceRequirements{
+											Requests: corev1.ResourceList{
+												corev1.ResourceStorage: resource.MustParse("4Gi"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Brokers: []v1beta1.Broker{{Id: 0, BrokerConfigGroup: "default"}},
+				},
+			},
+			alert: model.Alert{
+				Labels: model.LabelSet{
+					"kafka_cr":   "test-cluster",
+					"namespace":  "test-namespace",
+					"severity":   "critical",
+					"alertGroup": "test",
+				},
+				Annotations: map[model.LabelName]model.LabelValue{
+					"command":           "upScale",
+					"brokerConfigGroup": "default",
+				},
+			},
+			expectedBrokers: []v1beta1.Broker{{Id: 0, BrokerConfigGroup: "default"}, {Id: 1, BrokerConfigGroup: "default"}},
+		},
+		{
+			testName: "upScale with broker config",
+			kafkaCluster: v1beta1.KafkaCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+				Spec: v1beta1.KafkaClusterSpec{
+					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+						"default": {
+							StorageConfigs: []v1beta1.StorageConfig{
+								{
+									MountPath: "/kafka-logs",
+									PvcSpec: &corev1.PersistentVolumeClaimSpec{
+										Resources: corev1.ResourceRequirements{
+											Requests: corev1.ResourceList{
+												corev1.ResourceStorage: resource.MustParse("4Gi"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Brokers: []v1beta1.Broker{{Id: 0, BrokerConfigGroup: "default"}},
+				},
+			},
+			alert: model.Alert{
+				Labels: model.LabelSet{
+					"kafka_cr":   "test-cluster",
+					"namespace":  "test-namespace",
+					"severity":   "critical",
+					"alertGroup": "test",
+				},
+				Annotations: map[model.LabelName]model.LabelValue{
+					"command":           "upScale",
+					"storageClass":      "gp2",
+					"mountPath":         "/kafkalog",
+					"diskSize":          "10G",
+					"image":             "org/kafka:tag",
+					"brokerAnnotations": "{ \"test annotation1\": \"ann value1\", \"test annotation2\": \"ann value2\" }",
+				},
+			},
+			expectedBrokers: []v1beta1.Broker{
+				{Id: 0, BrokerConfigGroup: "default"},
+				{Id: 1, BrokerConfig: &v1beta1.BrokerConfig{
+					Image:             "org/kafka:tag",
+					BrokerAnnotations: map[string]string{"test annotation1": "ann value1", "test annotation2": "ann value2"},
+					StorageConfigs: []v1beta1.StorageConfig{
+						{
+							MountPath: "/kafkalog",
+							PvcSpec: &corev1.PersistentVolumeClaimSpec{
+								StorageClassName: util.StringPointer("gp2"),
+								AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+								Resources: corev1.ResourceRequirements{
+									Requests: map[corev1.ResourceName]resource.Quantity{
+										corev1.ResourceStorage: resource.MustParse("10G"),
+									},
+								},
+							},
+						},
+					},
+				}}},
+		},
+	}
+
+	for _, test := range testCases {
+		test := test
+		t.Run(test.testName, func(t *testing.T) {
+			if err := testClient.Create(context.Background(), &test.kafkaCluster); err != nil {
+				t.Error(err)
+				return
+			}
+
+			defer testClient.Delete(context.Background(), &test.kafkaCluster)
+
+			if err := upScale(logf.NullLogger{}, test.alert.Labels, test.alert.Annotations, testClient); err != nil {
+				t.Error(err)
+				return
+			}
+
+			var kafkaCluster v1beta1.KafkaCluster
+			if err := testClient.Get(
+				context.Background(),
+				types.NamespacedName{Namespace: test.kafkaCluster.GetNamespace(), Name: test.kafkaCluster.GetName()},
+				&kafkaCluster); err != nil {
+				t.Error(err)
+				return
+			}
+
+			m := gomega.ConsistOf(test.expectedBrokers)
+			if ok, _ := m.Match(kafkaCluster.Spec.Brokers); !ok {
+				t.Error(m.FailureMessage(kafkaCluster.Spec.Brokers))
+				return
+			}
+		})
+	}
 }
 
 func cleanupPvcs(testClient client.Client, tt struct {

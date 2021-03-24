@@ -86,6 +86,8 @@ spec:
         mountPath: '/kafkalog'
         diskSize: '10G'
         image: 'ghcr.io/banzaicloud/kafka:2.13-2.7.0-bzc.1'
+        # annotations to be applied onto the broker pod
+        # brokerAnnotations: '{ "sidecar.istio.io/logLevel": "trace", "sidecar.istio.io/proxyCPULimit": "50m" }'
         command: 'upScale'
     - alert: BrokerUnderReplicated
       expr: kafka_server_replicamanager_underreplicatedpartitions > 0
@@ -100,6 +102,8 @@ spec:
         mountPath: '/kafkalog'
         diskSize: '10G'
         image: 'ghcr.io/banzaicloud/kafka:2.13-2.7.0-bzc.1'
+        # annotations to be applied onto the broker pod
+        # brokerAnnotations: '{ "sidecar.istio.io/logLevel": "trace", "sidecar.istio.io/proxyCPULimit": "50m" }'
         command: 'upScale'
     - alert: PartitionCountHigh
       expr: max(kafka_server_replicamanager_partitioncount)  by (namespace, kafka_cr) > 100
@@ -114,6 +118,8 @@ spec:
         mountPath: '/kafkalog'
         diskSize: '10G'
         image: 'ghcr.io/banzaicloud/kafka:2.13-2.7.0-bzc.1'
+        # annotations to be applied onto the broker pod
+        # brokerAnnotations: '{ "sidecar.istio.io/logLevel": "trace", "sidecar.istio.io/proxyCPULimit": "50m" }'
         command: 'upScale'
     - alert: PartitionCountLow
       expr: min(kafka_server_replicamanager_partitioncount)  by (namespace, kafka_cr) < 40

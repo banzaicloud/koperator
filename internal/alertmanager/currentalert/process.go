@@ -16,6 +16,7 @@ package currentalert
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -367,6 +368,15 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 			storageClassName = util.StringPointer(string(annotations["storageClass"]))
 		}
 
+		var brokerAnnotations map[string]string
+		if brokerAnnotationsRaw, ok := annotations["brokerAnnotations"]; ok && len(brokerAnnotationsRaw) > 0 {
+			if err := json.Unmarshal([]byte(brokerAnnotationsRaw), &brokerAnnotations); err != nil {
+				// if broker annotations passed in via the Prometheus alert can't be parsed we just log it
+				// instead of returning an error as we don't want to block the upscaling of the cluster
+				log.Error(err, "couldn't parse brokerAnnotations from alert annotation for upscale command", "brokerAnnotations", brokerAnnotationsRaw)
+			}
+		}
+
 		broker = v1beta1.Broker{
 			Id: biggestId + 1,
 			BrokerConfig: &v1beta1.BrokerConfig{
@@ -387,6 +397,7 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 						},
 					},
 				},
+				BrokerAnnotations: brokerAnnotations,
 			},
 		}
 	}
