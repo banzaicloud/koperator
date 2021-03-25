@@ -19,13 +19,14 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+	"github.com/go-logr/logr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
-	"github.com/go-logr/logr"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // clusterRefLabel is the label key used for referencing KafkaUsers/KafkaTopics

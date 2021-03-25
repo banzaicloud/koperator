@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 

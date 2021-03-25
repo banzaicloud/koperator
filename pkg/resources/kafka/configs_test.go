@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/Shopify/sarama"
+
 	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 )
 

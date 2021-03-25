@@ -15,10 +15,11 @@
 package dispatcher
 
 import (
-	"github.com/banzaicloud/kafka-operator/internal/alertmanager/currentalert"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/banzaicloud/kafka-operator/internal/alertmanager/currentalert"
 )
 
 // Dispatcher calls actors based on alert annotations

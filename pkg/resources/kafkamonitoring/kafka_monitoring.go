@@ -15,11 +15,12 @@
 package kafkamonitoring
 
 import (
+	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
-	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (

@@ -18,10 +18,11 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/banzaicloud/kafka-operator/internal/alertmanager"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+
+	"github.com/banzaicloud/kafka-operator/internal/alertmanager"
 )
 
 const (

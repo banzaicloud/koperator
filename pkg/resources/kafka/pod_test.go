@@ -17,11 +17,12 @@ package kafka
 import (
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"gotest.tools/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 func TestGetAffinity(t *testing.T) {

@@ -21,15 +21,20 @@ import (
 	"time"
 
 	emperrors "emperror.dev/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var log = logf.Log.WithName("controller_testing")
+
+const (
+	testNamespace = "test-namespace"
+)
 
 func TestRequeueWithError(t *testing.T) {
 	_, err := requeueWithError(log, "test", errors.New("test error"))
@@ -49,11 +54,11 @@ func TestReconciled(t *testing.T) {
 }
 
 func TestGetClusterRefNamespace(t *testing.T) {
-	ns := "test-namespace"
+	ns := testNamespace
 	ref := v1alpha1.ClusterReference{
 		Name: "test-cluster",
 	}
-	if refNS := getClusterRefNamespace(ns, ref); refNS != "test-namespace" {
+	if refNS := getClusterRefNamespace(ns, ref); refNS != testNamespace {
 		t.Error("Expected to get 'test-namespace', got:", refNS)
 	}
 	ref.Namespace = "another-namespace"
@@ -65,7 +70,7 @@ func TestGetClusterRefNamespace(t *testing.T) {
 func TestClusterLabelString(t *testing.T) {
 	cluster := &v1beta1.KafkaCluster{}
 	cluster.Name = "test-cluster"
-	cluster.Namespace = "test-namespace"
+	cluster.Namespace = testNamespace
 	if label := clusterLabelString(cluster); label != "test-cluster.test-namespace" {
 		t.Error("Expected label value 'test-cluster.test-namespace', got:", label)
 	}
@@ -74,7 +79,7 @@ func TestClusterLabelString(t *testing.T) {
 func TestNewBrokerConnection(t *testing.T) {
 	cluster := &v1beta1.KafkaCluster{}
 	cluster.Name = "test-kafka"
-	cluster.Namespace = "test-namespace"
+	cluster.Namespace = testNamespace
 	cluster.Spec = v1beta1.KafkaClusterSpec{
 		ListenersConfig: v1beta1.ListenersConfig{
 			InternalListeners: []v1beta1.InternalListenerConfig{
@@ -157,7 +162,7 @@ func TestCheckBrokerConnectionError(t *testing.T) {
 func TestApplyClusterRefLabel(t *testing.T) {
 	cluster := &v1beta1.KafkaCluster{}
 	cluster.Name = "test-kafka"
-	cluster.Namespace = "test-namespace"
+	cluster.Namespace = testNamespace
 
 	// nil labels input
 	var labels map[string]string

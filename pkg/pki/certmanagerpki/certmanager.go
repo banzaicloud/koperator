@@ -17,9 +17,10 @@ package certmanagerpki
 import (
 	"flag"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const spiffeIdTemplate = "spiffe://%s/ns/%s/kafkauser/%s"

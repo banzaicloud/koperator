@@ -18,14 +18,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 )
 
 const (
@@ -115,13 +116,10 @@ func (s *webhookServer) validateKafkaTopic(topic *v1alpha1.KafkaTopic) (res *adm
 			return notAllowed("Kafka does not support changing the replication factor on an existing topic", metav1.StatusReasonInvalid)
 		}
 
-		// the topic does not exist
-	} else {
-		// check if requesting a replication factor larger than the broker size
-		if int(topic.Spec.ReplicationFactor) > broker.NumBrokers() {
-			log.Info(fmt.Sprintf("Spec is requesting replication factor of %v, larger than cluster size of %v", topic.Spec.ReplicationFactor, broker.NumBrokers()))
-			return notAllowed(invalidReplicationFactorErrMsg, metav1.StatusReasonBadRequest)
-		}
+		// the topic does not exist check if requesting a replication factor larger than the broker size
+	} else if int(topic.Spec.ReplicationFactor) > broker.NumBrokers() {
+		log.Info(fmt.Sprintf("Spec is requesting replication factor of %v, larger than cluster size of %v", topic.Spec.ReplicationFactor, broker.NumBrokers()))
+		return notAllowed(invalidReplicationFactorErrMsg, metav1.StatusReasonBadRequest)
 	}
 
 	// everything looks a-okay

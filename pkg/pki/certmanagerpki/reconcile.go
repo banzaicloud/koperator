@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
@@ -28,6 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 // reconcile ensures the given kubernetes object

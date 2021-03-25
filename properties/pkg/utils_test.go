@@ -20,6 +20,11 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const (
+	testPropWithEscapedSep     = "\\=test\\:key\\=test\\ value\\:"
+	testPropWithRemovedEscapes = "=test:key=test value:"
+)
+
 func TestGetSeparator(t *testing.T) {
 
 	t.Run("Found '=' separator", func(t *testing.T) {
@@ -85,8 +90,8 @@ func TestUnEscapeSeparators(t *testing.T) {
 	t.Run("Remove escaping of separators", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
-		prop := "\\=test\\:key\\=test\\ value\\:"
-		expected := "=test:key=test value:"
+		prop := testPropWithEscapedSep
+		expected := testPropWithRemovedEscapes
 
 		result := UnEscapeSeparators(prop)
 		g.Expect(result).Should(Equal(expected))
@@ -95,8 +100,8 @@ func TestUnEscapeSeparators(t *testing.T) {
 	t.Run("Do nothing", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
-		prop := "=test:key=test value:"
-		expected := "=test:key=test value:"
+		prop := testPropWithRemovedEscapes
+		expected := testPropWithRemovedEscapes
 
 		result := UnEscapeSeparators(prop)
 		g.Expect(result).Should(Equal(expected))
@@ -118,8 +123,8 @@ func TestEscapeSeparators(t *testing.T) {
 	t.Run("Escaping separators", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
-		prop := "=test:key=test value:"
-		expected := "\\=test\\:key\\=test\\ value\\:"
+		prop := testPropWithRemovedEscapes
+		expected := testPropWithEscapedSep
 
 		result := EscapeSeparators(prop)
 		g.Expect(result).Should(Equal(expected))
@@ -128,8 +133,8 @@ func TestEscapeSeparators(t *testing.T) {
 	t.Run("Do nothing", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
-		prop := "\\=test\\:key\\=test\\ value\\:"
-		expected := "\\=test\\:key\\=test\\ value\\:"
+		prop := testPropWithEscapedSep
+		expected := testPropWithEscapedSep
 
 		result := EscapeSeparators(prop)
 		g.Expect(result).Should(Equal(expected))

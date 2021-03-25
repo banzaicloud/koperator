@@ -17,8 +17,9 @@ package kafkamonitoring
 import (
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 
 	corev1 "k8s.io/api/core/v1"
 )

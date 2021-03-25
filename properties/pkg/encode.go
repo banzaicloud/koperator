@@ -18,6 +18,7 @@ import (
 	"reflect"
 
 	"emperror.dev/errors"
+
 	"github.com/banzaicloud/kafka-operator/properties/internal/utils"
 )
 

@@ -17,13 +17,14 @@ package webhook
 import (
 	"net/http"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 )
 
 var (

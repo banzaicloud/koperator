@@ -19,17 +19,18 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 func newMockUser() *v1alpha1.KafkaUser {
 	user := &v1alpha1.KafkaUser{}
 	user.Name = "test-user"
-	user.Namespace = "test-namespace"
+	user.Namespace = testNamespace
 	user.Spec = v1alpha1.KafkaUserSpec{SecretName: "test-secret", IncludeJKS: true}
 	return user
 }
@@ -37,7 +38,7 @@ func newMockUser() *v1alpha1.KafkaUser {
 func newMockUserSecret() *corev1.Secret {
 	secret := &corev1.Secret{}
 	secret.Name = "test-secret"
-	secret.Namespace = "test-namespace"
+	secret.Namespace = testNamespace
 	cert, key, _, _ := certutil.GenerateTestCert()
 	secret.Data = map[string][]byte{
 		corev1.TLSCertKey:         cert,

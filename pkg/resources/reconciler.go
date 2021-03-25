@@ -15,10 +15,11 @@
 package resources
 
 import (
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -56,8 +57,8 @@ type ResourceWithBrokerConfigAndVolume func(id int32, brokerConfig *v1beta1.Brok
 // ResourceWithBrokerConfigAndString function with brokerConfig, string and log parameters
 type ResourceWithBrokerConfigAndString func(id int32, brokerConfig *v1beta1.BrokerConfig, t string, su []string, log logr.Logger) runtime.Object
 
-// ResourceWithBrokerIdAndStorage function with brokerConfig, storageConfig and log parameters
-type ResourceWithBrokerIdAndStorage func(id int32, storage v1beta1.StorageConfig, log logr.Logger) runtime.Object
+// ResourceWithBrokerIDAndStorage function with brokerConfig, storageConfig and log parameters
+type ResourceWithBrokerIDAndStorage func(id int32, storage v1beta1.StorageConfig, log logr.Logger) runtime.Object
 
-// ResourceWithBrokerIdAndLog function with brokerConfig and log parameters
-type ResourceWithBrokerIdAndLog func(id int32, log logr.Logger) runtime.Object
+// ResourceWithBrokerIDAndLog function with brokerConfig and log parameters
+type ResourceWithBrokerIDAndLog func(id int32, log logr.Logger) runtime.Object

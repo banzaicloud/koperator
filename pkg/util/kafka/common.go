@@ -19,9 +19,10 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
+	"github.com/go-logr/logr"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
-	"github.com/go-logr/logr"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -56,20 +57,20 @@ func LabelsForKafka(name string) map[string]string {
 	return map[string]string{"app": "kafka", "kafka_cr": name}
 }
 
-// commonAclString is the raw representation of an ACL allowing Describe on a Topic
-var commonAclString = "User:%s,Topic,%s,%s,Describe,Allow,*"
+// commonACLString is the raw representation of an ACL allowing Describe on a Topic
+var commonACLString = "User:%s,Topic,%s,%s,Describe,Allow,*"
 
-// createAclString is the raw representation of an ACL allowing Create on a Topic
-var createAclString = "User:%s,Topic,%s,%s,Create,Allow,*"
+// createACLString is the raw representation of an ACL allowing Create on a Topic
+var createACLString = "User:%s,Topic,%s,%s,Create,Allow,*"
 
-// writeAclString is the raw representation of an ACL allowing Write on a Topic
-var writeAclString = "User:%s,Topic,%s,%s,Write,Allow,*"
+// writeACLString is the raw representation of an ACL allowing Write on a Topic
+var writeACLString = "User:%s,Topic,%s,%s,Write,Allow,*"
 
-// readAclString is the raw representation of an ACL allowing Read on a Topic
-var readAclString = "User:%s,Topic,%s,%s,Read,Allow,*"
+// readACLString is the raw representation of an ACL allowing Read on a Topic
+var readACLString = "User:%s,Topic,%s,%s,Read,Allow,*"
 
-// readGroupAclString is the raw representation of an ACL allowing Read on ConsumerGroups
-var readGroupAclString = "User:%s,Group,LITERAL,*,Read,Allow,*"
+// readGroupACLString is the raw representation of an ACL allowing Read on ConsumerGroups
+var readGroupACLString = "User:%s,Group,LITERAL,*,Read,Allow,*"
 
 // GrantsToACLStrings converts a user DN and a list of topic grants to raw strings
 // for a CR status
@@ -80,23 +81,23 @@ func GrantsToACLStrings(dn string, grants []v1alpha1.UserTopicGrant) []string {
 			x.PatternType = v1alpha1.KafkaPatternTypeDefault
 		}
 		patternType := strings.ToUpper(string(x.PatternType))
-		cmn := fmt.Sprintf(commonAclString, dn, patternType, x.TopicName)
+		cmn := fmt.Sprintf(commonACLString, dn, patternType, x.TopicName)
 		if !util.StringSliceContains(acls, cmn) {
 			acls = append(acls, cmn)
 		}
 		switch x.AccessType {
 		case v1alpha1.KafkaAccessTypeRead:
-			readAcl := fmt.Sprintf(readAclString, dn, patternType, x.TopicName)
-			readGroupAcl := fmt.Sprintf(readGroupAclString, dn)
-			for _, y := range []string{readAcl, readGroupAcl} {
+			readACL := fmt.Sprintf(readACLString, dn, patternType, x.TopicName)
+			readGroupACL := fmt.Sprintf(readGroupACLString, dn)
+			for _, y := range []string{readACL, readGroupACL} {
 				if !util.StringSliceContains(acls, y) {
 					acls = append(acls, y)
 				}
 			}
 		case v1alpha1.KafkaAccessTypeWrite:
-			createAcl := fmt.Sprintf(createAclString, dn, patternType, x.TopicName)
-			writeAcl := fmt.Sprintf(writeAclString, dn, patternType, x.TopicName)
-			for _, y := range []string{createAcl, writeAcl} {
+			createACL := fmt.Sprintf(createACLString, dn, patternType, x.TopicName)
+			writeACL := fmt.Sprintf(writeACLString, dn, patternType, x.TopicName)
+			for _, y := range []string{createACL, writeACL} {
 				if !util.StringSliceContains(acls, y) {
 					acls = append(acls, y)
 				}
@@ -234,13 +235,13 @@ func getBootstrapServers(cluster *v1beta1.KafkaCluster, useService bool) (string
 	return strings.Join(bootstrapServersList, ","), nil
 }
 
-// GatherBrokerConfigIfAvailable return the brokerConfig for a specific Id if available
-func GatherBrokerConfigIfAvailable(kafkaClusterSpec v1beta1.KafkaClusterSpec, brokerId int) (*v1beta1.BrokerConfig, error) {
+// GatherBrokerConfigIfAvailable return the brokerConfig for a specific ID if available
+func GatherBrokerConfigIfAvailable(kafkaClusterSpec v1beta1.KafkaClusterSpec, brokerID int) (*v1beta1.BrokerConfig, error) {
 	// This check is used in case of broker delete. In case of broker delete there is some time when the CC removes the broker
 	// gracefully which means we have to generate the port for that broker as well. At that time the status contains
 	// but the broker spec does not contain the required config values.
 	for _, broker := range kafkaClusterSpec.Brokers {
-		if int(broker.Id) == brokerId {
+		if int(broker.Id) == brokerID {
 			brokerConfig, err := util.GetBrokerConfig(broker, kafkaClusterSpec)
 			if err != nil {
 				return nil, err

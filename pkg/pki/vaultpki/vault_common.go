@@ -22,14 +22,16 @@ import (
 	"strings"
 	"time"
 
+	vaultapi "github.com/hashicorp/vault/api"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/banzaicloud/bank-vaults/pkg/sdk/vault"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
-	vaultapi "github.com/hashicorp/vault/api"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -131,7 +133,7 @@ func certificatesMatch(cert1, cert2 *pkicommon.UserCertificate) bool {
 func (v *vaultPKI) list(vault *vaultapi.Client, path string) (res []string, err error) {
 	res = make([]string, 0)
 	if path[len(path)-1:] != "/" {
-		path = path + "/"
+		path += "/"
 	}
 	vaultRes, err := vault.Logical().List(path)
 	if err != nil {

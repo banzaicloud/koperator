@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
@@ -31,6 +29,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 func Test_resizePvc(t *testing.T) {

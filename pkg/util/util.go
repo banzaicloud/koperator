@@ -174,30 +174,30 @@ func AreStringSlicesIdentical(a, b []string) bool {
 
 // returns the union of the ids of the configured (Spec.Brokers) and the running (BrokerState) brokers
 func GetBrokerIdsFromStatusAndSpec(brokerStatuses map[string]v1beta1.BrokerState, brokers []v1beta1.Broker, log logr.Logger) []int {
-	brokerIdMap := make(map[int]struct{})
+	brokerIDMap := make(map[int]struct{})
 
 	// add brokers from spec
 	for _, broker := range brokers {
-		brokerIdMap[int(broker.Id)] = struct{}{}
+		brokerIDMap[int(broker.Id)] = struct{}{}
 	}
 
 	// add brokers from status
-	for brokerId := range brokerStatuses {
-		id, err := strconv.Atoi(brokerId)
+	for brokerID := range brokerStatuses {
+		id, err := strconv.Atoi(brokerID)
 		if err != nil {
-			log.Error(err, "could not parse brokerId properly")
+			log.Error(err, "could not parse brokerID properly")
 			continue
 		}
-		brokerIdMap[id] = struct{}{}
+		brokerIDMap[id] = struct{}{}
 	}
 
 	// collect unique broker ids
-	brokerIds := make([]int, 0, len(brokerIdMap))
-	for id := range brokerIdMap {
-		brokerIds = append(brokerIds, id)
+	brokerIDs := make([]int, 0, len(brokerIDMap))
+	for id := range brokerIDMap {
+		brokerIDs = append(brokerIDs, id)
 	}
-	sort.Ints(brokerIds)
-	return brokerIds
+	sort.Ints(brokerIDs)
+	return brokerIDs
 }
 
 // IsIngressConfigInUse returns true if the provided ingressConfigName is bound to the given broker
@@ -236,7 +236,7 @@ func ConstructEListenerLabelName(ingressConfigName, eListenerName string) string
 }
 
 // ShouldIncludeBroker returns true if the broker should be included as a resource on external listener resources
-func ShouldIncludeBroker(brokerConfig *v1beta1.BrokerConfig, status v1beta1.KafkaClusterStatus, brokerId int,
+func ShouldIncludeBroker(brokerConfig *v1beta1.BrokerConfig, status v1beta1.KafkaClusterStatus, brokerID int,
 	defaultIngressConfigName, ingressConfigName string) bool {
 	if brokerConfig != nil {
 		if len(brokerConfig.BrokerIngressMapping) == 0 && (ingressConfigName == defaultIngressConfigName || defaultIngressConfigName == "") ||
@@ -244,7 +244,7 @@ func ShouldIncludeBroker(brokerConfig *v1beta1.BrokerConfig, status v1beta1.Kafk
 			return true
 		}
 	}
-	if brokerState, ok := status.BrokersState[strconv.Itoa(brokerId)]; ok {
+	if brokerState, ok := status.BrokersState[strconv.Itoa(brokerID)]; ok {
 		if StringSliceContains(brokerState.ExternalListenerConfigNames, ingressConfigName) {
 			return true
 		}

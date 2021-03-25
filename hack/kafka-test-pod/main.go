@@ -51,11 +51,12 @@ func main() {
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	// Consume or produce depending on the value of the environment variable
-	if os.Getenv("KAFKA_MODE") == "consumer" {
+	switch os.Getenv("KAFKA_MODE") {
+	case "consumer":
 		consume(config, signals)
-	} else if os.Getenv("KAFKA_MODE") == "producer" {
+	case "producer":
 		produce(config, signals)
-	} else {
+	default:
 		log.Fatal("Invalid test mode:", os.Getenv("KAFKA_MODE"))
 	}
 
@@ -99,6 +100,7 @@ func getTLSConfig() *tls.Config {
 	}
 }
 
+//nolint:gocritic
 func consume(config *sarama.Config, signals chan os.Signal) {
 	// Get a consumer
 	consumer, err := sarama.NewConsumer(brokerAddrs, config)
@@ -129,6 +131,7 @@ ConsumerLoop:
 	}
 }
 
+//nolint:gocritic
 func produce(config *sarama.Config, signals chan os.Signal) {
 
 	// Get a broker connection

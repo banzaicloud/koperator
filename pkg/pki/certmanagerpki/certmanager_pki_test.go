@@ -33,10 +33,14 @@ import (
 
 var log = ctrl.Log.WithName("testing")
 
+const (
+	testNamespace = "test-namespace"
+)
+
 func newServerSecret() *corev1.Secret {
 	secret := &corev1.Secret{}
 	secret.Name = fmt.Sprintf(pkicommon.BrokerServerCertTemplate, "test")
-	secret.Namespace = "test-namespace"
+	secret.Namespace = testNamespace
 	cert, key, _, _ := certutil.GenerateTestCert()
 	secret.Data = map[string][]byte{
 		corev1.TLSCertKey:       cert,
@@ -49,7 +53,7 @@ func newServerSecret() *corev1.Secret {
 func newControllerSecret() *corev1.Secret {
 	secret := &corev1.Secret{}
 	secret.Name = fmt.Sprintf(pkicommon.BrokerControllerTemplate, "test")
-	secret.Namespace = "test-namespace"
+	secret.Namespace = testNamespace
 	cert, key, _, _ := certutil.GenerateTestCert()
 	secret.Data = map[string][]byte{
 		corev1.TLSCertKey:       cert,
@@ -75,7 +79,7 @@ func newCASecret() *corev1.Secret {
 func newPreCreatedSecret() *corev1.Secret {
 	secret := &corev1.Secret{}
 	secret.Name = "test-controller"
-	secret.Namespace = "test-namespace"
+	secret.Namespace = testNamespace
 	cert, key, _, _ := certutil.GenerateTestCert()
 	secret.Data = map[string][]byte{
 		v1alpha1.CAPrivateKeyKey: key,

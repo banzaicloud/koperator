@@ -18,13 +18,14 @@ import (
 	"context"
 	"strings"
 
+	vaultapi "github.com/hashicorp/vault/api"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
-	vaultapi "github.com/hashicorp/vault/api"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func (v *vaultPKI) ReconcileUserCertificate(
