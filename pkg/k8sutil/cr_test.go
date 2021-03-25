@@ -18,9 +18,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 func Test_rackAwarenessLabelsToReadonlyConfig(t *testing.T) {

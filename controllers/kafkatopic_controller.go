@@ -152,17 +152,14 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		}
 		reqLogger.Info("Verified partitions and configuration for topic")
 
-	} else {
-
+	} else if err = broker.CreateTopic(&kafkaclient.CreateTopicOptions{
 		// Create the topic
-		if err = broker.CreateTopic(&kafkaclient.CreateTopicOptions{
-			Name:              instance.Spec.Name,
-			Partitions:        instance.Spec.Partitions,
-			ReplicationFactor: int16(instance.Spec.ReplicationFactor),
-			Config:            util.MapStringStringPointer(instance.Spec.Config),
-		}); err != nil {
-			return requeueWithError(reqLogger, "failed to create kafka topic", err)
-		}
+		Name:              instance.Spec.Name,
+		Partitions:        instance.Spec.Partitions,
+		ReplicationFactor: int16(instance.Spec.ReplicationFactor),
+		Config:            util.MapStringStringPointer(instance.Spec.Config),
+	}); err != nil {
+		return requeueWithError(reqLogger, "failed to create kafka topic", err)
 
 	}
 

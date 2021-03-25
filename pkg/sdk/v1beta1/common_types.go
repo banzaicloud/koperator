@@ -72,6 +72,8 @@ func (r CruiseControlState) Complete() CruiseControlState {
 		return GracefulUpscaleSucceeded
 	case GracefulDownscaleRequired, GracefulDownscaleRunning:
 		return GracefulDownscaleSucceeded
+	case GracefulUpscaleSucceeded, GracefulDownscaleSucceeded:
+		return r
 	default:
 		return r
 	}

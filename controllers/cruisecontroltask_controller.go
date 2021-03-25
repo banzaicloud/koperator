@@ -134,11 +134,12 @@ func (r *CruiseControlTaskReconciler) Reconcile(request ctrl.Request) (ctrl.Resu
 	}
 
 	var taskId, startTime string
-	if len(brokersWithUpscaleRequired) > 0 {
+	switch {
+	case len(brokersWithUpscaleRequired) > 0:
 		err = r.handlePodAddCCTask(instance, brokersWithUpscaleRequired, log)
-	} else if len(brokersWithDownscaleRequired) > 0 {
+	case len(brokersWithDownscaleRequired) > 0:
 		err = r.handlePodDeleteCCTask(instance, brokersWithDownscaleRequired, log)
-	} else if len(brokersWithDiskRebalanceRequired) > 0 {
+	case len(brokersWithDiskRebalanceRequired) > 0:
 		// create new cc task, set status to running
 		cc := scale.NewCruiseControlScaler(instance.Namespace, instance.Spec.GetKubernetesClusterDomain(), instance.Spec.CruiseControlConfig.CruiseControlEndpoint, instance.Name)
 		taskId, startTime, err = cc.RebalanceDisks(brokersWithDiskRebalanceRequired)

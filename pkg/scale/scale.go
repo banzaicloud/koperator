@@ -48,15 +48,15 @@ var newCruiseControlScaler = createNewDefaultCruiseControlScaler
 var log = logf.Log.WithName("cruise-control-methods")
 
 type CruiseControlScaler interface {
-	GetLiveKafkaBrokersFromCruiseControl(brokerIds []string) ([]string, error)
+	GetLiveKafkaBrokersFromCruiseControl(brokerIDs []string) ([]string, error)
 	GetBrokerIDWithLeastPartition() (string, error)
-	UpScaleCluster(brokerIds []string) (string, string, error)
-	DownsizeCluster(brokerIds []string) (string, string, error)
-	RebalanceDisks(brokerIdsWithMountPath map[string][]string) (string, string, error)
+	UpScaleCluster(brokerIDs []string) (string, string, error)
+	DownsizeCluster(brokerIDs []string) (string, string, error)
+	RebalanceDisks(brokerIDsWithMountPath map[string][]string) (string, string, error)
 	RebalanceCluster() (string, error)
 	RunPreferedLeaderElectionInCluster() (string, error)
 	KillCCTask() error
-	GetCCTaskState(uTaskId string) (banzaicloudv1beta1.CruiseControlUserTaskState, error)
+	GetCCTaskState(uTaskID string) (banzaicloudv1beta1.CruiseControlUserTaskState, error)
 }
 
 type cruiseControlScaler struct {
@@ -166,7 +166,7 @@ func parseCCErrorFromResp(input io.Reader) (string, error) {
 	return errorFromResponse.ErrorMessage, err
 }
 
-func (cc *cruiseControlScaler) isKafkaBrokerDiskReady(brokerIdsWithMountPath map[string][]string) (bool, error) {
+func (cc *cruiseControlScaler) isKafkaBrokerDiskReady(brokerIDsWithMountPath map[string][]string) (bool, error) {
 	options := map[string]string{
 		"json": "true",
 	}
@@ -176,7 +176,7 @@ func (cc *cruiseControlScaler) isKafkaBrokerDiskReady(brokerIdsWithMountPath map
 		keyVals := []interface{}{
 			"namespace", cc.namespace,
 			"clusterName", cc.clusterName,
-			//"brokerId", brokerIds,
+			//"brokerId", brokerIDs,
 			//"path", mountPath,
 		}
 		log.Error(err, "can't check if broker disk is ready as Cruise Control not ready", keyVals...)
@@ -195,7 +195,7 @@ func (cc *cruiseControlScaler) isKafkaBrokerDiskReady(brokerIdsWithMountPath map
 
 	var response struct {
 		KafkaBrokerState struct {
-			OnlineLogDirsByBrokerId map[string][]string
+			OnlineLogDirsByBrokerID map[string][]string
 		}
 	}
 	err = json.Unmarshal(body, &response)
@@ -203,8 +203,8 @@ func (cc *cruiseControlScaler) isKafkaBrokerDiskReady(brokerIdsWithMountPath map
 		return false, err
 	}
 
-	for brokerId, volumeMounts := range brokerIdsWithMountPath {
-		if ccOnlineLogDirs, ok := response.KafkaBrokerState.OnlineLogDirsByBrokerId[brokerId]; ok {
+	for brokerID, volumeMounts := range brokerIDsWithMountPath {
+		if ccOnlineLogDirs, ok := response.KafkaBrokerState.OnlineLogDirsByBrokerID[brokerID]; ok {
 			for _, volumeMount := range volumeMounts {
 				match := false
 				for _, ccOnlineLogDir := range ccOnlineLogDirs {
@@ -228,7 +228,7 @@ func (cc *cruiseControlScaler) isKafkaBrokerDiskReady(brokerIdsWithMountPath map
 }
 
 // Get brokers status from CC from a provided list of broker ids
-func (cc *cruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIds []string) ([]string, error) {
+func (cc *cruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIDs []string) ([]string, error) {
 
 	options := map[string]string{
 		"json": "true",
@@ -262,13 +262,13 @@ func (cc *cruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIds []
 		return nil, err
 	}
 
-	aliveBrokers := make([]string, 0, len(brokerIds))
+	aliveBrokers := make([]string, 0, len(brokerIDs))
 
 	for _, broker := range response.Brokers {
-		bIdStr := fmt.Sprintf("%g", broker.Broker)
-		if broker.BrokerState == brokerAlive && bcutil.StringSliceContains(brokerIds, bIdStr) {
-			aliveBrokers = append(aliveBrokers, bIdStr)
-			log.Info("broker is available in cruise-control", "brokerId", bIdStr)
+		bIDStr := fmt.Sprintf("%g", broker.Broker)
+		if broker.BrokerState == brokerAlive && bcutil.StringSliceContains(brokerIDs, bIDStr) {
+			aliveBrokers = append(aliveBrokers, bIDStr)
+			log.Info("broker is available in cruise-control", "brokerID", bIDStr)
 		}
 	}
 	return aliveBrokers, nil
@@ -301,7 +301,7 @@ func (cc *cruiseControlScaler) GetBrokerIDWithLeastPartition() (string, error) {
 
 	var response struct {
 		KafkaBrokerState struct {
-			ReplicaCountByBrokerId map[string]float64
+			ReplicaCountByBrokerID map[string]float64
 		}
 	}
 
@@ -310,7 +310,7 @@ func (cc *cruiseControlScaler) GetBrokerIDWithLeastPartition() (string, error) {
 		return brokerWithLeastPartition, err
 	}
 
-	replicaCountByBroker := response.KafkaBrokerState.ReplicaCountByBrokerId
+	replicaCountByBroker := response.KafkaBrokerState.ReplicaCountByBrokerID
 	replicaCount := float64(99999)
 
 	for brokerID, replica := range replicaCountByBroker {
@@ -324,13 +324,13 @@ func (cc *cruiseControlScaler) GetBrokerIDWithLeastPartition() (string, error) {
 }
 
 // UpScaleCluster upscales Kafka cluster
-func (cc *cruiseControlScaler) UpScaleCluster(brokerIds []string) (string, string, error) {
+func (cc *cruiseControlScaler) UpScaleCluster(brokerIDs []string) (string, string, error) {
 
-	liveBrokers, err := cc.GetLiveKafkaBrokersFromCruiseControl(brokerIds)
+	liveBrokers, err := cc.GetLiveKafkaBrokersFromCruiseControl(brokerIDs)
 	if err != nil {
 		return "", "", err
 	}
-	ready := bcutil.AreStringSlicesIdentical(liveBrokers, brokerIds)
+	ready := bcutil.AreStringSlicesIdentical(liveBrokers, brokerIDs)
 
 	if !ready {
 		return "", "", errors.New("broker(s) not yet ready in cruise-control")
@@ -339,7 +339,7 @@ func (cc *cruiseControlScaler) UpScaleCluster(brokerIds []string) (string, strin
 	options := map[string]string{
 		"json":     "true",
 		"dryrun":   "false",
-		"brokerid": strings.Join(brokerIds, ","),
+		"brokerid": strings.Join(brokerIDs, ","),
 	}
 
 	uResp, err := cc.postCruiseControl(addBrokerAction, options)
@@ -347,20 +347,21 @@ func (cc *cruiseControlScaler) UpScaleCluster(brokerIds []string) (string, strin
 		log.Error(err, "can't upscale cluster gracefully since post to cruise-control failed")
 		return "", "", err
 	}
+	defer uResp.Body.Close()
 
 	log.Info("Initiated upscale in cruise control")
 
-	uTaskId := uResp.Header.Get("User-Task-Id")
+	uTaskID := uResp.Header.Get("User-Task-Id")
 	startTimeStamp := uResp.Header.Get("Date")
 
-	return uTaskId, startTimeStamp, nil
+	return uTaskID, startTimeStamp, nil
 }
 
 // DownsizeCluster downscales Kafka cluster
-func (cc *cruiseControlScaler) DownsizeCluster(brokerIds []string) (string, string, error) {
+func (cc *cruiseControlScaler) DownsizeCluster(brokerIDs []string) (string, string, error) {
 
 	options := map[string]string{
-		"brokerid": strings.Join(brokerIds, ","),
+		"brokerid": strings.Join(brokerIDs, ","),
 		"dryrun":   "false",
 		"json":     "true",
 	}
@@ -373,17 +374,19 @@ func (cc *cruiseControlScaler) DownsizeCluster(brokerIds []string) (string, stri
 		return "", "", err
 	}
 
+	defer dResp.Body.Close()
+
 	log.Info("Initiated downsize in cruise control")
-	uTaskId := dResp.Header.Get("User-Task-Id")
+	uTaskID := dResp.Header.Get("User-Task-Id")
 	startTimeStamp := dResp.Header.Get("Date")
 
-	return uTaskId, startTimeStamp, nil
+	return uTaskID, startTimeStamp, nil
 }
 
 // RebalanceDisks rebalances Kafka broker replicas between disks using CC
-func (cc *cruiseControlScaler) RebalanceDisks(brokerIdsWithMountPath map[string][]string) (string, string, error) {
+func (cc *cruiseControlScaler) RebalanceDisks(brokerIDsWithMountPath map[string][]string) (string, string, error) {
 
-	ready, err := cc.isKafkaBrokerDiskReady(brokerIdsWithMountPath)
+	ready, err := cc.isKafkaBrokerDiskReady(brokerIDsWithMountPath)
 	if err != nil {
 		return "", "", err
 	}
@@ -403,11 +406,13 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIdsWithMountPath map[string]
 		return "", "", err
 	}
 
+	rResp.Body.Close()
+
 	log.Info("Initiated disk rebalance in cruise control")
-	uTaskId := rResp.Header.Get("User-Task-Id")
+	uTaskID := rResp.Header.Get("User-Task-Id")
 	startTimeStamp := rResp.Header.Get("Date")
 
-	return uTaskId, startTimeStamp, nil
+	return uTaskID, startTimeStamp, nil
 }
 
 // RebalanceCluster rebalances Kafka cluster using CC
@@ -423,11 +428,12 @@ func (cc *cruiseControlScaler) RebalanceCluster() (string, error) {
 		log.Error(err, "can't rebalance cluster gracefully since post to cruise-control failed")
 		return "", err
 	}
+	defer dResp.Body.Close()
 	log.Info("Initiated rebalance in cruise control")
 
-	uTaskId := dResp.Header.Get("User-Task-Id")
+	uTaskID := dResp.Header.Get("User-Task-Id")
 
-	return uTaskId, nil
+	return uTaskID, nil
 }
 
 // RunPreferedLeaderElectionInCluster runs leader election in  Kafka cluster using CC
@@ -444,11 +450,13 @@ func (cc *cruiseControlScaler) RunPreferedLeaderElectionInCluster() (string, err
 		log.Error(err, "can't rebalance cluster gracefully since post to cruise-control failed")
 		return "", err
 	}
+	defer dResp.Body.Close()
+
 	log.Info("Initiated rebalance in cruise control")
 
-	uTaskId := dResp.Header.Get("User-Task-Id")
+	uTaskID := dResp.Header.Get("User-Task-Id")
 
-	return uTaskId, nil
+	return uTaskID, nil
 }
 
 // KillCCTask kills the specified CC task
@@ -457,22 +465,23 @@ func (cc *cruiseControlScaler) KillCCTask() error {
 		"json": "true",
 	}
 
-	_, err := cc.postCruiseControl(killProposalAction, options)
+	resp, err := cc.postCruiseControl(killProposalAction, options)
 	if err != nil {
 		log.Error(err, "can't kill running tasks since post to cruise-control failed")
 		return err
 	}
+	defer resp.Body.Close()
 	log.Info("Task killed")
 
 	return nil
 }
 
 // GetCCTaskState checks whether the given CC Task ID finished or not
-func (cc *cruiseControlScaler) GetCCTaskState(uTaskId string) (banzaicloudv1beta1.CruiseControlUserTaskState, error) {
+func (cc *cruiseControlScaler) GetCCTaskState(uTaskID string) (banzaicloudv1beta1.CruiseControlUserTaskState, error) {
 
 	gResp, err := cc.getCruiseControl(getTaskListAction, map[string]string{
 		"json":          "true",
-		"user_task_ids": uTaskId,
+		"user_task_ids": uTaskID,
 	})
 	if err != nil {
 		log.Error(err, "can't get task list from cruise-control")
@@ -482,7 +491,7 @@ func (cc *cruiseControlScaler) GetCCTaskState(uTaskId string) (banzaicloudv1beta
 	var taskLists struct {
 		UserTasks []struct {
 			Status     string
-			UserTaskId string
+			UserTaskID string
 		}
 	}
 
@@ -506,11 +515,11 @@ func (cc *cruiseControlScaler) GetCCTaskState(uTaskId string) (banzaicloudv1beta
 	}
 
 	for _, task := range taskLists.UserTasks {
-		if task.UserTaskId == uTaskId {
-			log.Info("Cruise control task state", "state", task.Status, "taskID", uTaskId)
+		if task.UserTaskID == uTaskID {
+			log.Info("Cruise control task state", "state", task.Status, "taskID", uTaskID)
 			return banzaicloudv1beta1.CruiseControlUserTaskState(task.Status), nil
 		}
 	}
-	log.Info("Cruise control task not found", "taskID", uTaskId)
+	log.Info("Cruise control task not found", "taskID", uTaskID)
 	return banzaicloudv1beta1.CruiseControlTaskNotFound, nil
 }

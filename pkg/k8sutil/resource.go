@@ -20,10 +20,13 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
+
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
+
+	"github.com/go-logr/logr"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/go-logr/logr"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -130,8 +133,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err := client.Update(context.TODO(), desired); err != nil {
 				return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
 			}
-			switch desired.(type) {
-			case *corev1.ConfigMap:
+			if _, ok := desired.(*corev1.ConfigMap); ok {
 				// Only update status when configmap belongs to broker
 				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
 					currentConfigs, err := properties.NewFromString(current.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
@@ -174,10 +176,8 @@ func CheckIfObjectUpdated(log logr.Logger, desiredType reflect.Type, current, de
 	if err != nil {
 		log.Error(err, "could not match objects", "kind", desiredType)
 		return true
-	} else if patchResult.IsEmpty() {
-		log.V(1).Info("resource is in sync")
-		return false
-	} else {
+	}
+	if !patchResult.IsEmpty() {
 		log.V(1).Info("resource diffs",
 			"patch", string(patchResult.Patch),
 			"current", string(patchResult.Current),
@@ -185,6 +185,8 @@ func CheckIfObjectUpdated(log logr.Logger, desiredType reflect.Type, current, de
 			"original", string(patchResult.Original))
 		return true
 	}
+	log.V(1).Info("resource is in sync")
+	return false
 }
 
 func IsPodContainsTerminatedContainer(pod *corev1.Pod) bool {

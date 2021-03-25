@@ -4,22 +4,83 @@ run:
     skip-dirs:
         - client
 
-linters-settings:
-    golint:
-        min-confidence: 0.9
-
-    gocyclo:
-        min-complexity: 15
-
 linters:
-    enable:
-        - misspell
-        - gofmt
-        - golint
-        - goimports
-    disable:
-        - errcheck
-        - gas
-        - megacheck
-        - varcheck
-    fast: false
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    # - dupl            # NOTE: intentionally disabled
+#    - errcheck
+    - exhaustive
+    - funlen
+    # - gochecknoinits  # NOTE: intentionally disabled
+    - goconst
+    - gocritic
+#    - gocyclo
+    - gofmt
+    - goimports
+#    - golint # NOTE: brokerID must be dealed as brokerId
+#    - gomnd
+#    - goprintffuncname
+#    - gosec
+#    - gosimple
+#    - govet
+#    - ineffassign
+#    - lll
+#    - misspell
+#    - nakedret
+#    - noctx
+    # - nolintlint      # NOTE: intentionally disabled
+#    - rowserrcheck
+#    - scopelint
+#    - staticcheck
+#    - structcheck
+#    - stylecheck
+#    - typecheck
+#    - unconvert
+#    - unparam
+#    - unused
+#    - varcheck
+#    - whitespace
+
+linters-settings:
+  cyclop:
+    max-complexity: 46       # default: 10
+  dogsled:
+    max-blank-identifiers: 3 # default: 2
+  funlen:
+    # FIXME: we need to refactor functions with length more then ~200 lines
+    lines: 323        # default: 60
+    statements: 100   # default: 40
+  gocritic:
+    disabled-checks:
+      - commentFormatting
+  golint:
+    min-confidence: 0.1
+  goimports:
+    local-prefixes: github.com/banzaicloud
+  lll:
+    # FIXME: we should be able to reduce the length of lines to be closer to the default 120 lines
+    line-length: 300  # default: 120
+
+#linters-settings:
+#    golint:
+#        min-confidence: 0.9
+#
+#    gocyclo:
+#        min-complexity: 15
+#
+#linters:
+#    enable:
+#        - misspell
+#        - gofmt
+#        - golint
+#        - goimports
+#    disable:
+#        - errcheck
+#        - gas
+#        - megacheck
+#        - varcheck
+#    fast: false

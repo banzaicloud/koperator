@@ -45,10 +45,10 @@ func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 }
 
 // UpdateBrokerStatus updates the broker status with rack and configuration infos
-func UpdateBrokerStatus(c client.Client, brokerIds []string, cluster *v1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
+func UpdateBrokerStatus(c client.Client, brokerIDs []string, cluster *v1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
-	generateBrokerState(brokerIds, cluster, state)
+	generateBrokerState(brokerIDs, cluster, state)
 
 	err := c.Status().Update(context.Background(), cluster)
 	if apierrors.IsNotFound(err) {
@@ -56,7 +56,7 @@ func UpdateBrokerStatus(c client.Client, brokerIds []string, cluster *v1beta1.Ka
 	}
 	if err != nil {
 		if !apierrors.IsConflict(err) {
-			return errors.WrapIff(err, "could not update Kafka broker(s) %s state", strings.Join(brokerIds, ","))
+			return errors.WrapIff(err, "could not update Kafka broker(s) %s state", strings.Join(brokerIDs, ","))
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
 			Namespace: cluster.Namespace,
@@ -66,14 +66,14 @@ func UpdateBrokerStatus(c client.Client, brokerIds []string, cluster *v1beta1.Ka
 			return errors.WrapIf(err, "could not get config for updating status")
 		}
 
-		generateBrokerState(brokerIds, cluster, state)
+		generateBrokerState(brokerIDs, cluster, state)
 
 		err = c.Status().Update(context.Background(), cluster)
 		if apierrors.IsNotFound(err) {
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
-			return errors.WrapIff(err, "could not update Kafka clusters broker(s) %s state", strings.Join(brokerIds, ","))
+			return errors.WrapIff(err, "could not update Kafka clusters broker(s) %s state", strings.Join(brokerIDs, ","))
 		}
 	}
 	// update loses the typeMeta of the config that's used later when setting ownerrefs
@@ -82,14 +82,14 @@ func UpdateBrokerStatus(c client.Client, brokerIds []string, cluster *v1beta1.Ka
 	return nil
 }
 
-func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCluster, state interface{}) {
+func generateBrokerState(brokerIDs []string, cluster *banzaicloudv1beta1.KafkaCluster, state interface{}) {
 	brokersState := cluster.Status.BrokersState
 	if brokersState == nil {
-		brokersState = make(map[string]banzaicloudv1beta1.BrokerState, len(brokerIds))
+		brokersState = make(map[string]banzaicloudv1beta1.BrokerState, len(brokerIDs))
 	}
 
-	for _, brokerId := range brokerIds {
-		brokerState, ok := brokersState[brokerId]
+	for _, brokerID := range brokerIDs {
+		brokerState, ok := brokersState[brokerID]
 		if !ok {
 			brokerState = v1beta1.BrokerState{}
 		}
@@ -101,7 +101,7 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 		case banzaicloudv1beta1.GracefulActionState:
 			brokerState.GracefulActionState = s
 		case map[string]banzaicloudv1beta1.GracefulActionState:
-			state := s[brokerId]
+			state := s[brokerID]
 			brokerState.GracefulActionState = state
 		case banzaicloudv1beta1.ConfigurationState:
 			brokerState.ConfigurationState = s
@@ -115,7 +115,7 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 				brokerState.GracefulActionState.VolumeStates[mountPath] = volumeState
 			}
 		case map[string]map[string]banzaicloudv1beta1.VolumeState:
-			state := s[brokerId]
+			state := s[brokerID]
 			if brokerState.GracefulActionState.VolumeStates == nil {
 				brokerState.GracefulActionState.VolumeStates = make(map[string]banzaicloudv1beta1.VolumeState)
 			}
@@ -123,18 +123,18 @@ func generateBrokerState(brokerIds []string, cluster *banzaicloudv1beta1.KafkaCl
 				brokerState.GracefulActionState.VolumeStates[mountPath] = volumeState
 			}
 		}
-		brokersState[brokerId] = brokerState
+		brokersState[brokerID] = brokerState
 	}
 	cluster.Status.BrokersState = brokersState
 }
 
 // DeleteStatus deletes the given broker state from the CR
-func DeleteStatus(c client.Client, brokerId string, cluster *v1beta1.KafkaCluster, logger logr.Logger) error {
+func DeleteStatus(c client.Client, brokerID string, cluster *v1beta1.KafkaCluster, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
 	brokerStatus := cluster.Status.BrokersState
 
-	delete(brokerStatus, brokerId)
+	delete(brokerStatus, brokerID)
 
 	cluster.Status.BrokersState = brokerStatus
 
@@ -144,7 +144,7 @@ func DeleteStatus(c client.Client, brokerId string, cluster *v1beta1.KafkaCluste
 	}
 	if err != nil {
 		if !apierrors.IsConflict(err) {
-			return errors.WrapIff(err, "could not delete Kafka cluster broker %s state ", brokerId)
+			return errors.WrapIff(err, "could not delete Kafka cluster broker %s state ", brokerID)
 		}
 		err := c.Get(context.TODO(), types.NamespacedName{
 			Namespace: cluster.Namespace,
@@ -155,7 +155,7 @@ func DeleteStatus(c client.Client, brokerId string, cluster *v1beta1.KafkaCluste
 		}
 		brokerStatus = cluster.Status.BrokersState
 
-		delete(brokerStatus, brokerId)
+		delete(brokerStatus, brokerID)
 
 		cluster.Status.BrokersState = brokerStatus
 		err = c.Status().Update(context.Background(), cluster)
@@ -163,13 +163,13 @@ func DeleteStatus(c client.Client, brokerId string, cluster *v1beta1.KafkaCluste
 			err = c.Update(context.Background(), cluster)
 		}
 		if err != nil {
-			return errors.WrapIff(err, "could not delete Kafka clusters broker %s state ", brokerId)
+			return errors.WrapIff(err, "could not delete Kafka clusters broker %s state ", brokerID)
 		}
 	}
 
 	// update loses the typeMeta of the config that's used later when setting ownerrefs
 	cluster.TypeMeta = typeMeta
-	logger.Info(fmt.Sprintf("Kafka broker %s state deleted", brokerId))
+	logger.Info(fmt.Sprintf("Kafka broker %s state deleted", brokerID))
 	return nil
 }
 

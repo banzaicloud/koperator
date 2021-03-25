@@ -15,8 +15,9 @@
 package vaultpki
 
 import (
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 )
 
 func newMockUser() *v1alpha1.KafkaUser {

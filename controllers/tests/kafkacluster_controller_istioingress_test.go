@@ -21,7 +21,9 @@ import (
 	"sync/atomic"
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+
 	istioOperatorApi "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"

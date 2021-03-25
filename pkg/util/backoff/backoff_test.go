@@ -22,6 +22,7 @@ import (
 	"github.com/lestrrat-go/backoff"
 )
 
+//nolint:gocritic
 func TestRetry(t *testing.T) {
 	count := 0
 	config := &ConstantBackoffConfig{
@@ -32,7 +33,7 @@ func TestRetry(t *testing.T) {
 	policy := NewConstantBackoffPolicy(config)
 
 	Retry(func() error {
-		count = count + 1
+		count++
 		return errors.New("err")
 	}, policy)
 
@@ -42,7 +43,7 @@ func TestRetry(t *testing.T) {
 
 	count = 0
 	Retry(func() error {
-		count = count + 1
+		count++
 		return nil
 	}, policy)
 
@@ -52,7 +53,7 @@ func TestRetry(t *testing.T) {
 
 	count = 0
 	err := Retry(func() error {
-		count = count + 1
+		count++
 		return MarkErrorPermanent(errors.New("permanent"))
 	}, policy)
 	if err == nil {

@@ -18,12 +18,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 type mockClient struct {
@@ -33,7 +34,7 @@ type mockClient struct {
 func newMockCluster() *v1beta1.KafkaCluster {
 	cluster := &v1beta1.KafkaCluster{}
 	cluster.Name = "test"
-	cluster.Namespace = "test-namespace"
+	cluster.Namespace = testNamespace
 	cluster.Spec = v1beta1.KafkaClusterSpec{}
 	cluster.Spec.ListenersConfig = v1beta1.ListenersConfig{}
 	cluster.Spec.ListenersConfig.InternalListeners = []v1beta1.InternalListenerConfig{

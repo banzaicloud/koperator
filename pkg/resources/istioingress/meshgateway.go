@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	istioOperatorApi "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"

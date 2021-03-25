@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,6 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/banzaicloud/k8s-objectmatcher/patch"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -102,7 +103,7 @@ func getCreatedPvcForBroker(c client.Client, brokerID int32, namespace, crName s
 	if len(foundPvcList.Items) == 0 {
 		return nil, fmt.Errorf("no persistentvolume found for broker %d", brokerID)
 	}
-	sort.Slice(foundPvcList.Items[:], func(i, j int) bool {
+	sort.Slice(foundPvcList.Items, func(i, j int) bool {
 		return foundPvcList.Items[i].Name < foundPvcList.Items[j].Name
 	})
 	return foundPvcList.Items, nil
@@ -240,14 +241,12 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
 			}
-		} else {
-			if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
-				if brokerState.RackAwarenessState != "" {
-					configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)
-					err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
-					if err != nil {
-						return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
-					}
+		} else if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
+			if brokerState.RackAwarenessState != "" {
+				configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)
+				err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
+				if err != nil {
+					return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
 				}
 			}
 		}
@@ -312,7 +311,7 @@ OUTERLOOP:
 				log.Error(err, "could not query CC for ALIVE brokers")
 				return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", strings.Join(liveBrokers, ",")))
 			}
-			if len(liveBrokers) <= 0 {
+			if len(liveBrokers) == 0 {
 				log.Info("No alive broker found in CC. No need to decommission")
 			} else {
 				var brokersPendingGracefulDownscale []string
@@ -487,7 +486,8 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 	if err != nil && len(podList.Items) == 0 {
 		return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
 	}
-	if len(podList.Items) == 0 {
+	switch {
+	case len(podList.Items) == 0:
 		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPod); err != nil {
 			return errors.WrapIf(err, "could not apply last state to annotation")
 		}
@@ -536,7 +536,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 		}
 		log.Info("resource created")
 		return nil
-	} else if len(podList.Items) == 1 {
+	case len(podList.Items) == 1:
 		currentPod = podList.Items[0].DeepCopy()
 		brokerId := currentPod.Labels["brokerId"]
 		if _, ok := r.KafkaCluster.Status.BrokersState[brokerId]; ok {
@@ -555,120 +555,126 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 		} else {
 			return errorfactory.New(errorfactory.InternalError{}, errors.New("reconcile failed"), fmt.Sprintf("could not find status for the given broker id, %s", brokerId))
 		}
-
-	} else {
+	default:
 		return errorfactory.New(errorfactory.TooManyResources{}, errors.New("reconcile failed"), "more then one matching pod found", "labels", matchingLabels)
 	}
-	// TODO check if this err == nil check necessary (baluchicken)
-	if err == nil {
-		//Since toleration does not support patchStrategy:"merge,retainKeys", we need to add all toleration from the current pod if the toleration is set in the CR
-		if len(desiredPod.Spec.Tolerations) > 0 {
-			desiredPod.Spec.Tolerations = append(desiredPod.Spec.Tolerations, currentPod.Spec.Tolerations...)
-			uniqueTolerations := make([]corev1.Toleration, 0, len(desiredPod.Spec.Tolerations))
-			keys := make(map[corev1.Toleration]bool)
-			for _, t := range desiredPod.Spec.Tolerations {
-				if _, value := keys[t]; !value {
-					keys[t] = true
-					uniqueTolerations = append(uniqueTolerations, t)
-				}
-			}
-			desiredPod.Spec.Tolerations = uniqueTolerations
-		}
-		// Check if the resource actually updated
-		patchResult, err := patch.DefaultPatchMaker.Calculate(currentPod, desiredPod)
-		if err != nil {
-			log.Error(err, "could not match objects", "kind", desiredType)
-		} else if patchResult.IsEmpty() {
-			if !k8sutil.IsPodContainsTerminatedContainer(currentPod) &&
-				r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync &&
-				!k8sutil.IsPodContainsEvictedContainer(currentPod) {
-				log.V(1).Info("resource is in sync")
-				return nil
-			}
-		} else {
-			log.V(1).Info("kafka pod resource diffs",
-				"patch", string(patchResult.Patch),
-				"current", string(patchResult.Current),
-				"modified", string(patchResult.Modified),
-				"original", string(patchResult.Original))
-		}
-
-		if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPod); err != nil {
-			return errors.WrapIf(err, "could not apply last state to annotation")
-		}
-
-		if !k8sutil.IsPodContainsTerminatedContainer(currentPod) {
-
-			if r.KafkaCluster.Status.State != v1beta1.KafkaClusterRollingUpgrading {
-				if err := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, v1beta1.KafkaClusterRollingUpgrading, log); err != nil {
-					return errorfactory.New(errorfactory.StatusUpdateError{}, err, "setting state to rolling upgrade failed")
-				}
-			}
-
-			if r.KafkaCluster.Status.State == v1beta1.KafkaClusterRollingUpgrading {
-				// Check if any kafka pod is in terminating or pending state
-				podList := &corev1.PodList{}
-				matchingLabels := client.MatchingLabels(kafka.LabelsForKafka(r.KafkaCluster.Name))
-				err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
-				if err != nil {
-					return errors.WrapIf(err, "failed to reconcile resource")
-				}
-				for _, pod := range podList.Items {
-					if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {
-						return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating"), "rolling upgrade in progress")
-					}
-					if k8sutil.IsPodContainsPendingContainer(&pod) {
-						return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still creating"), "rolling upgrade in progress")
-					}
-				}
-
-				errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
-
-				kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
-				if err != nil {
-					return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
-				}
-				defer func() {
-					if err := kClient.Close(); err != nil {
-						log.Error(err, "could not close client")
-					}
-				}()
-				offlineReplicaCount, err := kClient.OfflineReplicaCount()
-				if err != nil {
-					return errors.WrapIf(err, "health check failed")
-				}
-				replicasInSync, err := kClient.AllReplicaInSync()
-				if err != nil {
-					return errors.WrapIf(err, "health check failed")
-				}
-
-				if offlineReplicaCount > 0 || !replicasInSync {
-					errorCount++
-				}
-				if errorCount >= r.KafkaCluster.Spec.RollingUpgradeConfig.FailureThreshold {
-					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("cluster is not healthy"), "rolling upgrade in progress")
-				}
-			}
-		}
-
-		err = r.Client.Delete(context.TODO(), currentPod)
-		if err != nil {
-			return errorfactory.New(errorfactory.APIFailure{}, err, "deleting resource failed", "kind", desiredType)
-		}
-
-		// Print terminated container's statuses
-		if k8sutil.IsPodContainsTerminatedContainer(currentPod) {
-			for _, containerState := range currentPod.Status.ContainerStatuses {
-				if containerState.State.Terminated != nil {
-					log.Info("terminated container for broker pod", "pod", currentPod.GetName(), "brokerId", currentPod.Labels["brokerId"],
-						"containerName", containerState.Name, "exitCode", containerState.State.Terminated.ExitCode, "reason", containerState.State.Terminated.Reason)
-				}
-			}
-		}
-		log.Info("broker pod deleted", "pod", currentPod.GetName(), "brokerId", currentPod.Labels["brokerId"])
+	err = r.handleRollingUpgrade(log, desiredPod, currentPod, desiredType)
+	if err != nil {
+		return errors.Wrap(err, "could not handle rolling upgrade")
 	}
 	return nil
 
+}
+
+func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPod *corev1.Pod, desiredType reflect.Type) error {
+	//Since toleration does not support patchStrategy:"merge,retainKeys",
+	//we need to add all toleration from the current pod if the toleration is set in the CR
+	if len(desiredPod.Spec.Tolerations) > 0 {
+		desiredPod.Spec.Tolerations = append(desiredPod.Spec.Tolerations, currentPod.Spec.Tolerations...)
+		uniqueTolerations := make([]corev1.Toleration, 0, len(desiredPod.Spec.Tolerations))
+		keys := make(map[corev1.Toleration]bool)
+		for _, t := range desiredPod.Spec.Tolerations {
+			if _, value := keys[t]; !value {
+				keys[t] = true
+				uniqueTolerations = append(uniqueTolerations, t)
+			}
+		}
+		desiredPod.Spec.Tolerations = uniqueTolerations
+	}
+	// Check if the resource actually updated
+	patchResult, err := patch.DefaultPatchMaker.Calculate(currentPod, desiredPod)
+	switch {
+	case err != nil:
+		log.Error(err, "could not match objects", "kind", desiredType)
+	case patchResult.IsEmpty():
+		if !k8sutil.IsPodContainsTerminatedContainer(currentPod) &&
+			r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync &&
+			!k8sutil.IsPodContainsEvictedContainer(currentPod) {
+			log.V(1).Info("resource is in sync")
+			return nil
+		}
+	default:
+		log.V(1).Info("kafka pod resource diffs",
+			"patch", string(patchResult.Patch),
+			"current", string(patchResult.Current),
+			"modified", string(patchResult.Modified),
+			"original", string(patchResult.Original))
+	}
+
+	if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPod); err != nil {
+		return errors.WrapIf(err, "could not apply last state to annotation")
+	}
+
+	if !k8sutil.IsPodContainsTerminatedContainer(currentPod) {
+
+		if r.KafkaCluster.Status.State != v1beta1.KafkaClusterRollingUpgrading {
+			if err := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, v1beta1.KafkaClusterRollingUpgrading, log); err != nil {
+				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "setting state to rolling upgrade failed")
+			}
+		}
+
+		if r.KafkaCluster.Status.State == v1beta1.KafkaClusterRollingUpgrading {
+			// Check if any kafka pod is in terminating or pending state
+			podList := &corev1.PodList{}
+			matchingLabels := client.MatchingLabels(kafka.LabelsForKafka(r.KafkaCluster.Name))
+			err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
+			if err != nil {
+				return errors.WrapIf(err, "failed to reconcile resource")
+			}
+			for _, pod := range podList.Items {
+				if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {
+					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating"), "rolling upgrade in progress")
+				}
+				if k8sutil.IsPodContainsPendingContainer(&pod) {
+					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still creating"), "rolling upgrade in progress")
+				}
+			}
+
+			errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
+
+			kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
+			if err != nil {
+				return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
+			}
+			defer func() {
+				if err := kClient.Close(); err != nil {
+					log.Error(err, "could not close client")
+				}
+			}()
+			offlineReplicaCount, err := kClient.OfflineReplicaCount()
+			if err != nil {
+				return errors.WrapIf(err, "health check failed")
+			}
+			replicasInSync, err := kClient.AllReplicaInSync()
+			if err != nil {
+				return errors.WrapIf(err, "health check failed")
+			}
+
+			if offlineReplicaCount > 0 || !replicasInSync {
+				errorCount++
+			}
+			if errorCount >= r.KafkaCluster.Spec.RollingUpgradeConfig.FailureThreshold {
+				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("cluster is not healthy"), "rolling upgrade in progress")
+			}
+		}
+	}
+
+	err = r.Client.Delete(context.TODO(), currentPod)
+	if err != nil {
+		return errorfactory.New(errorfactory.APIFailure{}, err, "deleting resource failed", "kind", desiredType)
+	}
+
+	// Print terminated container's statuses
+	if k8sutil.IsPodContainsTerminatedContainer(currentPod) {
+		for _, containerState := range currentPod.Status.ContainerStatuses {
+			if containerState.State.Terminated != nil {
+				log.Info("terminated container for broker pod", "pod", currentPod.GetName(), "brokerId", currentPod.Labels["brokerId"],
+					"containerName", containerState.Name, "exitCode", containerState.State.Terminated.ExitCode, "reason", containerState.State.Terminated.Reason)
+			}
+		}
+	}
+	log.Info("broker pod deleted", "pod", currentPod.GetName(), "brokerId", currentPod.Labels["brokerId"])
+	return nil
 }
 
 func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[string][]*corev1.PersistentVolumeClaim) error {

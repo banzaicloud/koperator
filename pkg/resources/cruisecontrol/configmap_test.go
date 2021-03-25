@@ -26,6 +26,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
+//nolint:funlen
 func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 	quantity, _ := resource.ParseQuantity("10Gi")
 	cpuQuantity, _ := resource.ParseQuantity("2000m")
@@ -412,6 +413,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 	cpuQuantity, _ := resource.ParseQuantity("2000m")
 

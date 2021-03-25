@@ -41,6 +41,11 @@ import (
 var c client.Client
 var cfg *rest.Config
 
+const (
+	firingAlertStatus   = "firing"
+	resolvedAlertStatus = "resolved"
+)
+
 func TestMain(m *testing.M) {
 	t := &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "base", "crds")},
@@ -162,7 +167,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 
 	testAlert1 := AlertState{
 		FingerPrint: model.Fingerprint(1111),
-		Status:      model.AlertStatus("firing"),
+		Status:      model.AlertStatus(firingAlertStatus),
 		Labels: model.LabelSet{
 			"alertname": "PodAlert",
 			"test":      "test",
@@ -176,7 +181,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 
 	testAlert2 := AlertState{
 		FingerPrint: model.Fingerprint(2222),
-		Status:      model.AlertStatus("resolved"),
+		Status:      model.AlertStatus(resolvedAlertStatus),
 		Labels: model.LabelSet{
 			"alertname": "PodAlert",
 			"test":      "test",
@@ -187,12 +192,12 @@ func TestGetCurrentAlerts(t *testing.T) {
 	}
 
 	a1 := alerts1.AddAlert(testAlert1)
-	if a1.Status != "firing" {
+	if a1.Status != firingAlertStatus {
 		t.Error("AdAlert failed a1")
 	}
 
 	list1 := alerts1.ListAlerts()
-	if list1 == nil || list1[testAlert1.FingerPrint].Status != "firing" || list1[testAlert1.FingerPrint].Labels["alertname"] != "PodAlert" {
+	if list1 == nil || list1[testAlert1.FingerPrint].Status != firingAlertStatus || list1[testAlert1.FingerPrint].Labels["alertname"] != "PodAlert" {
 		t.Error("Listing alerts failed a1")
 	}
 
@@ -202,7 +207,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 	}
 	t.Log(currAlert)
 
-	if list1 == nil || list1[testAlert1.FingerPrint].Status != "firing" || list1[testAlert1.FingerPrint].Processed != true {
+	if list1 == nil || list1[testAlert1.FingerPrint].Status != firingAlertStatus || list1[testAlert1.FingerPrint].Processed != true {
 		t.Error("Process alert failed a1")
 	}
 
@@ -212,12 +217,12 @@ func TestGetCurrentAlerts(t *testing.T) {
 	}
 
 	a2 := alerts2.AddAlert(testAlert2)
-	if a2.Status != "resolved" {
+	if a2.Status != resolvedAlertStatus {
 		t.Error("AdAlert failed a2")
 	}
 
 	list2 := alerts2.ListAlerts()
-	if list2 == nil || list2[testAlert2.FingerPrint].Status != "resolved" || list2[testAlert2.FingerPrint].Labels["alertname"] != "PodAlert" {
+	if list2 == nil || list2[testAlert2.FingerPrint].Status != resolvedAlertStatus || list2[testAlert2.FingerPrint].Labels["alertname"] != "PodAlert" {
 		t.Error("Listing alerts failed a2")
 	}
 

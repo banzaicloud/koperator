@@ -104,6 +104,7 @@ func (p Property) List() ([]string, error) {
 
 // GetByType returns the value of p Property in the requested PropertyType type.
 func (p Property) GetByType(t PropertyType) (interface{}, error) {
+	//nolint:exhaustive
 	switch t {
 	case Int:
 		return p.Int()
@@ -130,6 +131,7 @@ func (p *Property) set(k string, v interface{}, c string) error {
 		return errors.NewWithDetails("properties: invalid property", "property", k)
 	}
 
+	//nolint:exhaustive
 	switch vValue.Kind() {
 	case reflect.String:
 		fallthrough
@@ -142,6 +144,7 @@ func (p *Property) set(k string, v interface{}, c string) error {
 	case reflect.Slice:
 		sliceKind := vValue.Type().Elem().Kind()
 
+		//nolint:exhaustive
 		switch sliceKind {
 		case reflect.String:
 			slice, ok := vValue.Interface().([]string)

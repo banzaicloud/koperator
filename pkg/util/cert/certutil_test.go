@@ -22,8 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	v1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 )
 
 type PKCS8Key struct {
@@ -83,10 +84,8 @@ func TestDecodeCertificate(t *testing.T) {
 	}
 	if decoded, err := DecodeCertificate(cert); err != nil {
 		t.Error("Expected to decode certificate, got error:", err)
-	} else {
-		if decoded.Subject.String() != name {
-			t.Error("Expected certificate subject:", name, "got:", decoded.Subject.String())
-		}
+	} else if decoded.Subject.String() != name {
+		t.Error("Expected certificate subject:", name, "got:", decoded.Subject.String())
 	}
 }
 

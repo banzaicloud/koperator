@@ -52,17 +52,18 @@ func rackAwarenessLabelsToReadonlyConfig(pod *corev1.Pod, cr *v1beta1.KafkaClust
 	brokerConfigs := []v1beta1.Broker{}
 	var readOnlyConfig string
 	var rackAwaranessState string
-	brokerId := pod.Labels["brokerId"]
+	brokerID := pod.Labels["brokerId"]
+	//nolint:gocritic
 	for _, broker := range cr.Spec.Brokers {
-		if strconv.Itoa(int(broker.Id)) == brokerId {
+		if strconv.Itoa(int(broker.Id)) == brokerID {
 			rackAwaranessState = fmt.Sprintf("broker.rack=%s\n", strings.Join(rackConfigValues, ","))
-			if _, ok := cr.Status.BrokersState[brokerId]; ok && cr.Status.BrokersState[brokerId].RackAwarenessState != "" && cr.Status.BrokersState[brokerId].RackAwarenessState != v1beta1.Configured {
+			if _, ok := cr.Status.BrokersState[brokerID]; ok && cr.Status.BrokersState[brokerID].RackAwarenessState != "" && cr.Status.BrokersState[brokerID].RackAwarenessState != v1beta1.Configured {
 				if !strings.Contains(broker.ReadOnlyConfig, "broker.rack=") {
-					readOnlyConfig = broker.ReadOnlyConfig + string(cr.Status.BrokersState[brokerId].RackAwarenessState)
+					readOnlyConfig = broker.ReadOnlyConfig + string(cr.Status.BrokersState[brokerID].RackAwarenessState)
 				} else {
 					readOnlyConfig = broker.ReadOnlyConfig
 				}
-				rackAwaranessState = string(cr.Status.BrokersState[brokerId].RackAwarenessState)
+				rackAwaranessState = string(cr.Status.BrokersState[brokerID].RackAwarenessState)
 			} else if broker.ReadOnlyConfig == "" {
 				readOnlyConfig = rackAwaranessState
 			} else if !strings.Contains(broker.ReadOnlyConfig, "broker.rack=") {
@@ -87,7 +88,7 @@ func AddNewBrokerToCr(broker v1beta1.Broker, crName, namespace string, client ru
 }
 
 // RemoveBrokerFromCr modifies the CR and removes the given broker from the cluster
-func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient.Client) error {
+func RemoveBrokerFromCr(brokerID, crName, namespace string, client runtimeClient.Client) error {
 
 	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
@@ -96,7 +97,7 @@ func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient
 
 	tmpBrokers := cr.Spec.Brokers[:0]
 	for _, broker := range cr.Spec.Brokers {
-		if strconv.Itoa(int(broker.Id)) != brokerId {
+		if strconv.Itoa(int(broker.Id)) != brokerID {
 			tmpBrokers = append(tmpBrokers, broker)
 		}
 	}
@@ -105,14 +106,14 @@ func RemoveBrokerFromCr(brokerId, crName, namespace string, client runtimeClient
 }
 
 // AddPvToSpecificBroker adds a new PV to a specific broker
-func AddPvToSpecificBroker(brokerId, crName, namespace string, storageConfig *v1beta1.StorageConfig, client runtimeClient.Client) error {
+func AddPvToSpecificBroker(brokerID, crName, namespace string, storageConfig *v1beta1.StorageConfig, client runtimeClient.Client) error {
 	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
 		return err
 	}
 
 	for i, broker := range cr.Spec.Brokers {
-		if strconv.Itoa(int(broker.Id)) == brokerId {
+		if strconv.Itoa(int(broker.Id)) == brokerID {
 			if broker.BrokerConfig == nil {
 				cr.Spec.Brokers[i].BrokerConfig = &v1beta1.BrokerConfig{}
 			}

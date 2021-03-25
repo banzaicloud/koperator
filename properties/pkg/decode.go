@@ -18,6 +18,7 @@ import (
 	"reflect"
 
 	"emperror.dev/errors"
+
 	"github.com/banzaicloud/kafka-operator/properties/internal/utils"
 )
 
@@ -115,6 +116,7 @@ func unmarshal(p *Properties, v interface{}) error {
 
 		// Match type of field with the type of property Property from p Properties
 		var propType PropertyType
+		//nolint:exhaustive
 		switch vFieldValue.Kind() {
 		default:
 			return errors.NewWithDetails("properties: cannot unmarshal field with unsupported type", "field", vTypeField.Name, "type", vFieldValue.Type().Name())

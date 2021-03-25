@@ -21,11 +21,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const (
+	testKey   = "test.key"
+	testValue = "test value"
+)
+
 func TestProperty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	k := "test.key"
-	v := "test value"
+	k := testKey
+	v := testValue
 
 	p := Property{
 		key:   k,
@@ -39,8 +44,8 @@ func TestProperty(t *testing.T) {
 func TestPropertyComment(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	k := "test.key"
-	v := "test value"
+	k := testKey
+	v := testValue
 	c := "this is a comment"
 
 	p := Property{
@@ -55,8 +60,8 @@ func TestPropertyComment(t *testing.T) {
 func TestPropertyString(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	k := "test.key"
-	v := "test value"
+	k := testKey
+	v := testValue
 
 	p := Property{
 		key:   k,
@@ -70,12 +75,12 @@ func TestPropertyString(t *testing.T) {
 func TestPropertyInt(t *testing.T) {
 
 	validProp := Property{
-		key:   "test.key",
+		key:   testKey,
 		value: "100",
 	}
 
 	invalidProp := Property{
-		key:   "test.key",
+		key:   testKey,
 		value: "not an integer",
 	}
 
@@ -98,12 +103,12 @@ func TestPropertyInt(t *testing.T) {
 func TestPropertyFloat(t *testing.T) {
 
 	validProp := Property{
-		key:   "test.key",
+		key:   testKey,
 		value: "100.00",
 	}
 
 	invalidProp := Property{
-		key:   "test.key",
+		key:   testKey,
 		value: "not a float",
 	}
 
@@ -126,17 +131,17 @@ func TestPropertyFloat(t *testing.T) {
 func TestPropertyBool(t *testing.T) {
 
 	trueProp := Property{
-		key:   "test.key",
+		key:   testKey,
 		value: "true",
 	}
 
 	falseProp := Property{
-		key:   "test.key",
+		key:   testKey,
 		value: "FALSE",
 	}
 
 	invalidProp := Property{
-		key:   "test.key",
+		key:   testKey,
 		value: "not a boolean",
 	}
 
@@ -167,12 +172,12 @@ func TestPropertyBool(t *testing.T) {
 func TestPropertyList(t *testing.T) {
 
 	validProp := Property{
-		key:   "test.key",
+		key:   testKey,
 		value: "test item1,test item2,test item3",
 	}
 
 	notListProp := Property{
-		key:   "test.key",
+		key:   testKey,
 		value: "not a list value",
 	}
 
@@ -201,7 +206,7 @@ func TestPropertyGetByType(t *testing.T) {
 		g := NewGomegaWithT(t)
 
 		prop := Property{
-			key:   "test.key",
+			key:   testKey,
 			value: "128",
 		}
 		expected := int64(128)
@@ -214,7 +219,7 @@ func TestPropertyGetByType(t *testing.T) {
 		g := NewGomegaWithT(t)
 
 		prop := Property{
-			key:   "test.key",
+			key:   testKey,
 			value: "128.9",
 		}
 		expected := 128.9
@@ -227,7 +232,7 @@ func TestPropertyGetByType(t *testing.T) {
 		g := NewGomegaWithT(t)
 
 		prop := Property{
-			key:   "test.key",
+			key:   testKey,
 			value: "test item",
 		}
 		expected := "test item"
@@ -240,7 +245,7 @@ func TestPropertyGetByType(t *testing.T) {
 		g := NewGomegaWithT(t)
 
 		prop := Property{
-			key:   "test.key",
+			key:   testKey,
 			value: "true",
 		}
 		expected := true
@@ -253,7 +258,7 @@ func TestPropertyGetByType(t *testing.T) {
 		g := NewGomegaWithT(t)
 
 		prop := Property{
-			key:   "test.key",
+			key:   testKey,
 			value: "item1,item2,item3",
 		}
 		expected := []string{"item1", "item2", "item3"}
@@ -266,7 +271,7 @@ func TestPropertyGetByType(t *testing.T) {
 		g := NewGomegaWithT(t)
 
 		prop := Property{
-			key:   "test.key",
+			key:   testKey,
 			value: "item1,item2,item3",
 		}
 
@@ -317,7 +322,7 @@ func TestPropertyIsValid(t *testing.T) {
 	t.Run("Non-empty key field", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
-		prop := &Property{"test.key", "", ""}
+		prop := &Property{testKey, "", ""}
 		g.Expect(prop.IsValid()).Should(BeTrue())
 	})
 }
@@ -334,14 +339,14 @@ func TestPropertyIsEmpty(t *testing.T) {
 	t.Run("Empty key field", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
-		prop := &Property{"test.key", "", ""}
+		prop := &Property{testKey, "", ""}
 		g.Expect(prop.IsEmpty()).Should(BeTrue())
 	})
 
 	t.Run("Non-empty key and value fields", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
-		prop := &Property{"test.key", "test.value", ""}
+		prop := &Property{testKey, "test.value", ""}
 		g.Expect(prop.IsEmpty()).Should(BeFalse())
 	})
 }

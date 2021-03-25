@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -515,11 +516,13 @@ func (kSpec *KafkaClusterSpec) GetZkPath() string {
 	const prefix = "/"
 	if kSpec.ZKPath == "" {
 		return prefix
-	} else if !strings.HasPrefix(kSpec.ZKPath, prefix) {
-		return prefix + kSpec.ZKPath
-	} else {
-		return kSpec.ZKPath
 	}
+
+	if !strings.HasPrefix(kSpec.ZKPath, prefix) {
+		return prefix + kSpec.ZKPath
+	}
+
+	return kSpec.ZKPath
 }
 
 // GetClusterImage returns the default container image for Kafka Cluster

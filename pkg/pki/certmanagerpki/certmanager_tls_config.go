@@ -20,12 +20,13 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 )
 
 // GetControllerTLSConfig creates a TLS config from the user secret created for

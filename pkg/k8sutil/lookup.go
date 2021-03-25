@@ -17,9 +17,10 @@ package k8sutil
 import (
 	"context"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
 // LookupKafkaCluster returns the running cluster instance based on its name and namespace

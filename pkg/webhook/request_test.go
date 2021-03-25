@@ -24,10 +24,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	authv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 )
 
 func newRawTopic() []byte {
@@ -68,11 +69,13 @@ func TestValidate(t *testing.T) {
 
 	req := newAdmissionReview()
 
-	if res := server.validate(req); res.Allowed {
+	res := server.validate(req)
+	switch {
+	case res.Allowed:
 		t.Error("Expected denied request for unknown resource type, got allowed")
-	} else if res.Result.Reason != metav1.StatusReasonBadRequest {
+	case res.Result.Reason != metav1.StatusReasonBadRequest:
 		t.Error("Expected bad request, got:", res.Result.Reason)
-	} else if !strings.Contains(res.Result.Message, "Unexpected resource kind") {
+	case !strings.Contains(res.Result.Message, "Unexpected resource kind"):
 		t.Error("Expected unexpected resource kind message, got:", res.Result.Message)
 	}
 
@@ -143,6 +146,7 @@ func TestServe(t *testing.T) {
 	recorder = httptest.NewRecorder()
 	server.serve(recorder, req)
 	res = recorder.Result()
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusUnsupportedMediaType {
 		t.Error("Expected unsupported media type, got:", res.StatusCode)
 	}

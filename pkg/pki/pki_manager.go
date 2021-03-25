@@ -18,14 +18,15 @@ import (
 	"context"
 	"crypto/tls"
 
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/pki/certmanagerpki"
 	"github.com/banzaicloud/kafka-operator/pkg/pki/vaultpki"
 	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
-	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MockBackend is used for mocking during testing
@@ -39,6 +40,7 @@ func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBacke
 	} else {
 		backend = pkiBackend
 	}
+	//nolint:exhaustive
 	switch backend {
 
 	// Use cert-manager for pki backend

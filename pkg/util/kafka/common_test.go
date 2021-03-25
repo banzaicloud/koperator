@@ -17,12 +17,17 @@ package kafka
 import (
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
+	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
+)
+
+const (
+	kubernetesClusterDomain = "foo.bar"
 )
 
 func TestShouldRefreshOnlyPerBrokerConfigs(t *testing.T) {
@@ -198,7 +203,7 @@ func TestGetClusterServiceDomainName(t *testing.T) {
 	t.Run("With cluster domain override", func(t *testing.T) {
 		cluster := MinimalKafkaCluster.DeepCopy()
 		cluster.Namespace = "kafka-ns2"
-		cluster.Spec.KubernetesClusterDomain = "foo.bar"
+		cluster.Spec.KubernetesClusterDomain = kubernetesClusterDomain
 		svcName := GetClusterServiceDomainName(cluster)
 		expected := "kafka-ns2.svc.foo.bar"
 
@@ -231,7 +236,7 @@ func TestGetBrokerServiceFqdn(t *testing.T) {
 		cluster := MinimalKafkaCluster.DeepCopy()
 		cluster.Name = "kafka-cluster1"
 		cluster.Namespace = "kafka-ns2"
-		cluster.Spec.KubernetesClusterDomain = "foo.bar"
+		cluster.Spec.KubernetesClusterDomain = kubernetesClusterDomain
 		fqdn := GetBrokerServiceFqdn(cluster, broker)
 		expectedFqdn := "kafka-cluster1-1.kafka-ns2.svc.foo.bar"
 
@@ -263,7 +268,7 @@ func TestGetBootstrapServersService(t *testing.T) {
 	t.Run("With headless service and cluster domain override", func(t *testing.T) {
 		cluster := MinimalKafkaCluster.DeepCopy()
 		cluster.Spec.HeadlessServiceEnabled = true
-		cluster.Spec.KubernetesClusterDomain = "foo.bar"
+		cluster.Spec.KubernetesClusterDomain = kubernetesClusterDomain
 		expected := "kafka-cluster-headless.kafka-ns.svc.foo.bar:29092"
 
 		bootstrapServers, err := GetBootstrapServersService(cluster)
@@ -297,7 +302,7 @@ func TestGetBootstrapServersService(t *testing.T) {
 	t.Run("With cluster domain override but without headless service", func(t *testing.T) {
 		cluster := MinimalKafkaCluster.DeepCopy()
 		cluster.Spec.HeadlessServiceEnabled = false
-		cluster.Spec.KubernetesClusterDomain = "foo.bar"
+		cluster.Spec.KubernetesClusterDomain = kubernetesClusterDomain
 		expected := "kafka-cluster-all-broker.kafka-ns.svc.foo.bar:29092"
 
 		bootstrapServers, err := GetBootstrapServersService(cluster)
@@ -332,7 +337,7 @@ func TestGetBootstrapServers(t *testing.T) {
 
 	t.Run("With cluster domain override", func(t *testing.T) {
 		cluster := MinimalKafkaCluster.DeepCopy()
-		cluster.Spec.KubernetesClusterDomain = "foo.bar"
+		cluster.Spec.KubernetesClusterDomain = kubernetesClusterDomain
 		expected := "kafka-cluster-0.kafka-ns.svc.foo.bar:29092,kafka-cluster-1.kafka-ns.svc.foo.bar:29092,kafka-cluster-2.kafka-ns.svc.foo.bar:29092"
 
 		bootstrapServers, err := GetBootstrapServers(cluster)
