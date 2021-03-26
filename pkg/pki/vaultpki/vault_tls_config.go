@@ -24,12 +24,12 @@ import (
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 )
 
-func (v *vaultPKI) GetControllerTLSConfig() (config *tls.Config, err error) {
-	config = &tls.Config{}
+func (v *vaultPKI) GetControllerTLSConfig() (*tls.Config, error) {
+	config := &tls.Config{}
 
 	vault, err := v.getClient()
 	if err != nil {
-		return
+		return config, err
 	}
 
 	// TODO (tinyzimmer): Maybe still just grab from the kubernetes secret we
@@ -37,7 +37,7 @@ func (v *vaultPKI) GetControllerTLSConfig() (config *tls.Config, err error) {
 	secret, v2, err := getSecret(vault, fmt.Sprintf("secret/%s", fmt.Sprintf(pkicommon.BrokerControllerTemplate, v.cluster.Name)))
 	if err != nil {
 		err = errorfactory.New(errorfactory.VaultAPIFailure{}, err, "could not fetch controller certificate")
-		return
+		return config, err
 	} else if secret == nil || secret.Data == nil {
 		err = errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("not found"), "controller secret is empty")
 	}
@@ -45,13 +45,13 @@ func (v *vaultPKI) GetControllerTLSConfig() (config *tls.Config, err error) {
 	cert, err := userCertForData(v2, secret.Data)
 	if err != nil {
 		err = errorfactory.New(errorfactory.InternalError{}, err, "could not parse controller vault secret")
-		return
+		return config, err
 	}
 
 	x509ClientCert, err := tls.X509KeyPair(cert.Certificate, cert.Key)
 	if err != nil {
 		err = errorfactory.New(errorfactory.InternalError{}, err, "could not decode controller certificate")
-		return
+		return config, err
 	}
 
 	rootCAs := x509.NewCertPool()
@@ -60,5 +60,5 @@ func (v *vaultPKI) GetControllerTLSConfig() (config *tls.Config, err error) {
 	config.Certificates = []tls.Certificate{x509ClientCert}
 	config.RootCAs = rootCAs
 
-	return
+	return config, err
 }

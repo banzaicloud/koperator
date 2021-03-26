@@ -23,14 +23,14 @@ linters:
     - goimports
 #    - golint # NOTE: brokerID must be dealed as brokerId
 #    - gomnd
-#    - goprintffuncname
+    - goprintffuncname
 #    - gosec
 #    - gosimple
 #    - govet
 #    - ineffassign
-#    - lll
-#    - misspell
-#    - nakedret
+    - lll
+    - misspell
+    - nakedret
 #    - noctx
     # - nolintlint      # NOTE: intentionally disabled
 #    - rowserrcheck

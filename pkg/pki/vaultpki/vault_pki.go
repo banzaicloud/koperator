@@ -150,7 +150,7 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 		}
 	}
 
-	return
+	return err
 }
 
 func (v *vaultPKI) reconcileBrokerCert(
