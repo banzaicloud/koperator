@@ -31,10 +31,10 @@ import (
 
 // GetControllerTLSConfig creates a TLS config from the user secret created for
 // cruise control and manager operations
-func (c *certManager) GetControllerTLSConfig() (config *tls.Config, err error) {
-	config = &tls.Config{}
+func (c *certManager) GetControllerTLSConfig() (*tls.Config, error) {
+	config := &tls.Config{}
 	tlsKeys := &corev1.Secret{}
-	err = c.client.Get(context.TODO(),
+	err := c.client.Get(context.TODO(),
 		types.NamespacedName{
 			Namespace: c.cluster.Namespace,
 			Name:      fmt.Sprintf(pkicommon.BrokerControllerTemplate, c.cluster.Name),
@@ -45,7 +45,7 @@ func (c *certManager) GetControllerTLSConfig() (config *tls.Config, err error) {
 		if apierrors.IsNotFound(err) {
 			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "controller secret not found")
 		}
-		return
+		return config, err
 	}
 	clientCert := tlsKeys.Data[corev1.TLSCertKey]
 	clientKey := tlsKeys.Data[corev1.TLSPrivateKeyKey]
@@ -53,7 +53,7 @@ func (c *certManager) GetControllerTLSConfig() (config *tls.Config, err error) {
 	x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
 	if err != nil {
 		err = errorfactory.New(errorfactory.InternalError{}, err, "could not decode controller certificate")
-		return
+		return config, err
 	}
 
 	rootCAs := x509.NewCertPool()
@@ -62,5 +62,5 @@ func (c *certManager) GetControllerTLSConfig() (config *tls.Config, err error) {
 	config.Certificates = []tls.Certificate{x509ClientCert}
 	config.RootCAs = rootCAs
 
-	return
+	return config, err
 }

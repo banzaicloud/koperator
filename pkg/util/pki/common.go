@@ -110,8 +110,8 @@ func GetCommonName(cluster *v1beta1.KafkaCluster) string {
 }
 
 // clusterDNSNames returns all the possible DNS Names for a Kafka Cluster
-func clusterDNSNames(cluster *v1beta1.KafkaCluster) (names []string) {
-	names = make([]string, 0)
+func clusterDNSNames(cluster *v1beta1.KafkaCluster) []string {
+	names := make([]string, 0)
 	if cluster.Spec.HeadlessServiceEnabled {
 		// FQDN
 		names = append(names, fmt.Sprintf("*.%s", GetCommonName(cluster)))
@@ -162,7 +162,7 @@ func clusterDNSNames(cluster *v1beta1.KafkaCluster) (names []string) {
 		names = append(names,
 			fmt.Sprintf(kafka.AllBrokerServiceTemplate, cluster.Name))
 	}
-	return
+	return names
 }
 
 // LabelsForKafkaPKI returns kubernetes labels for a PKI object
