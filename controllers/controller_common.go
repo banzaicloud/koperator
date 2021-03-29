@@ -116,7 +116,7 @@ func checkBrokerConnectionError(logger logr.Logger, err error) (ctrl.Result, err
 func applyClusterRefLabel(cluster *v1beta1.KafkaCluster, labels map[string]string) map[string]string {
 	labelValue := clusterLabelString(cluster)
 	if labels == nil {
-		labels = make(map[string]string, 0)
+		labels = make(map[string]string)
 	}
 	if label, ok := labels[clusterRefLabel]; ok {
 		if label != labelValue {

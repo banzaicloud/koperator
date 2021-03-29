@@ -204,7 +204,7 @@ func (p *Properties) merge(m *Properties, option MergeOption) {
 		case AllowOverwrite:
 			fallthrough
 		default:
-			mProp, _ := m.properties[key]
+			mProp := m.properties[key]
 			p.put(mProp)
 		}
 	}
@@ -371,8 +371,8 @@ func (p *Properties) Diff(m *Properties) DiffResult {
 // NewProperties returns a new and empty Properties object.
 func NewProperties() *Properties {
 	return &Properties{
-		properties: make(map[string]Property, 0),
-		keys:       make(map[string]keyIndex, 0),
+		properties: make(map[string]Property),
+		keys:       make(map[string]keyIndex),
 	}
 }
 

@@ -303,7 +303,7 @@ func (r *CruiseControlTaskReconciler) checkCCTaskState(kafkaCluster *v1beta1.Kaf
 			if err != nil {
 				return errors.WrapIf(err, "could not parse timestamp")
 			}
-			if time.Now().Sub(parsedTime).Minutes() > kafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
+			if time.Since(parsedTime).Minutes() > kafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
 				brokersWithTimedOutCCTask = append(brokersWithTimedOutCCTask, brokerId)
 				requiredCCState, err := r.getCorrectRequiredCCState(brokerState.GracefulActionState.CruiseControlState)
 				if err != nil {
@@ -446,7 +446,7 @@ func (r *CruiseControlTaskReconciler) checkVolumeCCTaskState(kafkaCluster *v1bet
 					return errors.WrapIf(err, "could not parse timestamp")
 				}
 
-				if time.Now().Sub(parsedTime).Minutes() > kafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
+				if time.Since(parsedTime).Minutes() > kafkaCluster.Spec.CruiseControlConfig.CruiseControlTaskSpec.GetDurationMinutes() {
 					volumesStateWithTimedOutDiskCCTask[mountPath] = kafkav1beta1.VolumeState{
 						CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
 						CruiseControlTaskId:      volumeState.CruiseControlTaskId,

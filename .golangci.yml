@@ -12,26 +12,26 @@ linters:
     - depguard
     - dogsled
     # - dupl            # NOTE: intentionally disabled
-#    - errcheck
+#    - errcheck # Note: Fixme with a small refactor
     - exhaustive
     - funlen
     # - gochecknoinits  # NOTE: intentionally disabled
     - goconst
-    - gocritic
+    - gocritic # NOTE: remove nolinted functions
     - gocyclo
     - gofmt
     - goimports
 #    - golint # NOTE: brokerID must be dealt as brokerId
 #    - gomnd
     - goprintffuncname
-#    - gosec
-#    - gosimple
-#    - govet
-#    - ineffassign
+#    - gosec # Note: Fixme when refactoring http calls
+    - gosimple
+    - govet
+    - ineffassign
     - lll
     - misspell
     - nakedret
-#    - noctx
+#    - noctx # Note: FIXME by adding refactoring http calls
     # - nolintlint      # NOTE: intentionally disabled
     - rowserrcheck
     - scopelint
@@ -64,23 +64,3 @@ linters-settings:
   lll:
     # FIXME: we should be able to reduce the length of lines to be closer to the default 120 lines
     line-length: 300  # default: 120
-
-#linters-settings:
-#    golint:
-#        min-confidence: 0.9
-#
-#    gocyclo:
-#        min-complexity: 15
-#
-#linters:
-#    enable:
-#        - misspell
-#        - gofmt
-#        - golint
-#        - goimports
-#    disable:
-#        - errcheck
-#        - gas
-#        - megacheck
-#        - varcheck
-#    fast: false

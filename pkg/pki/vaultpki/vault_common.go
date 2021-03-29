@@ -163,7 +163,7 @@ func (v *vaultPKI) getMaxTTL(vault *vaultapi.Client) (string, error) {
 		return "", err
 	}
 	// return one hour before the CA expires
-	caExpiry := cert.NotAfter.Sub(time.Now())
+	caExpiry := time.Until(cert.NotAfter)
 	caExpiryHours := (caExpiry / time.Hour) - 1
 	return strconv.Itoa(int(caExpiryHours)) + "h", nil
 }
