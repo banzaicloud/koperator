@@ -319,5 +319,4 @@ func (r *KafkaUserReconciler) finalizeKafkaUserACLs(reqLogger logr.Logger, clust
 func (r *KafkaUserReconciler) addFinalizer(reqLogger logr.Logger, user *v1alpha1.KafkaUser) {
 	reqLogger.Info("Adding Finalizer for the KafkaUser")
 	user.SetFinalizers(append(user.GetFinalizers(), userFinalizer))
-	return
 }

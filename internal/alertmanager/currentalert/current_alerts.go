@@ -122,7 +122,7 @@ func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Cli
 	if _, ok := a.alerts[alertFp]; !ok {
 		return &currentAlertStruct{}, errors.New("alert doesn't exist")
 	}
-	if a.alerts[alertFp].Processed != true {
+	if !a.alerts[alertFp].Processed {
 		e := &examiner{
 			Alert:          a.alerts[alertFp],
 			Client:         client,

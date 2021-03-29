@@ -83,7 +83,7 @@ func QuantityPointer(q resource.Quantity) *resource.Quantity {
 
 // MapStringStringPointer generates a map[string]*string
 func MapStringStringPointer(in map[string]string) (out map[string]*string) {
-	out = make(map[string]*string, 0)
+	out = make(map[string]*string)
 	for k, v := range in {
 		out[k] = StringPointer(v)
 	}

@@ -62,5 +62,4 @@ func SetupServerHandlers(mgr ctrl.Manager, certDir string) {
 	server.CertDir = certDir
 	mux := newWebhookServerMux(mgr.GetClient(), mgr.GetScheme())
 	server.Register("/validate", mux)
-	return
 }

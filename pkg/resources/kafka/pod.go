@@ -181,9 +181,7 @@ fi`},
 
 func getInitContainers(brokerConfigInitContainers []corev1.Container, kafkaClusterSpec v1beta1.KafkaClusterSpec) []corev1.Container {
 	initContainers := make([]corev1.Container, 0, len(brokerConfigInitContainers))
-	for _, initContainer := range brokerConfigInitContainers {
-		initContainers = append(initContainers, initContainer)
-	}
+	initContainers = append(initContainers, brokerConfigInitContainers...)
 
 	initContainers = append(initContainers, []corev1.Container{
 		{
@@ -218,9 +216,7 @@ func getInitContainers(brokerConfigInitContainers []corev1.Container, kafkaClust
 func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMount,
 	kafkaClusterName string, hasSSLSecrets bool) []corev1.VolumeMount {
 	volumeMounts := make([]corev1.VolumeMount, 0, len(brokerConfigVolumeMounts))
-	for _, volumeMount := range brokerConfigVolumeMounts {
-		volumeMounts = append(volumeMounts, volumeMount)
-	}
+	volumeMounts = append(volumeMounts, brokerConfigVolumeMounts...)
 
 	volumeMounts = append(volumeMounts, dataVolumeMount...)
 
