@@ -40,7 +40,6 @@ const caEnvVar = "KAFKA_TLS_CA"
 var brokerAddrs = []string{"kafka-headless.kafka.svc.cluster.local:29092"}
 
 func main() {
-
 	// Create an SSL configuration for connecting to Kafka
 	config := sarama.NewConfig()
 	config.Net.TLS.Enable = true
@@ -59,7 +58,6 @@ func main() {
 	default:
 		log.Fatal("Invalid test mode:", os.Getenv("KAFKA_MODE"))
 	}
-
 }
 
 func getEnvTLSConfig() (config *tls.Config, err error) {
@@ -133,7 +131,6 @@ ConsumerLoop:
 
 //nolint:gocritic
 func produce(config *sarama.Config, signals chan os.Signal) {
-
 	// Get a broker connection
 	broker := sarama.NewBroker(brokerAddrs[0])
 	if err := broker.Open(config); err != nil {
@@ -162,5 +159,4 @@ ProducerLoop:
 			break ProducerLoop
 		}
 	}
-
 }

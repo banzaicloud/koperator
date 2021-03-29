@@ -27,7 +27,6 @@ import (
 )
 
 func (r *Reconciler) headlessService() runtime.Object {
-
 	var usedPorts []corev1.ServicePort
 	// Append internal listener ports
 	usedPorts = append(usedPorts,

@@ -34,8 +34,8 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var c client.Client
@@ -66,14 +66,15 @@ func TestMain(m *testing.M) {
 func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) (chan struct{}, *sync.WaitGroup) {
 	stop := make(chan struct{})
 	wg := &sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		g.Expect(mgr.Start(stop)).NotTo(gomega.HaveOccurred())
 		wg.Done()
 	}()
 	return stop, wg
 }
 
+// nolint:unparam
 func ensureCreated(t *testing.T, object runtime.Object, mgr manager.Manager) func() {
 	err := mgr.GetClient().Create(context.TODO(), object)
 	if err != nil {

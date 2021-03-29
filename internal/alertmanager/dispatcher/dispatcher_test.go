@@ -24,7 +24,6 @@ import (
 )
 
 func Test_alertFilter(t *testing.T) {
-
 	testAlerts := []model.Alert{
 		{
 			Labels: model.LabelSet{
@@ -104,6 +103,7 @@ func Test_alertFilter(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := alertFilter(tt.test); !reflect.DeepEqual(got, tt.filtered) {
 				t.Errorf("alertFilter() = %v, want %v", got, tt.filtered)

@@ -40,6 +40,7 @@ func (v *vaultPKI) GetControllerTLSConfig() (*tls.Config, error) {
 		return config, err
 	} else if secret == nil || secret.Data == nil {
 		err = errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("not found"), "controller secret is empty")
+		return config, err
 	}
 
 	cert, err := userCertForData(v2, secret.Data)

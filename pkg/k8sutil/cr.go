@@ -48,7 +48,6 @@ func UpdateCrWithRackAwarenessConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, 
 }
 
 func rackAwarenessLabelsToReadonlyConfig(pod *corev1.Pod, cr *v1beta1.KafkaCluster, rackConfigValues []string) (v1beta1.RackAwarenessState, []v1beta1.Broker) {
-
 	brokerConfigs := []v1beta1.Broker{}
 	var readOnlyConfig string
 	var rackAwaranessState string
@@ -89,7 +88,6 @@ func AddNewBrokerToCr(broker v1beta1.Broker, crName, namespace string, client ru
 
 // RemoveBrokerFromCr modifies the CR and removes the given broker from the cluster
 func RemoveBrokerFromCr(brokerID, crName, namespace string, client runtimeClient.Client) error {
-
 	cr, err := GetCr(crName, namespace, client)
 	if err != nil {
 		return err
@@ -148,7 +146,6 @@ func UpdateCr(cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 
 // UpdateCrWithRollingUpgrade modifies CR status
 func UpdateCrWithRollingUpgrade(errorCount int, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
-
 	cr.Status.RollingUpgrade.ErrorCount = errorCount
 	return UpdateCr(cr, client)
 }

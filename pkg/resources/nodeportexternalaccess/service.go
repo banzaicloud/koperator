@@ -29,9 +29,8 @@ import (
 )
 
 // TODO handle deletion gracefully from status
-func (r *Reconciler) service(log logr.Logger, id int32,
+func (r *Reconciler) service(_ logr.Logger, id int32,
 	brokerConfig *v1beta1.BrokerConfig, extListener v1beta1.ExternalListenerConfig) runtime.Object {
-
 	nodePort := int32(0)
 	if extListener.ExternalStartingPort > 0 {
 		nodePort = extListener.ExternalStartingPort + id

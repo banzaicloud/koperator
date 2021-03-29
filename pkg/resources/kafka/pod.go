@@ -34,7 +34,6 @@ import (
 )
 
 func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
-
 	var kafkaBrokerContainerPorts []corev1.ContainerPort
 
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {

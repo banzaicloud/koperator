@@ -30,7 +30,6 @@ import (
 
 func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
 	_ v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
-
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, externalListenerConfig.Name)
 
 	var gatewayName string
@@ -51,7 +50,6 @@ func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.Ext
 
 func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger,
 	ingressConfigName, defaultIngressConfigName string) []v1alpha3.Server {
-
 	servers := make([]v1alpha3.Server, 0)
 	protocol := v1alpha3.ProtocolTCP
 	var tlsConfig *v1alpha3.TLSOptions

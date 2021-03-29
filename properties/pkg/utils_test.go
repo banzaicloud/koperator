@@ -26,7 +26,6 @@ const (
 )
 
 func TestGetSeparator(t *testing.T) {
-
 	t.Run("Found '=' separator", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -86,7 +85,6 @@ func TestGetSeparator(t *testing.T) {
 }
 
 func TestUnEscapeSeparators(t *testing.T) {
-
 	t.Run("Remove escaping of separators", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -119,7 +117,6 @@ func TestUnEscapeSeparators(t *testing.T) {
 }
 
 func TestEscapeSeparators(t *testing.T) {
-
 	t.Run("Escaping separators", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -152,7 +149,6 @@ func TestEscapeSeparators(t *testing.T) {
 }
 
 func TestNewFromString(t *testing.T) {
-
 	propString := `# Comment
 test.key=test.value
 ! Comment
@@ -221,7 +217,6 @@ test value44
 }
 
 func TestNewPropertyFromString(t *testing.T) {
-
 	t.Run("Parse valid property string", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 

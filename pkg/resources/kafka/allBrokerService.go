@@ -25,7 +25,6 @@ import (
 )
 
 func (r *Reconciler) allBrokerService() runtime.Object {
-
 	var usedPorts []corev1.ServicePort
 	// Append internal listener ports
 	usedPorts = append(usedPorts,

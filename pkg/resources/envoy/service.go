@@ -33,7 +33,6 @@ import (
 // service return a external facing service for Envoy
 func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListenerConfig,
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
-
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
 
 	// Determine Service Name from the configuration
@@ -75,7 +74,6 @@ func getExposedServicePorts(extListener v1beta1.ExternalListenerConfig, brokersI
 			continue
 		}
 		if util.ShouldIncludeBroker(brokerConfig, kafkaCluster.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
-
 			exposedPorts = append(exposedPorts, corev1.ServicePort{
 				Name:       fmt.Sprintf("broker-%d", brokerId),
 				Port:       extListener.ExternalStartingPort + int32(brokerId),

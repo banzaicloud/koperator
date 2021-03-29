@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"strings"
 
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	bcutil "github.com/banzaicloud/kafka-operator/pkg/util"
@@ -100,7 +100,6 @@ func (cc *cruiseControlScaler) generateUrlForCC(action string, options map[strin
 }
 
 func (cc *cruiseControlScaler) postCruiseControl(action string, options map[string]string) (*http.Response, error) {
-
 	requestURL := cc.generateUrlForCC(action, options)
 	rsp, err := http.Post(requestURL, "text/plain", nil)
 	if err != nil {
@@ -120,12 +119,10 @@ func (cc *cruiseControlScaler) postCruiseControl(action string, options map[stri
 			"request", requestURL, "status", rsp.Status, "error message", ccErr)
 		return rsp, errCruiseControlNotReturned200
 	}
-
 	return rsp, nil
 }
 
 func (cc *cruiseControlScaler) getCruiseControl(action string, options map[string]string) (*http.Response, error) {
-
 	requestURL := cc.generateUrlForCC(action, options)
 	rsp, err := http.Get(requestURL)
 	if err != nil {
@@ -145,7 +142,6 @@ func (cc *cruiseControlScaler) getCruiseControl(action string, options map[strin
 			"request", requestURL, "status", rsp.Status, "error message", ccErr)
 		return rsp, errCruiseControlNotReturned200
 	}
-
 	return rsp, nil
 }
 
@@ -218,7 +214,6 @@ func (cc *cruiseControlScaler) isKafkaBrokerDiskReady(brokerIDsWithMountPath map
 					return false, nil
 				}
 			}
-
 		} else {
 			return false, nil
 		}
@@ -229,7 +224,6 @@ func (cc *cruiseControlScaler) isKafkaBrokerDiskReady(brokerIDsWithMountPath map
 
 // Get brokers status from CC from a provided list of broker ids
 func (cc *cruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIDs []string) ([]string, error) {
-
 	options := map[string]string{
 		"json": "true",
 	}
@@ -276,7 +270,6 @@ func (cc *cruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIDs []
 
 // GetBrokerIDWithLeastPartition returns
 func (cc *cruiseControlScaler) GetBrokerIDWithLeastPartition() (string, error) {
-
 	brokerWithLeastPartition := ""
 
 	options := map[string]string{
@@ -320,12 +313,10 @@ func (cc *cruiseControlScaler) GetBrokerIDWithLeastPartition() (string, error) {
 		}
 	}
 	return brokerWithLeastPartition, nil
-
 }
 
 // UpScaleCluster upscales Kafka cluster
 func (cc *cruiseControlScaler) UpScaleCluster(brokerIDs []string) (string, string, error) {
-
 	liveBrokers, err := cc.GetLiveKafkaBrokersFromCruiseControl(brokerIDs)
 	if err != nil {
 		return "", "", err
@@ -359,7 +350,6 @@ func (cc *cruiseControlScaler) UpScaleCluster(brokerIDs []string) (string, strin
 
 // DownsizeCluster downscales Kafka cluster
 func (cc *cruiseControlScaler) DownsizeCluster(brokerIDs []string) (string, string, error) {
-
 	options := map[string]string{
 		"brokerid": strings.Join(brokerIDs, ","),
 		"dryrun":   "false",
@@ -385,7 +375,6 @@ func (cc *cruiseControlScaler) DownsizeCluster(brokerIDs []string) (string, stri
 
 // RebalanceDisks rebalances Kafka broker replicas between disks using CC
 func (cc *cruiseControlScaler) RebalanceDisks(brokerIDsWithMountPath map[string][]string) (string, string, error) {
-
 	ready, err := cc.isKafkaBrokerDiskReady(brokerIDsWithMountPath)
 	if err != nil {
 		return "", "", err
@@ -417,7 +406,6 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDsWithMountPath map[string]
 
 // RebalanceCluster rebalances Kafka cluster using CC
 func (cc *cruiseControlScaler) RebalanceCluster() (string, error) {
-
 	options := map[string]string{
 		"dryrun": "false",
 		"json":   "true",
@@ -438,7 +426,6 @@ func (cc *cruiseControlScaler) RebalanceCluster() (string, error) {
 
 // RunPreferedLeaderElectionInCluster runs leader election in  Kafka cluster using CC
 func (cc *cruiseControlScaler) RunPreferedLeaderElectionInCluster() (string, error) {
-
 	options := map[string]string{
 		"dryrun": "false",
 		"json":   "true",
@@ -478,7 +465,6 @@ func (cc *cruiseControlScaler) KillCCTask() error {
 
 // GetCCTaskState checks whether the given CC Task ID finished or not
 func (cc *cruiseControlScaler) GetCCTaskState(uTaskID string) (banzaicloudv1beta1.CruiseControlUserTaskState, error) {
-
 	gResp, err := cc.getCruiseControl(getTaskListAction, map[string]string{
 		"json":          "true",
 		"user_task_ids": uTaskID,

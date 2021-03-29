@@ -94,5 +94,4 @@ func TestGetAffinity(t *testing.T) {
 	// should just return what was given as an input
 	affinity = getAffinity(&nonNilAffinityBrokerConfig, &cluster)
 	assert.DeepEqual(t, affinity, nonNilAffinityBrokerConfig.Affinity.DeepCopy())
-
 }

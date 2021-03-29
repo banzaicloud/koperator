@@ -54,7 +54,6 @@ func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error
 			objNames = append(
 				objNames,
 				types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerCACertTemplate, c.cluster.Name), Namespace: namespaceCertManager})
-
 		}
 		for _, obj := range objNames {
 			// Delete the certificates first so we don't accidentally recreate the
@@ -86,7 +85,6 @@ func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -99,7 +97,7 @@ func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, sche
 	}
 
 	for _, o := range resources {
-		if err := reconcile(ctx, logger, c.client, o, c.cluster); err != nil {
+		if err := reconcile(ctx, logger, c.client, o); err != nil {
 			return err
 		}
 	}
@@ -166,7 +164,7 @@ func userProvidedPKI(
 	}, nil
 }
 
-func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) (*corev1.Secret, error) {
+func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, _ *runtime.Scheme) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	err := client.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
 	if err != nil {

@@ -73,7 +73,6 @@ func TestPropertyString(t *testing.T) {
 }
 
 func TestPropertyInt(t *testing.T) {
-
 	validProp := Property{
 		key:   testKey,
 		value: "100",
@@ -101,7 +100,6 @@ func TestPropertyInt(t *testing.T) {
 }
 
 func TestPropertyFloat(t *testing.T) {
-
 	validProp := Property{
 		key:   testKey,
 		value: "100.00",
@@ -129,7 +127,6 @@ func TestPropertyFloat(t *testing.T) {
 }
 
 func TestPropertyBool(t *testing.T) {
-
 	trueProp := Property{
 		key:   testKey,
 		value: "true",
@@ -170,7 +167,6 @@ func TestPropertyBool(t *testing.T) {
 }
 
 func TestPropertyList(t *testing.T) {
-
 	validProp := Property{
 		key:   testKey,
 		value: "test item1,test item2,test item3",
@@ -201,7 +197,6 @@ func TestPropertyList(t *testing.T) {
 }
 
 func TestPropertyGetByType(t *testing.T) {
-
 	t.Run("Converting Property value to Int", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -281,7 +276,6 @@ func TestPropertyGetByType(t *testing.T) {
 }
 
 func TestPropertySet(t *testing.T) {
-
 	t.Run("Set with nil interface as value", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -311,7 +305,6 @@ func TestPropertySet(t *testing.T) {
 }
 
 func TestPropertyIsValid(t *testing.T) {
-
 	t.Run("Empty key and value fields", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -328,7 +321,6 @@ func TestPropertyIsValid(t *testing.T) {
 }
 
 func TestPropertyIsEmpty(t *testing.T) {
-
 	t.Run("Empty key and value fields", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 

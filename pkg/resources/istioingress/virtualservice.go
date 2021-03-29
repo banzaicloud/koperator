@@ -30,7 +30,6 @@ import (
 
 func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
-
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, externalListenerConfig.Name)
 
 	var gatewayName, virtualSName string
@@ -50,7 +49,6 @@ func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1be
 	if ingressConfig.IstioIngressConfig.TLSOptions != nil &&
 		ingressConfig.IstioIngressConfig.TLSOptions.Mode == v1alpha3.TLSModePassThrough {
 		vServiceSpec.TLS = generateTlsRoutes(r.KafkaCluster, externalListenerConfig, log, ingressConfigName, defaultIngressConfigName)
-
 	} else {
 		vServiceSpec.TCP = generateTcpRoutes(r.KafkaCluster, externalListenerConfig, log, ingressConfigName, defaultIngressConfigName)
 	}
@@ -120,7 +118,6 @@ func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 
 func generateTcpRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger,
 	ingressConfigName, defaultIngressConfigName string) []v1alpha3.TCPRoute {
-
 	tcpRoutes := make([]v1alpha3.TCPRoute, 0)
 
 	brokerIds := util.GetBrokerIdsFromStatusAndSpec(kc.Status.BrokersState, kc.Spec.Brokers, log)

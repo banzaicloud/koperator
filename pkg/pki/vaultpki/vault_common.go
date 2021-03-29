@@ -76,11 +76,6 @@ func (v *vaultPKI) getRevokePath() string {
 	return fmt.Sprintf("%s/revoke", v.getCAPath())
 }
 
-// getCACertPath returns the path to read the raw CA certificate from
-func (v *vaultPKI) getCACertPath() string {
-	return fmt.Sprintf("%s/cert/ca", v.getCAPath())
-}
-
 // getStorePathForUser returns the persistent storage path for a user
 func (v *vaultPKI) getStorePathForUser(user *v1alpha1.KafkaUser) string {
 	return fmt.Sprintf("%s/%s", v.getUserStorePath(), user.GetUID())

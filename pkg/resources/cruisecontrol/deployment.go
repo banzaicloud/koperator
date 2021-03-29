@@ -32,7 +32,6 @@ import (
 )
 
 func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object {
-
 	volume := make([]corev1.Volume, 0)
 	volumeMount := make([]corev1.VolumeMount, 0)
 	initContainers := make([]corev1.Container, 0)
@@ -181,7 +180,6 @@ fi`},
 }
 
 func GeneratePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, capacityConfig string) map[string]string {
-
 	ccAnnotationsFromCR := kafkaCluster.Spec.CruiseControlConfig.GetCruiseControlAnnotations()
 	hashedCruiseControlConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.Config))
 	hashedCruiseControlClusterConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.ClusterConfig))

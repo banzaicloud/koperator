@@ -88,7 +88,6 @@ func (e *examiner) getKafkaCr() (*v1beta1.KafkaCluster, error) {
 }
 
 func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
-
 	cr, err := e.getKafkaCr()
 	if err != nil {
 		return false, err
@@ -120,7 +119,6 @@ func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 }
 
 func (e *examiner) processAlert(ds disableScaling) (bool, error) {
-
 	switch e.Alert.Annotations["command"] {
 	case AddPvcCommand:
 		validators := AlertValidators{newAddPvcValidator(e.Alert)}
@@ -239,7 +237,6 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 }
 
 func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelSet, client client.Client) error {
-
 	pvc, err := getPvc(string(labels["persistentvolumeclaim"]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
@@ -295,7 +292,6 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 }
 
 func downScale(log logr.Logger, labels model.LabelSet, client client.Client) error {
-
 	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
@@ -326,7 +322,6 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 }
 
 func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
-
 	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
@@ -356,10 +351,8 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 	brokerConfigGroupName := string(annotations["brokerConfigGroup"])
 
 	if _, ok := cr.Spec.BrokerConfigGroups[brokerConfigGroupName]; ok {
-
 		broker.BrokerConfigGroup = brokerConfigGroupName
 		broker.Id = biggestId + 1
-
 	} else {
 		var storageClassName *string
 		if annotations["storageClass"] != "" {

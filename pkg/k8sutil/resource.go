@@ -114,7 +114,6 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 	}
 	if err == nil {
 		if CheckIfObjectUpdated(log, desiredType, current, desired) {
-
 			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desired); err != nil {
 				return errors.WrapIf(err, "could not apply last state to annotation")
 			}

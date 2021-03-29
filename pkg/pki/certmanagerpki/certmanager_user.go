@@ -60,7 +60,6 @@ func (c *certManager) ReconcileUserCertificate(
 		if err = c.client.Create(ctx, cert); err != nil {
 			return nil, errorfactory.New(errorfactory.APIFailure{}, err, "could not create user certificate")
 		}
-
 	} else if err != nil {
 		// API failure, requeue
 		return nil, errorfactory.New(errorfactory.APIFailure{}, err, "failed looking up user certificate")

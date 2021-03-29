@@ -28,8 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (r *Reconciler) service(id int32, brokerConfig *v1beta1.BrokerConfig) runtime.Object {
-
+func (r *Reconciler) service(id int32, _ *v1beta1.BrokerConfig) runtime.Object {
 	var usedPorts []corev1.ServicePort
 	// Append internal listener ports
 	usedPorts = append(usedPorts,

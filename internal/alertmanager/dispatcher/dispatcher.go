@@ -24,7 +24,6 @@ import (
 
 // Dispatcher calls actors based on alert annotations
 func Dispatcher(promAlerts []model.Alert, log logr.Logger, client client.Client) {
-
 	storedAlerts := currentalert.GetCurrentAlerts()
 	for _, promAlert := range alertFilter(promAlerts) {
 		store := currentalert.AlertState{
@@ -61,6 +60,5 @@ func alertFilter(promAlerts []model.Alert) []model.Alert {
 			}
 		}
 	}
-
 	return filteredAlerts
 }

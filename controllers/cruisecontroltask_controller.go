@@ -119,7 +119,6 @@ func (r *CruiseControlTaskReconciler) Reconcile(request ctrl.Request) (ctrl.Resu
 	brokersWithDiskRebalanceRequired := make(map[string][]string)
 
 	for brokerId, brokerStatus := range instance.Status.BrokersState {
-
 		if brokerStatus.GracefulActionState.CruiseControlState == v1beta1.GracefulUpscaleRequired {
 			brokersWithUpscaleRequired = append(brokersWithUpscaleRequired, brokerId)
 		} else if brokerStatus.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRequired {
@@ -146,11 +145,9 @@ func (r *CruiseControlTaskReconciler) Reconcile(request ctrl.Request) (ctrl.Resu
 		if err != nil {
 			log.Error(err, "executing disk rebalance cc task failed")
 		} else {
-
 			var brokerIds []string
 			brokersVolumeStates := make(map[string]map[string]v1beta1.VolumeState, len(brokersWithDiskRebalanceRequired))
 			for brokerId, mountPaths := range brokersWithDiskRebalanceRequired {
-
 				brokerVolumeState := make(map[string]v1beta1.VolumeState, len(mountPaths))
 				for _, mountPath := range mountPaths {
 					brokerVolumeState[mountPath] = kafkav1beta1.VolumeState{
@@ -163,7 +160,6 @@ func (r *CruiseControlTaskReconciler) Reconcile(request ctrl.Request) (ctrl.Resu
 					brokersVolumeStates[brokerId] = brokerVolumeState
 					brokerIds = append(brokerIds, brokerId)
 				}
-
 			}
 			if len(brokersVolumeStates) > 0 {
 				err = k8sutil.UpdateBrokerStatus(r.Client, brokerIds, instance, brokersVolumeStates, log)
@@ -208,7 +204,6 @@ func (r *CruiseControlTaskReconciler) handlePodAddCCTask(kafkaCluster *v1beta1.K
 	return nil
 }
 func (r *CruiseControlTaskReconciler) handlePodDeleteCCTask(kafkaCluster *v1beta1.KafkaCluster, brokerIds []string, log logr.Logger) error {
-
 	cc := scale.NewCruiseControlScaler(kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain(), kafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, kafkaCluster.Name)
 	uTaskId, taskStartTime, err := cc.DownsizeCluster(brokerIds)
 	if err != nil {
@@ -461,12 +456,10 @@ func (r *CruiseControlTaskReconciler) checkVolumeCCTaskState(kafkaCluster *v1bet
 				}
 			}
 		}
-
 		if len(volumesStateWithTimedOutDiskCCTask) > 0 {
 			brokersWithTimedOutCCTask = append(brokersWithTimedOutCCTask, brokerId)
 			brokersVolumesStateWithTimedOutDiskCCTask[brokerId] = volumesStateWithTimedOutDiskCCTask
 		}
-
 	}
 
 	// task timed out

@@ -336,11 +336,11 @@ OUTERLOOP:
 							strings.Join(brokersPendingGracefulDownscale, ","))
 					}
 				}
-
 			}
 		}
 
 		for _, broker := range deletedBrokers {
+			broker := broker
 			if broker.ObjectMeta.DeletionTimestamp != nil {
 				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
 				continue
@@ -350,7 +350,6 @@ OUTERLOOP:
 				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded &&
 				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleRequired &&
 				broker.Status.Phase != corev1.PodPending {
-
 				if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
 					log.Info("cc task is still running for broker", "brokerId", broker.Labels["brokerId"], "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
 				}
@@ -406,9 +405,7 @@ OUTERLOOP:
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
 			}
-
 		}
-
 	}
 	return nil
 }
@@ -563,7 +560,6 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 		return errors.Wrap(err, "could not handle rolling upgrade")
 	}
 	return nil
-
 }
 
 func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPod *corev1.Pod, desiredType reflect.Type) error {
@@ -606,7 +602,6 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 	}
 
 	if !k8sutil.IsPodContainsTerminatedContainer(currentPod) {
-
 		if r.KafkaCluster.Status.State != v1beta1.KafkaClusterRollingUpgrading {
 			if err := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, v1beta1.KafkaClusterRollingUpgrading, log); err != nil {
 				return errorfactory.New(errorfactory.StatusUpdateError{}, err, "setting state to rolling upgrade failed")
@@ -622,6 +617,7 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 				return errors.WrapIf(err, "failed to reconcile resource")
 			}
 			for _, pod := range podList.Items {
+				pod := pod
 				if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {
 					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating"), "rolling upgrade in progress")
 				}
@@ -740,7 +736,6 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 			}
 			if err == nil {
 				if k8sutil.CheckIfObjectUpdated(log, desiredType, currentPvc, desiredPvc) {
-
 					if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
 						return errors.WrapIf(err, "could not apply last state to annotation")
 					}
@@ -768,7 +763,6 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 			brokerIds = append(brokerIds, brokerId)
 			brokersVolumesState[brokerId] = brokerVolumesState
 		}
-
 	}
 
 	if len(brokersVolumesState) > 0 {

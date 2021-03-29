@@ -247,7 +247,6 @@ func TestGetBrokerServiceFqdn(t *testing.T) {
 }
 
 func TestGetBootstrapServersService(t *testing.T) {
-
 	t.Run("Without headless service and cluster domain override", func(t *testing.T) {
 		cluster := MinimalKafkaCluster.DeepCopy()
 		cluster.Spec.HeadlessServiceEnabled = false
@@ -318,7 +317,6 @@ func TestGetBootstrapServersService(t *testing.T) {
 }
 
 func TestGetBootstrapServers(t *testing.T) {
-
 	t.Run("Without cluster domain override", func(t *testing.T) {
 		cluster := MinimalKafkaCluster.DeepCopy()
 		cluster.Spec.KubernetesClusterDomain = ""
