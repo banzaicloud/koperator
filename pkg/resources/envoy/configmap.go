@@ -24,6 +24,8 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/ghodss/yaml"
 	"github.com/go-logr/logr"
+
+	//nolint:staticcheck
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/duration"
 	ptypesstruct "github.com/golang/protobuf/ptypes/struct"
@@ -38,7 +40,6 @@ import (
 
 func (r *Reconciler) configMap(log logr.Logger, extListener v1beta1.ExternalListenerConfig,
 	_ v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
-
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
 
 	var configMapName string
@@ -77,7 +78,6 @@ func generateAnyCastAddressValue(kc *v1beta1.KafkaCluster) string {
 
 func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalListenerConfig,
 	ingressConfigName, defaultIngressConfigName string, log logr.Logger) string {
-
 	adminConfig := envoybootstrap.Admin{
 		AccessLogPath: "/tmp/admin_access.log",
 		Address: &envoycore.Address{

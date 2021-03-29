@@ -138,7 +138,6 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	var kafkaUser string
 
 	if instance.Spec.GetIfCertShouldBeCreated() {
-
 		// Avoid panic if the user wants to create a kafka user but the cluster is in plaintext mode
 		// TODO: refactor this and use webhook to validate if the cluster is eligible to create a kafka user
 		if cluster.Spec.ListenersConfig.SSLSecrets == nil && instance.Spec.PKIBackendSpec == nil {

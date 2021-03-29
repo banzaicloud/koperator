@@ -105,5 +105,4 @@ func TestGetPKIManager(t *testing.T) {
 	if pkiType != expected {
 		t.Error("Expected:", expected, "got:", pkiType)
 	}
-
 }

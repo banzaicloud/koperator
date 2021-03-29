@@ -71,7 +71,6 @@ func clusterLabelString(cluster *v1beta1.KafkaCluster) string {
 // newBrokerConnection is a convenience wrapper for creating a broker connection
 // and creating a safer close function
 func newBrokerConnection(log logr.Logger, client client.Client, cluster *v1beta1.KafkaCluster) (broker kafkaclient.KafkaClient, close func(), err error) {
-
 	// Get a kafka connection
 	log.Info(fmt.Sprintf("Retrieving Kafka client for %s/%s", cluster.Namespace, cluster.Name))
 	broker, err = newKafkaFromCluster(client, cluster)

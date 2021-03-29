@@ -27,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	//nolint:staticcheck
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -198,6 +200,7 @@ func Test_resizePvc(t *testing.T) {
 	}
 
 	for _, tt := range testCase {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			err := testClient.Create(context.Background(), &tt.pvc)
 			if err != nil {
@@ -372,9 +375,11 @@ func Test_addPvc(t *testing.T) {
 	}
 
 	for testCaseIndex, tt := range testCase {
+		tt := tt
+		testCaseIndex := testCaseIndex
 		t.Run(tt.name, func(t *testing.T) {
-
 			for _, pvc := range tt.pvcList.Items {
+				pvc := pvc
 				err := testClient.Create(context.Background(), &pvc)
 				if err != nil {
 					t.Error("Pvc creation failed", err)
@@ -413,7 +418,6 @@ func Test_addPvc(t *testing.T) {
 				brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
 
 				for alertListIndex := range testCase[testCaseIndex].alertList {
-
 					if brokerStorageConfig.MountPath == string(testCase[testCaseIndex].alertList[alertListIndex].Annotations["mountPathPrefix"]) {
 						t.Error("Broker storage config mountpath should not be the same as the original mountPathPrefix")
 					}
@@ -429,7 +433,6 @@ func Test_addPvc(t *testing.T) {
 			cleanupPvcs(testClient, tt, t)
 		})
 	}
-
 }
 
 func Test_upScale(t *testing.T) {
@@ -601,7 +604,6 @@ func cleanupPvcs(testClient client.Client, tt struct {
 }
 
 func setupEnvironment(t *testing.T, testClient client.Client) {
-
 	storageResourceQuantity, err := resource.ParseQuantity("10Gi")
 	if err != nil {
 		t.Error(err)

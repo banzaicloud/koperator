@@ -124,7 +124,6 @@ func ConvertStringToInt32(s string) int32 {
 
 // IsSSLEnabledForInternalCommunication checks if ssl is enabled for internal communication
 func IsSSLEnabledForInternalCommunication(l []v1beta1.InternalListenerConfig) (enabled bool) {
-
 	for _, listener := range l {
 		if listener.Type.IsSSL() {
 			enabled = true
@@ -136,7 +135,6 @@ func IsSSLEnabledForInternalCommunication(l []v1beta1.InternalListenerConfig) (e
 
 // ConvertPropertiesToMapStringPointer converts a Properties object to map[string]*string
 func ConvertPropertiesToMapStringPointer(pp *properties.Properties) map[string]*string {
-
 	result := make(map[string]*string, pp.Len())
 	for _, key := range pp.Keys() {
 		if p, ok := pp.Get(key); ok {
@@ -323,7 +321,6 @@ func GetIngressConfigs(kafkaClusterSpec v1beta1.KafkaClusterSpec,
 
 // GetBrokerConfig compose the brokerConfig for a given broker
 func GetBrokerConfig(broker v1beta1.Broker, clusterSpec v1beta1.KafkaClusterSpec) (*v1beta1.BrokerConfig, error) {
-
 	bConfig := &v1beta1.BrokerConfig{}
 	if broker.BrokerConfigGroup == "" {
 		return broker.BrokerConfig, nil

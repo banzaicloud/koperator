@@ -151,7 +151,6 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 			return requeueWithError(reqLogger, "failure to ensure topic config", err)
 		}
 		reqLogger.Info("Verified partitions and configuration for topic")
-
 	} else if err = broker.CreateTopic(&kafkaclient.CreateTopicOptions{
 		// Create the topic
 		Name:              instance.Spec.Name,
@@ -160,7 +159,6 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		Config:            util.MapStringStringPointer(instance.Spec.Config),
 	}); err != nil {
 		return requeueWithError(reqLogger, "failed to create kafka topic", err)
-
 	}
 
 	// ensure kafkaCluster label

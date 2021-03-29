@@ -42,6 +42,7 @@ var errorTypes = []error{
 
 func TestNew(t *testing.T) {
 	for _, errType := range errorTypes {
+		errType := errType
 		err := New(errType, errors.New("test-error"), "test-message")
 		expected := "test-message: test-error"
 		got := err.Error()

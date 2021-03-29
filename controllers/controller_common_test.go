@@ -21,8 +21,9 @@ import (
 	"time"
 
 	emperrors "emperror.dev/errors"
+	//nolint:staticcheck
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"

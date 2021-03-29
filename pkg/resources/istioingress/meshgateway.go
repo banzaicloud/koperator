@@ -32,7 +32,6 @@ import (
 
 func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
-
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, externalListenerConfig.Name)
 
 	var meshgatewayName string
@@ -76,7 +75,6 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 
 func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
 	externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger, ingressConfigName, defaultIngressConfigName string) []istioOperatorApi.ServicePort {
-
 	generatedPorts := make([]istioOperatorApi.ServicePort, 0)
 	for _, brokerId := range brokerIds {
 		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kc.Spec, brokerId)
@@ -92,7 +90,6 @@ func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
 				},
 				TargetPort: util.Int32Pointer(int32(int(externalListenerConfig.ExternalStartingPort) + brokerId)),
 			})
-
 		}
 	}
 

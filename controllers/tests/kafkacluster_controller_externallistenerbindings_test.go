@@ -31,6 +31,7 @@ import (
 func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
 	// Check Brokers
 	for _, broker := range kafkaCluster.Spec.Brokers {
+		broker := broker
 		// expect ConfigMap
 		configMap := corev1.ConfigMap{}
 		Eventually(func() error {

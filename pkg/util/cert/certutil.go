@@ -89,7 +89,6 @@ func GeneratePass(length int) (passw []byte) {
 
 // EnsureSecretPassJKS ensures a JKS password is present in a certificate secret
 func EnsureSecretPassJKS(secret *corev1.Secret) (injected *corev1.Secret, err error) {
-
 	// If the JKS Pass is already present - return
 	if _, ok := secret.Data[v1alpha1.PasswordKey]; ok {
 		return secret, nil
@@ -102,7 +101,6 @@ func EnsureSecretPassJKS(secret *corev1.Secret) (injected *corev1.Secret, err er
 
 // GenerateJKS creates a JKS with a random password from a client cert/key combination
 func GenerateJKS(clientCert, clientKey, clientCA []byte) (out, passw []byte, err error) {
-
 	cert, err := DecodeCertificate(clientCert)
 	if err != nil {
 		return

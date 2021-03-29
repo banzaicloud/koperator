@@ -39,7 +39,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	config := properties.NewProperties()
 
 	// Add listener configuration
-	listenerConf := generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, log, id, extListenerStatuses)
+	listenerConf := generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, log)
 	config.Merge(listenerConf)
 
 	// Add listener configuration
@@ -178,7 +178,6 @@ func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,
 
 func appendListenerConfigs(advertisedListenerConfig []string, id int32,
 	listenerStatusList map[string]v1beta1.ListenerStatusList) []string {
-
 	for listenerName, statuses := range listenerStatusList {
 		for _, status := range statuses {
 			if status.Name == fmt.Sprintf("broker-%d", id) {
@@ -213,9 +212,7 @@ func generateControlPlaneListener(iListeners []v1beta1.InternalListenerConfig) s
 	return controlPlaneListener
 }
 
-func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger, id int32,
-	extListenerStatuses map[string]v1beta1.ListenerStatusList) *properties.Properties {
-
+func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger) *properties.Properties {
 	var interBrokerListenerName string
 	var securityProtocolMapConfig []string
 	var listenerConfig []string

@@ -21,6 +21,8 @@ import (
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	//nolint:staticcheck
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"

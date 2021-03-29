@@ -65,7 +65,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciling")
 
 	if r.KafkaCluster.Spec.GetIngressController() == envoyutils.IngressControllerName {
-
 		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 			if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 				ingressConfigs, defaultControllerName, err := util.GetIngressConfigs(r.KafkaCluster.Spec, eListener)
@@ -88,7 +87,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 						}
 					}
 				}
-
 			}
 		}
 	}

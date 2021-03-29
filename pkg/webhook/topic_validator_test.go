@@ -21,6 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	//nolint:staticcheck
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"

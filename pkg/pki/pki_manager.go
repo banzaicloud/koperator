@@ -42,7 +42,6 @@ func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBacke
 	}
 	//nolint:exhaustive
 	switch backend {
-
 	// Use cert-manager for pki backend
 	case v1beta1.PKIBackendCertManager:
 		return certmanagerpki.New(client, cluster)
@@ -58,7 +57,6 @@ func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBacke
 	// Default use cert-manager - state explicitly for clarity and to make compiler happy
 	default:
 		return certmanagerpki.New(client, cluster)
-
 	}
 }
 

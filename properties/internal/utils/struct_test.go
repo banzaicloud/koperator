@@ -21,7 +21,6 @@ import (
 )
 
 func TestStructTag(t *testing.T) {
-
 	t.Run("Skip with empty key", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 

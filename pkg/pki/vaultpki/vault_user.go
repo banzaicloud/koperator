@@ -53,7 +53,6 @@ func (v *vaultPKI) ReconcileUserCertificate(
 		}
 		userCert = rawToCertificate(userSecret.Data)
 	} else {
-
 		// get max ttl allowed for role
 		ttl, err := v.getMaxTTL(client)
 		if err != nil {

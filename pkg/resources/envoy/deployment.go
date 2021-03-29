@@ -34,7 +34,6 @@ import (
 
 func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalListenerConfig,
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
-
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
 
 	var configMapName string

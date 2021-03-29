@@ -69,19 +69,15 @@ func TestProperties_Get(t *testing.T) {
 }
 
 func TestProperties_Keys(t *testing.T) {
-
 	p := NewProperties()
 	p.put(Property{"test.key", "test.value", "this is a comment line"})
 	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
-
 	t.Run("Get list of keys in Properties", func(t *testing.T) {
 		g := NewGomegaWithT(t)
-
 		expectedKeys := []string{
 			"test.key",
 			"test.key2",
 		}
-
 		keys := p.Keys()
 		g.Expect(keys).Should(Equal(expectedKeys))
 	})
@@ -103,7 +99,6 @@ func TestProperties_Keys(t *testing.T) {
 
 	t.Run("Get list of keys in Properties after deleting a Property", func(t *testing.T) {
 		g := NewGomegaWithT(t)
-
 		expectedKeys := []string{
 			"test.key2",
 			"test.key3",
@@ -117,7 +112,6 @@ func TestProperties_Keys(t *testing.T) {
 }
 
 func TestProperties_Set(t *testing.T) {
-
 	p := NewProperties()
 
 	t.Run("Add new Property with string value to Properties", func(t *testing.T) {
@@ -170,7 +164,6 @@ func TestProperties_Set(t *testing.T) {
 }
 
 func TestProperties_SetWithComment(t *testing.T) {
-
 	p := NewProperties()
 
 	t.Run("Add new Property with string value to Properties", func(t *testing.T) {
@@ -226,7 +219,6 @@ func TestProperties_SetWithComment(t *testing.T) {
 }
 
 func TestProperties_Delete(t *testing.T) {
-
 	p := NewProperties()
 	p.put(Property{"test.key", "test.value", "this is a comment line"})
 	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
@@ -242,7 +234,6 @@ func TestProperties_Delete(t *testing.T) {
 }
 
 func TestProperties_Len(t *testing.T) {
-
 	p := NewProperties()
 	p.put(Property{"test.key", "test.value", "this is a comment line"})
 	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
@@ -252,7 +243,6 @@ func TestProperties_Len(t *testing.T) {
 }
 
 func TestProperties_Merge(t *testing.T) {
-
 	t.Run("Merge from nil Properties", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -327,7 +317,6 @@ func TestProperties_Merge(t *testing.T) {
 }
 
 func TestProperties_MergeDefaults(t *testing.T) {
-
 	t.Run("Merge defaults from nil Properties", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -599,7 +588,6 @@ func TestProperties_Equal(t *testing.T) {
 }
 
 func TestProperties_Sort(t *testing.T) {
-
 	t.Run("Reindex Properties to sort keys alphabetically", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -678,7 +666,6 @@ func TestProperties_Sort(t *testing.T) {
 }
 
 func TestProperties_String(t *testing.T) {
-
 	p := NewProperties()
 	p.put(Property{"test.key", "test.value", "this is a comment line"})
 	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
@@ -696,7 +683,6 @@ test.key3=test.value3
 }
 
 func TestProperties_MarshalJSON(t *testing.T) {
-
 	p := NewProperties()
 	p.put(Property{"test.key", "test.value", "this is a comment line"})
 	p.put(Property{"test.key2", "test.value2", "this is a comment line"})
@@ -714,7 +700,6 @@ func TestProperties_MarshalJSON(t *testing.T) {
 }
 
 func TestKeyIndexList(t *testing.T) {
-
 	kIdxList := keyIndexList{
 		keyIndex{"test.key11", 11},
 		keyIndex{"test.key2", 2},
@@ -738,7 +723,6 @@ func TestKeyIndexList(t *testing.T) {
 }
 
 func TestProperties_Diff(t *testing.T) {
-
 	t.Run("Difference when both Properties are empty", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -891,7 +875,6 @@ func TestProperties_Diff(t *testing.T) {
 		g.Expect(keys).Should(Equal(expectedKeys))
 
 		g.Expect(len(diff)).Should(Equal(len(expectedDiffMap)))
-
 	})
 
 	t.Run("Difference nil Properties", func(t *testing.T) {
@@ -948,7 +931,6 @@ func TestProperties_Diff(t *testing.T) {
 }
 
 func TestProperties_DiffMap(t *testing.T) {
-
 	diffMap := DiffResult{
 		"test.key": [2]Property{
 			{"test.key", "p1", "this is a comment line"},

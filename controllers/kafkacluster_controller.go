@@ -236,7 +236,6 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 				}
 				log.Info(fmt.Sprintf("No matching kafkatopics in namespace: %s", ns))
 			}
-
 		}
 		if cluster, err = r.removeFinalizer(ctx, cluster, clusterTopicsFinalizer); err != nil {
 			return requeueWithError(log, "failed to remove topics finalizer from kafkacluster", err)
@@ -287,7 +286,6 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 		}
 	}
 	if cluster.Spec.ListenersConfig.SSLSecrets != nil {
-
 		// Do any necessary PKI cleanup - a PKI backend should make sure any
 		// user finalizations are done before it does its final cleanup
 		log.Info("Tearing down any PKI resources for the kafkacluster")
@@ -303,7 +301,6 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 				return requeueWithError(log, "failed to finalize PKI", err)
 			}
 		}
-
 	}
 
 	log.Info("Finalizing deletion of kafkacluster instance")
@@ -355,7 +352,6 @@ func (r *KafkaClusterReconciler) updateAndFetchLatest(ctx context.Context, clust
 
 // SetupKafkaClusterWithManager registers kafka cluster controller to the manager
 func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Builder {
-
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.KafkaCluster{}).Named("KafkaCluster")
 
@@ -407,7 +403,6 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Build
 		})
 
 	return builder
-
 }
 
 func kafkaWatches(builder *ctrl.Builder) *ctrl.Builder {

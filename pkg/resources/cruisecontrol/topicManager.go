@@ -104,7 +104,6 @@ func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log lo
 				}
 				return errorfactory.New(errorfactory.APIFailure{}, err, "could not create cruise control topic")
 			}
-
 		} else {
 			// pass though any other api failure
 			return errorfactory.New(errorfactory.APIFailure{}, err, "failed to lookup cruise control topic")

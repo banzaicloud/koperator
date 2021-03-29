@@ -37,7 +37,6 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger) (runtime.Object, error
 
 	if err != nil {
 		return nil, err
-
 	}
 
 	return &policyv1beta1.PodDisruptionBudget{
@@ -58,13 +57,11 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger) (runtime.Object, error
 			},
 		},
 	}, nil
-
 }
 
 // Calculate maxUnavailable as max between brokerCount - 1 (so we only allow 1 broker to be disrupted)
 // and 1 (to cover for 1 broker clusters)
 func (r *Reconciler) computeMinAvailable(log logr.Logger) (intstr.IntOrString, error) {
-
 	/*
 		budget = r.KafkaCluster.Spec.DisruptionBudget.budget (string) ->
 		- can either be %percentage or static number
@@ -76,7 +73,6 @@ func (r *Reconciler) computeMinAvailable(log logr.Logger) (intstr.IntOrString, e
 		Max(1, brokers-brokers*percentage) - for a percentage budget
 
 	*/
-
 	// number of brokers in the KafkaCluster
 	brokers := len(r.KafkaCluster.Spec.Brokers)
 

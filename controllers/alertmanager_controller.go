@@ -19,10 +19,11 @@ import (
 	"net/http"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"github.com/banzaicloud/kafka-operator/internal/alertmanager"
+	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 const (
@@ -42,7 +43,7 @@ func SetAlertManagerWithManager(mgr manager.Manager) error {
 
 // Start initiates the alertmanager controller
 func (c AController) Start(<-chan struct{}) error {
-	logf.SetLogger(logf.ZapLogger(false))
+	logf.SetLogger(util.CreateLogger(false, false))
 	log := logf.Log.WithName("alertmanager")
 
 	ln, _ := net.Listen("tcp", receiverAddr)

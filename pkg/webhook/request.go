@@ -39,7 +39,6 @@ func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissio
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo))
 
 	switch req.Kind.Kind {
-
 	case kafkaTopic:
 		var topic v1alpha1.KafkaTopic
 		if err := json.Unmarshal(req.Object.Raw, &topic); err != nil {
@@ -103,7 +102,6 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 		log.Error(err, "Can't write response")
 		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)
 	}
-
 }
 
 func notAllowed(msg string, reason metav1.StatusReason) *admissionv1beta1.AdmissionResponse {

@@ -227,6 +227,7 @@ func getBootstrapServers(cluster *v1beta1.KafkaCluster, useService bool) (string
 			fmt.Sprintf("%s:%d", GetClusterServiceFqdn(cluster), listener.ContainerPort))
 	} else {
 		for _, broker := range cluster.Spec.Brokers {
+			broker := broker
 			fqdn := GetBrokerServiceFqdn(cluster, &broker)
 			bootstrapServersList = append(bootstrapServersList,
 				fmt.Sprintf("%s:%d", fqdn, listener.ContainerPort))
