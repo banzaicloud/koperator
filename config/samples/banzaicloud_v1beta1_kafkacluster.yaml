@@ -166,7 +166,7 @@ spec:
   listenersConfig:
     # externalListeners specifies settings required to access kafka externally
     externalListeners:
-      # type defines the used security type ssl, plaintext are the two supported ones
+      # type defines the used security type ssl, plaintext, sasl_plaintext, sasl_ssl
       - type: "ssl"
         # Kafka enables to name your listeners
         name: "external"
@@ -260,7 +260,7 @@ spec:
                   # virtualServiceAnnotations:
     # internalListeners specifies settings required to access kafka externally
     internalListeners:
-      # type defines the used security type ssl, plaintext are the two supported ones
+      # type defines the used security type ssl, plaintext, sasl_plaintext, sasl_ssl
       - type: "ssl"
         # Kafka enables to name your listeners because of a bug only ssl and plaintext can be used
         name: "ssl"
