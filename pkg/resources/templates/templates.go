@@ -40,6 +40,15 @@ func ObjectMeta(name string, labels map[string]string, cluster *v1beta1.KafkaClu
 	}
 }
 
+// ObjectMetaWithoutOwnerRef returns a metav1.ObjectMeta object with labels, and name
+func ObjectMetaWithoutOwnerRef(name string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      name,
+		Namespace: cluster.Namespace,
+		Labels:    ObjectMetaLabels(cluster, labels),
+	}
+}
+
 // ObjectMetaWithGeneratedName returns a metav1.ObjectMeta object with labels, ownerReference and generatedname
 func ObjectMetaWithGeneratedName(namePrefix string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{

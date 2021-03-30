@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -109,7 +108,7 @@ func (c *certManager) kafkapki(ctx context.Context, scheme *runtime.Scheme, extL
 	sslConfig := c.cluster.Spec.ListenersConfig.SSLSecrets
 	if sslConfig.Create {
 		if sslConfig.IssuerRef == nil {
-			return fullPKI(c.cluster, scheme, extListenerStatuses), nil
+			return fullPKI(c.cluster, extListenerStatuses), nil
 		}
 		return userProvidedIssuerPKI(c.cluster, extListenerStatuses), nil
 	}
@@ -126,10 +125,10 @@ func userProvidedIssuerPKI(cluster *v1beta1.KafkaCluster, extListenerStatuses ma
 	}
 }
 
-func fullPKI(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatusList) []runtime.Object {
+func fullPKI(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) []runtime.Object {
 	return []runtime.Object{
 		// A self-signer for the CA Certificate
-		selfSignerForCluster(cluster, scheme),
+		selfSignerForCluster(cluster),
 		// The CA Certificate
 		caCertForCluster(cluster),
 		// A cluster issuer backed by the CA certificate - so it can provision secrets
@@ -194,8 +193,8 @@ func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster 
 	return caSecret, nil
 }
 
-func selfSignerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme) *certv1.ClusterIssuer {
-	selfsignerMeta := templates.ObjectMeta(fmt.Sprintf(pkicommon.BrokerSelfSignerTemplate, cluster.Name),
+func selfSignerForCluster(cluster *v1beta1.KafkaCluster) *certv1.ClusterIssuer {
+	selfsignerMeta := templates.ObjectMetaWithoutOwnerRef(fmt.Sprintf(pkicommon.BrokerSelfSignerTemplate, cluster.Name),
 		pkicommon.LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster)
 	selfsignerMeta.Namespace = metav1.NamespaceAll
 	selfsigner := &certv1.ClusterIssuer{
@@ -206,7 +205,6 @@ func selfSignerForCluster(cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme)
 			},
 		},
 	}
-	controllerutil.SetControllerReference(cluster, selfsigner, scheme)
 	return selfsigner
 }
 
@@ -230,7 +228,7 @@ func caCertForCluster(cluster *v1beta1.KafkaCluster) *certv1.Certificate {
 }
 
 func mainIssuerForCluster(cluster *v1beta1.KafkaCluster) *certv1.ClusterIssuer {
-	clusterIssuerMeta := templates.ObjectMeta(
+	clusterIssuerMeta := templates.ObjectMetaWithoutOwnerRef(
 		fmt.Sprintf(pkicommon.BrokerClusterIssuerTemplate, cluster.Namespace, cluster.Name),
 		pkicommon.LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster)
 	clusterIssuerMeta.Namespace = metav1.NamespaceAll
