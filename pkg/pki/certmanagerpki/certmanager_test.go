@@ -53,14 +53,23 @@ func newMockCluster() *v1beta1.KafkaCluster {
 	return cluster
 }
 
-func newMock(cluster *v1beta1.KafkaCluster) *certManager {
-	certv1.AddToScheme(scheme.Scheme)
-	v1alpha1.AddToScheme(scheme.Scheme)
-	v1beta1.AddToScheme(scheme.Scheme)
+func newMock(cluster *v1beta1.KafkaCluster) (*certManager, error) {
+	err := certv1.AddToScheme(scheme.Scheme)
+	if err != nil {
+		return nil, err
+	}
+	err = v1alpha1.AddToScheme(scheme.Scheme)
+	if err != nil {
+		return nil, err
+	}
+	err = v1beta1.AddToScheme(scheme.Scheme)
+	if err != nil {
+		return nil, err
+	}
 	return &certManager{
 		cluster: cluster,
 		client:  fake.NewFakeClientWithScheme(scheme.Scheme),
-	}
+	}, nil
 }
 
 func TestNew(t *testing.T) {

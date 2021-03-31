@@ -50,7 +50,9 @@ func TestMain(m *testing.M) {
 	t := &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "base", "crds")},
 	}
-	v1beta1.AddToScheme(scheme.Scheme)
+	if err := v1beta1.AddToScheme(scheme.Scheme); err != nil {
+		stdlog.Fatal(err)
+	}
 
 	var err error
 	if cfg, err = t.Start(); err != nil {
@@ -58,7 +60,9 @@ func TestMain(m *testing.M) {
 	}
 
 	code := m.Run()
-	t.Stop()
+	if err := t.Stop(); err != nil {
+		stdlog.Fatal(err)
+	}
 	os.Exit(code)
 }
 
@@ -81,7 +85,9 @@ func ensureCreated(t *testing.T, object runtime.Object, mgr manager.Manager) fun
 		t.Fatalf("%+v", err)
 	}
 	return func() {
-		mgr.GetClient().Delete(context.TODO(), object)
+		if err := mgr.GetClient().Delete(context.TODO(), object); err != nil {
+			t.Error("Expected no error, got:", err)
+		}
 	}
 }
 

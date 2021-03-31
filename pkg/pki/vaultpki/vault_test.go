@@ -27,7 +27,7 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/hashicorp/vault/vault"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	//nolint:staticcheck
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -68,10 +68,12 @@ func newMockCluster() *v1beta1.KafkaCluster {
 	return cluster
 }
 
-func newVaultMock(t *testing.T) (*vaultPKI, net.Listener, *api.Client) {
+func newVaultMock(t *testing.T) (*vaultPKI, net.Listener, *api.Client, error) {
 	t.Helper()
 
-	v1beta1.AddToScheme(scheme.Scheme)
+	if err := v1beta1.AddToScheme(scheme.Scheme); err != nil {
+		return nil, nil, nil, err
+	}
 
 	ln, client := createTestVault(t)
 
@@ -79,7 +81,7 @@ func newVaultMock(t *testing.T) (*vaultPKI, net.Listener, *api.Client) {
 		cluster:   newMockCluster(),
 		client:    fake.NewFakeClientWithScheme(scheme.Scheme),
 		getClient: func() (*api.Client, error) { return client, nil },
-	}, ln, client
+	}, ln, client, nil
 }
 
 func createTestVault(t *testing.T) (net.Listener, *api.Client) {
@@ -107,29 +109,38 @@ func createTestVault(t *testing.T) (net.Listener, *api.Client) {
 	}
 	client.SetToken(rootToken)
 
-	client.Sys().Mount(
+	err = client.Sys().Mount(
 		"pki_kafka/",
 		&api.MountInput{
 			Type: "pki",
 		},
 	)
+	if err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 
-	client.Sys().Mount(
+	err = client.Sys().Mount(
 		"kafka_users/",
 		&api.MountInput{
 			Type: "kv",
 		},
 	)
+	if err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 
-	client.Logical().Write(
+	_, err = client.Logical().Write(
 		"pki_kafka/root/generate/internal",
 		map[string]interface{}{
 			vaultCommonNameArg: "kafkaca.kafka.svc.cluster.local",
 			vaultTTLArg:        "215000h",
 		},
 	)
+	if err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 
-	client.Logical().Write(
+	_, err = client.Logical().Write(
 		"pki_kafka/roles/operator",
 		map[string]interface{}{
 			"allow_localhost": true,
@@ -137,11 +148,14 @@ func createTestVault(t *testing.T) (net.Listener, *api.Client) {
 			"allow_any_name":  true,
 		},
 	)
+	if err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 	return ln, client
 }
 
 type mockClient struct {
-	client.Client
+	runtimeClient.Client
 }
 
 func TestNew(t *testing.T) {
@@ -154,8 +168,15 @@ func TestNew(t *testing.T) {
 func TestAll(t *testing.T) {
 	clusterDomain := "cluster.local"
 	ctx := context.Background()
-	mock, ln, client := newVaultMock(t)
-	defer ln.Close()
+	mock, ln, client, err := newVaultMock(t)
+	if err != nil {
+		t.Error("Expected no error, got:", err)
+	}
+	defer func() {
+		if err := ln.Close(); err != nil {
+			log.Error(err, "could not close connection properly")
+		}
+	}()
 
 	cert, key, _, err := certutil.GenerateTestCert()
 	if err != nil {
@@ -174,20 +195,26 @@ func TestAll(t *testing.T) {
 
 	brokerPath := fmt.Sprintf("secret/%s", fmt.Sprintf(pkicommon.BrokerServerCertTemplate, mock.cluster.Name))
 	controllerPath := fmt.Sprintf("secret/%s", fmt.Sprintf(pkicommon.BrokerControllerTemplate, mock.cluster.Name))
-	client.Logical().Write(brokerPath, dataForUserCert(&pkicommon.UserCertificate{
+	_, err = client.Logical().Write(brokerPath, dataForUserCert(&pkicommon.UserCertificate{
 		Certificate: cert,
 		Key:         key,
 		CA:          cert,
 		JKS:         jks,
 		Password:    passw,
 	}))
-	client.Logical().Write(controllerPath, dataForUserCert(&pkicommon.UserCertificate{
+	if err != nil {
+		t.Error("Expected no error, got:", err)
+	}
+	_, err = client.Logical().Write(controllerPath, dataForUserCert(&pkicommon.UserCertificate{
 		Certificate: cert,
 		Key:         key,
 		CA:          cert,
 		JKS:         jks,
 		Password:    passw,
 	}))
+	if err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 
 	// Should be safe to do multiple times
 	if err := mock.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err != nil {

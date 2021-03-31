@@ -31,6 +31,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 )
@@ -56,7 +57,7 @@ func (c *certManager) ReconcileUserCertificate(
 				return nil, err
 			}
 		}
-		cert := c.clusterCertificateForUser(user, scheme, clusterDomain)
+		cert := c.clusterCertificateForUser(user, clusterDomain)
 		if err = c.client.Create(ctx, cert); err != nil {
 			return nil, errorfactory.New(errorfactory.APIFailure{}, err, "could not create user certificate")
 		}
@@ -156,13 +157,10 @@ func (c *certManager) getUserSecret(ctx context.Context, user *v1alpha1.KafkaUse
 
 // clusterCertificateForUser generates a Certificate object for a KafkaUser
 func (c *certManager) clusterCertificateForUser(
-	user *v1alpha1.KafkaUser, scheme *runtime.Scheme, clusterDomain string) *certv1.Certificate {
+	user *v1alpha1.KafkaUser, clusterDomain string) *certv1.Certificate {
 	caName, caKind := c.getCA(user)
 	cert := &certv1.Certificate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      user.GetName(),
-			Namespace: user.GetNamespace(),
-		},
+		ObjectMeta: templates.ObjectMetaWithCustomNamespaceAndWithoutLabels(user.GetName(), user.GetNamespace(), c.cluster),
 		Spec: certv1.CertificateSpec{
 			SecretName:  user.Spec.SecretName,
 			KeyEncoding: certv1.PKCS8,
@@ -191,7 +189,6 @@ func (c *certManager) clusterCertificateForUser(
 	if user.Spec.DNSNames != nil && len(user.Spec.DNSNames) > 0 {
 		cert.Spec.DNSNames = user.Spec.DNSNames
 	}
-	controllerutil.SetControllerReference(user, cert, scheme)
 	return cert
 }
 

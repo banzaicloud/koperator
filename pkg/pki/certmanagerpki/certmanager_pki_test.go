@@ -89,7 +89,10 @@ func newPreCreatedSecret() *corev1.Secret {
 }
 
 func TestFinalizePKI(t *testing.T) {
-	manager := newMock(newMockCluster())
+	manager, err := newMock(newMockCluster())
+	if err != nil {
+		t.Error("Expected no error on during initialization, got:", err)
+	}
 
 	if err := manager.FinalizePKI(context.Background(), log); err != nil {
 		t.Error("Expected no error on finalize, got:", err)
@@ -98,36 +101,50 @@ func TestFinalizePKI(t *testing.T) {
 
 func TestReconcilePKI(t *testing.T) {
 	cluster := newMockCluster()
-	manager := newMock(cluster)
+	manager, err := newMock(cluster)
+	if err != nil {
+		t.Error("Expected no error on during initialization, got:", err)
+	}
 	ctx := context.Background()
 
-	manager.client.Create(ctx, newServerSecret())
+	if err := manager.client.Create(ctx, newServerSecret()); err != nil {
+		t.Error("error during server secret creation", reflect.TypeOf(err))
+	}
 	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err != nil {
 		if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 			t.Error("Expected not ready error, got:", reflect.TypeOf(err))
 		}
 	}
 
-	manager.client.Create(ctx, newControllerSecret())
+	if err := manager.client.Create(ctx, newControllerSecret()); err != nil {
+		t.Error("error during controller secret creation", reflect.TypeOf(err))
+	}
 	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err != nil {
 		if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 			t.Error("Expected not ready error, got:", reflect.TypeOf(err))
 		}
 	}
 
-	manager.client.Create(ctx, newCASecret())
+	if err := manager.client.Create(ctx, newCASecret()); err != nil {
+		t.Error("error during CA secret creation", reflect.TypeOf(err))
+	}
 	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err != nil {
 		t.Error("Expected successful reconcile, got:", err)
 	}
 
 	cluster.Spec.ListenersConfig.SSLSecrets.Create = false
-	manager = newMock(cluster)
+	manager, err = newMock(cluster)
+	if err != nil {
+		t.Error("Expected no error on during mocking the cluster, got:", err)
+	}
 	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err == nil {
 		t.Error("Expected error got nil")
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 		t.Error("Expected not ready error, got:", reflect.TypeOf(err))
 	}
-	manager.client.Create(ctx, newPreCreatedSecret())
+	if err := manager.client.Create(ctx, newPreCreatedSecret()); err != nil {
+		t.Error("error during pre created secret creation", reflect.TypeOf(err))
+	}
 	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err != nil {
 		t.Error("Expected successful reconcile, got:", err)
 	}

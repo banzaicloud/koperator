@@ -22,7 +22,6 @@ import (
 	"github.com/lestrrat-go/backoff"
 )
 
-//nolint:gocritic
 func TestRetry(t *testing.T) {
 	count := 0
 	config := &ConstantBackoffConfig{
@@ -32,35 +31,43 @@ func TestRetry(t *testing.T) {
 	}
 	policy := NewConstantBackoffPolicy(config)
 
-	Retry(func() error {
+	err := Retry(func() error {
 		count++
 		return errors.New("err")
 	}, policy)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
 
 	if count != 4 {
 		t.Error("Expected function to run 4 times, got:", count)
 	}
 
 	count = 0
-	Retry(func() error {
+	err = Retry(func() error {
 		count++
 		return nil
 	}, policy)
+
+	if err != nil {
+		t.Error("Expected nil, got error")
+	}
 
 	if count != 1 {
 		t.Error("Expected function to run once, got:", count)
 	}
 
 	count = 0
-	err := Retry(func() error {
+	err = Retry(func() error {
 		count++
 		return MarkErrorPermanent(errors.New("permanent"))
 	}, policy)
-	if err == nil {
+	switch {
+	case err == nil:
 		t.Error("Expected permanent error, got nil")
-	} else if !backoff.IsPermanentError(err) {
+	case !backoff.IsPermanentError(err):
 		t.Error("Expected true for is permanent error, got false")
-	} else if count != 1 {
+	case count != 1:
 		t.Error("Expected function to only try once, got:", count)
 	}
 }
