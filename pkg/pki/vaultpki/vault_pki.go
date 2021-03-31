@@ -25,7 +25,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -78,11 +77,11 @@ func (v *vaultPKI) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme 
 		return
 	}
 
-	return v.reconcileBootstrapSecrets(ctx, scheme, brokerCert, controllerCert)
+	return v.reconcileBootstrapSecrets(ctx, brokerCert, controllerCert)
 }
 
 // reconcileBootstrapSecrets creates the secret mounts for cruise control and the kafka brokers
-func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtime.Scheme, brokerCert, controllerCert *pkicommon.UserCertificate) (err error) {
+func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, brokerCert, controllerCert *pkicommon.UserCertificate) (err error) {
 	serverSecret := &corev1.Secret{}
 	clientSecret := &corev1.Secret{}
 
@@ -109,7 +108,6 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 					v1alpha1.PasswordKey:    brokerCert.Password,
 				},
 			}
-			controllerutil.SetControllerReference(v.cluster, serverCert, scheme)
 			toCreate = append(toCreate, serverCert)
 		} else {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "failed to check existence of server secret")
@@ -137,7 +135,6 @@ func (v *vaultPKI) reconcileBootstrapSecrets(ctx context.Context, scheme *runtim
 					v1alpha1.PasswordKey:    controllerCert.Password,
 				},
 			}
-			controllerutil.SetControllerReference(v.cluster, clientCert, scheme)
 			toCreate = append(toCreate, clientCert)
 		} else {
 			return errorfactory.New(errorfactory.APIFailure{}, err, "failed to check existence of client secret")

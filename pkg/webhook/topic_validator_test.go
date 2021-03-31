@@ -52,18 +52,22 @@ func newMockTopic() *v1alpha1.KafkaTopic {
 	}
 }
 
-func newMockServerForTopicValidator(cluster *v1beta1.KafkaCluster) (*webhookServer, kafkaclient.KafkaClient) {
+func newMockServerForTopicValidator(cluster *v1beta1.KafkaCluster) (*webhookServer, kafkaclient.KafkaClient, error) {
 	client := fake.NewFakeClientWithScheme(scheme.Scheme)
 	kafkaClient, _ := kafkaclient.NewMockFromCluster(client, cluster)
 	returnMockedKafkaClient := func(client runtimeClient.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, error) {
 		return kafkaClient, nil
 	}
-	return newMockServerWithClients(client, returnMockedKafkaClient), kafkaClient
+	mockServerWithClients, err := newMockServerWithClients(client, returnMockedKafkaClient)
+	return mockServerWithClients, kafkaClient, err
 }
 
 func TestValidateTopic(t *testing.T) {
 	cluster := newMockCluster()
-	server, broker := newMockServerForTopicValidator(cluster)
+	server, broker, err := newMockServerForTopicValidator(cluster)
+	if err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 	topic := newMockTopic()
 
 	// Test non-existent kafka cluster
@@ -83,14 +87,18 @@ func TestValidateTopic(t *testing.T) {
 
 	// test cluster marked for deletion
 	cluster.SetDeletionTimestamp(&now)
-	server.client.Create(context.TODO(), cluster)
+	if err := server.client.Create(context.TODO(), cluster); err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 	if res = server.validateKafkaTopic(topic); !res.Allowed {
 		t.Error("Expected allowed due to cluster marked for deletion, got:", res.Result)
 	}
 
 	// remove deletion timestamp from cluster
 	cluster.SetDeletionTimestamp(nil)
-	server.client.Update(context.TODO(), cluster)
+	if err := server.client.Update(context.TODO(), cluster); err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 
 	// test no rejection reasons
 	if res = server.validateKafkaTopic(topic); !res.Allowed {
@@ -110,7 +118,7 @@ func TestValidateTopic(t *testing.T) {
 	topic.Spec.ReplicationFactor = 1
 
 	// Test overwrite attempt
-	err := broker.CreateTopic(&kafkaclient.CreateTopicOptions{Name: "test-topic", ReplicationFactor: 1, Partitions: 2})
+	err = broker.CreateTopic(&kafkaclient.CreateTopicOptions{Name: "test-topic", ReplicationFactor: 1, Partitions: 2})
 	if err != nil {
 		t.Error("creation of topic should have been successful")
 	}
@@ -122,7 +130,9 @@ func TestValidateTopic(t *testing.T) {
 	}
 
 	// Add topic and test existing topic reason
-	server.client.Create(context.TODO(), topic)
+	if err := server.client.Create(context.TODO(), topic); err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 
 	// partition decrease attempt
 	topic.Spec.Partitions = 1

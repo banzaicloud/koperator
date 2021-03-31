@@ -206,7 +206,11 @@ func Test_resizePvc(t *testing.T) {
 			if err != nil {
 				t.Error("Pvc creation failed", err)
 			}
-			defer testClient.Delete(context.Background(), &tt.pvc)
+			defer func() {
+				if err := testClient.Delete(context.Background(), &tt.pvc); err != nil {
+					t.Error("Expected no error, got:", err)
+				}
+			}()
 
 			err = testClient.Create(context.Background(), &tt.cluster)
 			if err != nil {
@@ -228,7 +232,11 @@ func Test_resizePvc(t *testing.T) {
 			if err != nil {
 				t.Errorf("kafka cr was not found, error = %v", err)
 			}
-			defer testClient.Delete(context.Background(), &kafkaCluster)
+			defer func() {
+				if err := testClient.Delete(context.Background(), &kafkaCluster); err != nil {
+					t.Error("Expected no error, got:", err)
+				}
+			}()
 
 			fmt.Println(kafkaCluster.Spec.Brokers)
 			brokerStorageConfig := &kafkaCluster.Spec.Brokers[0].BrokerConfig.StorageConfigs[0]
@@ -560,7 +568,11 @@ func Test_upScale(t *testing.T) {
 				return
 			}
 
-			defer testClient.Delete(context.Background(), &test.kafkaCluster)
+			defer func() {
+				if err := testClient.Delete(context.Background(), &test.kafkaCluster); err != nil {
+					t.Error("Expected no error, got:", err)
+				}
+			}()
 
 			if err := upScale(logf.NullLogger{}, test.alert.Labels, test.alert.Annotations, testClient); err != nil {
 				t.Error(err)

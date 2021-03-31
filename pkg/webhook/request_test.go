@@ -65,7 +65,10 @@ func newRequest(data []byte) *http.Request {
 }
 
 func TestValidate(t *testing.T) {
-	server := newMockServer()
+	server, err := newMockServer()
+	if err != nil {
+		t.Error("Expected no error got:", err)
+	}
 
 	req := newAdmissionReview()
 
@@ -97,7 +100,10 @@ func TestValidate(t *testing.T) {
 }
 
 func TestServe(t *testing.T) {
-	server := newMockServer()
+	server, err := newMockServer()
+	if err != nil {
+		t.Error("Expected no error got:", err)
+	}
 
 	// Test bad body
 	reader, writer := io.Pipe()
@@ -165,7 +171,9 @@ func TestServe(t *testing.T) {
 			t.Error("Expected admission review response, got error")
 		}
 		admissionReview := admissionv1beta1.AdmissionReview{}
-		json.Unmarshal(body, &admissionReview)
+		if err := json.Unmarshal(body, &admissionReview); err != nil {
+			t.Error("Expected no error got:", err)
+		}
 		if admissionReview.Response.Result.Reason != metav1.StatusReasonBadRequest {
 			t.Error("Expected metav1 bad request, got:", admissionReview.Response.Result.Reason)
 		}
@@ -189,7 +197,9 @@ func TestServe(t *testing.T) {
 			t.Error("Expected admission review response, got error")
 		}
 		admissionReview := admissionv1beta1.AdmissionReview{}
-		json.Unmarshal(body, &admissionReview)
+		if err := json.Unmarshal(body, &admissionReview); err != nil {
+			t.Error("Expected no error got:", err)
+		}
 		if admissionReview.Response.Result.Reason != metav1.StatusReasonNotFound {
 			t.Error("Expected not found for no cluster, got:", admissionReview.Response.Result.Reason)
 		}

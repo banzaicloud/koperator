@@ -12,7 +12,7 @@ linters:
     - depguard
     - dogsled
     # - dupl            # NOTE: intentionally disabled
-#    - errcheck # Note: Fixme with a small refactor
+    - errcheck
     - exhaustive
     - funlen
     # - gochecknoinits  # NOTE: intentionally disabled

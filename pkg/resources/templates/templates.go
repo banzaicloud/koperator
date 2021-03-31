@@ -40,6 +40,24 @@ func ObjectMeta(name string, labels map[string]string, cluster *v1beta1.KafkaClu
 	}
 }
 
+// ObjectMetaWithCustomNamespaceAndWithoutLabels returns a metav1.ObjectMeta object with custom namespace, ownerReference and name
+func ObjectMetaWithCustomNamespaceAndWithoutLabels(name, namespace string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      name,
+		Namespace: namespace,
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion:         cluster.APIVersion,
+				Kind:               cluster.Kind,
+				Name:               cluster.Name,
+				UID:                cluster.UID,
+				Controller:         util.BoolPointer(true),
+				BlockOwnerDeletion: util.BoolPointer(true),
+			},
+		},
+	}
+}
+
 // ObjectMetaWithoutOwnerRef returns a metav1.ObjectMeta object with labels, and name
 func ObjectMetaWithoutOwnerRef(name string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{

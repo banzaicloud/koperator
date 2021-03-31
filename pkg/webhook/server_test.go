@@ -33,20 +33,27 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 )
 
-func newMockServer() *webhookServer {
+func newMockServer() (*webhookServer, error) {
 	return newMockServerWithClients(fake.NewFakeClientWithScheme(scheme.Scheme), kafkaclient.NewMockFromCluster)
 }
 
-func newMockServerWithClients(c client.Client, kafkaClientProvider func(client client.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, error)) *webhookServer {
-	certv1.AddToScheme(scheme.Scheme)
-	v1alpha1.AddToScheme(scheme.Scheme)
-	v1beta1.AddToScheme(scheme.Scheme)
+func newMockServerWithClients(c client.Client, kafkaClientProvider func(client client.Client,
+	cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, error)) (*webhookServer, error) {
+	if err := certv1.AddToScheme(scheme.Scheme); err != nil {
+		return nil, err
+	}
+	if err := v1alpha1.AddToScheme(scheme.Scheme); err != nil {
+		return nil, err
+	}
+	if err := v1beta1.AddToScheme(scheme.Scheme); err != nil {
+		return nil, err
+	}
 	return &webhookServer{
 		client:              c,
 		scheme:              scheme.Scheme,
 		deserializer:        serializer.NewCodecFactory(scheme.Scheme).UniversalDeserializer(),
 		newKafkaFromCluster: kafkaClientProvider,
-	}
+	}, nil
 }
 
 func TestNewServer(t *testing.T) {

@@ -52,7 +52,10 @@ func newMockUserSecret() *corev1.Secret {
 }
 
 func TestFinalizeUserCertificate(t *testing.T) {
-	manager := newMock(newMockCluster())
+	manager, err := newMock(newMockCluster())
+	if err != nil {
+		t.Error("Expected no error on during initialization, got:", err)
+	}
 	if err := manager.FinalizeUserCertificate(context.Background(), &v1alpha1.KafkaUser{}); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
@@ -60,10 +63,15 @@ func TestFinalizeUserCertificate(t *testing.T) {
 
 func TestReconcileUserCertificate(t *testing.T) {
 	clusterDomain := "cluster.local"
-	manager := newMock(newMockCluster())
+	manager, err := newMock(newMockCluster())
+	if err != nil {
+		t.Error("Expected no error on during initialization, got:", err)
+	}
 	ctx := context.Background()
 
-	manager.client.Create(context.TODO(), newMockUser())
+	if err := manager.client.Create(context.TODO(), newMockUser()); err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme, clusterDomain); err == nil {
 		t.Error("Expected resource not ready error, got nil")
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
@@ -80,9 +88,17 @@ func TestReconcileUserCertificate(t *testing.T) {
 	}
 
 	// Test error conditions
-	manager = newMock(newMockCluster())
-	manager.client.Create(context.TODO(), newMockUser())
-	manager.client.Create(context.TODO(), manager.clusterCertificateForUser(newMockUser(), scheme.Scheme, clusterDomain))
+	manager, err = newMock(newMockCluster())
+	if err != nil {
+		t.Error("Expected no error on during initialization, got:", err)
+	}
+	if err := manager.client.Create(context.TODO(), newMockUser()); err != nil {
+		t.Error("Expected no error, got:", err)
+	}
+	if err := manager.client.Create(context.TODO(),
+		manager.clusterCertificateForUser(newMockUser(), clusterDomain)); err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme, clusterDomain); err == nil {
 		t.Error("Expected  error, got nil")
 	}

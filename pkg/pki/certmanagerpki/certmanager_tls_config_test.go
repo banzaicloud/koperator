@@ -42,16 +42,22 @@ func newMockControllerSecret(valid bool) *corev1.Secret {
 }
 
 func TestGetControllerTLSConfig(t *testing.T) {
-	manager := newMock(newMockCluster())
-
+	manager, err := newMock(newMockCluster())
+	if err != nil {
+		t.Error("Expected no error on during initialization, got:", err)
+	}
 	// Test good controller secret
-	manager.client.Create(context.TODO(), newMockControllerSecret(true))
+	if err := manager.client.Create(context.TODO(), newMockControllerSecret(true)); err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 	if _, err := manager.GetControllerTLSConfig(); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 
-	manager = newMock(newMockCluster())
-
+	manager, err = newMock(newMockCluster())
+	if err != nil {
+		t.Error("Expected no error on during initialization, got:", err)
+	}
 	// Test non-existent controller secret
 	if _, err := manager.GetControllerTLSConfig(); err == nil {
 		t.Error("Expected error got nil")
@@ -60,7 +66,9 @@ func TestGetControllerTLSConfig(t *testing.T) {
 	}
 
 	// Test invalid controller secret
-	manager.client.Create(context.TODO(), newMockControllerSecret(false))
+	if err := manager.client.Create(context.TODO(), newMockControllerSecret(false)); err != nil {
+		t.Error("Expected no error, got:", err)
+	}
 	if _, err := manager.GetControllerTLSConfig(); err == nil {
 		t.Error("Expected error got nil")
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.InternalError{}) {
