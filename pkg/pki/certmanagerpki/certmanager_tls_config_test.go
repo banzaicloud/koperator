@@ -44,7 +44,7 @@ func newMockControllerSecret(valid bool) *corev1.Secret {
 func TestGetControllerTLSConfig(t *testing.T) {
 	manager, err := newMock(newMockCluster())
 	if err != nil {
-		t.Error("Expected no error on during initialization, got:", err)
+		t.Error("Expected no error during initialization, got:", err)
 	}
 	// Test good controller secret
 	if err := manager.client.Create(context.TODO(), newMockControllerSecret(true)); err != nil {
@@ -56,7 +56,7 @@ func TestGetControllerTLSConfig(t *testing.T) {
 
 	manager, err = newMock(newMockCluster())
 	if err != nil {
-		t.Error("Expected no error on during initialization, got:", err)
+		t.Error("Expected no error during initialization, got:", err)
 	}
 	// Test non-existent controller secret
 	if _, err := manager.GetControllerTLSConfig(); err == nil {
