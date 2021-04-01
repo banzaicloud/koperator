@@ -91,7 +91,7 @@ func newPreCreatedSecret() *corev1.Secret {
 func TestFinalizePKI(t *testing.T) {
 	manager, err := newMock(newMockCluster())
 	if err != nil {
-		t.Error("Expected no error on during initialization, got:", err)
+		t.Error("Expected no error during initialization, got:", err)
 	}
 
 	if err := manager.FinalizePKI(context.Background(), log); err != nil {
@@ -103,7 +103,7 @@ func TestReconcilePKI(t *testing.T) {
 	cluster := newMockCluster()
 	manager, err := newMock(cluster)
 	if err != nil {
-		t.Error("Expected no error on during initialization, got:", err)
+		t.Error("Expected no error during initialization, got:", err)
 	}
 	ctx := context.Background()
 
@@ -135,7 +135,7 @@ func TestReconcilePKI(t *testing.T) {
 	cluster.Spec.ListenersConfig.SSLSecrets.Create = false
 	manager, err = newMock(cluster)
 	if err != nil {
-		t.Error("Expected no error on during mocking the cluster, got:", err)
+		t.Error("Expected no error during mocking the cluster, got:", err)
 	}
 	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err == nil {
 		t.Error("Expected error got nil")

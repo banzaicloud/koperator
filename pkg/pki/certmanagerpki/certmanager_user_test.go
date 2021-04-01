@@ -54,7 +54,7 @@ func newMockUserSecret() *corev1.Secret {
 func TestFinalizeUserCertificate(t *testing.T) {
 	manager, err := newMock(newMockCluster())
 	if err != nil {
-		t.Error("Expected no error on during initialization, got:", err)
+		t.Error("Expected no error during initialization, got:", err)
 	}
 	if err := manager.FinalizeUserCertificate(context.Background(), &v1alpha1.KafkaUser{}); err != nil {
 		t.Error("Expected no error, got:", err)
@@ -65,7 +65,7 @@ func TestReconcileUserCertificate(t *testing.T) {
 	clusterDomain := "cluster.local"
 	manager, err := newMock(newMockCluster())
 	if err != nil {
-		t.Error("Expected no error on during initialization, got:", err)
+		t.Error("Expected no error during initialization, got:", err)
 	}
 	ctx := context.Background()
 
@@ -90,7 +90,7 @@ func TestReconcileUserCertificate(t *testing.T) {
 	// Test error conditions
 	manager, err = newMock(newMockCluster())
 	if err != nil {
-		t.Error("Expected no error on during initialization, got:", err)
+		t.Error("Expected no error during initialization, got:", err)
 	}
 	if err := manager.client.Create(context.TODO(), newMockUser()); err != nil {
 		t.Error("Expected no error, got:", err)
