@@ -145,6 +145,8 @@ github.com/banzaicloud/istio-client-go v0.0.9 h1:PI/vRqmX5z80/t4UhjsuDHwDIC9WPtk
 github.com/banzaicloud/istio-client-go v0.0.9/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
 github.com/banzaicloud/istio-operator v0.0.0-20210205182203-f814d51d90ff h1:NtHGOw113SCQiLkbmjGOfwcbo7R+7LhBfVOKdFkeCGU=
 github.com/banzaicloud/istio-operator v0.0.0-20210205182203-f814d51d90ff/go.mod h1:QiI8K9ow62t09iIK9YYf8xDzZ17l8YGRTBx8QbKYo7o=
+github.com/banzaicloud/istio-operator v0.0.0-20210302164221-8883bb9ed9bf h1:n4OyVSvMJnP4Sz0W0VzIT81t92VZ5J02sHjEJp8ozus=
+github.com/banzaicloud/istio-operator v0.0.0-20210302164221-8883bb9ed9bf/go.mod h1:QiI8K9ow62t09iIK9YYf8xDzZ17l8YGRTBx8QbKYo7o=
 github.com/banzaicloud/k8s-objectmatcher v1.4.0/go.mod h1:j+N22VwgVfa0ajVtNxOz2G72aSOL21lpB7qV2GDrr/I=
 github.com/banzaicloud/k8s-objectmatcher v1.4.1 h1:/HaUqQzTa5E+pLqG9qelRKUdrzU1Nl2BYPHDut7e1oU=
 github.com/banzaicloud/k8s-objectmatcher v1.4.1/go.mod h1:j+N22VwgVfa0ajVtNxOz2G72aSOL21lpB7qV2GDrr/I=
