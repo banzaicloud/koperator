@@ -233,6 +233,8 @@ type IstioIngressConfig struct {
 	Annotations               map[string]string    `json:"annotations,omitempty"`
 	TLSOptions                *v1alpha3.TLSOptions `json:"gatewayConfig,omitempty"`
 	VirtualServiceAnnotations map[string]string    `json:"virtualServiceAnnotations,omitempty"`
+	// Envs allows to add additional env vars to the istio meshgateway resource
+	Envs []corev1.EnvVar `json:"envs,omitempty"`
 }
 
 func (iIConfig *IstioIngressConfig) GetAnnotations() map[string]string {

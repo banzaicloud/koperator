@@ -48,6 +48,7 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName), r.KafkaCluster),
 		Spec: istioOperatorApi.MeshGatewaySpec{
 			MeshGatewayConfiguration: istioOperatorApi.MeshGatewayConfiguration{
+				AdditionalEnvVars:  ingressConfig.IstioIngressConfig.Envs,
 				Labels:             labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName),
 				ServiceAnnotations: ingressConfig.GetServiceAnnotations(),
 				BaseK8sResourceConfigurationWithHPAWithoutImage: istioOperatorApi.BaseK8sResourceConfigurationWithHPAWithoutImage{
