@@ -443,6 +443,10 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 						},
 						"az2": {IstioIngressConfig: &v1beta1.IstioIngressConfig{
 							Annotations: map[string]string{"zone": "az2"},
+							TLSOptions: &v1alpha3.TLSOptions{
+								Mode:           v1alpha3.TLSModeSimple,
+								CredentialName: util.StringPointer("foobar"),
+							},
 						},
 						},
 					},
@@ -624,16 +628,24 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			ExpectIstioIngressLabels(gateway.Spec.Selector, "external-az2", kafkaClusterCRName)
 			Expect(gateway.Spec.Servers).To(ConsistOf(
 				v1alpha3.Server{
+					TLS: &v1alpha3.TLSOptions{
+						Mode:           v1alpha3.TLSModeSimple,
+						CredentialName: util.StringPointer("foobar"),
+					},
 					Port: &v1alpha3.Port{
 						Number:   19091,
-						Protocol: "TCP",
+						Protocol: "TLS",
 						Name:     "tcp-broker-1"},
 					Hosts: []string{"*"},
 				},
 				v1alpha3.Server{
+					TLS: &v1alpha3.TLSOptions{
+						Mode:           v1alpha3.TLSModeSimple,
+						CredentialName: util.StringPointer("foobar"),
+					},
 					Port: &v1alpha3.Port{
 						Number:   29092,
-						Protocol: "TCP",
+						Protocol: "TLS",
 						Name:     "tcp-all-broker",
 					},
 					Hosts: []string{"*"},

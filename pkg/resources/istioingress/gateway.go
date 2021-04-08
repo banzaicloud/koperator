@@ -29,7 +29,7 @@ import (
 )
 
 func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
-	_ v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
+	ingressConf v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, externalListenerConfig.Name)
 
 	var gatewayName string
@@ -43,18 +43,19 @@ func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.Ext
 			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName), r.KafkaCluster),
 		Spec: v1alpha3.GatewaySpec{
 			Selector: labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName),
-			Servers:  generateServers(r.KafkaCluster, externalListenerConfig, log, ingressConfigName, defaultIngressConfigName),
+			Servers: generateServers(r.KafkaCluster, externalListenerConfig, log, ingressConf,
+				ingressConfigName, defaultIngressConfigName),
 		},
 	}
 }
 
 func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger,
-	ingressConfigName, defaultIngressConfigName string) []v1alpha3.Server {
+	ingressConf v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) []v1alpha3.Server {
 	servers := make([]v1alpha3.Server, 0)
 	protocol := v1alpha3.ProtocolTCP
 	var tlsConfig *v1alpha3.TLSOptions
-	if kc.Spec.IstioIngressConfig.TLSOptions != nil {
-		tlsConfig = kc.Spec.IstioIngressConfig.TLSOptions
+	if ingressConf.IstioIngressConfig.TLSOptions != nil {
+		tlsConfig = ingressConf.IstioIngressConfig.TLSOptions
 		protocol = v1alpha3.ProtocolTLS
 	}
 
