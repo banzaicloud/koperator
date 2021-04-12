@@ -18,7 +18,7 @@
 {{- end }}
 
 {{- if .Values.webhook.enabled }}
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   labels:
@@ -30,7 +30,9 @@ metadata:
     app.kubernetes.io/component: webhook
   name: {{ include "kafka-operator.name" . }}-validating-webhook
 webhooks:
-- clientConfig:
+- admissionReviewVersions:
+  - v1alpha1
+  clientConfig:
     caBundle: {{ $caCrt }}
     service:
       name: "{{ include "kafka-operator.fullname" . }}-operator"
@@ -48,6 +50,7 @@ webhooks:
     - UPDATE
     resources:
     - kafkatopics
+  sideEffects: None
 ---
 apiVersion: v1
 kind: Secret
