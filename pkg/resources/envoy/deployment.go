@@ -83,8 +83,8 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 			Replicas: util.Int32Pointer(ingressConfig.EnvoyConfig.GetReplicas()),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName),
-					Annotations: generatePodAnnotations(r.KafkaCluster, extListener, ingressConfigName,
+					Labels: templates.ObjectMetaLabels(r.KafkaCluster, labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName)),
+					Annotations: generatePodAnnotations(r.KafkaCluster, extListener, ingressConfig, ingressConfigName,
 						defaultIngressConfigName, log),
 				},
 				Spec: corev1.PodSpec{
@@ -96,8 +96,11 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 						{
 							Name:  "envoy",
 							Image: ingressConfig.EnvoyConfig.GetEnvoyImage(),
-							Ports: append(exposedPorts, []corev1.ContainerPort{
-								{Name: "envoy-admin", ContainerPort: 9901, Protocol: corev1.ProtocolTCP}}...),
+							Ports: append(exposedPorts,
+								[]corev1.ContainerPort{{Name: "envoy-admin",
+									ContainerPort: ingressConfig.EnvoyConfig.GetEnvoyAdminPort(),
+									Protocol:      corev1.ProtocolTCP},
+								}...),
 							VolumeMounts: volumeMounts,
 							Resources:    *ingressConfig.EnvoyConfig.GetResources(),
 						},
@@ -137,10 +140,10 @@ func getExposedContainerPorts(extListener v1beta1.ExternalListenerConfig, broker
 }
 
 func generatePodAnnotations(kafkaCluster *v1beta1.KafkaCluster,
-	extListener v1beta1.ExternalListenerConfig, ingressConfigName, defaultIngressConfigName string,
+	extListener v1beta1.ExternalListenerConfig, ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string,
 	log logr.Logger) map[string]string {
 	hashedEnvoyConfig := sha256.Sum256([]byte(
-		GenerateEnvoyConfig(kafkaCluster, extListener, ingressConfigName, defaultIngressConfigName, log)))
+		GenerateEnvoyConfig(kafkaCluster, extListener, ingressConfig, ingressConfigName, defaultIngressConfigName, log)))
 	annotations := map[string]string{
 		"envoy.yaml.hash": hex.EncodeToString(hashedEnvoyConfig[:]),
 	}

@@ -46,7 +46,7 @@ func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListen
 
 	exposedPorts := getExposedServicePorts(extListener,
 		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log),
-		r.KafkaCluster, ingressConfigName, defaultIngressConfigName, log)
+		r.KafkaCluster, ingressConfig, ingressConfigName, defaultIngressConfigName, log)
 
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
@@ -66,7 +66,7 @@ func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListen
 }
 
 func getExposedServicePorts(extListener v1beta1.ExternalListenerConfig, brokersIds []int,
-	kafkaCluster *v1beta1.KafkaCluster, ingressConfigName, defaultIngressConfigName string, log logr.Logger) []corev1.ServicePort {
+	kafkaCluster *v1beta1.KafkaCluster, ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string, log logr.Logger) []corev1.ServicePort {
 	var exposedPorts []corev1.ServicePort
 	for _, brokerId := range brokersIds {
 		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kafkaCluster.Spec, brokerId)
@@ -85,10 +85,20 @@ func getExposedServicePorts(extListener v1beta1.ExternalListenerConfig, brokersI
 		}
 	}
 
+	// append anycast port
 	exposedPorts = append(exposedPorts, corev1.ServicePort{
 		Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
 		TargetPort: intstr.FromInt(int(extListener.GetAnyCastPort())),
 		Port:       extListener.GetAnyCastPort(),
+		Protocol:   corev1.ProtocolTCP,
+	})
+
+	// append envoy admin port
+	exposedPorts = append(exposedPorts, corev1.ServicePort{
+		Name:       "envoy-admin",
+		TargetPort: intstr.FromInt(int(ingressConfig.EnvoyConfig.GetEnvoyAdminPort())),
+		Port:       ingressConfig.EnvoyConfig.GetEnvoyAdminPort(),
+		Protocol:   corev1.ProtocolTCP,
 	})
 
 	return exposedPorts

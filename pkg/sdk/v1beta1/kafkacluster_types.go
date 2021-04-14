@@ -30,7 +30,10 @@ import (
 const (
 	// DefaultServiceAccountName name used for the various ServiceAccounts
 	DefaultServiceAccountName = "default"
-	defaultAnyCastPort        = 29092
+	// DefaultAnyCastPort kafka anycast port that can be used by clients for metadata queries
+	DefaultAnyCastPort = 29092
+	// DefaultEnvoyAdminPort envoy admin port
+	DefaultEnvoyAdminPort = 9901
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
@@ -219,6 +222,8 @@ type EnvoyConfig struct {
 	LoadBalancerSourceRanges []string          `json:"loadBalancerSourceRanges,omitempty"`
 	// LoadBalancerIP can be used to specify an exact IP for the LoadBalancer service
 	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
+	// Envoy admin port
+	AdminPort *int32 `json:"adminPort,omitempty"`
 }
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller
@@ -279,7 +284,7 @@ func (c ExternalListenerConfig) GetAccessMethod() corev1.ServiceType {
 
 func (c ExternalListenerConfig) GetAnyCastPort() int32 {
 	if c.AnyCastPort == nil {
-		return defaultAnyCastPort
+		return DefaultAnyCastPort
 	}
 	return *c.AnyCastPort
 }
@@ -709,6 +714,14 @@ func (eConfig *EnvoyConfig) GetEnvoyImage() string {
 	}
 
 	return "envoyproxy/envoy:v1.14.4"
+}
+
+// GetEnvoyAdminPort returns the envoy admin port
+func (eConfig *EnvoyConfig) GetEnvoyAdminPort() int32 {
+	if eConfig.AdminPort != nil {
+		return *eConfig.AdminPort
+	}
+	return DefaultEnvoyAdminPort
 }
 
 // GetCCImage returns the used Cruise Control image

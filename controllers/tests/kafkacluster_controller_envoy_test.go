@@ -49,7 +49,7 @@ func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerTempla
 		"eListenerName": eListenerTemplate,
 		"kafka_cr":      kafkaCluster.Name,
 	}))
-	Expect(loadBalancer.Spec.Ports).To(HaveLen(4))
+	Expect(loadBalancer.Spec.Ports).To(HaveLen(5))
 	for i, port := range loadBalancer.Spec.Ports {
 		if i == 3 {
 			break
@@ -63,6 +63,11 @@ func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerTempla
 	Expect(loadBalancer.Spec.Ports[3].Protocol).To(Equal(corev1.ProtocolTCP))
 	Expect(loadBalancer.Spec.Ports[3].Port).To(BeEquivalentTo(29092))
 	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(29092))
+
+	Expect(loadBalancer.Spec.Ports[4].Name).To(Equal("envoy-admin"))
+	Expect(loadBalancer.Spec.Ports[4].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[4].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[4].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
 }
 
 func expectEnvoyConfigMap(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
@@ -239,7 +244,8 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
 		return err
 	}).Should(Succeed())
-	Expect(loadBalancer.Spec.Ports).To(HaveLen(2))
+	Expect(loadBalancer.Spec.Ports).To(HaveLen(3))
+
 	Expect(loadBalancer.Spec.Ports[0].Name).To(Equal("broker-0"))
 	Expect(loadBalancer.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
 	Expect(loadBalancer.Spec.Ports[0].Port).To(BeEquivalentTo(19090))
@@ -249,6 +255,11 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(loadBalancer.Spec.Ports[1].Protocol).To(Equal(corev1.ProtocolTCP))
 	Expect(loadBalancer.Spec.Ports[1].Port).To(BeEquivalentTo(29092))
 	Expect(loadBalancer.Spec.Ports[1].TargetPort.IntVal).To(BeEquivalentTo(29092))
+
+	Expect(loadBalancer.Spec.Ports[2].Name).To(Equal("envoy-admin"))
+	Expect(loadBalancer.Spec.Ports[2].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-az1-%s", kafkaCluster.Name)
@@ -272,7 +283,7 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 		},
 		corev1.ContainerPort{
 			Name:          "envoy-admin",
-			ContainerPort: 9901,
+			ContainerPort: v1beta1.DefaultEnvoyAdminPort,
 			Protocol:      corev1.ProtocolTCP,
 		},
 	))
@@ -340,7 +351,7 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
 		return err
 	}).Should(Succeed())
-	Expect(loadBalancer.Spec.Ports).To(HaveLen(3))
+	Expect(loadBalancer.Spec.Ports).To(HaveLen(4))
 	Expect(loadBalancer.Spec.Ports[0].Name).To(Equal("broker-1"))
 	Expect(loadBalancer.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
 	Expect(loadBalancer.Spec.Ports[0].Port).To(BeEquivalentTo(19091))
@@ -355,6 +366,11 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(loadBalancer.Spec.Ports[2].Protocol).To(Equal(corev1.ProtocolTCP))
 	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(29092))
 	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(29092))
+
+	Expect(loadBalancer.Spec.Ports[3].Name).To(Equal("envoy-admin"))
+	Expect(loadBalancer.Spec.Ports[3].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[3].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-az2-%s", kafkaCluster.Name)
@@ -383,7 +399,7 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 		},
 		corev1.ContainerPort{
 			Name:          "envoy-admin",
-			ContainerPort: 9901,
+			ContainerPort: v1beta1.DefaultEnvoyAdminPort,
 			Protocol:      corev1.ProtocolTCP,
 		},
 	))
