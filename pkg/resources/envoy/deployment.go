@@ -146,5 +146,5 @@ func generatePodAnnotations(kafkaCluster *v1beta1.KafkaCluster,
 	annotations := map[string]string{
 		"envoy.yaml.hash": hex.EncodeToString(hashedEnvoyConfig[:]),
 	}
-	return annotations
+	return util.MergeAnnotations(ingressConfig.EnvoyConfig.GetAnnotations(), annotations)
 }

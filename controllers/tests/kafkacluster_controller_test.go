@@ -111,6 +111,9 @@ var _ = Describe("KafkaCluster", func() {
 		kafkaCluster.Spec.CruiseControlConfig.SecurityContext = &corev1.SecurityContext{
 			Privileged: util.BoolPointer(true),
 		}
+		kafkaCluster.Spec.EnvoyConfig.Annotations = map[string]string{
+			"envoy-annotation-key": "envoy-annotation-value",
+		}
 	})
 
 	JustBeforeEach(func() {
