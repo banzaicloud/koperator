@@ -34,6 +34,10 @@ func expectEnvoyIngressLabels(labels map[string]string, eListenerName, crName st
 	Expect(labels).To(HaveKeyWithValue("kafka_cr", crName))
 }
 
+func expectEnvoyIngressAnnotations(annotations map[string]string) {
+	Expect(annotations).To(HaveKeyWithValue("envoy-annotation-key", "envoy-annotation-value"))
+}
+
 func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
 	var loadBalancer corev1.Service
 	lbName := fmt.Sprintf("envoy-loadbalancer-%s-%s", eListenerTemplate, kafkaCluster.Name)
@@ -179,6 +183,8 @@ func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate
 	Expect(deployment.Spec.Replicas).NotTo(BeNil())
 	Expect(*deployment.Spec.Replicas).To(BeEquivalentTo(1))
 	expectEnvoyIngressLabels(deployment.Spec.Template.Labels, eListenerTemplate, kafkaCluster.Name)
+	expectEnvoyIngressAnnotations(deployment.Annotations)
+	expectEnvoyIngressAnnotations(deployment.Spec.Template.Annotations)
 	templateSpec := deployment.Spec.Template.Spec
 	Expect(templateSpec.ServiceAccountName).To(Equal("default"))
 	Expect(templateSpec.Containers).To(HaveLen(1))
