@@ -10223,6 +10223,10 @@ spec:
               envoyConfig:
                 description: EnvoyConfig defines the config for Envoy
                 properties:
+                  adminPort:
+                    description: Envoy admin port
+                    format: int32
+                    type: integer
                   annotations:
                     additionalProperties:
                       type: string
@@ -10760,6 +10764,10 @@ spec:
                                     description: EnvoyConfig defines the config for
                                       Envoy
                                     properties:
+                                      adminPort:
+                                        description: Envoy admin port
+                                        format: int32
+                                        type: integer
                                       annotations:
                                         additionalProperties:
                                           type: string

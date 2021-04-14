@@ -39,7 +39,7 @@ import (
 )
 
 func (r *Reconciler) configMap(log logr.Logger, extListener v1beta1.ExternalListenerConfig,
-	_ v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
+	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
 
 	var configMapName string
@@ -53,8 +53,8 @@ func (r *Reconciler) configMap(log logr.Logger, extListener v1beta1.ExternalList
 		ObjectMeta: templates.ObjectMeta(
 			configMapName,
 			labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName), r.KafkaCluster),
-		Data: map[string]string{"envoy.yaml": GenerateEnvoyConfig(r.KafkaCluster, extListener, ingressConfigName,
-			defaultIngressConfigName, log)},
+		Data: map[string]string{"envoy.yaml": GenerateEnvoyConfig(r.KafkaCluster, extListener, ingressConfig,
+			ingressConfigName, defaultIngressConfigName, log)},
 	}
 	return configMap
 }
@@ -76,7 +76,7 @@ func generateAnyCastAddressValue(kc *v1beta1.KafkaCluster) string {
 		kafkautils.AllBrokerServiceTemplate+".%s.svc.%s", kc.GetName(), kc.GetNamespace(), kc.Spec.GetKubernetesClusterDomain())
 }
 
-func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalListenerConfig,
+func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalListenerConfig, ingressConfig v1beta1.IngressConfig,
 	ingressConfigName, defaultIngressConfigName string, log logr.Logger) string {
 	adminConfig := envoybootstrap.Admin{
 		AccessLogPath: "/tmp/admin_access.log",
@@ -85,7 +85,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 				SocketAddress: &envoycore.SocketAddress{
 					Address: "0.0.0.0",
 					PortSpecifier: &envoycore.SocketAddress_PortValue{
-						PortValue: 9901,
+						PortValue: uint32(ingressConfig.EnvoyConfig.GetEnvoyAdminPort()),
 					},
 				},
 			},
