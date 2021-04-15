@@ -870,6 +870,12 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 					if err != nil {
 						return nil, err
 					}
+					if eListener.ExternalStartingPort == 0 {
+						portNumber, err = r.getK8sAssignedNodeport(log, eListener.Name, broker.Id)
+						if err != nil {
+							return nil, err
+						}
+					}
 
 					if externalIP, ok := bConfig.NodePortExternalIP[eListener.Name]; ok && externalIP != "" {
 						// https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
@@ -903,6 +909,30 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 		extListenerStatuses[eListener.Name] = listenerStatusList
 	}
 	return extListenerStatuses, nil
+}
+
+func (r *Reconciler) getK8sAssignedNodeport(log logr.Logger, eListenerName string, brokerId int32) (int32, error) {
+	log.Info("determining automatically assigned nodeport",
+		"brokerId", brokerId, "listenerName", eListenerName)
+	nodePortSvc := &corev1.Service{}
+	err := r.Client.Get(context.Background(),
+		types.NamespacedName{Name: fmt.Sprintf("%s-%d-%s", r.KafkaCluster.GetName(), brokerId, eListenerName),
+			Namespace: r.KafkaCluster.GetNamespace()}, nodePortSvc)
+	if err != nil {
+		return 0, errors.WrapWithDetails(err, "could not get nodeport service",
+			"brokerId", brokerId, "listenerName", eListenerName)
+	}
+	log.Info("nodeport service successfully found",
+		"brokerId", brokerId, "listenerName", eListenerName)
+
+	var nodePort int32
+	for _, port := range nodePortSvc.Spec.Ports {
+		if port.Name == fmt.Sprintf("broker-%d", brokerId) {
+			nodePort = port.NodePort
+			break
+		}
+	}
+	return nodePort, nil
 }
 
 func getServiceFromExternalListener(client client.Client, cluster *v1beta1.KafkaCluster,
