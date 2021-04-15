@@ -552,7 +552,7 @@ func (eConfig *EnvoyConfig) GetLoadBalancerSourceRanges() []string {
 	return eConfig.LoadBalancerSourceRanges
 }
 
-//GetAnnotations returns Annotations to use for Envoy generated LoadBalancer
+//GetAnnotations returns Annotations to use for Envoy generated Deployment and Pods
 func (eConfig *EnvoyConfig) GetAnnotations() map[string]string {
 	return cloneAnnotationMap(eConfig.Annotations)
 }
