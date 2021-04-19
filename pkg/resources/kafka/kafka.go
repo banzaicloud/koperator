@@ -933,6 +933,10 @@ func (r *Reconciler) getK8sAssignedNodeport(log logr.Logger, eListenerName strin
 			break
 		}
 	}
+	if nodePort == 0 {
+		return nodePort, errorfactory.New(errorfactory.ResourceNotReady{},
+			errors.New("nodeport port number is not allocated"), "nodeport number is still 0")
+	}
 	return nodePort, nil
 }
 
