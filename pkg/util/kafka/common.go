@@ -29,12 +29,14 @@ import (
 )
 
 const (
-	// AllBrokerServiceTemplate template for Kafka headless service
+	// AllBrokerServiceTemplate template for Kafka all broker service
 	AllBrokerServiceTemplate = "%s-all-broker"
 	// HeadlessServiceTemplate template for Kafka headless service
 	HeadlessServiceTemplate = "%s-headless"
+	// NodePortServiceTemplate template for Kafka nodeport service
+	NodePortServiceTemplate = "%s-%d-%s"
 
-	// property name in the ConfigMap's Data field for the broker configuration
+	//ConfigPropertyName name in the ConfigMap's Data field for the broker configuration
 	ConfigPropertyName            = "broker-config"
 	securityProtocolMapConfigName = "listener.security.protocol.map"
 )
