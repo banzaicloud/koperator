@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -285,6 +287,83 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 						{
 							Name:    "broker-2",
 							Address: fmt.Sprintf("%s-2-test.kafka-nodeport-%d.external.nodeport.com:30102", kafkaCluster.Name, count),
+						},
+					},
+				},
+			}))
+		})
+	})
+	When("hostnameOverride is configured with externalStartingPort 0", func() {
+		BeforeEach(func() {
+			kafkaCluster.Spec.ListenersConfig.ExternalListeners = []v1beta1.ExternalListenerConfig{
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{
+						Name:          "test",
+						ContainerPort: 9733,
+						Type:          "plaintext",
+					},
+					ExternalStartingPort: 0,
+					IngressServiceSettings: v1beta1.IngressServiceSettings{
+						HostnameOverride: ".external.nodeport.com",
+					},
+					AccessMethod: corev1.ServiceTypeNodePort,
+				},
+			}
+		})
+
+		It("reconciles the status successfully", func() {
+			err := k8sClient.Get(context.TODO(), types.NamespacedName{
+				Name:      kafkaCluster.Name,
+				Namespace: kafkaCluster.Namespace,
+			}, kafkaCluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			assignedNodePortPerBroker := make(map[int32]int32, len(kafkaCluster.Spec.Brokers))
+
+			for _, broker := range kafkaCluster.Spec.Brokers {
+				service := &corev1.Service{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{
+					Name:      fmt.Sprintf(kafka.NodePortServiceTemplate, kafkaCluster.GetName(), broker.Id, "test"),
+					Namespace: kafkaCluster.GetNamespace(),
+				}, service)
+				Expect(err).NotTo(HaveOccurred())
+				assignedNodePortPerBroker[broker.Id] = service.Spec.Ports[0].NodePort
+			}
+
+			Expect(kafkaCluster.Status.ListenerStatuses).To(Equal(v1beta1.ListenerStatuses{
+				InternalListeners: map[string]v1beta1.ListenerStatusList{
+					"internal": {
+						{
+							Name:    "any-broker",
+							Address: fmt.Sprintf("%s-all-broker.kafka-nodeport-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+						},
+						{
+							Name:    "broker-0",
+							Address: fmt.Sprintf("%s-0.kafka-nodeport-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+						},
+						{
+							Name:    "broker-1",
+							Address: fmt.Sprintf("%s-1.kafka-nodeport-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+						},
+						{
+							Name:    "broker-2",
+							Address: fmt.Sprintf("%s-2.kafka-nodeport-%d.svc.cluster.local:29092", kafkaCluster.Name, count),
+						},
+					},
+				},
+				ExternalListeners: map[string]v1beta1.ListenerStatusList{
+					"test": {
+						{
+							Name:    "broker-0",
+							Address: fmt.Sprintf("%s-0-test.kafka-nodeport-%d.external.nodeport.com:%d", kafkaCluster.Name, count, assignedNodePortPerBroker[0]),
+						},
+						{
+							Name:    "broker-1",
+							Address: fmt.Sprintf("%s-1-test.kafka-nodeport-%d.external.nodeport.com:%d", kafkaCluster.Name, count, assignedNodePortPerBroker[1]),
+						},
+						{
+							Name:    "broker-2",
+							Address: fmt.Sprintf("%s-2-test.kafka-nodeport-%d.external.nodeport.com:%d", kafkaCluster.Name, count, assignedNodePortPerBroker[2]),
 						},
 					},
 				},
