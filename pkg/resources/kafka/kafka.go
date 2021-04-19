@@ -916,13 +916,14 @@ func (r *Reconciler) getK8sAssignedNodeport(log logr.Logger, eListenerName strin
 		"brokerId", brokerId, "listenerName", eListenerName)
 	nodePortSvc := &corev1.Service{}
 	err := r.Client.Get(context.Background(),
-		types.NamespacedName{Name: fmt.Sprintf("%s-%d-%s", r.KafkaCluster.GetName(), brokerId, eListenerName),
+		types.NamespacedName{Name: fmt.Sprintf(kafka.NodePortServiceTemplate,
+			r.KafkaCluster.GetName(), brokerId, eListenerName),
 			Namespace: r.KafkaCluster.GetNamespace()}, nodePortSvc)
 	if err != nil {
 		return 0, errors.WrapWithDetails(err, "could not get nodeport service",
 			"brokerId", brokerId, "listenerName", eListenerName)
 	}
-	log.Info("nodeport service successfully found",
+	log.V(1).Info("nodeport service successfully found",
 		"brokerId", brokerId, "listenerName", eListenerName)
 
 	var nodePort int32

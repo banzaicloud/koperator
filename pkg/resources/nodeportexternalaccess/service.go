@@ -37,7 +37,7 @@ func (r *Reconciler) service(_ logr.Logger, id int32,
 	}
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
-			fmt.Sprintf(serviceName, r.KafkaCluster.GetName(), id, extListener.Name),
+			fmt.Sprintf(kafka.NodePortServiceTemplate, r.KafkaCluster.GetName(), id, extListener.Name),
 			util.MergeLabels(kafka.LabelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
 			extListener.GetServiceAnnotations(), r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
