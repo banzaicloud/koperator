@@ -11565,10 +11565,8 @@ spec:
                   required:
                   - configurationState
                   - gracefulActionState
-                  - image
                   - perBrokerConfigurationState
                   - rackAwarenessState
-                  - version
                   type: object
                 type: object
               cruiseControlTopicStatus:
