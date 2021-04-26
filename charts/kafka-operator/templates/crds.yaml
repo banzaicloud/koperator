@@ -11550,18 +11550,8 @@ spec:
                       - cruiseControlState
                       - errorMessage
                       type: object
-                    kafkaVersion:
-                      description: KafkaVersion holds the kafka version with the used
-                        docker image version
-                      properties:
-                        dockerImage:
-                          type: string
-                        version:
-                          type: string
-                      required:
-                      - dockerImage
-                      - version
-                      type: object
+                    image:
+                      type: string
                     perBrokerConfigurationState:
                       description: PerBrokerConfigurationState holds info about the
                         per-broker (dynamically updatable) config
@@ -11570,11 +11560,15 @@ spec:
                       description: RackAwarenessState holds info about rack awareness
                         status
                       type: string
+                    version:
+                      type: string
                   required:
                   - configurationState
                   - gracefulActionState
+                  - image
                   - perBrokerConfigurationState
                   - rackAwarenessState
+                  - version
                   type: object
                 type: object
               cruiseControlTopicStatus:
