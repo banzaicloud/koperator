@@ -46,8 +46,10 @@ type ExternalListenerConfigNames []string
 
 // KafkaVersion type describes the kafka version and docker version
 type KafkaVersion struct {
+	// Version holds the current version of the broker in semver format
 	Version string `json:"version,omitempty"`
-	Image   string `json:"image,omitempty"`
+	// Image specifies the current docker image of the broker
+	Image string `json:"image,omitempty"`
 }
 
 // PKIBackend represents an interface implementing the PKIManager

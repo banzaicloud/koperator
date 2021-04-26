@@ -11551,6 +11551,8 @@ spec:
                       - errorMessage
                       type: object
                     image:
+                      description: Image specifies the current docker image of the
+                        broker
                       type: string
                     perBrokerConfigurationState:
                       description: PerBrokerConfigurationState holds info about the
@@ -11561,6 +11563,8 @@ spec:
                         status
                       type: string
                     version:
+                      description: Version holds the current version of the broker
+                        in semver format
                       type: string
                   required:
                   - configurationState
