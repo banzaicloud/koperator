@@ -46,8 +46,8 @@ type ExternalListenerConfigNames []string
 
 // KafkaVersion type describes the kafka version and docker version
 type KafkaVersion struct {
-	Version        string `json:"version"`
-	DockerImage string `json:"dockerImage"`
+	Version string `json:"version"`
+	Image   string `json:"image"`
 }
 
 // PKIBackend represents an interface implementing the PKIManager
@@ -158,7 +158,7 @@ type BrokerState struct {
 	// ExternalListenerConfigNames holds info about what listener config is in use with the broker
 	ExternalListenerConfigNames ExternalListenerConfigNames `json:"externalListenerConfigNames,omitempty"`
 	// KafkaVersion holds the kafka version with the used docker image version
-	KafkaVersion KafkaVersion `json:"kafkaVersion,omitempty"`
+	KafkaVersion KafkaVersion `json:",inline"`
 }
 
 const (
