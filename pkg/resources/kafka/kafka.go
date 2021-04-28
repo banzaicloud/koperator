@@ -268,6 +268,9 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		if err != nil {
 			return err
 		}
+		if err = r.updateStatusWithDockerImageAndVersion(broker.Id, brokerConfig, log); err != nil {
+			return err
+		}
 		if err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, configMap, log); err != nil {
 			return err
 		}
@@ -558,6 +561,16 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 	err = r.handleRollingUpgrade(log, desiredPod, currentPod, desiredType)
 	if err != nil {
 		return errors.Wrap(err, "could not handle rolling upgrade")
+	}
+	return nil
+}
+
+func (r *Reconciler) updateStatusWithDockerImageAndVersion(brokerId int32, brokerConfig *v1beta1.BrokerConfig, log logr.Logger) error {
+	brokerImage := util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.GetClusterImage())
+	err := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster,
+		v1beta1.KafkaVersion{Image: brokerImage}, log)
+	if err != nil {
+		return err
 	}
 	return nil
 }
