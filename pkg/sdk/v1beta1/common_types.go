@@ -159,8 +159,10 @@ type BrokerState struct {
 	PerBrokerConfigurationState PerBrokerConfigurationState `json:"perBrokerConfigurationState"`
 	// ExternalListenerConfigNames holds info about what listener config is in use with the broker
 	ExternalListenerConfigNames ExternalListenerConfigNames `json:"externalListenerConfigNames,omitempty"`
-	// KafkaVersion holds the kafka version with the used docker image version
-	KafkaVersion KafkaVersion `json:",inline"`
+	// Version holds the current version of the broker in semver format
+	Version string `json:"version,omitempty"`
+	// Image specifies the current docker image of the broker
+	Image string `json:"image,omitempty"`
 }
 
 const (

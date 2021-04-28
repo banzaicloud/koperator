@@ -122,6 +122,9 @@ func generateBrokerState(brokerIDs []string, cluster *banzaicloudv1beta1.KafkaCl
 			for mountPath, volumeState := range state {
 				brokerState.GracefulActionState.VolumeStates[mountPath] = volumeState
 			}
+		case banzaicloudv1beta1.KafkaVersion:
+			brokerState.Image = s.Image
+			brokerState.Version = s.Version
 		}
 		brokersState[brokerID] = brokerState
 	}
