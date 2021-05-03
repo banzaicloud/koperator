@@ -811,7 +811,7 @@ func (mConfig *MonitoringConfig) GetImage() string {
 	if mConfig.JmxImage != "" {
 		return mConfig.JmxImage
 	}
-	return "ghcr.io/banzaicloud/jmx-javaagent:0.14.0"
+	return "ghcr.io/banzaicloud/jmx-javaagent:0.15.0"
 }
 
 // GetPathToJar returns the path in the used Image for Prometheus JMX exporter
@@ -819,7 +819,7 @@ func (mConfig *MonitoringConfig) GetPathToJar() string {
 	if mConfig.PathToJar != "" {
 		return mConfig.PathToJar
 	}
-	return "/opt/jmx_exporter/jmx_prometheus_javaagent-0.14.0.jar"
+	return "/opt/jmx_exporter/jmx_prometheus_javaagent-0.15.0.jar"
 }
 
 // GetKafkaJMXExporterConfig returns the config for Kafka Prometheus JMX exporter
@@ -831,11 +831,13 @@ func (mConfig *MonitoringConfig) GetKafkaJMXExporterConfig() string {
 	return `lowercaseOutputName: true
 rules:
 # Special cases and very specific rules
-- pattern : 'kafka.server<type=app-info><>version: (.*)'
-  name: kafka_server_app_info
-  value: 1.0
+- pattern: 'kafka.server<type=(app-info), id=(\d+)><>(Version): ([-.~+\w\d]+)'
+  name: kafka_server_$1_$3
+  type: COUNTER
   labels:
-    version: "$1"
+    broker_id: $2
+    version: $4
+  value: 1.0
 - pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)><>Value
   name: kafka_server_$1_$2
   type: GAUGE
