@@ -819,7 +819,7 @@ func (mConfig *MonitoringConfig) GetPathToJar() string {
 	if mConfig.PathToJar != "" {
 		return mConfig.PathToJar
 	}
-	return "/opt/jmx_exporter/jmx_prometheus_javaagent-0.15.0.jar"
+	return "/jmx_prometheus_javaagent.jar"
 }
 
 // GetKafkaJMXExporterConfig returns the config for Kafka Prometheus JMX exporter
