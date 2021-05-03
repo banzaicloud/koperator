@@ -17,7 +17,10 @@ package kafka
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -565,10 +568,45 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 	return nil
 }
 
-func (r *Reconciler) updateStatusWithDockerImageAndVersion(brokerId int32, brokerConfig *v1beta1.BrokerConfig, log logr.Logger) error {
+func (r *Reconciler) updateStatusWithDockerImageAndVersion(brokerId int32, brokerConfig *v1beta1.BrokerConfig,
+	log logr.Logger) error {
+	const versionRegexGroup = "version"
+	var requestURL string
+	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
+		requestURL =
+			fmt.Sprintf("http://%s-%d."+kafka.HeadlessServiceTemplate+":%d", r.KafkaCluster.GetName(), brokerId, r.KafkaCluster.GetName(), 9020)
+	} else {
+		requestURL = fmt.Sprintf("http://%s-%d:%d", r.KafkaCluster.GetName(), brokerId, 9020)
+	}
+	rsp, err := http.Get(requestURL)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("error during talking to broker-%d", brokerId))
+		return errorfactory.New(errorfactory.BrokersNotReady{}, err, "unable to talk to ...")
+	}
+	defer func() {
+		closeErr := rsp.Body.Close()
+		if closeErr != nil {
+			log.Error(closeErr, "could not close client")
+		}
+	}()
+
+	body, err := ioutil.ReadAll(rsp.Body)
+	if err != nil {
+		return err
+	}
+	jmxMetricRegex := regexp.MustCompile(
+		fmt.Sprintf(`kafka_server_app_info_version{broker_id=\"[0-9]+\",version=\"(?P<%s>[0-9]+.[0-9]+.[0-9]+)\"`, versionRegexGroup))
+	index := jmxMetricRegex.SubexpIndex(versionRegexGroup)
+	var version string
+	if index > -1 {
+		if metrics := jmxMetricRegex.FindStringSubmatch(string(body)); len(metrics) > index {
+			version = metrics[index]
+		}
+	}
+
 	brokerImage := util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.GetClusterImage())
-	err := k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster,
-		v1beta1.KafkaVersion{Image: brokerImage}, log)
+	err = k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster,
+		v1beta1.KafkaVersion{Image: brokerImage, Version: version}, log)
 	if err != nil {
 		return err
 	}

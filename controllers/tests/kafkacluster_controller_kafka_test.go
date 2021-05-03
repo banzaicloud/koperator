@@ -434,4 +434,8 @@ func expectKafkaCRStatus(kafkaCluster *v1beta1.KafkaCluster) {
 			},
 		},
 	}))
+	for _, brokerState := range kafkaCluster.Status.BrokersState {
+		Expect(brokerState.Version).To(Equal("2.7.0"))
+		Expect(brokerState.Image).To(Equal(kafkaCluster.Spec.GetClusterImage()))
+	}
 }
