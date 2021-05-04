@@ -205,7 +205,7 @@ func IsIngressConfigInUse(iConfigName, defaultConfigName string, cluster *v1beta
 	}
 	// Check if the given iConfigName is bound to a given broker
 	for _, broker := range cluster.Spec.Brokers {
-		brokerConfig, err := v1beta1.GetBrokerConfig(broker, cluster.Spec)
+		brokerConfig, err := broker.GetBrokerConfig(cluster.Spec.BrokerConfigGroups)
 		if err != nil {
 			log.Error(err, "could not determine if ingressConfig is in use")
 			return false

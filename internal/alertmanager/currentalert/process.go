@@ -253,7 +253,7 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 
 	for i, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) == pvc.Labels["brokerId"] {
-			brokerConfig, err := v1beta1.GetBrokerConfig(broker, cr.Spec)
+			brokerConfig, err := broker.GetBrokerConfig(cr.Spec.BrokerConfigGroups)
 			if err != nil {
 				return errors.WrapIf(err, "failed to determine broker config")
 			}
