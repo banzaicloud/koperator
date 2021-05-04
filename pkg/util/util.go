@@ -29,7 +29,6 @@ import (
 	"github.com/imdario/mergo"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -206,7 +205,7 @@ func IsIngressConfigInUse(iConfigName, defaultConfigName string, cluster *v1beta
 	}
 	// Check if the given iConfigName is bound to a given broker
 	for _, broker := range cluster.Spec.Brokers {
-		brokerConfig, err := GetBrokerConfig(broker, cluster.Spec)
+		brokerConfig, err := v1beta1.GetBrokerConfig(broker, cluster.Spec)
 		if err != nil {
 			log.Error(err, "could not determine if ingressConfig is in use")
 			return false
@@ -317,62 +316,6 @@ func GetIngressConfigs(kafkaClusterSpec v1beta1.KafkaClusterSpec,
 		return nil, "", errors.NewWithDetails("not supported ingress type", "name", kafkaClusterSpec.GetIngressController())
 	}
 	return ingressConfigs, defaultIngressConfigName, nil
-}
-
-// GetBrokerConfig compose the brokerConfig for a given broker
-func GetBrokerConfig(broker v1beta1.Broker, clusterSpec v1beta1.KafkaClusterSpec) (*v1beta1.BrokerConfig, error) {
-	bConfig := &v1beta1.BrokerConfig{}
-	if broker.BrokerConfigGroup == "" {
-		return broker.BrokerConfig, nil
-	} else if broker.BrokerConfig != nil {
-		bConfig = broker.BrokerConfig.DeepCopy()
-	}
-
-	groupConfig, exists := clusterSpec.BrokerConfigGroups[broker.BrokerConfigGroup]
-	if !exists {
-		return nil, errors.NewWithDetails("missing brokerConfigGroup", "key", broker.BrokerConfigGroup)
-	}
-
-	dstAffinity := &corev1.Affinity{}
-	srcAffinity := &corev1.Affinity{}
-
-	if groupConfig.Affinity != nil {
-		dstAffinity = groupConfig.Affinity.DeepCopy()
-	}
-	if bConfig.Affinity != nil {
-		srcAffinity = bConfig.Affinity
-	}
-
-	if err := mergo.Merge(dstAffinity, srcAffinity, mergo.WithOverride); err != nil {
-		return nil, errors.WrapIf(err, "could not merge brokerConfig.Affinity with ConfigGroup.Affinity")
-	}
-
-	err := mergo.Merge(bConfig, groupConfig, mergo.WithAppendSlice)
-	if err != nil {
-		return nil, errors.WrapIf(err, "could not merge brokerConfig with ConfigGroup")
-	}
-
-	bConfig.StorageConfigs = dedupStorageConfigs(bConfig.StorageConfigs)
-
-	if groupConfig.Affinity != nil || bConfig.Affinity != nil {
-		bConfig.Affinity = dstAffinity
-	}
-
-	return bConfig, nil
-}
-
-func dedupStorageConfigs(elements []v1beta1.StorageConfig) []v1beta1.StorageConfig {
-	encountered := make(map[string]struct{})
-	result := make([]v1beta1.StorageConfig, 0)
-
-	for _, v := range elements {
-		if _, ok := encountered[v.MountPath]; !ok {
-			encountered[v.MountPath] = struct{}{}
-			result = append(result, v)
-		}
-	}
-
-	return result
 }
 
 // GetBrokerImage returns the used broker image

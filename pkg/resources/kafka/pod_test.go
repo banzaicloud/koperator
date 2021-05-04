@@ -22,7 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 func TestGetAffinity(t *testing.T) {
@@ -64,7 +63,7 @@ func TestGetAffinity(t *testing.T) {
 	affinity := getAffinity(&nilAffinityBrokerConfig, &cluster)
 	assert.DeepEqual(t, affinity.PodAntiAffinity, defaultPodAntiAffinity.PodAntiAffinity)
 
-	mergedAffinityBrokerConfig, _ := util.GetBrokerConfig(v1beta1.Broker{
+	mergedAffinityBrokerConfig, _ := v1beta1.GetBrokerConfig(v1beta1.Broker{
 		BrokerConfig: &nilAffinityBrokerConfig,
 	}, cluster.Spec)
 
@@ -72,7 +71,7 @@ func TestGetAffinity(t *testing.T) {
 	affinity = getAffinity(mergedAffinityBrokerConfig, &cluster)
 	assert.DeepEqual(t, affinity.PodAntiAffinity, defaultPodAntiAffinity.PodAntiAffinity)
 
-	mergedAffinityBrokerConfig2, _ := util.GetBrokerConfig(v1beta1.Broker{
+	mergedAffinityBrokerConfig2, _ := v1beta1.GetBrokerConfig(v1beta1.Broker{
 		BrokerConfigGroup: "test",
 		BrokerConfig:      &nilAffinityBrokerConfig,
 	}, cluster.Spec)

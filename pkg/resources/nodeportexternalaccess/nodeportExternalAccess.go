@@ -22,7 +22,6 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 const (
@@ -53,7 +52,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 			if eListener.GetAccessMethod() == corev1.ServiceTypeNodePort {
 				for _, broker := range r.KafkaCluster.Spec.Brokers {
-					brokerConfig, err := util.GetBrokerConfig(broker, r.KafkaCluster.Spec)
+					brokerConfig, err := v1beta1.GetBrokerConfig(broker, r.KafkaCluster.Spec)
 					if err != nil {
 						return err
 					}
