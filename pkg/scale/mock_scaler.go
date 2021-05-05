@@ -18,13 +18,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 )
 
-type mockCruiseControlScaler struct {
-	CruiseControlScaler
-	//namespace               string
-	//kubernetesClusterDomain string
-	//endpoint                string
-	//clusterName             string
-}
+type mockCruiseControlScaler struct{}
 
 func (mc *mockCruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIds []string) ([]string, error) {
 	return nil, nil
