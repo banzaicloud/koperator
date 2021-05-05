@@ -70,7 +70,14 @@ const (
 	jmxVolumePath = "/opt/jmx-exporter/"
 	jmxVolumeName = "jmx-jar-data"
 	metricsPort   = 9020
+
+	versionRegexGroup          = "version"
+	headlessServiceJMXTemplate = "http://%s-%d." + kafka.HeadlessServiceTemplate + ".%s.svc.%s:%d"
+	serviceJMXTemplate         = "http://%s-%d.%s.svc.%s:%d"
 )
+
+var jmxMetricRegex = regexp.MustCompile(
+	fmt.Sprintf(`kafka_server_app_info_version{broker_id=\"[0-9]+\",version=\"(?P<%s>[0-9]+.[0-9]+.[0-9]+)\"`, versionRegexGroup))
 
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
@@ -570,13 +577,15 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 
 func (r *Reconciler) updateStatusWithDockerImageAndVersion(brokerId int32, brokerConfig *v1beta1.BrokerConfig,
 	log logr.Logger) error {
-	const versionRegexGroup = "version"
 	var requestURL string
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
 		requestURL =
-			fmt.Sprintf("http://%s-%d."+kafka.HeadlessServiceTemplate+":%d", r.KafkaCluster.GetName(), brokerId, r.KafkaCluster.GetName(), 9020)
+			fmt.Sprintf(headlessServiceJMXTemplate,
+				r.KafkaCluster.GetName(), brokerId, r.KafkaCluster.GetName(), r.KafkaCluster.GetNamespace(),
+				r.KafkaCluster.Spec.GetKubernetesClusterDomain(), 9020)
 	} else {
-		requestURL = fmt.Sprintf("http://%s-%d:%d", r.KafkaCluster.GetName(), brokerId, 9020)
+		requestURL = fmt.Sprintf(serviceJMXTemplate, r.KafkaCluster.GetName(), brokerId,
+			r.KafkaCluster.GetNamespace(), r.KafkaCluster.Spec.GetKubernetesClusterDomain(), 9020)
 	}
 	rsp, err := http.Get(requestURL)
 	if err != nil {
@@ -594,8 +603,6 @@ func (r *Reconciler) updateStatusWithDockerImageAndVersion(brokerId int32, broke
 	if err != nil {
 		return err
 	}
-	jmxMetricRegex := regexp.MustCompile(
-		fmt.Sprintf(`kafka_server_app_info_version{broker_id=\"[0-9]+\",version=\"(?P<%s>[0-9]+.[0-9]+.[0-9]+)\"`, versionRegexGroup))
 	index := jmxMetricRegex.SubexpIndex(versionRegexGroup)
 	var version string
 	if index > -1 {
