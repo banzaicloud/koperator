@@ -62,6 +62,7 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/controllers"
+	"github.com/banzaicloud/kafka-operator/pkg/jmxextractor"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/scale"
 	// +kubebuilder:scaffold:imports
@@ -134,6 +135,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(mgr).ToNot(BeNil())
 
 	scale.MockNewCruiseControlScaler()
+	jmxextractor.NewMockJMXExtractor()
 
 	mockKafkaClients = make(map[types.NamespacedName]kafkaclient.KafkaClient)
 

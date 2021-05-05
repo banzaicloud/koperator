@@ -17,10 +17,7 @@ package kafka
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"reflect"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -40,6 +37,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/kafka-operator/pkg/jmxextractor"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
 	"github.com/banzaicloud/kafka-operator/pkg/pki"
@@ -70,14 +68,7 @@ const (
 	jmxVolumePath = "/opt/jmx-exporter/"
 	jmxVolumeName = "jmx-jar-data"
 	metricsPort   = 9020
-
-	versionRegexGroup          = "version"
-	headlessServiceJMXTemplate = "http://%s-%d." + kafka.HeadlessServiceTemplate + ".%s.svc.%s:%d"
-	serviceJMXTemplate         = "http://%s-%d.%s.svc.%s:%d"
 )
-
-var jmxMetricRegex = regexp.MustCompile(
-	fmt.Sprintf(`kafka_server_app_info_version{broker_id=\"[0-9]+\",version=\"(?P<%s>[0-9]+.[0-9]+.[0-9]+)\"`, versionRegexGroup))
 
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
@@ -577,43 +568,16 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 
 func (r *Reconciler) updateStatusWithDockerImageAndVersion(brokerId int32, brokerConfig *v1beta1.BrokerConfig,
 	log logr.Logger) error {
-	var requestURL string
-	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
-		requestURL =
-			fmt.Sprintf(headlessServiceJMXTemplate,
-				r.KafkaCluster.GetName(), brokerId, r.KafkaCluster.GetName(), r.KafkaCluster.GetNamespace(),
-				r.KafkaCluster.Spec.GetKubernetesClusterDomain(), 9020)
-	} else {
-		requestURL = fmt.Sprintf(serviceJMXTemplate, r.KafkaCluster.GetName(), brokerId,
-			r.KafkaCluster.GetNamespace(), r.KafkaCluster.Spec.GetKubernetesClusterDomain(), 9020)
-	}
-	rsp, err := http.Get(requestURL)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("error during talking to broker-%d", brokerId))
-		return errorfactory.New(errorfactory.BrokersNotReady{}, err, "unable to talk to ...")
-	}
-	defer func() {
-		closeErr := rsp.Body.Close()
-		if closeErr != nil {
-			log.Error(closeErr, "could not close client")
-		}
-	}()
+	jmxExp := jmxextractor.NewJMXExtractor(r.KafkaCluster.GetNamespace(),
+		r.KafkaCluster.Spec.GetKubernetesClusterDomain(), r.KafkaCluster.GetName(), log)
 
-	body, err := ioutil.ReadAll(rsp.Body)
+	kafkaVersion, err := jmxExp.ExtractDockerImageAndVersion(brokerId, brokerConfig,
+		r.KafkaCluster.Spec.GetClusterImage(), r.KafkaCluster.Spec.HeadlessServiceEnabled)
 	if err != nil {
 		return err
 	}
-	index := jmxMetricRegex.SubexpIndex(versionRegexGroup)
-	var version string
-	if index > -1 {
-		if metrics := jmxMetricRegex.FindStringSubmatch(string(body)); len(metrics) > index {
-			version = metrics[index]
-		}
-	}
-
-	brokerImage := util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.GetClusterImage())
 	err = k8sutil.UpdateBrokerStatus(r.Client, []string{strconv.Itoa(int(brokerId))}, r.KafkaCluster,
-		v1beta1.KafkaVersion{Image: brokerImage, Version: version}, log)
+		*kafkaVersion, log)
 	if err != nil {
 		return err
 	}
