@@ -254,7 +254,7 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger)
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
 	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
 	serverPass, clientPass string, superUsers []string, log logr.Logger) string {
-	finalBrokerConfig := getFinalBrokerConfig(id, r.KafkaCluster, log)
+	finalBrokerConfig := getBrokerReadOnlyConfig(id, r.KafkaCluster, log)
 
 	// Get operator generated configuration
 	opGenConf := r.getConfigProperties(brokerConfig, id, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)
@@ -270,7 +270,7 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 }
 
 // TODO move this into pkg/sdk in the future (adamantal)
-func getFinalBrokerConfig(id int32, kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) *properties.Properties {
+func getBrokerReadOnlyConfig(id int32, kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) *properties.Properties {
 	// Parse cluster-wide readonly configuration
 	finalBrokerConfig, err := properties.NewFromString(kafkaCluster.Spec.ReadOnlyConfig)
 	if err != nil {
