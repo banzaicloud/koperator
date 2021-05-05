@@ -17,6 +17,9 @@ package v1beta1
 import (
 	"strings"
 
+	"emperror.dev/errors"
+	"github.com/imdario/mergo"
+
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -1053,6 +1056,62 @@ func (mConfig *MonitoringConfig) GetCCJMXExporterConfig() string {
 	return `
     lowercaseOutputName: true
 `
+}
+
+// GetBrokerConfig composes the brokerConfig for a given broker using the broker's config group
+func (b *Broker) GetBrokerConfig(brokerConfigGroups map[string]BrokerConfig) (*BrokerConfig, error) {
+	bConfig := &BrokerConfig{}
+	if b.BrokerConfigGroup == "" {
+		return b.BrokerConfig, nil
+	} else if b.BrokerConfig != nil {
+		bConfig = b.BrokerConfig.DeepCopy()
+	}
+
+	groupConfig, exists := brokerConfigGroups[b.BrokerConfigGroup]
+	if !exists {
+		return nil, errors.NewWithDetails("missing brokerConfigGroup", "key", b.BrokerConfigGroup)
+	}
+
+	dstAffinity := &corev1.Affinity{}
+	srcAffinity := &corev1.Affinity{}
+
+	if groupConfig.Affinity != nil {
+		dstAffinity = groupConfig.Affinity.DeepCopy()
+	}
+	if bConfig.Affinity != nil {
+		srcAffinity = bConfig.Affinity
+	}
+
+	if err := mergo.Merge(dstAffinity, srcAffinity, mergo.WithOverride); err != nil {
+		return nil, errors.WrapIf(err, "could not merge brokerConfig.Affinity with ConfigGroup.Affinity")
+	}
+
+	err := mergo.Merge(bConfig, groupConfig, mergo.WithAppendSlice)
+	if err != nil {
+		return nil, errors.WrapIf(err, "could not merge brokerConfig with ConfigGroup")
+	}
+
+	bConfig.StorageConfigs = dedupStorageConfigs(bConfig.StorageConfigs)
+
+	if groupConfig.Affinity != nil || bConfig.Affinity != nil {
+		bConfig.Affinity = dstAffinity
+	}
+
+	return bConfig, nil
+}
+
+func dedupStorageConfigs(elements []StorageConfig) []StorageConfig {
+	encountered := make(map[string]struct{})
+	result := make([]StorageConfig, 0)
+
+	for _, v := range elements {
+		if _, ok := encountered[v.MountPath]; !ok {
+			encountered[v.MountPath] = struct{}{}
+			result = append(result, v)
+		}
+	}
+
+	return result
 }
 
 func cloneAnnotationMap(original map[string]string) map[string]string {

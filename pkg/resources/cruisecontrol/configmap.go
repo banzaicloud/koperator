@@ -235,7 +235,7 @@ func generateDefaultBrokerCapacity() BrokerCapacity {
 }
 
 func generateBrokerNetworkIn(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) string {
-	brokerConfig, err := util.GetBrokerConfig(broker, kafkaClusterSpec)
+	brokerConfig, err := broker.GetBrokerConfig(kafkaClusterSpec.BrokerConfigGroups)
 	if err != nil {
 		log.V(warnLevel).Info("could not get incoming network resource limits falling back to default value")
 		return storageConfigNWINDefaultValue
@@ -249,7 +249,7 @@ func generateBrokerNetworkIn(broker v1beta1.Broker, kafkaClusterSpec v1beta1.Kaf
 }
 
 func generateBrokerNetworkOut(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) string {
-	brokerConfig, err := util.GetBrokerConfig(broker, kafkaClusterSpec)
+	brokerConfig, err := broker.GetBrokerConfig(kafkaClusterSpec.BrokerConfigGroups)
 	if err != nil {
 		log.V(warnLevel).Info("could not get outgoing network resource limits falling back to default value")
 		return storageConfigNWOUTDefaultValue
@@ -263,7 +263,7 @@ func generateBrokerNetworkOut(broker v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 }
 
 func generateBrokerCPU(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) string {
-	brokerConfig, err := util.GetBrokerConfig(broker, kafkaClusterSpec)
+	brokerConfig, err := broker.GetBrokerConfig(kafkaClusterSpec.BrokerConfigGroups)
 	if err != nil {
 		log.V(warnLevel).Info("could not get cpu resource limits falling back to default value")
 		return storageConfigCPUDefaultValue
