@@ -256,7 +256,6 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	getEnvName := func(c corev1.EnvVar) string { return c.Name }
 	Expect(container.Env).To(ConsistOf(
 		// the exact value is not interesting
-		WithTransform(getEnvName, Equal("CLASSPATH")),
 		WithTransform(getEnvName, Equal("KAFKA_OPTS")),
 		WithTransform(getEnvName, Equal("KAFKA_JVM_PERFORMANCE_OPTS")),
 
@@ -273,6 +272,22 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 		corev1.EnvVar{
 			Name:  "KAFKA_HEAP_OPTS",
 			Value: "-Xmx2G -Xms2G",
+		},
+		corev1.EnvVar{
+			Name: "ENVVAR1",
+			Value: "VALUE1 VALUE2",
+		},
+		corev1.EnvVar{
+			Name: "ENVVAR2",
+			Value: "VALUE2",
+		},
+		corev1.EnvVar{
+			Name: "CLASSPATH",
+			Value: "/opt/kafka/libs/extensions/*:/test/class/path",
+		},
+		corev1.EnvVar{
+			Name: "BROKERID",
+			Value: strconv.Itoa(int(broker.Id)),
 		},
 	))
 	Expect(container.VolumeMounts).To(HaveLen(8))

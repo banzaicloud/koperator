@@ -245,7 +245,7 @@ func GatherBrokerConfigIfAvailable(kafkaClusterSpec v1beta1.KafkaClusterSpec, br
 	// but the broker spec does not contain the required config values.
 	for _, broker := range kafkaClusterSpec.Brokers {
 		if int(broker.Id) == brokerID {
-			brokerConfig, err := broker.GetBrokerConfig(kafkaClusterSpec.BrokerConfigGroups)
+			brokerConfig, err := broker.GetBrokerConfig(kafkaClusterSpec)
 			if err != nil {
 				return nil, err
 			}

@@ -207,7 +207,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	brokersVolumes := make(map[string][]*corev1.PersistentVolumeClaim, len(r.KafkaCluster.Spec.Brokers))
 	for _, broker := range r.KafkaCluster.Spec.Brokers {
-		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec.BrokerConfigGroups)
+		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
 		if err != nil {
 			return errors.WrapIf(err, "failed to reconcile resource")
 		}
@@ -230,7 +230,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	reorderedBrokers := r.reorderBrokers(log, r.KafkaCluster.Spec.Brokers)
 	for _, broker := range reorderedBrokers {
-		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec.BrokerConfigGroups)
+		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
 		if err != nil {
 			return errors.WrapIf(err, "failed to reconcile resource")
 		}
@@ -888,7 +888,7 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 				portNumber := eListener.ExternalStartingPort + broker.Id
 
 				if eListener.GetAccessMethod() != corev1.ServiceTypeLoadBalancer {
-					bConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec.BrokerConfigGroups)
+					bConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
 					if err != nil {
 						return nil, err
 					}
@@ -911,7 +911,7 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 						brokerHost = fmt.Sprintf("%s-%d-%s.%s%s", r.KafkaCluster.Name, broker.Id, eListener.Name, r.KafkaCluster.Namespace, brokerHost)
 					}
 				}
-				brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec.BrokerConfigGroups)
+				brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
 				if err != nil {
 					return nil, err
 				}
