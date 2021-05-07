@@ -274,19 +274,19 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 			Value: "-Xmx2G -Xms2G",
 		},
 		corev1.EnvVar{
-			Name: "ENVVAR1",
+			Name:  "ENVVAR1",
 			Value: "VALUE1 VALUE2",
 		},
 		corev1.EnvVar{
-			Name: "ENVVAR2",
+			Name:  "ENVVAR2",
 			Value: "VALUE2",
 		},
 		corev1.EnvVar{
-			Name: "CLASSPATH",
+			Name:  "CLASSPATH",
 			Value: "/opt/kafka/libs/extensions/*:/test/class/path",
 		},
 		corev1.EnvVar{
-			Name: "BROKERID",
+			Name:  "BROKERID",
 			Value: strconv.Itoa(int(broker.Id)),
 		},
 	))
