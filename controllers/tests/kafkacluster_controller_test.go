@@ -103,6 +103,20 @@ var _ = Describe("KafkaCluster", func() {
 				MountPath: "/a/test/path",
 			},
 		}
+		defaultGroup.Envs = []corev1.EnvVar{
+			{
+				Name:  "ENVVAR1",
+				Value: "+ VALUE2",
+			},
+			{
+				Name:  "ENVVAR2",
+				Value: "VALUE2",
+			},
+			{
+				Name:  "CLASSPATH",
+				Value: "+:/test/class/path",
+			},
+		}
 		kafkaCluster.Spec.BrokerConfigGroups[defaultBrokerConfigGroup] = defaultGroup
 		// Set some CruiseControl pod and container related SecurityContext values
 		kafkaCluster.Spec.CruiseControlConfig.PodSecurityContext = &corev1.PodSecurityContext{
@@ -113,6 +127,16 @@ var _ = Describe("KafkaCluster", func() {
 		}
 		kafkaCluster.Spec.EnvoyConfig.Annotations = map[string]string{
 			"envoy-annotation-key": "envoy-annotation-value",
+		}
+		kafkaCluster.Spec.Envs = []corev1.EnvVar{
+			{
+				Name:  "ENVVAR1",
+				Value: "VALUE1",
+			},
+			{
+				Name:  "ENVVAR2",
+				Value: "+VALUE1",
+			},
 		}
 	})
 

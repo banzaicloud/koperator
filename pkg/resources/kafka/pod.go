@@ -149,7 +149,8 @@ fi`},
 								},
 							},
 						},
-					}, r.KafkaCluster.Spec.Envs),
+					}),
+
 					Command: command,
 					Ports: append(kafkaBrokerContainerPorts, []corev1.ContainerPort{
 						{
@@ -404,15 +405,24 @@ func generateVolumeMountForSSL() []corev1.VolumeMount {
 	}
 }
 
-func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars, clusterEnvVars []corev1.EnvVar) []corev1.EnvVar {
+func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars []corev1.EnvVar) []corev1.EnvVar {
 	envs := map[string]corev1.EnvVar{}
 
 	for _, v := range defaultEnvVars {
 		envs[v.Name] = v
 	}
 
-	for _, v := range clusterEnvVars {
-		envs[v.Name] = v
+	// merge the env variables
+	for _, envVar := range brokerConfig.Envs {
+		if envVar.Value != "" && envVar.Value[0] == '+' {
+			envVar.Value = envVar.Value[1:]
+			if envVarFromMap, ok := envs[envVar.Name]; ok {
+				envVarFromMap.Value += envVar.Value
+				envs[envVar.Name] = envVarFromMap
+				continue
+			}
+		}
+		envs[envVar.Name] = envVar
 	}
 
 	if brokerConfig.Log4jConfig != "" {

@@ -52,19 +52,21 @@ func TestGetBrokerConfigAffinityMergeBrokerNodeAffinityWithGroupsAntiAffinity(t 
 		},
 	}
 
-	brokerConfigGroups := map[string]BrokerConfig{
-		"default": {
-			Affinity: &corev1.Affinity{
-				NodeAffinity: &corev1.NodeAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-						NodeSelectorTerms: []corev1.NodeSelectorTerm{
-							{
-								MatchExpressions: nil,
-								MatchFields: []corev1.NodeSelectorRequirement{
-									{
-										Key:      "fruit",
-										Operator: "in",
-										Values:   []string{"apple"},
+	spec := KafkaClusterSpec{
+		BrokerConfigGroups: map[string]BrokerConfig{
+			"default": {
+				Affinity: &corev1.Affinity{
+					NodeAffinity: &corev1.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+							NodeSelectorTerms: []corev1.NodeSelectorTerm{
+								{
+									MatchExpressions: nil,
+									MatchFields: []corev1.NodeSelectorRequirement{
+										{
+											Key:      "fruit",
+											Operator: "in",
+											Values:   []string{"apple"},
+										},
 									},
 								},
 							},
@@ -94,7 +96,7 @@ func TestGetBrokerConfigAffinityMergeBrokerNodeAffinityWithGroupsAntiAffinity(t 
 		},
 	}
 
-	config, err := broker.GetBrokerConfig(brokerConfigGroups)
+	config, err := broker.GetBrokerConfig(spec)
 	if err != nil {
 		t.Error(err)
 	}
@@ -128,29 +130,31 @@ func TestGetBrokerConfigAffinityMergeEmptyBrokerConfigWithDefaultConfig(t *testi
 		},
 	}
 
-	brokerConfigGroups := map[string]BrokerConfig{
-		"default": {
-			Affinity: &corev1.Affinity{
-				PodAntiAffinity: &corev1.PodAntiAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-						{
-							LabelSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_config_group"},
+	spec := KafkaClusterSpec{
+		BrokerConfigGroups: map[string]BrokerConfig{
+			"default": {
+				Affinity: &corev1.Affinity{
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+							{
+								LabelSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_config_group"},
+								},
+								TopologyKey: "kubernetes.io/hostname",
 							},
-							TopologyKey: "kubernetes.io/hostname",
 						},
 					},
-				},
-				NodeAffinity: &corev1.NodeAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-						NodeSelectorTerms: []corev1.NodeSelectorTerm{
-							{
-								MatchExpressions: nil,
-								MatchFields: []corev1.NodeSelectorRequirement{
-									{
-										Key:      "fruit",
-										Operator: "in",
-										Values:   []string{"apple"},
+					NodeAffinity: &corev1.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+							NodeSelectorTerms: []corev1.NodeSelectorTerm{
+								{
+									MatchExpressions: nil,
+									MatchFields: []corev1.NodeSelectorRequirement{
+										{
+											Key:      "fruit",
+											Operator: "in",
+											Values:   []string{"apple"},
+										},
 									},
 								},
 							},
@@ -166,7 +170,7 @@ func TestGetBrokerConfigAffinityMergeEmptyBrokerConfigWithDefaultConfig(t *testi
 		BrokerConfigGroup: "default",
 	}
 
-	config, err := broker.GetBrokerConfig(brokerConfigGroups)
+	config, err := broker.GetBrokerConfig(spec)
 	if err != nil {
 		t.Error(err)
 	}
@@ -211,16 +215,18 @@ func TestGetBrokerConfigAffinityMergeEqualPodAntiAffinity(t *testing.T) {
 		},
 	}
 
-	brokerConfigGroups := map[string]BrokerConfig{
-		"default": {
-			Affinity: &corev1.Affinity{
-				PodAntiAffinity: &corev1.PodAntiAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-						{
-							LabelSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_config_group"},
+	spec := KafkaClusterSpec{
+		BrokerConfigGroups: map[string]BrokerConfig{
+			"default": {
+				Affinity: &corev1.Affinity{
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+							{
+								LabelSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_config_group"},
+								},
+								TopologyKey: "kubernetes.io/hostname",
 							},
-							TopologyKey: "kubernetes.io/hostname",
 						},
 					},
 				},
@@ -228,7 +234,7 @@ func TestGetBrokerConfigAffinityMergeEqualPodAntiAffinity(t *testing.T) {
 		},
 	}
 
-	config, err := broker.GetBrokerConfig(brokerConfigGroups)
+	config, err := broker.GetBrokerConfig(spec)
 	if err != nil {
 		t.Error(err)
 	}
@@ -275,16 +281,17 @@ func TestGetBrokerConfig(t *testing.T) {
 			},
 		},
 	}
-
-	brokerConfigGroups := map[string]BrokerConfig{
-		"default": {
-			StorageConfigs: []StorageConfig{
-				{
-					MountPath: "kafka-test1/log",
-					PvcSpec: &corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("10Gi")},
+	spec := KafkaClusterSpec{
+		BrokerConfigGroups: map[string]BrokerConfig{
+			"default": {
+				StorageConfigs: []StorageConfig{
+					{
+						MountPath: "kafka-test1/log",
+						PvcSpec: &corev1.PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("10Gi")},
+							},
 						},
 					},
 				},
@@ -292,7 +299,7 @@ func TestGetBrokerConfig(t *testing.T) {
 		},
 	}
 
-	result, err := broker.GetBrokerConfig(brokerConfigGroups)
+	result, err := broker.GetBrokerConfig(spec)
 	if err != nil {
 		t.Error("Error GetBrokerConfig throw an unexpected error")
 	}
@@ -342,24 +349,26 @@ func TestGetBrokerConfigUniqueStorage(t *testing.T) {
 		},
 	}
 
-	brokerConfigGroups := map[string]BrokerConfig{
-		"default": {
-			StorageConfigs: []StorageConfig{
-				{
-					MountPath: "kafka-test1/log",
-					PvcSpec: &corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("10Gi")},
+	spec := KafkaClusterSpec{
+		BrokerConfigGroups: map[string]BrokerConfig{
+			"default": {
+				StorageConfigs: []StorageConfig{
+					{
+						MountPath: "kafka-test1/log",
+						PvcSpec: &corev1.PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("10Gi")},
+							},
 						},
 					},
-				},
-				{
-					MountPath: "kafka-test/log",
-					PvcSpec: &corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("10Gi")},
+					{
+						MountPath: "kafka-test/log",
+						PvcSpec: &corev1.PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("10Gi")},
+							},
 						},
 					},
 				},
@@ -367,7 +376,85 @@ func TestGetBrokerConfigUniqueStorage(t *testing.T) {
 		},
 	}
 
-	result, err := broker.GetBrokerConfig(brokerConfigGroups)
+	result, err := broker.GetBrokerConfig(spec)
+	if err != nil {
+		t.Error("Error GetBrokerConfig throw an unexpected error")
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("Expected:", expected, "Got:", result)
+	}
+}
+
+func TestGetBrokerConfigEnvs(t *testing.T) {
+	expected := &BrokerConfig{
+		Envs: []corev1.EnvVar{
+			{Name: "VAR", Value: "cluster"},
+			{Name: "VAR", Value: "group"},
+			{Name: "VAR", Value: "broker"},
+			/*{Name: "a", Value: "global"},
+			{Name: "b", Value: "group"},
+			{Name: "c", Value: "broker"},
+			{Name: "d", Value: "global"},
+			{Name: "e", Value: "group"},
+			{Name: "f", Value: "broker"},
+			{Name: "g", Value: "group"},
+			{Name: "h", Value: "broker"},
+			{Name: "i", Value: "groupbroker"},
+			{Name: "j", Value: "broker"},
+			{Name: "k", Value: "globalgroupbroker"},
+			{Name: "l", Value: "groupbroker"},
+			{Name: "m", Value: "globalgroupbroker"},*/
+		},
+	}
+
+	broker := Broker{
+		Id:                0,
+		BrokerConfigGroup: "default",
+		BrokerConfig: &BrokerConfig{
+			Envs: []corev1.EnvVar{
+				{Name: "VAR", Value: "broker"},
+				/*{Name: "c", Value: "broker"},
+				{Name: "f", Value: "+broker"},
+				{Name: "h", Value: "broker"},
+				{Name: "i", Value: "+broker"},
+				{Name: "j", Value: "broker"},
+				{Name: "k", Value: "+broker"},
+				{Name: "l", Value: "+broker"},
+				{Name: "m", Value: "+broker"},*/
+			},
+		},
+	}
+
+	spec := KafkaClusterSpec{
+		Envs: []corev1.EnvVar{
+			{Name: "VAR", Value: "cluster"},
+			/*{Name: "a", Value: "global"},
+			{Name: "d", Value: "+global"},
+			{Name: "g", Value: "global"},
+			{Name: "i", Value: "+global"},
+			{Name: "j", Value: "global"},
+			{Name: "k", Value: "global"},
+			{Name: "m", Value: "+global"},*/
+		},
+		BrokerConfigGroups: map[string]BrokerConfig{
+			"default": {
+				Envs: []corev1.EnvVar{
+					{Name: "VAR", Value: "group"},
+					/*{Name: "b", Value: "group"},
+					{Name: "e", Value: "+group"},
+					{Name: "g", Value: "group"},
+					{Name: "h", Value: "group"},
+					{Name: "i", Value: "group"},
+					{Name: "j", Value: "+group"},
+					{Name: "k", Value: "+group"},
+					{Name: "l", Value: "+group"},
+					{Name: "m", Value: "+group"},*/
+				},
+			},
+		},
+	}
+
+	result, err := broker.GetBrokerConfig(spec)
 	if err != nil {
 		t.Error("Error GetBrokerConfig throw an unexpected error")
 	}
