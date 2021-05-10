@@ -1105,7 +1105,10 @@ func mergeEnvs(kafkaClusterSpec KafkaClusterSpec, groupConfig, bConfig *BrokerCo
 	var envs []corev1.EnvVar
 	envs = append(envs, kafkaClusterSpec.Envs...)
 	envs = append(envs, groupConfig.Envs...)
-	return append(envs, bConfig.Envs...)
+	if bConfig != nil {
+		envs = append(envs, bConfig.Envs...)
+	}
+	return envs
 }
 
 func mergeAffinity(groupConfig BrokerConfig, bConfig *BrokerConfig) (*corev1.Affinity, error) {
