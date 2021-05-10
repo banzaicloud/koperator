@@ -414,14 +414,16 @@ func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars []core
 
 	// merge the env variables
 	for _, envVar := range brokerConfig.Envs {
-		if envVar.Value != "" && envVar.Value[0] == '+' {
-			envVar.Value = envVar.Value[1:]
+		envVarValue := strings.TrimLeft(envVar.Value, " ")
+		if strings.HasPrefix(envVarValue, "+") {
+			envVarValue = envVarValue[1:]
 			if envVarFromMap, ok := envs[envVar.Name]; ok {
-				envVarFromMap.Value += envVar.Value
+				envVarFromMap.Value += envVarValue
 				envs[envVar.Name] = envVarFromMap
 				continue
 			}
 		}
+		envVar.Value = envVarValue
 		envs[envVar.Name] = envVar
 	}
 

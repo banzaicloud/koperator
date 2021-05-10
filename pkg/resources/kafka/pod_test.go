@@ -114,9 +114,10 @@ func Test_generateEnvConfig(t *testing.T) {
 		{Name: "h", Value: "broker"},
 		{Name: "i", Value: "groupbroker"},
 		{Name: "j", Value: "broker"},
-		{Name: "k", Value: "globalgroupbroker"},
-		{Name: "l", Value: "groupbroker"},
-		{Name: "m", Value: "globalgroupbroker"},
+		{Name: "k", Value: "global groupbroker"},
+		{Name: "l", Value: " groupbroker"},
+		{Name: "m", Value: "+globalgroupbroker"},
+		{Name: "n", Value: ""},
 	}
 
 	broker := v1beta1.Broker{
@@ -125,13 +126,13 @@ func Test_generateEnvConfig(t *testing.T) {
 		BrokerConfig: &v1beta1.BrokerConfig{
 			Envs: []corev1.EnvVar{
 				{Name: "c", Value: "broker"},
-				{Name: "f", Value: "+broker"},
+				{Name: "f", Value: " +broker"},
 				{Name: "h", Value: "broker"},
 				{Name: "i", Value: "+broker"},
 				{Name: "j", Value: "broker"},
 				{Name: "k", Value: "+broker"},
 				{Name: "l", Value: "+broker"},
-				{Name: "m", Value: "+broker"},
+				{Name: "m", Value: " +broker"},
 			},
 		},
 	}
@@ -144,7 +145,8 @@ func Test_generateEnvConfig(t *testing.T) {
 			{Name: "i", Value: "+global"},
 			{Name: "j", Value: "global"},
 			{Name: "k", Value: "global"},
-			{Name: "m", Value: "+global"},
+			{Name: "m", Value: "++global"},
+			{Name: "n", Value: ""},
 		},
 		BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 			"default": {
@@ -154,9 +156,9 @@ func Test_generateEnvConfig(t *testing.T) {
 					{Name: "g", Value: "group"},
 					{Name: "h", Value: "group"},
 					{Name: "i", Value: "group"},
-					{Name: "j", Value: "+group"},
-					{Name: "k", Value: "+group"},
-					{Name: "l", Value: "+group"},
+					{Name: "j", Value: "+ group"},
+					{Name: "k", Value: "+ group"},
+					{Name: "l", Value: "+ group"},
 					{Name: "m", Value: "+group"},
 				},
 			},

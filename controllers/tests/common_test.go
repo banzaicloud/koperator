@@ -95,29 +95,14 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 				{
 					Id:                0,
 					BrokerConfigGroup: defaultBrokerConfigGroup,
-					BrokerConfig: &v1beta1.BrokerConfig{
-						Envs: []corev1.EnvVar{
-							{Name: "BROKERID", Value: "0"},
-						},
-					},
 				},
 				{
 					Id:                1,
 					BrokerConfigGroup: defaultBrokerConfigGroup,
-					BrokerConfig: &v1beta1.BrokerConfig{
-						Envs: []corev1.EnvVar{
-							{Name: "BROKERID", Value: "1"},
-						},
-					},
 				},
 				{
 					Id:                2,
 					BrokerConfigGroup: defaultBrokerConfigGroup,
-					BrokerConfig: &v1beta1.BrokerConfig{
-						Envs: []corev1.EnvVar{
-							{Name: "BROKERID", Value: "2"},
-						},
-					},
 				},
 			},
 			ClusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.7.0-bzc.2",

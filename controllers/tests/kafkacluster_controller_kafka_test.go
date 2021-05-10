@@ -285,10 +285,6 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 			Name:  "CLASSPATH",
 			Value: "/opt/kafka/libs/extensions/*:/test/class/path",
 		},
-		corev1.EnvVar{
-			Name:  "BROKERID",
-			Value: strconv.Itoa(int(broker.Id)),
-		},
 	))
 	Expect(container.VolumeMounts).To(HaveLen(8))
 	Expect(container.VolumeMounts[0]).To(Equal(corev1.VolumeMount{

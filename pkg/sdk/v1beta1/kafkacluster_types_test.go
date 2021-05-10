@@ -391,19 +391,6 @@ func TestGetBrokerConfigEnvs(t *testing.T) {
 			{Name: "VAR", Value: "cluster"},
 			{Name: "VAR", Value: "group"},
 			{Name: "VAR", Value: "broker"},
-			/*{Name: "a", Value: "global"},
-			{Name: "b", Value: "group"},
-			{Name: "c", Value: "broker"},
-			{Name: "d", Value: "global"},
-			{Name: "e", Value: "group"},
-			{Name: "f", Value: "broker"},
-			{Name: "g", Value: "group"},
-			{Name: "h", Value: "broker"},
-			{Name: "i", Value: "groupbroker"},
-			{Name: "j", Value: "broker"},
-			{Name: "k", Value: "globalgroupbroker"},
-			{Name: "l", Value: "groupbroker"},
-			{Name: "m", Value: "globalgroupbroker"},*/
 		},
 	}
 
@@ -413,14 +400,6 @@ func TestGetBrokerConfigEnvs(t *testing.T) {
 		BrokerConfig: &BrokerConfig{
 			Envs: []corev1.EnvVar{
 				{Name: "VAR", Value: "broker"},
-				/*{Name: "c", Value: "broker"},
-				{Name: "f", Value: "+broker"},
-				{Name: "h", Value: "broker"},
-				{Name: "i", Value: "+broker"},
-				{Name: "j", Value: "broker"},
-				{Name: "k", Value: "+broker"},
-				{Name: "l", Value: "+broker"},
-				{Name: "m", Value: "+broker"},*/
 			},
 		},
 	}
@@ -428,27 +407,11 @@ func TestGetBrokerConfigEnvs(t *testing.T) {
 	spec := KafkaClusterSpec{
 		Envs: []corev1.EnvVar{
 			{Name: "VAR", Value: "cluster"},
-			/*{Name: "a", Value: "global"},
-			{Name: "d", Value: "+global"},
-			{Name: "g", Value: "global"},
-			{Name: "i", Value: "+global"},
-			{Name: "j", Value: "global"},
-			{Name: "k", Value: "global"},
-			{Name: "m", Value: "+global"},*/
 		},
 		BrokerConfigGroups: map[string]BrokerConfig{
 			"default": {
 				Envs: []corev1.EnvVar{
 					{Name: "VAR", Value: "group"},
-					/*{Name: "b", Value: "group"},
-					{Name: "e", Value: "+group"},
-					{Name: "g", Value: "group"},
-					{Name: "h", Value: "group"},
-					{Name: "i", Value: "group"},
-					{Name: "j", Value: "+group"},
-					{Name: "k", Value: "+group"},
-					{Name: "l", Value: "+group"},
-					{Name: "m", Value: "+group"},*/
 				},
 			},
 		},
