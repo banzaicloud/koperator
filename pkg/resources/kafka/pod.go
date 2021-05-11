@@ -414,17 +414,33 @@ func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars []core
 
 	// merge the env variables
 	for _, envVar := range brokerConfig.Envs {
-		envVarValue := strings.TrimLeft(envVar.Value, " ")
-		if strings.HasPrefix(envVarValue, "+") {
-			envVarValue = envVarValue[1:]
-			if envVarFromMap, ok := envs[envVar.Name]; ok {
-				envVarFromMap.Value += envVarValue
-				envs[envVar.Name] = envVarFromMap
-				continue
+		envVarName := strings.TrimSpace(envVar.Name)
+		switch {
+		default:
+			fallthrough
+		case envVar.ValueFrom != nil:
+			// append/prepend based on sources is not supported
+			envVar.Name = envVarName
+			envs[envVarName] = envVar
+		case strings.HasPrefix(envVarName, "+"):
+			envVarName = envVarName[1:]
+			if envVarFromMap, ok := envs[envVarName]; ok {
+				envVarFromMap.Value += envVar.Value
+				envs[envVarName] = envVarFromMap
+			} else {
+				envVar.Name = envVarName
+				envs[envVarName] = envVar
+			}
+		case strings.HasSuffix(envVarName, "+"):
+			envVarName = envVarName[:len(envVarName)-1]
+			if envVarFromMap, ok := envs[envVarName]; ok {
+				envVarFromMap.Value = envVar.Value + envVarFromMap.Value
+				envs[envVarName] = envVarFromMap
+			} else {
+				envVar.Name = envVarName
+				envs[envVarName] = envVar
 			}
 		}
-		envVar.Value = envVarValue
-		envs[envVar.Name] = envVar
 	}
 
 	if brokerConfig.Log4jConfig != "" {

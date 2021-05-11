@@ -114,10 +114,11 @@ func Test_generateEnvConfig(t *testing.T) {
 		{Name: "h", Value: "broker"},
 		{Name: "i", Value: "groupbroker"},
 		{Name: "j", Value: "broker"},
-		{Name: "k", Value: "global groupbroker"},
-		{Name: "l", Value: " groupbroker"},
-		{Name: "m", Value: "+globalgroupbroker"},
+		{Name: "k", Value: "brokerglobal group"},
+		{Name: "l", Value: "broker group"},
+		{Name: "m", Value: "globalgroupbroker"},
 		{Name: "n", Value: ""},
+		{Name: "o", Value: "brokergroupglobal"},
 	}
 
 	broker := v1beta1.Broker{
@@ -126,13 +127,14 @@ func Test_generateEnvConfig(t *testing.T) {
 		BrokerConfig: &v1beta1.BrokerConfig{
 			Envs: []corev1.EnvVar{
 				{Name: "c", Value: "broker"},
-				{Name: "f", Value: " +broker"},
-				{Name: "h", Value: "broker"},
-				{Name: "i", Value: "+broker"},
+				{Name: " +f", Value: "broker"},
+				{Name: "h ", Value: "broker"},
+				{Name: "+i", Value: "broker"},
 				{Name: "j", Value: "broker"},
-				{Name: "k", Value: "+broker"},
-				{Name: "l", Value: "+broker"},
-				{Name: "m", Value: " +broker"},
+				{Name: "k+ ", Value: "broker"},
+				{Name: "l+", Value: "broker"},
+				{Name: " +m", Value: "broker"},
+				{Name: "o+ ", Value: "broker"},
 			},
 		},
 	}
@@ -140,26 +142,28 @@ func Test_generateEnvConfig(t *testing.T) {
 	spec := v1beta1.KafkaClusterSpec{
 		Envs: []corev1.EnvVar{
 			{Name: "a", Value: "global"},
-			{Name: "d", Value: "+global"},
+			{Name: "+d", Value: "global"},
 			{Name: "g", Value: "global"},
-			{Name: "i", Value: "+global"},
+			{Name: "+i", Value: "global"},
 			{Name: "j", Value: "global"},
 			{Name: "k", Value: "global"},
-			{Name: "m", Value: "++global"},
+			{Name: "+m", Value: "global"},
 			{Name: "n", Value: ""},
+			{Name: " o+ ", Value: "global"},
 		},
 		BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 			"default": {
 				Envs: []corev1.EnvVar{
 					{Name: "b", Value: "group"},
-					{Name: "e", Value: "+group"},
+					{Name: "+e", Value: "group"},
 					{Name: "g", Value: "group"},
 					{Name: "h", Value: "group"},
 					{Name: "i", Value: "group"},
-					{Name: "j", Value: "+ group"},
-					{Name: "k", Value: "+ group"},
-					{Name: "l", Value: "+ group"},
-					{Name: "m", Value: "+group"},
+					{Name: " +j", Value: "group"},
+					{Name: "+k", Value: " group"},
+					{Name: " +l", Value: " group"},
+					{Name: "+m", Value: "group"},
+					{Name: " o+", Value: "group"},
 				},
 			},
 		},
