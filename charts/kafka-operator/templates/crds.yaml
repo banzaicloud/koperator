@@ -725,9 +725,10 @@ spec:
                     config:
                       type: string
                     envs:
-                      description: Envs defines environment variables for the Kafka
-                        broker Pods. Using the "+" prefix appends the variable for
-                        the ones defined in cluser level or by the operator
+                      description: Envs defines environment variables for Kafka broker
+                        Pods. Adding the "+" prefix to the name prepends the value
+                        to that environment variable instead of overwriting it. Add
+                        the "+" suffix to append.
                       items:
                         description: EnvVar represents an environment variable present
                           in a Container.
@@ -4475,9 +4476,10 @@ spec:
                         config:
                           type: string
                         envs:
-                          description: Envs defines environment variables for the
-                            Kafka broker Pods. Using the "+" prefix appends the variable
-                            for the ones defined in cluser level or by the operator
+                          description: Envs defines environment variables for Kafka
+                            broker Pods. Adding the "+" prefix to the name prepends
+                            the value to that environment variable instead of overwriting
+                            it. Add the "+" suffix to append.
                           items:
                             description: EnvVar represents an environment variable
                               present in a Container.
@@ -10560,9 +10562,9 @@ spec:
                     type: array
                 type: object
               envs:
-                description: Envs defines environment variables for the Kafka broker
-                  Pods Using the "+" prefix appends the variable to the default generated
-                  by the operator
+                description: Envs defines environment variables for Kafka broker Pods.
+                  Adding the "+" prefix to the name prepends the value to that environment
+                  variable instead of overwriting it. Add the "+" suffix to append.
                 items:
                   description: EnvVar represents an environment variable present in
                     a Container.

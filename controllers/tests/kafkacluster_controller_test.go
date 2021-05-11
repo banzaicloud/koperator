@@ -105,16 +105,16 @@ var _ = Describe("KafkaCluster", func() {
 		}
 		defaultGroup.Envs = []corev1.EnvVar{
 			{
-				Name:  "ENVVAR1",
-				Value: "+ VALUE2",
+				Name:  "+ENVVAR1",
+				Value: " VALUE2",
 			},
 			{
 				Name:  "ENVVAR2",
 				Value: "VALUE2",
 			},
 			{
-				Name:  "CLASSPATH",
-				Value: "+:/test/class/path",
+				Name:  "+CLASSPATH",
+				Value: ":/test/class/path",
 			},
 		}
 		kafkaCluster.Spec.BrokerConfigGroups[defaultBrokerConfigGroup] = defaultGroup
@@ -134,8 +134,8 @@ var _ = Describe("KafkaCluster", func() {
 				Value: "VALUE1",
 			},
 			{
-				Name:  "ENVVAR2",
-				Value: "+VALUE1",
+				Name:  "+ENVVAR2",
+				Value: "VALUE1",
 			},
 		}
 	})

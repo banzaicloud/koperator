@@ -38,8 +38,10 @@ spec:
       brokerConfigGroup: "default"
       # brokerConfig:
       #   envs:
-      #     - name: CLASSPATH
-      #       value: "+:/opt/kafka/libs/test/*"
+      #     - name: CLASSPATH+
+      #       value: "/opt/kafka/libs/dev/*:"
+      #     - name: +CLASSPATH
+      #       value: ":/opt/kafka/libs/extra-jars/*"
     - id: 1
       brokerConfigGroup: "default"
     - id: 2
