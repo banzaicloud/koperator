@@ -140,16 +140,18 @@ type BrokerConfig struct {
 	BrokerAnnotations map[string]string `json:"brokerAnnotations,omitempty"`
 	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.
 	// By default it is set to `125000` which means 1Gbit/s in network throughput.
+	// (default: 125000)
 	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`
 	// External listeners that use NodePort type service to expose the broker outside the Kubernetes clusterT and their
 	// external IP to advertise Kafka broker external listener. The external IP value is ignored in case of external listeners that use LoadBalancer
 	// type service to expose the broker outside the Kubernetes cluster. Also, when "hostnameOverride" field of the external listener is set
 	// it will override the broker's external listener advertise address according to the description of the "hostnameOverride" field.
 	NodePortExternalIP map[string]string `json:"nodePortExternalIP,omitempty"`
-	// Any definition received through this field will override the default behaviour of OneBrokerPerNode flag
+	// Any definition received through this field will override the default behavior of OneBrokerPerNode flag
 	// and the operator supposes that the user is aware of how scheduling is done by kubernetes
 	// Affinity could be set through brokerConfigGroups definitions and can be set for individual brokers as well
 	// where letter setting will override the group setting
+	// (default: OneBrokerPerNode)
 	Affinity           *corev1.Affinity           `json:"affinity,omitempty"`
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// SecurityContext allows to set security context for the kafka container
@@ -374,7 +376,7 @@ type IngressServiceSettings struct {
 	ExternalTrafficPolicy corev1.ServiceExternalTrafficPolicyType `json:"externalTrafficPolicy,omitempty"`
 	// Service Type string describes ingress methods for a service
 	// Only "NodePort" and "LoadBalancer" is supported.
-	// Default value is LoadBalancer
+	// (default: LoadBalancer)
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
 }
 
@@ -390,6 +392,7 @@ type ExternalListenerConfig struct {
 	// Two types are supported LoadBalancer and NodePort.
 	// The recommended and default is the LoadBalancer.
 	// NodePort should be used in Kubernetes environments with no support for provisioning Load Balancers.
+	// (default: LoadBalancer)
 	// +optional
 	AccessMethod corev1.ServiceType `json:"accessMethod,omitempty"`
 	// Config allows to specify ingress controller configuration per external listener
