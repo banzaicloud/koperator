@@ -16,6 +16,10 @@ package v1beta1
 
 import "strings"
 
+// +name:"Common types"
+// +weight:"200"
+type _hugoCommonTypes interface{}
+
 // RackAwarenessState stores info about rack awareness status
 type RackAwarenessState string
 

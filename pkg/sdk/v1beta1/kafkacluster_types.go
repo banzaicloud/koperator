@@ -40,6 +40,10 @@ const (
 	DefaultEnvoyAdminPort = 9901
 )
 
+// +name:"KafkaClusterSpec"
+// +weight:"200"
+type _hugoKafkaClusterSpec interface{}
+
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
 	HeadlessServiceEnabled bool            `json:"headlessServiceEnabled"`
