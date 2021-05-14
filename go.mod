@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	emperror.dev/errors v0.8.0
+	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Shopify/sarama v1.28.0
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.3.1
 	github.com/banzaicloud/istio-client-go v0.0.9
@@ -11,6 +12,7 @@ require (
 	github.com/banzaicloud/k8s-objectmatcher v1.4.1
 	github.com/banzaicloud/kafka-operator/api v0.0.0
 	github.com/banzaicloud/kafka-operator/properties v0.0.0
+	github.com/banzaicloud/operator-tools v0.21.2-0.20210507080305-7345f6176c6c
 	github.com/envoyproxy/go-control-plane v0.9.7
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
