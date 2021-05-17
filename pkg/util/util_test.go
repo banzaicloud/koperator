@@ -102,8 +102,10 @@ func TestConvertStringToInt32(t *testing.T) {
 func TestIsSSLEnabledForInternalCommunication(t *testing.T) {
 	lconfig := []v1beta1.InternalListenerConfig{
 		{
-			UsedForInnerBrokerCommunication: true,
-			CommonListenerSpec:              v1beta1.CommonListenerSpec{Type: "ssl"},
+			CommonListenerSpec: v1beta1.CommonListenerSpec{
+				Type:                            "ssl",
+				UsedForInnerBrokerCommunication: true,
+			},
 		},
 	}
 	if !IsSSLEnabledForInternalCommunication(lconfig) {
@@ -111,8 +113,10 @@ func TestIsSSLEnabledForInternalCommunication(t *testing.T) {
 	}
 	lconfig = []v1beta1.InternalListenerConfig{
 		{
-			UsedForInnerBrokerCommunication: true,
-			CommonListenerSpec:              v1beta1.CommonListenerSpec{Type: "plaintext"},
+			CommonListenerSpec: v1beta1.CommonListenerSpec{
+				Type:                            "plaintext",
+				UsedForInnerBrokerCommunication: true,
+			},
 		},
 	}
 	if IsSSLEnabledForInternalCommunication(lconfig) {
