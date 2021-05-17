@@ -572,9 +572,8 @@ type IngressConfig struct {
 
 // InternalListenerConfig defines the internal listener config for Kafka
 type InternalListenerConfig struct {
-	CommonListenerSpec              `json:",inline"`
-	UsedForInnerBrokerCommunication bool `json:"usedForInnerBrokerCommunication"`
-	UsedForControllerCommunication  bool `json:"usedForControllerCommunication,omitempty"`
+	CommonListenerSpec             `json:",inline"`
+	UsedForControllerCommunication bool `json:"usedForControllerCommunication,omitempty"`
 	// This following options are helpful when you want to run a Kafka cluster over multiple Kubernetes clusters.
 	// The broker internal ports are computed as the sum of the internalStartingPort and the broker id.
 	// +optional
@@ -603,6 +602,9 @@ type CommonListenerSpec struct {
 	// +kubebuilder:validation:ExclusiveMinimum=true
 	// +kubebuilder:validation:Maximum=65535
 	ContainerPort int32 `json:"containerPort"`
+	// At least one of the listeners should have this flag enabled
+	// +optional
+	UsedForInnerBrokerCommunication bool `json:"usedForInnerBrokerCommunication"`
 }
 
 func (c *CommonListenerSpec) GetServerSSLCertSecretName() string {
