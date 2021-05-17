@@ -22,13 +22,28 @@ import (
 )
 
 func UseSSL(cluster *v1beta1.KafkaCluster) bool {
-	return cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].Type.IsSSL()
+	for _, val := range cluster.Spec.ListenersConfig.InternalListeners {
+		if val.UsedForInnerBrokerCommunication && val.Type.IsSSL() {
+			return true
+		}
+	}
+	for _, val := range cluster.Spec.ListenersConfig.ExternalListeners {
+		if val.UsedForInnerBrokerCommunication && val.Type.IsSSL() {
+			return true
+		}
+	}
+	return false
 }
 
-func determineInternalListenerForInnerCom(internalListeners []v1beta1.InternalListenerConfig) int {
-	for id, val := range internalListeners {
+func getContainerPortForInnerCom(internalListeners []v1beta1.InternalListenerConfig, extListeners []v1beta1.ExternalListenerConfig) int32 {
+	for _, val := range internalListeners {
 		if val.UsedForInnerBrokerCommunication {
-			return id
+			return val.ContainerPort
+		}
+	}
+	for _, val := range extListeners {
+		if val.UsedForInnerBrokerCommunication {
+			return val.ContainerPort
 		}
 	}
 	return 0
@@ -50,6 +65,6 @@ func GenerateKafkaAddressWithoutPort(cluster *v1beta1.KafkaCluster) string {
 }
 
 func GenerateKafkaAddress(cluster *v1beta1.KafkaCluster) string {
-	return fmt.Sprintf("%s:%d", GenerateKafkaAddressWithoutPort(cluster),
-		cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].ContainerPort)
+	return fmt.Sprintf("%s:%d", GenerateKafkaAddressWithoutPort(cluster), getContainerPortForInnerCom(
+		cluster.Spec.ListenersConfig.InternalListeners, cluster.Spec.ListenersConfig.ExternalListeners))
 }

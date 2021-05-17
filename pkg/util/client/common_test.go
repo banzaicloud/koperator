@@ -33,7 +33,10 @@ func TestGenerateKafkaAddress(t *testing.T) {
 			ListenersConfig: v1beta1.ListenersConfig{
 				InternalListeners: []v1beta1.InternalListenerConfig{
 					{
-						CommonListenerSpec: v1beta1.CommonListenerSpec{ContainerPort: 80},
+						CommonListenerSpec: v1beta1.CommonListenerSpec{
+							ContainerPort:                   80,
+							UsedForInnerBrokerCommunication: true,
+						},
 					},
 				},
 			},

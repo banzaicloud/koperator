@@ -224,6 +224,13 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 	}
 
 	for _, eListener := range l.ExternalListeners {
+		if eListener.UsedForInnerBrokerCommunication {
+			if interBrokerListenerName == "" {
+				interBrokerListenerName = strings.ToUpper(eListener.Name)
+			} else {
+				log.Error(errors.New("inter broker listener name already set"), "config error")
+			}
+		}
 		UpperedListenerType := eListener.Type.ToUpperString()
 		UpperedListenerName := strings.ToUpper(eListener.Name)
 		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
