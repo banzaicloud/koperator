@@ -411,6 +411,14 @@ type InternalListenerConfig struct {
 	CommonListenerSpec              `json:",inline"`
 	UsedForInnerBrokerCommunication bool `json:"usedForInnerBrokerCommunication"`
 	UsedForControllerCommunication  bool `json:"usedForControllerCommunication,omitempty"`
+	// This following options are helpful when you want to run a Kafka cluster over multiple Kubernetes clusters.
+	// The broker internal ports are computed as the sum of the internalStartingPort and the broker id.
+	// +optional
+	InternalStartingPort int32 `json:"internalStartingPort"`
+	// If set to a non-empty value, the Kafka brokers will use the external hostname for inter broker communication.
+	// The internal lister will will share the same hostname with the external listener that is referenced here.
+	// +optional
+	ExternalListenerForHostname string `json:"externalListenerForHostname,omitempty"`
 }
 
 // CommonListenerSpec defines the common building block for Listener type
