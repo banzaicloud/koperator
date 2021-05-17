@@ -423,18 +423,20 @@ func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars []core
 			envVar.Name = envVarName
 			envs[envVarName] = envVar
 		case strings.HasPrefix(envVarName, "+"):
+			// prepend mode
 			envVarName = envVarName[1:]
 			if envVarFromMap, ok := envs[envVarName]; ok {
-				envVarFromMap.Value += envVar.Value
+				envVarFromMap.Value = envVar.Value + envVarFromMap.Value
 				envs[envVarName] = envVarFromMap
 			} else {
 				envVar.Name = envVarName
 				envs[envVarName] = envVar
 			}
 		case strings.HasSuffix(envVarName, "+"):
+			// append mode
 			envVarName = envVarName[:len(envVarName)-1]
 			if envVarFromMap, ok := envs[envVarName]; ok {
-				envVarFromMap.Value = envVar.Value + envVarFromMap.Value
+				envVarFromMap.Value += envVar.Value
 				envs[envVarName] = envVarFromMap
 			} else {
 				envVar.Name = envVarName
