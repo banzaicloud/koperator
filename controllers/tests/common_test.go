@@ -55,20 +55,20 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 				InternalListeners: []v1beta1.InternalListenerConfig{
 					{
 						CommonListenerSpec: v1beta1.CommonListenerSpec{
-							Type:          "plaintext",
-							Name:          "internal",
-							ContainerPort: 29092,
+							Type:                            "plaintext",
+							Name:                            "internal",
+							ContainerPort:                   29092,
+							UsedForInnerBrokerCommunication: true,
 						},
-						UsedForInnerBrokerCommunication: true,
 					},
 					{
 						CommonListenerSpec: v1beta1.CommonListenerSpec{
-							Type:          "plaintext",
-							Name:          "controller",
-							ContainerPort: 29093,
+							Type:                            "plaintext",
+							Name:                            "controller",
+							ContainerPort:                   29093,
+							UsedForInnerBrokerCommunication: false,
 						},
-						UsedForInnerBrokerCommunication: false,
-						UsedForControllerCommunication:  true,
+						UsedForControllerCommunication: true,
 					},
 				},
 			},

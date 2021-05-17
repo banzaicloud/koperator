@@ -137,10 +137,10 @@ func TestGetCurrentAlerts(t *testing.T) {
 			ListenersConfig: v1beta1.ListenersConfig{
 				InternalListeners: []v1beta1.InternalListenerConfig{
 					{CommonListenerSpec: v1beta1.CommonListenerSpec{
-						Type:          "plaintext",
-						Name:          "plaintext",
-						ContainerPort: 29092},
-						UsedForInnerBrokerCommunication: true,
+						Type:                            "plaintext",
+						Name:                            "plaintext",
+						ContainerPort:                   29092,
+						UsedForInnerBrokerCommunication: true},
 					},
 				},
 			},

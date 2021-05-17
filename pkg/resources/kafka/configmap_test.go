@@ -248,11 +248,11 @@ zookeeper.connect=example.zk:2181/`,
 							ListenersConfig: v1beta1.ListenersConfig{
 								InternalListeners: []v1beta1.InternalListenerConfig{{
 									CommonListenerSpec: v1beta1.CommonListenerSpec{
-										Type:          v1beta1.SecurityProtocol(test.listenerType),
-										Name:          "internal",
-										ContainerPort: 9092,
+										Type:                            v1beta1.SecurityProtocol(test.listenerType),
+										Name:                            "internal",
+										ContainerPort:                   9092,
+										UsedForInnerBrokerCommunication: true,
 									},
-									UsedForInnerBrokerCommunication: true,
 								},
 								},
 							},
