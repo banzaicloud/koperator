@@ -54,11 +54,27 @@ jobs:
       - store_artifacts:
           path: build/
 
+  trigger-docs-update:
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Trigger
+          command: scripts/trigger-docs-update.sh "${CIRCLE_TAG}"
+
 workflows:
     version: 2
     ci:
         jobs:
             - build
+            - trigger-docs-update:
+                requires:
+                  - build
+                filters:
+                  tags:
+                    only: /^v?\d+\.\d+\.\d+$/
 
     helm-chart:
         jobs:
