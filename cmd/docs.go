@@ -37,10 +37,6 @@ func crds() {
 		},
 		logger.WithName("lister"))
 
-	lister.IncludeSources = []string{
-		".*types",
-	}
-
 	lister.IgnoredSources = []string{
 		"null",
 		".*.deepcopy",
@@ -57,6 +53,7 @@ func crds() {
 		---
 		title: CRDs
 		weight: 1000
+		generated_file: true
 		---
 		
 		The following types are available. For details, click on the name of a type. 
@@ -73,7 +70,7 @@ func crds() {
 			return errors.WrapIff(err, "failed to determine relpath for %s", document.Item.DestPath)
 		}
 		lister.Index.Append(fmt.Sprintf("- **[%s](%s)** %s",
-			document.DisplayName,
+			document.Item.Name,
 			filepath.Join(relPath, document.Item.Name+".md"),
 			document.Desc))
 		return nil
