@@ -114,7 +114,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	// Get a kafka connection
-	broker, close, err := newBrokerConnection(reqLogger, r.Client, cluster)
+	broker, close, err := newKafkaFromCluster(r.Client, cluster)
 	if err != nil {
 		return checkBrokerConnectionError(reqLogger, err)
 	}

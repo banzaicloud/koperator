@@ -116,7 +116,7 @@ var _ = Describe("KafkaTopic", func() {
 				return topic.Status.State, nil
 			}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1alpha1.TopicStateCreated))
 
-			mockKafkaClient := getMockedKafkaClientForCluster(kafkaCluster)
+			mockKafkaClient, _ := getMockedKafkaClientForCluster(kafkaCluster)
 			detail, err := mockKafkaClient.GetTopic(topicName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(detail).To(Equal(&sarama.TopicDetail{
@@ -143,7 +143,7 @@ var _ = Describe("KafkaTopic", func() {
 		var topicName = "already-created-topic"
 
 		JustBeforeEach(func() {
-			mockKafkaClient := getMockedKafkaClientForCluster(kafkaCluster)
+			mockKafkaClient, _ := getMockedKafkaClientForCluster(kafkaCluster)
 
 			err := mockKafkaClient.CreateTopic(&kafkaclient.CreateTopicOptions{
 				Name:              topicName,
@@ -194,7 +194,7 @@ var _ = Describe("KafkaTopic", func() {
 				return topic.Status.State, nil
 			}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1alpha1.TopicStateCreated))
 
-			mockKafkaClient := getMockedKafkaClientForCluster(kafkaCluster)
+			mockKafkaClient, _ := getMockedKafkaClientForCluster(kafkaCluster)
 			detail, err := mockKafkaClient.GetTopic(topicName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(detail).To(Equal(&sarama.TopicDetail{

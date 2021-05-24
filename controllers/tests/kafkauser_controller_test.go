@@ -129,7 +129,7 @@ var _ = Describe("KafkaTopic", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(user.Labels).To(HaveKeyWithValue("kafkaCluster", fmt.Sprintf("%s.%s", kafkaClusterCRName, namespace)))
 
-		mockKafkaClient := getMockedKafkaClientForCluster(kafkaCluster)
+		mockKafkaClient, _ := getMockedKafkaClientForCluster(kafkaCluster)
 		acls, _ := mockKafkaClient.ListUserACLs()
 		Expect(acls).To(ContainElements(
 			sarama.ResourceAcls{

@@ -650,15 +650,11 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 
 			errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
 
-			kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
+			kClient, close, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
 			if err != nil {
 				return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 			}
-			defer func() {
-				if err := kClient.Close(); err != nil {
-					log.Error(err, "could not close client")
-				}
-			}()
+			defer close()
 			offlineReplicaCount, err := kClient.OfflineReplicaCount()
 			if err != nil {
 				return errors.WrapIf(err, "health check failed")
@@ -989,16 +985,12 @@ func getServiceFromExternalListener(client client.Client, cluster *v1beta1.Kafka
 }
 
 func (r *Reconciler) reorderBrokers(log logr.Logger, brokers []v1beta1.Broker) []v1beta1.Broker {
-	kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
+	kClient, close, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		log.Info("could not create Kafka client, thus could not determine controller")
 		return brokers
 	}
-	defer func() {
-		if err := kClient.Close(); err != nil {
-			log.Error(err, "could not close client")
-		}
-	}()
+	defer close()
 
 	_, controllerID, err := kClient.DescribeCluster()
 	if err != nil {

@@ -33,15 +33,11 @@ import (
 )
 
 func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfig *v1beta1.BrokerConfig, configMap *corev1.ConfigMap, log logr.Logger) error {
-	kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
+	kClient, close, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 	}
-	defer func() {
-		if err := kClient.Close(); err != nil {
-			log.Error(err, "could not close client")
-		}
-	}()
+	defer close()
 
 	fullPerBrokerConfig, err := properties.NewFromString(brokerConfig.Config)
 	if err != nil {
@@ -123,15 +119,11 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 }
 
 func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
-	kClient, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
+	kClient, close, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 	}
-	defer func() {
-		if err := kClient.Close(); err != nil {
-			log.Error(err, "could not close client")
-		}
-	}()
+	defer close()
 
 	currentConfig, err := kClient.DescribeClusterWideConfig()
 	if err != nil {

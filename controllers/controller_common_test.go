@@ -95,7 +95,7 @@ func TestNewBrokerConnection(t *testing.T) {
 	// overwrite the var in controller_common to point kafka connections at mock
 	SetNewKafkaFromCluster(kafkaclient.NewMockFromCluster)
 
-	_, close, err := newBrokerConnection(log, client, cluster)
+	_, close, err := newKafkaFromCluster(client, cluster)
 	if err != nil {
 		t.Error("Expected no error got:", err)
 	}
@@ -104,7 +104,7 @@ func TestNewBrokerConnection(t *testing.T) {
 	// reset the newKafkaFromCluster var - will attempt to connect to a cluster
 	// that doesn't exist
 	SetNewKafkaFromCluster(kafkaclient.NewFromCluster)
-	if _, _, err = newBrokerConnection(log, client, cluster); err == nil {
+	if _, _, err = newKafkaFromCluster(client, cluster); err == nil {
 		t.Error("Expected error got nil")
 	} else if !emperrors.As(err, &errorfactory.BrokersUnreachable{}) {
 		t.Error("Expected brokers unreachable error, got:", err)

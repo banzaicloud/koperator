@@ -33,8 +33,9 @@ type mockClusterAdmin struct {
 	mockACLs   map[sarama.Resource]*sarama.ResourceAcls
 }
 
-func NewMockFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, error) {
-	return newOpenedMockClient(), nil
+func NewMockFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, func(), error) {
+	cl := newOpenedMockClient()
+	return cl, func() { cl.Close() }, nil
 }
 
 func newEmptyMockClusterAdmin(failOps bool) *mockClusterAdmin {

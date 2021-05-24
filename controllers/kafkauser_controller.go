@@ -218,7 +218,7 @@ func (r *KafkaUserReconciler) Reconcile(request reconcile.Request) (reconcile.Re
 
 	// If topic grants supplied, grab a broker connection and set ACLs
 	if len(instance.Spec.TopicGrants) > 0 {
-		broker, close, err := newBrokerConnection(reqLogger, r.Client, cluster)
+		broker, close, err := newKafkaFromCluster(r.Client, cluster)
 		if err != nil {
 			return checkBrokerConnectionError(reqLogger, err)
 		}
@@ -305,7 +305,7 @@ func (r *KafkaUserReconciler) finalizeKafkaUserACLs(reqLogger logr.Logger, clust
 	}
 	var err error
 	reqLogger.Info("Deleting user ACLs from kafka")
-	broker, close, err := newBrokerConnection(reqLogger, r.Client, cluster)
+	broker, close, err := newKafkaFromCluster(r.Client, cluster)
 	if err != nil {
 		return err
 	}

@@ -37,7 +37,7 @@ type webhookServer struct {
 	deserializer runtime.Decoder
 
 	// For mocking - use kafkaclient.NewMockFromCluster
-	newKafkaFromCluster func(client.Client, *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, error)
+	newKafkaFromCluster func(client.Client, *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error)
 }
 
 func newWebHookServer(client client.Client, scheme *runtime.Scheme) *webhookServer {
