@@ -68,25 +68,6 @@ func clusterLabelString(cluster *v1beta1.KafkaCluster) string {
 	return fmt.Sprintf("%s.%s", cluster.Name, cluster.Namespace)
 }
 
-// newBrokerConnection is a convenience wrapper for creating a broker connection
-// and creating a safer close function
-func newBrokerConnection(log logr.Logger, client client.Client, cluster *v1beta1.KafkaCluster) (broker kafkaclient.KafkaClient, close func(), err error) {
-	// Get a kafka connection
-	log.Info(fmt.Sprintf("Retrieving Kafka client for %s/%s", cluster.Namespace, cluster.Name))
-	broker, err = newKafkaFromCluster(client, cluster)
-	if err != nil {
-		return
-	}
-	close = func() {
-		if err := broker.Close(); err != nil {
-			log.Error(err, "Error closing Kafka client")
-		} else {
-			log.Info("Kafka client closed cleanly")
-		}
-	}
-	return
-}
-
 // checkBrokerConnectionError is a convenience wrapper for returning from common
 // broker connection errors
 func checkBrokerConnectionError(logger logr.Logger, err error) (ctrl.Result, error) {
@@ -128,6 +109,6 @@ func applyClusterRefLabel(cluster *v1beta1.KafkaCluster, labels map[string]strin
 	return labels
 }
 
-func SetNewKafkaFromCluster(f func(k8sclient client.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, error)) {
+func SetNewKafkaFromCluster(f func(k8sclient client.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error)) {
 	newKafkaFromCluster = f
 }

@@ -74,12 +74,13 @@ func (s *webhookServer) validateKafkaTopic(topic *v1alpha1.KafkaTopic) (res *adm
 	}
 
 	// retrieve an admin client for the cluster
-	broker, err := s.newKafkaFromCluster(s.client, cluster)
+	broker, close, err := s.newKafkaFromCluster(s.client, cluster)
 	if err != nil {
 		// Log as info to not cause stack traces when making CC topic
 		log.Info(cantConnectErrorMsg, "error", err.Error())
 		return notAllowed(fmt.Sprintf("%s: %s", cantConnectErrorMsg, topic.Spec.ClusterRef.Name), metav1.StatusReasonServiceUnavailable)
 	}
+	defer close()
 
 	existing, err := broker.GetTopic(topic.Spec.Name)
 	if err != nil {

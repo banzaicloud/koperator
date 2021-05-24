@@ -149,22 +149,22 @@ func waitForClusterRunningState(kafkaCluster *v1beta1.KafkaCluster, namespace st
 	Eventually(ch, 40*time.Second, 50*time.Millisecond).Should(Receive())
 }
 
-func getMockedKafkaClientForCluster(kafkaCluster *v1beta1.KafkaCluster) kafkaclient.KafkaClient {
+func getMockedKafkaClientForCluster(kafkaCluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func()) {
 	name := types.NamespacedName{
 		Name:      kafkaCluster.Name,
 		Namespace: kafkaCluster.Namespace,
 	}
 	if val, ok := mockKafkaClients[name]; ok {
-		return val
+		return val, func() { val.Close() }
 	}
-	mockKafkaClient, _ := kafkaclient.NewMockFromCluster(k8sClient, kafkaCluster)
+	mockKafkaClient, _, _ := kafkaclient.NewMockFromCluster(k8sClient, kafkaCluster)
 	mockKafkaClients[name] = mockKafkaClient
-	return mockKafkaClient
+	return mockKafkaClient, func() { mockKafkaClient.Close() }
 }
 
 func resetMockKafkaClient(kafkaCluster *v1beta1.KafkaCluster) {
 	// delete all topics
-	mockKafkaClient := getMockedKafkaClientForCluster(kafkaCluster)
+	mockKafkaClient, _ := getMockedKafkaClientForCluster(kafkaCluster)
 	topics, _ := mockKafkaClient.ListTopics()
 	for topicName := range topics {
 		_ = mockKafkaClient.DeleteTopic(topicName, false)

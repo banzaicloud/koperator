@@ -141,8 +141,9 @@ var _ = BeforeSuite(func(done Done) {
 
 	// mock the creation of Kafka clients
 	controllers.SetNewKafkaFromCluster(
-		func(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, error) {
-			return getMockedKafkaClientForCluster(cluster), nil
+		func(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error) {
+			client, close := getMockedKafkaClientForCluster(cluster)
+			return client, close, nil
 		})
 
 	kafkaClusterReconciler := controllers.KafkaClusterReconciler{

@@ -38,7 +38,7 @@ func newMockServer() (*webhookServer, error) {
 }
 
 func newMockServerWithClients(c client.Client, kafkaClientProvider func(client client.Client,
-	cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, error)) (*webhookServer, error) {
+	cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error)) (*webhookServer, error) {
 	if err := certv1.AddToScheme(scheme.Scheme); err != nil {
 		return nil, err
 	}

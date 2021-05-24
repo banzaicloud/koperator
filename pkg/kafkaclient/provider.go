@@ -21,7 +21,7 @@ import (
 )
 
 type Provider interface {
-	NewFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, error)
+	NewFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, func(), error)
 }
 
 type mockProvider struct {
@@ -31,7 +31,7 @@ func NewMockProvider() Provider {
 	return &mockProvider{}
 }
 
-func (mp *mockProvider) NewFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, error) {
+func (mp *mockProvider) NewFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, func(), error) {
 	return NewMockFromCluster(client, cluster)
 }
 
@@ -42,6 +42,6 @@ func NewDefaultProvider() Provider {
 	return &defaultProvider{}
 }
 
-func (dp *defaultProvider) NewFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, error) {
+func (dp *defaultProvider) NewFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, func(), error) {
 	return NewFromCluster(client, cluster)
 }
