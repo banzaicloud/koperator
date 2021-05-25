@@ -170,17 +170,17 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	if !util.StringSliceContains(instance.GetFinalizers(), topicFinalizer) {
 		reqLogger.Info("Adding Finalizer for the KafkaTopic")
 		instance.SetFinalizers(append(instance.GetFinalizers(), topicFinalizer))
-	}
-
-	// push any changes
-	if instance, err = r.updateAndFetchLatest(ctx, instance); err != nil {
-		return requeueWithError(reqLogger, "failed to update KafkaTopic", err)
+		if instance, err = r.updateAndFetchLatest(ctx, instance); err != nil {
+			return requeueWithError(reqLogger, "failed to add Finalizer to KafakTopic", err)
+		}
 	}
 
 	// set topic status as created
-	instance.Status = v1alpha1.KafkaTopicStatus{State: v1alpha1.TopicStateCreated}
-	if err := r.Client.Status().Update(ctx, instance); err != nil {
-		return requeueWithError(reqLogger, "failed to update kafkatopic status", err)
+	if instance.Status.State != v1alpha1.TopicStateCreated {
+		instance.Status = v1alpha1.KafkaTopicStatus{State: v1alpha1.TopicStateCreated}
+		if err := r.Client.Status().Update(ctx, instance); err != nil {
+			return requeueWithError(reqLogger, "failed to update kafkatopic status", err)
+		}
 	}
 
 	reqLogger.Info("Ensured topic")
