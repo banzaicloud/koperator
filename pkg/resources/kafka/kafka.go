@@ -277,7 +277,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	if err = r.reconcileClusterWideDynamicConfig(log); err != nil {
+	if err = r.reconcileClusterWideDynamicConfig(); err != nil {
 		return err
 	}
 
