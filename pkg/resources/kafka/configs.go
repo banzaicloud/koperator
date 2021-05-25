@@ -118,7 +118,7 @@ func (r *Reconciler) reconcilePerBrokerDynamicConfig(brokerId int32, brokerConfi
 	return nil
 }
 
-func (r *Reconciler) reconcileClusterWideDynamicConfig(log logr.Logger) error {
+func (r *Reconciler) reconcileClusterWideDynamicConfig() error {
 	kClient, close, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
