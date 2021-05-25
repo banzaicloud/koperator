@@ -86,7 +86,6 @@ func expectEnvoyConfigMap(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate 
 	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
 	svcTemplate := fmt.Sprintf("%s-%s.%s.svc.%s", kafkaCluster.Name, "%s", kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())
 	Expect(configMap.Data["envoy.yaml"]).To(Equal(fmt.Sprintf(`admin:
-  accessLogPath: /tmp/admin_access.log
   address:
     socketAddress:
       address: 0.0.0.0
@@ -94,35 +93,51 @@ func expectEnvoyConfigMap(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate 
 staticResources:
   clusters:
   - connectTimeout: 1s
-    hosts:
-    - socketAddress:
-        address: %s
-        portValue: 9094
-    http2ProtocolOptions: {}
+    loadAssignment:
+      clusterName: broker-0
+      endpoints:
+      - lbEndpoints:
+        - endpoint:
+            address:
+              socketAddress:
+                address: %s
+                portValue: 9094
     name: broker-0
     type: STRICT_DNS
   - connectTimeout: 1s
-    hosts:
-    - socketAddress:
-        address: %s
-        portValue: 9094
-    http2ProtocolOptions: {}
+    loadAssignment:
+      clusterName: broker-1
+      endpoints:
+      - lbEndpoints:
+        - endpoint:
+            address:
+              socketAddress:
+                address: %s
+                portValue: 9094
     name: broker-1
     type: STRICT_DNS
   - connectTimeout: 1s
-    hosts:
-    - socketAddress:
-        address: %s
-        portValue: 9094
-    http2ProtocolOptions: {}
+    loadAssignment:
+      clusterName: broker-2
+      endpoints:
+      - lbEndpoints:
+        - endpoint:
+            address:
+              socketAddress:
+                address: %s
+                portValue: 9094
     name: broker-2
     type: STRICT_DNS
   - connectTimeout: 1s
-    hosts:
-    - socketAddress:
-        address: %s
-        portValue: 9094
-    http2ProtocolOptions: {}
+    loadAssignment:
+      clusterName: all-brokers
+      endpoints:
+      - lbEndpoints:
+        - endpoint:
+            address:
+              socketAddress:
+                address: %s
+                portValue: 9094
     name: all-brokers
     type: STRICT_DNS
   listeners:
@@ -132,40 +147,44 @@ staticResources:
         portValue: 19090
     filterChains:
     - filters:
-      - config:
+      - name: envoy.filters.network.tcp_proxy
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-0
-          stat_prefix: broker_tcp-0
-        name: envoy.filters.network.tcp_proxy
+          statPrefix: broker_tcp-0
   - address:
       socketAddress:
         address: 0.0.0.0
         portValue: 19091
     filterChains:
     - filters:
-      - config:
+      - name: envoy.filters.network.tcp_proxy
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-1
-          stat_prefix: broker_tcp-1
-        name: envoy.filters.network.tcp_proxy
+          statPrefix: broker_tcp-1
   - address:
       socketAddress:
         address: 0.0.0.0
         portValue: 19092
     filterChains:
     - filters:
-      - config:
+      - name: envoy.filters.network.tcp_proxy
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-2
-          stat_prefix: broker_tcp-2
-        name: envoy.filters.network.tcp_proxy
+          statPrefix: broker_tcp-2
   - address:
       socketAddress:
         address: 0.0.0.0
         portValue: 29092
     filterChains:
     - filters:
-      - config:
+      - name: envoy.filters.network.tcp_proxy
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: all-brokers
-          stat_prefix: all-brokers
-        name: envoy.filters.network.tcp_proxy
+          statPrefix: all-brokers
 `, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))))
 }
 
@@ -190,7 +209,7 @@ func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate
 	Expect(templateSpec.Containers).To(HaveLen(1))
 	container := templateSpec.Containers[0]
 	Expect(container.Name).To(Equal("envoy"))
-	Expect(container.Image).To(Equal("envoyproxy/envoy:v1.14.4"))
+	Expect(container.Image).To(Equal("envoyproxy/envoy:v1.18.3"))
 	Expect(container.Ports).To(ConsistOf(
 		corev1.ContainerPort{
 			Name:          "broker-0",
@@ -303,7 +322,6 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
 	svcTemplate := fmt.Sprintf("%s-%s.%s.svc.%s", kafkaCluster.Name, "%s", kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())
 	Expect(configMap.Data["envoy.yaml"]).To(Equal(fmt.Sprintf(`admin:
-  accessLogPath: /tmp/admin_access.log
   address:
     socketAddress:
       address: 0.0.0.0
@@ -311,19 +329,27 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 staticResources:
   clusters:
   - connectTimeout: 1s
-    hosts:
-    - socketAddress:
-        address: %s
-        portValue: 9094
-    http2ProtocolOptions: {}
+    loadAssignment:
+      clusterName: broker-0
+      endpoints:
+      - lbEndpoints:
+        - endpoint:
+            address:
+              socketAddress:
+                address: %s
+                portValue: 9094
     name: broker-0
     type: STRICT_DNS
   - connectTimeout: 1s
-    hosts:
-    - socketAddress:
-        address: %s
-        portValue: 9094
-    http2ProtocolOptions: {}
+    loadAssignment:
+      clusterName: all-brokers
+      endpoints:
+      - lbEndpoints:
+        - endpoint:
+            address:
+              socketAddress:
+                address: %s
+                portValue: 9094
     name: all-brokers
     type: STRICT_DNS
   listeners:
@@ -333,20 +359,22 @@ staticResources:
         portValue: 19090
     filterChains:
     - filters:
-      - config:
+      - name: envoy.filters.network.tcp_proxy
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-0
-          stat_prefix: broker_tcp-0
-        name: envoy.filters.network.tcp_proxy
+          statPrefix: broker_tcp-0
   - address:
       socketAddress:
         address: 0.0.0.0
         portValue: 29092
     filterChains:
     - filters:
-      - config:
+      - name: envoy.filters.network.tcp_proxy
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: all-brokers
-          stat_prefix: all-brokers
-        name: envoy.filters.network.tcp_proxy
+          statPrefix: all-brokers
 `, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "all-broker"))))
 }
 
@@ -419,7 +447,6 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
 	svcTemplate := fmt.Sprintf("%s-%s.%s.svc.%s", kafkaCluster.Name, "%s", kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())
 	Expect(configMap.Data["envoy.yaml"]).To(Equal(fmt.Sprintf(`admin:
-  accessLogPath: /tmp/admin_access.log
   address:
     socketAddress:
       address: 0.0.0.0
@@ -427,27 +454,39 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 staticResources:
   clusters:
   - connectTimeout: 1s
-    hosts:
-    - socketAddress:
-        address: %s
-        portValue: 9094
-    http2ProtocolOptions: {}
+    loadAssignment:
+      clusterName: broker-1
+      endpoints:
+      - lbEndpoints:
+        - endpoint:
+            address:
+              socketAddress:
+                address: %s
+                portValue: 9094
     name: broker-1
     type: STRICT_DNS
   - connectTimeout: 1s
-    hosts:
-    - socketAddress:
-        address: %s
-        portValue: 9094
-    http2ProtocolOptions: {}
+    loadAssignment:
+      clusterName: broker-2
+      endpoints:
+      - lbEndpoints:
+        - endpoint:
+            address:
+              socketAddress:
+                address: %s
+                portValue: 9094
     name: broker-2
     type: STRICT_DNS
   - connectTimeout: 1s
-    hosts:
-    - socketAddress:
-        address: %s
-        portValue: 9094
-    http2ProtocolOptions: {}
+    loadAssignment:
+      clusterName: all-brokers
+      endpoints:
+      - lbEndpoints:
+        - endpoint:
+            address:
+              socketAddress:
+                address: %s
+                portValue: 9094
     name: all-brokers
     type: STRICT_DNS
   listeners:
@@ -457,29 +496,32 @@ staticResources:
         portValue: 19091
     filterChains:
     - filters:
-      - config:
+      - name: envoy.filters.network.tcp_proxy
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-1
-          stat_prefix: broker_tcp-1
-        name: envoy.filters.network.tcp_proxy
+          statPrefix: broker_tcp-1
   - address:
       socketAddress:
         address: 0.0.0.0
         portValue: 19092
     filterChains:
     - filters:
-      - config:
+      - name: envoy.filters.network.tcp_proxy
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-2
-          stat_prefix: broker_tcp-2
-        name: envoy.filters.network.tcp_proxy
+          statPrefix: broker_tcp-2
   - address:
       socketAddress:
         address: 0.0.0.0
         portValue: 29092
     filterChains:
     - filters:
-      - config:
+      - name: envoy.filters.network.tcp_proxy
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: all-brokers
-          stat_prefix: all-brokers
-        name: envoy.filters.network.tcp_proxy
+          statPrefix: all-brokers
 `, fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))))
 }
