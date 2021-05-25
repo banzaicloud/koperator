@@ -547,7 +547,7 @@ func (kSpec *KafkaClusterSpec) GetClusterImage() string {
 	if kSpec.ClusterImage != "" {
 		return kSpec.ClusterImage
 	}
-	return "ghcr.io/banzaicloud/kafka:2.13-2.7.0-bzc.2"
+	return "ghcr.io/banzaicloud/kafka:2.13-2.8.0"
 }
 
 func (cTaskSpec *CruiseControlTaskSpec) GetDurationMinutes() float64 {
