@@ -17,18 +17,19 @@ package envoy
 import (
 	"fmt"
 
-	envoyapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoylistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
+	envoycluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoylistener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoytcpproxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/ghodss/yaml"
 	"github.com/go-logr/logr"
 
-	//nolint:staticcheck
-	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
-	ptypesstruct "github.com/golang/protobuf/ptypes/struct"
+	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -79,7 +80,6 @@ func generateAnyCastAddressValue(kc *v1beta1.KafkaCluster) string {
 func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalListenerConfig, ingressConfig v1beta1.IngressConfig,
 	ingressConfigName, defaultIngressConfigName string, log logr.Logger) string {
 	adminConfig := envoybootstrap.Admin{
-		AccessLogPath: "/tmp/admin_access.log",
 		Address: &envoycore.Address{
 			Address: &envoycore.Address_SocketAddress{
 				SocketAddress: &envoycore.SocketAddress{
@@ -92,8 +92,8 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 		},
 	}
 
-	var listeners []*envoyapi.Listener
-	var clusters []*envoyapi.Cluster
+	var listeners []*envoylistener.Listener
+	var clusters []*envoycluster.Cluster
 
 	for _, brokerId := range util.GetBrokerIdsFromStatusAndSpec(kc.Status.BrokersState, kc.Spec.Brokers, log) {
 		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kc.Spec, brokerId)
@@ -102,7 +102,19 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 			continue
 		}
 		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
-			listeners = append(listeners, &envoyapi.Listener{
+			// TCP_Proxy filter configuration
+			tcpProxy := &envoytcpproxy.TcpProxy{
+				StatPrefix: fmt.Sprintf("broker_tcp-%d", brokerId),
+				ClusterSpecifier: &envoytcpproxy.TcpProxy_Cluster{
+					Cluster: fmt.Sprintf("broker-%d", brokerId),
+				},
+			}
+			pbstTcpProxy, err := ptypes.MarshalAny(tcpProxy)
+			if err != nil {
+				log.Error(err, "could not marshall envoy tcp_proxy config")
+				return ""
+			}
+			listeners = append(listeners, &envoylistener.Listener{
 				Address: &envoycore.Address{
 					Address: &envoycore.Address_SocketAddress{
 						SocketAddress: &envoycore.SocketAddress{
@@ -118,13 +130,8 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 						Filters: []*envoylistener.Filter{
 							{
 								Name: wellknown.TCPProxy,
-								ConfigType: &envoylistener.Filter_Config{
-									Config: &ptypesstruct.Struct{
-										Fields: map[string]*ptypesstruct.Value{
-											"stat_prefix": {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker_tcp-%d", brokerId)}},
-											"cluster":     {Kind: &ptypesstruct.Value_StringValue{StringValue: fmt.Sprintf("broker-%d", brokerId)}},
-										},
-									},
+								ConfigType: &envoylistener.Filter_TypedConfig{
+									TypedConfig: pbstTcpProxy,
 								},
 							},
 						},
@@ -132,29 +139,51 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 				},
 			})
 
-			clusters = append(clusters, &envoyapi.Cluster{
+			clusters = append(clusters, &envoycluster.Cluster{
 				Name:                 fmt.Sprintf("broker-%d", brokerId),
 				ConnectTimeout:       &duration.Duration{Seconds: 1},
-				ClusterDiscoveryType: &envoyapi.Cluster_Type{Type: envoyapi.Cluster_STRICT_DNS},
-				LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
-				Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
-				Hosts: []*envoycore.Address{
-					{
-						Address: &envoycore.Address_SocketAddress{
-							SocketAddress: &envoycore.SocketAddress{
-								Address: generateAddressValue(kc, brokerId),
-								PortSpecifier: &envoycore.SocketAddress_PortValue{
-									PortValue: uint32(elistener.ContainerPort),
+				ClusterDiscoveryType: &envoycluster.Cluster_Type{Type: envoycluster.Cluster_STRICT_DNS},
+				LbPolicy:             envoycluster.Cluster_ROUND_ROBIN,
+				LoadAssignment: &envoyendpoint.ClusterLoadAssignment{
+					ClusterName: fmt.Sprintf("broker-%d", brokerId),
+					Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+						LbEndpoints: []*envoyendpoint.LbEndpoint{{
+							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
+								Endpoint: &envoyendpoint.Endpoint{
+									Address: &envoycore.Address{
+										Address: &envoycore.Address_SocketAddress{
+											SocketAddress: &envoycore.SocketAddress{
+												Protocol: envoycore.SocketAddress_TCP,
+												Address:  generateAddressValue(kc, brokerId),
+												PortSpecifier: &envoycore.SocketAddress_PortValue{
+													PortValue: uint32(elistener.ContainerPort),
+												},
+											},
+										},
+									},
 								},
 							},
-						},
-					},
+						}},
+					}},
 				},
 			})
 		}
 	}
 	// Create an any cast broker access point
-	listeners = append(listeners, &envoyapi.Listener{
+
+	// TCP_Proxy filter configuration
+	tcpProxy := &envoytcpproxy.TcpProxy{
+		StatPrefix: allBrokerEnvoyConfigName,
+		ClusterSpecifier: &envoytcpproxy.TcpProxy_Cluster{
+			Cluster: allBrokerEnvoyConfigName,
+		},
+	}
+	pbstTcpProxy, err := ptypes.MarshalAny(tcpProxy)
+	if err != nil {
+		log.Error(err, "could not marshall envoy tcp_proxy config")
+		return ""
+	}
+	listeners = append(listeners, &envoylistener.Listener{
 		Address: &envoycore.Address{
 			Address: &envoycore.Address_SocketAddress{
 				SocketAddress: &envoycore.SocketAddress{
@@ -170,13 +199,8 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 				Filters: []*envoylistener.Filter{
 					{
 						Name: wellknown.TCPProxy,
-						ConfigType: &envoylistener.Filter_Config{
-							Config: &ptypesstruct.Struct{
-								Fields: map[string]*ptypesstruct.Value{
-									"stat_prefix": {Kind: &ptypesstruct.Value_StringValue{StringValue: allBrokerEnvoyConfigName}},
-									"cluster":     {Kind: &ptypesstruct.Value_StringValue{StringValue: allBrokerEnvoyConfigName}},
-								},
-							},
+						ConfigType: &envoylistener.Filter_TypedConfig{
+							TypedConfig: pbstTcpProxy,
 						},
 					},
 				},
@@ -184,23 +208,32 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 		},
 	})
 
-	clusters = append(clusters, &envoyapi.Cluster{
+	clusters = append(clusters, &envoycluster.Cluster{
 		Name:                 allBrokerEnvoyConfigName,
 		ConnectTimeout:       &duration.Duration{Seconds: 1},
-		ClusterDiscoveryType: &envoyapi.Cluster_Type{Type: envoyapi.Cluster_STRICT_DNS},
-		LbPolicy:             envoyapi.Cluster_ROUND_ROBIN,
-		Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
-		Hosts: []*envoycore.Address{
-			{
-				Address: &envoycore.Address_SocketAddress{
-					SocketAddress: &envoycore.SocketAddress{
-						Address: generateAnyCastAddressValue(kc),
-						PortSpecifier: &envoycore.SocketAddress_PortValue{
-							PortValue: uint32(elistener.ContainerPort),
+		ClusterDiscoveryType: &envoycluster.Cluster_Type{Type: envoycluster.Cluster_STRICT_DNS},
+		LbPolicy:             envoycluster.Cluster_ROUND_ROBIN,
+		LoadAssignment: &envoyendpoint.ClusterLoadAssignment{
+			ClusterName: allBrokerEnvoyConfigName,
+			Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+				LbEndpoints: []*envoyendpoint.LbEndpoint{{
+					HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
+						Endpoint: &envoyendpoint.Endpoint{
+							Address: &envoycore.Address{
+								Address: &envoycore.Address_SocketAddress{
+									SocketAddress: &envoycore.SocketAddress{
+										Protocol: envoycore.SocketAddress_TCP,
+										Address:  generateAnyCastAddressValue(kc),
+										PortSpecifier: &envoycore.SocketAddress_PortValue{
+											PortValue: uint32(elistener.ContainerPort),
+										},
+									},
+								},
+							},
 						},
 					},
-				},
-			},
+				}},
+			}},
 		},
 	})
 
@@ -212,14 +245,14 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 		Admin:           &adminConfig,
 		StaticResources: &config,
 	}
-	marshaller := &jsonpb.Marshaler{}
-	marshalledProtobufConfig, err := marshaller.MarshalToString(&generatedConfig)
+	marshaller := &protojson.MarshalOptions{}
+	marshalledProtobufConfig, err := marshaller.Marshal(&generatedConfig)
 	if err != nil {
 		log.Error(err, "could not marshall envoy config")
 		return ""
 	}
 
-	marshalledConfig, err := yaml.JSONToYAML([]byte(marshalledProtobufConfig))
+	marshalledConfig, err := yaml.JSONToYAML(marshalledProtobufConfig)
 	if err != nil {
 		log.Error(err, "could not convert config from Json to Yaml")
 		return ""
