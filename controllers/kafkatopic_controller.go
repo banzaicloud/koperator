@@ -47,7 +47,7 @@ func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
 		Log:    ctrl.Log.WithName("controllers").WithName("KafkaTopic"),
 	}
 
-	c, err := controller.New("kafkatopic", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("kafkatopic", mgr, controller.Options{Reconciler: r, MaxConcurrentReconciles: 10})
 	if err != nil {
 		return err
 	}
