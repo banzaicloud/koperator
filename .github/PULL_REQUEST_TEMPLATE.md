@@ -1,11 +1,11 @@
-| Q               | A
-| --------------- | ---
-| Bug fix?        | no|yes
-| New feature?    | no|yes
-| API breaks?     | no|yes
-| Deprecations?   | no|yes
-| Related tickets | fixes #X, partially #Y, mentioned in #Z
-| License         | Apache 2.0
+| Q               | A      |
+| --------------- | ------ |
+| Bug fix?        | no/yes |
+| New feature?    | no/yes |
+| API breaks?     | no/yes |
+| Deprecations?   | no/yes |
+| Related tickets | fixes #X, partially #Y, mentioned in #Z |
+| License         | Apache 2.0 |
 
 
 ### What's in this PR?
