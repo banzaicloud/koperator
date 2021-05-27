@@ -157,7 +157,7 @@ var _ = BeforeSuite(func(done Done) {
 	err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = controllers.SetupKafkaTopicWithManager(mgr)
+	err = controllers.SetupKafkaTopicWithManager(mgr, 10)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = controllers.SetupKafkaUserWithManager(mgr, true)
