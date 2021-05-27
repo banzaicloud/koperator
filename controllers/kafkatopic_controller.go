@@ -39,7 +39,7 @@ import (
 var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
 
 // SetupKafkaTopicWithManager registers kafka topic controller with manager
-func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
+func SetupKafkaTopicWithManager(mgr ctrl.Manager, maxConcurrentReconciles int) error {
 	// Create a new controller
 	r := &KafkaTopicReconciler{
 		Client: mgr.GetClient(),
@@ -47,7 +47,7 @@ func SetupKafkaTopicWithManager(mgr ctrl.Manager) error {
 		Log:    ctrl.Log.WithName("controllers").WithName("KafkaTopic"),
 	}
 
-	c, err := controller.New("kafkatopic", mgr, controller.Options{Reconciler: r, MaxConcurrentReconciles: 10})
+	c, err := controller.New("kafkatopic", mgr, controller.Options{Reconciler: r, MaxConcurrentReconciles: maxConcurrentReconciles})
 	if err != nil {
 		return err
 	}
