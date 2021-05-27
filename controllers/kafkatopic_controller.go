@@ -171,7 +171,7 @@ func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		reqLogger.Info("Adding Finalizer for the KafkaTopic")
 		instance.SetFinalizers(append(instance.GetFinalizers(), topicFinalizer))
 		if instance, err = r.updateAndFetchLatest(ctx, instance); err != nil {
-			return requeueWithError(reqLogger, "failed to add Finalizer to KafakTopic", err)
+			return requeueWithError(reqLogger, "failed to add Finalizer to KafkaTopic", err)
 		}
 	}
 
