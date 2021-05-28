@@ -29,6 +29,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -144,6 +145,26 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 				ConnectTimeout:       &duration.Duration{Seconds: 1},
 				ClusterDiscoveryType: &envoycluster.Cluster_Type{Type: envoycluster.Cluster_STRICT_DNS},
 				LbPolicy:             envoycluster.Cluster_ROUND_ROBIN,
+				// disable circuit breakingL:
+				// https://www.envoyproxy.io/docs/envoy/latest/faq/load_balancing/disable_circuit_breaking
+				CircuitBreakers: &envoycluster.CircuitBreakers{
+					Thresholds: []*envoycluster.CircuitBreakers_Thresholds{
+						{
+							Priority:           envoycore.RoutingPriority_DEFAULT,
+							MaxConnections:     &wrappers.UInt32Value{Value: 1_000_000_000},
+							MaxPendingRequests: &wrappers.UInt32Value{Value: 1_000_000_000},
+							MaxRequests:        &wrappers.UInt32Value{Value: 1_000_000_000},
+							MaxRetries:         &wrappers.UInt32Value{Value: 1_000_000_000},
+						},
+						{
+							Priority:           envoycore.RoutingPriority_HIGH,
+							MaxConnections:     &wrappers.UInt32Value{Value: 1_000_000_000},
+							MaxPendingRequests: &wrappers.UInt32Value{Value: 1_000_000_000},
+							MaxRequests:        &wrappers.UInt32Value{Value: 1_000_000_000},
+							MaxRetries:         &wrappers.UInt32Value{Value: 1_000_000_000},
+						},
+					},
+				},
 				LoadAssignment: &envoyendpoint.ClusterLoadAssignment{
 					ClusterName: fmt.Sprintf("broker-%d", brokerId),
 					Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
@@ -213,6 +234,26 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 		ConnectTimeout:       &duration.Duration{Seconds: 1},
 		ClusterDiscoveryType: &envoycluster.Cluster_Type{Type: envoycluster.Cluster_STRICT_DNS},
 		LbPolicy:             envoycluster.Cluster_ROUND_ROBIN,
+		// disable circuit breakingL:
+		// https://www.envoyproxy.io/docs/envoy/latest/faq/load_balancing/disable_circuit_breaking
+		CircuitBreakers: &envoycluster.CircuitBreakers{
+			Thresholds: []*envoycluster.CircuitBreakers_Thresholds{
+				{
+					Priority:           envoycore.RoutingPriority_DEFAULT,
+					MaxConnections:     &wrappers.UInt32Value{Value: 1_000_000_000},
+					MaxPendingRequests: &wrappers.UInt32Value{Value: 1_000_000_000},
+					MaxRequests:        &wrappers.UInt32Value{Value: 1_000_000_000},
+					MaxRetries:         &wrappers.UInt32Value{Value: 1_000_000_000},
+				},
+				{
+					Priority:           envoycore.RoutingPriority_HIGH,
+					MaxConnections:     &wrappers.UInt32Value{Value: 1_000_000_000},
+					MaxPendingRequests: &wrappers.UInt32Value{Value: 1_000_000_000},
+					MaxRequests:        &wrappers.UInt32Value{Value: 1_000_000_000},
+					MaxRetries:         &wrappers.UInt32Value{Value: 1_000_000_000},
+				},
+			},
+		},
 		LoadAssignment: &envoyendpoint.ClusterLoadAssignment{
 			ClusterName: allBrokerEnvoyConfigName,
 			Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
