@@ -37,7 +37,7 @@ import (
 )
 
 func Test_resizePvc(t *testing.T) {
-	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+	testClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 
 	//Setup test kafka cluster and pvc
 	setupEnvironment(t, testClient)
@@ -253,7 +253,7 @@ func Test_resizePvc(t *testing.T) {
 }
 
 func Test_addPvc(t *testing.T) {
-	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+	testClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 
 	//Setup test kafka cluster and pvc
 	setupEnvironment(t, testClient)
@@ -444,7 +444,7 @@ func Test_addPvc(t *testing.T) {
 }
 
 func Test_upScale(t *testing.T) {
-	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+	testClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 
 	testCases := []struct {
 		testName        string

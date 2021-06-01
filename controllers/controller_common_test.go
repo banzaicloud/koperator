@@ -91,7 +91,7 @@ func TestNewBrokerConnection(t *testing.T) {
 			},
 		},
 	}
-	client := fake.NewFakeClient()
+	client := fake.NewClientBuilder().Build()
 	// overwrite the var in controller_common to point kafka connections at mock
 	SetNewKafkaFromCluster(kafkaclient.NewMockFromCluster)
 
