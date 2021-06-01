@@ -77,13 +77,10 @@ type KafkaTopicReconciler struct {
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics/status,verbs=get;update;patch
 
 // Reconcile reconciles the kafka topic
-func (r *KafkaTopicReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := r.Log.WithValues("kafkatopic", request.NamespacedName, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KafkaTopic")
 	var err error
-
-	// Get a context for the request
-	ctx := context.Background()
 
 	// Fetch the KafkaTopic instance
 	instance := &v1alpha1.KafkaTopic{}

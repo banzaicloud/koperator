@@ -44,16 +44,12 @@ import (
 // Reconcile reconciles K8S resources
 func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Object, cr *v1beta1.KafkaCluster) error {
 	desiredType := reflect.TypeOf(desired)
-	var current = desired.DeepCopyObject()
+	var current = desired.DeepCopyObject().(runtimeClient.Object)
 	var err error
 
 	switch desired.(type) {
 	default:
-		var key runtimeClient.ObjectKey
-		key, err = runtimeClient.ObjectKeyFromObject(current)
-		if err != nil {
-			return errors.WithDetails(err, "kind", desiredType)
-		}
+		key := runtimeClient.ObjectKeyFromObject(current)
 		log = log.WithValues("kind", desiredType, "name", key.Name)
 
 		err = client.Get(context.TODO(), key, current)
@@ -69,7 +65,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desired); err != nil {
 				return errors.WrapIf(err, "could not apply last state to annotation")
 			}
-			if err := client.Create(context.TODO(), desired); err != nil {
+			if err := client.Create(context.TODO(), desired.(runtimeClient.Object)); err != nil {
 				return errorfactory.New(
 					errorfactory.APIFailure{},
 					err,
@@ -82,11 +78,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 		}
 		// TODO check if this ClusterIssuer part here is necessary or can be handled in default (baluchicken)
 	case *certv1.ClusterIssuer:
-		var key runtimeClient.ObjectKey
-		key, err = runtimeClient.ObjectKeyFromObject(current)
-		if err != nil {
-			return errors.WithDetails(err, "kind", desiredType)
-		}
+		key := runtimeClient.ObjectKeyFromObject(current)
 		err = client.Get(context.TODO(), types.NamespacedName{Namespace: metav1.NamespaceAll, Name: key.Name}, current)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return errorfactory.New(
@@ -100,7 +92,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desired); err != nil {
 				return errors.WrapIf(err, "could not apply last state to annotation")
 			}
-			if err := client.Create(context.TODO(), desired); err != nil {
+			if err := client.Create(context.TODO(), desired.(runtimeClient.Object)); err != nil {
 				return errorfactory.New(
 					errorfactory.APIFailure{},
 					err,
@@ -129,7 +121,7 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 				desired = svc
 			}
 
-			if err := client.Update(context.TODO(), desired); err != nil {
+			if err := client.Update(context.TODO(), desired.(runtimeClient.Object)); err != nil {
 				return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
 			}
 			if _, ok := desired.(*corev1.ConfigMap); ok {
