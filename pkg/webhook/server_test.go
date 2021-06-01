@@ -34,7 +34,7 @@ import (
 )
 
 func newMockServer() (*webhookServer, error) {
-	return newMockServerWithClients(fake.NewFakeClientWithScheme(scheme.Scheme), kafkaclient.NewMockFromCluster)
+	return newMockServerWithClients(fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(), kafkaclient.NewMockFromCluster)
 }
 
 func newMockServerWithClients(c client.Client, kafkaClientProvider func(client client.Client,
@@ -57,14 +57,14 @@ func newMockServerWithClients(c client.Client, kafkaClientProvider func(client c
 }
 
 func TestNewServer(t *testing.T) {
-	server := newWebHookServer(fake.NewFakeClient(), scheme.Scheme)
+	server := newWebHookServer(fake.NewClientBuilder().Build(), scheme.Scheme)
 	if reflect.ValueOf(server.newKafkaFromCluster).Pointer() != reflect.ValueOf(kafkaclient.NewFromCluster).Pointer() {
 		t.Error("Expected newKafkaFromCluster ptr -> kafkaclient.NewFromCluster")
 	}
 }
 
 func TestNewServerMux(t *testing.T) {
-	mux := newWebhookServerMux(fake.NewFakeClient(), scheme.Scheme)
+	mux := newWebhookServerMux(fake.NewClientBuilder().Build(), scheme.Scheme)
 	var buf bytes.Buffer
 	req, _ := http.NewRequest("POST", "/validate", &buf)
 	if _, pattern := mux.Handler(req); pattern == "" {

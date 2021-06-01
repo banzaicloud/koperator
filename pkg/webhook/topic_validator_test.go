@@ -53,7 +53,7 @@ func newMockTopic() *v1alpha1.KafkaTopic {
 }
 
 func newMockServerForTopicValidator(cluster *v1beta1.KafkaCluster) (*webhookServer, kafkaclient.KafkaClient, error) {
-	client := fake.NewFakeClientWithScheme(scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 	kafkaClient, _, _ := kafkaclient.NewMockFromCluster(client, cluster)
 	returnMockedKafkaClient := func(client runtimeClient.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error) {
 		return kafkaClient, func() { kafkaClient.Close() }, nil

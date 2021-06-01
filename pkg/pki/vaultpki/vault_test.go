@@ -79,7 +79,7 @@ func newVaultMock(t *testing.T) (*vaultPKI, net.Listener, *api.Client, error) {
 
 	return &vaultPKI{
 		cluster:   newMockCluster(),
-		client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+		client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 		getClient: func() (*api.Client, error) { return client, nil },
 	}, ln, client, nil
 }
