@@ -35,7 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 
 	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 	properties "github.com/banzaicloud/kafka-operator/properties/pkg"

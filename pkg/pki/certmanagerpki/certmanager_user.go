@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -162,11 +162,13 @@ func (c *certManager) clusterCertificateForUser(
 	cert := &certv1.Certificate{
 		ObjectMeta: templates.ObjectMetaWithCustomNamespaceAndWithoutLabels(user.GetName(), user.GetNamespace(), c.cluster),
 		Spec: certv1.CertificateSpec{
-			SecretName:  user.Spec.SecretName,
-			KeyEncoding: certv1.PKCS8,
-			CommonName:  user.GetName(),
-			URISANs:     []string{fmt.Sprintf(spiffeIdTemplate, clusterDomain, user.GetNamespace(), user.GetName())},
-			Usages:      []certv1.KeyUsage{certv1.UsageClientAuth, certv1.UsageServerAuth},
+			SecretName: user.Spec.SecretName,
+			PrivateKey: &certv1.CertificatePrivateKey{
+				Encoding: certv1.PKCS8,
+			},
+			CommonName: user.GetName(),
+			URIs:       []string{fmt.Sprintf(spiffeIdTemplate, clusterDomain, user.GetNamespace(), user.GetName())},
+			Usages:     []certv1.KeyUsage{certv1.UsageClientAuth, certv1.UsageServerAuth},
 			IssuerRef: certmeta.ObjectReference{
 				Name: caName,
 				Kind: caKind,
