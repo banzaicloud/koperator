@@ -67,25 +67,24 @@ func TestMain(m *testing.M) {
 }
 
 // StartTestManager adds recFn
-func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) (chan struct{}, *sync.WaitGroup) {
-	stop := make(chan struct{})
+func StartTestManager(ctx context.Context, mgr manager.Manager, g *gomega.GomegaWithT) *sync.WaitGroup {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		g.Expect(mgr.Start(stop)).NotTo(gomega.HaveOccurred())
+		g.Expect(mgr.Start(ctx)).NotTo(gomega.HaveOccurred())
 		wg.Done()
 	}()
-	return stop, wg
+	return wg
 }
 
 // nolint:unparam
 func ensureCreated(t *testing.T, object runtime.Object, mgr manager.Manager) func() {
-	err := mgr.GetClient().Create(context.TODO(), object)
+	err := mgr.GetClient().Create(context.TODO(), object.(client.Object))
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 	return func() {
-		if err := mgr.GetClient().Delete(context.TODO(), object); err != nil {
+		if err := mgr.GetClient().Delete(context.TODO(), object.(client.Object)); err != nil {
 			t.Error("Expected no error, got:", err)
 		}
 	}
@@ -113,11 +112,12 @@ func TestGetCurrentAlerts(t *testing.T) {
 	mgr, err := manager.New(cfg, manager.Options{Scheme: scheme.Scheme})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	c = mgr.GetClient()
+	ctx, cancelFunc := context.WithCancel(context.Background())
 
-	stopMgr, mgrStopped := StartTestManager(mgr, g)
+	mgrStopped := StartTestManager(ctx, mgr, g)
 
 	defer func() {
-		close(stopMgr)
+		cancelFunc()
 		mgrStopped.Wait()
 	}()
 

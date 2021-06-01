@@ -15,6 +15,7 @@
 package controllers
 
 import (
+	"context"
 	"net"
 	"net/http"
 
@@ -42,7 +43,7 @@ func SetAlertManagerWithManager(mgr manager.Manager) error {
 }
 
 // Start initiates the alertmanager controller
-func (c AController) Start(<-chan struct{}) error {
+func (c AController) Start(ctx context.Context) error {
 	logf.SetLogger(util.CreateLogger(false, false))
 	log := logf.Log.WithName("alertmanager")
 

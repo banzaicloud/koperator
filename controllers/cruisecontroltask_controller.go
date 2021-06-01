@@ -50,8 +50,7 @@ type CruiseControlTaskReconciler struct {
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
 
-func (r *CruiseControlTaskReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("clusterName", request.Name, "clusterNamespace", request.Namespace)
 
