@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"testing"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -68,7 +68,7 @@ func newMock(cluster *v1beta1.KafkaCluster) (*certManager, error) {
 	}
 	return &certManager{
 		cluster: cluster,
-		client:  fake.NewFakeClientWithScheme(scheme.Scheme),
+		client:  fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 	}, nil
 }
 

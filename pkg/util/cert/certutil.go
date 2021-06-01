@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pavel-v-chernykh/keystore-go"
 	corev1 "k8s.io/api/core/v1"
 
@@ -46,7 +46,7 @@ func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 		err = errors.New("failed to decode PEM data")
 		return
 	}
-	var keytype certv1.KeyEncoding
+	var keytype certv1.PrivateKeyEncoding
 	var key interface{}
 	if key, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
 		if key, err = x509.ParsePKCS8PrivateKey(block.Bytes); err != nil {

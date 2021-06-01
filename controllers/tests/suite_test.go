@@ -53,8 +53,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	cmv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
-	cmv1alpha3 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha3"
+	cmv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 
 	istioclientv1alpha3 "github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
 	banzaiistiov1beta1 "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
@@ -116,8 +115,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(k8sscheme.AddToScheme(scheme)).To(Succeed())
 	Expect(apiextensionsv1beta1.AddToScheme(scheme)).To(Succeed())
 	Expect(apiv1.AddToScheme(scheme)).To(Succeed())
-	Expect(cmv1alpha2.AddToScheme(scheme)).To(Succeed())
-	Expect(cmv1alpha3.AddToScheme(scheme)).To(Succeed())
+	Expect(cmv1.AddToScheme(scheme)).To(Succeed())
 	Expect(banzaicloudv1alpha1.AddToScheme(scheme)).To(Succeed())
 	Expect(banzaicloudv1beta1.AddToScheme(scheme)).To(Succeed())
 	Expect(banzaiistiov1beta1.AddToScheme(scheme)).To(Succeed())
