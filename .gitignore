@@ -37,6 +37,7 @@ charts/kafka-operator/requirements.lock
 bin/*
 cover.out
 .DS_Store
+testbin/*
 
 manager_image_patch.yaml
 

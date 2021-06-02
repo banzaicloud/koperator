@@ -31,7 +31,6 @@ package tests
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -45,7 +44,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8sscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -70,7 +68,6 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
 var mockKafkaClients map[types.NamespacedName]kafkaclient.KafkaClient
@@ -92,21 +89,14 @@ var _ = BeforeSuite(func(done Done) {
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			filepath.Join("..", "..", "config", "base", "crds"),
-			// "https://github.com/jetstack/cert-manager/releases/download/v1.1.0/cert-manager.yaml",
 			filepath.Join("..", "..", "config", "test", "crd", "cert-manager"),
 			filepath.Join("..", "..", "config", "test", "crd", "istio"),
 		},
 		AttachControlPlaneOutput: false,
+		ErrorIfCRDPathMissing:    true,
 	}
 
-	if os.Getenv("KUBEBUILDER_ASSETS") == "" {
-		err := os.Setenv("KUBEBUILDER_ASSETS", filepath.Join("..", "..", "bin", "kubebuilder", "bin"))
-		Expect(err).ToNot(HaveOccurred())
-	}
-
-	var err error
-
-	cfg, err = testEnv.Start()
+	cfg, err := testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
@@ -122,6 +112,10 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(istioclientv1alpha3.AddToScheme(scheme)).To(Succeed())
 
 	// +kubebuilder:scaffold:scheme
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:             scheme,
