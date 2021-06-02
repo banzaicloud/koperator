@@ -4,7 +4,7 @@ metadata:
   creationTimestamp: null
   name: meshgateways.istio.banzaicloud.io
   labels:
-    resource.alpha.banzaicloud.io/revision: 1.9.1
+    resource.alpha.banzaicloud.io/revision: 1.10.0
 spec:
   group: istio.banzaicloud.io
   names:

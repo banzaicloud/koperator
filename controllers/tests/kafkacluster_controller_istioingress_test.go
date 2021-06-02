@@ -102,18 +102,10 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 					},
 				},
 			},
-			Status: corev1.ServiceStatus{
-				LoadBalancer: corev1.LoadBalancerStatus{
-					Ingress: []corev1.LoadBalancerIngress{
-						{
-							Hostname: "ingress.test.host.com",
-						},
-					},
-				},
-			},
 		}
 		err = k8sClient.Create(context.TODO(), &svcFromMeshGateway)
 		Expect(err).NotTo(HaveOccurred())
+		svcFromMeshGateway.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{Hostname: "ingress.test.host.com"}}
 		err = k8sClient.Status().Update(context.TODO(), &svcFromMeshGateway)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -756,18 +748,10 @@ func createMeshGatewayService(extListenerName, extListenerServiceName, namespace
 				},
 			},
 		},
-		Status: corev1.ServiceStatus{
-			LoadBalancer: corev1.LoadBalancerStatus{
-				Ingress: []corev1.LoadBalancerIngress{
-					{
-						Hostname: extListenerName,
-					},
-				},
-			},
-		},
 	}
 	err := k8sClient.Create(context.TODO(), &svcFromMeshGateway)
 	Expect(err).NotTo(HaveOccurred())
+	svcFromMeshGateway.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{Hostname: extListenerName}}
 	err = k8sClient.Status().Update(context.TODO(), &svcFromMeshGateway)
 	Expect(err).NotTo(HaveOccurred())
 }
