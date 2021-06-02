@@ -1,3 +1,4 @@
+SHELL = /bin/bash
 # Image URL to use all building/pushing image targets
 TAG ?= $(shell git describe --tags --abbrev=0 --match 'v[0-9].*[0-9].*[0-9]' 2>/dev/null )
 IMG ?= ghcr.io/banzaicloud/kafka-operator:$(TAG)
