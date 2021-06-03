@@ -81,7 +81,7 @@ additionalSidecars: {}
 ## Additional Environment Variables.
 additionalEnv: {}
 
-## Additional volumes required for sidecars.
+## Additional volumes required for sidecar(s).
 additionalVolumes: {}
 # - name: volume1
 #   emptyDir: {}
