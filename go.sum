@@ -174,8 +174,8 @@ github.com/banzaicloud/bank-vaults/pkg/sdk v0.3.1 h1:YBo1RVbiq/o14Z8x2K/hH0qF2iF
 github.com/banzaicloud/bank-vaults/pkg/sdk v0.3.1/go.mod h1:7iQn9m9vtwrjRg7jaRElVacx5WAWMc+BPBvdrvC3Z68=
 github.com/banzaicloud/istio-client-go v0.0.9 h1:PI/vRqmX5z80/t4UhjsuDHwDIC9WPtktqLmNFc9P9SU=
 github.com/banzaicloud/istio-client-go v0.0.9/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
-github.com/banzaicloud/istio-operator v0.0.0-20210531140018-581de43b1210 h1:cZk7bBUsV8pSW+SU7j1bcvzRmVFeJdUEzo5JcgjfqbU=
-github.com/banzaicloud/istio-operator v0.0.0-20210531140018-581de43b1210/go.mod h1:Ax7cd+DY8mJl3bIABaLMNXcL/sOgsXJ+Gbzi/uDpaGY=
+github.com/banzaicloud/istio-operator v0.0.0-20210603082335-fd31d6ff3e0d h1:uvzpscE85yM3qUU1xD0vB7QMZ9kgk/q1AlROVR1wDUA=
+github.com/banzaicloud/istio-operator v0.0.0-20210603082335-fd31d6ff3e0d/go.mod h1:Ax7cd+DY8mJl3bIABaLMNXcL/sOgsXJ+Gbzi/uDpaGY=
 github.com/banzaicloud/k8s-objectmatcher v1.4.0/go.mod h1:j+N22VwgVfa0ajVtNxOz2G72aSOL21lpB7qV2GDrr/I=
 github.com/banzaicloud/k8s-objectmatcher v1.4.1 h1:/HaUqQzTa5E+pLqG9qelRKUdrzU1Nl2BYPHDut7e1oU=
 github.com/banzaicloud/k8s-objectmatcher v1.4.1/go.mod h1:j+N22VwgVfa0ajVtNxOz2G72aSOL21lpB7qV2GDrr/I=

@@ -7,7 +7,7 @@ require (
 	github.com/Shopify/sarama v1.29.0
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.3.1
 	github.com/banzaicloud/istio-client-go v0.0.9
-	github.com/banzaicloud/istio-operator v0.0.0-20210531140018-581de43b1210
+	github.com/banzaicloud/istio-operator v0.0.0-20210603082335-fd31d6ff3e0d
 	github.com/banzaicloud/k8s-objectmatcher v1.4.1
 	github.com/banzaicloud/kafka-operator/api v0.0.0
 	github.com/banzaicloud/kafka-operator/properties v0.0.0
