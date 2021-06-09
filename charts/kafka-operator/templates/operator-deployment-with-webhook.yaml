@@ -127,6 +127,9 @@ spec:
           secret:
             secretName: {{ .Values.operator.vaultSecret }}
       {{- end }}
+      {{- if .Values.additionalVolumes }}
+      {{- include "chart.additionalVolumes" . | indent 8 }}
+      {{- end }}
       containers:
       {{- if and .Values.prometheusMetrics.enabled .Values.prometheusMetrics.authProxy.enabled }}
         - name: kube-rbac-proxy
@@ -167,6 +170,9 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+          {{- if .Values.additionalEnv }}
+{{ toYaml .Values.additionalEnv | indent 12 }}
+          {{- end }}
           {{- if .Values.operator.vaultAddress }}
             - name: VAULT_ADDR
               value: {{ .Values.operator.vaultAddress }}
@@ -200,6 +206,9 @@ spec:
           {{- end }}
           resources:
 {{ toYaml .Values.operator.resources | nindent 12 }}
+{{- if .Values.additionalSidecars }}
+{{- include "chart.additionalSidecars" . | indent 8 }}
+{{- end }}
 {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
