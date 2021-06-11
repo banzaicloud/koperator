@@ -171,7 +171,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
           {{- if .Values.additionalEnv }}
-{{ toYaml .Values.additionalEnv | nindent 12 }}
+          {{ toYaml .Values.additionalEnv | nindent 12 }}
           {{- end }}
           {{- if .Values.operator.vaultAddress }}
             - name: VAULT_ADDR
