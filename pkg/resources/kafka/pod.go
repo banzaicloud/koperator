@@ -315,7 +315,7 @@ func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, kafkaClusterNam
 // or if there is any user Affinity definition provided by the user the latter will be used ignoring the value of `OneBrokerPerNode`
 func getAffinity(bc *v1beta1.BrokerConfig, cluster *v1beta1.KafkaCluster) *corev1.Affinity {
 	if bc.Affinity == nil {
-		return &corev1.Affinity{PodAntiAffinity: generatePodAntiAffinity(cluster.ClusterName, cluster.Spec.OneBrokerPerNode)}
+		return &corev1.Affinity{PodAntiAffinity: generatePodAntiAffinity(cluster.Name, cluster.Spec.OneBrokerPerNode)}
 	}
 	return bc.Affinity
 }
