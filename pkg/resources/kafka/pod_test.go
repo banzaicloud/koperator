@@ -46,7 +46,7 @@ func TestGetAffinity(t *testing.T) {
 
 	cluster := v1beta1.KafkaCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			ClusterName: "name",
+			Name: "name",
 		},
 		Spec: v1beta1.KafkaClusterSpec{
 			BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
