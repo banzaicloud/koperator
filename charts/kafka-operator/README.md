@@ -82,3 +82,6 @@ Parameter | Description | Default
 `webhook.enabled` | Operator will activate the admission webhooks for custom resources | `true`
 `webhook.certs.generate` | Helm chart will generate cert for the webhook | `true`
 `webhook.certs.secret` | Helm chart will use the secret name applied here for the cert | `kafka-operator-serving-cert`
+`additionalEnv` | Additional Environment Variables | `[]`
+`additionalSidecars` | Additional Sidecars Configuration | `[]`
+`additionalVolumes` | Additional volumes required for sidecars | `[]`
