@@ -122,7 +122,7 @@ spec:
         # brokerAnnotations: '{ "sidecar.istio.io/logLevel": "trace", "sidecar.istio.io/proxyCPULimit": "50m" }'
         command: 'upScale'
     - alert: PartitionCountLow
-      expr: min(kafka_server_replicamanager_partitioncount)  by (namespace, kafka_cr) < 40
+      expr: bottomk(1, kafka_server_replicamanager_partitioncount) by (namespace, kafka_cr) < 40
       for: 3m
       labels:
         severity: alert
