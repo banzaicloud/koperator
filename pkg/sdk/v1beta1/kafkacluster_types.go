@@ -226,6 +226,7 @@ type EnvoyConfig struct {
 	Replicas           int32                         `json:"replicas,omitempty"`
 	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`
 	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	Affinity           *corev1.Affinity              `json:"affinity,omitempty"`
 	NodeSelector       map[string]string             `json:"nodeSelector,omitempty"`
 	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
 	// Annotations defines the annotations placed on the envoy ingress controller deployment
@@ -623,6 +624,11 @@ func (cConfig *CruiseControlConfig) GetNodeSelector() map[string]string {
 //GetNodeSelector returns the node selector for envoy
 func (eConfig *EnvoyConfig) GetNodeSelector() map[string]string {
 	return eConfig.NodeSelector
+}
+
+//GetAffinity returns the Affinity config for envoy
+func (eConfig *EnvoyConfig) GetAffinity() *corev1.Affinity {
+	return eConfig.Affinity
 }
 
 //GetNodeSelector returns the node selector for the given broker
