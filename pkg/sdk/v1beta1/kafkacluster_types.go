@@ -106,6 +106,9 @@ type DisruptionBudget struct {
 	// The budget to set for the PDB, can either be static number or a percentage
 	// +kubebuilder:validation:Pattern:="^[0-9]+$|^[0-9]{1,2}%$|^100%$"
 	Budget string `json:"budget,omitempty"`
+	// The strategy to be used, either minAvailable or maxUnavailable
+	// +kubebuilder:validation:Pattern:="^minAvailable$|^maxUnavailable$"
+	Stategy string `json:"strategy,omitempty"`
 }
 
 // Broker defines the broker basic configuration
@@ -235,6 +238,8 @@ type EnvoyConfig struct {
 	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
 	// Envoy admin port
 	AdminPort *int32 `json:"adminPort,omitempty"`
+	// PDB
+	DisruptionBudget DisruptionBudget `json:"disruptionBudget,omitempty"`
 }
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller
