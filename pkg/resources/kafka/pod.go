@@ -107,7 +107,7 @@ rm /var/run/wait/do-not-exit-yet`}
 		),
 		Spec: corev1.PodSpec{
 			SecurityContext: brokerConfig.PodSecurityContext,
-			InitContainers:  getInitContainers(brokerConfig.InitContainers, r.KafkaCluster.Spec),
+			InitContainers:  getInitContainers(brokerConfig, r.KafkaCluster.Spec),
 			Affinity:        getAffinity(brokerConfig, r.KafkaCluster),
 			Containers: []corev1.Container{
 				{
@@ -180,9 +180,9 @@ fi`},
 	return pod
 }
 
-func getInitContainers(brokerConfigInitContainers []corev1.Container, kafkaClusterSpec v1beta1.KafkaClusterSpec) []corev1.Container {
-	initContainers := make([]corev1.Container, 0, len(brokerConfigInitContainers))
-	initContainers = append(initContainers, brokerConfigInitContainers...)
+func getInitContainers(brokerConfig *v1beta1.BrokerConfig, kafkaClusterSpec v1beta1.KafkaClusterSpec) []corev1.Container {
+	initContainers := make([]corev1.Container, 0, len(brokerConfig.InitContainers))
+	initContainers = append(initContainers, brokerConfig.InitContainers...)
 
 	initContainers = append(initContainers, []corev1.Container{
 		{
@@ -193,6 +193,7 @@ func getInitContainers(brokerConfigInitContainers []corev1.Container, kafkaClust
 				Name:      "extensions",
 				MountPath: "/opt/kafka/libs/extensions",
 			}},
+			Resources: *brokerConfig.InitContainersResourceRequirements,
 		},
 		{
 			Name:    "jmx-exporter",
@@ -204,6 +205,7 @@ func getInitContainers(brokerConfigInitContainers []corev1.Container, kafkaClust
 					MountPath: jmxVolumePath,
 				},
 			},
+			Resources: *brokerConfig.InitContainersResourceRequirements,
 		},
 	}...)
 
