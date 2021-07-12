@@ -84,6 +84,7 @@ func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object
 									MountPath: jmxVolumePath,
 								},
 							},
+							Resources: *r.KafkaCluster.Spec.CruiseControlConfig.GetInitResources(),
 						},
 					}...),
 					Containers: []corev1.Container{
