@@ -79,6 +79,12 @@ var _ = Describe("KafkaCluster", func() {
 				Image: "test/image:latest",
 			},
 		}
+		defaultGroup.Containers = []corev1.Container{
+			{
+				Name:  "test-container",
+				Image: "busybox:latest",
+			},
+		}
 		defaultGroup.Volumes = []corev1.Volume{
 			{
 				Name: "test-volume",

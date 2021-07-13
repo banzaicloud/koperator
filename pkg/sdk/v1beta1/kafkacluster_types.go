@@ -165,6 +165,8 @@ type BrokerConfig struct {
 	BrokerIngressMapping []string `json:"brokerIngressMapping,omitempty"`
 	// InitContainers add extra initContainers to the Kafka broker pod
 	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+	// Containers add extra Containers to the Kafka broker pod
+	Containers []corev1.Container `json:"containers,omitempty"`
 	// Volumes define some extra Kubernetes Volumes for the Kafka broker Pods.
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
 	// VolumeMounts define some extra Kubernetes VolumeMounts for the Kafka broker Pods.

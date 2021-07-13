@@ -247,7 +247,8 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	Expect(pod.Spec.Affinity).NotTo(BeNil())
 	Expect(pod.Spec.Affinity.PodAntiAffinity).NotTo(BeNil())
 
-	Expect(pod.Spec.Containers).To(HaveLen(1))
+	Expect(pod.Spec.Containers).To(HaveLen(2))
+	Expect(pod.Spec.Containers[1]).To(WithTransform(getContainerName, Equal("test-container")))
 	container := pod.Spec.Containers[0]
 	Expect(container.Name).To(Equal("kafka"))
 	Expect(container.Image).To(Equal("ghcr.io/banzaicloud/kafka:2.13-2.8.0"))
