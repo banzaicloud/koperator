@@ -156,8 +156,6 @@ type BrokerConfig struct {
 	BrokerIngressMapping []string `json:"brokerIngressMapping,omitempty"`
 	// InitContainers add extra initContainers to the Kafka broker pod
 	InitContainers []corev1.Container `json:"initContainers,omitempty"`
-	// ResourceRequirements for initContainers
-	InitContainersResourceRequirements *corev1.ResourceRequirements `json:"initContainersResourceRequirements,omitempty"`
 	// Volumes define some extra Kubernetes Volumes for the Kafka broker Pods.
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
 	// VolumeMounts define some extra Kubernetes VolumeMounts for the Kafka broker Pods.
@@ -198,8 +196,6 @@ type CruiseControlConfig struct {
 	CruiseControlAnnotations map[string]string `json:"cruiseControlAnnotations,omitempty"`
 	// InitContainers add extra initContainers to CruiseControl pod
 	InitContainers []corev1.Container `json:"initContainers,omitempty"`
-	// ResourceRequirements for initContainers
-	InitContainersResourceRequirements *corev1.ResourceRequirements `json:"initContainersResourceRequirements,omitempty"`
 	// Volumes define some extra Kubernetes Volumes for the CruiseControl Pods.
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
 	// VolumeMounts define some extra Kubernetes Volume mounts for the CruiseControl Pods.
@@ -682,23 +678,6 @@ func (eConfig *EnvoyConfig) GetResources() *corev1.ResourceRequirements {
 	}
 }
 
-// GetInitResources returns the CC specific Kubernetes resource for initContainers
-func (cConfig *CruiseControlConfig) GetInitResources() *corev1.ResourceRequirements {
-	if cConfig.InitContainersResourceRequirements != nil {
-		return cConfig.InitContainersResourceRequirements
-	}
-	return &corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			"cpu":    resource.MustParse("100m"),
-			"memory": resource.MustParse("100Mi"),
-		},
-		Requests: corev1.ResourceList{
-			"cpu":    resource.MustParse("100m"),
-			"memory": resource.MustParse("100Mi"),
-		},
-	}
-}
-
 // GetResources returns the CC specific Kubernetes resource
 func (cConfig *CruiseControlConfig) GetResources() *corev1.ResourceRequirements {
 	if cConfig.Resources != nil {
@@ -712,23 +691,6 @@ func (cConfig *CruiseControlConfig) GetResources() *corev1.ResourceRequirements 
 		Requests: corev1.ResourceList{
 			"cpu":    resource.MustParse("200m"),
 			"memory": resource.MustParse("512Mi"),
-		},
-	}
-}
-
-// GetInitResources returns the CC specific Kubernetes resource for initContainers
-func (bConfig *BrokerConfig) GetInitResources() *corev1.ResourceRequirements {
-	if bConfig.InitContainersResourceRequirements != nil {
-		return bConfig.InitContainersResourceRequirements
-	}
-	return &corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			"cpu":    resource.MustParse("100m"),
-			"memory": resource.MustParse("100Mi"),
-		},
-		Requests: corev1.ResourceList{
-			"cpu":    resource.MustParse("100m"),
-			"memory": resource.MustParse("100Mi"),
 		},
 	}
 }
