@@ -239,7 +239,7 @@ type EnvoyConfig struct {
 	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
 	// Envoy admin port
 	AdminPort *int32 `json:"adminPort,omitempty"`
-	// PDB
+	// PodDisruptionBudget attached to Envoy Deployment(s)
 	DisruptionBudget DisruptionBudget `json:"disruptionBudget,omitempty"`
 }
 
