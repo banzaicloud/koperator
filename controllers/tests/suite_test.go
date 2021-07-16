@@ -33,6 +33,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -82,116 +83,122 @@ func TestAPIs(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
-
-	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "config", "base", "crds"),
-			filepath.Join("..", "..", "config", "test", "crd", "cert-manager"),
-			filepath.Join("..", "..", "config", "test", "crd", "istio"),
-		},
-		AttachControlPlaneOutput: false,
-		ErrorIfCRDPathMissing:    true,
-	}
-
-	cfg, err := testEnv.Start()
-	Expect(err).ToNot(HaveOccurred())
-	Expect(cfg).ToNot(BeNil())
-
-	scheme := runtime.NewScheme()
-
-	Expect(k8sscheme.AddToScheme(scheme)).To(Succeed())
-	Expect(apiextensionsv1beta1.AddToScheme(scheme)).To(Succeed())
-	Expect(apiv1.AddToScheme(scheme)).To(Succeed())
-	Expect(cmv1.AddToScheme(scheme)).To(Succeed())
-	Expect(banzaicloudv1alpha1.AddToScheme(scheme)).To(Succeed())
-	Expect(banzaicloudv1beta1.AddToScheme(scheme)).To(Succeed())
-	Expect(banzaiistiov1beta1.AddToScheme(scheme)).To(Succeed())
-	Expect(istioclientv1alpha3.AddToScheme(scheme)).To(Succeed())
-
-	// +kubebuilder:scaffold:scheme
-
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
-
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: "0",
-		LeaderElection:     false,
-		Port:               8443,
-	})
-	Expect(err).ToNot(HaveOccurred())
-	Expect(mgr).ToNot(BeNil())
-
-	scale.MockNewCruiseControlScaler()
-	jmxextractor.NewMockJMXExtractor()
-
-	mockKafkaClients = make(map[types.NamespacedName]kafkaclient.KafkaClient)
-
-	// mock the creation of Kafka clients
-	controllers.SetNewKafkaFromCluster(
-		func(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error) {
-			client, close := getMockedKafkaClientForCluster(cluster)
-			return client, close, nil
-		})
-
-	kafkaClusterReconciler := controllers.KafkaClusterReconciler{
-		Client:              mgr.GetClient(),
-		DirectClient:        mgr.GetAPIReader(),
-		Log:                 ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
-		Scheme:              mgr.GetScheme(),
-		KafkaClientProvider: kafkaclient.NewMockProvider(),
-	}
-
-	err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = controllers.SetupKafkaTopicWithManager(mgr, 10)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = controllers.SetupKafkaUserWithManager(mgr, true)
-	Expect(err).NotTo(HaveOccurred())
-
-	kafkaClusterCCReconciler := controllers.CruiseControlTaskReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controller").WithName("CruiseControlTask"),
-	}
-
-	err = controllers.SetupCruiseControlWithManager(mgr).Complete(&kafkaClusterCCReconciler)
-	Expect(err).NotTo(HaveOccurred())
-
-	// +kubebuilder:scaffold:builder
-
+var _ = BeforeSuite(func() {
+	done := make(chan interface{})
 	go func() {
-		ctrl.Log.Info("starting manager")
-		err = mgr.Start(ctrl.SetupSignalHandler())
+		logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
+
+		By("bootstrapping test environment")
+		stopTimeout, _ := time.ParseDuration("120s")
+		testEnv = &envtest.Environment{
+			ErrorIfCRDPathMissing: true,
+			CRDDirectoryPaths: []string{
+				filepath.Join("..", "..", "config", "base", "crds"),
+				filepath.Join("..", "..", "config", "test", "crd", "cert-manager"),
+				filepath.Join("..", "..", "config", "test", "crd", "istio"),
+			},
+			ControlPlaneStopTimeout:  stopTimeout,
+			AttachControlPlaneOutput: false,
+		}
+
+		cfg, err := testEnv.Start()
 		Expect(err).ToNot(HaveOccurred())
+		Expect(cfg).ToNot(BeNil())
+
+		scheme := runtime.NewScheme()
+
+		Expect(k8sscheme.AddToScheme(scheme)).To(Succeed())
+		Expect(apiextensionsv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(apiv1.AddToScheme(scheme)).To(Succeed())
+		Expect(cmv1.AddToScheme(scheme)).To(Succeed())
+		Expect(banzaicloudv1alpha1.AddToScheme(scheme)).To(Succeed())
+		Expect(banzaicloudv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(banzaiistiov1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(istioclientv1alpha3.AddToScheme(scheme)).To(Succeed())
+
+		// +kubebuilder:scaffold:scheme
+
+		k8sClient, err = client.New(cfg, client.Options{Scheme: scheme})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(k8sClient).NotTo(BeNil())
+
+		mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+			Scheme:             scheme,
+			MetricsBindAddress: "0",
+			LeaderElection:     false,
+			Port:               8443,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mgr).ToNot(BeNil())
+
+		scale.MockNewCruiseControlScaler()
+		jmxextractor.NewMockJMXExtractor()
+
+		mockKafkaClients = make(map[types.NamespacedName]kafkaclient.KafkaClient)
+
+		// mock the creation of Kafka clients
+		controllers.SetNewKafkaFromCluster(
+			func(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error) {
+				client, close := getMockedKafkaClientForCluster(cluster)
+				return client, close, nil
+			})
+
+		kafkaClusterReconciler := controllers.KafkaClusterReconciler{
+			Client:              mgr.GetClient(),
+			DirectClient:        mgr.GetAPIReader(),
+			Log:                 ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
+			Scheme:              mgr.GetScheme(),
+			KafkaClientProvider: kafkaclient.NewMockProvider(),
+		}
+
+		err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = controllers.SetupKafkaTopicWithManager(mgr, 10)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = controllers.SetupKafkaUserWithManager(mgr, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		kafkaClusterCCReconciler := controllers.CruiseControlTaskReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Log:    ctrl.Log.WithName("controller").WithName("CruiseControlTask"),
+		}
+
+		err = controllers.SetupCruiseControlWithManager(mgr).Complete(&kafkaClusterCCReconciler)
+		Expect(err).NotTo(HaveOccurred())
+
+		// +kubebuilder:scaffold:builder
+
+		go func() {
+			ctrl.Log.Info("starting manager")
+			err = mgr.Start(ctrl.SetupSignalHandler())
+			Expect(err).ToNot(HaveOccurred())
+		}()
+
+		k8sClient, err = client.New(cfg, client.Options{Scheme: mgr.GetScheme()})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(k8sClient).ToNot(BeNil())
+
+		crd := &apiextensionsv1beta1.CustomResourceDefinition{}
+
+		err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkaclusters.kafka.banzaicloud.io"}, crd)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(crd.Spec.Names.Kind).To(Equal("KafkaCluster"))
+
+		err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(crd.Spec.Names.Kind).To(Equal("KafkaTopic"))
+
+		err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkausers.kafka.banzaicloud.io"}, crd)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))
+
+		close(done)
 	}()
-
-	k8sClient, err = client.New(cfg, client.Options{Scheme: mgr.GetScheme()})
-	Expect(err).ToNot(HaveOccurred())
-	Expect(k8sClient).ToNot(BeNil())
-
-	crd := &apiextensionsv1beta1.CustomResourceDefinition{}
-
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkaclusters.kafka.banzaicloud.io"}, crd)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(crd.Spec.Names.Kind).To(Equal("KafkaCluster"))
-
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(crd.Spec.Names.Kind).To(Equal("KafkaTopic"))
-
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkausers.kafka.banzaicloud.io"}, crd)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))
-
-	close(done)
-}, 60)
+	Eventually(done, 240).Should(BeClosed())
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
