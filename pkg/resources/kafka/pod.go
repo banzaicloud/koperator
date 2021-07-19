@@ -22,11 +22,11 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/kafkamonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -194,7 +194,7 @@ func getInitContainers(brokerConfigInitContainers []corev1.Container, kafkaClust
 				Name:      "extensions",
 				MountPath: "/opt/kafka/libs/extensions",
 			}},
-			Resources: getInitResourcesRequirements(),
+			Resources: k8sutil.GetDefaultInitContainerResourceRequirements(),
 		},
 		{
 			Name:    "jmx-exporter",
@@ -206,7 +206,7 @@ func getInitContainers(brokerConfigInitContainers []corev1.Container, kafkaClust
 					MountPath: jmxVolumePath,
 				},
 			},
-			Resources: getInitResourcesRequirements(),
+			Resources: k8sutil.GetDefaultInitContainerResourceRequirements(),
 		},
 	}...)
 
@@ -215,19 +215,6 @@ func getInitContainers(brokerConfigInitContainers []corev1.Container, kafkaClust
 	})
 
 	return initContainers
-}
-
-func getInitResourcesRequirements() corev1.ResourceRequirements {
-	return corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			"cpu":    resource.MustParse("100m"),
-			"memory": resource.MustParse("100Mi"),
-		},
-		Requests: corev1.ResourceList{
-			"cpu":    resource.MustParse("100m"),
-			"memory": resource.MustParse("100Mi"),
-		},
-	}
 }
 
 func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMount,

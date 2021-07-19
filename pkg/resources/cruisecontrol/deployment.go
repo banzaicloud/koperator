@@ -21,11 +21,11 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrolmonitoring"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -85,7 +85,7 @@ func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object
 									MountPath: jmxVolumePath,
 								},
 							},
-							Resources: getInitResourcesRequirements(),
+							Resources: k8sutil.GetDefaultInitContainerResourceRequirements(),
 						},
 					}...),
 					Containers: []corev1.Container{
@@ -203,19 +203,6 @@ func GeneratePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, capacityConfig s
 	}
 
 	return util.MergeAnnotations(annotations...)
-}
-
-func getInitResourcesRequirements() corev1.ResourceRequirements {
-	return corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			"cpu":    resource.MustParse("100m"),
-			"memory": resource.MustParse("100Mi"),
-		},
-		Requests: corev1.ResourceList{
-			"cpu":    resource.MustParse("100m"),
-			"memory": resource.MustParse("100Mi"),
-		},
-	}
 }
 
 func generateVolumesForSSL(cluster *v1beta1.KafkaCluster) []corev1.Volume {
