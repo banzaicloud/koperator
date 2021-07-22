@@ -98,7 +98,7 @@ type RollingUpgradeConfig struct {
 	FailureThreshold int `json:"failureThreshold"`
 }
 
-// DisruptionBudget defines the configuration for PodDisruptionBudget
+// DisruptionBudget defines the configuration for PodDisruptionBudget where the workload is managed by the kafka-operator
 type DisruptionBudget struct {
 	// If set to true, will create a podDisruptionBudget
 	// +optional
@@ -106,6 +106,12 @@ type DisruptionBudget struct {
 	// The budget to set for the PDB, can either be static number or a percentage
 	// +kubebuilder:validation:Pattern:="^[0-9]+$|^[0-9]{1,2}%$|^100%$"
 	Budget string `json:"budget,omitempty"`
+}
+
+// DisruptionBudgetWithStrategy defines the configuration for PodDisruptionBudget where the workload is managed by an external controller (eg. Deployments)
+type DisruptionBudgetWithStrategy struct {
+	// PodDisruptionBudget default settings
+	DisruptionBudget DisruptionBudget `json:"disruptionBudget,omitempty"`
 	// The strategy to be used, either minAvailable or maxUnavailable
 	// +kubebuilder:validation:Pattern:="^minAvailable$|^maxUnavailable$"
 	Stategy string `json:"strategy,omitempty"`
@@ -239,7 +245,7 @@ type EnvoyConfig struct {
 	// Envoy admin port
 	AdminPort *int32 `json:"adminPort,omitempty"`
 	// PodDisruptionBudget attached to Envoy Deployment(s)
-	DisruptionBudget DisruptionBudget `json:"disruptionBudget,omitempty"`
+	DisruptionBudgetWithStrategy DisruptionBudgetWithStrategy `json:"disruptionBudgetWithStrategy,omitempty"`
 }
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller

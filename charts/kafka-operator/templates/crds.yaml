@@ -6892,7 +6892,7 @@ spec:
                     type: array
                 type: object
               disruptionBudget:
-                description: DisruptionBudget defines the configuration for PodDisruptionBudget
+                description: DisruptionBudget defines the configuration for PodDisruptionBudget where the workload is managed by the kafka-operator
                 properties:
                   budget:
                     description: The budget to set for the PDB, can either be static number or a percentage
@@ -6901,10 +6901,6 @@ spec:
                   create:
                     description: If set to true, will create a podDisruptionBudget
                     type: boolean
-                  strategy:
-                    description: The strategy to be used, either minAvailable or maxUnavailable
-                    pattern: ^minAvailable$|^maxUnavailable$
-                    type: string
                 type: object
               envoyConfig:
                 description: EnvoyConfig defines the config for Envoy
@@ -6918,16 +6914,20 @@ spec:
                       type: string
                     description: Annotations defines the annotations placed on the envoy ingress controller deployment
                     type: object
-                  disruptionBudget:
-                    description: PDB
+                  disruptionBudgetWithStrategy:
+                    description: PodDisruptionBudget attached to Envoy Deployment(s)
                     properties:
-                      budget:
-                        description: The budget to set for the PDB, can either be static number or a percentage
-                        pattern: ^[0-9]+$|^[0-9]{1,2}%$|^100%$
-                        type: string
-                      create:
-                        description: If set to true, will create a podDisruptionBudget
-                        type: boolean
+                      disruptionBudget:
+                        description: PodDisruptionBudget default settings
+                        properties:
+                          budget:
+                            description: The budget to set for the PDB, can either be static number or a percentage
+                            pattern: ^[0-9]+$|^[0-9]{1,2}%$|^100%$
+                            type: string
+                          create:
+                            description: If set to true, will create a podDisruptionBudget
+                            type: boolean
+                        type: object
                       strategy:
                         description: The strategy to be used, either minAvailable or maxUnavailable
                         pattern: ^minAvailable$|^maxUnavailable$
@@ -7324,16 +7324,20 @@ spec:
                                           type: string
                                         description: Annotations defines the annotations placed on the envoy ingress controller deployment
                                         type: object
-                                      disruptionBudget:
-                                        description: PDB
+                                      disruptionBudgetWithStrategy:
+                                        description: PodDisruptionBudget attached to Envoy Deployment(s)
                                         properties:
-                                          budget:
-                                            description: The budget to set for the PDB, can either be static number or a percentage
-                                            pattern: ^[0-9]+$|^[0-9]{1,2}%$|^100%$
-                                            type: string
-                                          create:
-                                            description: If set to true, will create a podDisruptionBudget
-                                            type: boolean
+                                          disruptionBudget:
+                                            description: PodDisruptionBudget default settings
+                                            properties:
+                                              budget:
+                                                description: The budget to set for the PDB, can either be static number or a percentage
+                                                pattern: ^[0-9]+$|^[0-9]{1,2}%$|^100%$
+                                                type: string
+                                              create:
+                                                description: If set to true, will create a podDisruptionBudget
+                                                type: boolean
+                                            type: object
                                           strategy:
                                             description: The strategy to be used, either minAvailable or maxUnavailable
                                             pattern: ^minAvailable$|^maxUnavailable$

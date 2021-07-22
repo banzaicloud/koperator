@@ -78,7 +78,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					r.deployment,
 				)
 
-				if r.KafkaCluster.Spec.EnvoyConfig.DisruptionBudget.Create {
+				if r.KafkaCluster.Spec.EnvoyConfig.DisruptionBudgetWithStrategy.DisruptionBudget.Create {
 					externalListernerResources = append(externalListernerResources, r.podDisruptionBudget)
 				}
 				for name, ingressConfig := range ingressConfigs {

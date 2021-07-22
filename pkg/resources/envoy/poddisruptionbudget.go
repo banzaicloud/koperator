@@ -40,11 +40,11 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger, extListener v1beta1.Ex
 		deploymentName = fmt.Sprintf(envoyDeploymentNameWithScope, extListener.Name, ingressConfigName, r.KafkaCluster.GetName())
 	}
 
-	pdbConfig := r.KafkaCluster.Spec.EnvoyConfig.DisruptionBudget
+	pdbConfig := r.KafkaCluster.Spec.EnvoyConfig.DisruptionBudgetWithStrategy
 
 	// We use intstr.Parse so that the proper structure is used when passing to PDB spec validator, otherwise
 	// an improper regex will be used to verify the value
-	budget := intstr.Parse(pdbConfig.Budget)
+	budget := intstr.Parse(pdbConfig.DisruptionBudget.Budget)
 
 	var spec policyv1beta1.PodDisruptionBudgetSpec
 	var matchLabels map[string]string = labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName)
