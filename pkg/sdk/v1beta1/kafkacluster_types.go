@@ -111,7 +111,7 @@ type DisruptionBudget struct {
 // DisruptionBudgetWithStrategy defines the configuration for PodDisruptionBudget where the workload is managed by an external controller (eg. Deployments)
 type DisruptionBudgetWithStrategy struct {
 	// PodDisruptionBudget default settings
-	DisruptionBudget DisruptionBudget `json:"disruptionBudget,omitempty"`
+	DisruptionBudget DisruptionBudget `json:",inline"`
 	// The strategy to be used, either minAvailable or maxUnavailable
 	// +kubebuilder:validation:Pattern:="^minAvailable$|^maxUnavailable$"
 	Stategy string `json:"strategy,omitempty"`
@@ -245,8 +245,8 @@ type EnvoyConfig struct {
 	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
 	// Envoy admin port
 	AdminPort *int32 `json:"adminPort,omitempty"`
-	// PodDisruptionBudget attached to Envoy Deployment(s)
-	DisruptionBudgetWithStrategy DisruptionBudgetWithStrategy `json:"disruptionBudgetWithStrategy,omitempty"`
+	// DisruptionBudget is the pod disruption budget attached to Envoy Deployment(s)
+	DisruptionBudget DisruptionBudgetWithStrategy `json:"disruptionBudget,omitempty"`
 }
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller
