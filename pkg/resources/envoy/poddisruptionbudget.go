@@ -15,8 +15,6 @@
 package envoy
 
 import (
-	"fmt"
-
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -25,12 +23,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	MIN_AVAILABLE string = "minAvailable"
+	MIN_AVAILABLE   string = "minAvailable"
 	MAX_UNAVAILABLE string = "maxUnavailable"
 )
 
@@ -38,12 +37,8 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger, extListener v1beta1.Ex
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
 
-	var deploymentName string
-	if ingressConfigName == util.IngressConfigGlobalName {
-		deploymentName = fmt.Sprintf(envoyDeploymentName, extListener.Name, r.KafkaCluster.GetName())
-	} else {
-		deploymentName = fmt.Sprintf(envoyDeploymentNameWithScope, extListener.Name, ingressConfigName, r.KafkaCluster.GetName())
-	}
+	var deploymentName string = util.GenerateEnvoyResourceName(envoyutils.EnvoyDeploymentName, envoyutils.EnvoyDeploymentNameWithScope,
+		extListener, ingressConfig, ingressConfigName, r.KafkaCluster.GetName())
 
 	pdbConfig := r.KafkaCluster.Spec.EnvoyConfig.DisruptionBudget
 

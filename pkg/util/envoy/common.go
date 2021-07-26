@@ -22,3 +22,13 @@ const (
 	// IngressControllerName name for envoy ingress service
 	IngressControllerName = "envoy"
 )
+
+const (
+	ComponentName = "envoy"
+	// The deployment and configmap name should made from the external listener name the cluster name to avoid all naming collision
+	EnvoyVolumeAndConfigName          = "envoy-config-%s-%s"
+	EnvoyVolumeAndConfigNameWithScope = "envoy-config-%s-%s-%s"
+	EnvoyDeploymentName               = "envoy-%s-%s"
+	EnvoyDeploymentNameWithScope      = "envoy-%s-%s-%s"
+	AllBrokerEnvoyConfigName          = "all-brokers"
+)

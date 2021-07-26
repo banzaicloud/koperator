@@ -29,6 +29,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
@@ -36,15 +37,10 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
 
-	var configMapName string
-	var deploymentName string
-	if ingressConfigName == util.IngressConfigGlobalName {
-		configMapName = fmt.Sprintf(envoyVolumeAndConfigName, extListener.Name, r.KafkaCluster.GetName())
-		deploymentName = fmt.Sprintf(envoyDeploymentName, extListener.Name, r.KafkaCluster.GetName())
-	} else {
-		configMapName = fmt.Sprintf(envoyVolumeAndConfigNameWithScope, extListener.Name, ingressConfigName, r.KafkaCluster.GetName())
-		deploymentName = fmt.Sprintf(envoyDeploymentNameWithScope, extListener.Name, ingressConfigName, r.KafkaCluster.GetName())
-	}
+	var configMapName string = util.GenerateEnvoyResourceName(envoyutils.EnvoyVolumeAndConfigName, envoyutils.EnvoyVolumeAndConfigNameWithScope,
+		extListener, ingressConfig, ingressConfigName, r.KafkaCluster.GetName())
+	var deploymentName string = util.GenerateEnvoyResourceName(envoyutils.EnvoyDeploymentName, envoyutils.EnvoyDeploymentNameWithScope,
+		extListener, ingressConfig, ingressConfigName, r.KafkaCluster.GetName())
 
 	exposedPorts := getExposedContainerPorts(extListener,
 		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log),
