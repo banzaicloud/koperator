@@ -31,7 +31,6 @@ import (
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
 )
 
 var _ = Describe("KafkaTopic", func() {
@@ -102,7 +101,6 @@ var _ = Describe("KafkaTopic", func() {
 						PatternType: v1alpha1.KafkaPatternTypeLiteral,
 					},
 				},
-				CreateCert: util.BoolPointer(false), // TODO test when this is true
 			},
 		}
 
