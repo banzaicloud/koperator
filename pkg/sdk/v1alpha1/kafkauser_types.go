@@ -27,7 +27,6 @@ type KafkaUserSpec struct {
 	DNSNames       []string         `json:"dnsNames,omitempty"`
 	TopicGrants    []UserTopicGrant `json:"topicGrants,omitempty"`
 	IncludeJKS     bool             `json:"includeJKS,omitempty"`
-	CreateCert     *bool            `json:"createCert,omitempty"`
 	PKIBackendSpec *PKIBackendSpec  `json:"pkiBackendSpec,omitempty"`
 }
 
@@ -77,11 +76,4 @@ type KafkaUserList struct {
 
 func init() {
 	SchemeBuilder.Register(&KafkaUser{}, &KafkaUserList{})
-}
-
-func (spec *KafkaUserSpec) GetIfCertShouldBeCreated() bool {
-	if spec.CreateCert != nil {
-		return *spec.CreateCert
-	}
-	return true
 }

@@ -132,75 +132,69 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 		return requeueWithError(reqLogger, "failed to lookup referenced cluster", err)
 	}
 
-	var kafkaUser string
+	// Avoid panic if the user wants to create a kafka user but the cluster is in plaintext mode
+	// TODO: refactor this and use webhook to validate if the cluster is eligible to create a kafka user
+	if cluster.Spec.ListenersConfig.SSLSecrets == nil && instance.Spec.PKIBackendSpec == nil {
+		return requeueWithError(reqLogger, "could not create kafka user since user specific PKI not configured", errors.New("failed to create kafka user"))
+	}
 
-	if instance.Spec.GetIfCertShouldBeCreated() {
-		// Avoid panic if the user wants to create a kafka user but the cluster is in plaintext mode
-		// TODO: refactor this and use webhook to validate if the cluster is eligible to create a kafka user
-		if cluster.Spec.ListenersConfig.SSLSecrets == nil && instance.Spec.PKIBackendSpec == nil {
-			return requeueWithError(reqLogger, "could not create kafka user since user specific PKI not configured", errors.New("failed to create kafka user"))
-		}
-
-		var backend v1beta1.PKIBackend
-		if instance.Spec.PKIBackendSpec != nil {
-			backend = v1beta1.PKIBackend(instance.Spec.PKIBackendSpec.PKIBackend)
-		} else {
-			backend = v1beta1.PKIBackendProvided
-		}
-
-		pkiManager := pki.GetPKIManager(r.Client, cluster, backend)
-
-		// Reconcile no matter what to get a user certificate instance for ACL management
-		// TODO (tinyzimmer): This can go wrong if the user made a mistake in their secret path
-		// using the vault backend, then tried to delete and fix it. Should probably
-		// have the PKIManager export a GetUserCertificate specifically for deletions
-		// that will allow the error to fall through if the certificate doesn't exist.
-		user, err := pkiManager.ReconcileUserCertificate(ctx, instance, r.Scheme, cluster.Spec.GetKubernetesClusterDomain())
-		if err != nil {
-			switch errors.Cause(err).(type) {
-			case errorfactory.ResourceNotReady:
-				reqLogger.Info("generated secret not found, may not be ready")
-				return ctrl.Result{
-					Requeue:      true,
-					RequeueAfter: time.Duration(5) * time.Second,
-				}, nil
-			case errorfactory.FatalReconcileError:
-				// TODO: (tinyzimmer) - Sleep for longer for now to give user time to see the error
-				// But really we should catch these kinds of issues in a pre-admission hook in a future PR
-				// The user can fix while this is looping and it will pick it up next reconcile attempt
-				reqLogger.Error(err, "Fatal error attempting to reconcile the user certificate. If using vault perhaps a permissions issue or improperly configured PKI?")
-				return ctrl.Result{
-					Requeue:      true,
-					RequeueAfter: time.Duration(15) * time.Second,
-				}, nil
-			case errorfactory.VaultAPIFailure:
-				// Same as above in terms of things that could be checked pre-flight on the cluster
-				reqLogger.Error(err, "Vault API error attempting to reconcile the user certificate. If using vault perhaps a permissions issue or improperly configured PKI?")
-				return ctrl.Result{
-					Requeue:      true,
-					RequeueAfter: time.Duration(15) * time.Second,
-				}, nil
-			default:
-				if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
-					reqLogger.Info("Kafka user marked for deletion before creating certificates")
-					if err = r.removeFinalizer(ctx, instance); err != nil {
-						return requeueWithError(reqLogger, "failed to remove finalizer from kafkauser", err)
-					}
-					return reconciled()
-				}
-				return requeueWithError(reqLogger, "failed to reconcile user secret", err)
-			}
-		}
-		kafkaUser = user.DN()
-		// check if marked for deletion and remove created certs
-		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
-			reqLogger.Info("Kafka user is marked for deletion, revoking certificates")
-			if err = pkiManager.FinalizeUserCertificate(ctx, instance); err != nil {
-				return requeueWithError(reqLogger, "failed to finalize user certificate", err)
-			}
-		}
+	var backend v1beta1.PKIBackend
+	if instance.Spec.PKIBackendSpec != nil {
+		backend = v1beta1.PKIBackend(instance.Spec.PKIBackendSpec.PKIBackend)
 	} else {
-		kafkaUser = fmt.Sprintf("CN=%s", instance.Name)
+		backend = v1beta1.PKIBackendProvided
+	}
+
+	pkiManager := pki.GetPKIManager(r.Client, cluster, backend)
+
+	// Reconcile no matter what to get a user certificate instance for ACL management
+	// TODO (tinyzimmer): This can go wrong if the user made a mistake in their secret path
+	// using the vault backend, then tried to delete and fix it. Should probably
+	// have the PKIManager export a GetUserCertificate specifically for deletions
+	// that will allow the error to fall through if the certificate doesn't exist.
+	user, err := pkiManager.ReconcileUserCertificate(ctx, instance, r.Scheme, cluster.Spec.GetKubernetesClusterDomain())
+	if err != nil {
+		switch errors.Cause(err).(type) {
+		case errorfactory.ResourceNotReady:
+			reqLogger.Info("generated secret not found, may not be ready")
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: time.Duration(5) * time.Second,
+			}, nil
+		case errorfactory.FatalReconcileError:
+			// TODO: (tinyzimmer) - Sleep for longer for now to give user time to see the error
+			// But really we should catch these kinds of issues in a pre-admission hook in a future PR
+			// The user can fix while this is looping and it will pick it up next reconcile attempt
+			reqLogger.Error(err, "Fatal error attempting to reconcile the user certificate. If using vault perhaps a permissions issue or improperly configured PKI?")
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: time.Duration(15) * time.Second,
+			}, nil
+		case errorfactory.VaultAPIFailure:
+			// Same as above in terms of things that could be checked pre-flight on the cluster
+			reqLogger.Error(err, "Vault API error attempting to reconcile the user certificate. If using vault perhaps a permissions issue or improperly configured PKI?")
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: time.Duration(15) * time.Second,
+			}, nil
+		default:
+			if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
+				reqLogger.Info("Kafka user marked for deletion before creating certificates")
+				if err = r.removeFinalizer(ctx, instance); err != nil {
+					return requeueWithError(reqLogger, "failed to remove finalizer from kafkauser", err)
+				}
+				return reconciled()
+			}
+			return requeueWithError(reqLogger, "failed to reconcile user secret", err)
+		}
+	}
+	kafkaUser := user.DN()
+	// check if marked for deletion and remove created certs
+	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
+		reqLogger.Info("Kafka user is marked for deletion, revoking certificates")
+		if err = pkiManager.FinalizeUserCertificate(ctx, instance); err != nil {
+			return requeueWithError(reqLogger, "failed to finalize user certificate", err)
+		}
 	}
 
 	// check if marked for deletion and remove kafka ACLs
