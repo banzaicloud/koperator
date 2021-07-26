@@ -388,3 +388,15 @@ func ConvertConfigEntryListToProperties(config []sarama.ConfigEntry) (*propertie
 
 	return p, nil
 }
+
+func GenerateEnvoyResourceName(resourceNameFormat string, resourceNameWithScopeFormat string, extListener v1beta1.ExternalListenerConfig, ingressConfig v1beta1.IngressConfig,
+	ingressConfigName, clusterName string) string {
+	var resourceName string
+	if ingressConfigName == IngressConfigGlobalName {
+		resourceName = fmt.Sprintf(resourceNameFormat, extListener.Name, clusterName)
+	} else {
+		resourceName = fmt.Sprintf(resourceNameWithScopeFormat, extListener.Name, ingressConfigName, clusterName)
+	}
+
+	return resourceName
+}

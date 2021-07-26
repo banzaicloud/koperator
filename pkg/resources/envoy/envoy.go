@@ -27,16 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	componentName = "envoy"
-	// The deployment and configmap name should made from the external listener name the cluster name to avoid all naming collision
-	envoyVolumeAndConfigName          = "envoy-config-%s-%s"
-	envoyVolumeAndConfigNameWithScope = "envoy-config-%s-%s-%s"
-	envoyDeploymentName               = "envoy-%s-%s"
-	envoyDeploymentNameWithScope      = "envoy-%s-%s-%s"
-	allBrokerEnvoyConfigName          = "all-brokers"
-)
-
 // labelsForEnvoyIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
 func labelsForEnvoyIngress(crName, eLName string) map[string]string {
@@ -60,7 +50,7 @@ func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 
 // Reconcile implements the reconcile logic for Envoy
 func (r *Reconciler) Reconcile(log logr.Logger) error {
-	log = log.WithValues("component", componentName)
+	log = log.WithValues("component", envoyutils.ComponentName)
 
 	log.V(1).Info("Reconciling")
 

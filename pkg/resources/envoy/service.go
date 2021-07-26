@@ -36,12 +36,8 @@ func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListen
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
 
 	// Determine Service Name from the configuration
-	var serviceName string
-	if ingressConfigName == util.IngressConfigGlobalName {
-		serviceName = fmt.Sprintf(envoyutils.EnvoyServiceName, extListener.Name, r.KafkaCluster.GetName())
-	} else {
-		serviceName = fmt.Sprintf(envoyutils.EnvoyServiceNameWithScope, extListener.Name, ingressConfigName, r.KafkaCluster.GetName())
-	}
+	var serviceName string = util.GenerateEnvoyResourceName(envoyutils.EnvoyServiceName, envoyutils.EnvoyServiceNameWithScope,
+		extListener, ingressConfig, ingressConfigName, r.KafkaCluster.GetName())
 
 	exposedPorts := getExposedServicePorts(extListener,
 		util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log),

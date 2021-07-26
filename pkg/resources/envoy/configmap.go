@@ -37,6 +37,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
 )
 
@@ -44,13 +45,9 @@ func (r *Reconciler) configMap(log logr.Logger, extListener v1beta1.ExternalList
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
 
-	var configMapName string
-	if ingressConfigName == util.IngressConfigGlobalName {
-		configMapName = fmt.Sprintf(envoyVolumeAndConfigName, extListener.Name, r.KafkaCluster.GetName())
-	} else {
-		configMapName = fmt.Sprintf(envoyVolumeAndConfigNameWithScope, extListener.Name,
-			ingressConfigName, r.KafkaCluster.GetName())
-	}
+	var configMapName string = util.GenerateEnvoyResourceName(envoyutils.EnvoyVolumeAndConfigName, envoyutils.EnvoyVolumeAndConfigNameWithScope,
+		extListener, ingressConfig, ingressConfigName, r.KafkaCluster.GetName())
+
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			configMapName,
@@ -194,9 +191,9 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 
 	// TCP_Proxy filter configuration
 	tcpProxy := &envoytcpproxy.TcpProxy{
-		StatPrefix: allBrokerEnvoyConfigName,
+		StatPrefix: envoyutils.AllBrokerEnvoyConfigName,
 		ClusterSpecifier: &envoytcpproxy.TcpProxy_Cluster{
-			Cluster: allBrokerEnvoyConfigName,
+			Cluster: envoyutils.AllBrokerEnvoyConfigName,
 		},
 	}
 	pbstTcpProxy, err := ptypes.MarshalAny(tcpProxy)
@@ -230,7 +227,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 	})
 
 	clusters = append(clusters, &envoycluster.Cluster{
-		Name:                 allBrokerEnvoyConfigName,
+		Name:                 envoyutils.AllBrokerEnvoyConfigName,
 		ConnectTimeout:       &duration.Duration{Seconds: 1},
 		ClusterDiscoveryType: &envoycluster.Cluster_Type{Type: envoycluster.Cluster_STRICT_DNS},
 		LbPolicy:             envoycluster.Cluster_ROUND_ROBIN,
@@ -255,7 +252,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 			},
 		},
 		LoadAssignment: &envoyendpoint.ClusterLoadAssignment{
-			ClusterName: allBrokerEnvoyConfigName,
+			ClusterName: envoyutils.AllBrokerEnvoyConfigName,
 			Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
 				LbEndpoints: []*envoyendpoint.LbEndpoint{{
 					HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
