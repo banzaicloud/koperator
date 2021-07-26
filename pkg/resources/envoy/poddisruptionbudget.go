@@ -23,9 +23,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
 )
 
 const (
