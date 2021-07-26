@@ -29,6 +29,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	MIN_AVAILABLE string = "minAvailable"
+	MAX_UNAVAILABLE string = "maxUnavailable"
+)
+
 func (r *Reconciler) podDisruptionBudget(log logr.Logger, extListener v1beta1.ExternalListenerConfig,
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
@@ -49,14 +54,14 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger, extListener v1beta1.Ex
 	var spec policyv1beta1.PodDisruptionBudgetSpec
 	var matchLabels map[string]string = labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName)
 
-	if pdbConfig.Stategy == "minAvailable" {
+	if pdbConfig.Stategy == MIN_AVAILABLE {
 		spec = policyv1beta1.PodDisruptionBudgetSpec{
 			MinAvailable: &budget,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 			},
 		}
-	} else if pdbConfig.Stategy == "maxUnavailable" {
+	} else if pdbConfig.Stategy == MAX_UNAVAILABLE {
 		spec = policyv1beta1.PodDisruptionBudgetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
