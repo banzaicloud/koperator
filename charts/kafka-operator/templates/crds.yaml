@@ -6926,7 +6926,9 @@ spec:
                         type: boolean
                       strategy:
                         description: The strategy to be used, either minAvailable or maxUnavailable
-                        pattern: ^minAvailable$|^maxUnavailable$
+                        enum:
+                        - minAvailable
+                        - maxUnavailable
                         type: string
                     type: object
                   image:
@@ -7332,7 +7334,9 @@ spec:
                                             type: boolean
                                           strategy:
                                             description: The strategy to be used, either minAvailable or maxUnavailable
-                                            pattern: ^minAvailable$|^maxUnavailable$
+                                            enum:
+                                            - minAvailable
+                                            - maxUnavailable
                                             type: string
                                         type: object
                                       image:

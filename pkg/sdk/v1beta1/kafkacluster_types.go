@@ -113,7 +113,7 @@ type DisruptionBudgetWithStrategy struct {
 	// PodDisruptionBudget default settings
 	DisruptionBudget DisruptionBudget `json:",inline"`
 	// The strategy to be used, either minAvailable or maxUnavailable
-	// +kubebuilder:validation:Pattern:="^minAvailable$|^maxUnavailable$"
+	// +kubebuilder:validation:Enum=minAvailable;maxUnavailable
 	Stategy string `json:"strategy,omitempty"`
 }
 
