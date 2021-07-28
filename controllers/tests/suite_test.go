@@ -33,6 +33,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -82,18 +83,21 @@ func TestAPIs(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
+
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 
 	By("bootstrapping test environment")
+	stopTimeout, _ := time.ParseDuration("120s")
 	testEnv = &envtest.Environment{
+		ErrorIfCRDPathMissing: true,
 		CRDDirectoryPaths: []string{
 			filepath.Join("..", "..", "config", "base", "crds"),
 			filepath.Join("..", "..", "config", "test", "crd", "cert-manager"),
 			filepath.Join("..", "..", "config", "test", "crd", "istio"),
 		},
+		ControlPlaneStopTimeout:  stopTimeout,
 		AttachControlPlaneOutput: false,
-		ErrorIfCRDPathMissing:    true,
 	}
 
 	cfg, err := testEnv.Start()
@@ -189,9 +193,7 @@ var _ = BeforeSuite(func(done Done) {
 	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkausers.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))
-
-	close(done)
-}, 60)
+}, 240)
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

@@ -27,10 +27,10 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/go-logr/logr"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/anypb"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -110,7 +110,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 					Cluster: fmt.Sprintf("broker-%d", brokerId),
 				},
 			}
-			pbstTcpProxy, err := ptypes.MarshalAny(tcpProxy)
+			pbstTcpProxy, err := anypb.New(tcpProxy)
 			if err != nil {
 				log.Error(err, "could not marshall envoy tcp_proxy config")
 				return ""
@@ -199,7 +199,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 			Cluster: allBrokerEnvoyConfigName,
 		},
 	}
-	pbstTcpProxy, err := ptypes.MarshalAny(tcpProxy)
+	pbstTcpProxy, err := anypb.New(tcpProxy)
 	if err != nil {
 		log.Error(err, "could not marshall envoy tcp_proxy config")
 		return ""

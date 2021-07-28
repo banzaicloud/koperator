@@ -83,7 +83,7 @@ func (r *Reconciler) computeMinAvailable(log logr.Logger) (intstr.IntOrString, e
 
 	// treat percentage budget
 	if strings.HasSuffix(disruptionBudget, "%") {
-		percentage, err := strconv.ParseFloat(disruptionBudget[:len(disruptionBudget)-1], 4)
+		percentage, err := strconv.ParseFloat(disruptionBudget[:len(disruptionBudget)-1], 32)
 		if err != nil {
 			log.Error(err, "error occurred during parsing the disruption budget")
 			return intstr.FromInt(-1), err

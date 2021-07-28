@@ -237,7 +237,7 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 						ContainerPort: 9733,
 						Type:          "plaintext",
 					},
-					ExternalStartingPort: 30100,
+					ExternalStartingPort: 30300,
 					IngressServiceSettings: v1beta1.IngressServiceSettings{
 						HostnameOverride: ".external.nodeport.com",
 					},
@@ -278,15 +278,15 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 					"test": {
 						{
 							Name:    "broker-0",
-							Address: fmt.Sprintf("%s-0-test.kafka-nodeport-%d.external.nodeport.com:30100", kafkaCluster.Name, count),
+							Address: fmt.Sprintf("%s-0-test.kafka-nodeport-%d.external.nodeport.com:30300", kafkaCluster.Name, count),
 						},
 						{
 							Name:    "broker-1",
-							Address: fmt.Sprintf("%s-1-test.kafka-nodeport-%d.external.nodeport.com:30101", kafkaCluster.Name, count),
+							Address: fmt.Sprintf("%s-1-test.kafka-nodeport-%d.external.nodeport.com:30301", kafkaCluster.Name, count),
 						},
 						{
 							Name:    "broker-2",
-							Address: fmt.Sprintf("%s-2-test.kafka-nodeport-%d.external.nodeport.com:30102", kafkaCluster.Name, count),
+							Address: fmt.Sprintf("%s-2-test.kafka-nodeport-%d.external.nodeport.com:30302", kafkaCluster.Name, count),
 						},
 					},
 				},
