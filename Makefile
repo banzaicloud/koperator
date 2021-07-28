@@ -13,12 +13,14 @@ RELEASE_MSG ?= "operator release"
 
 REL_TAG = $(shell ./scripts/increment_version.sh -${RELEASE_TYPE} ${TAG})
 
-GOLANGCI_VERSION = 1.38.0
+GOLANGCI_VERSION = 1.41.1
 LICENSEI_VERSION = 0.2.0
 GOPROXY=https://proxy.golang.org
 
-CONTROLLER_GEN_VERSION = v0.5.0
+CONTROLLER_GEN_VERSION = v0.6.1
 CONTROLLER_GEN = $(PWD)/bin/controller-gen
+
+ENVTEST_K8S_VERSION = 1.21.x
 
 KUSTOMIZE_BASE = config/overlays/specific-manager-version
 
@@ -74,12 +76,9 @@ install-kustomize:
 	fi
 
 # Run tests
-ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: generate fmt vet manifests
+test: generate fmt vet manifests bin/setup-envtest
 	cd pkg/sdk && go test ./...
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR);  go test ./... -coverprofile cover.out
+	bin/setup-envtest use -p env ${ENVTEST_K8S_VERSION} > bin/envtest.sh && source bin/envtest.sh ; go test ./... -coverprofile cover.out
 	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
 # Build manager binary
@@ -151,6 +150,17 @@ bin/controller-gen:
 		go mod init tmp ;\
 		GOBIN=$(PWD)/bin go get sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION} ;\
 		rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	fi
+
+# find or download setup-envtest
+bin/setup-envtest:
+	@ if ! test -x $(PWD)/bin/setup-envtest; then \
+		set -ex ;\
+		SETUP_ENVTEST_TMP_DIR=$$(mktemp -d) ;\
+		cd $$SETUP_ENVTEST_TMP_DIR ;\
+		go mod init tmp ;\
+		GOBIN=$(PWD)/bin go get sigs.k8s.io/controller-runtime/tools/setup-envtest@latest ;\
+		rm -rf $$SETUP_ENVTEST_TMP_DIR ;\
 	fi
 
 check_release:

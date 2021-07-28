@@ -34,7 +34,7 @@ linters:
 #    - noctx # Note: FIXME by adding refactoring http calls
     # - nolintlint      # NOTE: intentionally disabled
     - rowserrcheck
-    - scopelint
+    - exportloopref
     - staticcheck
     - structcheck
 #    - stylecheck # NOTE: brokerID must be dealt as brokerId
