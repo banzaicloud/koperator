@@ -80,7 +80,7 @@ install-kustomize:
 	fi
 
 # Run tests
-test: generate fmt vet manifests bin/setup-envtest
+test: generate fmt vet bin/setup-envtest
 	cd api && go test ./...
 	bin/setup-envtest use -p env ${ENVTEST_K8S_VERSION} > bin/envtest.sh \
 		&& source bin/envtest.sh; \
@@ -98,7 +98,7 @@ manager: generate fmt vet
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
+run: generate fmt vet
 	go run ./main.go
 
 # Install CRDs into a cluster by manually creating or replacing the CRD depending on whether is currently existing
