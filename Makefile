@@ -85,7 +85,8 @@ install-kustomize: ## Install kustomize.
 		scripts/install_kustomize.sh;\
 	fi
 
-test: generate fmt vet manifests bin/setup-envtest ## Run unit and integration (non-e2e) tests.
+# Run tests
+test: generate fmt vet bin/setup-envtest
 	cd api && go test ./...
 	KUBEBUILDER_ASSETS=$$($(BIN_DIR)/setup-envtest --print path --bin-dir $(BIN_DIR) use $(ENVTEST_K8S_VERSION)) \
 	go test ./... \
@@ -111,7 +112,7 @@ manager: generate fmt vet ## Generate (kubebuilder) and build manager binary.
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests ## Run the generated manager against the configured Kubernetes cluster.
+run: generate fmt vet
 	go run ./main.go
 
 # Install CRDs into a cluster by manually creating or replacing the CRD depending on whether is currently existing
