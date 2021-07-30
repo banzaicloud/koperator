@@ -7,6 +7,8 @@ spec:
   clusterRef:
     name: kafka
   secretName: example-kafkauser-secret
-  pkiBackendSpec:
-    pkiBackend: "k8s-csr"
-    signerName: "kubernetes.io/legacy-unknown"
+  topicGrants:
+    - topicName: example-topic
+      accessType: read
+    - topicName: example-topic
+      accessType: write
