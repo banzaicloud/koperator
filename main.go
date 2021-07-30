@@ -157,7 +157,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = controllers.SetupKafkaUserWithManager(mgr, certManagerEnabled); err != nil {
+	// Create a new  kafka user reconciler
+	kafkaUserReconciler := &controllers.KafkaUserReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Log:    ctrl.Log.WithName("controllers").WithName("KafkaUser"),
+	}
+
+	if err = controllers.SetupKafkaUserWithManager(mgr, certManagerEnabled, kafkaUserReconciler.Log).Complete(kafkaUserReconciler); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KafkaUser")
 		os.Exit(1)
 	}

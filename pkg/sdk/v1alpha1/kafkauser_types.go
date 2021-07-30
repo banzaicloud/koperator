@@ -31,9 +31,10 @@ type KafkaUserSpec struct {
 }
 
 type PKIBackendSpec struct {
-	IssuerRef *cmmeta.ObjectReference `json:"issuerRef"`
-	// +kubebuilder:validation:Enum={"cert-manager","vault"}
+	IssuerRef *cmmeta.ObjectReference `json:"issuerRef,omitempty"`
+	// +kubebuilder:validation:Enum={"cert-manager","vault","k8s-csr"}
 	PKIBackend string `json:"pkiBackend"`
+	SignerName string `json:"signerName,omitempty"`
 }
 
 // UserTopicGrant is the desired permissions for the KafkaUser

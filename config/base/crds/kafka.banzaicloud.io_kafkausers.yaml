@@ -72,9 +72,11 @@ spec:
                     enum:
                     - cert-manager
                     - vault
+                    - k8s-csr
+                    type: string
+                  signerName:
                     type: string
                 required:
-                - issuerRef
                 - pkiBackend
                 type: object
               secretName:

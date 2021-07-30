@@ -18,18 +18,23 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"emperror.dev/errors"
+	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certsigningreqv1 "k8s.io/api/certificates/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlBuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -40,6 +45,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/pki"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
 	kafkautil "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -47,38 +53,56 @@ import (
 var userFinalizer = "finalizer.kafkausers.kafka.banzaicloud.io"
 
 // SetupKafkaUserWithManager registers KafkaUser controller to the manager
-func SetupKafkaUserWithManager(mgr ctrl.Manager, certManagerNamespace bool) error {
-	// Create a new reconciler
-	r := &KafkaUserReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KafkaUser"),
-	}
-
-	// Create a new controller
-	c, err := controller.New("kafkauser", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource KafkaUser
-	err = c.Watch(&source.Kind{Type: &v1alpha1.KafkaUser{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
+func SetupKafkaUserWithManager(mgr ctrl.Manager, certManagerNamespace bool, log logr.Logger) *ctrl.Builder {
+	builder := ctrl.NewControllerManagedBy(mgr).
+		For(&v1alpha1.KafkaUser{}).Named("KafkaUser")
+	builder.Watches(
+		&source.Kind{Type: &certsigningreqv1.CertificateSigningRequest{}},
+		handler.EnqueueRequestsFromMapFunc(certificateSigningRequestMapper),
+		ctrlBuilder.WithPredicates(certificateSigningRequestFilter(log)))
 
 	if certManagerNamespace {
-		err = c.Watch(&source.Kind{Type: &certv1.Certificate{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &v1alpha1.KafkaUser{},
-		})
-		if err != nil {
-			if _, ok := err.(*meta.NoKindMatchError); !ok {
-				return err
-			}
-		}
+		builder.Owns(&certv1.Certificate{})
 	}
-	return nil
+	return builder
+}
+
+func certificateSigningRequestFilter(log logr.Logger) predicate.Funcs {
+	return predicate.Funcs{
+		CreateFunc: func(createEvent event.CreateEvent) bool {
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			patchResult, err := patch.DefaultPatchMaker.Calculate(e.ObjectOld, e.ObjectNew)
+			if err != nil {
+				log.Error(err, "could not match objects", "kind", e.ObjectOld.GetObjectKind())
+			} else if patchResult.IsEmpty() {
+				return false
+			}
+			return true
+		},
+		DeleteFunc: func(deleteEvent event.DeleteEvent) bool {
+			return false
+		},
+	}
+}
+
+func certificateSigningRequestMapper(obj client.Object) []ctrl.Request {
+	certSigningReqAnnotations := obj.(*certsigningreqv1.CertificateSigningRequest).Annotations
+	kafkaUserResourceNamespacedName, ok := certSigningReqAnnotations[pkicommon.KafkaUserAnnotationName]
+	if !ok {
+		return []ctrl.Request{}
+	}
+	namespaceWithName := strings.Split(kafkaUserResourceNamespacedName, "/")
+	if len(namespaceWithName) != 2 {
+		return []ctrl.Request{}
+	}
+	return []ctrl.Request{{
+		NamespacedName: types.NamespacedName{
+			Namespace: namespaceWithName[0],
+			Name:      namespaceWithName[1],
+		},
+	}}
 }
 
 // blank assignment to verify that KafkaUserReconciler implements reconcile.kafkaUserReconciler
@@ -98,6 +122,7 @@ type KafkaUserReconciler struct {
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=issuers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=clusterissuers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=certificates,resources=certificatesigningrequest,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile reads that state of the cluster for a KafkaUser object and makes changes based on the state read
 // and what is in the KafkaUser.Spec
@@ -145,7 +170,7 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 		backend = v1beta1.PKIBackendProvided
 	}
 
-	pkiManager := pki.GetPKIManager(r.Client, cluster, backend)
+	pkiManager := pki.GetPKIManager(r.Client, cluster, backend, r.Log)
 
 	// Reconcile no matter what to get a user certificate instance for ACL management
 	// TODO (tinyzimmer): This can go wrong if the user made a mistake in their secret path
@@ -166,10 +191,7 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 			// But really we should catch these kinds of issues in a pre-admission hook in a future PR
 			// The user can fix while this is looping and it will pick it up next reconcile attempt
 			reqLogger.Error(err, "Fatal error attempting to reconcile the user certificate. If using vault perhaps a permissions issue or improperly configured PKI?")
-			return ctrl.Result{
-				Requeue:      true,
-				RequeueAfter: time.Duration(15) * time.Second,
-			}, nil
+			return ctrl.Result{}, nil
 		case errorfactory.VaultAPIFailure:
 			// Same as above in terms of things that could be checked pre-flight on the cluster
 			reqLogger.Error(err, "Vault API error attempting to reconcile the user certificate. If using vault perhaps a permissions issue or improperly configured PKI?")
