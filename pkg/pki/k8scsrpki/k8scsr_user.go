@@ -63,31 +63,22 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		}
 		// Generate new SigningRequest resource
 		//TODO add proper organization field if needed
-		signingReq, err := c.generateCSR(clientKey, user)
+		signingReq, err = c.generateAndCreateCSR(ctx, clientKey, user)
 		if err != nil {
 			return nil, err
 		}
-		c.logger.Info("Creating k8s csr object")
-		err = c.client.Create(ctx, signingReq)
-		if err != nil {
+
+		if err = c.secretUpdateAnnotation(ctx, secret, signingReq.GetName()); err != nil {
 			return nil, err
 		}
-		secret.Annotations =
-			util.MergeAnnotations(secret.Annotations, map[string]string{"banzaicloud.io/depending-csr": signingReq.GetName()})
-		typeMeta := secret.TypeMeta
-		err = c.client.Update(ctx, secret)
-		if err != nil {
-			return nil, err
-		}
-		secret.TypeMeta = typeMeta
 	} else if err != nil {
 		return nil, err
 	}
-	signingRequestGenName, ok := secret.Annotations["banzaicloud.io/depending-csr"]
+	signingRequestGenName, ok := secret.Annotations[dependingCsrAnnotation]
 	if !ok {
 		// Generate new SigningRequest resource
 		//TODO add proper organization field if needed
-		signingReq, err := c.generateCSR(secret.Data[corev1.TLSPrivateKeyKey], user)
+		signingReq, err = c.generateAndCreateCSR(ctx, secret.Data[corev1.TLSPrivateKeyKey], user)
 		if err != nil {
 			return nil, err
 		}
@@ -98,14 +89,9 @@ func (c *k8sCSR) ReconcileUserCertificate(
 			return nil, err
 		}
 
-		secret.Annotations =
-			util.MergeAnnotations(secret.Annotations, map[string]string{"banzaicloud.io/depending-csr": signingReq.GetName()})
-		typeMeta := secret.TypeMeta
-		err = c.client.Update(ctx, secret)
-		if err != nil {
+		if err = c.secretUpdateAnnotation(ctx, secret, signingReq.GetName()); err != nil {
 			return nil, err
 		}
-		secret.TypeMeta = typeMeta
 	}
 	if signingReq == nil {
 		signingReq, err = c.getUserSigningRequest(ctx, signingRequestGenName, secret.GetNamespace())
@@ -115,7 +101,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 			// Generate signing request object and create it
 			// TODO check if CA is present or not
 			if _, ok := secret.Data[corev1.TLSCertKey]; !ok {
-				delete(secret.Annotations, "banzaicloud.io/depending-csr")
+				delete(secret.Annotations, dependingCsrAnnotation)
 				typeMeta := secret.TypeMeta
 				err = c.client.Update(ctx, secret)
 				if err != nil {
@@ -199,7 +185,7 @@ func generateCSRResouce(csr []byte, name, namespace, signerName string) *certsig
 	}
 }
 
-func (c *k8sCSR) generateCSR(clientkey []byte, user *v1alpha1.KafkaUser) (*certsigningreqv1.CertificateSigningRequest, error) {
+func (c *k8sCSR) generateAndCreateCSR(ctx context.Context, clientkey []byte, user *v1alpha1.KafkaUser) (*certsigningreqv1.CertificateSigningRequest, error) {
 	c.logger.Info("Creating PKCS1PrivateKey from secret")
 	block, _ := pem.Decode(clientkey)
 	privKey, parseErr := x509.ParsePKCS1PrivateKey(block.Bytes)
@@ -212,6 +198,22 @@ func (c *k8sCSR) generateCSR(clientkey []byte, user *v1alpha1.KafkaUser) (*certs
 		return nil, err
 	}
 	c.logger.Info("Generating k8s csr object")
-	return generateCSRResouce(csr, user.GetName(), user.GetNamespace(), user.Spec.PKIBackendSpec.SignerName), nil
-
+	signingReq := generateCSRResouce(csr, user.GetName(), user.GetNamespace(), user.Spec.PKIBackendSpec.SignerName)
+	c.logger.Info("Creating k8s csr object")
+	err = c.client.Create(ctx, signingReq)
+	if err != nil {
+		return nil, err
+	}
+	return signingReq, nil
+}
+func (c *k8sCSR) secretUpdateAnnotation(ctx context.Context, secret *corev1.Secret, srName string) error {
+	secret.Annotations =
+		util.MergeAnnotations(secret.Annotations, map[string]string{dependingCsrAnnotation: srName})
+	typeMeta := secret.TypeMeta
+	err := c.client.Update(ctx, secret)
+	if err != nil {
+		return err
+	}
+	secret.TypeMeta = typeMeta
+	return nil
 }
