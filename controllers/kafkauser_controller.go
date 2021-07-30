@@ -22,7 +22,9 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
+
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certsigningreqv1 "k8s.io/api/certificates/v1beta1"

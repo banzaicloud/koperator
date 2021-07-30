@@ -21,11 +21,14 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
+
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+
 	//TODO replace this with v1 instead of v1beta1 in all files
 	certsigningreqv1 "k8s.io/api/certificates/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -117,11 +120,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		if err != nil {
 			return nil, err
 		}
-		secret := &corev1.Secret{}
-		err = c.client.Get(ctx, types.NamespacedName{Name: user.Spec.SecretName, Namespace: user.Namespace}, secret)
-		if err != nil {
-			return nil, err
-		}
+
 		secret.Annotations =
 			util.MergeAnnotations(secret.Annotations, map[string]string{"banzaicloud.io/depending-csr": signingReq.GetName()})
 		typeMeta := secret.TypeMeta

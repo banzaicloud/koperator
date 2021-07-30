@@ -156,7 +156,14 @@ var _ = BeforeSuite(func() {
 	err = controllers.SetupKafkaTopicWithManager(mgr, 10)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = controllers.SetupKafkaUserWithManager(mgr, true)
+	// Create a new  kafka user reconciler
+	kafkaUserReconciler := controllers.KafkaUserReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Log:    ctrl.Log.WithName("controllers").WithName("KafkaUser"),
+	}
+
+	err = controllers.SetupKafkaUserWithManager(mgr, true, kafkaUserReconciler.Log).Complete(&kafkaUserReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
 	kafkaClusterCCReconciler := controllers.CruiseControlTaskReconciler{
