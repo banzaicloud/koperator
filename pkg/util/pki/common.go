@@ -49,6 +49,9 @@ const (
 	BrokerControllerFQDNTemplate = "%s.%s.mgt.%s"
 	// CAFQDNTemplate is the template used for the FQDN of a CA
 	CAFQDNTemplate = "%s-ca.%s.cluster.local"
+	// KafkaUserAnnotationName used in case of PKIbackend is k8s-csr to find the appropriate kafkauser in case of
+	// signing request event
+	KafkaUserAnnotationName = "banzaicloud.io/kafkauser-id"
 )
 
 // Manager is the main interface for objects performing PKI operations

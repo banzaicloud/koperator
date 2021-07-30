@@ -19,6 +19,11 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
+	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,14 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 )
 
 // FinalizeUserCertificate for cert-manager backend auto returns because controller references handle cleanup
@@ -73,7 +70,7 @@ func (c *certManager) ReconcileUserCertificate(
 	}
 
 	// Ensure controller reference on user secret
-	if err = c.ensureControllerReference(ctx, user, secret, scheme); err != nil {
+	if err = certutil.EnsureControllerReference(ctx, user, secret, scheme, c.client); err != nil {
 		return nil, err
 	}
 
@@ -102,19 +99,6 @@ func (c *certManager) injectJKSPassword(ctx context.Context, user *v1alpha1.Kafk
 		return errorfactory.New(errorfactory.APIFailure{}, err, "could not create secret with jks password")
 	}
 
-	return nil
-}
-
-// ensureControllerReference ensures that a KafkaUser owns a given Secret
-func (c *certManager) ensureControllerReference(ctx context.Context, user *v1alpha1.KafkaUser, secret *corev1.Secret, scheme *runtime.Scheme) error {
-	err := controllerutil.SetControllerReference(user, secret, scheme)
-	if err != nil && !k8sutil.IsAlreadyOwnedError(err) {
-		return errorfactory.New(errorfactory.InternalError{}, err, "error checking controller reference on user secret")
-	} else if err == nil {
-		if err = c.client.Update(ctx, secret); err != nil {
-			return errorfactory.New(errorfactory.APIFailure{}, err, "could not update secret with controller reference")
-		}
-	}
 	return nil
 }
 

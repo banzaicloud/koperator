@@ -52,7 +52,7 @@ func newMockCluster() *v1beta1.KafkaCluster {
 
 func TestGetPKIManager(t *testing.T) {
 	cluster := newMockCluster()
-	mock := GetPKIManager(&mockClient{}, cluster, v1beta1.PKIBackendProvided)
+	mock := GetPKIManager(&mockClient{}, cluster, v1beta1.PKIBackendProvided, log)
 	if reflect.TypeOf(mock) != reflect.TypeOf(&mockPKIManager{}) {
 		t.Error("Expected mock client got:", reflect.TypeOf(mock))
 	}
@@ -82,7 +82,7 @@ func TestGetPKIManager(t *testing.T) {
 
 	// Test other getters
 	cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend = v1beta1.PKIBackendCertManager
-	certmanager := GetPKIManager(&mockClient{}, cluster, v1beta1.PKIBackendProvided)
+	certmanager := GetPKIManager(&mockClient{}, cluster, v1beta1.PKIBackendProvided, log)
 	pkiType := reflect.TypeOf(certmanager).String()
 	expected := "*certmanagerpki.certManager"
 	if pkiType != expected {
@@ -91,7 +91,7 @@ func TestGetPKIManager(t *testing.T) {
 
 	// Default should be cert-manager also
 	cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend = ""
-	certmanager = GetPKIManager(&mockClient{}, cluster, v1beta1.PKIBackendProvided)
+	certmanager = GetPKIManager(&mockClient{}, cluster, v1beta1.PKIBackendProvided, log)
 	pkiType = reflect.TypeOf(certmanager).String()
 	expected = "*certmanagerpki.certManager"
 	if pkiType != expected {
@@ -99,7 +99,7 @@ func TestGetPKIManager(t *testing.T) {
 	}
 
 	cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend = v1beta1.PKIBackendVault
-	certmanager = GetPKIManager(&mockClient{}, cluster, v1beta1.PKIBackendProvided)
+	certmanager = GetPKIManager(&mockClient{}, cluster, v1beta1.PKIBackendProvided, log)
 	pkiType = reflect.TypeOf(certmanager).String()
 	expected = "*vaultpki.vaultPKI"
 	if pkiType != expected {

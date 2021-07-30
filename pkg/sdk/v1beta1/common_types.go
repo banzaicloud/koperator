@@ -120,6 +120,8 @@ const (
 	// PKIBackendProvided used to point the operator to use the PKI set in the cluster CR
 	// for admin and users required for the cluster to run
 	PKIBackendProvided PKIBackend = "pki-backend-provided"
+	// PKIBackendK8sCSR invokes kubernetes csr API for user certificate management
+	PKIBackendK8sCSR PKIBackend = "k8s-csr"
 )
 
 // GracefulActionState holds information about GracefulAction State

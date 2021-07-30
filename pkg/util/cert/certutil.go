@@ -16,6 +16,7 @@ package cert
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -27,9 +28,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pavel-v-chernykh/keystore-go"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 )
@@ -149,12 +155,7 @@ func GenerateJKS(clientCert, clientKey, clientCA []byte) (out, passw []byte, err
 
 // GenerateTestCert is used from unit tests for generating certificates
 func GenerateTestCert() (cert, key []byte, expectedDn string, err error) {
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
-	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
-	if err != nil {
-		return cert, key, expectedDn, err
-	}
-	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	priv, serialNumber, err := generatePrivateKey()
 	if err != nil {
 		return cert, key, expectedDn, err
 	}
@@ -174,15 +175,80 @@ func GenerateTestCert() (cert, key []byte, expectedDn string, err error) {
 		return cert, key, expectedDn, err
 	}
 	buf := new(bytes.Buffer)
-	keyBuf := new(bytes.Buffer)
 	if err = pem.Encode(buf, &pem.Block{Type: "CERTIFICATE", Bytes: cert}); err != nil {
 		return
 	}
-	if err = pem.Encode(keyBuf, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}); err != nil {
+	cert = buf.Bytes()
+	key, err = encodePrivateKeyInPemFormat(priv)
+	if err != nil {
 		return cert, key, expectedDn, err
 	}
-	cert = buf.Bytes()
-	key = keyBuf.Bytes()
 	expectedDn = "CN=test-cn,O=test-ou"
 	return cert, key, expectedDn, err
+}
+
+func generatePrivateKey() (*rsa.PrivateKey, *big.Int, error) {
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		return nil, serialNumber, err
+	}
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, serialNumber, err
+	}
+	return priv, serialNumber, err
+}
+
+func encodePrivateKeyInPemFormat(priv *rsa.PrivateKey) ([]byte, error) {
+	keyBuf := new(bytes.Buffer)
+	if err := pem.Encode(keyBuf, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}); err != nil {
+		return nil, err
+	}
+	key := keyBuf.Bytes()
+	return key, nil
+}
+
+// GeneratePrivateKeyInPemFormat is used to generate a private key in a pem format
+func GeneratePrivateKeyInPemFormat() ([]byte, error) {
+	priv, _, err := generatePrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	return encodePrivateKeyInPemFormat(priv)
+}
+
+// GenerateSigningRequestInPemFormat is used to generate a signing request in a pem format
+func GenerateSigningRequestInPemFormat(priv *rsa.PrivateKey, commonName string, organization []string) ([]byte, error) {
+	template := x509.CertificateRequest{
+		SignatureAlgorithm: x509.SHA256WithRSA,
+		Subject: pkix.Name{
+			CommonName:   commonName,
+			Organization: organization,
+		},
+	}
+	csr, err := x509.CreateCertificateRequest(rand.Reader, &template, priv)
+	if err != nil {
+		return nil, err
+	}
+	buf := new(bytes.Buffer)
+	if err = pem.Encode(buf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr}); err != nil {
+		return nil, err
+	}
+	signingReq := buf.Bytes()
+	return signingReq, err
+}
+
+// EnsureControllerReference ensures that a KafkaUser owns a given Secret
+func EnsureControllerReference(ctx context.Context, user *v1alpha1.KafkaUser,
+	secret *corev1.Secret, scheme *runtime.Scheme, client client.Client) error {
+	err := controllerutil.SetControllerReference(user, secret, scheme)
+	if err != nil && !k8sutil.IsAlreadyOwnedError(err) {
+		return errorfactory.New(errorfactory.InternalError{}, err, "error checking controller reference on user secret")
+	} else if err == nil {
+		if err = client.Update(ctx, secret); err != nil {
+			return errorfactory.New(errorfactory.APIFailure{}, err, "could not update secret with controller reference")
+		}
+	}
+	return nil
 }

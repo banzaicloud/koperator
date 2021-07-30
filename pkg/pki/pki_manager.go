@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 
+	"github.com/banzaicloud/kafka-operator/pkg/pki/k8scsrpki"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,7 +34,7 @@ import (
 var MockBackend = v1beta1.PKIBackend("mock")
 
 // GetPKIManager returns a PKI/User manager interface for a given cluster
-func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBackend v1beta1.PKIBackend) pki.Manager {
+func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBackend v1beta1.PKIBackend, log logr.Logger) pki.Manager {
 	var backend v1beta1.PKIBackend
 	if pkiBackend == v1beta1.PKIBackendProvided {
 		backend = cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend
@@ -45,15 +46,15 @@ func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBacke
 	// Use cert-manager for pki backend
 	case v1beta1.PKIBackendCertManager:
 		return certmanagerpki.New(client, cluster)
-
 	// Use vault for pki backend
 	case v1beta1.PKIBackendVault:
 		return vaultpki.New(client, cluster)
-
+	// Use k8s csr api for pki backend
+	case v1beta1.PKIBackendK8sCSR:
+		return k8scsrpki.New(client, cluster, log)
 	// Return mock backend for testing - cannot be triggered by CR due to enum in api schema
 	case MockBackend:
 		return newMockPKIManager(client, cluster)
-
 	// Default use cert-manager - state explicitly for clarity and to make compiler happy
 	default:
 		return certmanagerpki.New(client, cluster)
