@@ -30,6 +30,7 @@ import (
 
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pavel-v-chernykh/keystore-go"
 	corev1 "k8s.io/api/core/v1"
