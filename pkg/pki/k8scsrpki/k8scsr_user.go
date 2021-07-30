@@ -63,7 +63,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		}
 		// Generate new SigningRequest resource
 		//TODO add proper organization field if needed
-		signingReq, err := c.createCSR(clientKey, user)
+		signingReq, err := c.generateCSR(clientKey, user)
 		if err != nil {
 			return nil, err
 		}
