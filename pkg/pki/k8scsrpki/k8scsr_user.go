@@ -81,11 +81,6 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		if err != nil {
 			return nil, err
 		}
-		//secret := &corev1.Secret{}
-		//err = c.client.Get(ctx, types.NamespacedName{Name: user.Spec.SecretName, Namespace: user.Namespace}, secret)
-		//if err != nil {
-		//	return nil, err
-		//}
 		secret.Annotations =
 			util.MergeAnnotations(secret.Annotations, map[string]string{"banzaicloud.io/depending-csr": signingReq.GetName()})
 		typeMeta := secret.TypeMeta
