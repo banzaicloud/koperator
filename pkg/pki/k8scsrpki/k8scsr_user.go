@@ -63,19 +63,10 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		}
 		// Generate new SigningRequest resource
 		//TODO add proper organization field if needed
-		c.logger.Info("Creating PKCS1PrivateKey from secret")
-		block, _ := pem.Decode(clientKey)
-		privKey, parseErr := x509.ParsePKCS1PrivateKey(block.Bytes)
-		if parseErr != nil {
-			return nil, parseErr
-		}
-		c.logger.Info("Generating SigningRequest")
-		csr, err := certutil.GenerateSigningRequestInPemFormat(privKey, user.GetName(), []string{""})
+		signingReq, err := c.createCSR(clientKey, user)
 		if err != nil {
 			return nil, err
 		}
-		c.logger.Info("Generating k8s csr object")
-		signingReq = generateCSR(csr, user.GetName(), user.GetNamespace(), user.Spec.PKIBackendSpec.SignerName)
 		c.logger.Info("Creating k8s csr object")
 		err = c.client.Create(ctx, signingReq)
 		if err != nil {
@@ -92,24 +83,15 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	} else if err != nil {
 		return nil, err
 	}
-
 	signingRequestGenName, ok := secret.Annotations["banzaicloud.io/depending-csr"]
 	if !ok {
 		// Generate new SigningRequest resource
 		//TODO add proper organization field if needed
-		c.logger.Info("Creating PKCS1PrivateKey from secret")
-		block, _ := pem.Decode(clientKey)
-		privKey, parseErr := x509.ParsePKCS1PrivateKey(block.Bytes)
-		if parseErr != nil {
-			return nil, parseErr
-		}
-		c.logger.Info("Generating SigningRequest")
-		csr, err := certutil.GenerateSigningRequestInPemFormat(privKey, user.GetName(), []string{""})
+		signingReq, err := c.generateCSR(secret.Data[corev1.TLSPrivateKeyKey], user)
 		if err != nil {
 			return nil, err
 		}
-		c.logger.Info("Generating k8s csr object")
-		signingReq = generateCSR(csr, user.GetName(), user.GetNamespace(), user.Spec.PKIBackendSpec.SignerName)
+
 		c.logger.Info("Creating k8s csr object")
 		err = c.client.Create(ctx, signingReq)
 		if err != nil {
@@ -128,6 +110,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	if signingReq == nil {
 		signingReq, err = c.getUserSigningRequest(ctx, signingRequestGenName, secret.GetNamespace())
 		// Handle case when signing request is not found
+		// as like kubernetes removed the signing request
 		if apierrors.IsNotFound(err) {
 			// Generate signing request object and create it
 			// TODO check if CA is present or not
@@ -201,7 +184,7 @@ func generateUserSecret(key []byte, secretName, namespace string) *corev1.Secret
 	}
 }
 
-func generateCSR(csr []byte, name, namespace, signerName string) *certsigningreqv1.CertificateSigningRequest {
+func generateCSRResouce(csr []byte, name, namespace, signerName string) *certsigningreqv1.CertificateSigningRequest {
 	return &certsigningreqv1.CertificateSigningRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: name + "-",
@@ -214,4 +197,21 @@ func generateCSR(csr []byte, name, namespace, signerName string) *certsigningreq
 			Usages:     []certsigningreqv1.KeyUsage{certsigningreqv1.UsageServerAuth, certsigningreqv1.UsageClientAuth},
 		},
 	}
+}
+
+func (c *k8sCSR) generateCSR(clientkey []byte, user *v1alpha1.KafkaUser) (*certsigningreqv1.CertificateSigningRequest, error) {
+	c.logger.Info("Creating PKCS1PrivateKey from secret")
+	block, _ := pem.Decode(clientkey)
+	privKey, parseErr := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if parseErr != nil {
+		return nil, parseErr
+	}
+	c.logger.Info("Generating SigningRequest")
+	csr, err := certutil.GenerateSigningRequestInPemFormat(privKey, user.GetName(), []string{""})
+	if err != nil {
+		return nil, err
+	}
+	c.logger.Info("Generating k8s csr object")
+	return generateCSRResouce(csr, user.GetName(), user.GetNamespace(), user.Spec.PKIBackendSpec.SignerName), nil
+
 }
