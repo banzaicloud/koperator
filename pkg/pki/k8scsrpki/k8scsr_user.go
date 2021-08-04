@@ -41,7 +41,7 @@ import (
 
 // ReconcileUserCertificate ensures and returns a user certificate - should be idempotent
 func (c *k8sCSR) ReconcileUserCertificate(
-	ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme, clusterDomain string) (*pkicommon.UserCertificate, error) {
+	ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme, _ string) (*pkicommon.UserCertificate, error) {
 	var clientKey []byte
 	var signingReq *certsigningreqv1.CertificateSigningRequest
 	secret := &corev1.Secret{}
@@ -83,12 +83,6 @@ func (c *k8sCSR) ReconcileUserCertificate(
 			return nil, err
 		}
 
-		c.logger.Info("Creating k8s csr object")
-		err = c.client.Create(ctx, signingReq)
-		if err != nil {
-			return nil, err
-		}
-
 		if err = c.secretUpdateAnnotation(ctx, secret, signingReq.GetName()); err != nil {
 			return nil, err
 		}
@@ -108,7 +102,9 @@ func (c *k8sCSR) ReconcileUserCertificate(
 					return nil, err
 				}
 				secret.TypeMeta = typeMeta
-				return nil, errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("blalba"), "kubernetes deleted the csr request")
+				return nil, errorfactory.New(errorfactory.ResourceNotReady{},
+					errors.New("instance not found"), "kubernetes deleted the csr request",
+					"csrName", signingRequestGenName)
 			}
 		} else if err != nil {
 			return nil, err
@@ -125,13 +121,32 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	}
 	//TODO check what happens if csr fails
 	if !foundApproved {
-		return nil, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New("blalba"), "could not find approved csr")
+		return nil, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New("instance is not approved"),
+			"could not find approved csr", "csrName", signingReq.GetName())
 	}
 	if len(signingReq.Status.Certificate) == 0 {
-		return nil, errorfactory.New(errorfactory.ResourceNotReady{}, errors.New("blalba"), "certificate to csr status field is not generated yet")
+		return nil, errorfactory.New(errorfactory.ResourceNotReady{},
+			errors.New("instance is not ready yet"), "certificate to csr status field is not generated yet",
+			"csrName", signingReq.GetName())
+	}
+
+	// Ensure a JKS if requested
+	var jks, jksPasswd []byte
+	if user.Spec.IncludeJKS {
+		// we don't have an existing one - make a new one
+		if value, ok := secret.Data[v1alpha1.TLSJKSKeyStore]; !ok || len(value) == 0 {
+			//TODO add CA
+			jks, jksPasswd, err = certutil.GenerateJKS(secret.Data[corev1.TLSCertKey], secret.Data[corev1.TLSPrivateKeyKey], secret.Data[corev1.TLSCertKey])
+			if err != nil {
+				return nil, errorfactory.New(errorfactory.InternalError{}, err, "failed to generate JKS from user certificate")
+			}
+		}
 	}
 
 	secret.Data[corev1.TLSCertKey] = signingReq.Status.Certificate
+	secret.Data[v1alpha1.TLSJKSKeyStore] = jks
+	secret.Data[v1alpha1.PasswordKey] = jksPasswd
+
 	typeMeta := secret.TypeMeta
 	err = c.client.Update(ctx, secret)
 	if err != nil {
@@ -143,11 +158,13 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		CA:          secret.Data[corev1.TLSCertKey],
 		Certificate: secret.Data[corev1.TLSCertKey],
 		Key:         secret.Data[corev1.TLSPrivateKeyKey],
+		JKS:         secret.Data[v1alpha1.TLSJKSKeyStore],
+		Password:    secret.Data[v1alpha1.PasswordKey],
 	}, nil
 }
 
 // FinalizeUserCertificate removes/revokes a user certificate
-func (c *k8sCSR) FinalizeUserCertificate(ctx context.Context, user *v1alpha1.KafkaUser) error {
+func (c *k8sCSR) FinalizeUserCertificate(_ context.Context, _ *v1alpha1.KafkaUser) error {
 	return nil
 }
 

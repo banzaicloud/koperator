@@ -47,6 +47,8 @@ spec:
                 required:
                 - name
                 type: object
+              createCert:
+                type: boolean
               dnsNames:
                 items:
                   type: string

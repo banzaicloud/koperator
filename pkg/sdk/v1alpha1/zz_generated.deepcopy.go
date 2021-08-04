@@ -208,6 +208,11 @@ func (in *KafkaUserSpec) DeepCopyInto(out *KafkaUserSpec) {
 		*out = make([]UserTopicGrant, len(*in))
 		copy(*out, *in)
 	}
+	if in.CreateCert != nil {
+		in, out := &in.CreateCert, &out.CreateCert
+		*out = new(bool)
+		**out = **in
+	}
 	if in.PKIBackendSpec != nil {
 		in, out := &in.PKIBackendSpec, &out.PKIBackendSpec
 		*out = new(PKIBackendSpec)
