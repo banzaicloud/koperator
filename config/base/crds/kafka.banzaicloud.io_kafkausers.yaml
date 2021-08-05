@@ -36,6 +36,11 @@ spec:
           spec:
             description: KafkaUserSpec defines the desired state of KafkaUser
             properties:
+              annotations:
+                additionalProperties:
+                  type: string
+                description: Annotations defines the annotations placed on the certificate or certificate signing request object
+                type: object
               clusterRef:
                 description: ClusterReference states a reference to a cluster for
                   topic/user provisioning

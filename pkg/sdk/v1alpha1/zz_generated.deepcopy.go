@@ -198,6 +198,13 @@ func (in *KafkaUserList) DeepCopyObject() runtime.Object {
 func (in *KafkaUserSpec) DeepCopyInto(out *KafkaUserSpec) {
 	*out = *in
 	out.ClusterRef = in.ClusterRef
+	if in.Annotations != nil {
+		in, out := &in.Annotations, &out.Annotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.DNSNames != nil {
 		in, out := &in.DNSNames, &out.DNSNames
 		*out = make([]string, len(*in))
