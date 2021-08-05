@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
-
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -29,8 +28,7 @@ import (
 	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
 
-	//TODO replace this with v1 instead of v1beta1 in all files
-	certsigningreqv1 "k8s.io/api/certificates/v1beta1"
+	certsigningreqv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -130,20 +128,29 @@ func (c *k8sCSR) ReconcileUserCertificate(
 			"csrName", signingReq.GetName())
 	}
 
+	certs, err := ParseCertificates(signingReq.Status.Certificate)
+	if err != nil {
+		return nil, err
+	}
+	for _, cert := range certs {
+		if cert.Certificate.IsCA {
+			secret.Data[v1alpha1.CoreCACertKey] = cert.ToPEM()
+		} else {
+			secret.Data[corev1.TLSCertKey] = cert.ToPEM()
+		}
+	}
+
 	// Ensure a JKS if requested
 	var jks, jksPasswd []byte
 	if user.Spec.IncludeJKS {
 		// we don't have an existing one - make a new one
 		if value, ok := secret.Data[v1alpha1.TLSJKSKeyStore]; !ok || len(value) == 0 {
-			//TODO add CA
-			jks, jksPasswd, err = certutil.GenerateJKS(secret.Data[corev1.TLSCertKey], secret.Data[corev1.TLSPrivateKeyKey], secret.Data[corev1.TLSCertKey])
+			jks, jksPasswd, err = certutil.GenerateJKS(secret.Data[corev1.TLSCertKey], secret.Data[corev1.TLSPrivateKeyKey], secret.Data[v1alpha1.CoreCACertKey])
 			if err != nil {
-				return nil, errorfactory.New(errorfactory.InternalError{}, err, "failed to generate JKS from user certificate")
+				return nil, err
 			}
 		}
 	}
-
-	secret.Data[corev1.TLSCertKey] = signingReq.Status.Certificate
 	secret.Data[v1alpha1.TLSJKSKeyStore] = jks
 	secret.Data[v1alpha1.PasswordKey] = jksPasswd
 
@@ -192,11 +199,11 @@ func generateCSRResouce(csr []byte, name, namespace, signerName string) *certsig
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: name + "-",
 			Namespace:    namespace,
-			Annotations:  map[string]string{pkicommon.KafkaUserAnnotationName: namespace + "/" + name},
+			Annotations:  map[string]string{pkicommon.KafkaUserAnnotationName: namespace + "/" + name, "csr.banzaicloud.io/fullchain": "true"},
 		},
 		Spec: certsigningreqv1.CertificateSigningRequestSpec{
 			Request:    csr,
-			SignerName: util.StringPointer(signerName),
+			SignerName: signerName,
 			Usages:     []certsigningreqv1.KeyUsage{certsigningreqv1.UsageServerAuth, certsigningreqv1.UsageClientAuth},
 		},
 	}
