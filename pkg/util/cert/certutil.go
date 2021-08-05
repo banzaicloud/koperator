@@ -77,7 +77,7 @@ func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 func DecodeCertificate(raw []byte) (cert *x509.Certificate, err error) {
 	block, _ := pem.Decode(raw)
 	if block == nil {
-		err = errors.New("Failed to decode x509 certificate from PEM")
+		err = errors.New("failed to decode x509 certificate from PEM")
 		return
 	}
 	cert, err = x509.ParseCertificate(block.Bytes)
@@ -107,38 +107,30 @@ func EnsureSecretPassJKS(secret *corev1.Secret) (injected *corev1.Secret, err er
 	return
 }
 
-// GenerateJKS creates a JKS with a random password from a client cert/key combination
-// --certDataIf  can be []bytes as one certificate in PEM format and []x509.Certificate as cert chain
-// --certCA is the trusted CA in PEM format
-// --privateKey is the privatekey for the cert in PEM format
-func GenerateJKS(certDataIf interface{}, certCA []byte, privateKey []byte) (out, passw []byte, err error) {
-	var certs *[]x509.Certificate
-	switch clientCert := certDataIf.(type) {
-	case nil:
-		return nil, nil, errors.New("no certificate has added at JKS generate")
-	case []byte:
-		var c *x509.Certificate
-		c, err = DecodeCertificate(clientCert)
-		*certs = append(*certs, *c)
-		if err != nil {
-			return
-		}
-	case []x509.Certificate:
-		certs = &clientCert
-	default:
-		return nil, nil, errors.New("not recognized cert type")
+func GenerateJKSFromByte(certByte []byte, caCert []byte, privateKey []byte) (out, passw []byte, err error) {
+	c, err := DecodeCertificate(certByte)
+	if err != nil {
+		return
 	}
+	ca, err := DecodeCertificate(caCert)
+	if err != nil {
+		return
+	}
+	var certs []*x509.Certificate
+	certs = append(certs, ca, c)
 
-	if privateKey == nil {
-		return nil, nil, errors.New("no privatekey has added at JKS generate")
-	}
+	return GenerateJKS(certs, privateKey)
+}
+
+// GenerateJKS creates a JKS with a random password from a client cert/key combination
+func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byte, err error) {
 	pKeyRaw, err := DecodeKey(privateKey)
 	if err != nil {
 		return
 	}
 
 	var certCABundle []keystore.Certificate
-	for _, cert := range *certs {
+	for _, cert := range certs {
 		kcert := keystore.Certificate{
 			Type:    "X.509",
 			Content: cert.Raw,
@@ -154,38 +146,20 @@ func GenerateJKS(certDataIf interface{}, certCA []byte, privateKey []byte) (out,
 		CertificateChain: certCABundle,
 	}
 
-	if certCA != nil {
-		ca, err := DecodeCertificate(certCA)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		caIn := keystore.TrustedCertificateEntry{
-			CreationTime: time.Now(),
-			//Root CA cert ?
-			Certificate: keystore.Certificate{
-				Type:    "X.509",
-				Content: ca.Raw,
-			},
-		}
-
-		if err = keyStore.SetTrustedCertificateEntry("trusted_ca", caIn); err != nil {
-			return nil, nil, err
-		}
-	}
 	//Add into trusted from our cert chain
-	for i := 0; i < len(*certs)-1; i++ {
-		caIn := keystore.TrustedCertificateEntry{
-			CreationTime: time.Now(),
-			//Root CA cert ?
-			Certificate: keystore.Certificate{
-				Type:    "X.509",
-				Content: (*certs)[i].Raw,
-			},
-		}
-		alias := fmt.Sprintf("trusted_ca_ownchain_%d", i)
-		if err = keyStore.SetTrustedCertificateEntry(alias, caIn); err != nil {
-			return nil, nil, err
+	for i, cert := range certs {
+		if cert.IsCA {
+			caIn := keystore.TrustedCertificateEntry{
+				CreationTime: time.Now(),
+				Certificate: keystore.Certificate{
+					Type:    "X.509",
+					Content: cert.Raw,
+				},
+			}
+			alias := fmt.Sprintf("trusted_ca_%d", i)
+			if err = keyStore.SetTrustedCertificateEntry(alias, caIn); err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 
@@ -202,7 +176,6 @@ func GenerateJKS(certDataIf interface{}, certCA []byte, privateKey []byte) (out,
 	}
 
 	var outBuf bytes.Buffer
-	//err = keystore.Encode(&outBuf, jks, passw)
 	if err = keyStore.Store(&outBuf, password); err != nil {
 		return nil, nil, err
 	}
