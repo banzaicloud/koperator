@@ -23,6 +23,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"math/big"
 	mathrand "math/rand"
 	"strings"
@@ -32,7 +33,7 @@ import (
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/pavel-v-chernykh/keystore-go"
+	"github.com/pavel-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -107,51 +108,105 @@ func EnsureSecretPassJKS(secret *corev1.Secret) (injected *corev1.Secret, err er
 }
 
 // GenerateJKS creates a JKS with a random password from a client cert/key combination
-func GenerateJKS(clientCert, clientKey, clientCA []byte) (out, passw []byte, err error) {
-	cert, err := DecodeCertificate(clientCert)
+// --certDataIf  can be []bytes as one certificate in PEM format and []x509.Certificate as cert chain
+// --certCA is the trusted CA in PEM format
+// --privateKey is the privatekey for the cert in PEM format
+func GenerateJKS(certDataIf interface{}, certCA []byte, privateKey []byte) (out, passw []byte, err error) {
+	var certs *[]x509.Certificate
+	switch clientCert := certDataIf.(type) {
+	case nil:
+		return nil, nil, errors.New("no certificate has added at JKS generate")
+	case []byte:
+		var c *x509.Certificate
+		c, err = DecodeCertificate(clientCert)
+		*certs = append(*certs, *c)
+		if err != nil {
+			return
+		}
+	case []x509.Certificate:
+		certs = &clientCert
+	default:
+		return nil, nil, errors.New("not recognized cert type")
+	}
+
+	if privateKey == nil {
+		return nil, nil, errors.New("no privatekey has added at JKS generate")
+	}
+	pKeyRaw, err := DecodeKey(privateKey)
 	if err != nil {
 		return
 	}
 
-	key, err := DecodeKey(clientKey)
-	if err != nil {
-		return
-	}
-
-	ca, err := DecodeCertificate(clientCA)
-	if err != nil {
-		return
-	}
-
-	certBundle := []keystore.Certificate{{
-		Type:    "X.509",
-		Content: cert.Raw,
-	}}
-
-	jks := keystore.KeyStore{
-		cert.Subject.CommonName: &keystore.PrivateKeyEntry{
-			Entry: keystore.Entry{
-				CreationDate: time.Now(),
-			},
-			PrivKey:   key,
-			CertChain: certBundle,
-		},
-	}
-
-	jks["trusted_ca"] = &keystore.TrustedCertificateEntry{
-		Entry: keystore.Entry{
-			CreationDate: time.Now(),
-		},
-		Certificate: keystore.Certificate{
+	var certCABundle []keystore.Certificate
+	for _, cert := range *certs {
+		kcert := keystore.Certificate{
 			Type:    "X.509",
-			Content: ca.Raw,
-		},
+			Content: cert.Raw,
+		}
+		certCABundle = append(certCABundle, kcert)
+	}
+
+	keyStore := keystore.New()
+
+	pkeIn := keystore.PrivateKeyEntry{
+		CreationTime:     time.Now(),
+		PrivateKey:       pKeyRaw,
+		CertificateChain: certCABundle,
+	}
+
+	if certCA != nil {
+		ca, err := DecodeCertificate(certCA)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		caIn := keystore.TrustedCertificateEntry{
+			CreationTime: time.Now(),
+			//Root CA cert ?
+			Certificate: keystore.Certificate{
+				Type:    "X.509",
+				Content: ca.Raw,
+			},
+		}
+
+		if err = keyStore.SetTrustedCertificateEntry("trusted_ca", caIn); err != nil {
+			return nil, nil, err
+		}
+	}
+	//Add into trusted from our cert chain
+	for i := 0; i < len(*certs)-1; i++ {
+		caIn := keystore.TrustedCertificateEntry{
+			CreationTime: time.Now(),
+			//Root CA cert ?
+			Certificate: keystore.Certificate{
+				Type:    "X.509",
+				Content: (*certs)[i].Raw,
+			},
+		}
+		alias := fmt.Sprintf("trusted_ca_ownchain_%d", i)
+		if err = keyStore.SetTrustedCertificateEntry(alias, caIn); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	password := GeneratePass(16)
+	//Zeroing password after this function for safety
+	defer func(s []byte) {
+		for i := 0; i < len(s); i++ {
+			s[i] = 0
+		}
+	}(password)
+
+	if err = keyStore.SetPrivateKeyEntry("certs", pkeIn, password); err != nil {
+		return nil, nil, err
 	}
 
 	var outBuf bytes.Buffer
-	passw = GeneratePass(16)
-	err = keystore.Encode(&outBuf, jks, passw)
-	return outBuf.Bytes(), passw, err
+	//err = keystore.Encode(&outBuf, jks, passw)
+	if err = keyStore.Store(&outBuf, password); err != nil {
+		return nil, nil, err
+	}
+	return outBuf.Bytes(), password, err
 }
 
 // GenerateTestCert is used from unit tests for generating certificates
