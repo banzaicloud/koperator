@@ -107,7 +107,7 @@ func EnsureSecretPassJKS(secret *corev1.Secret) (injected *corev1.Secret, err er
 	return
 }
 
-func GenerateJKSFromByte(certByte []byte, caCert []byte, privateKey []byte) (out, passw []byte, err error) {
+func GenerateJKSFromByte(certByte []byte, privateKey []byte, caCert []byte) (out, passw []byte, err error) {
 	c, err := DecodeCertificate(certByte)
 	if err != nil {
 		return
