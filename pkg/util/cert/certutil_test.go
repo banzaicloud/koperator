@@ -102,22 +102,22 @@ func TestGenerateJKS(t *testing.T) {
 	}
 	caCert := cert
 
-	if _, _, err = GenerateJKS(cert, key, caCert); err != nil {
+	if _, _, err = GenerateJKSFromByte(cert, key, caCert); err != nil {
 		t.Error("Expected to generate JKS, got error:", err)
 	}
 
 	badCACert := cert[:len(cert)-10]
-	if _, _, err = GenerateJKS(cert, key, badCACert); err == nil {
+	if _, _, err = GenerateJKSFromByte(cert, key, badCACert); err == nil {
 		t.Error("Expected to fail decoding CA cert, got nil error")
 	}
 
 	badKey := key[:len(key)-10]
-	if _, _, err = GenerateJKS(cert, badKey, caCert); err == nil {
+	if _, _, err = GenerateJKSFromByte(cert, badKey, caCert); err == nil {
 		t.Error("Expected to fail decoding key, got nil error")
 	}
 
 	badCert := key[:len(cert)-10]
-	if _, _, err = GenerateJKS(badCert, key, caCert); err == nil {
+	if _, _, err = GenerateJKSFromByte(badCert, key, caCert); err == nil {
 		t.Error("Expected to fail decoding cert, got nil error")
 	}
 }

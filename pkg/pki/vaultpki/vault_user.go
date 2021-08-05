@@ -130,7 +130,7 @@ func ensureVaultSecret(client *vaultapi.Client, userCert *pkicommon.UserCertific
 	if user.Spec.IncludeJKS {
 		// we don't have an existing one - make a new one
 		if userCert.JKS == nil || len(userCert.JKS) == 0 {
-			userCert.JKS, userCert.Password, err = certutil.GenerateJKS(userCert.Certificate, userCert.Key, userCert.CA)
+			userCert.JKS, userCert.Password, err = certutil.GenerateJKSFromByte(userCert.Certificate, userCert.Key, userCert.CA)
 			if err != nil {
 				return errorfactory.New(errorfactory.InternalError{}, err, "failed to generate JKS from user certificate")
 			}

@@ -182,7 +182,7 @@ func TestAll(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to create test cert")
 	}
-	jks, passw, err := certutil.GenerateJKS(cert, key, cert)
+	jks, passw, err := certutil.GenerateJKSFromByte(cert, key, cert)
 	if err != nil {
 		t.Fatal("Failed to convert test cert to JKS")
 	}

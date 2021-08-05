@@ -141,9 +141,9 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		secret.Data[v1alpha1.CoreCACertKey] = certs[0].ToPEM()
 	}
 
-	var certCABundleX509 *[]x509.Certificate
+	var certCABundleX509 []*x509.Certificate
 	for _, cert := range certs {
-		*certCABundleX509 = append(*certCABundleX509, *cert.Certificate)
+		certCABundleX509 = append(certCABundleX509, cert.Certificate)
 	}
 
 	// Ensure a JKS if requested
@@ -151,7 +151,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	if user.Spec.IncludeJKS {
 		// we don't have an existing one - make a new one
 		if value, ok := secret.Data[v1alpha1.TLSJKSKeyStore]; !ok || len(value) == 0 {
-			jks, jksPasswd, err = certutil.GenerateJKS(certCABundleX509, nil, secret.Data[corev1.TLSPrivateKeyKey])
+			jks, jksPasswd, err = certutil.GenerateJKS(certCABundleX509, secret.Data[corev1.TLSPrivateKeyKey])
 			if err != nil {
 				return nil, err
 			}
