@@ -22,13 +22,15 @@ import (
 // KafkaUserSpec defines the desired state of KafkaUser
 // +k8s:openapi-gen=true
 type KafkaUserSpec struct {
-	SecretName     string           `json:"secretName"`
-	ClusterRef     ClusterReference `json:"clusterRef"`
-	DNSNames       []string         `json:"dnsNames,omitempty"`
-	TopicGrants    []UserTopicGrant `json:"topicGrants,omitempty"`
-	IncludeJKS     bool             `json:"includeJKS,omitempty"`
-	CreateCert     *bool            `json:"createCert,omitempty"`
-	PKIBackendSpec *PKIBackendSpec  `json:"pkiBackendSpec,omitempty"`
+	SecretName string           `json:"secretName"`
+	ClusterRef ClusterReference `json:"clusterRef"`
+	// Annotations defines the annotations placed on the certificate or certificate signing request object
+	Annotations    map[string]string `json:"annotations,omitempty"`
+	DNSNames       []string          `json:"dnsNames,omitempty"`
+	TopicGrants    []UserTopicGrant  `json:"topicGrants,omitempty"`
+	IncludeJKS     bool              `json:"includeJKS,omitempty"`
+	CreateCert     *bool             `json:"createCert,omitempty"`
+	PKIBackendSpec *PKIBackendSpec   `json:"pkiBackendSpec,omitempty"`
 }
 
 type PKIBackendSpec struct {
@@ -85,4 +87,17 @@ func (spec *KafkaUserSpec) GetIfCertShouldBeCreated() bool {
 		return *spec.CreateCert
 	}
 	return true
+}
+
+//GetAnnotations returns Annotations to use for Envoy generated Deployment and Pods
+func (spec *KafkaUserSpec) GetAnnotations() map[string]string {
+	return cloneAnnotationMap(spec.Annotations)
+}
+
+func cloneAnnotationMap(original map[string]string) map[string]string {
+	m := make(map[string]string, len(original))
+	for k, v := range original {
+		m[k] = v
+	}
+	return m
 }

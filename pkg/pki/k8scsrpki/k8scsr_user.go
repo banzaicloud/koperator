@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
+
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
@@ -194,12 +195,14 @@ func generateUserSecret(key []byte, secretName, namespace string) *corev1.Secret
 	}
 }
 
-func generateCSRResouce(csr []byte, name, namespace, signerName string) *certsigningreqv1.CertificateSigningRequest {
+func generateCSRResource(csr []byte, name, namespace, signerName string,
+	annotation map[string]string) *certsigningreqv1.CertificateSigningRequest {
 	return &certsigningreqv1.CertificateSigningRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: name + "-",
 			Namespace:    namespace,
-			Annotations:  map[string]string{pkicommon.KafkaUserAnnotationName: namespace + "/" + name, "csr.banzaicloud.io/fullchain": "true"},
+			Annotations: util.MergeAnnotations(annotation,
+				map[string]string{pkicommon.KafkaUserAnnotationName: namespace + "/" + name}),
 		},
 		Spec: certsigningreqv1.CertificateSigningRequestSpec{
 			Request:    csr,
@@ -222,7 +225,8 @@ func (c *k8sCSR) generateAndCreateCSR(ctx context.Context, clientkey []byte, use
 		return nil, err
 	}
 	c.logger.Info("Generating k8s csr object")
-	signingReq := generateCSRResouce(csr, user.GetName(), user.GetNamespace(), user.Spec.PKIBackendSpec.SignerName)
+	signingReq := generateCSRResource(csr, user.GetName(), user.GetNamespace(),
+		user.Spec.PKIBackendSpec.SignerName, user.Spec.GetAnnotations())
 	c.logger.Info("Creating k8s csr object")
 	err = c.client.Create(ctx, signingReq)
 	if err != nil {
