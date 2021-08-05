@@ -27,7 +27,7 @@ import (
 
 	"github.com/go-logr/logr"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	certsigningreqv1 "k8s.io/api/certificates/v1beta1"
+	certsigningreqv1 "k8s.io/api/certificates/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
