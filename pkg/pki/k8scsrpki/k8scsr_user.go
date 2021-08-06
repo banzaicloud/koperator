@@ -55,7 +55,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	}
 	if !isUserOwnedSecret {
 		//TODO handle this situation better
-		return nil, errors.New(fmt.Sprintf("secret: %s is not belong to this KafkaUser", secret.Name))
+		return nil, errors.New(fmt.Sprintf("secret: %s does not belong to this KafkaUser", secret.Name))
 	}
 	// Handle case when secret with private key is not found
 	if apierrors.IsNotFound(err) {
