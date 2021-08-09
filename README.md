@@ -42,11 +42,11 @@ Apache Kafka is an open-source distributed streaming platform, and some of the m
 
 >We took a different approach to what's out there - we believe for a good reason - please read on to understand more about our [design motivations](docs/features.md) and some of the [scenarios](docs/scenarios.md) which were driving us to create the Banzai Cloud Kafka operator.
 
-The **Banzai Cloud Kafka operator** is a core part of [Banzai Cloud Supertubes](/products/supertubes/) that helps you create production-ready Kafka cluster on Kubernetes, with scaling, rebalancing, and alerts based self healing. While the Kafka operator itself is an [open-source project](/products/kafka-operator/), the [Banzai Cloud Supertubes](/products/supertubes/) product extends the functionality of the Kafka operator with commercial features (for example, built-in monitoring and multiple ways of disaster recovery). Read a [detailed comparison of Supertubes and the Kafka operator](https://banzaicloud.com/docs/supertubes/kafka-operator-supertubes-feature-comparison/).
+The **Banzai Cloud Kafka operator** is a core part of [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) that helps you create production-ready Kafka cluster on Kubernetes, with scaling, rebalancing, and alerts based self healing. While the Kafka operator itself is an open-source project, the [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) product extends the functionality of the Kafka operator with commercial features (for example, built-in monitoring and multiple ways of disaster recovery). Read a [detailed comparison of Supertubes and the Kafka operator](https://banzaicloud.com/docs/supertubes/kafka-operator-supertubes-feature-comparison/).
 
 ## Installation
 
-For detailed installation instructions, see the [Banzai Cloud Documentation Page](https://banzaicloud.com/docs/supertubes/kafka-operator/install-kafka-operator).
+For detailed installation instructions, see the [Banzai Cloud Documentation Page](https://banzaicloud.com/docs/supertubes/kafka-operator/install-kafka-operator/).
 
 ## Documentation
 
