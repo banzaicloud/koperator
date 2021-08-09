@@ -73,7 +73,6 @@ func (c *k8sCSR) ReconcileUserCertificate(
 			return nil, err
 		}
 		// Generate new SigningRequest resource
-		//TODO add proper organization field if needed
 		signingReq, err = c.generateAndCreateCSR(ctx, clientKey, user)
 		if err != nil {
 			return nil, err
@@ -85,10 +84,9 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	} else if err != nil {
 		return nil, err
 	}
-	signingRequestGenName, ok := secret.Annotations[dependingCsrAnnotation]
+	signingRequestGenName, ok := secret.Annotations[DependingCsrAnnotation]
 	if !ok {
 		// Generate new SigningRequest resource
-		//TODO add proper organization field if needed
 		signingReq, err = c.generateAndCreateCSR(ctx, secret.Data[corev1.TLSPrivateKeyKey], user)
 		if err != nil {
 			return nil, err
@@ -106,7 +104,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 			// Generate signing request object and create it
 			// TODO check if CA is present or not
 			if _, ok := secret.Data[corev1.TLSCertKey]; !ok {
-				delete(secret.Annotations, dependingCsrAnnotation)
+				delete(secret.Annotations, DependingCsrAnnotation)
 				typeMeta := secret.TypeMeta
 				err = c.client.Update(ctx, secret)
 				if err != nil {
@@ -253,7 +251,7 @@ func (c *k8sCSR) generateAndCreateCSR(ctx context.Context, clientkey []byte, use
 }
 func (c *k8sCSR) secretUpdateAnnotation(ctx context.Context, secret *corev1.Secret, srName string) error {
 	secret.Annotations =
-		util.MergeAnnotations(secret.Annotations, map[string]string{dependingCsrAnnotation: srName})
+		util.MergeAnnotations(secret.Annotations, map[string]string{DependingCsrAnnotation: srName})
 	typeMeta := secret.TypeMeta
 	err := c.client.Update(ctx, secret)
 	if err != nil {

@@ -1,0 +1,13 @@
+apiVersion: kafka.banzaicloud.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: example-kafkauser
+  namespace: kafka
+spec:
+  clusterRef:
+    name: kafka
+  secretName: example-kafkauser-secret
+  includeJKS: true
+  pkiBackendSpec:
+    pkiBackend: "k8s-csr"
+    signerName: "<your-own-signer-name>"
