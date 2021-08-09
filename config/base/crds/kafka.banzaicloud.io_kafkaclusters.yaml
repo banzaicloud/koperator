@@ -12047,7 +12047,8 @@ spec:
                     type: array
                 type: object
               disruptionBudget:
-                description: DisruptionBudget defines the configuration for PodDisruptionBudget where the workload is managed by the kafka-operator
+                description: DisruptionBudget defines the configuration for PodDisruptionBudget
+                  where the workload is managed by the kafka-operator
                 properties:
                   budget:
                     description: The budget to set for the PDB, can either be static
@@ -12937,17 +12938,20 @@ spec:
                       envoy ingress controller deployment
                     type: object
                   disruptionBudget:
-                    description: DisruptionBudget is the pod disruption budget attached to Envoy Deployment(s)
+                    description: DisruptionBudget is the pod disruption budget attached
+                      to Envoy Deployment(s)
                     properties:
                       budget:
-                        description: The budget to set for the PDB, can either be static number or a percentage
+                        description: The budget to set for the PDB, can either be
+                          static number or a percentage
                         pattern: ^[0-9]+$|^[0-9]{1,2}%$|^100%$
                         type: string
                       create:
                         description: If set to true, will create a podDisruptionBudget
                         type: boolean
                       strategy:
-                        description: The strategy to be used, either minAvailable or maxUnavailable
+                        description: The strategy to be used, either minAvailable
+                          or maxUnavailable
                         enum:
                         - minAvailable
                         - maxUnavailable
@@ -14737,17 +14741,22 @@ spec:
                                           placed on the envoy ingress controller deployment
                                         type: object
                                       disruptionBudget:
-                                        description: DisruptionBudget is the pod disruption budget attached to Envoy Deployment(s)
+                                        description: DisruptionBudget is the pod disruption
+                                          budget attached to Envoy Deployment(s)
                                         properties:
                                           budget:
-                                            description: The budget to set for the PDB, can either be static number or a percentage
+                                            description: The budget to set for the
+                                              PDB, can either be static number or
+                                              a percentage
                                             pattern: ^[0-9]+$|^[0-9]{1,2}%$|^100%$
                                             type: string
                                           create:
-                                            description: If set to true, will create a podDisruptionBudget
+                                            description: If set to true, will create
+                                              a podDisruptionBudget
                                             type: boolean
                                           strategy:
-                                            description: The strategy to be used, either minAvailable or maxUnavailable
+                                            description: The strategy to be used,
+                                              either minAvailable or maxUnavailable
                                             enum:
                                             - minAvailable
                                             - maxUnavailable
