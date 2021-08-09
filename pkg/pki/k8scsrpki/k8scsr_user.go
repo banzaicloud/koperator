@@ -45,18 +45,6 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	var signingReq *certsigningreqv1.CertificateSigningRequest
 	secret := &corev1.Secret{}
 	err := c.client.Get(ctx, types.NamespacedName{Name: user.Spec.SecretName, Namespace: user.Namespace}, secret)
-	ownerRef := secret.GetOwnerReferences()
-	var isUserOwnedSecret bool = false
-	for _, ref := range ownerRef {
-		if ref.Kind == user.Kind && ref.Name == user.Name {
-			isUserOwnedSecret = true
-			break
-		}
-	}
-	if !isUserOwnedSecret {
-		//TODO handle this situation better
-		return nil, errors.New(fmt.Sprintf("secret: %s does not belong to this KafkaUser", secret.Name))
-	}
 	// Handle case when secret with private key is not found
 	if apierrors.IsNotFound(err) {
 		clientKey, err = certutil.GeneratePrivateKeyInPemFormat()
@@ -84,6 +72,18 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	} else if err != nil {
 		return nil, err
 	}
+	// Check if the secret has the proper ownerref
+	ownerRef := secret.GetOwnerReferences()
+	isUserOwnedSecret := false
+	for _, ref := range ownerRef {
+		if ref.Kind == user.Kind && ref.Name == user.Name {
+			isUserOwnedSecret = true
+			break
+		}
+	}
+	if !isUserOwnedSecret {
+		return nil, errors.New(fmt.Sprintf("secret: %s does not belong to this KafkaUser", secret.Name))
+	}
 	signingRequestGenName, ok := secret.Annotations[DependingCsrAnnotation]
 	if !ok {
 		// Generate new SigningRequest resource
@@ -102,7 +102,6 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		// as like kubernetes removed the signing request
 		if apierrors.IsNotFound(err) {
 			// Generate signing request object and create it
-			// TODO check if CA is present or not
 			if _, ok := secret.Data[corev1.TLSCertKey]; !ok {
 				delete(secret.Annotations, DependingCsrAnnotation)
 				typeMeta := secret.TypeMeta
@@ -128,7 +127,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 			break
 		}
 	}
-	//TODO check what happens if csr fails
+
 	if !foundApproved {
 		return nil, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New("instance is not approved"),
 			"could not find approved csr", "csrName", signingReq.GetName())
