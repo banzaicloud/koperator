@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
+	"github.com/banzaicloud/k8s-objectmatcher/patch"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
@@ -55,6 +56,9 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		err = controllerutil.SetControllerReference(user, secret, scheme)
 		if err != nil {
 			return nil, err
+		}
+		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(secret); err != nil {
+			return nil, errors.WrapIf(err, "could not apply last state to annotation")
 		}
 		err = c.client.Create(ctx, secret)
 		if err != nil {
@@ -242,6 +246,9 @@ func (c *k8sCSR) generateAndCreateCSR(ctx context.Context, clientkey []byte, use
 	signingReq := generateCSRResource(csr, user.GetName(), user.GetNamespace(),
 		user.Spec.PKIBackendSpec.SignerName, user.Spec.GetAnnotations())
 	c.logger.Info("Creating k8s csr object")
+	if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(signingReq); err != nil {
+		return nil, errors.WrapIf(err, "could not apply last state to annotation")
+	}
 	err = c.client.Create(ctx, signingReq)
 	if err != nil {
 		return nil, err
