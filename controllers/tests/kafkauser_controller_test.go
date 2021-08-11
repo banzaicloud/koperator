@@ -236,7 +236,7 @@ var _ = Describe("KafkaTopic", func() {
 					Name:      kafkaClusterCRName,
 				},
 				PKIBackendSpec: &v1alpha1.PKIBackendSpec{
-					PKIBackend: "k8s-csr",
+					PKIBackend: string(v1beta1.PKIBackendK8sCSR),
 					SignerName: "foo.bar/foobar",
 				},
 			},
