@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const DependingCsrAnnotation string = "banzaicloud.io/depending-csr"
+const DependingCsrAnnotation string = "banzaicloud.io/csr"
 
 type K8sCSR interface {
 	pki.Manager
