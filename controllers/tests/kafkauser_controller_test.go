@@ -342,6 +342,14 @@ pwq+04gtU+xOk0yBPefQEYqmOIR26F+T8AATgLXBJ8Ll3AtzgV2t4ugOraw=
 			return secret.Data
 		}, 5*time.Second, 100*time.Millisecond).Should(HaveLen(5))
 
+		err = k8sClient.Get(context.Background(), types.NamespacedName{
+			Name:      user.Spec.SecretName,
+			Namespace: user.Namespace}, secret)
+		Expect(err).NotTo(HaveOccurred())
+		for _, data := range secret.Data {
+			Expect(len(data)).ShouldNot(BeZero())
+		}
+
 		Eventually(func() (v1alpha1.UserState, error) {
 			user := v1alpha1.KafkaUser{}
 			err := k8sClient.Get(context.Background(), types.NamespacedName{
