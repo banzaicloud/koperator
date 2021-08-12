@@ -15,10 +15,6 @@
 package k8scsrpki
 
 import (
-	"crypto/x509"
-	"encoding/pem"
-	"fmt"
-
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
 
@@ -39,45 +35,6 @@ type k8sCSR struct {
 	logger  logr.Logger
 }
 
-type CertificateContainer struct {
-	// Certificate
-	Certificate *x509.Certificate
-	// PEM holds the certificate in PEM format
-	PEM *pem.Block
-}
-
 func New(client client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger) K8sCSR {
 	return &k8sCSR{client: client, cluster: cluster, logger: logger}
-}
-
-func (c CertificateContainer) ToPEM() []byte {
-	return pem.EncodeToMemory(c.PEM)
-}
-
-func ParseCertificates(data []byte) ([]*CertificateContainer, error) {
-	ok := false
-	certs := make([]*CertificateContainer, 0)
-
-	for len(data) > 0 {
-		var certBlock *pem.Block
-
-		certBlock, data = pem.Decode(data)
-		if certBlock.Type != "CERTIFICATE" {
-			continue
-		}
-
-		cert, err := x509.ParseCertificate(certBlock.Bytes)
-		if err != nil {
-			return nil, err
-		}
-
-		certs = append(certs, &CertificateContainer{cert, certBlock})
-		ok = true
-	}
-
-	if !ok {
-		return certs, fmt.Errorf("no certificates found")
-	}
-
-	return certs, nil
 }

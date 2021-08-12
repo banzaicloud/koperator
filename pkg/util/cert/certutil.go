@@ -16,7 +16,6 @@ package cert
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -29,18 +28,62 @@ import (
 	"strings"
 	"time"
 
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pavel-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 )
+
+type CertificateContainer struct {
+	// Certificate
+	Certificate *x509.Certificate
+	// PEM holds the certificate in PEM format
+	PEM *pem.Block
+}
+
+func (c CertificateContainer) ToPEM() []byte {
+	return pem.EncodeToMemory(c.PEM)
+}
+
+func GetCertBundle(certContainers []*CertificateContainer) []*x509.Certificate {
+	certs := make([]*x509.Certificate, 0)
+	for _, certContainer := range certContainers {
+		certs = append(certs, certContainer.Certificate)
+	}
+	return certs
+}
+
+func ParseCertificates(data []byte) ([]*CertificateContainer, error) {
+	ok := false
+	certs := make([]*CertificateContainer, 0)
+
+	for len(data) > 0 {
+		var certBlock *pem.Block
+
+		certBlock, data = pem.Decode(data)
+		if certBlock == nil {
+			return certs, fmt.Errorf("malformed PEM data found")
+		}
+		if certBlock.Type != "CERTIFICATE" {
+			continue
+		}
+
+		cert, err := x509.ParseCertificate(certBlock.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		certs = append(certs, &CertificateContainer{cert, certBlock})
+		ok = true
+	}
+
+	if !ok {
+		return certs, fmt.Errorf("no certificates found")
+	}
+
+	return certs, nil
+}
 
 // passChars are the characters used when generating passwords
 var passChars []rune = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
@@ -75,13 +118,14 @@ func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 
 // DecodeCertificate returns an x509.Certificate for a PEM encoded certificate
 func DecodeCertificate(raw []byte) (cert *x509.Certificate, err error) {
-	block, _ := pem.Decode(raw)
-	if block == nil {
-		err = errors.New("failed to decode x509 certificate from PEM")
-		return
+	certs, err := ParseCertificates(raw)
+	if err != nil {
+		return nil, err
 	}
-	cert, err = x509.ParseCertificate(block.Bytes)
-	return
+	if len(certs) != 1 {
+		return nil, errors.New("only one certificate should be present, more found")
+	}
+	return certs[0].Certificate, nil
 }
 
 // GeneratePass generates a random password
@@ -266,18 +310,4 @@ func GenerateSigningRequestInPemFormat(priv *rsa.PrivateKey, commonName string, 
 	}
 	signingReq := buf.Bytes()
 	return signingReq, err
-}
-
-// EnsureControllerReference ensures that a KafkaUser owns a given Secret
-func EnsureControllerReference(ctx context.Context, user *v1alpha1.KafkaUser,
-	secret *corev1.Secret, scheme *runtime.Scheme, client client.Client) error {
-	err := controllerutil.SetControllerReference(user, secret, scheme)
-	if err != nil && !k8sutil.IsAlreadyOwnedError(err) {
-		return errorfactory.New(errorfactory.InternalError{}, err, "error checking controller reference on user secret")
-	} else if err == nil {
-		if err = client.Update(ctx, secret); err != nil {
-			return errorfactory.New(errorfactory.APIFailure{}, err, "could not update secret with controller reference")
-		}
-	}
-	return nil
 }

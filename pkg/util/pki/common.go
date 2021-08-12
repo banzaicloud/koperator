@@ -21,8 +21,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
@@ -228,4 +234,18 @@ func ControllerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser
 			},
 		},
 	}
+}
+
+// EnsureControllerReference ensures that a KafkaUser owns a given Secret
+func EnsureControllerReference(ctx context.Context, user *v1alpha1.KafkaUser,
+	secret *corev1.Secret, scheme *runtime.Scheme, client client.Client) error {
+	err := controllerutil.SetControllerReference(user, secret, scheme)
+	if err != nil && !k8sutil.IsAlreadyOwnedError(err) {
+		return errorfactory.New(errorfactory.InternalError{}, err, "error checking controller reference on user secret")
+	} else if err == nil {
+		if err = client.Update(ctx, secret); err != nil {
+			return errorfactory.New(errorfactory.APIFailure{}, err, "could not update secret with controller reference")
+		}
+	}
+	return nil
 }
