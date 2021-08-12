@@ -15,7 +15,7 @@
 package v1alpha1
 
 import (
-	"github.com/banzaicloud/kafka-operator/pkg/sdk/util"
+	"github.com/banzaicloud/kafka-operator/api/util"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,5 +94,5 @@ func (spec *KafkaUserSpec) GetIfCertShouldBeCreated() bool {
 
 //GetAnnotations returns Annotations to use for certificate or certificate signing request object
 func (spec *KafkaUserSpec) GetAnnotations() map[string]string {
-	return util.CloneAnnotationMap(spec.Annotations)
+	return util.CloneMap(spec.Annotations)
 }

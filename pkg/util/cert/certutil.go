@@ -47,7 +47,7 @@ func (c CertificateContainer) ToPEM() []byte {
 }
 
 func GetCertBundle(certContainers []*CertificateContainer) []*x509.Certificate {
-	certs := make([]*x509.Certificate, 0)
+	certs := make([]*x509.Certificate, 0, len(certContainers))
 	for _, certContainer := range certContainers {
 		certs = append(certs, certContainer.Certificate)
 	}
@@ -160,10 +160,8 @@ func GenerateJKSFromByte(certByte []byte, privateKey []byte, caCert []byte) (out
 	if err != nil {
 		return
 	}
-	var certs []*x509.Certificate
-	certs = append(certs, ca, c)
 
-	return GenerateJKS(certs, privateKey)
+	return GenerateJKS([]*x509.Certificate{ca, c}, privateKey)
 }
 
 // GenerateJKS creates a JKS with a random password from a client cert/key combination
@@ -173,7 +171,7 @@ func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byt
 		return
 	}
 
-	var certCABundle []keystore.Certificate
+	certCABundle := make([]keystore.Certificate, 0, len(certs))
 	for _, cert := range certs {
 		kcert := keystore.Certificate{
 			Type:    "X.509",
@@ -182,7 +180,7 @@ func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byt
 		certCABundle = append(certCABundle, kcert)
 	}
 
-	keyStore := keystore.New()
+	jksKeyStore := keystore.New()
 
 	pkeIn := keystore.PrivateKeyEntry{
 		CreationTime:     time.Now(),
@@ -201,7 +199,7 @@ func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byt
 				},
 			}
 			alias := fmt.Sprintf("trusted_ca_%d", i)
-			if err = keyStore.SetTrustedCertificateEntry(alias, caIn); err != nil {
+			if err = jksKeyStore.SetTrustedCertificateEntry(alias, caIn); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -215,12 +213,12 @@ func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byt
 		}
 	}(password)
 
-	if err = keyStore.SetPrivateKeyEntry("certs", pkeIn, password); err != nil {
+	if err = jksKeyStore.SetPrivateKeyEntry("certs", pkeIn, password); err != nil {
 		return nil, nil, err
 	}
 
 	var outBuf bytes.Buffer
-	if err = keyStore.Store(&outBuf, password); err != nil {
+	if err = jksKeyStore.Store(&outBuf, password); err != nil {
 		return nil, nil, err
 	}
 	return outBuf.Bytes(), password, err

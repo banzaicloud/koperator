@@ -19,7 +19,7 @@ import (
 
 	"emperror.dev/errors"
 
-	"github.com/banzaicloud/kafka-operator/pkg/sdk/util"
+	"github.com/banzaicloud/kafka-operator/api/util"
 
 	"github.com/imdario/mergo"
 
@@ -268,12 +268,12 @@ type IstioIngressConfig struct {
 }
 
 func (iIConfig *IstioIngressConfig) GetAnnotations() map[string]string {
-	return util.CloneAnnotationMap(iIConfig.Annotations)
+	return util.CloneMap(iIConfig.Annotations)
 }
 
 // GetVirtualServiceAnnotations returns a copy of the VirtualServiceAnnotations field
 func (iIConfig *IstioIngressConfig) GetVirtualServiceAnnotations() map[string]string {
-	return util.CloneAnnotationMap(iIConfig.VirtualServiceAnnotations)
+	return util.CloneMap(iIConfig.VirtualServiceAnnotations)
 }
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control
@@ -300,7 +300,7 @@ type ListenersConfig struct {
 
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
 func (c ListenersConfig) GetServiceAnnotations() map[string]string {
-	return util.CloneAnnotationMap(c.ServiceAnnotations)
+	return util.CloneMap(c.ServiceAnnotations)
 }
 
 func (c ExternalListenerConfig) GetAccessMethod() corev1.ServiceType {
@@ -319,7 +319,7 @@ func (c ExternalListenerConfig) GetAnyCastPort() int32 {
 
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
 func (c IngressServiceSettings) GetServiceAnnotations() map[string]string {
-	return util.CloneAnnotationMap(c.ServiceAnnotations)
+	return util.CloneMap(c.ServiceAnnotations)
 }
 
 // GetServiceType returns the field value of ServiceType defaults to LoadBalancer.
@@ -580,7 +580,7 @@ func (eConfig *EnvoyConfig) GetLoadBalancerSourceRanges() []string {
 
 //GetAnnotations returns Annotations to use for Envoy generated Deployment and Pods
 func (eConfig *EnvoyConfig) GetAnnotations() map[string]string {
-	return util.CloneAnnotationMap(eConfig.Annotations)
+	return util.CloneMap(eConfig.Annotations)
 }
 
 // GetReplicas returns replicas used by the Envoy deployment
@@ -657,12 +657,12 @@ func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference
 
 // GetBrokerAnnotations return the annotations which applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerAnnotations() map[string]string {
-	return util.CloneAnnotationMap(bConfig.BrokerAnnotations)
+	return util.CloneMap(bConfig.BrokerAnnotations)
 }
 
 // GetCruiseControlAnnotations return the annotations which applied to CruiseControl pod
 func (cConfig *CruiseControlConfig) GetCruiseControlAnnotations() map[string]string {
-	return util.CloneAnnotationMap(cConfig.CruiseControlAnnotations)
+	return util.CloneMap(cConfig.CruiseControlAnnotations)
 }
 
 //GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
