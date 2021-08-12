@@ -15,6 +15,8 @@
 package v1alpha1
 
 import (
+	"github.com/banzaicloud/kafka-operator/pkg/sdk/util"
+
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -37,6 +39,7 @@ type PKIBackendSpec struct {
 	IssuerRef *cmmeta.ObjectReference `json:"issuerRef,omitempty"`
 	// +kubebuilder:validation:Enum={"cert-manager","vault","k8s-csr"}
 	PKIBackend string `json:"pkiBackend"`
+	// SignerName indicates requested signer, and is a qualified name.
 	SignerName string `json:"signerName,omitempty"`
 }
 
@@ -89,15 +92,7 @@ func (spec *KafkaUserSpec) GetIfCertShouldBeCreated() bool {
 	return true
 }
 
-//GetAnnotations returns Annotations to use for Envoy generated Deployment and Pods
+//GetAnnotations returns Annotations to use for certificate or certificate signing request object
 func (spec *KafkaUserSpec) GetAnnotations() map[string]string {
-	return cloneAnnotationMap(spec.Annotations)
-}
-
-func cloneAnnotationMap(original map[string]string) map[string]string {
-	m := make(map[string]string, len(original))
-	for k, v := range original {
-		m[k] = v
-	}
-	return m
+	return util.CloneAnnotationMap(spec.Annotations)
 }
