@@ -14,7 +14,7 @@
 
 package util
 
-func CloneAnnotationMap(original map[string]string) map[string]string {
+func CloneMap(original map[string]string) map[string]string {
 	m := make(map[string]string, len(original))
 	for k, v := range original {
 		m[k] = v

@@ -1,4 +1,4 @@
-module github.com/banzaicloud/kafka-operator/pkg/sdk
+module github.com/banzaicloud/kafka-operator/api
 
 go 1.16
 

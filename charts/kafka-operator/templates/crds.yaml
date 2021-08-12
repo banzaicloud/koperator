@@ -15366,10 +15366,13 @@ spec:
                           a given name, kind and group.
                         properties:
                           group:
+                            description: Group of the resource being referred to.
                             type: string
                           kind:
+                            description: Kind of the resource being referred to.
                             type: string
                           name:
+                            description: Name of the resource being referred to.
                             type: string
                         required:
                         - name
@@ -15797,10 +15800,13 @@ spec:
                       a given name, kind and group.
                     properties:
                       group:
+                        description: Group of the resource being referred to.
                         type: string
                       kind:
+                        description: Kind of the resource being referred to.
                         type: string
                       name:
+                        description: Name of the resource being referred to.
                         type: string
                     required:
                     - name
@@ -15812,6 +15818,8 @@ spec:
                     - k8s-csr
                     type: string
                   signerName:
+                    description: SignerName indicates requested signer, and is a qualified
+                      name.
                     type: string
                 required:
                 - pkiBackend

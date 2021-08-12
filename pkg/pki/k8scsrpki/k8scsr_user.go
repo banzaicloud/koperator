@@ -75,7 +75,9 @@ func (c *k8sCSR) ReconcileUserCertificate(
 			return nil, err
 		}
 	} else if err != nil {
-		return nil, err
+		return nil, errors.WrapIfWithDetails(err,
+			"failed to get user's secret from K8s", "secretName", user.Spec.SecretName,
+			"namespace", user.GetNamespace())
 	}
 	// Check if the secret has the proper ownerref
 	ownerRef := secret.GetOwnerReferences()
@@ -120,7 +122,9 @@ func (c *k8sCSR) ReconcileUserCertificate(
 					"csrName", signingRequestGenName)
 			}
 		} else if err != nil {
-			return nil, err
+			return nil, errors.WrapIfWithDetails(err,
+				"failed to get signing request from K8s", "signingRequestName", signingRequestGenName,
+				"namespace", secret.GetNamespace())
 		}
 	}
 	// Handle case when signing request is present

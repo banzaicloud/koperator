@@ -26,6 +26,7 @@ import (
 func (c *k8sCSR) ReconcilePKI(
 	ctx context.Context, logger logr.Logger, scheme *runtime.Scheme,
 	externalHostnames map[string]v1beta1.ListenerStatusList) error {
+	logger.Info("k8sCSR PKI reconcile is skipped since it is not supported yet for server certs")
 	return nil
 }
 

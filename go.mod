@@ -32,7 +32,7 @@ require (
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.14.0
-	github.com/pavel-v-chernykh/keystore-go/v4 v4.1.0 // indirect
+	github.com/pavel-v-chernykh/keystore-go/v4 v4.1.0
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/prometheus/common v0.29.0
 	github.com/shirou/gopsutil v3.21.6+incompatible // indirect
