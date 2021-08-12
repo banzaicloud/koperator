@@ -73,7 +73,7 @@ func (c *certManager) ReconcileUserCertificate(
 	}
 
 	// Ensure controller reference on user secret
-	if err = certutil.EnsureControllerReference(ctx, user, secret, scheme, c.client); err != nil {
+	if err = pkicommon.EnsureControllerReference(ctx, user, secret, scheme, c.client); err != nil {
 		return nil, err
 	}
 

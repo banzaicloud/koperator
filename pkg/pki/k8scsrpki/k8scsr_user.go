@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
+
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 
 	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
@@ -142,7 +143,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 			"csrName", signingReq.GetName())
 	}
 
-	certs, err := ParseCertificates(signingReq.Status.Certificate)
+	certs, err := certutil.ParseCertificates(signingReq.Status.Certificate)
 	if err != nil {
 		return nil, err
 	}
@@ -154,17 +155,14 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		secret.Data[v1alpha1.CoreCACertKey] = certs[0].ToPEM()
 	}
 
-	var certCABundleX509 []*x509.Certificate
-	for _, cert := range certs {
-		certCABundleX509 = append(certCABundleX509, cert.Certificate)
-	}
+	certBundleX509 := certutil.GetCertBundle(certs)
 
 	// Ensure a JKS if requested
 	var jks, jksPasswd []byte
 	if user.Spec.IncludeJKS {
 		// we don't have an existing one - make a new one
 		if value, ok := secret.Data[v1alpha1.TLSJKSKeyStore]; !ok || len(value) == 0 {
-			jks, jksPasswd, err = certutil.GenerateJKS(certCABundleX509, secret.Data[corev1.TLSPrivateKeyKey])
+			jks, jksPasswd, err = certutil.GenerateJKS(certBundleX509, secret.Data[corev1.TLSPrivateKeyKey])
 			if err != nil {
 				return nil, err
 			}
