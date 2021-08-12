@@ -57,7 +57,7 @@ const (
 	CAFQDNTemplate = "%s-ca.%s.cluster.local"
 	// KafkaUserAnnotationName used in case of PKIbackend is k8s-csr to find the appropriate kafkauser in case of
 	// signing request event
-	KafkaUserAnnotationName = "banzaicloud.io/kafkauser-id"
+	KafkaUserAnnotationName = "banzaicloud.io/owner"
 )
 
 // Manager is the main interface for objects performing PKI operations

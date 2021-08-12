@@ -162,18 +162,17 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	certBundleX509 := certutil.GetCertBundle(certs)
 
 	// Ensure a JKS if requested
-	var jks, jksPasswd []byte
 	if user.Spec.IncludeJKS {
 		// we don't have an existing one - make a new one
 		if value, ok := secret.Data[v1alpha1.TLSJKSKeyStore]; !ok || len(value) == 0 {
-			jks, jksPasswd, err = certutil.GenerateJKS(certBundleX509, secret.Data[corev1.TLSPrivateKeyKey])
+			jks, jksPasswd, err := certutil.GenerateJKS(certBundleX509, secret.Data[corev1.TLSPrivateKeyKey])
 			if err != nil {
 				return nil, err
 			}
+			secret.Data[v1alpha1.TLSJKSKeyStore] = jks
+			secret.Data[v1alpha1.PasswordKey] = jksPasswd
 		}
 	}
-	secret.Data[v1alpha1.TLSJKSKeyStore] = jks
-	secret.Data[v1alpha1.PasswordKey] = jksPasswd
 
 	typeMeta := secret.TypeMeta
 	err = c.client.Update(ctx, secret)
