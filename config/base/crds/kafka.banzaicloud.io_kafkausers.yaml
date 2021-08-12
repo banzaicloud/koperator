@@ -83,6 +83,8 @@ spec:
                     - k8s-csr
                     type: string
                   signerName:
+                    description: SignerName indicates requested signer, and is a qualified
+                      name.
                     type: string
                 required:
                 - pkiBackend

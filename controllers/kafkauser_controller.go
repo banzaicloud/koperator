@@ -90,12 +90,12 @@ func certificateSigningRequestFilter(log logr.Logger) predicate.Funcs {
 }
 
 func certificateSigningRequestMapper(obj client.Object) []ctrl.Request {
-	certSigningReqAnnotations := obj.(*certsigningreqv1.CertificateSigningRequest).Annotations
+	certSigningReqAnnotations := obj.GetAnnotations()
 	kafkaUserResourceNamespacedName, ok := certSigningReqAnnotations[pkicommon.KafkaUserAnnotationName]
 	if !ok {
 		return []ctrl.Request{}
 	}
-	namespaceWithName := strings.Split(kafkaUserResourceNamespacedName, "/")
+	namespaceWithName := strings.Split(kafkaUserResourceNamespacedName, string(types.Separator))
 	if len(namespaceWithName) != 2 {
 		return []ctrl.Request{}
 	}
