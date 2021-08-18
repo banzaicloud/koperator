@@ -94,3 +94,9 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+## Trademarks
+
+Apache Kafka, Kafka, and the Kafka logo are either registered trademarks or trademarks of The Apache Software Foundation in the United States and other countries.
+
+The Banzai Cloud name, the Banzai Cloud logo, and all Banzai Cloud trademarks and logos are registered trademarks of Banzai Cloud Zrt.
