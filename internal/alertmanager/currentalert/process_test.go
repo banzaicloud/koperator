@@ -17,8 +17,6 @@ package currentalert
 import (
 	"context"
 	"fmt"
-	"testing"
-
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"testing"
 
 	//nolint:staticcheck
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -575,6 +574,97 @@ func Test_upScale(t *testing.T) {
 			}()
 
 			if err := upScale(logf.NullLogger{}, test.alert.Labels, test.alert.Annotations, testClient); err != nil {
+				t.Error(err)
+				return
+			}
+
+			var kafkaCluster v1beta1.KafkaCluster
+			if err := testClient.Get(
+				context.Background(),
+				types.NamespacedName{Namespace: test.kafkaCluster.GetNamespace(), Name: test.kafkaCluster.GetName()},
+				&kafkaCluster); err != nil {
+				t.Error(err)
+				return
+			}
+
+			m := gomega.ConsistOf(test.expectedBrokers)
+			if ok, _ := m.Match(kafkaCluster.Spec.Brokers); !ok {
+				t.Error(m.FailureMessage(kafkaCluster.Spec.Brokers))
+				return
+			}
+		})
+	}
+}
+
+func Test_downScale(t *testing.T) {
+	testClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+
+	testCases := []struct {
+		testName        string
+		kafkaCluster    v1beta1.KafkaCluster
+		alert           model.Alert
+		expectedBrokers []v1beta1.Broker
+	}{
+		{
+			testName: "downscale with config group",
+			kafkaCluster: v1beta1.KafkaCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+				Spec: v1beta1.KafkaClusterSpec{
+					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+						"default": {
+							StorageConfigs: []v1beta1.StorageConfig{
+								{
+									MountPath: "/kafka-logs",
+									PvcSpec: &corev1.PersistentVolumeClaimSpec{
+										AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+										Resources: corev1.ResourceRequirements{
+											Requests: corev1.ResourceList{
+												corev1.ResourceStorage: resource.MustParse("4Gi"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Brokers: []v1beta1.Broker{{Id: 0, BrokerConfigGroup: "default"}, {Id: 1, BrokerConfigGroup: "default"}},
+				},
+			},
+			// Remove broker with id 1 using alert
+			alert: model.Alert{
+				Labels: model.LabelSet{
+					"kafka_cr":   "test-cluster",
+					"namespace":  "test-namespace",
+					"severity":   "critical",
+					"alertGroup": "test",
+					"broker_id":  "1",
+				},
+				Annotations: map[model.LabelName]model.LabelValue{
+					"command":           "downscale",
+					"brokerConfigGroup": "default",
+				},
+			},
+			expectedBrokers: []v1beta1.Broker{{Id: 0, BrokerConfigGroup: "default"}},
+		},
+	}
+
+	for _, test := range testCases {
+		test := test
+		t.Run(test.testName, func(t *testing.T) {
+			if err := testClient.Create(context.Background(), &test.kafkaCluster); err != nil {
+				t.Error(err)
+				return
+			}
+			defer func() {
+				if err := testClient.Delete(context.Background(), &test.kafkaCluster); err != nil {
+					t.Error("Expected no error, got:", err)
+				}
+			}()
+
+			if err := downScale(logf.NullLogger{}, test.alert.Labels, testClient); err != nil {
 				t.Error(err)
 				return
 			}

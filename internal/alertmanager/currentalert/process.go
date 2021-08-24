@@ -308,12 +308,17 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 
 		return nil
 	}
-
-	cc := scale.NewCruiseControlScaler(string(labels["namespace"]), cr.Spec.GetKubernetesClusterDomain(), cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)
-	brokerId, err := cc.GetBrokerIDWithLeastPartition()
-	if err != nil {
-		return err
+	var brokerId string
+	if broker, ok := labels["broker_id"]; ok {
+		brokerId = string(broker)
+	} else {
+		cc := scale.NewCruiseControlScaler(string(labels["namespace"]), cr.Spec.GetKubernetesClusterDomain(), cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)
+		brokerId, err = cc.GetBrokerIDWithLeastPartition()
+		if err != nil {
+			return err
+		}
 	}
+
 	err = k8sutil.RemoveBrokerFromCr(brokerId, string(labels["kafka_cr"]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
