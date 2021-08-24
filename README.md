@@ -20,7 +20,7 @@
 
 # Koperator
 
-Koperator (formerly called Kafka Operator) is an operator for managing Apache Kafka on Kubernetes that automates the provisioning, management, and autoscaling of [Apache Kafka](https://kafka.apache.org) clusters deployed to K8s.
+Koperator (formerly called Banzai Cloud Kafka Operator) is an operator for managing Apache Kafka on Kubernetes that automates the provisioning, management, and autoscaling of [Apache Kafka](https://kafka.apache.org) clusters deployed to K8s.
 
 ## Overview
 
