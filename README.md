@@ -18,13 +18,13 @@
 
 </p>
 
-# Kafka-Operator
+# Koperator
 
-The Banzai Cloud Kafka operator is a Kubernetes operator to automate provisioning, management, autoscaling and operations of [Apache Kafka](https://kafka.apache.org) clusters deployed to K8s.
+Koperator (formerly called Kafka Operator) is an operator for managing Apache Kafka on Kubernetes that automates the provisioning, management, and autoscaling of [Apache Kafka](https://kafka.apache.org) clusters deployed to K8s.
 
 ## Overview
 
-Apache Kafka is an open-source distributed streaming platform, and some of the main features of the **Kafka-operator** are:
+Apache Kafka is an open-source distributed streaming platform, and some of the main features of the **Koperator** are:
 
 - the provisioning of secure and production ready Kafka clusters
 - **fine grained** broker configuration support
@@ -36,11 +36,11 @@ Apache Kafka is an open-source distributed streaming platform, and some of the m
 - graceful rolling upgrade
 - advanced topic and user management via CRD
 
-![Kafka-operator architecture](docs/img/kafka-operator-arch.png)
+![Koperator architecture](docs/img/kafka-operator-arch.png)
 
->We took a different approach to what's out there - we believe for a good reason - please read on to understand more about our [design motivations](docs/features.md) and some of the [scenarios](docs/scenarios.md) which were driving us to create the Banzai Cloud Kafka operator.
+>We took a different approach to what's out there - we believe for a good reason - please read on to understand more about our [design motivations](docs/features.md) and some of the [scenarios](docs/scenarios.md) which were driving us to create Koperator.
 
-The **Banzai Cloud Kafka operator** is a core part of [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) that helps you create production-ready Kafka cluster on Kubernetes, with scaling, rebalancing, and alerts based self healing. While the Kafka operator itself is an open-source project, the [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) product extends the functionality of the Kafka operator with commercial features (for example, built-in monitoring and multiple ways of disaster recovery). Read a [detailed comparison of Supertubes and the Kafka operator](https://banzaicloud.com/docs/supertubes/kafka-operator-supertubes-feature-comparison/).
+**Koperator** is a core part of [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) (now called Cisco Streaming Data Manager) that helps you create production-ready Apache Kafka clusters on Kubernetes, with scaling, rebalancing, and alerts based self healing. While the Koperator itself is an open-source project, the [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) product extends the functionality of Koperator with commercial features (for example, built-in monitoring and multiple ways of disaster recovery). Read a [detailed comparison of Supertubes and Koperator](https://banzaicloud.com/docs/supertubes/kafka-operator-supertubes-feature-comparison/).
 
 ## Installation
 
@@ -48,30 +48,30 @@ For detailed installation instructions, see the [Banzai Cloud Documentation Page
 
 ## Documentation
 
-The documentation of the Kafka operator project is available at the [Banzai Cloud Documentation Page](https://banzaicloud.com/docs/supertubes/kafka-operator/).
+The documentation of the Koperator project is available at the [Banzai Cloud Documentation Page](https://banzaicloud.com/docs/supertubes/kafka-operator/).
 
 ## Support
 
-The **Banzai Cloud Kafka operator** is a core part of [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) that helps you create production-ready Kafka cluster on Kubernetes, with scaling, rebalancing, and alerts based self healing. While the Kafka operator itself is an open-source project, the [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) product extends the functionality of the Kafka operator with commercial features (for example, built-in monitoring and multiple ways of disaster recovery). Read a [detailed comparison of Supertubes and the Kafka operator](https://banzaicloud.com/docs/supertubes/kafka-operator-supertubes-feature-comparison/).
+**Koperator** is a core part of [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) that helps you create production-ready Apache Kafka clusters on Kubernetes, with scaling, rebalancing, and alerts based self healing. While the Koperator itself is an open-source project, the [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) product extends the functionality of Koperator with commercial features (for example, built-in monitoring and multiple ways of disaster recovery). Read a [detailed comparison of Supertubes and the Koperator](https://banzaicloud.com/docs/supertubes/kafka-operator-supertubes-feature-comparison/).
 
 ### Community support
 
-If you encounter problems while using the Kafka operator the documentation does not address, [open an issue](https://github.com/banzaicloud/kafka-operator/issues) or talk to us on the Banzai Cloud Slack channel [#kafka-operator](https://pages.banzaicloud.com/invite-slack).
+If you encounter problems while using Koperator that the documentation does not address, [open an issue](https://github.com/banzaicloud/koperator/issues) or talk to us on the Banzai Cloud Slack channel [#kafka-operator](https://pages.banzaicloud.com/invite-slack).
 
 ### Commercial support
 
-If you are using the Kafka operator in a production environment and [require commercial support, contact Banzai Cloud](https://banzaicloud.com/contact/), the company backing the development of the Kafka operator.
+If you are using Koperator in a production environment and [require commercial support, contact Banzai Cloud](https://banzaicloud.com/contact/), the company backing the development of Koperator.
 
 ## Contributing
 
 If you find this project useful, help us:
 
 - Support the development of this project and star this repo! :star:
-- If you use the Kafka operator in a production environment, add yourself to the list of production [adopters](https://github.com/banzaicloud/kafka-operator/blob/master/ADOPTERS.md).:metal: <br>
+- If you use Koperator in a production environment, add yourself to the list of production [adopters](https://github.com/banzaicloud/koperator/blob/master/ADOPTERS.md).:metal: <br>
 - Help new users with issues they may encounter :muscle:
 - Send a pull request with your new features and bug fixes :rocket:
 
-When you are opening a PR to Kafka operator the first time we will require you to sign a standard CLA. Check out the [developer docs](docs/developer.md).
+When you are opening a PR to Koperator the first time we will require you to sign a standard CLA. Check out the [developer docs](docs/developer.md).
 
 ## License
 

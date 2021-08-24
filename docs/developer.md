@@ -1,8 +1,8 @@
 # Developer Guide
 
-## How to run Kafka-operator in your cluster with your changes
+## How to run Koperator in your cluster with your changes
 
-The Kafka operator is built on the [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) project.
+Koperator (formerly called Kafka Operator) is built on the [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) project.
 
 To build the operator and run tests:
 
@@ -24,13 +24,13 @@ Alternatively, run the operator on your machine:
 2. `make install`
 3. `make run`
 
-Create CR and let the operator set up Kafka in your cluster (you can change the `spec` of `Kafka` for your needs in the yaml file):
+Create CR and let the operator set up Apache Kafka in your cluster (you can change the `spec` of `Kafka` for your needs in the yaml file):
 
-> Remember you need Zookeeper server to run Kafka
+> Remember you need Zookeeper server to run Apache Kafka
 
 `kubectl create -n kafka -f config/samples/simplekafkacluster.yaml`
 
-#### Limitations on minikube
+## Limitations on minikube
 
 Minikube does not have a load balancer implementation, thus our envoy service will not get an external IP and the operator will get stuck at this point.
 
