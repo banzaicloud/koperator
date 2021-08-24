@@ -2,7 +2,7 @@
 
 ## How to run Koperator in your cluster with your changes
 
-Koperator (formerly called Kafka Operator) is built on the [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) project.
+Koperator (formerly called Banzai Cloud Kafka Operator) is built on the [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) project.
 
 To build the operator and run tests:
 
