@@ -21,9 +21,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
 )
 
 func newMockControllerSecret(valid bool) *corev1.Secret {

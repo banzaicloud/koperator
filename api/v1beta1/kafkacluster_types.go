@@ -19,7 +19,7 @@ import (
 
 	"emperror.dev/errors"
 
-	"github.com/banzaicloud/kafka-operator/api/util"
+	"github.com/banzaicloud/koperator/api/util"
 
 	"github.com/imdario/mergo"
 

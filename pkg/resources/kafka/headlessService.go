@@ -21,9 +21,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	"github.com/banzaicloud/koperator/pkg/util"
+	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 )
 
 func (r *Reconciler) headlessService() runtime.Object {

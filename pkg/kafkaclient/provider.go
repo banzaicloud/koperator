@@ -17,7 +17,7 @@ package kafkaclient
 import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 type Provider interface {

@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
 )
 
 // reconcile ensures the given kubernetes object

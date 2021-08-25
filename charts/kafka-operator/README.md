@@ -1,6 +1,6 @@
-# Kafka-operator chart
+# Koperator chart
 
-[Kafka-operator](https://github.com/banzaicloud/kafka-operator) is a Kubernetes operator to deploy and manage [Kafka](https://kafka.apache.org) resources for a Kubernetes cluster.
+The [Koperator](https://github.com/banzaicloud/koperator) is a Kubernetes operator to deploy and manage [Apache Kafka](https://kafka.apache.org) resources for a Kubernetes cluster.
 
 ## Prerequisites
 
@@ -8,11 +8,11 @@
 
 ## Installing the chart
 
-Before installing the chart, you must first install the kafka-operator CustomResourceDefinition resources.
-This is performed in a separate step to allow you to easily uninstall and reinstall kafka-operator without deleting your installed custom resources.
+Before installing the chart, you must first install the Koperator CustomResourceDefinition resources.
+This is performed in a separate step to allow you to easily uninstall and reinstall Koperator without deleting your installed custom resources.
 
 ```
-kubectl create --validate=false -f https://github.com/banzaicloud/kafka-operator/releases/download/v0.14.0/kafka-operator.crds.yaml
+kubectl create --validate=false -f https://github.com/banzaicloud/koperator/releases/download/v0.14.0/kafka-operator.crds.yaml
 ```
 
 To install the chart:

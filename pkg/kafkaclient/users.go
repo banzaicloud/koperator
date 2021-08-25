@@ -18,8 +18,8 @@ import (
 	"fmt"
 
 	"github.com/Shopify/sarama"
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
 )
 
 // AclPatternTypeMapping maps patternType from v1alpha1.KafkaPatternType to sarama.AclResourcePatternType

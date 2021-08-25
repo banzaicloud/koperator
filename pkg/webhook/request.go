@@ -25,7 +25,7 @@ import (
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
 )
 
 var (

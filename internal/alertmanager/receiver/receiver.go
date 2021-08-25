@@ -21,7 +21,7 @@ import (
 	"github.com/prometheus/common/model"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/kafka-operator/internal/alertmanager/dispatcher"
+	"github.com/banzaicloud/koperator/internal/alertmanager/dispatcher"
 )
 
 func alertReciever(log logr.Logger, alert []byte, client client.Client) error {

@@ -1,4 +1,4 @@
-module github.com/banzaicloud/kafka-operator
+module github.com/banzaicloud/koperator
 
 go 1.16
 
@@ -9,8 +9,8 @@ require (
 	github.com/banzaicloud/istio-client-go v0.0.10
 	github.com/banzaicloud/istio-operator/pkg/apis v0.0.0-20210726153049-fb6ffd74bc37
 	github.com/banzaicloud/k8s-objectmatcher v1.5.1
-	github.com/banzaicloud/kafka-operator/api v0.0.0
-	github.com/banzaicloud/kafka-operator/properties v0.1.0
+	github.com/banzaicloud/koperator/api v0.0.0
+	github.com/banzaicloud/koperator/properties v0.1.0
 	github.com/cncf/xds/go v0.0.0-20210722021550-dd25fe81a445 // indirect
 	github.com/envoyproxy/go-control-plane v0.9.9
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
@@ -57,6 +57,6 @@ require (
 )
 
 replace (
-	github.com/banzaicloud/kafka-operator/api => ./api
-	github.com/banzaicloud/kafka-operator/properties => ./properties
+	github.com/banzaicloud/koperator/api => ./api
+	github.com/banzaicloud/koperator/properties => ./properties
 )

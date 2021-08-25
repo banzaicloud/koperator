@@ -19,9 +19,9 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/pki"
-	clientutil "github.com/banzaicloud/kafka-operator/pkg/util/client"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/pki"
+	clientutil "github.com/banzaicloud/koperator/pkg/util/client"
 )
 
 const kafkaDefaultTimeout = int64(5)

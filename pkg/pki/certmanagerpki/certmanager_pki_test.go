@@ -24,11 +24,11 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
+	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
 var log = ctrl.Log.WithName("testing")

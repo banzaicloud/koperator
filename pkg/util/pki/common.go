@@ -21,8 +21,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -30,11 +30,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
-	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
+	"github.com/banzaicloud/koperator/pkg/util/kafka"
 )
 
 const (

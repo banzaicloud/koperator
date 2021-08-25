@@ -19,10 +19,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
 )
 
 func testCluster(t *testing.T) *v1beta1.KafkaCluster {

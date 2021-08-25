@@ -20,8 +20,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 )
 
 func (r *Reconciler) allBrokerService() runtime.Object {

@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {

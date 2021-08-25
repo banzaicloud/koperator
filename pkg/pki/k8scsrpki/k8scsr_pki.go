@@ -17,7 +17,7 @@ package k8scsrpki
 import (
 	"context"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"

@@ -14,7 +14,7 @@
 
 package jmxextractor
 
-import "github.com/banzaicloud/kafka-operator/api/v1beta1"
+import "github.com/banzaicloud/koperator/api/v1beta1"
 
 type mockJmxExtractor struct{}
 

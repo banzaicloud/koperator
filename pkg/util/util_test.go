@@ -18,8 +18,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 
 	"gotest.tools/assert"
 	corev1 "k8s.io/api/core/v1"

@@ -24,12 +24,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/cruisecontrolmonitoring"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
+	"github.com/banzaicloud/koperator/pkg/resources/cruisecontrolmonitoring"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	"github.com/banzaicloud/koperator/pkg/util"
+	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
 func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object {

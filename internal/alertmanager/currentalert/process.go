@@ -28,11 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/kafka"
-	"github.com/banzaicloud/kafka-operator/pkg/scale"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
+	"github.com/banzaicloud/koperator/pkg/resources/kafka"
+	"github.com/banzaicloud/koperator/pkg/scale"
+	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 type disableScaling struct {

@@ -7,7 +7,7 @@ We are grateful for any issues submitted. Questions, feature requests or ideas a
 
 ### Pull Requests
 
-Try to keep pull requests tidy, and be prepared for feedback. Everyone is welcomed to contribute to Kafka-operator.
+Try to keep pull requests tidy, and be prepared for feedback. Everyone is welcomed to contribute to Koperator.
 
 #### Formatting Go Code
 

@@ -17,11 +17,11 @@ package envoy
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/resources"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
+	"github.com/banzaicloud/koperator/pkg/resources"
+	"github.com/banzaicloud/koperator/pkg/util"
+	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"

@@ -25,8 +25,8 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,8 +38,8 @@ import (
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 
-	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
-	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
+	"github.com/banzaicloud/koperator/pkg/util/kafka"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
 // Reconcile reconciles K8S resources

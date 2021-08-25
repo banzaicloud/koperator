@@ -24,12 +24,12 @@ import (
 
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/util"
 
-	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
+	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 
 	certsigningreqv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"

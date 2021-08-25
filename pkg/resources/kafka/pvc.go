@@ -17,10 +17,10 @@ package kafka
 import (
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	"github.com/banzaicloud/koperator/pkg/util"
+	"github.com/banzaicloud/koperator/pkg/util/kafka"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"

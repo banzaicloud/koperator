@@ -21,10 +21,10 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/resources"
 )
 
 func TestGenerateBrokerConfig(t *testing.T) {

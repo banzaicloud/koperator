@@ -25,10 +25,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 )
 
 var log = logf.Log.WithName("controller_testing")

@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
 )
 
 // CreateTopicOptions holds info about topic configuration

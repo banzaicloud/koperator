@@ -28,10 +28,10 @@ import (
 
 	"github.com/banzaicloud/bank-vaults/pkg/sdk/vault"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
+	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
 const (

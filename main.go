@@ -46,12 +46,12 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/controllers"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	"github.com/banzaicloud/kafka-operator/pkg/webhook"
+	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/controllers"
+	"github.com/banzaicloud/koperator/pkg/kafkaclient"
+	"github.com/banzaicloud/koperator/pkg/util"
+	"github.com/banzaicloud/koperator/pkg/webhook"
 	// +kubebuilder:scaffold:imports
 )
 

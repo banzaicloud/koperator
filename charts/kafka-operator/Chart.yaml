@@ -3,5 +3,5 @@ name: kafka-operator
 version: 0.4.10
 description: kafka-operator manages Kafka deployments on Kubernetes
 sources:
-  - https://github.com/banzaicloud/kafka-operator
+  - https://github.com/banzaicloud/koperator
 appVersion: v0.18.0

@@ -18,8 +18,8 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
 // VaultPKI implements a PKIManager using vault as the backend

@@ -26,11 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
 func (v *vaultPKI) FinalizePKI(_ context.Context, _ logr.Logger) error {

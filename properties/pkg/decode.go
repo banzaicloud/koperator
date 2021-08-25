@@ -19,7 +19,7 @@ import (
 
 	"emperror.dev/errors"
 
-	"github.com/banzaicloud/kafka-operator/properties/internal/utils"
+	"github.com/banzaicloud/koperator/properties/internal/utils"
 )
 
 // Unmarshaler is the interface implemented by types that can unmarshal Properties

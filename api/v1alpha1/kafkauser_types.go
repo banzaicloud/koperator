@@ -15,7 +15,7 @@
 package v1alpha1
 
 import (
-	"github.com/banzaicloud/kafka-operator/api/util"
+	"github.com/banzaicloud/koperator/api/util"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

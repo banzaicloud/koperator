@@ -33,10 +33,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
-	"github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
-	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
+	"github.com/banzaicloud/koperator/pkg/util/istioingress"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
 const (

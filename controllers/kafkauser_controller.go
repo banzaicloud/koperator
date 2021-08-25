@@ -40,14 +40,14 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/pki"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	kafkautil "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
+	"github.com/banzaicloud/koperator/pkg/pki"
+	"github.com/banzaicloud/koperator/pkg/util"
+	kafkautil "github.com/banzaicloud/koperator/pkg/util/kafka"
+	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )

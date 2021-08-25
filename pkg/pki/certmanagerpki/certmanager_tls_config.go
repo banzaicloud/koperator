@@ -24,9 +24,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
 // GetControllerTLSConfig creates a TLS config from the user secret created for

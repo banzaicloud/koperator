@@ -17,8 +17,8 @@ package client
 import (
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/util/kafka"
 )
 
 func UseSSL(cluster *v1beta1.KafkaCluster) bool {

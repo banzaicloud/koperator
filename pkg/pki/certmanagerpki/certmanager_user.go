@@ -20,12 +20,12 @@ import (
 
 	"emperror.dev/errors"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
 
-	certutil "github.com/banzaicloud/kafka-operator/pkg/util/cert"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
+	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"

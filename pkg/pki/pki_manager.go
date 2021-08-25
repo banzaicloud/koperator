@@ -22,12 +22,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/pki/certmanagerpki"
-	"github.com/banzaicloud/kafka-operator/pkg/pki/k8scsrpki"
-	"github.com/banzaicloud/kafka-operator/pkg/pki/vaultpki"
-	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/pki/certmanagerpki"
+	"github.com/banzaicloud/koperator/pkg/pki/k8scsrpki"
+	"github.com/banzaicloud/koperator/pkg/pki/vaultpki"
+	"github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
 // MockBackend is used for mocking during testing

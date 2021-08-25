@@ -25,8 +25,8 @@ import (
 	//nolint:staticcheck
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 type mockClient struct {

@@ -31,12 +31,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/scale"
-	ccutils "github.com/banzaicloud/kafka-operator/pkg/util/cruisecontrol"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
+	"github.com/banzaicloud/koperator/pkg/scale"
+	ccutils "github.com/banzaicloud/koperator/pkg/util/cruisecontrol"
 
-	kafkav1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
+	kafkav1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 // CruiseControlTaskReconciler reconciles a kafka cluster object
