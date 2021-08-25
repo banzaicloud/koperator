@@ -20,7 +20,7 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/kafka-operator/internal/alertmanager/receiver"
+	"github.com/banzaicloud/koperator/internal/alertmanager/receiver"
 )
 
 // NewApp returns HTTPHandler

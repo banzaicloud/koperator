@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 func expectEnvoyIngressLabels(labels map[string]string, eListenerName, crName string) {

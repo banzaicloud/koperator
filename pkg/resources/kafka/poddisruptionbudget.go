@@ -20,9 +20,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	"github.com/banzaicloud/koperator/pkg/util"
+	"github.com/banzaicloud/koperator/pkg/util/kafka"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"

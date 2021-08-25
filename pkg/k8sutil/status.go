@@ -29,8 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
-	clientutil "github.com/banzaicloud/kafka-operator/pkg/util/client"
+	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
+	clientutil "github.com/banzaicloud/koperator/pkg/util/client"
 )
 
 // IsAlreadyOwnedError checks if a controller already own the instance

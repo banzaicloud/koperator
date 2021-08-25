@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	"github.com/banzaicloud/koperator/pkg/util/kafka"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 var (

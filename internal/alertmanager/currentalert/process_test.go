@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 func Test_resizePvc(t *testing.T) {

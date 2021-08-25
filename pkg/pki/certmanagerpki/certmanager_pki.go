@@ -28,11 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
 func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error {

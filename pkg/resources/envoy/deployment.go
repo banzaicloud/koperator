@@ -26,11 +26,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	envoyutils "github.com/banzaicloud/kafka-operator/pkg/util/envoy"
-	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	"github.com/banzaicloud/koperator/pkg/util"
+	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
+	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 )
 
 func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalListenerConfig,

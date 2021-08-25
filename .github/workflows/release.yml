@@ -39,7 +39,7 @@ jobs:
             ## Upgrade Notes:
             - TODO
 
-            [v#TODO...${{ github.ref }}](https://github.com/banzaicloud/kafka-operator/compare/v#TODO...${{ github.ref }})
+            [v#TODO...${{ github.ref }}](https://github.com/banzaicloud/koperator/compare/v#TODO...${{ github.ref }})
 
             Thanks for the huge help from the community 🍺
           prerelease: false

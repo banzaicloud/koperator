@@ -7,7 +7,7 @@
 *.dylib
 bin
 charts/**/charts
-charts/kafka-operator/requirements.lock
+charts/koperator/requirements.lock
 
 # Test binary, build with `go test -c`
 *.test
@@ -29,7 +29,7 @@ charts/kafka-operator/requirements.lock
 !/.idea/copyright
 !/.idea/encodings.xml
 !/.idea/externalDependencies.xml
-!/.idea/kafka-operator.iml
+!/.idea/koperator.iml
 !/.idea/misc.xml
 !/.idea/modules.xml
 !/.idea/vcs.xml

@@ -19,7 +19,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 func TestGenerateKafkaAddress(t *testing.T) {

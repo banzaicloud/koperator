@@ -2,7 +2,7 @@
 
 If you are looking for support for the Kafka operator , here are a few options:
 
-- [GitHub](https://github.com/banzaicloud/kafka-operator/issues)
+- [GitHub](https://github.com/banzaicloud/koperator/issues)
 - [Slack](https://slack.banzaicloud.io/)
 
 You can also open a support ticket from within the Pipeline platform:

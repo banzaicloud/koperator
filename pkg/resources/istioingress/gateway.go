@@ -22,10 +22,10 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	kafkautils "github.com/banzaicloud/kafka-operator/pkg/util/kafka"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	"github.com/banzaicloud/koperator/pkg/util"
+	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 )
 
 func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,

@@ -15,8 +15,8 @@
 package k8scsrpki
 
 import (
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/util/pki"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"

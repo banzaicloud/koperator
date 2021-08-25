@@ -25,8 +25,8 @@ import (
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
-	bcutil "github.com/banzaicloud/kafka-operator/pkg/util"
+	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
+	bcutil "github.com/banzaicloud/koperator/pkg/util"
 )
 
 const (

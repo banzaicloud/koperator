@@ -17,8 +17,8 @@ package templates
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 // ObjectMeta returns a metav1.ObjectMeta object with labels, ownerReference and name

@@ -58,12 +58,12 @@ import (
 	istioclientv1alpha3 "github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
 	banzaiistiov1beta1 "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/controllers"
-	"github.com/banzaicloud/kafka-operator/pkg/jmxextractor"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
-	"github.com/banzaicloud/kafka-operator/pkg/scale"
+	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
+	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/controllers"
+	"github.com/banzaicloud/koperator/pkg/jmxextractor"
+	"github.com/banzaicloud/koperator/pkg/kafkaclient"
+	"github.com/banzaicloud/koperator/pkg/scale"
 	// +kubebuilder:scaffold:imports
 )
 

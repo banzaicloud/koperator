@@ -1,4 +1,4 @@
-module github.com/banzaicloud/kafka-operator/properties
+module github.com/banzaicloud/koperator/properties
 
 go 1.16
 

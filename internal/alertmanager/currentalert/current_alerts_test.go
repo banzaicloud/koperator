@@ -24,7 +24,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"

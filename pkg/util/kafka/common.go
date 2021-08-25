@@ -21,11 +21,11 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 const (

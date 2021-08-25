@@ -29,11 +29,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/kafkaclient"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
+	"github.com/banzaicloud/koperator/pkg/kafkaclient"
+	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"

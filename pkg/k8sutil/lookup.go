@@ -20,7 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 // LookupKafkaCluster returns the running cluster instance based on its name and namespace

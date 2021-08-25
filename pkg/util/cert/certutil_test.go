@@ -24,7 +24,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
 )
 
 type PKCS8Key struct {

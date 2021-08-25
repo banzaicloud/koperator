@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pavel-v-chernykh/keystore-go/v4"

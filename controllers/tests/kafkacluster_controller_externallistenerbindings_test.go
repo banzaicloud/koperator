@@ -24,8 +24,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
 func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {

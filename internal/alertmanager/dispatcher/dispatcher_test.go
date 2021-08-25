@@ -20,7 +20,7 @@ import (
 
 	"github.com/prometheus/common/model"
 
-	"github.com/banzaicloud/kafka-operator/internal/alertmanager/currentalert"
+	"github.com/banzaicloud/koperator/internal/alertmanager/currentalert"
 )
 
 func Test_alertFilter(t *testing.T) {

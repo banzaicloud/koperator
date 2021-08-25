@@ -20,7 +20,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/Shopify/sarama"
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
 )
 
 func (k *kafkaClient) AlterClusterWideConfig(configChange map[string]*string, validateOnly bool) error {

@@ -21,8 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 func (r *Reconciler) service() runtime.Object {

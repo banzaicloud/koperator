@@ -20,8 +20,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/banzaicloud/kafka-operator/pkg/errorfactory"
-	pkicommon "github.com/banzaicloud/kafka-operator/pkg/util/pki"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
 func (v *vaultPKI) GetControllerTLSConfig() (*tls.Config, error) {

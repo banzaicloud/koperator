@@ -15,11 +15,11 @@
 package istioingress
 
 import (
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
-	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
-	"github.com/banzaicloud/kafka-operator/pkg/resources"
-	"github.com/banzaicloud/kafka-operator/pkg/util"
-	"github.com/banzaicloud/kafka-operator/pkg/util/istioingress"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
+	"github.com/banzaicloud/koperator/pkg/resources"
+	"github.com/banzaicloud/koperator/pkg/util"
+	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 
 	corev1 "k8s.io/api/core/v1"
 

@@ -19,7 +19,7 @@ import (
 
 	"github.com/Shopify/sarama"
 
-	properties "github.com/banzaicloud/kafka-operator/properties/pkg"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
 func TestCollectNonIdenticalConfigsFromResponse(t *testing.T) {

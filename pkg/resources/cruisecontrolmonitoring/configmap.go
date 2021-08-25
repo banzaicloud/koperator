@@ -19,7 +19,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
 
 	corev1 "k8s.io/api/core/v1"
 )
