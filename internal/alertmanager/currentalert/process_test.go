@@ -17,6 +17,8 @@ package currentalert
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
@@ -25,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 
 	//nolint:staticcheck
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -606,7 +607,7 @@ func Test_downScale(t *testing.T) {
 		expectedBrokers []v1beta1.Broker
 	}{
 		{
-			testName: "downscale with config group",
+			testName: "downscale with broker id",
 			kafkaCluster: v1beta1.KafkaCluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "test-cluster",

@@ -308,6 +308,7 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 
 		return nil
 	}
+
 	var brokerId string
 	if broker, ok := labels["broker_id"]; ok {
 		brokerId = string(broker)
