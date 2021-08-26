@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	clientutil "github.com/banzaicloud/kafka-operator/pkg/util/client"
 )
@@ -45,7 +44,7 @@ func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 }
 
 // UpdateBrokerStatus updates the broker status with rack and configuration infos
-func UpdateBrokerStatus(c client.Client, brokerIDs []string, cluster *v1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
+func UpdateBrokerStatus(c client.Client, brokerIDs []string, cluster *banzaicloudv1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
 	generateBrokerState(brokerIDs, cluster, state)
@@ -91,7 +90,7 @@ func generateBrokerState(brokerIDs []string, cluster *banzaicloudv1beta1.KafkaCl
 	for _, brokerID := range brokerIDs {
 		brokerState, ok := brokersState[brokerID]
 		if !ok {
-			brokerState = v1beta1.BrokerState{}
+			brokerState = banzaicloudv1beta1.BrokerState{}
 		}
 		switch s := state.(type) {
 		case banzaicloudv1beta1.ExternalListenerConfigNames:
@@ -132,7 +131,7 @@ func generateBrokerState(brokerIDs []string, cluster *banzaicloudv1beta1.KafkaCl
 }
 
 // DeleteStatus deletes the given broker state from the CR
-func DeleteStatus(c client.Client, brokerID string, cluster *v1beta1.KafkaCluster, logger logr.Logger) error {
+func DeleteStatus(c client.Client, brokerID string, cluster *banzaicloudv1beta1.KafkaCluster, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
 	brokerStatus := cluster.Status.BrokersState
@@ -177,7 +176,7 @@ func DeleteStatus(c client.Client, brokerID string, cluster *v1beta1.KafkaCluste
 }
 
 // UpdateCRStatus updates the cluster state
-func UpdateCRStatus(c client.Client, cluster *v1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
+func UpdateCRStatus(c client.Client, cluster *banzaicloudv1beta1.KafkaCluster, state interface{}, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
 	switch s := state.(type) {
@@ -224,7 +223,7 @@ func UpdateCRStatus(c client.Client, cluster *v1beta1.KafkaCluster, state interf
 }
 
 // UpdateRollingUpgradeState updates the state of the cluster with rolling upgrade info
-func UpdateRollingUpgradeState(c client.Client, cluster *v1beta1.KafkaCluster, time time.Time, logger logr.Logger) error {
+func UpdateRollingUpgradeState(c client.Client, cluster *banzaicloudv1beta1.KafkaCluster, time time.Time, logger logr.Logger) error {
 	typeMeta := cluster.TypeMeta
 
 	timeStamp := time.Format("2006-01-02 15:04:05")
@@ -262,11 +261,11 @@ func UpdateRollingUpgradeState(c client.Client, cluster *v1beta1.KafkaCluster, t
 	return nil
 }
 
-func UpdateListenerStatuses(ctx context.Context, c client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger,
-	intListenerStatuses, extListenerStatuses map[string]v1beta1.ListenerStatusList) error {
+func UpdateListenerStatuses(ctx context.Context, c client.Client, cluster *banzaicloudv1beta1.KafkaCluster, logger logr.Logger,
+	intListenerStatuses, extListenerStatuses map[string]banzaicloudv1beta1.ListenerStatusList) error {
 	typeMeta := cluster.TypeMeta
 
-	cluster.Status.ListenerStatuses = v1beta1.ListenerStatuses{
+	cluster.Status.ListenerStatuses = banzaicloudv1beta1.ListenerStatuses{
 		InternalListeners: intListenerStatuses,
 		ExternalListeners: extListenerStatuses,
 	}
@@ -287,7 +286,7 @@ func UpdateListenerStatuses(ctx context.Context, c client.Client, cluster *v1bet
 			return errors.WrapIf(err, "could not get config for updating listener status")
 		}
 
-		cluster.Status.ListenerStatuses = v1beta1.ListenerStatuses{
+		cluster.Status.ListenerStatuses = banzaicloudv1beta1.ListenerStatuses{
 			InternalListeners: intListenerStatuses,
 			ExternalListeners: extListenerStatuses,
 		}
@@ -306,20 +305,20 @@ func UpdateListenerStatuses(ctx context.Context, c client.Client, cluster *v1bet
 	return nil
 }
 
-func CreateInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) (map[string]v1beta1.ListenerStatusList, map[string]v1beta1.ListenerStatusList) {
-	intListenerStatuses := make(map[string]v1beta1.ListenerStatusList, len(kafkaCluster.Spec.ListenersConfig.InternalListeners))
-	controllerIntListenerStatuses := make(map[string]v1beta1.ListenerStatusList)
+func CreateInternalListenerStatuses(kafkaCluster *banzaicloudv1beta1.KafkaCluster) (map[string]banzaicloudv1beta1.ListenerStatusList, map[string]banzaicloudv1beta1.ListenerStatusList) {
+	intListenerStatuses := make(map[string]banzaicloudv1beta1.ListenerStatusList, len(kafkaCluster.Spec.ListenersConfig.InternalListeners))
+	controllerIntListenerStatuses := make(map[string]banzaicloudv1beta1.ListenerStatusList)
 
 	internalAddress := clientutil.GenerateKafkaAddressWithoutPort(kafkaCluster)
 	for _, iListener := range kafkaCluster.Spec.ListenersConfig.InternalListeners {
-		listenerStatusList := v1beta1.ListenerStatusList{}
+		listenerStatusList := banzaicloudv1beta1.ListenerStatusList{}
 
 		// add headless or any broker address
 		name := "any-broker"
 		if kafkaCluster.Spec.HeadlessServiceEnabled {
 			name = "headless"
 		}
-		listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
+		listenerStatusList = append(listenerStatusList, banzaicloudv1beta1.ListenerStatus{
 			Name:    name,
 			Address: fmt.Sprintf("%s:%d", internalAddress, iListener.ContainerPort),
 		})
@@ -334,7 +333,7 @@ func CreateInternalListenerStatuses(kafkaCluster *v1beta1.KafkaCluster) (map[str
 				address = fmt.Sprintf("%s-%d.%s.svc.%s:%d", kafkaCluster.Name, broker.Id, kafkaCluster.Namespace,
 					kafkaCluster.Spec.GetKubernetesClusterDomain(), iListener.ContainerPort)
 			}
-			listenerStatusList = append(listenerStatusList, v1beta1.ListenerStatus{
+			listenerStatusList = append(listenerStatusList, banzaicloudv1beta1.ListenerStatus{
 				Name:    fmt.Sprintf("broker-%d", broker.Id),
 				Address: address,
 			})

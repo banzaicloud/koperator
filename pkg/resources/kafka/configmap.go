@@ -269,7 +269,7 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 	return finalBrokerConfig.String()
 }
 
-// TODO move this into pkg/sdk in the future (adamantal)
+// TODO move this into api in the future (adamantal)
 func getBrokerReadOnlyConfig(id int32, kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) *properties.Properties {
 	// Parse cluster-wide readonly configuration
 	finalBrokerConfig, err := properties.NewFromString(kafkaCluster.Spec.ReadOnlyConfig)

@@ -50,7 +50,7 @@ bin/golangci-lint-${GOLANGCI_VERSION}:
 .PHONY: lint
 lint: bin/golangci-lint ## Run linter
 	@bin/golangci-lint run -v
-	cd pkg/sdk && golangci-lint run -c ../../.golangci.yml
+	cd api && golangci-lint run -c ../.golangci.yml
 	cd properties && golangci-lint run -c ../.golangci.yml
 
 bin/licensei: bin/licensei-${LICENSEI_VERSION}
@@ -77,7 +77,7 @@ install-kustomize:
 
 # Run tests
 test: generate fmt vet manifests bin/setup-envtest
-	cd pkg/sdk && go test ./...
+	cd api && go test ./...
 	bin/setup-envtest use -p env ${ENVTEST_K8S_VERSION} > bin/envtest.sh && source bin/envtest.sh ; go test ./... -coverprofile cover.out
 	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
@@ -107,7 +107,7 @@ deploy: install-kustomize install
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: bin/controller-gen
-	cd pkg/sdk && $(CONTROLLER_GEN) $(CRD_OPTIONS) webhook paths="./..." output:crd:artifacts:config=../../config/base/crds output:webhook:artifacts:config=../../config/base/webhook
+	cd api && $(CONTROLLER_GEN) $(CRD_OPTIONS) webhook paths="./..." output:crd:artifacts:config=../config/base/crds output:webhook:artifacts:config=../config/base/webhook
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./controllers/..." output:rbac:artifacts:config=./config/base/rbac
 	## Regenerate CRDs for the helm chart
 	echo "{{- if .Values.crd.enabled }}" > $(HELM_CRD_PATH)
@@ -119,18 +119,18 @@ manifests: bin/controller-gen
 # Run go fmt against code
 fmt:
 	go fmt ./...
-	cd pkg/sdk && go fmt ./...
+	cd api && go fmt ./...
 	cd properties && go fmt ./...
 
 # Run go vet against code
 vet:
 	go vet ./...
-	cd pkg/sdk && go fmt ./...
+	cd api && go fmt ./...
 	cd properties && go vet ./...
 
 # Generate code
 generate: bin/controller-gen
-	cd pkg/sdk && $(CONTROLLER_GEN) object:headerFile=./../../hack/boilerplate.go.txt paths="./..."
+	cd api && $(CONTROLLER_GEN) object:headerFile=./../hack/boilerplate.go.txt paths="./..."
 
 # Build the docker image
 docker-build:

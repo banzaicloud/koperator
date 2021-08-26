@@ -57,6 +57,6 @@ require (
 )
 
 replace (
-	github.com/banzaicloud/kafka-operator/api => ./pkg/sdk
+	github.com/banzaicloud/kafka-operator/api => ./api
 	github.com/banzaicloud/kafka-operator/properties => ./properties
 )
