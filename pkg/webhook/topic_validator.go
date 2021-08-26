@@ -23,7 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1alpha1 "github.com/banzaicloud/kafka-operator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/k8sutil"
@@ -34,7 +33,7 @@ const (
 	invalidReplicationFactorErrMsg = "Replication factor is larger than the number of nodes in the kafka cluster"
 )
 
-func (s *webhookServer) validateKafkaTopic(topic *v1alpha1.KafkaTopic) (res *admissionv1beta1.AdmissionResponse) {
+func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic) (res *admissionv1beta1.AdmissionResponse) {
 	log.Info(fmt.Sprintf("Doing pre-admission validation of kafka topic %s", topic.Spec.Name))
 
 	// Get the referenced kafkacluster
