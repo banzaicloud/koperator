@@ -138,9 +138,9 @@ rules:
   - update
   - watch
 - apiGroups:
-  - certificates
+  - certificates.k8s.io
   resources:
-  - certificatesigningrequest
+  - certificatesigningrequests
   verbs:
   - create
   - delete
