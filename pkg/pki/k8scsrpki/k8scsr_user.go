@@ -154,9 +154,14 @@ func (c *k8sCSR) ReconcileUserCertificate(
 
 	//Leaf cert
 	secret.Data[corev1.TLSCertKey] = certs[0].ToPEM()
-	//Root CA cert
-	if certs[len(certs)-1].Certificate.IsCA {
-		secret.Data[v1alpha1.CoreCACertKey] = certs[len(certs)-1].ToPEM()
+	//CA chain certs
+	for key, cr := range certs {
+		if cr.Certificate.IsCA {
+			secret.Data[v1alpha1.CoreCACertKey] = append(secret.Data[v1alpha1.CoreCACertKey], cr.ToPEM()...)
+			if key != len(certs)-1 {
+				secret.Data[v1alpha1.CoreCACertKey] = append(secret.Data[v1alpha1.CoreCACertKey], byte('\n'))
+			}
+		}
 	}
 
 	certBundleX509 := certutil.GetCertBundle(certs)
