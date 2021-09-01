@@ -162,7 +162,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 			caChain = append(caChain, byte('\n'))
 		}
 	}
-	secret.Data[v1alpha1.CoreCACertKey] = caChain
+	secret.Data[v1alpha1.CaChainPem] = caChain
 	certBundleX509 := certutil.GetCertBundle(certs)
 
 	// Ensure a JKS if requested

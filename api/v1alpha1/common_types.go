@@ -52,8 +52,10 @@ const (
 	TLSJKSKeyStore string = "keystore.jks"
 	// TLSJKSTrustStore is where a JKS truststore is stored in a user secret when requested
 	TLSJKSTrustStore string = "truststore.jks"
-	// CoreCACertKey is where ca ceritificates are stored in user certificates
+	// CoreCACertKey is where ca certificates are stored in user certificates
 	CoreCACertKey string = "ca.crt"
+	// CaChainPem is where CA certificate(s) are stored as a chain for user secret
+	CaChainPem string = "chain.pem"
 	// CACertKey is the key where the CA certificate is stored in the operator secrets
 	CACertKey string = "caCert"
 	// CAPrivateKeyKey stores the private key for the CA
