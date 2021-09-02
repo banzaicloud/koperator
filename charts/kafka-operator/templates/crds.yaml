@@ -19631,7 +19631,6 @@ spec:
                             on the address having the following format: <kafka-cluster-name>-<broker-id>.<namespace><value-specified-in-hostnameOverride-field>'
                           type: string
                         name:
-                          pattern: ^[a-z0-9\-]+
                           type: string
                         serverSSLCertSecret:
                           description: ServerSSLCertSecret is a reference to the Kubernetes
@@ -19681,6 +19680,10 @@ spec:
                           - sasl_ssl
                           - sasl_plaintext
                           type: string
+                        usedForInnerBrokerCommunication:
+                          description: At least one of the listeners should have this
+                            flag enabled
+                          type: boolean
                       required:
                       - containerPort
                       - externalStartingPort
@@ -19696,8 +19699,20 @@ spec:
                         containerPort:
                           format: int32
                           type: integer
+                        externalListenerForHostname:
+                          description: If set to a non-empty value, the Kafka brokers
+                            will use the external hostname for inter broker communication.
+                            The internal lister will will share the same hostname
+                            with the external listener that is referenced here.
+                          type: string
+                        internalStartingPort:
+                          description: This following options are helpful when you
+                            want to run a Kafka cluster over multiple Kubernetes clusters.
+                            The broker internal ports are computed as the sum of the
+                            internalStartingPort and the broker id.
+                          format: int32
+                          type: integer
                         name:
-                          pattern: ^[a-z0-9\-]+
                           type: string
                         serverSSLCertSecret:
                           description: ServerSSLCertSecret is a reference to the Kubernetes
@@ -19738,12 +19753,13 @@ spec:
                         usedForControllerCommunication:
                           type: boolean
                         usedForInnerBrokerCommunication:
+                          description: At least one of the listeners should have this
+                            flag enabled
                           type: boolean
                       required:
                       - containerPort
                       - name
                       - type
-                      - usedForInnerBrokerCommunication
                       type: object
                     type: array
                   serviceAnnotations:
