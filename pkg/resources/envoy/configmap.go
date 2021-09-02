@@ -27,10 +27,10 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/go-logr/logr"
 
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -139,7 +139,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 
 			clusters = append(clusters, &envoycluster.Cluster{
 				Name:                 fmt.Sprintf("broker-%d", brokerId),
-				ConnectTimeout:       &duration.Duration{Seconds: 1},
+				ConnectTimeout:       &durationpb.Duration{Seconds: 1},
 				ClusterDiscoveryType: &envoycluster.Cluster_Type{Type: envoycluster.Cluster_STRICT_DNS},
 				LbPolicy:             envoycluster.Cluster_ROUND_ROBIN,
 				// disable circuit breakingL:
@@ -148,17 +148,17 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 					Thresholds: []*envoycluster.CircuitBreakers_Thresholds{
 						{
 							Priority:           envoycore.RoutingPriority_DEFAULT,
-							MaxConnections:     &wrappers.UInt32Value{Value: 1_000_000_000},
-							MaxPendingRequests: &wrappers.UInt32Value{Value: 1_000_000_000},
-							MaxRequests:        &wrappers.UInt32Value{Value: 1_000_000_000},
-							MaxRetries:         &wrappers.UInt32Value{Value: 1_000_000_000},
+							MaxConnections:     &wrapperspb.UInt32Value{Value: 1_000_000_000},
+							MaxPendingRequests: &wrapperspb.UInt32Value{Value: 1_000_000_000},
+							MaxRequests:        &wrapperspb.UInt32Value{Value: 1_000_000_000},
+							MaxRetries:         &wrapperspb.UInt32Value{Value: 1_000_000_000},
 						},
 						{
 							Priority:           envoycore.RoutingPriority_HIGH,
-							MaxConnections:     &wrappers.UInt32Value{Value: 1_000_000_000},
-							MaxPendingRequests: &wrappers.UInt32Value{Value: 1_000_000_000},
-							MaxRequests:        &wrappers.UInt32Value{Value: 1_000_000_000},
-							MaxRetries:         &wrappers.UInt32Value{Value: 1_000_000_000},
+							MaxConnections:     &wrapperspb.UInt32Value{Value: 1_000_000_000},
+							MaxPendingRequests: &wrapperspb.UInt32Value{Value: 1_000_000_000},
+							MaxRequests:        &wrapperspb.UInt32Value{Value: 1_000_000_000},
+							MaxRetries:         &wrapperspb.UInt32Value{Value: 1_000_000_000},
 						},
 					},
 				},
@@ -228,7 +228,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 
 	clusters = append(clusters, &envoycluster.Cluster{
 		Name:                 envoyutils.AllBrokerEnvoyConfigName,
-		ConnectTimeout:       &duration.Duration{Seconds: 1},
+		ConnectTimeout:       &durationpb.Duration{Seconds: 1},
 		ClusterDiscoveryType: &envoycluster.Cluster_Type{Type: envoycluster.Cluster_STRICT_DNS},
 		LbPolicy:             envoycluster.Cluster_ROUND_ROBIN,
 		// disable circuit breakingL:
@@ -237,17 +237,17 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 			Thresholds: []*envoycluster.CircuitBreakers_Thresholds{
 				{
 					Priority:           envoycore.RoutingPriority_DEFAULT,
-					MaxConnections:     &wrappers.UInt32Value{Value: 1_000_000_000},
-					MaxPendingRequests: &wrappers.UInt32Value{Value: 1_000_000_000},
-					MaxRequests:        &wrappers.UInt32Value{Value: 1_000_000_000},
-					MaxRetries:         &wrappers.UInt32Value{Value: 1_000_000_000},
+					MaxConnections:     &wrapperspb.UInt32Value{Value: 1_000_000_000},
+					MaxPendingRequests: &wrapperspb.UInt32Value{Value: 1_000_000_000},
+					MaxRequests:        &wrapperspb.UInt32Value{Value: 1_000_000_000},
+					MaxRetries:         &wrapperspb.UInt32Value{Value: 1_000_000_000},
 				},
 				{
 					Priority:           envoycore.RoutingPriority_HIGH,
-					MaxConnections:     &wrappers.UInt32Value{Value: 1_000_000_000},
-					MaxPendingRequests: &wrappers.UInt32Value{Value: 1_000_000_000},
-					MaxRequests:        &wrappers.UInt32Value{Value: 1_000_000_000},
-					MaxRetries:         &wrappers.UInt32Value{Value: 1_000_000_000},
+					MaxConnections:     &wrapperspb.UInt32Value{Value: 1_000_000_000},
+					MaxPendingRequests: &wrapperspb.UInt32Value{Value: 1_000_000_000},
+					MaxRequests:        &wrapperspb.UInt32Value{Value: 1_000_000_000},
+					MaxRetries:         &wrapperspb.UInt32Value{Value: 1_000_000_000},
 				},
 			},
 		},

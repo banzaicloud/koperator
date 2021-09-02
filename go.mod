@@ -7,53 +7,50 @@ require (
 	github.com/Shopify/sarama v1.29.1
 	github.com/banzaicloud/bank-vaults/pkg/sdk v0.7.0
 	github.com/banzaicloud/istio-client-go v0.0.10
-	github.com/banzaicloud/istio-operator/pkg/apis v0.0.0-20210726153049-fb6ffd74bc37
-	github.com/banzaicloud/k8s-objectmatcher v1.5.1
+	github.com/banzaicloud/istio-operator/pkg/apis v0.10.5
+	github.com/banzaicloud/k8s-objectmatcher v1.5.2
 	github.com/banzaicloud/koperator/api v0.0.0
 	github.com/banzaicloud/koperator/properties v0.1.0
-	github.com/cncf/xds/go v0.0.0-20210722021550-dd25fe81a445 // indirect
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/cncf/xds/go v0.0.0-20210805033703-aa0b78936158 // indirect
 	github.com/envoyproxy/go-control-plane v0.9.9
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.4.0
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.2
-	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.1.5 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
-	github.com/hashicorp/hcl v1.0.1-vault-3 // indirect
-	github.com/hashicorp/vault v1.7.3
-	github.com/hashicorp/vault/api v1.1.1
-	github.com/hashicorp/vault/sdk v0.2.1
+	github.com/hashicorp/vault v1.8.2
+	github.com/hashicorp/vault/api v1.1.2-0.20210713235431-1fc8af4c041f
+	github.com/hashicorp/vault/sdk v0.2.2-0.20210825150427-9b1f4d486f5d
 	github.com/imdario/mergo v0.3.12
 	github.com/influxdata/influxdb v1.9.3 // indirect
-	github.com/jetstack/cert-manager v1.4.1
-	github.com/klauspost/compress v1.12.3 // indirect
+	github.com/jetstack/cert-manager v1.5.3
+	github.com/klauspost/compress v1.13.5 // indirect
 	github.com/lestrrat-go/backoff v1.0.1
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.14.0
+	github.com/onsi/gomega v1.16.0
 	github.com/pavel-v-chernykh/keystore-go/v4 v4.1.0
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/prometheus/common v0.29.0
-	github.com/shirou/gopsutil v3.21.6+incompatible // indirect
-	github.com/tklauser/go-sysconf v0.3.6 // indirect
-	go.opencensus.io v0.22.6 // indirect
-	go.uber.org/zap v1.18.1
-	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
-	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914 // indirect
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
+	github.com/prometheus/common v0.30.0
+	github.com/shirou/gopsutil v3.21.8+incompatible // indirect
+	github.com/tklauser/go-sysconf v0.3.9 // indirect
+	go.uber.org/zap v1.19.0
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
+	golang.org/x/net v0.0.0-20210825183410-e898025ed96a // indirect
+	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
+	golang.org/x/sys v0.0.0-20210902050250-f475640dd07b // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
-	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
-	google.golang.org/genproto v0.0.0-20210726200206-e7812ac95cc0 // indirect
+	golang.org/x/text v0.3.7 // indirect
+	google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2 // indirect
 	google.golang.org/protobuf v1.27.1
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.21.3
-	k8s.io/apiextensions-apiserver v0.21.3
-	k8s.io/apimachinery v0.21.3
-	k8s.io/client-go v0.21.3
-	k8s.io/kube-openapi v0.0.0-20210527164424-3c818078ee3d // indirect
-	k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471 // indirect
-	sigs.k8s.io/controller-runtime v0.9.3
+	k8s.io/api v0.22.1
+	k8s.io/apiextensions-apiserver v0.22.1
+	k8s.io/apimachinery v0.22.1
+	k8s.io/client-go v0.22.1
+	k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8 // indirect
+	k8s.io/utils v0.0.0-20210820185131-d34e5cb4466e // indirect
+	sigs.k8s.io/controller-runtime v0.9.6
 )
 
 replace (
