@@ -49,14 +49,14 @@ func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1
 		Expect(err).NotTo(HaveOccurred())
 		advertisedListener, found := brokerConfig.Get("advertised.listeners")
 		Expect(found).To(BeTrue())
-		Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29092,TEST://external.az1.host.com:%d",
-			randomGenTestNumber, broker.Id, randomGenTestNumber, randomGenTestNumber, broker.Id, randomGenTestNumber, 19090+broker.Id)))
+		Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("TEST://external.az1.host.com:%d,CONTROLLER://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29092",
+			19090+broker.Id, randomGenTestNumber, broker.Id, randomGenTestNumber, randomGenTestNumber, broker.Id, randomGenTestNumber)))
 		listeners, found := brokerConfig.Get("listeners")
 		Expect(found).To(BeTrue())
-		Expect(listeners.Value()).To(Equal("INTERNAL://:29092,CONTROLLER://:29093,TEST://:9094"))
+		Expect(listeners.Value()).To(Equal("TEST://:9094,INTERNAL://:29092,CONTROLLER://:29093"))
 		listenerSecMap, found := brokerConfig.Get("listener.security.protocol.map")
 		Expect(found).To(BeTrue())
-		Expect(listenerSecMap.Value()).To(Equal("INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:PLAINTEXT"))
+		Expect(listenerSecMap.Value()).To(Equal("TEST:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"))
 		// check service
 		service := corev1.Service{}
 		Eventually(func() error {
@@ -111,8 +111,8 @@ func expectBrokerConfigmapForAz1ExternalListener(kafkaCluster *v1beta1.KafkaClus
 	Expect(err).NotTo(HaveOccurred())
 	advertisedListener, found := brokerConfig.Get("advertised.listeners")
 	Expect(found).To(BeTrue())
-	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az1.host.com:%d",
-		randomGenTestNumber, 0, randomGenTestNumber, randomGenTestNumber, 0, randomGenTestNumber, 19090)))
+	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("TEST://external.az1.host.com:%d,CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092",
+		19090, randomGenTestNumber, 0, randomGenTestNumber, randomGenTestNumber, 0, randomGenTestNumber)))
 }
 
 func expectBrokerConfigmapForAz2ExternalListener(kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
@@ -128,8 +128,8 @@ func expectBrokerConfigmapForAz2ExternalListener(kafkaCluster *v1beta1.KafkaClus
 	Expect(err).NotTo(HaveOccurred())
 	advertisedListener, found := brokerConfig.Get("advertised.listeners")
 	Expect(found).To(BeTrue())
-	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az2.host.com:%d",
-		randomGenTestNumber, 1, randomGenTestNumber, randomGenTestNumber, 1, randomGenTestNumber, 19091)))
+	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("TEST://external.az2.host.com:%d,CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092",
+		19091, randomGenTestNumber, 1, randomGenTestNumber, randomGenTestNumber, 1, randomGenTestNumber)))
 
 	configMap = corev1.ConfigMap{}
 	Eventually(func() error {
@@ -143,6 +143,6 @@ func expectBrokerConfigmapForAz2ExternalListener(kafkaCluster *v1beta1.KafkaClus
 	Expect(err).NotTo(HaveOccurred())
 	advertisedListener, found = brokerConfig.Get("advertised.listeners")
 	Expect(found).To(BeTrue())
-	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az2.host.com:%d",
-		randomGenTestNumber, 2, randomGenTestNumber, randomGenTestNumber, 2, randomGenTestNumber, 19092)))
+	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("TEST://external.az2.host.com:%d,CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092",
+		19092, randomGenTestNumber, 2, randomGenTestNumber, randomGenTestNumber, 2, randomGenTestNumber)))
 }
