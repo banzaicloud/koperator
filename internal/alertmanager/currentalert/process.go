@@ -310,7 +310,7 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 	}
 
 	var brokerId string
-	if broker, ok := labels["broker_id"]; ok {
+	if broker, ok := labels["brokerId"]; ok {
 		brokerId = string(broker)
 	} else {
 		cc := scale.NewCruiseControlScaler(string(labels["namespace"]), cr.Spec.GetKubernetesClusterDomain(), cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)

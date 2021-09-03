@@ -641,7 +641,7 @@ func Test_downScale(t *testing.T) {
 					"namespace":  "test-namespace",
 					"severity":   "critical",
 					"alertGroup": "test",
-					"broker_id":  "1",
+					"brokerId":   "1",
 				},
 				Annotations: map[model.LabelName]model.LabelValue{
 					"command":           "downscale",
