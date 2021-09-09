@@ -26,7 +26,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
-          release_name: Kafka Operator ${{ github.ref }}
+          release_name: Koperator ${{ github.ref }}
           body: |
             This release fixes several bug and introduce a couple of new features:
 
