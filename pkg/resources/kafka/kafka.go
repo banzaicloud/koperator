@@ -607,7 +607,8 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 	case patchResult.IsEmpty():
 		if !k8sutil.IsPodContainsTerminatedContainer(currentPod) &&
 			r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync &&
-			!k8sutil.IsPodContainsEvictedContainer(currentPod) {
+			!k8sutil.IsPodContainsEvictedContainer(currentPod) &&
+			!k8sutil.IsPodContainsShutdownContainer(currentPod) {
 			log.V(1).Info("resource is in sync")
 			return nil
 		}

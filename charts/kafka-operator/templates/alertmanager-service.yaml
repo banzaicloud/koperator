@@ -24,6 +24,6 @@ spec:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/component: operator
   ports:
-  - name: alerts
+  - name: http-alerts
     port: 9001
 {{- end -}}
