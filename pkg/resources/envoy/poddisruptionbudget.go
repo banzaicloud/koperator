@@ -41,7 +41,7 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger, extListener v1beta1.Ex
 	var deploymentName string = util.GenerateEnvoyResourceName(envoyutils.EnvoyDeploymentName, envoyutils.EnvoyDeploymentNameWithScope,
 		extListener, ingressConfig, ingressConfigName, r.KafkaCluster.GetName())
 
-	pdbConfig := r.KafkaCluster.Spec.EnvoyConfig.DisruptionBudget
+	pdbConfig := r.KafkaCluster.Spec.EnvoyConfig.GetDistruptionBudget()
 
 	// We use intstr.Parse so that the proper structure is used when passing to PDB spec validator, otherwise
 	// an improper regex will be used to verify the value
