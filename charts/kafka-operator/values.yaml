@@ -42,6 +42,9 @@ certManager:
   namespace: "cert-manager"
   enabled: false
 
+certSigning:
+  enabled: true
+
 alertManager:
   enable: true
 

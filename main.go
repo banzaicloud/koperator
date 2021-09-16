@@ -82,6 +82,7 @@ func main() {
 		webhookDisabled                   bool
 		developmentLogging                bool
 		verboseLogging                    bool
+		certSigningDisabled               bool
 		certManagerEnabled                bool
 		maxKafkaTopicConcurrentReconciles int
 	)
@@ -95,6 +96,7 @@ func main() {
 	flag.BoolVar(&developmentLogging, "development", false, "Enable development logging")
 	flag.BoolVar(&verboseLogging, "verbose", false, "Enable verbose logging")
 	flag.BoolVar(&certManagerEnabled, "cert-manager-enabled", false, "Enable cert-manager integration")
+	flag.BoolVar(&certSigningDisabled, "disable-cert-signing-support", false, "Disable native certificate signing integration")
 	flag.IntVar(&maxKafkaTopicConcurrentReconciles, "max-kafka-topic-concurrent-reconciles", 10, "Define max amount of concurrent KafkaTopic reconciles")
 	flag.Parse()
 
@@ -164,7 +166,7 @@ func main() {
 		Log:    ctrl.Log.WithName("controllers").WithName("KafkaUser"),
 	}
 
-	if err = controllers.SetupKafkaUserWithManager(mgr, certManagerEnabled, kafkaUserReconciler.Log).Complete(kafkaUserReconciler); err != nil {
+	if err = controllers.SetupKafkaUserWithManager(mgr, !certSigningDisabled, certManagerEnabled, kafkaUserReconciler.Log).Complete(kafkaUserReconciler); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KafkaUser")
 		os.Exit(1)
 	}

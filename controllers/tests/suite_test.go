@@ -169,7 +169,7 @@ var _ = BeforeSuite(func() {
 		Log:    ctrl.Log.WithName("controllers").WithName("KafkaUser"),
 	}
 
-	err = controllers.SetupKafkaUserWithManager(mgr, true, kafkaUserReconciler.Log).Complete(&kafkaUserReconciler)
+	err = controllers.SetupKafkaUserWithManager(mgr, true, true, kafkaUserReconciler.Log).Complete(&kafkaUserReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
 	kafkaClusterCCReconciler := controllers.CruiseControlTaskReconciler{
