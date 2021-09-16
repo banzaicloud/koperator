@@ -251,7 +251,7 @@ type EnvoyConfig struct {
 	// Envoy admin port
 	AdminPort *int32 `json:"adminPort,omitempty"`
 	// DisruptionBudget is the pod disruption budget attached to Envoy Deployment(s)
-	DisruptionBudget DisruptionBudgetWithStrategy `json:"disruptionBudget,omitempty"`
+	DisruptionBudget *DisruptionBudgetWithStrategy `json:"disruptionBudget,omitempty"`
 }
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller
@@ -583,6 +583,14 @@ func (eConfig *EnvoyConfig) GetLoadBalancerSourceRanges() []string {
 //GetAnnotations returns Annotations to use for Envoy generated Deployment and Pods
 func (eConfig *EnvoyConfig) GetAnnotations() map[string]string {
 	return util.CloneMap(eConfig.Annotations)
+}
+
+//GetDistruptionBudget returns DisruptionBudget to use for Envoy generated Pods
+func (eConfig *EnvoyConfig) GetDistruptionBudget() DisruptionBudgetWithStrategy {
+	if eConfig.DisruptionBudget != nil {
+		return *eConfig.DisruptionBudget
+	}
+	return DisruptionBudgetWithStrategy{}
 }
 
 // GetReplicas returns replicas used by the Envoy deployment
