@@ -63,7 +63,7 @@ prometheusMetrics:
       create: true
       name: kafka-operator-authproxy
 
-metricEndpoint:
+#metricEndpoint:
 #  port:
 
 nameOverride: ""
