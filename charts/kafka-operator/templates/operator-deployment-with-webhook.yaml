@@ -160,7 +160,7 @@ spec:
             {{- if .Values.webhook.serverPort }}
             - --webhook-server-port={{ .Values.webhook.serverPort }}
             {{- end }}
-          {{ else }}
+          {{- else }}
             - --disable-webhooks
           {{- end }}
           {{- if .Values.operator.namespaces }}
