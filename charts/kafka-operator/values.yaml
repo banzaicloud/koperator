@@ -34,7 +34,7 @@ operator:
 
 webhook:
   enabled: true
-  serverPort:
+#  serverPort:
   tls:
     certDir: ""
   certs:
