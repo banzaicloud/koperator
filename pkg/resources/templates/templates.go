@@ -17,6 +17,7 @@ package templates
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/util"
 )
@@ -40,17 +41,17 @@ func ObjectMeta(name string, labels map[string]string, cluster *v1beta1.KafkaClu
 	}
 }
 
-// ObjectMetaWithCustomNamespaceAndWithoutLabels returns a metav1.ObjectMeta object with custom namespace, ownerReference and name
-func ObjectMetaWithCustomNamespaceAndWithoutLabels(name, namespace string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
+// ObjectMetaWithKafkaUserOwnerAndWithoutLabels returns a metav1.ObjectMeta object with ownerReference and name
+func ObjectMetaWithKafkaUserOwnerAndWithoutLabels(name string, user *v1alpha1.KafkaUser) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      name,
-		Namespace: namespace,
+		Namespace: user.GetNamespace(),
 		OwnerReferences: []metav1.OwnerReference{
 			{
-				APIVersion:         cluster.APIVersion,
-				Kind:               cluster.Kind,
-				Name:               cluster.Name,
-				UID:                cluster.UID,
+				APIVersion:         user.APIVersion,
+				Kind:               user.Kind,
+				Name:               user.Name,
+				UID:                user.UID,
 				Controller:         util.BoolPointer(true),
 				BlockOwnerDeletion: util.BoolPointer(true),
 			},

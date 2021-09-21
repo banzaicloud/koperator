@@ -147,7 +147,7 @@ func (c *certManager) clusterCertificateForUser(
 	user *v1alpha1.KafkaUser, clusterDomain string) *certv1.Certificate {
 	caName, caKind := c.getCA(user)
 	cert := &certv1.Certificate{
-		ObjectMeta: templates.ObjectMetaWithCustomNamespaceAndWithoutLabels(user.GetName(), user.GetNamespace(), c.cluster),
+		ObjectMeta: templates.ObjectMetaWithKafkaUserOwnerAndWithoutLabels(user.GetName(), user),
 		Spec: certv1.CertificateSpec{
 			SecretName: user.Spec.SecretName,
 			PrivateKey: &certv1.CertificatePrivateKey{
