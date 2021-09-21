@@ -153,7 +153,14 @@ spec:
           {{- if not .Values.certSigning.enabled }}
             - --disable-cert-signing-support
           {{- end }}
-          {{- if not .Values.webhook.enabled }}
+          {{- if .Values.webhook.enabled }}
+            {{- if .Values.webhook.tls.certDir }}
+            - --tls-cert-dir={{ .Values.webhook.tls.certDir }}
+            {{- end}}
+            {{- if .Values.webhook.serverPort }}
+            - --webhook-server-port={{ .Values.webhook.serverPort }}
+            {{- end }}
+          {{ else }}
             - --disable-webhooks
           {{- end }}
           {{- if .Values.operator.namespaces }}
