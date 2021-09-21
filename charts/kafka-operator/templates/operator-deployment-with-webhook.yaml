@@ -202,7 +202,7 @@ spec:
               name: webhook-server
               protocol: TCP
           {{- end }}
-            - containerPort: {{ .Values.webhook.serverPort | default 8080 }}
+            - containerPort: {{ .Values.metricEndpoint.port | default 8080 }}
               name: metrics
               protocol: TCP
             - containerPort: 9001
