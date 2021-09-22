@@ -153,7 +153,14 @@ spec:
           {{- if not .Values.certSigning.enabled }}
             - --disable-cert-signing-support
           {{- end }}
-          {{- if not .Values.webhook.enabled }}
+          {{- if .Values.webhook.enabled }}
+            {{- if (.Values.webhook.tls).certDir }}
+            - --tls-cert-dir={{ .Values.webhook.tls.certDir }}
+            {{- end}}
+            {{- if .Values.webhook.serverPort }}
+            - --webhook-server-port={{ .Values.webhook.serverPort }}
+            {{- end }}
+          {{- else }}
             - --disable-webhooks
           {{- end }}
           {{- if .Values.operator.namespaces }}
@@ -164,6 +171,9 @@ spec:
           {{- end }}
           {{- if .Values.operator.developmentLogging }}
             - --development
+          {{- end }}
+          {{- if (.Values.metricEndpoint).port }}
+            - --mettics-addr=":{{ .Values.metricEndpoint.port }}"
           {{- end }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
@@ -186,11 +196,11 @@ spec:
           {{- end }}
           ports:
           {{- if .Values.webhook.enabled }}
-            - containerPort: 443
+            - containerPort: {{ .Values.webhook.serverPort | default 443 }}
               name: webhook-server
               protocol: TCP
           {{- end }}
-            - containerPort: 8080
+            - containerPort: {{ (.Values.metricEndpoint).port | default 8080 }}
               name: metrics
               protocol: TCP
             - containerPort: 9001
@@ -198,7 +208,7 @@ spec:
               protocol: TCP
           volumeMounts:
           {{- if .Values.webhook.enabled }}
-            - mountPath: /etc/webhook/certs
+            - mountPath: {{ (.Values.webhook.tls).certDir | default "/etc/webhook/certs" }}
               name: serving-cert
               readOnly: true
           {{- end }}

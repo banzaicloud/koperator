@@ -80,6 +80,7 @@ func main() {
 		enableLeaderElection              bool
 		webhookCertDir                    string
 		webhookDisabled                   bool
+		webhookServerPort                 int
 		developmentLogging                bool
 		verboseLogging                    bool
 		certSigningDisabled               bool
@@ -93,6 +94,7 @@ func main() {
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&webhookDisabled, "disable-webhooks", false, "Disable webhooks used to validate custom resources")
 	flag.StringVar(&webhookCertDir, "tls-cert-dir", "/etc/webhook/certs", "The directory with a tls.key and tls.crt for serving HTTPS requests")
+	flag.IntVar(&webhookServerPort, "webhook-server-port", 443, "The port that the webhook server serves at")
 	flag.BoolVar(&developmentLogging, "development", false, "Enable development logging")
 	flag.BoolVar(&verboseLogging, "verbose", false, "Enable verbose logging")
 	flag.BoolVar(&certManagerEnabled, "cert-manager-enabled", false, "Enable cert-manager integration")
@@ -123,6 +125,7 @@ func main() {
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "controller-leader-election-helper",
 		NewCache:           managerWatchCache,
+		Port:               webhookServerPort,
 	})
 
 	if err != nil {

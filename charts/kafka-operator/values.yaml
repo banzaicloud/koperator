@@ -34,6 +34,9 @@ operator:
 
 webhook:
   enabled: true
+#  serverPort:
+#  tls:
+#    certDir: ""
   certs:
     generate: true
     secret: "kafka-operator-serving-cert"
@@ -60,6 +63,8 @@ prometheusMetrics:
       create: true
       name: kafka-operator-authproxy
 
+#metricEndpoint:
+#  port:
 
 nameOverride: ""
 fullnameOverride: ""
