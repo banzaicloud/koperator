@@ -251,7 +251,7 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	Expect(pod.Spec.Containers[1]).To(WithTransform(getContainerName, Equal("test-container")))
 	container := pod.Spec.Containers[0]
 	Expect(container.Name).To(Equal("kafka"))
-	Expect(container.Image).To(Equal("ghcr.io/banzaicloud/kafka:2.13-2.8.0"))
+	Expect(container.Image).To(Equal("ghcr.io/banzaicloud/kafka:2.13-2.8.1"))
 	Expect(container.Lifecycle).NotTo(BeNil())
 	Expect(container.Lifecycle.PreStop).NotTo(BeNil())
 	getEnvName := func(c corev1.EnvVar) string { return c.Name }
