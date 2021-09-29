@@ -85,7 +85,7 @@ spec:
         storageClass: 'gp2'
         mountPath: '/kafkalog'
         diskSize: '10G'
-        image: 'ghcr.io/banzaicloud/kafka:2.13-2.8.0'
+        image: 'ghcr.io/banzaicloud/kafka:2.13-2.8.1'
         # annotations to be applied onto the broker pod
         # brokerAnnotations: '{ "sidecar.istio.io/logLevel": "trace", "sidecar.istio.io/proxyCPULimit": "50m" }'
         command: 'upScale'
@@ -101,7 +101,7 @@ spec:
         storageClass: 'gp2'
         mountPath: '/kafkalog'
         diskSize: '10G'
-        image: 'ghcr.io/banzaicloud/kafka:2.13-2.8.0'
+        image: 'ghcr.io/banzaicloud/kafka:2.13-2.8.1'
         # annotations to be applied onto the broker pod
         # brokerAnnotations: '{ "sidecar.istio.io/logLevel": "trace", "sidecar.istio.io/proxyCPULimit": "50m" }'
         command: 'upScale'
@@ -117,7 +117,7 @@ spec:
         storageClass: 'gp2'
         mountPath: '/kafkalog'
         diskSize: '10G'
-        image: 'ghcr.io/banzaicloud/kafka:2.13-2.8.0'
+        image: 'ghcr.io/banzaicloud/kafka:2.13-2.8.1'
         # annotations to be applied onto the broker pod
         # brokerAnnotations: '{ "sidecar.istio.io/logLevel": "trace", "sidecar.istio.io/proxyCPULimit": "50m" }'
         command: 'upScale'

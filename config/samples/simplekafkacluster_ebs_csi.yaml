@@ -15,7 +15,7 @@ spec:
   zkPath: "/kafka"
   propagateLabels: true
   oneBrokerPerNode: false
-  clusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.8.0"
+  clusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.8.1"
   readOnlyConfig: |
     auto.create.topics.enable=false
     cruise.control.metrics.topic.auto.create=true

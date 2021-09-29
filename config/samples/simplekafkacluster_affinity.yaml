@@ -12,7 +12,7 @@ spec:
   # If true OneBrokerPerNode ensures that each kafka broker will be placed on a different node unless a custom
   # Affinity definition overrides this behavior either set in brokerConfigGroups or in one specific brokerConfig
   oneBrokerPerNode: false
-  clusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.8.0"
+  clusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.8.1"
   readOnlyConfig: |
     auto.create.topics.enable=false
     cruise.control.metrics.topic.auto.create=true
