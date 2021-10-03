@@ -173,7 +173,7 @@ spec:
             - --development
           {{- end }}
           {{- if (.Values.metricEndpoint).port }}
-            - --mettics-addr=":{{ .Values.metricEndpoint.port }}"
+            - --metrics-addr=":{{ .Values.metricEndpoint.port }}"
           {{- end }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
