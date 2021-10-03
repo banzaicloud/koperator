@@ -39,8 +39,8 @@ func (r *Reconciler) headlessService() runtime.Object {
 	// prometheus metrics port for servicemonitor
 	usedPorts = append(usedPorts, corev1.ServicePort{
 		Name:       "metrics",
-		Port:       metricsPort,
-		TargetPort: intstr.FromInt(metricsPort),
+		Port:       MetricsPort,
+		TargetPort: intstr.FromInt(MetricsPort),
 		Protocol:   corev1.ProtocolTCP,
 	})
 

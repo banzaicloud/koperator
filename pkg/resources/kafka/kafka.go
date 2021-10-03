@@ -65,9 +65,10 @@ const (
 	clientKeystoreVolume = "client-ks-files"
 	clientKeystorePath   = "/var/run/secrets/java.io/keystores/client"
 
-	jmxVolumePath = "/opt/jmx-exporter/"
-	jmxVolumeName = "jmx-jar-data"
-	metricsPort   = 9020
+	jmxVolumePath      = "/opt/jmx-exporter/"
+	jmxVolumeName      = "jmx-jar-data"
+	MetricsHealthCheck = "/-/healthy"
+	MetricsPort        = 9020
 )
 
 // Reconciler implements the Component Reconciler

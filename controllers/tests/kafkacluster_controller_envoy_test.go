@@ -53,7 +53,7 @@ func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerTempla
 		"eListenerName": eListenerTemplate,
 		"kafka_cr":      kafkaCluster.Name,
 	}))
-	Expect(loadBalancer.Spec.Ports).To(HaveLen(5))
+	Expect(loadBalancer.Spec.Ports).To(HaveLen(6))
 	for i, port := range loadBalancer.Spec.Ports {
 		if i == 3 {
 			break
@@ -68,10 +68,15 @@ func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerTempla
 	Expect(loadBalancer.Spec.Ports[3].Port).To(BeEquivalentTo(29092))
 	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(29092))
 
-	Expect(loadBalancer.Spec.Ports[4].Name).To(Equal("envoy-admin"))
+	Expect(loadBalancer.Spec.Ports[4].Name).To(Equal("tcp-health"))
 	Expect(loadBalancer.Spec.Ports[4].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[4].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
-	Expect(loadBalancer.Spec.Ports[4].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[4].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+	Expect(loadBalancer.Spec.Ports[4].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+
+	Expect(loadBalancer.Spec.Ports[5].Name).To(Equal("tcp-admin"))
+	Expect(loadBalancer.Spec.Ports[5].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[5].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[5].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
 }
 
 func expectEnvoyConfigMap(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
@@ -85,11 +90,11 @@ func expectEnvoyConfigMap(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate 
 	expectEnvoyIngressLabels(configMap.Labels, eListenerTemplate, kafkaCluster.Name)
 	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
 	svcTemplate := fmt.Sprintf("%s-%s.%s.svc.%s", kafkaCluster.Name, "%s", kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())
-	Expect(configMap.Data["envoy.yaml"]).To(Equal(fmt.Sprintf(`admin:
+	expected := fmt.Sprintf(`admin:
   address:
     socketAddress:
       address: 0.0.0.0
-      portValue: 9901
+      portValue: 8081
 staticResources:
   clusters:
   - circuitBreakers:
@@ -173,6 +178,18 @@ staticResources:
         maxRetries: 1000000000
         priority: HIGH
     connectTimeout: 1s
+    healthChecks:
+    - eventLogPath: /dev/stdout
+      healthyThreshold: 1
+      httpHealthCheck:
+        path: /-/healthy
+      interval: 5s
+      intervalJitter: 1s
+      noTrafficInterval: 5s
+      timeout: 1s
+      unhealthyInterval: 2s
+      unhealthyThreshold: 2
+    ignoreHealthOnHostRemoval: true
     loadAssignment:
       clusterName: all-brokers
       endpoints:
@@ -182,6 +199,8 @@ staticResources:
               socketAddress:
                 address: %s
                 portValue: 9094
+            healthCheckConfig:
+              portValue: 9020
     name: all-brokers
     type: STRICT_DNS
   listeners:
@@ -195,6 +214,7 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-0
+          maxConnectAttempts: 2
           statPrefix: broker_tcp-0
   - address:
       socketAddress:
@@ -206,6 +226,7 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-1
+          maxConnectAttempts: 2
           statPrefix: broker_tcp-1
   - address:
       socketAddress:
@@ -217,6 +238,7 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-2
+          maxConnectAttempts: 2
           statPrefix: broker_tcp-2
   - address:
       socketAddress:
@@ -228,8 +250,47 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: all-brokers
+          maxConnectAttempts: 2
           statPrefix: all-brokers
-`, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))))
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 8080
+    filterChains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          accessLog:
+          - name: envoy.access_loggers.stdout
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+          httpFilters:
+          - name: envoy.filters.http.health_check
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.health_check.v3.HealthCheck
+              clusterMinHealthyPercentages:
+                all-brokers:
+                  value: 1
+              headers:
+              - exactMatch: /healthcheck
+                name: :path
+              passThroughMode: false
+          - name: envoy.filters.http.router
+          routeConfig:
+            name: local
+            virtualHosts:
+            - domains:
+              - '*'
+              name: localhost
+              routes:
+              - match:
+                  prefix: /
+                redirect:
+                  pathRedirect: /healthcheck
+          statPrefix: all-brokers-healthcheck
+`, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))
+	Expect(configMap.Data["envoy.yaml"]).To(Equal(expected))
 }
 
 func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
@@ -276,8 +337,13 @@ func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate
 			Protocol:      corev1.ProtocolTCP,
 		},
 		corev1.ContainerPort{
-			Name:          "envoy-admin",
-			ContainerPort: 9901,
+			Name:          "tcp-admin",
+			ContainerPort: 8081,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		corev1.ContainerPort{
+			Name:          "tcp-health",
+			ContainerPort: 8080,
 			Protocol:      corev1.ProtocolTCP,
 		},
 	))
@@ -313,7 +379,7 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
 		return err
 	}).Should(Succeed())
-	Expect(loadBalancer.Spec.Ports).To(HaveLen(3))
+	Expect(loadBalancer.Spec.Ports).To(HaveLen(4))
 
 	Expect(loadBalancer.Spec.Ports[0].Name).To(Equal("broker-0"))
 	Expect(loadBalancer.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
@@ -325,10 +391,15 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(loadBalancer.Spec.Ports[1].Port).To(BeEquivalentTo(29092))
 	Expect(loadBalancer.Spec.Ports[1].TargetPort.IntVal).To(BeEquivalentTo(29092))
 
-	Expect(loadBalancer.Spec.Ports[2].Name).To(Equal("envoy-admin"))
+	Expect(loadBalancer.Spec.Ports[2].Name).To(Equal("tcp-health"))
 	Expect(loadBalancer.Spec.Ports[2].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
-	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+
+	Expect(loadBalancer.Spec.Ports[3].Name).To(Equal("tcp-admin"))
+	Expect(loadBalancer.Spec.Ports[3].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[3].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-az1-%s", kafkaCluster.Name)
@@ -351,8 +422,13 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 			Protocol:      corev1.ProtocolTCP,
 		},
 		corev1.ContainerPort{
-			Name:          "envoy-admin",
+			Name:          "tcp-admin",
 			ContainerPort: v1beta1.DefaultEnvoyAdminPort,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		corev1.ContainerPort{
+			Name:          "tcp-health",
+			ContainerPort: v1beta1.DefaultEnvoyHealthCheckPort,
 			Protocol:      corev1.ProtocolTCP,
 		},
 	))
@@ -365,11 +441,11 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 	}).Should(Succeed())
 	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
 	svcTemplate := fmt.Sprintf("%s-%s.%s.svc.%s", kafkaCluster.Name, "%s", kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())
-	Expect(configMap.Data["envoy.yaml"]).To(Equal(fmt.Sprintf(`admin:
+	expected := fmt.Sprintf(`admin:
   address:
     socketAddress:
       address: 0.0.0.0
-      portValue: 9901
+      portValue: 8081
 staticResources:
   clusters:
   - circuitBreakers:
@@ -407,6 +483,18 @@ staticResources:
         maxRetries: 1000000000
         priority: HIGH
     connectTimeout: 1s
+    healthChecks:
+    - eventLogPath: /dev/stdout
+      healthyThreshold: 1
+      httpHealthCheck:
+        path: /-/healthy
+      interval: 5s
+      intervalJitter: 1s
+      noTrafficInterval: 5s
+      timeout: 1s
+      unhealthyInterval: 2s
+      unhealthyThreshold: 2
+    ignoreHealthOnHostRemoval: true
     loadAssignment:
       clusterName: all-brokers
       endpoints:
@@ -416,6 +504,8 @@ staticResources:
               socketAddress:
                 address: %s
                 portValue: 9094
+            healthCheckConfig:
+              portValue: 9020
     name: all-brokers
     type: STRICT_DNS
   listeners:
@@ -429,6 +519,7 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-0
+          maxConnectAttempts: 2
           statPrefix: broker_tcp-0
   - address:
       socketAddress:
@@ -440,8 +531,47 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: all-brokers
+          maxConnectAttempts: 2
           statPrefix: all-brokers
-`, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "all-broker"))))
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 8080
+    filterChains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          accessLog:
+          - name: envoy.access_loggers.stdout
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+          httpFilters:
+          - name: envoy.filters.http.health_check
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.health_check.v3.HealthCheck
+              clusterMinHealthyPercentages:
+                all-brokers:
+                  value: 1
+              headers:
+              - exactMatch: /healthcheck
+                name: :path
+              passThroughMode: false
+          - name: envoy.filters.http.router
+          routeConfig:
+            name: local
+            virtualHosts:
+            - domains:
+              - '*'
+              name: localhost
+              routes:
+              - match:
+                  prefix: /
+                redirect:
+                  pathRedirect: /healthcheck
+          statPrefix: all-brokers-healthcheck
+`, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "all-broker"))
+	Expect(configMap.Data["envoy.yaml"]).To(Equal(expected))
 }
 
 func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
@@ -451,7 +581,7 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
 		return err
 	}).Should(Succeed())
-	Expect(loadBalancer.Spec.Ports).To(HaveLen(4))
+	Expect(loadBalancer.Spec.Ports).To(HaveLen(5))
 	Expect(loadBalancer.Spec.Ports[0].Name).To(Equal("broker-1"))
 	Expect(loadBalancer.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
 	Expect(loadBalancer.Spec.Ports[0].Port).To(BeEquivalentTo(19091))
@@ -467,10 +597,15 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(29092))
 	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(29092))
 
-	Expect(loadBalancer.Spec.Ports[3].Name).To(Equal("envoy-admin"))
+	Expect(loadBalancer.Spec.Ports[3].Name).To(Equal("tcp-health"))
 	Expect(loadBalancer.Spec.Ports[3].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[3].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
-	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[3].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+
+	Expect(loadBalancer.Spec.Ports[4].Name).To(Equal("tcp-admin"))
+	Expect(loadBalancer.Spec.Ports[4].Protocol).To(Equal(corev1.ProtocolTCP))
+	Expect(loadBalancer.Spec.Ports[4].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[4].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-az2-%s", kafkaCluster.Name)
@@ -498,8 +633,13 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 			Protocol:      corev1.ProtocolTCP,
 		},
 		corev1.ContainerPort{
-			Name:          "envoy-admin",
+			Name:          "tcp-admin",
 			ContainerPort: v1beta1.DefaultEnvoyAdminPort,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		corev1.ContainerPort{
+			Name:          "tcp-health",
+			ContainerPort: v1beta1.DefaultEnvoyHealthCheckPort,
 			Protocol:      corev1.ProtocolTCP,
 		},
 	))
@@ -512,11 +652,11 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 	}).Should(Succeed())
 	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
 	svcTemplate := fmt.Sprintf("%s-%s.%s.svc.%s", kafkaCluster.Name, "%s", kafkaCluster.Namespace, kafkaCluster.Spec.GetKubernetesClusterDomain())
-	Expect(configMap.Data["envoy.yaml"]).To(Equal(fmt.Sprintf(`admin:
+	expected := fmt.Sprintf(`admin:
   address:
     socketAddress:
       address: 0.0.0.0
-      portValue: 9901
+      portValue: 8081
 staticResources:
   clusters:
   - circuitBreakers:
@@ -577,6 +717,18 @@ staticResources:
         maxRetries: 1000000000
         priority: HIGH
     connectTimeout: 1s
+    healthChecks:
+    - eventLogPath: /dev/stdout
+      healthyThreshold: 1
+      httpHealthCheck:
+        path: /-/healthy
+      interval: 5s
+      intervalJitter: 1s
+      noTrafficInterval: 5s
+      timeout: 1s
+      unhealthyInterval: 2s
+      unhealthyThreshold: 2
+    ignoreHealthOnHostRemoval: true
     loadAssignment:
       clusterName: all-brokers
       endpoints:
@@ -586,6 +738,8 @@ staticResources:
               socketAddress:
                 address: %s
                 portValue: 9094
+            healthCheckConfig:
+              portValue: 9020
     name: all-brokers
     type: STRICT_DNS
   listeners:
@@ -599,6 +753,7 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-1
+          maxConnectAttempts: 2
           statPrefix: broker_tcp-1
   - address:
       socketAddress:
@@ -610,6 +765,7 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-2
+          maxConnectAttempts: 2
           statPrefix: broker_tcp-2
   - address:
       socketAddress:
@@ -621,6 +777,45 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: all-brokers
+          maxConnectAttempts: 2
           statPrefix: all-brokers
-`, fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))))
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 8080
+    filterChains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          accessLog:
+          - name: envoy.access_loggers.stdout
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+          httpFilters:
+          - name: envoy.filters.http.health_check
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.health_check.v3.HealthCheck
+              clusterMinHealthyPercentages:
+                all-brokers:
+                  value: 1
+              headers:
+              - exactMatch: /healthcheck
+                name: :path
+              passThroughMode: false
+          - name: envoy.filters.http.router
+          routeConfig:
+            name: local
+            virtualHosts:
+            - domains:
+              - '*'
+              name: localhost
+              routes:
+              - match:
+                  prefix: /
+                redirect:
+                  pathRedirect: /healthcheck
+          statPrefix: all-brokers-healthcheck
+`, fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))
+	Expect(configMap.Data["envoy.yaml"]).To(Equal(expected))
 }

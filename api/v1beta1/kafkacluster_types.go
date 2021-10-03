@@ -39,8 +39,10 @@ const (
 	DefaultServiceAccountName = "default"
 	// DefaultAnyCastPort kafka anycast port that can be used by clients for metadata queries
 	DefaultAnyCastPort = 29092
+	// DefaultEnvoyHealthCheckPort envoy health check port
+	DefaultEnvoyHealthCheckPort = 8080
 	// DefaultEnvoyAdminPort envoy admin port
-	DefaultEnvoyAdminPort = 9901
+	DefaultEnvoyAdminPort = 8081
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
@@ -250,6 +252,8 @@ type EnvoyConfig struct {
 	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
 	// Envoy admin port
 	AdminPort *int32 `json:"adminPort,omitempty"`
+	// Envoy health-check port
+	HealthCheckPort *int32 `json:"healthCheckPort,omitempty"`
 	// DisruptionBudget is the pod disruption budget attached to Envoy Deployment(s)
 	DisruptionBudget *DisruptionBudgetWithStrategy `json:"disruptionBudget,omitempty"`
 }
@@ -769,6 +773,14 @@ func (eConfig *EnvoyConfig) GetEnvoyAdminPort() int32 {
 		return *eConfig.AdminPort
 	}
 	return DefaultEnvoyAdminPort
+}
+
+// GetEnvoyHealthCheckPort returns the envoy admin port
+func (eConfig *EnvoyConfig) GetEnvoyHealthCheckPort() int32 {
+	if eConfig.HealthCheckPort != nil {
+		return *eConfig.HealthCheckPort
+	}
+	return DefaultEnvoyHealthCheckPort
 }
 
 // GetCCImage returns the used Cruise Control image
