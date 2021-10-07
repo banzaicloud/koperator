@@ -109,6 +109,7 @@ const (
 	storageConfigNWINDefaultValue  = "125000"
 	storageConfigNWOUTDefaultValue = "125000"
 	defaultDoc                     = "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+	Megabyte                       = 1000000
 )
 
 type CapacityConfig struct {
@@ -224,7 +225,7 @@ func generateDefaultBrokerCapacity() BrokerCapacity {
 		BrokerID: "-1",
 		Capacity: Capacity{
 			DISK: map[string]string{
-				"/kafka-logs/kafka": "10737418240",
+				"/kafka-logs/kafka": "10737",
 			},
 			CPU:   "100",
 			NWIN:  "125000",
@@ -292,11 +293,13 @@ func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Logger, brokerState v1beta1.Broker, brokerDisks map[string]string) {
 	for _, storageConfig := range brokerConfigGroup.StorageConfigs {
 		int64Value, isConvertible := util.QuantityPointer(storageConfig.PvcSpec.Resources.Requests["storage"]).AsInt64()
+		valueInMB := int64Value / Megabyte
+
 		if !isConvertible {
 			log.Info("Could not convert 'storage' quantity to Int64 in brokerConfig for broker",
 				"brokerId", brokerState.Id)
 		}
 
-		brokerDisks[storageConfig.MountPath+"/kafka"] = strconv.FormatInt(int64Value, 10)
+		brokerDisks[util.StorageConfigKafkaMountPath(storageConfig.MountPath)] = strconv.FormatInt(valueInMB, 10)
 	}
 }

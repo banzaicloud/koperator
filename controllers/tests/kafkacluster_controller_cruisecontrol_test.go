@@ -120,7 +120,7 @@ zookeeper.connect=/
             "brokerId": "0",
             "capacity": {
                 "DISK": {
-                    "/kafka-logs/kafka": "10737418240"
+                    "/kafka-logs/kafka": "10737"
                 },
                 "CPU": "150",
                 "NW_IN": "125000",
@@ -132,7 +132,7 @@ zookeeper.connect=/
             "brokerId": "1",
             "capacity": {
                 "DISK": {
-                    "/kafka-logs/kafka": "10737418240"
+                    "/kafka-logs/kafka": "10737"
                 },
                 "CPU": "150",
                 "NW_IN": "125000",
@@ -144,7 +144,7 @@ zookeeper.connect=/
             "brokerId": "2",
             "capacity": {
                 "DISK": {
-                    "/kafka-logs/kafka": "10737418240"
+                    "/kafka-logs/kafka": "10737"
                 },
                 "CPU": "150",
                 "NW_IN": "125000",
@@ -156,7 +156,7 @@ zookeeper.connect=/
             "brokerId": "-1",
             "capacity": {
                 "DISK": {
-                    "/kafka-logs/kafka": "10737418240"
+                    "/kafka-logs/kafka": "10737"
                 },
                 "CPU": "100",
                 "NW_IN": "125000",

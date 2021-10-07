@@ -204,7 +204,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "0",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "200",
 					   "NW_IN": "125000",
@@ -216,7 +216,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "1",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -228,7 +228,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "2",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -240,8 +240,8 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "3",
 					  "capacity": {
 					   "DISK": {
-						"/path1/kafka": "10737418240",
-						"/path-from-default/kafka": "10737418240"
+						"/path1/kafka": "10737",
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -253,7 +253,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "-1",
 					  "capacity": {
 					   "DISK": {
-						"/kafka-logs/kafka": "10737418240"
+						"/kafka-logs/kafka": "10737"
 					   },
 					   "CPU": "100",
 					   "NW_IN": "125000",
@@ -327,7 +327,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "0",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -339,7 +339,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "1",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -351,7 +351,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "2",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -363,7 +363,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "3",
 					  "capacity": {
 					   "DISK": {
-						"/path1/kafka": "10737418240"
+						"/path1/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "200",
@@ -375,7 +375,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "-1",
 					  "capacity": {
 					   "DISK": {
-						"/kafka-logs/kafka": "10737418240"
+						"/kafka-logs/kafka": "10737"
 					   },
 					   "CPU": "100",
 					   "NW_IN": "125000",
@@ -475,7 +475,7 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 					{
 					  "brokerId": "-1",
 					  "capacity": {
-						"DISK": {"/kafka-logs/kafka": "10737418240"},
+						"DISK": {"/kafka-logs/kafka": "10737"},
 						"CPU": "100",
 						"NW_IN": "125000",
 						"NW_OUT": "125000"
@@ -613,7 +613,7 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 					{
 					  "brokerId": "-1",
 					  "capacity": {
-						"DISK": {"/kafka-logs/kafka": "10737418240"},
+						"DISK": {"/kafka-logs/kafka": "10737"},
 						"CPU": "100",
 						"NW_IN": "125000",
 						"NW_OUT": "125000"
