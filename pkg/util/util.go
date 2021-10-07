@@ -400,3 +400,7 @@ func GenerateEnvoyResourceName(resourceNameFormat string, resourceNameWithScopeF
 
 	return resourceName
 }
+
+func StorageConfigKafkaMountPath(mountPath string) string {
+	return mountPath + "/kafka"
+}

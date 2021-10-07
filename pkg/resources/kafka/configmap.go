@@ -195,7 +195,7 @@ func appendListenerConfigs(advertisedListenerConfig []string, id int32,
 func generateStorageConfig(sConfig []v1beta1.StorageConfig) string {
 	mountPaths := make([]string, 0, len(sConfig))
 	for _, storage := range sConfig {
-		mountPaths = append(mountPaths, storage.MountPath+`/kafka`)
+		mountPaths = append(mountPaths, util.StorageConfigKafkaMountPath(storage.MountPath))
 	}
 	return strings.Join(mountPaths, ",")
 }
