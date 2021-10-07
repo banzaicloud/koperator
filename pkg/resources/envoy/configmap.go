@@ -187,6 +187,7 @@ func generateEnvoyHealthCheckListener(ingressConfig v1beta1.IngressConfig, log l
 				},
 			},
 		},
+		SocketOptions: getKeepAliveSocketOptions(),
 	}
 }
 
@@ -220,6 +221,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 			tcpProxy := &envoytcpproxy.TcpProxy{
 				StatPrefix:         fmt.Sprintf("broker_tcp-%d", brokerId),
 				MaxConnectAttempts: &wrapperspb.UInt32Value{Value: 2},
+				IdleTimeout:        &durationpb.Duration{Seconds: 560},
 				ClusterSpecifier: &envoytcpproxy.TcpProxy_Cluster{
 					Cluster: fmt.Sprintf("broker-%d", brokerId),
 				},
@@ -230,6 +232,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 				return ""
 			}
 			listeners = append(listeners, &envoylistener.Listener{
+
 				Address: &envoycore.Address{
 					Address: &envoycore.Address_SocketAddress{
 						SocketAddress: &envoycore.SocketAddress{
@@ -252,14 +255,18 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 						},
 					},
 				},
+				SocketOptions: getKeepAliveSocketOptions(),
 			})
 
 			clusters = append(clusters, &envoycluster.Cluster{
-				Name:                 fmt.Sprintf("broker-%d", brokerId),
-				ConnectTimeout:       &durationpb.Duration{Seconds: 1},
+				Name:           fmt.Sprintf("broker-%d", brokerId),
+				ConnectTimeout: &durationpb.Duration{Seconds: 1},
+				UpstreamConnectionOptions: &envoycluster.UpstreamConnectionOptions{
+					TcpKeepalive: getTcpKeepalive(),
+				},
 				ClusterDiscoveryType: &envoycluster.Cluster_Type{Type: envoycluster.Cluster_STRICT_DNS},
 				LbPolicy:             envoycluster.Cluster_ROUND_ROBIN,
-				// disable circuit breakingL:
+				// disable circuit breaking:
 				// https://www.envoyproxy.io/docs/envoy/latest/faq/load_balancing/disable_circuit_breaking
 				CircuitBreakers: &envoycluster.CircuitBreakers{
 					Thresholds: []*envoycluster.CircuitBreakers_Thresholds{
@@ -309,6 +316,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 	// TCP_Proxy filter configuration
 	tcpProxy := &envoytcpproxy.TcpProxy{
 		StatPrefix:         envoyutils.AllBrokerEnvoyConfigName,
+		IdleTimeout:        &durationpb.Duration{Seconds: 560},
 		MaxConnectAttempts: &wrapperspb.UInt32Value{Value: 2},
 		ClusterSpecifier: &envoytcpproxy.TcpProxy_Cluster{
 			Cluster: envoyutils.AllBrokerEnvoyConfigName,
@@ -342,6 +350,7 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 				},
 			},
 		},
+		SocketOptions: getKeepAliveSocketOptions(),
 	})
 
 	// health-check http listener
@@ -352,8 +361,11 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 	listeners = append(listeners, healthCheckListener)
 
 	clusters = append(clusters, &envoycluster.Cluster{
-		Name:                      envoyutils.AllBrokerEnvoyConfigName,
-		ConnectTimeout:            &durationpb.Duration{Seconds: 1},
+		Name:           envoyutils.AllBrokerEnvoyConfigName,
+		ConnectTimeout: &durationpb.Duration{Seconds: 1},
+		UpstreamConnectionOptions: &envoycluster.UpstreamConnectionOptions{
+			TcpKeepalive: getTcpKeepalive(),
+		},
 		IgnoreHealthOnHostRemoval: true,
 		HealthChecks: []*envoycore.HealthCheck{
 			{
@@ -442,4 +454,51 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 		return ""
 	}
 	return string(marshalledConfig)
+}
+
+func getTcpKeepalive() *envoycore.TcpKeepalive {
+	return &envoycore.TcpKeepalive{
+		KeepaliveProbes:   wrapperspb.UInt32(3),
+		KeepaliveTime:     wrapperspb.UInt32(30),
+		KeepaliveInterval: wrapperspb.UInt32(30),
+	}
+}
+
+func getKeepAliveSocketOptions() []*envoycore.SocketOption {
+	return []*envoycore.SocketOption{
+		// enable socket keep-alive
+		{
+			// SOL_SOCKET = 1
+			Level: 1,
+			// SO_KEEPALIVE = 9
+			Name:  9,
+			Value: &envoycore.SocketOption_IntValue{IntValue: 1},
+			State: envoycore.SocketOption_STATE_PREBIND,
+		},
+		// configure keep alive idle, interval and count
+		{
+			// IPPROTO_TCP = 6
+			Level: 6,
+			// TCP_KEEPIDLE = 4
+			Name:  4,
+			Value: &envoycore.SocketOption_IntValue{IntValue: 30},
+			State: envoycore.SocketOption_STATE_PREBIND,
+		},
+		{
+			// IPPROTO_TCP = 6
+			Level: 6,
+			// TCP_KEEPINTVL = 5
+			Name:  5,
+			Value: &envoycore.SocketOption_IntValue{IntValue: 30},
+			State: envoycore.SocketOption_STATE_PREBIND,
+		},
+		{
+			// IPPROTO_TCP = 6
+			Level: 6,
+			// TCP_KEEPCNT = 6
+			Name:  6,
+			Value: &envoycore.SocketOption_IntValue{IntValue: 3},
+			State: envoycore.SocketOption_STATE_PREBIND,
+		},
+	}
 }

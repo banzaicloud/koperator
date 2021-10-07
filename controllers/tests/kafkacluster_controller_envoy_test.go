@@ -120,6 +120,11 @@ staticResources:
                 portValue: 9094
     name: broker-0
     type: STRICT_DNS
+    upstreamConnectionOptions:
+      tcpKeepalive:
+        keepaliveInterval: 30
+        keepaliveProbes: 3
+        keepaliveTime: 30
   - circuitBreakers:
       thresholds:
       - maxConnections: 1000000000
@@ -143,6 +148,11 @@ staticResources:
                 portValue: 9094
     name: broker-1
     type: STRICT_DNS
+    upstreamConnectionOptions:
+      tcpKeepalive:
+        keepaliveInterval: 30
+        keepaliveProbes: 3
+        keepaliveTime: 30
   - circuitBreakers:
       thresholds:
       - maxConnections: 1000000000
@@ -166,6 +176,11 @@ staticResources:
                 portValue: 9094
     name: broker-2
     type: STRICT_DNS
+    upstreamConnectionOptions:
+      tcpKeepalive:
+        keepaliveInterval: 30
+        keepaliveProbes: 3
+        keepaliveTime: 30
   - circuitBreakers:
       thresholds:
       - maxConnections: 1000000000
@@ -203,6 +218,11 @@ staticResources:
               portValue: 9020
     name: all-brokers
     type: STRICT_DNS
+    upstreamConnectionOptions:
+      tcpKeepalive:
+        keepaliveInterval: 30
+        keepaliveProbes: 3
+        keepaliveTime: 30
   listeners:
   - address:
       socketAddress:
@@ -214,8 +234,22 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-0
+          idleTimeout: 560s
           maxConnectAttempts: 2
           statPrefix: broker_tcp-0
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
   - address:
       socketAddress:
         address: 0.0.0.0
@@ -226,8 +260,22 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-1
+          idleTimeout: 560s
           maxConnectAttempts: 2
           statPrefix: broker_tcp-1
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
   - address:
       socketAddress:
         address: 0.0.0.0
@@ -238,8 +286,22 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-2
+          idleTimeout: 560s
           maxConnectAttempts: 2
           statPrefix: broker_tcp-2
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
   - address:
       socketAddress:
         address: 0.0.0.0
@@ -250,8 +312,22 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: all-brokers
+          idleTimeout: 560s
           maxConnectAttempts: 2
           statPrefix: all-brokers
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
   - address:
       socketAddress:
         address: 0.0.0.0
@@ -289,6 +365,19 @@ staticResources:
                 redirect:
                   pathRedirect: /healthcheck
           statPrefix: all-brokers-healthcheck
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
 `, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))
 	Expect(configMap.Data["envoy.yaml"]).To(Equal(expected))
 }
@@ -471,6 +560,11 @@ staticResources:
                 portValue: 9094
     name: broker-0
     type: STRICT_DNS
+    upstreamConnectionOptions:
+      tcpKeepalive:
+        keepaliveInterval: 30
+        keepaliveProbes: 3
+        keepaliveTime: 30
   - circuitBreakers:
       thresholds:
       - maxConnections: 1000000000
@@ -508,6 +602,11 @@ staticResources:
               portValue: 9020
     name: all-brokers
     type: STRICT_DNS
+    upstreamConnectionOptions:
+      tcpKeepalive:
+        keepaliveInterval: 30
+        keepaliveProbes: 3
+        keepaliveTime: 30
   listeners:
   - address:
       socketAddress:
@@ -519,8 +618,22 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-0
+          idleTimeout: 560s
           maxConnectAttempts: 2
           statPrefix: broker_tcp-0
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
   - address:
       socketAddress:
         address: 0.0.0.0
@@ -531,8 +644,22 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: all-brokers
+          idleTimeout: 560s
           maxConnectAttempts: 2
           statPrefix: all-brokers
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
   - address:
       socketAddress:
         address: 0.0.0.0
@@ -570,6 +697,19 @@ staticResources:
                 redirect:
                   pathRedirect: /healthcheck
           statPrefix: all-brokers-healthcheck
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
 `, fmt.Sprintf(svcTemplate, "0"), fmt.Sprintf(svcTemplate, "all-broker"))
 	Expect(configMap.Data["envoy.yaml"]).To(Equal(expected))
 }
@@ -682,6 +822,11 @@ staticResources:
                 portValue: 9094
     name: broker-1
     type: STRICT_DNS
+    upstreamConnectionOptions:
+      tcpKeepalive:
+        keepaliveInterval: 30
+        keepaliveProbes: 3
+        keepaliveTime: 30
   - circuitBreakers:
       thresholds:
       - maxConnections: 1000000000
@@ -705,6 +850,11 @@ staticResources:
                 portValue: 9094
     name: broker-2
     type: STRICT_DNS
+    upstreamConnectionOptions:
+      tcpKeepalive:
+        keepaliveInterval: 30
+        keepaliveProbes: 3
+        keepaliveTime: 30
   - circuitBreakers:
       thresholds:
       - maxConnections: 1000000000
@@ -742,6 +892,11 @@ staticResources:
               portValue: 9020
     name: all-brokers
     type: STRICT_DNS
+    upstreamConnectionOptions:
+      tcpKeepalive:
+        keepaliveInterval: 30
+        keepaliveProbes: 3
+        keepaliveTime: 30
   listeners:
   - address:
       socketAddress:
@@ -753,8 +908,22 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-1
+          idleTimeout: 560s
           maxConnectAttempts: 2
           statPrefix: broker_tcp-1
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
   - address:
       socketAddress:
         address: 0.0.0.0
@@ -765,8 +934,22 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: broker-2
+          idleTimeout: 560s
           maxConnectAttempts: 2
           statPrefix: broker_tcp-2
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
   - address:
       socketAddress:
         address: 0.0.0.0
@@ -777,8 +960,22 @@ staticResources:
         typedConfig:
           '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
           cluster: all-brokers
+          idleTimeout: 560s
           maxConnectAttempts: 2
           statPrefix: all-brokers
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
   - address:
       socketAddress:
         address: 0.0.0.0
@@ -816,6 +1013,19 @@ staticResources:
                 redirect:
                   pathRedirect: /healthcheck
           statPrefix: all-brokers-healthcheck
+    socketOptions:
+    - intValue: "1"
+      level: "1"
+      name: "9"
+    - intValue: "30"
+      level: "6"
+      name: "4"
+    - intValue: "30"
+      level: "6"
+      name: "5"
+    - intValue: "3"
+      level: "6"
+      name: "6"
 `, fmt.Sprintf(svcTemplate, "1"), fmt.Sprintf(svcTemplate, "2"), fmt.Sprintf(svcTemplate, "all-broker"))
 	Expect(configMap.Data["envoy.yaml"]).To(Equal(expected))
 }
