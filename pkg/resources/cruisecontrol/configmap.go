@@ -111,7 +111,6 @@ const (
 	storageConfigNWINDefaultValue  = "125000"
 	storageConfigNWOUTDefaultValue = "125000"
 	defaultDoc                     = "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
-	Megabyte                       = 1000000
 )
 
 type CapacityConfig struct {
