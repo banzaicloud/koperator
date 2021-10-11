@@ -20,6 +20,7 @@ import (
 	"strconv"
 
 	"github.com/go-logr/logr"
+	"gopkg.in/inf.v0"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
@@ -29,6 +30,7 @@ import (
 	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 	zookeeperutils "github.com/banzaicloud/koperator/pkg/util/zookeeper"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -292,14 +294,16 @@ func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 
 func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Logger, brokerState v1beta1.Broker, brokerDisks map[string]string) {
 	for _, storageConfig := range brokerConfigGroup.StorageConfigs {
-		int64Value, isConvertible := util.QuantityPointer(storageConfig.PvcSpec.Resources.Requests["storage"]).AsInt64()
-		valueInMB := int64Value / Megabyte
+		q := util.QuantityPointer(storageConfig.PvcSpec.Resources.Requests["storage"])
 
-		if !isConvertible {
-			log.Info("Could not convert 'storage' quantity to Int64 in brokerConfig for broker",
-				"brokerId", brokerState.Id)
-		}
+		var tmpDec = inf.NewDec(0, 0)
+		tmpDec.Round(q.AsDec(), -1*inf.Scale(resource.Mega), inf.RoundDown)
 
-		brokerDisks[util.StorageConfigKafkaMountPath(storageConfig.MountPath)] = strconv.FormatInt(valueInMB, 10)
+		size := resource.NewQuantity(tmpDec.UnscaledBig().Int64(), q.Format).Value()
+		logDir := util.StorageConfigKafkaMountPath(storageConfig.MountPath)
+
+		log.V(1).Info(fmt.Sprintf("broker log.dir %s size in MB: %d", logDir, size), "brokerId", brokerState.Id)
+
+		brokerDisks[logDir] = fmt.Sprintf("%d", size)
 	}
 }

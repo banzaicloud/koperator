@@ -43,6 +43,7 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2 // indirect
 	google.golang.org/protobuf v1.27.1
+	gopkg.in/inf.v0 v0.9.1 // indirect
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.22.1
