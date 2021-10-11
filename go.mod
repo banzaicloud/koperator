@@ -30,6 +30,7 @@ require (
 	golang.org/x/sys v0.0.0-20211015200801-69063c4bb744 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	google.golang.org/protobuf v1.27.1
+	gopkg.in/inf.v0 v0.9.1 // indirect
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.22.2
 	k8s.io/apiextensions-apiserver v0.22.2
