@@ -177,11 +177,6 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 
 		pkiManager := pki.GetPKIManager(r.Client, cluster, backend, r.Log)
 
-		// Reconcile no matter what to get a user certificate instance for ACL management
-		// TODO (tinyzimmer): This can go wrong if the user made a mistake in their secret path
-		// using the vault backend, then tried to delete and fix it. Should probably
-		// have the PKIManager export a GetUserCertificate specifically for deletions
-		// that will allow the error to fall through if the certificate doesn't exist.
 		user, err := pkiManager.ReconcileUserCertificate(ctx, instance, r.Scheme, cluster.Spec.GetKubernetesClusterDomain())
 		if err != nil {
 			switch errors.Cause(err).(type) {
@@ -195,14 +190,7 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 				// TODO: (tinyzimmer) - Sleep for longer for now to give user time to see the error
 				// But really we should catch these kinds of issues in a pre-admission hook in a future PR
 				// The user can fix while this is looping and it will pick it up next reconcile attempt
-				reqLogger.Error(err, "Fatal error attempting to reconcile the user certificate. If using vault perhaps a permissions issue or improperly configured PKI?")
-				return ctrl.Result{
-					Requeue:      true,
-					RequeueAfter: time.Duration(15) * time.Second,
-				}, nil
-			case errorfactory.VaultAPIFailure:
-				// Same as above in terms of things that could be checked pre-flight on the cluster
-				reqLogger.Error(err, "Vault API error attempting to reconcile the user certificate. If using vault perhaps a permissions issue or improperly configured PKI?")
+				reqLogger.Error(err, "Fatal error attempting to reconcile the user certificate.")
 				return ctrl.Result{
 					Requeue:      true,
 					RequeueAfter: time.Duration(15) * time.Second,

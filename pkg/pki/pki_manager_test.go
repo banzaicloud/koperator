@@ -97,12 +97,4 @@ func TestGetPKIManager(t *testing.T) {
 	if pkiType != expected {
 		t.Error("Expected:", expected, "got:", pkiType)
 	}
-
-	cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend = v1beta1.PKIBackendVault
-	certmanager = GetPKIManager(&mockClient{}, cluster, v1beta1.PKIBackendProvided, log)
-	pkiType = reflect.TypeOf(certmanager).String()
-	expected = "*vaultpki.vaultPKI"
-	if pkiType != expected {
-		t.Error("Expected:", expected, "got:", pkiType)
-	}
 }

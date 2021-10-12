@@ -70,7 +70,6 @@ type KafkaClusterSpec struct {
 	CruiseControlConfig CruiseControlConfig `json:"cruiseControlConfig"`
 	EnvoyConfig         EnvoyConfig         `json:"envoyConfig,omitempty"`
 	MonitoringConfig    MonitoringConfig    `json:"monitoringConfig,omitempty"`
-	VaultConfig         VaultConfig         `json:"vaultConfig,omitempty"`
 	AlertManagerConfig  *AlertManagerConfig `json:"alertManagerConfig,omitempty"`
 	IstioIngressConfig  IstioIngressConfig  `json:"istioIngressConfig,omitempty"`
 	// Envs defines environment variables for Kafka broker Pods.
@@ -338,7 +337,7 @@ type SSLSecrets struct {
 	JKSPasswordName string                  `json:"jksPasswordName"`
 	Create          bool                    `json:"create,omitempty"`
 	IssuerRef       *cmmeta.ObjectReference `json:"issuerRef,omitempty"`
-	// +kubebuilder:validation:Enum={"cert-manager","vault"}
+	// +kubebuilder:validation:Enum={"cert-manager"}
 	PKIBackend PKIBackend `json:"pkiBackend,omitempty"`
 }
 
@@ -346,14 +345,6 @@ type SSLSecrets struct {
 // Would be another good use-case for a pre-admission hook
 // E.g. TLSSecretName and JKSPasswordName are only required if Create is false
 // Or heck, do we even want to bother supporting an imported PKI?
-
-// VaultConfig defines the configuration for a vault PKI backend
-type VaultConfig struct {
-	AuthRole  string `json:"authRole"`
-	PKIPath   string `json:"pkiPath"`
-	IssuePath string `json:"issuePath"`
-	UserStore string `json:"userStore"`
-}
 
 // AlertManagerConfig defines configuration for alert manager
 type AlertManagerConfig struct {

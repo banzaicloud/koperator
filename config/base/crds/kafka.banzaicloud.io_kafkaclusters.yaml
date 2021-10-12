@@ -17797,7 +17797,6 @@ spec:
                           the PKIManager
                         enum:
                         - cert-manager
-                        - vault
                         type: string
                       tlsSecretName:
                         type: string
@@ -17849,24 +17848,6 @@ spec:
                     type: integer
                 required:
                 - failureThreshold
-                type: object
-              vaultConfig:
-                description: VaultConfig defines the configuration for a vault PKI
-                  backend
-                properties:
-                  authRole:
-                    type: string
-                  issuePath:
-                    type: string
-                  pkiPath:
-                    type: string
-                  userStore:
-                    type: string
-                required:
-                - authRole
-                - issuePath
-                - pkiPath
-                - userStore
                 type: object
               zkAddresses:
                 description: ZKAddresses specifies the ZooKeeper connection string

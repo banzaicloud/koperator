@@ -26,7 +26,6 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/pki/certmanagerpki"
 	"github.com/banzaicloud/koperator/pkg/pki/k8scsrpki"
-	"github.com/banzaicloud/koperator/pkg/pki/vaultpki"
 	"github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
@@ -46,9 +45,6 @@ func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBacke
 	// Use cert-manager for pki backend
 	case v1beta1.PKIBackendCertManager:
 		return certmanagerpki.New(client, cluster)
-	// Use vault for pki backend
-	case v1beta1.PKIBackendVault:
-		return vaultpki.New(client, cluster)
 	// Use k8s csr api for pki backend
 	case v1beta1.PKIBackendK8sCSR:
 		return k8scsrpki.New(client, cluster, log)

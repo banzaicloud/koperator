@@ -37,7 +37,7 @@ type KafkaUserSpec struct {
 
 type PKIBackendSpec struct {
 	IssuerRef *cmmeta.ObjectReference `json:"issuerRef,omitempty"`
-	// +kubebuilder:validation:Enum={"cert-manager","vault","k8s-csr"}
+	// +kubebuilder:validation:Enum={"cert-manager","k8s-csr"}
 	PKIBackend string `json:"pkiBackend"`
 	// SignerName indicates requested signer, and is a qualified name.
 	SignerName string `json:"signerName,omitempty"`
