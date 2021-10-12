@@ -359,7 +359,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "0",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "1"
+						"/path-from-default/kafka": "0"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",

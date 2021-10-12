@@ -301,11 +301,6 @@ func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Log
 
 		size := resource.NewQuantity(tmpDec.UnscaledBig().Int64(), q.Format).Value()
 
-		if size < 1 {
-			log.Error(errors.New("invalid storage config"), "Storage size must be at least 1MB")
-			size = 1
-		}
-
 		logDir := util.StorageConfigKafkaMountPath(storageConfig.MountPath)
 
 		log.V(1).Info(fmt.Sprintf("broker log.dir %s size in MB: %d", logDir, size), "brokerId", brokerState.Id)
