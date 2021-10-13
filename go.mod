@@ -5,7 +5,6 @@ go 1.16
 require (
 	emperror.dev/errors v0.8.0
 	github.com/Shopify/sarama v1.29.1
-	github.com/banzaicloud/bank-vaults/pkg/sdk v0.7.0
 	github.com/banzaicloud/istio-client-go v0.0.10
 	github.com/banzaicloud/istio-operator/pkg/apis v0.10.5
 	github.com/banzaicloud/k8s-objectmatcher v1.5.2
@@ -17,12 +16,7 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.4.0
 	github.com/google/uuid v1.1.5 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
-	github.com/hashicorp/vault v1.8.2
-	github.com/hashicorp/vault/api v1.1.2-0.20210713235431-1fc8af4c041f
-	github.com/hashicorp/vault/sdk v0.2.2-0.20210825150427-9b1f4d486f5d
 	github.com/imdario/mergo v0.3.12
-	github.com/influxdata/influxdb v1.9.3 // indirect
 	github.com/jetstack/cert-manager v1.5.3
 	github.com/klauspost/compress v1.13.5 // indirect
 	github.com/lestrrat-go/backoff v1.0.1
@@ -32,8 +26,6 @@ require (
 	github.com/pavel-v-chernykh/keystore-go/v4 v4.1.0
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/prometheus/common v0.30.0
-	github.com/shirou/gopsutil v3.21.8+incompatible // indirect
-	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	go.uber.org/zap v1.19.0
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/net v0.0.0-20210825183410-e898025ed96a // indirect
@@ -41,7 +33,6 @@ require (
 	golang.org/x/sys v0.0.0-20210902050250-f475640dd07b // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2 // indirect
 	google.golang.org/protobuf v1.27.1
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.22.1

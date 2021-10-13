@@ -82,7 +82,6 @@ spec:
                   pkiBackend:
                     enum:
                     - cert-manager
-                    - vault
                     - k8s-csr
                     type: string
                   signerName:

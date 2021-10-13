@@ -25,7 +25,6 @@ import (
 var errorTypes = []error{
 	ResourceNotReady{},
 	APIFailure{},
-	VaultAPIFailure{},
 	StatusUpdateError{},
 	BrokersUnreachable{},
 	BrokersNotReady{},

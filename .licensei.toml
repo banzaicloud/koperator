@@ -35,7 +35,6 @@ ignored = [
   "github.com/prometheus/",
   "github.com/prometheus/client_golang",
   "gopkg.in/square/go-jose.v2",
-  "github.com/hashicorp/vault/api",
   "github.com/hashicorp/golang-lru",
   "github.com/golang/groupcache",
   "github.com/beorn7/perks",
