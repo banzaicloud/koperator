@@ -93,9 +93,17 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 							Name:  "envoy",
 							Image: ingressConfig.EnvoyConfig.GetEnvoyImage(),
 							Ports: append(exposedPorts,
-								[]corev1.ContainerPort{{Name: "envoy-admin",
-									ContainerPort: ingressConfig.EnvoyConfig.GetEnvoyAdminPort(),
-									Protocol:      corev1.ProtocolTCP},
+								[]corev1.ContainerPort{
+									{
+										Name:          "tcp-admin",
+										ContainerPort: ingressConfig.EnvoyConfig.GetEnvoyAdminPort(),
+										Protocol:      corev1.ProtocolTCP,
+									},
+									{
+										Name:          "tcp-health",
+										ContainerPort: ingressConfig.EnvoyConfig.GetEnvoyHealthCheckPort(),
+										Protocol:      corev1.ProtocolTCP,
+									},
 								}...),
 							VolumeMounts: volumeMounts,
 							Resources:    *ingressConfig.EnvoyConfig.GetResources(),

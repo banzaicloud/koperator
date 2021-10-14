@@ -87,9 +87,17 @@ func getExposedServicePorts(extListener v1beta1.ExternalListenerConfig, brokersI
 		Protocol:   corev1.ProtocolTCP,
 	})
 
+	// append envoy healthcheck port
+	exposedPorts = append(exposedPorts, corev1.ServicePort{
+		Name:       "tcp-health",
+		TargetPort: intstr.FromInt(int(ingressConfig.EnvoyConfig.GetEnvoyHealthCheckPort())),
+		Port:       ingressConfig.EnvoyConfig.GetEnvoyHealthCheckPort(),
+		Protocol:   corev1.ProtocolTCP,
+	})
+
 	// append envoy admin port
 	exposedPorts = append(exposedPorts, corev1.ServicePort{
-		Name:       "envoy-admin",
+		Name:       "tcp-admin",
 		TargetPort: intstr.FromInt(int(ingressConfig.EnvoyConfig.GetEnvoyAdminPort())),
 		Port:       ingressConfig.EnvoyConfig.GetEnvoyAdminPort(),
 		Protocol:   corev1.ProtocolTCP,

@@ -31,4 +31,5 @@ const (
 	EnvoyDeploymentName               = "envoy-%s-%s"
 	EnvoyDeploymentNameWithScope      = "envoy-%s-%s-%s"
 	AllBrokerEnvoyConfigName          = "all-brokers"
+	HealthCheckPath                   = "/healthcheck"
 )

@@ -416,6 +416,11 @@ func (in *EnvoyConfig) DeepCopyInto(out *EnvoyConfig) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.HealthCheckPort != nil {
+		in, out := &in.HealthCheckPort, &out.HealthCheckPort
+		*out = new(int32)
+		**out = **in
+	}
 	if in.DisruptionBudget != nil {
 		in, out := &in.DisruptionBudget, &out.DisruptionBudget
 		*out = new(DisruptionBudgetWithStrategy)
