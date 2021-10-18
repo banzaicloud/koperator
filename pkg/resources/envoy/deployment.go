@@ -83,11 +83,12 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 						defaultIngressConfigName, log),
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: ingressConfig.EnvoyConfig.GetServiceAccount(),
-					ImagePullSecrets:   ingressConfig.EnvoyConfig.GetImagePullSecrets(),
-					Tolerations:        ingressConfig.EnvoyConfig.GetTolerations(),
-					NodeSelector:       ingressConfig.EnvoyConfig.GetNodeSelector(),
-					Affinity:           ingressConfig.EnvoyConfig.GetAffinity(),
+					ServiceAccountName:        ingressConfig.EnvoyConfig.GetServiceAccount(),
+					ImagePullSecrets:          ingressConfig.EnvoyConfig.GetImagePullSecrets(),
+					Tolerations:               ingressConfig.EnvoyConfig.GetTolerations(),
+					NodeSelector:              ingressConfig.EnvoyConfig.GetNodeSelector(),
+					Affinity:                  ingressConfig.EnvoyConfig.GetAffinity(),
+					TopologySpreadConstraints: ingressConfig.EnvoyConfig.GetTopologySpreadConstaints(),
 					Containers: []corev1.Container{
 						{
 							Name:  "envoy",
