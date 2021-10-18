@@ -238,12 +238,16 @@ type EnvoyConfig struct {
 	Image     string                       `json:"image,omitempty"`
 	Resources *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
 	// +kubebuilder:validation:Minimum=1
-	Replicas           int32                         `json:"replicas,omitempty"`
-	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`
-	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	Affinity           *corev1.Affinity              `json:"affinity,omitempty"`
-	NodeSelector       map[string]string             `json:"nodeSelector,omitempty"`
-	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
+	Replicas int32 `json:"replicas,omitempty"`
+	// ServiceAccountName is the name of service account
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+	// ImagePullSecrets for the envoy image pull
+	ImagePullSecrets          []corev1.LocalObjectReference     `json:"imagePullSecrets,omitempty"`
+	Affinity                  *corev1.Affinity                  `json:"affinity,omitempty"`
+	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+	// NodeSelector is the node selector expression for envoy pods
+	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
+	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 	// Annotations defines the annotations placed on the envoy ingress controller deployment
 	Annotations              map[string]string `json:"annotations,omitempty"`
 	LoadBalancerSourceRanges []string          `json:"loadBalancerSourceRanges,omitempty"`
@@ -648,6 +652,11 @@ func (eConfig *EnvoyConfig) GetNodeSelector() map[string]string {
 //GetAffinity returns the Affinity config for envoy
 func (eConfig *EnvoyConfig) GetAffinity() *corev1.Affinity {
 	return eConfig.Affinity
+}
+
+//GetTopologySpreadConstaints returns the Affinity config for envoy
+func (eConfig *EnvoyConfig) GetTopologySpreadConstaints() []corev1.TopologySpreadConstraint {
+	return eConfig.TopologySpreadConstraints
 }
 
 //GetNodeSelector returns the node selector for the given broker
