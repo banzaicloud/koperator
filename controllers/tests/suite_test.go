@@ -41,7 +41,6 @@ import (
 	ginkoconfig "github.com/onsi/ginkgo/config"
 
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8sscheme "k8s.io/client-go/kubernetes/scheme"
@@ -109,7 +108,6 @@ var _ = BeforeSuite(func() {
 	scheme := runtime.NewScheme()
 
 	Expect(k8sscheme.AddToScheme(scheme)).To(Succeed())
-	Expect(apiextensionsv1beta1.AddToScheme(scheme)).To(Succeed())
 	Expect(apiv1.AddToScheme(scheme)).To(Succeed())
 	Expect(cmv1.AddToScheme(scheme)).To(Succeed())
 	Expect(banzaicloudv1alpha1.AddToScheme(scheme)).To(Succeed())
@@ -193,7 +191,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
 
-	crd := &apiextensionsv1beta1.CustomResourceDefinition{}
+	crd := &apiv1.CustomResourceDefinition{}
 
 	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkaclusters.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
