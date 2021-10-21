@@ -150,7 +150,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 									PvcSpec: &v1.PersistentVolumeClaimSpec{
 										Resources: v1.ResourceRequirements{
 											Requests: v1.ResourceList{
-												"storage": quantity,
+												v1.ResourceStorage: quantity,
 											},
 										},
 									},
@@ -187,7 +187,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 										PvcSpec: &v1.PersistentVolumeClaimSpec{
 											Resources: v1.ResourceRequirements{
 												Requests: v1.ResourceList{
-													"storage": quantity,
+													v1.ResourceStorage: quantity,
 												},
 											},
 										},
@@ -277,7 +277,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 									PvcSpec: &v1.PersistentVolumeClaimSpec{
 										Resources: v1.ResourceRequirements{
 											Requests: v1.ResourceList{
-												"storage": oneMiQuantity,
+												v1.ResourceStorage: oneMiQuantity,
 											},
 										},
 									},
@@ -335,7 +335,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 									PvcSpec: &v1.PersistentVolumeClaimSpec{
 										Resources: v1.ResourceRequirements{
 											Requests: v1.ResourceList{
-												"storage": quantity,
+												v1.ResourceStorage: quantity,
 											},
 										},
 									},
@@ -369,7 +369,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 										PvcSpec: &v1.PersistentVolumeClaimSpec{
 											Resources: v1.ResourceRequirements{
 												Requests: v1.ResourceList{
-													"storage": quantity,
+													v1.ResourceStorage: quantity,
 												},
 											},
 										},
@@ -488,7 +488,7 @@ func TestReturnErrorStorageConfigLessThan1MB(t *testing.T) {
 							PvcSpec: &v1.PersistentVolumeClaimSpec{
 								Resources: v1.ResourceRequirements{
 									Requests: v1.ResourceList{
-										"storage": fiveHundredKiQuantity,
+										v1.ResourceStorage: fiveHundredKiQuantity,
 									},
 								},
 							},
