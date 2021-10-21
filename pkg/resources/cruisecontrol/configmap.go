@@ -15,13 +15,15 @@
 package cruisecontrol
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
 	"strconv"
 
+	"emperror.dev/errors"
+
 	"github.com/go-logr/logr"
 	"gopkg.in/inf.v0"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
@@ -31,7 +33,6 @@ import (
 	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 	zookeeperutils "github.com/banzaicloud/koperator/pkg/util/zookeeper"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
-	"k8s.io/apimachinery/pkg/api/resource"
 
 	corev1 "k8s.io/api/core/v1"
 )
