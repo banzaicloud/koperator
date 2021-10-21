@@ -17,6 +17,8 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/imdario/mergo v0.3.12
+	github.com/jcmturner/gokrb5/v8 v8.4.2 // indirect
+	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jetstack/cert-manager v1.5.3
 	github.com/lestrrat-go/backoff v1.0.1
 	github.com/mattn/go-isatty v0.0.13 // indirect
