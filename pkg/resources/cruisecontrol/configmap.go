@@ -288,20 +288,28 @@ func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 	// Get disks from the BrokerConfigGroup if it's in use
 	if brokerState.BrokerConfigGroup != "" {
 		brokerConfigGroup := kafkaClusterSpec.BrokerConfigGroups[brokerState.BrokerConfigGroup]
-		err = parseMountPathWithSize(brokerConfigGroup, log, brokerState, brokerDisks)
+		parseMountPathWithSize(brokerConfigGroup, log, brokerState, brokerDisks)
 	}
 
 	//Get disks from the BrokerConfig itself
 	if brokerState.BrokerConfig != nil {
-		err = parseMountPathWithSize(*brokerState.BrokerConfig, log, brokerState, brokerDisks)
+		parseMountPathWithSize(*brokerState.BrokerConfig, log, brokerState, brokerDisks)
+	}
+
+	for _, sizeStr := range brokerDisks {
+		size, err := strconv.Atoi(sizeStr)
+		if err != nil {
+			return brokerDisks, err
+		}
+		if size < 1 {
+			return brokerDisks, errors.New("broker storage capacity size must be at least 1MB")
+		}
 	}
 
 	return brokerDisks, err
 }
 
-func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Logger, brokerState v1beta1.Broker, brokerDisks map[string]string) error {
-	var err error
-
+func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Logger, brokerState v1beta1.Broker, brokerDisks map[string]string) {
 	for _, storageConfig := range brokerConfigGroup.StorageConfigs {
 		q := util.QuantityPointer(storageConfig.PvcSpec.Resources.Requests["storage"])
 
@@ -309,17 +317,10 @@ func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Log
 		tmpDec.Round(q.AsDec(), -1*inf.Scale(resource.Mega), inf.RoundDown)
 
 		size := resource.NewQuantity(tmpDec.UnscaledBig().Int64(), q.Format).Value()
-
-		if size < 1 {
-			return errors.New("broker storage capacity size must be at least 1MB")
-		}
-
 		logDir := util.StorageConfigKafkaMountPath(storageConfig.MountPath)
 
 		log.V(1).Info(fmt.Sprintf("broker log.dir %s size in MB: %d", logDir, size), "brokerId", brokerState.Id)
 
 		brokerDisks[logDir] = fmt.Sprintf("%d", size)
 	}
-
-	return err
 }
