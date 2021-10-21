@@ -122,11 +122,6 @@ spec:
           secret:
             secretName: {{ .Values.webhook.certs.secret }}
       {{- end }}
-      {{- if .Values.operator.vaultSecret }}
-        - name: {{ .Values.operator.vaultSecret }}
-          secret:
-            secretName: {{ .Values.operator.vaultSecret }}
-      {{- end }}
       {{- if .Values.additionalVolumes }}
       {{- include "chart.additionalVolumes" . | nindent 8 }}
       {{- end }}
@@ -186,14 +181,6 @@ spec:
           {{- if .Values.additionalEnv }}
           {{ toYaml .Values.additionalEnv | nindent 12 }}
           {{- end }}
-          {{- if .Values.operator.vaultAddress }}
-            - name: VAULT_ADDR
-              value: {{ .Values.operator.vaultAddress }}
-          {{- end }}
-          {{- if .Values.operator.vaultSecret }}
-            - name: VAULT_CACERT
-              value: /etc/vault/certs/ca.crt
-          {{- end }}
           ports:
           {{- if .Values.webhook.enabled }}
             - containerPort: {{ .Values.webhook.serverPort | default 443 }}
@@ -210,11 +197,6 @@ spec:
           {{- if .Values.webhook.enabled }}
             - mountPath: {{ (.Values.webhook.tls).certDir | default "/etc/webhook/certs" }}
               name: serving-cert
-              readOnly: true
-          {{- end }}
-          {{- if .Values.operator.vaultSecret }}
-            - mountPath: /etc/vault/certs
-              name: {{ .Values.operator.vaultSecret }}
               readOnly: true
           {{- end }}
           resources:

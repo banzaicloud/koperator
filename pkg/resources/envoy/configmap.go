@@ -17,12 +17,18 @@ package envoy
 import (
 	"fmt"
 
+	envoyaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoycluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoylistener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoyroute "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoystdoutaccesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
+	envoyhttphealthcheck "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/health_check/v3"
+	envoyhcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoytcpproxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	envoytypes "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/ghodss/yaml"
 	"github.com/go-logr/logr"
@@ -35,6 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/resources/kafka"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
 	"github.com/banzaicloud/koperator/pkg/util"
 	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
@@ -75,6 +82,115 @@ func generateAnyCastAddressValue(kc *v1beta1.KafkaCluster) string {
 		kafkautils.AllBrokerServiceTemplate+".%s.svc.%s", kc.GetName(), kc.GetNamespace(), kc.Spec.GetKubernetesClusterDomain())
 }
 
+func generateEnvoyHealthCheckListener(ingressConfig v1beta1.IngressConfig, log logr.Logger) *envoylistener.Listener {
+	// health-check http listener
+	stdoutAccessLog := &envoystdoutaccesslog.StdoutAccessLog{}
+	pbstStdoutAccessLog, err := anypb.New(stdoutAccessLog)
+	if err != nil {
+		log.Error(err, "could not marshall envoy health-check stdoutAccessLog config")
+		return nil
+	}
+	healtCheckConfig := &envoyhttphealthcheck.HealthCheck{
+		PassThroughMode: wrapperspb.Bool(false),
+		ClusterMinHealthyPercentages: map[string]*envoytypes.Percent{
+			envoyutils.AllBrokerEnvoyConfigName: {Value: float64(1)},
+		},
+		Headers: []*envoyroute.HeaderMatcher{
+			{
+				Name: ":path",
+				HeaderMatchSpecifier: &envoyroute.HeaderMatcher_ExactMatch{
+					ExactMatch: envoyutils.HealthCheckPath,
+				},
+			},
+		},
+	}
+	pbstHealthCheckConfig, err := anypb.New(healtCheckConfig)
+	if err != nil {
+		log.Error(err, "could not marshall envoy stdoutAccessLog config")
+		return nil
+	}
+
+	healthCheckFilter := &envoyhcm.HttpConnectionManager{
+		StatPrefix: fmt.Sprintf("%s-healthcheck", envoyutils.AllBrokerEnvoyConfigName),
+		RouteSpecifier: &envoyhcm.HttpConnectionManager_RouteConfig{
+			RouteConfig: &envoyroute.RouteConfiguration{
+				Name: "local",
+				VirtualHosts: []*envoyroute.VirtualHost{
+					{
+						Name:    "localhost",
+						Domains: []string{"*"},
+						Routes: []*envoyroute.Route{
+							{
+								Match: &envoyroute.RouteMatch{
+									PathSpecifier: &envoyroute.RouteMatch_Prefix{
+										Prefix: "/",
+									},
+								},
+								Action: &envoyroute.Route_Redirect{
+									Redirect: &envoyroute.RedirectAction{
+										PathRewriteSpecifier: &envoyroute.RedirectAction_PathRedirect{
+											PathRedirect: envoyutils.HealthCheckPath,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		HttpFilters: []*envoyhcm.HttpFilter{
+			{
+				Name: wellknown.HealthCheck,
+				ConfigType: &envoyhcm.HttpFilter_TypedConfig{
+					TypedConfig: pbstHealthCheckConfig,
+				},
+			},
+			{
+				Name: wellknown.Router,
+			},
+		},
+		AccessLog: []*envoyaccesslog.AccessLog{
+			{
+				Name: "envoy.access_loggers.stdout",
+				ConfigType: &envoyaccesslog.AccessLog_TypedConfig{
+					TypedConfig: pbstStdoutAccessLog,
+				},
+			},
+		},
+	}
+	pbstHealthCheckFilter, err := anypb.New(healthCheckFilter)
+	if err != nil {
+		log.Error(err, "could not marshall envoy healthCheckFilter config")
+		return nil
+	}
+	return &envoylistener.Listener{
+		Address: &envoycore.Address{
+			Address: &envoycore.Address_SocketAddress{
+				SocketAddress: &envoycore.SocketAddress{
+					Address: "0.0.0.0",
+					PortSpecifier: &envoycore.SocketAddress_PortValue{
+						PortValue: uint32(ingressConfig.EnvoyConfig.GetEnvoyHealthCheckPort()),
+					},
+				},
+			},
+		},
+		FilterChains: []*envoylistener.FilterChain{
+			{
+				Filters: []*envoylistener.Filter{
+					{
+						Name: wellknown.HTTPConnectionManager,
+						ConfigType: &envoylistener.Filter_TypedConfig{
+							TypedConfig: pbstHealthCheckFilter,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// GenerateEnvoyConfig generate envoy configuration file
 func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalListenerConfig, ingressConfig v1beta1.IngressConfig,
 	ingressConfigName, defaultIngressConfigName string, log logr.Logger) string {
 	adminConfig := envoybootstrap.Admin{
@@ -102,7 +218,8 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
 			// TCP_Proxy filter configuration
 			tcpProxy := &envoytcpproxy.TcpProxy{
-				StatPrefix: fmt.Sprintf("broker_tcp-%d", brokerId),
+				StatPrefix:         fmt.Sprintf("broker_tcp-%d", brokerId),
+				MaxConnectAttempts: &wrapperspb.UInt32Value{Value: 2},
 				ClusterSpecifier: &envoytcpproxy.TcpProxy_Cluster{
 					Cluster: fmt.Sprintf("broker-%d", brokerId),
 				},
@@ -191,7 +308,8 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 
 	// TCP_Proxy filter configuration
 	tcpProxy := &envoytcpproxy.TcpProxy{
-		StatPrefix: envoyutils.AllBrokerEnvoyConfigName,
+		StatPrefix:         envoyutils.AllBrokerEnvoyConfigName,
+		MaxConnectAttempts: &wrapperspb.UInt32Value{Value: 2},
 		ClusterSpecifier: &envoytcpproxy.TcpProxy_Cluster{
 			Cluster: envoyutils.AllBrokerEnvoyConfigName,
 		},
@@ -226,9 +344,34 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 		},
 	})
 
+	// health-check http listener
+	healthCheckListener := generateEnvoyHealthCheckListener(ingressConfig, log)
+	if healthCheckListener == nil {
+		return ""
+	}
+	listeners = append(listeners, healthCheckListener)
+
 	clusters = append(clusters, &envoycluster.Cluster{
-		Name:                 envoyutils.AllBrokerEnvoyConfigName,
-		ConnectTimeout:       &durationpb.Duration{Seconds: 1},
+		Name:                      envoyutils.AllBrokerEnvoyConfigName,
+		ConnectTimeout:            &durationpb.Duration{Seconds: 1},
+		IgnoreHealthOnHostRemoval: true,
+		HealthChecks: []*envoycore.HealthCheck{
+			{
+				Interval:           &durationpb.Duration{Seconds: 5},
+				Timeout:            &durationpb.Duration{Seconds: 1},
+				NoTrafficInterval:  &durationpb.Duration{Seconds: 5},
+				UnhealthyInterval:  &durationpb.Duration{Seconds: 2},
+				IntervalJitter:     &durationpb.Duration{Seconds: 1},
+				UnhealthyThreshold: wrapperspb.UInt32(2),
+				HealthyThreshold:   wrapperspb.UInt32(1),
+				EventLogPath:       "/dev/stdout",
+				HealthChecker: &envoycore.HealthCheck_HttpHealthCheck_{
+					HttpHealthCheck: &envoycore.HealthCheck_HttpHealthCheck{
+						Path: kafka.MetricsHealthCheck,
+					},
+				},
+			},
+		},
 		ClusterDiscoveryType: &envoycluster.Cluster_Type{Type: envoycluster.Cluster_STRICT_DNS},
 		LbPolicy:             envoycluster.Cluster_ROUND_ROBIN,
 		// disable circuit breakingL:
@@ -257,6 +400,9 @@ func GenerateEnvoyConfig(kc *v1beta1.KafkaCluster, elistener v1beta1.ExternalLis
 				LbEndpoints: []*envoyendpoint.LbEndpoint{{
 					HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 						Endpoint: &envoyendpoint.Endpoint{
+							HealthCheckConfig: &envoyendpoint.Endpoint_HealthCheckConfig{
+								PortValue: uint32(kafka.MetricsPort),
+							},
 							Address: &envoycore.Address{
 								Address: &envoycore.Address_SocketAddress{
 									SocketAddress: &envoycore.SocketAddress{

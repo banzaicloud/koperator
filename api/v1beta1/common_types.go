@@ -115,8 +115,6 @@ func (r SecurityProtocol) Equal(s SecurityProtocol) bool {
 const (
 	// PKIBackendCertManager invokes cert-manager for user certificate management
 	PKIBackendCertManager PKIBackend = "cert-manager"
-	// PKIBackendVault invokes vault PKI for user certificate management
-	PKIBackendVault PKIBackend = "vault"
 	// PKIBackendProvided used to point the operator to use the PKI set in the cluster CR
 	// for admin and users required for the cluster to run
 	PKIBackendProvided PKIBackend = "pki-backend-provided"

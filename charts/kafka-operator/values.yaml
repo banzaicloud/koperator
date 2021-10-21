@@ -14,10 +14,6 @@ operator:
     repository: ghcr.io/banzaicloud/kafka-operator
     tag: ""
     pullPolicy: IfNotPresent
-  vaultAddress: ""
-  # vaultSecret containing a `ca.crt` key with the Vault CA Certificate
-  vaultSecret: ""
-  # set of namespaces where the operator watches resources
   namespaces: ""
   verboseLogging: false
   developmentLogging: false

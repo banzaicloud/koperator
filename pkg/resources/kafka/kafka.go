@@ -65,9 +65,10 @@ const (
 	clientKeystoreVolume = "client-ks-files"
 	clientKeystorePath   = "/var/run/secrets/java.io/keystores/client"
 
-	jmxVolumePath = "/opt/jmx-exporter/"
-	jmxVolumeName = "jmx-jar-data"
-	metricsPort   = 9020
+	jmxVolumePath      = "/opt/jmx-exporter/"
+	jmxVolumeName      = "jmx-jar-data"
+	MetricsHealthCheck = "/-/healthy"
+	MetricsPort        = 9020
 )
 
 // Reconciler implements the Component Reconciler
@@ -132,21 +133,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName, "clusterName", r.KafkaCluster.Name, "clusterNamespace", r.KafkaCluster.Namespace)
 
 	log.V(1).Info("Reconciling")
-
-	//TODO remove this in a future release (baluchicken)
-	// this is only required to keep backward compatibility
-	var brokerIdWithDeprecatedStatus []string
-	for bId, bStatus := range r.KafkaCluster.Status.BrokersState {
-		if bStatus.GracefulActionState.CruiseControlState == "GracefulUpdateNotRequired" {
-			brokerIdWithDeprecatedStatus = append(brokerIdWithDeprecatedStatus, bId)
-		}
-	}
-	statusErr := k8sutil.UpdateBrokerStatus(r.Client, brokerIdWithDeprecatedStatus, r.KafkaCluster,
-		v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded}, log)
-
-	if statusErr != nil {
-		return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating deprecated status failed")
-	}
 
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
 		o := r.headlessService()

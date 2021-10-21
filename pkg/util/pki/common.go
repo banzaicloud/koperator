@@ -87,13 +87,8 @@ type UserCertificate struct {
 	CA          []byte
 	Certificate []byte
 	Key         []byte
-
-	// Serial is used by vault backend for certificate revocations
-	Serial string
-	// jks and password are used by vault backend for passing jks info between itself
-	// the cert-manager backend passes it through the k8s secret
-	JKS      []byte
-	Password []byte
+	JKS         []byte
+	Password    []byte
 }
 
 // DN returns the Distinguished Name of a TLS certificate

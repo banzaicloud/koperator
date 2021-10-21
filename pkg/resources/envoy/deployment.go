@@ -83,19 +83,28 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 						defaultIngressConfigName, log),
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: ingressConfig.EnvoyConfig.GetServiceAccount(),
-					ImagePullSecrets:   ingressConfig.EnvoyConfig.GetImagePullSecrets(),
-					Tolerations:        ingressConfig.EnvoyConfig.GetTolerations(),
-					NodeSelector:       ingressConfig.EnvoyConfig.GetNodeSelector(),
-					Affinity:           ingressConfig.EnvoyConfig.GetAffinity(),
+					ServiceAccountName:        ingressConfig.EnvoyConfig.GetServiceAccount(),
+					ImagePullSecrets:          ingressConfig.EnvoyConfig.GetImagePullSecrets(),
+					Tolerations:               ingressConfig.EnvoyConfig.GetTolerations(),
+					NodeSelector:              ingressConfig.EnvoyConfig.GetNodeSelector(),
+					Affinity:                  ingressConfig.EnvoyConfig.GetAffinity(),
+					TopologySpreadConstraints: ingressConfig.EnvoyConfig.GetTopologySpreadConstaints(),
 					Containers: []corev1.Container{
 						{
 							Name:  "envoy",
 							Image: ingressConfig.EnvoyConfig.GetEnvoyImage(),
 							Ports: append(exposedPorts,
-								[]corev1.ContainerPort{{Name: "envoy-admin",
-									ContainerPort: ingressConfig.EnvoyConfig.GetEnvoyAdminPort(),
-									Protocol:      corev1.ProtocolTCP},
+								[]corev1.ContainerPort{
+									{
+										Name:          "tcp-admin",
+										ContainerPort: ingressConfig.EnvoyConfig.GetEnvoyAdminPort(),
+										Protocol:      corev1.ProtocolTCP,
+									},
+									{
+										Name:          "tcp-health",
+										ContainerPort: ingressConfig.EnvoyConfig.GetEnvoyHealthCheckPort(),
+										Protocol:      corev1.ProtocolTCP,
+									},
 								}...),
 							VolumeMounts: volumeMounts,
 							Resources:    *ingressConfig.EnvoyConfig.GetResources(),

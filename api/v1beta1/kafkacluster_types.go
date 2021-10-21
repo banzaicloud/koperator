@@ -39,8 +39,10 @@ const (
 	DefaultServiceAccountName = "default"
 	// DefaultAnyCastPort kafka anycast port that can be used by clients for metadata queries
 	DefaultAnyCastPort = 29092
+	// DefaultEnvoyHealthCheckPort envoy health check port
+	DefaultEnvoyHealthCheckPort = 8080
 	// DefaultEnvoyAdminPort envoy admin port
-	DefaultEnvoyAdminPort = 9901
+	DefaultEnvoyAdminPort = 8081
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
@@ -70,7 +72,6 @@ type KafkaClusterSpec struct {
 	CruiseControlConfig CruiseControlConfig `json:"cruiseControlConfig"`
 	EnvoyConfig         EnvoyConfig         `json:"envoyConfig,omitempty"`
 	MonitoringConfig    MonitoringConfig    `json:"monitoringConfig,omitempty"`
-	VaultConfig         VaultConfig         `json:"vaultConfig,omitempty"`
 	AlertManagerConfig  *AlertManagerConfig `json:"alertManagerConfig,omitempty"`
 	IstioIngressConfig  IstioIngressConfig  `json:"istioIngressConfig,omitempty"`
 	// Envs defines environment variables for Kafka broker Pods.
@@ -237,12 +238,16 @@ type EnvoyConfig struct {
 	Image     string                       `json:"image,omitempty"`
 	Resources *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
 	// +kubebuilder:validation:Minimum=1
-	Replicas           int32                         `json:"replicas,omitempty"`
-	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`
-	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	Affinity           *corev1.Affinity              `json:"affinity,omitempty"`
-	NodeSelector       map[string]string             `json:"nodeSelector,omitempty"`
-	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
+	Replicas int32 `json:"replicas,omitempty"`
+	// ServiceAccountName is the name of service account
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+	// ImagePullSecrets for the envoy image pull
+	ImagePullSecrets          []corev1.LocalObjectReference     `json:"imagePullSecrets,omitempty"`
+	Affinity                  *corev1.Affinity                  `json:"affinity,omitempty"`
+	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+	// NodeSelector is the node selector expression for envoy pods
+	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
+	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 	// Annotations defines the annotations placed on the envoy ingress controller deployment
 	Annotations              map[string]string `json:"annotations,omitempty"`
 	LoadBalancerSourceRanges []string          `json:"loadBalancerSourceRanges,omitempty"`
@@ -250,6 +255,8 @@ type EnvoyConfig struct {
 	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
 	// Envoy admin port
 	AdminPort *int32 `json:"adminPort,omitempty"`
+	// Envoy health-check port
+	HealthCheckPort *int32 `json:"healthCheckPort,omitempty"`
 	// DisruptionBudget is the pod disruption budget attached to Envoy Deployment(s)
 	DisruptionBudget *DisruptionBudgetWithStrategy `json:"disruptionBudget,omitempty"`
 }
@@ -338,7 +345,7 @@ type SSLSecrets struct {
 	JKSPasswordName string                  `json:"jksPasswordName"`
 	Create          bool                    `json:"create,omitempty"`
 	IssuerRef       *cmmeta.ObjectReference `json:"issuerRef,omitempty"`
-	// +kubebuilder:validation:Enum={"cert-manager","vault"}
+	// +kubebuilder:validation:Enum={"cert-manager"}
 	PKIBackend PKIBackend `json:"pkiBackend,omitempty"`
 }
 
@@ -346,14 +353,6 @@ type SSLSecrets struct {
 // Would be another good use-case for a pre-admission hook
 // E.g. TLSSecretName and JKSPasswordName are only required if Create is false
 // Or heck, do we even want to bother supporting an imported PKI?
-
-// VaultConfig defines the configuration for a vault PKI backend
-type VaultConfig struct {
-	AuthRole  string `json:"authRole"`
-	PKIPath   string `json:"pkiPath"`
-	IssuePath string `json:"issuePath"`
-	UserStore string `json:"userStore"`
-}
 
 // AlertManagerConfig defines configuration for alert manager
 type AlertManagerConfig struct {
@@ -655,6 +654,11 @@ func (eConfig *EnvoyConfig) GetAffinity() *corev1.Affinity {
 	return eConfig.Affinity
 }
 
+//GetTopologySpreadConstaints returns the Affinity config for envoy
+func (eConfig *EnvoyConfig) GetTopologySpreadConstaints() []corev1.TopologySpreadConstraint {
+	return eConfig.TopologySpreadConstraints
+}
+
 //GetNodeSelector returns the node selector for the given broker
 func (bConfig *BrokerConfig) GetNodeSelector() map[string]string {
 	return bConfig.NodeSelector
@@ -769,6 +773,14 @@ func (eConfig *EnvoyConfig) GetEnvoyAdminPort() int32 {
 		return *eConfig.AdminPort
 	}
 	return DefaultEnvoyAdminPort
+}
+
+// GetEnvoyHealthCheckPort returns the envoy admin port
+func (eConfig *EnvoyConfig) GetEnvoyHealthCheckPort() int32 {
+	if eConfig.HealthCheckPort != nil {
+		return *eConfig.HealthCheckPort
+	}
+	return DefaultEnvoyHealthCheckPort
 }
 
 // GetCCImage returns the used Cruise Control image

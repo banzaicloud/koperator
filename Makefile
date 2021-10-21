@@ -6,21 +6,21 @@ TAG ?= $(shell git describe --tags --abbrev=0 --match 'v[0-9].*[0-9].*[0-9]' 2>/
 IMG ?= ghcr.io/banzaicloud/kafka-operator:$(TAG)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
+CRD_OPTIONS ?= "crd"
 
 RELEASE_TYPE ?= p
 RELEASE_MSG ?= "operator release"
 
 REL_TAG = $(shell ./scripts/increment_version.sh -${RELEASE_TYPE} ${TAG})
 
-GOLANGCI_VERSION = 1.41.1
+GOLANGCI_VERSION = 1.42.1
 LICENSEI_VERSION = 0.2.0
 GOPROXY=https://proxy.golang.org
 
-CONTROLLER_GEN_VERSION = v0.6.1
+CONTROLLER_GEN_VERSION = v0.7.0
 CONTROLLER_GEN = $(PWD)/bin/controller-gen
 
-ENVTEST_K8S_VERSION = 1.21.x
+ENVTEST_K8S_VERSION = 1.22.x
 
 KUSTOMIZE_BASE = config/overlays/specific-manager-version
 
