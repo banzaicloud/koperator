@@ -454,7 +454,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 
 		t.Run(test.testName, func(t *testing.T) {
 			var actual CapacityConfig
-			_, rawStringActual := GenerateCapacityConfig(&test.kafkaCluster, log.NullLogger{}, nil)
+			rawStringActual, _ := GenerateCapacityConfig(&test.kafkaCluster, log.NullLogger{}, nil)
 			err := json.Unmarshal([]byte(rawStringActual), &actual)
 			if err != nil {
 				t.Error(err, "could not unmarshal actual json")
@@ -505,7 +505,7 @@ func TestReturnErrorStorageConfigLessThan1MB(t *testing.T) {
 		},
 	}
 
-	err, _ := GenerateCapacityConfig(&kafkaCluster, log.NullLogger{}, nil)
+	_, err := GenerateCapacityConfig(&kafkaCluster, log.NullLogger{}, nil)
 
 	if err == nil {
 		t.Error("Expected error to be thrown when storage config < 1MB")
@@ -831,7 +831,7 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 				},
 			}
 			var actual JBODInvariantCapacityConfig
-			_, rawStringActual := GenerateCapacityConfig(&kafkaCluster, log.NullLogger{}, nil)
+			rawStringActual, _ := GenerateCapacityConfig(&kafkaCluster, log.NullLogger{}, nil)
 			err := json.Unmarshal([]byte(rawStringActual), &actual)
 			if err != nil {
 				t.Error(err, "could not unmarshal actual json")

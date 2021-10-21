@@ -15,8 +15,8 @@
 package cruisecontrol
 
 import (
+	"emperror.dev/errors"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -134,7 +134,7 @@ type JBODInvariantCapacityConfig struct {
 }
 
 // generateCapacityConfig generates a CC capacity config with default values or returns the manually overridden value if it exists
-func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, config *corev1.ConfigMap) (error, string) {
+func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, config *corev1.ConfigMap) (string, error) {
 	var err error
 
 	log.Info("Generating capacity config")
@@ -144,26 +144,25 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 		userProvidedCapacityConfig := kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
 		updatedProvidedCapacityConfig := ensureContainsDefaultBrokerCapacity([]byte(userProvidedCapacityConfig), log)
 		if updatedProvidedCapacityConfig != nil {
-			return err, string(updatedProvidedCapacityConfig)
+			return string(updatedProvidedCapacityConfig), err
 		}
-		return err, userProvidedCapacityConfig
+		return userProvidedCapacityConfig, err
 	}
 	// During cluster downscale the CR does not contain data for brokers being downscaled which is
 	// required to generate the proper capacity json for CC so we are reusing the old one.
 	// We can only remove brokers from capacity config when they were removed (pods deleted) from CC as well.
 	if config != nil {
 		if data, ok := config.Data["capacity.json"]; ok {
-			return err, data
+			return data, err
 		}
 	}
 
 	capacityConfig := CapacityConfig{}
 
 	for _, broker := range kafkaCluster.Spec.Brokers {
-		err, brokerDisks := generateBrokerDisks(broker, kafkaCluster.Spec, log)
+		brokerDisks, err := generateBrokerDisks(broker, kafkaCluster.Spec, log)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Could not generate broker disks config for broker %d", broker.Id))
-			return err, ""
+			return "", errors.WrapIfWithDetails(err, "could not generate broker disks config for broker", "brokerID", broker.Id)
 		}
 		brokerCapacity := BrokerCapacity{
 			BrokerID: fmt.Sprintf("%d", broker.Id),
@@ -190,7 +189,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	}
 	log.Info(fmt.Sprintf("Generated capacity config was successful with values: %s", result))
 
-	return err, string(result)
+	return string(result), err
 }
 
 func ensureContainsDefaultBrokerCapacity(data []byte, log logr.Logger) []byte {
@@ -282,7 +281,7 @@ func generateBrokerCPU(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClus
 	return strconv.Itoa(int(brokerConfig.GetResources().Limits.Cpu().ScaledValue(-2)))
 }
 
-func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) (error, map[string]string) {
+func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) (map[string]string, error) {
 	var err error
 	brokerDisks := map[string]string{}
 
@@ -297,7 +296,7 @@ func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 		err = parseMountPathWithSize(*brokerState.BrokerConfig, log, brokerState, brokerDisks)
 	}
 
-	return err, brokerDisks
+	return brokerDisks, err
 }
 
 func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Logger, brokerState v1beta1.Broker, brokerDisks map[string]string) error {
@@ -312,9 +311,7 @@ func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Log
 		size := resource.NewQuantity(tmpDec.UnscaledBig().Int64(), q.Format).Value()
 
 		if size < 1 {
-			err = errors.New("invalid storage config")
-			log.Error(err, "Storage size must be at least 1MB")
-			return err
+			return errors.New("broker storage capacity size must be at least 1MB")
 		}
 
 		logDir := util.StorageConfigKafkaMountPath(storageConfig.MountPath)
