@@ -19,7 +19,11 @@ import (
 	"fmt"
 	"strconv"
 
+	"emperror.dev/errors"
+
 	"github.com/go-logr/logr"
+	"gopkg.in/inf.v0"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
@@ -32,6 +36,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 )
+
+const MinLogDirSizeInMB = int64(1)
 
 func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logger) runtime.Object {
 	ccConfig := properties.NewProperties()
@@ -131,7 +137,9 @@ type JBODInvariantCapacityConfig struct {
 }
 
 // generateCapacityConfig generates a CC capacity config with default values or returns the manually overridden value if it exists
-func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, config *corev1.ConfigMap) string {
+func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, config *corev1.ConfigMap) (string, error) {
+	var err error
+
 	log.Info("Generating capacity config")
 
 	// If there is already a config added manually, use that one
@@ -139,26 +147,30 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 		userProvidedCapacityConfig := kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
 		updatedProvidedCapacityConfig := ensureContainsDefaultBrokerCapacity([]byte(userProvidedCapacityConfig), log)
 		if updatedProvidedCapacityConfig != nil {
-			return string(updatedProvidedCapacityConfig)
+			return string(updatedProvidedCapacityConfig), err
 		}
-		return userProvidedCapacityConfig
+		return userProvidedCapacityConfig, err
 	}
 	// During cluster downscale the CR does not contain data for brokers being downscaled which is
 	// required to generate the proper capacity json for CC so we are reusing the old one.
 	// We can only remove brokers from capacity config when they were removed (pods deleted) from CC as well.
 	if config != nil {
 		if data, ok := config.Data["capacity.json"]; ok {
-			return data
+			return data, err
 		}
 	}
 
 	capacityConfig := CapacityConfig{}
 
 	for _, broker := range kafkaCluster.Spec.Brokers {
+		brokerDisks, err := generateBrokerDisks(broker, kafkaCluster.Spec, log)
+		if err != nil {
+			return "", errors.WrapIfWithDetails(err, "could not generate broker disks config for broker", "brokerID", broker.Id)
+		}
 		brokerCapacity := BrokerCapacity{
 			BrokerID: fmt.Sprintf("%d", broker.Id),
 			Capacity: Capacity{
-				DISK:  generateBrokerDisks(broker, kafkaCluster.Spec, log),
+				DISK:  brokerDisks,
 				CPU:   generateBrokerCPU(broker, kafkaCluster.Spec, log),
 				NWIN:  generateBrokerNetworkIn(broker, kafkaCluster.Spec, log),
 				NWOUT: generateBrokerNetworkOut(broker, kafkaCluster.Spec, log),
@@ -180,7 +192,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	}
 	log.Info(fmt.Sprintf("Generated capacity config was successful with values: %s", result))
 
-	return string(result)
+	return string(result), err
 }
 
 func ensureContainsDefaultBrokerCapacity(data []byte, log logr.Logger) []byte {
@@ -224,7 +236,7 @@ func generateDefaultBrokerCapacity() BrokerCapacity {
 		BrokerID: "-1",
 		Capacity: Capacity{
 			DISK: map[string]string{
-				"/kafka-logs/kafka": "10737418240",
+				"/kafka-logs/kafka": "10737",
 			},
 			CPU:   "100",
 			NWIN:  "125000",
@@ -272,31 +284,48 @@ func generateBrokerCPU(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClus
 	return strconv.Itoa(int(brokerConfig.GetResources().Limits.Cpu().ScaledValue(-2)))
 }
 
-func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) map[string]string {
-	brokerDisks := map[string]string{}
+func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) (map[string]string, error) {
+	storageConfigs := make(map[string]v1beta1.StorageConfig)
 
 	// Get disks from the BrokerConfigGroup if it's in use
 	if brokerState.BrokerConfigGroup != "" {
-		brokerConfigGroup := kafkaClusterSpec.BrokerConfigGroups[brokerState.BrokerConfigGroup]
-		parseMountPathWithSize(brokerConfigGroup, log, brokerState, brokerDisks)
+		if b, ok := kafkaClusterSpec.BrokerConfigGroups[brokerState.BrokerConfigGroup]; ok {
+			for _, c := range b.StorageConfigs {
+				storageConfigs[c.MountPath] = c
+			}
+		}
 	}
 
-	//Get disks from the BrokerConfig itself
+	// Get disks from the BrokerConfig itself
 	if brokerState.BrokerConfig != nil {
-		parseMountPathWithSize(*brokerState.BrokerConfig, log, brokerState, brokerDisks)
+		for _, c := range brokerState.BrokerConfig.StorageConfigs {
+			storageConfigs[c.MountPath] = c
+		}
 	}
 
-	return brokerDisks
-}
+	// Generate log dir configuration
+	logDirs := make(map[string]string, len(storageConfigs))
+	for path, conf := range storageConfigs {
+		size := parseMountPathWithSize(conf)
+		log.V(1).Info(fmt.Sprintf("broker log.dir %s size in MB: %d", path, size), "brokerId", brokerState.Id)
 
-func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Logger, brokerState v1beta1.Broker, brokerDisks map[string]string) {
-	for _, storageConfig := range brokerConfigGroup.StorageConfigs {
-		int64Value, isConvertible := util.QuantityPointer(storageConfig.PvcSpec.Resources.Requests["storage"]).AsInt64()
-		if !isConvertible {
-			log.Info("Could not convert 'storage' quantity to Int64 in brokerConfig for broker",
-				"brokerId", brokerState.Id)
+		if size < MinLogDirSizeInMB {
+			return nil, errors.Errorf("broker log.dir %s size is %dMB which is less than the minimum %dMB",
+				path, size, MinLogDirSizeInMB)
 		}
 
-		brokerDisks[storageConfig.MountPath+"/kafka"] = strconv.FormatInt(int64Value, 10)
+		logDir := util.StorageConfigKafkaMountPath(path)
+		logDirs[logDir] = fmt.Sprintf("%d", size)
 	}
+
+	return logDirs, nil
+}
+
+func parseMountPathWithSize(storage v1beta1.StorageConfig) int64 {
+	q := util.QuantityPointer(storage.PvcSpec.Resources.Requests["storage"])
+
+	var tmpDec = inf.NewDec(0, 0)
+	tmpDec.Round(q.AsDec(), -1*inf.Scale(resource.Mega), inf.RoundDown)
+
+	return resource.NewQuantity(tmpDec.UnscaledBig().Int64(), q.Format).Value()
 }

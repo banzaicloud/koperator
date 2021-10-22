@@ -118,7 +118,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					)
 				}
 			}
-			capacityConfig := GenerateCapacityConfig(r.KafkaCluster, log, config)
+			capacityConfig, err := GenerateCapacityConfig(r.KafkaCluster, log, config)
+			if err != nil {
+				return errors.WrapIf(err, "failed to generate capacity config")
+			}
 
 			o = r.configMap(clientPass, capacityConfig, log)
 			err = k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)

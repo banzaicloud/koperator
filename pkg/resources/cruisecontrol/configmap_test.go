@@ -29,6 +29,7 @@ import (
 //nolint:funlen
 func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 	quantity, _ := resource.ParseQuantity("10Gi")
+	oneMiQuantity, _ := resource.ParseQuantity("1Mi")
 	cpuQuantity, _ := resource.ParseQuantity("2000m")
 
 	testCases := []struct {
@@ -149,7 +150,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 									PvcSpec: &v1.PersistentVolumeClaimSpec{
 										Resources: v1.ResourceRequirements{
 											Requests: v1.ResourceList{
-												"storage": quantity,
+												v1.ResourceStorage: quantity,
 											},
 										},
 									},
@@ -186,7 +187,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 										PvcSpec: &v1.PersistentVolumeClaimSpec{
 											Resources: v1.ResourceRequirements{
 												Requests: v1.ResourceList{
-													"storage": quantity,
+													v1.ResourceStorage: quantity,
 												},
 											},
 										},
@@ -204,7 +205,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "0",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "200",
 					   "NW_IN": "125000",
@@ -216,7 +217,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "1",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -228,7 +229,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "2",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -240,8 +241,8 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "3",
 					  "capacity": {
 					   "DISK": {
-						"/path1/kafka": "10737418240",
-						"/path-from-default/kafka": "10737418240"
+						"/path1/kafka": "10737",
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -253,7 +254,65 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "-1",
 					  "capacity": {
 					   "DISK": {
-						"/kafka-logs/kafka": "10737418240"
+						"/kafka-logs/kafka": "10737"
+					   },
+					   "CPU": "100",
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
+					  },
+					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 }
+					]
+                  }`,
+		},
+		{
+			testName: "generate correct capacity config when storage config is specified as 1Mi ",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+						"default": {
+							StorageConfigs: []v1beta1.StorageConfig{
+								{
+									MountPath: "/path-from-default",
+									PvcSpec: &v1.PersistentVolumeClaimSpec{
+										Resources: v1.ResourceRequirements{
+											Requests: v1.ResourceList{
+												v1.ResourceStorage: oneMiQuantity,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Brokers: []v1beta1.Broker{
+						{
+							Id:                0,
+							BrokerConfigGroup: "default",
+						},
+					},
+				},
+			},
+			expectedConfiguration: `
+				  {
+					"brokerCapacities": [
+                      {
+					  "brokerId": "0",
+					  "capacity": {
+					   "DISK": {
+						"/path-from-default/kafka": "1"
+					   },
+					   "CPU": "150",
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
+					  },
+					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 },
+					 {
+					  "brokerId": "-1",
+					  "capacity": {
+					   "DISK": {
+						"/kafka-logs/kafka": "10737"
 					   },
 					   "CPU": "100",
 					   "NW_IN": "125000",
@@ -276,7 +335,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 									PvcSpec: &v1.PersistentVolumeClaimSpec{
 										Resources: v1.ResourceRequirements{
 											Requests: v1.ResourceList{
-												"storage": quantity,
+												v1.ResourceStorage: quantity,
 											},
 										},
 									},
@@ -310,7 +369,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 										PvcSpec: &v1.PersistentVolumeClaimSpec{
 											Resources: v1.ResourceRequirements{
 												Requests: v1.ResourceList{
-													"storage": quantity,
+													v1.ResourceStorage: quantity,
 												},
 											},
 										},
@@ -327,7 +386,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "0",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -339,7 +398,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "1",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -351,7 +410,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "2",
 					  "capacity": {
 					   "DISK": {
-						"/path-from-default/kafka": "10737418240"
+						"/path-from-default/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "125000",
@@ -363,7 +422,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "3",
 					  "capacity": {
 					   "DISK": {
-						"/path1/kafka": "10737418240"
+						"/path1/kafka": "10737"
 					   },
 					   "CPU": "150",
 					   "NW_IN": "200",
@@ -375,7 +434,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					  "brokerId": "-1",
 					  "capacity": {
 					   "DISK": {
-						"/kafka-logs/kafka": "10737418240"
+						"/kafka-logs/kafka": "10737"
 					   },
 					   "CPU": "100",
 					   "NW_IN": "125000",
@@ -395,9 +454,10 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 
 		t.Run(test.testName, func(t *testing.T) {
 			var actual CapacityConfig
-			err := json.Unmarshal([]byte(GenerateCapacityConfig(&test.kafkaCluster, log.NullLogger{}, nil)), &actual)
+			rawStringActual, _ := GenerateCapacityConfig(&test.kafkaCluster, log.NullLogger{}, nil)
+			err := json.Unmarshal([]byte(rawStringActual), &actual)
 			if err != nil {
-				t.Error(err, "could not actual unmarshal json")
+				t.Error(err, "could not unmarshal actual json")
 			}
 
 			var expected CapacityConfig
@@ -410,6 +470,45 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 				t.Error("Expected:", expected, ", got:", actual)
 			}
 		})
+	}
+}
+
+//nolint:fulen
+func TestReturnErrorStorageConfigLessThan1MB(t *testing.T) {
+	//return error when storage config is specified as 500Ki
+
+	fiveHundredKiQuantity, _ := resource.ParseQuantity("500Ki")
+	kafkaCluster := v1beta1.KafkaCluster{
+		Spec: v1beta1.KafkaClusterSpec{
+			BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+				"default": {
+					StorageConfigs: []v1beta1.StorageConfig{
+						{
+							MountPath: "/path-from-default",
+							PvcSpec: &v1.PersistentVolumeClaimSpec{
+								Resources: v1.ResourceRequirements{
+									Requests: v1.ResourceList{
+										v1.ResourceStorage: fiveHundredKiQuantity,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Brokers: []v1beta1.Broker{
+				{
+					Id:                0,
+					BrokerConfigGroup: "default",
+				},
+			},
+		},
+	}
+
+	_, err := GenerateCapacityConfig(&kafkaCluster, log.NullLogger{}, nil)
+
+	if err == nil {
+		t.Error("Expected error to be thrown when storage config < 1MB")
 	}
 }
 
@@ -475,7 +574,7 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 					{
 					  "brokerId": "-1",
 					  "capacity": {
-						"DISK": {"/kafka-logs/kafka": "10737418240"},
+						"DISK": {"/kafka-logs/kafka": "10737"},
 						"CPU": "100",
 						"NW_IN": "125000",
 						"NW_OUT": "125000"
@@ -613,7 +712,7 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 					{
 					  "brokerId": "-1",
 					  "capacity": {
-						"DISK": {"/kafka-logs/kafka": "10737418240"},
+						"DISK": {"/kafka-logs/kafka": "10737"},
 						"CPU": "100",
 						"NW_IN": "125000",
 						"NW_OUT": "125000"
@@ -732,9 +831,10 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 				},
 			}
 			var actual JBODInvariantCapacityConfig
-			err := json.Unmarshal([]byte(GenerateCapacityConfig(&kafkaCluster, log.NullLogger{}, nil)), &actual)
+			rawStringActual, _ := GenerateCapacityConfig(&kafkaCluster, log.NullLogger{}, nil)
+			err := json.Unmarshal([]byte(rawStringActual), &actual)
 			if err != nil {
-				t.Error(err, "could not actual unmarshal json")
+				t.Error(err, "could not unmarshal actual json")
 			}
 
 			var expected JBODInvariantCapacityConfig

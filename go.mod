@@ -17,6 +17,8 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/imdario/mergo v0.3.12
+	github.com/jcmturner/gokrb5/v8 v8.4.2 // indirect
+	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jetstack/cert-manager v1.5.3
 	github.com/lestrrat-go/backoff v1.0.1
 	github.com/mattn/go-isatty v0.0.13 // indirect
@@ -30,6 +32,7 @@ require (
 	golang.org/x/sys v0.0.0-20211015200801-69063c4bb744 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	google.golang.org/protobuf v1.27.1
+	gopkg.in/inf.v0 v0.9.1 // indirect
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.22.2
 	k8s.io/apiextensions-apiserver v0.22.2
