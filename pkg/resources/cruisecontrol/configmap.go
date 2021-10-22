@@ -25,6 +25,8 @@ import (
 	"gopkg.in/inf.v0"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
@@ -32,7 +34,6 @@ import (
 	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 	zookeeperutils "github.com/banzaicloud/koperator/pkg/util/zookeeper"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
-	"k8s.io/apimachinery/pkg/api/resource"
 
 	corev1 "k8s.io/api/core/v1"
 )
