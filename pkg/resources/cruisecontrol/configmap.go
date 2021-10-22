@@ -15,10 +15,11 @@
 package cruisecontrol
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"emperror.dev/errors"
 
 	"github.com/go-logr/logr"
 	"gopkg.in/inf.v0"
@@ -35,6 +36,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 )
+
+const MinLogDirSizeInMB = int64(1)
 
 func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logger) runtime.Object {
 	ccConfig := properties.NewProperties()
@@ -282,45 +285,47 @@ func generateBrokerCPU(broker v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClus
 }
 
 func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.KafkaClusterSpec, log logr.Logger) (map[string]string, error) {
-	var err error
-	brokerDisks := map[string]string{}
+	storageConfigs := make(map[string]v1beta1.StorageConfig)
 
 	// Get disks from the BrokerConfigGroup if it's in use
 	if brokerState.BrokerConfigGroup != "" {
-		brokerConfigGroup := kafkaClusterSpec.BrokerConfigGroups[brokerState.BrokerConfigGroup]
-		parseMountPathWithSize(brokerConfigGroup, log, brokerState, brokerDisks)
+		if b, ok := kafkaClusterSpec.BrokerConfigGroups[brokerState.BrokerConfigGroup]; ok {
+			for _, c := range b.StorageConfigs {
+				storageConfigs[c.MountPath] = c
+			}
+		}
 	}
 
-	//Get disks from the BrokerConfig itself
+	// Get disks from the BrokerConfig itself
 	if brokerState.BrokerConfig != nil {
-		parseMountPathWithSize(*brokerState.BrokerConfig, log, brokerState, brokerDisks)
-	}
-
-	for _, sizeStr := range brokerDisks {
-		size, err := strconv.Atoi(sizeStr)
-		if err != nil {
-			return brokerDisks, err
-		}
-		if size < 1 {
-			return brokerDisks, errors.New("broker storage capacity size must be at least 1MB")
+		for _, c := range brokerState.BrokerConfig.StorageConfigs {
+			storageConfigs[c.MountPath] = c
 		}
 	}
 
-	return brokerDisks, err
+	// Generate log dir configuration
+	logDirs := make(map[string]string, len(storageConfigs))
+	for path, conf := range storageConfigs {
+		size := parseMountPathWithSize(conf)
+		log.V(1).Info(fmt.Sprintf("broker log.dir %s size in MB: %d", path, size), "brokerId", brokerState.Id)
+
+		if size < MinLogDirSizeInMB {
+			return nil, errors.Errorf("broker log.dir %s size is %dMB which is less than the minimum %dMB",
+				path, size, MinLogDirSizeInMB)
+		}
+
+		logDir := util.StorageConfigKafkaMountPath(path)
+		logDirs[logDir] = fmt.Sprintf("%d", size)
+	}
+
+	return logDirs, nil
 }
 
-func parseMountPathWithSize(brokerConfigGroup v1beta1.BrokerConfig, log logr.Logger, brokerState v1beta1.Broker, brokerDisks map[string]string) {
-	for _, storageConfig := range brokerConfigGroup.StorageConfigs {
-		q := util.QuantityPointer(storageConfig.PvcSpec.Resources.Requests["storage"])
+func parseMountPathWithSize(storage v1beta1.StorageConfig) int64 {
+	q := util.QuantityPointer(storage.PvcSpec.Resources.Requests["storage"])
 
-		var tmpDec = inf.NewDec(0, 0)
-		tmpDec.Round(q.AsDec(), -1*inf.Scale(resource.Mega), inf.RoundDown)
+	var tmpDec = inf.NewDec(0, 0)
+	tmpDec.Round(q.AsDec(), -1*inf.Scale(resource.Mega), inf.RoundDown)
 
-		size := resource.NewQuantity(tmpDec.UnscaledBig().Int64(), q.Format).Value()
-		logDir := util.StorageConfigKafkaMountPath(storageConfig.MountPath)
-
-		log.V(1).Info(fmt.Sprintf("broker log.dir %s size in MB: %d", logDir, size), "brokerId", brokerState.Id)
-
-		brokerDisks[logDir] = fmt.Sprintf("%d", size)
-	}
+	return resource.NewQuantity(tmpDec.UnscaledBig().Int64(), q.Format).Value()
 }
