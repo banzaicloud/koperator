@@ -56,7 +56,7 @@ The documentation of the Koperator project is available at the [Banzai Cloud Doc
 
 ### Community support
 
-If you encounter problems while using Koperator that the documentation does not address, [open an issue](https://github.com/banzaicloud/koperator/issues) or talk to us on the Banzai Cloud Slack channel [#kafka-operator](https://pages.banzaicloud.com/invite-slack).
+If you encounter problems while using Koperator that the documentation does not address, [open an issue](https://github.com/banzaicloud/koperator/issues) or talk to us on the Banzai Cloud Slack channel [#kafka-operator](https://banzaicloud.com/invite-slack/).
 
 ### Commercial support
 
