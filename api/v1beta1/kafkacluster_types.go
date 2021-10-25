@@ -115,7 +115,7 @@ type DisruptionBudget struct {
 // DisruptionBudgetWithStrategy defines the configuration for PodDisruptionBudget where the workload is managed by an external controller (eg. Deployments)
 type DisruptionBudgetWithStrategy struct {
 	// PodDisruptionBudget default settings
-	DisruptionBudget DisruptionBudget `json:",inline"`
+	DisruptionBudget `json:",inline"`
 	// The strategy to be used, either minAvailable or maxUnavailable
 	// +kubebuilder:validation:Enum=minAvailable;maxUnavailable
 	Stategy string `json:"strategy,omitempty"`
