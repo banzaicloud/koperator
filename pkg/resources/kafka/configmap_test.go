@@ -55,7 +55,7 @@ func TestGenerateBrokerConfig(t *testing.T) {
 			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
-cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.bootstrap.servers=localhost:9092
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
@@ -76,7 +76,7 @@ zookeeper.connect=example.zk:2181/`,
 			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
-cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.bootstrap.servers=localhost:9092
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
@@ -97,7 +97,7 @@ zookeeper.connect=example.zk:2181/kafka`,
 			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
-cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.bootstrap.servers=localhost:9092
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
@@ -118,7 +118,7 @@ zookeeper.connect=example.zk:2181/`,
 			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
-cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.bootstrap.servers=localhost:9092
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
@@ -144,7 +144,7 @@ zookeeper.connect=example.zk:2181,example.zk-1:2181/kafka`,
 			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
-cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.bootstrap.servers=localhost:9092
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
@@ -166,7 +166,7 @@ zookeeper.connect=example.zk:2181/`,
 			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.foo.bar:9092
 broker.id=0
-cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.foo.bar:9092
+cruise.control.metrics.reporter.bootstrap.servers=localhost:9092
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
@@ -197,7 +197,7 @@ auto.create.topics.enable=true
 auto.create.topics.enable=true
 broker.id=0
 control.plane.listener.name=thisisatest
-cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.bootstrap.servers=localhost:9092
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
@@ -218,7 +218,7 @@ zookeeper.connect=example.zk:2181/`,
 			listenerType:              "sasl_plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
-cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.bootstrap.servers=localhost:9092
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:SASL_PLAINTEXT

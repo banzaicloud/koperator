@@ -165,7 +165,7 @@ func expectKafkaBrokerConfigmap(kafkaCluster *v1beta1.KafkaCluster, broker v1bet
 	Expect(configMap.Data).To(HaveKeyWithValue("broker-config", fmt.Sprintf(`advertised.listeners=CONTROLLER://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29092,TEST://test.host.com:%d
 broker.id=%d
 control.plane.listener.name=CONTROLLER
-cruise.control.metrics.reporter.bootstrap.servers=kafkacluster-1-all-broker.kafka-1.svc.cluster.local:29092
+cruise.control.metrics.reporter.bootstrap.servers=localhost:29092
 cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:PLAINTEXT
