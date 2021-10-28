@@ -43,6 +43,8 @@ const (
 	DefaultEnvoyHealthCheckPort = 8080
 	// DefaultEnvoyAdminPort envoy admin port
 	DefaultEnvoyAdminPort = 8081
+	// DefaultBrokerTerminationGracePeriod default kafka pod termination grace period
+	DefaultBrokerTerminationGracePeriod = 120
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
@@ -179,6 +181,10 @@ type BrokerConfig struct {
 	// Adding the "+" prefix to the name prepends the value to that environment variable instead of overwriting it.
 	// Add the "+" suffix to append.
 	Envs []corev1.EnvVar `json:"envs,omitempty"`
+	// TerminationGracePeriod defines the pod termination grace period
+	// +kubebuilder:default=120
+	// +optional
+	TerminationGracePeriod *int64 `json:"terminationGracePeriodSeconds,omitempty"`
 }
 
 type NetworkConfig struct {
@@ -637,6 +643,14 @@ func (eConfig *EnvoyConfig) GetTolerations() []corev1.Toleration {
 //GetTolerations returns the tolerations for cruise control
 func (cConfig *CruiseControlConfig) GetTolerations() []corev1.Toleration {
 	return cConfig.Tolerations
+}
+
+//GetTerminationGracePeriod returns the termination grace period for the broker pod
+func (bConfig *BrokerConfig) GetTerminationGracePeriod() int64 {
+	if bConfig.TerminationGracePeriod == nil {
+		return DefaultBrokerTerminationGracePeriod
+	}
+	return *bConfig.TerminationGracePeriod
 }
 
 //GetNodeSelector returns the node selector for cruise control
