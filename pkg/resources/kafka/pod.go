@@ -108,7 +108,7 @@ rm /var/run/wait/do-not-exit-yet`}
 		),
 		Spec: corev1.PodSpec{
 			SecurityContext: brokerConfig.PodSecurityContext,
-			InitContainers:  getInitContainers(brokerConfig.InitContainers, r.KafkaCluster.Spec),
+			InitContainers:  getInitContainers(brokerConfig, r.KafkaCluster.Spec),
 			Affinity:        getAffinity(brokerConfig, r.KafkaCluster),
 			Containers: append([]corev1.Container{
 				{
@@ -181,14 +181,14 @@ fi`},
 	return pod
 }
 
-func getInitContainers(brokerConfigInitContainers []corev1.Container, kafkaClusterSpec v1beta1.KafkaClusterSpec) []corev1.Container {
-	initContainers := make([]corev1.Container, 0, len(brokerConfigInitContainers))
-	initContainers = append(initContainers, brokerConfigInitContainers...)
+func getInitContainers(brokerConfig *v1beta1.BrokerConfig, kafkaClusterSpec v1beta1.KafkaClusterSpec) []corev1.Container {
+	initContainers := make([]corev1.Container, 0, len(brokerConfig.InitContainers))
+	initContainers = append(initContainers, brokerConfig.InitContainers...)
 
 	initContainers = append(initContainers, []corev1.Container{
 		{
 			Name:    "cruise-control-reporter",
-			Image:   kafkaClusterSpec.CruiseControlConfig.GetCCImage(),
+			Image:   util.GetBrokerMetricsReporterImage(brokerConfig, kafkaClusterSpec),
 			Command: []string{"/bin/sh", "-cex", "cp -v /opt/cruise-control/cruise-control/build/dependant-libs/cruise-control-metrics-reporter.jar /opt/kafka/libs/extensions/cruise-control-metrics-reporter.jar"},
 			VolumeMounts: []corev1.VolumeMount{{
 				Name:      "extensions",

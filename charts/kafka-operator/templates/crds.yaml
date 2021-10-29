@@ -3520,6 +3520,8 @@ spec:
                     log4jConfig:
                       description: Override for the default log4j configuration
                       type: string
+                    metricsReporterImage:
+                      type: string
                     networkConfig:
                       description: Network throughput information in kB/s used by
                         Cruise Control to determine broker network capacity. By default
@@ -9353,6 +9355,8 @@ spec:
                         log4jConfig:
                           description: Override for the default log4j configuration
                           type: string
+                        metricsReporterImage:
+                          type: string
                         networkConfig:
                           description: Network throughput information in kB/s used
                             by Cruise Control to determine broker network capacity.
@@ -11677,6 +11681,8 @@ spec:
                   type: object
                 type: array
               clusterImage:
+                type: string
+              clusterMetricsReporterImage:
                 type: string
               clusterWideConfig:
                 type: string
@@ -15805,7 +15811,7 @@ spec:
                   image:
                     type: string
                   imagePullSecrets:
-                    description: ImagePullSecrets image pull secrets
+                    description: ImagePullSecrets for the envoy image pull
                     items:
                       description: LocalObjectReference contains enough information
                         to let you locate the referenced object inside the same namespace.
@@ -15827,7 +15833,8 @@ spec:
                   nodeSelector:
                     additionalProperties:
                       type: string
-                    description: NodeSelector node selector for envoy pods
+                    description: NodeSelector is the node selector expression for
+                      envoy pods
                     type: object
                   replicas:
                     format: int32
@@ -15861,7 +15868,7 @@ spec:
                         type: object
                     type: object
                   serviceAccountName:
-                    description: ServiceAccountName the name of service account
+                    description: ServiceAccountName is the name of service account
                     type: string
                   tolerations:
                     items:
@@ -17722,7 +17729,8 @@ spec:
                                       image:
                                         type: string
                                       imagePullSecrets:
-                                        description: ImagePullSecrets image pull secrets
+                                        description: ImagePullSecrets for the envoy
+                                          image pull
                                         items:
                                           description: LocalObjectReference contains
                                             enough information to let you locate the
@@ -17748,8 +17756,8 @@ spec:
                                       nodeSelector:
                                         additionalProperties:
                                           type: string
-                                        description: NodeSelector node selector for
-                                          envoy pods
+                                        description: NodeSelector is the node selector
+                                          expression for envoy pods
                                         type: object
                                       replicas:
                                         format: int32
@@ -17786,8 +17794,8 @@ spec:
                                             type: object
                                         type: object
                                       serviceAccountName:
-                                        description: ServiceAccountName the name of
-                                          service account
+                                        description: ServiceAccountName is the name
+                                          of service account
                                         type: string
                                       tolerations:
                                         items:

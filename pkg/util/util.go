@@ -326,6 +326,14 @@ func GetBrokerImage(brokerConfig *v1beta1.BrokerConfig, clusterImage string) str
 	return clusterImage
 }
 
+// GetBrokerMetricsReporterImage returns the image used for cruise-control metrics reporter
+func GetBrokerMetricsReporterImage(brokerConfig *v1beta1.BrokerConfig, kafkaClusterSpec v1beta1.KafkaClusterSpec) string {
+	if brokerConfig.MetricsReporterImage != "" {
+		return brokerConfig.MetricsReporterImage
+	}
+	return kafkaClusterSpec.GetClusterMetricsReporterImage()
+}
+
 // getRandomString returns a random string containing uppercase, lowercase and number characters with the length given
 func GetRandomString(length int) (string, error) {
 	rand.Seed(time.Now().UnixNano())
