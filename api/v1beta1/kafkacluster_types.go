@@ -54,15 +54,16 @@ type KafkaClusterSpec struct {
 	ZKAddresses []string `json:"zkAddresses"`
 	// ZKPath specifies the ZooKeeper chroot path as part
 	// of its ZooKeeper connection string which puts its data under some path in the global ZooKeeper namespace.
-	ZKPath               string                  `json:"zkPath,omitempty"`
-	RackAwareness        *RackAwareness          `json:"rackAwareness,omitempty"`
-	ClusterImage         string                  `json:"clusterImage,omitempty"`
-	ReadOnlyConfig       string                  `json:"readOnlyConfig,omitempty"`
-	ClusterWideConfig    string                  `json:"clusterWideConfig,omitempty"`
-	BrokerConfigGroups   map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
-	Brokers              []Broker                `json:"brokers"`
-	DisruptionBudget     DisruptionBudget        `json:"disruptionBudget,omitempty"`
-	RollingUpgradeConfig RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
+	ZKPath                      string                  `json:"zkPath,omitempty"`
+	RackAwareness               *RackAwareness          `json:"rackAwareness,omitempty"`
+	ClusterImage                string                  `json:"clusterImage,omitempty"`
+	ClusterMetricsReporterImage string                  `json:"clusterMetricsReporterImage,omitempty"`
+	ReadOnlyConfig              string                  `json:"readOnlyConfig,omitempty"`
+	ClusterWideConfig           string                  `json:"clusterWideConfig,omitempty"`
+	BrokerConfigGroups          map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
+	Brokers                     []Broker                `json:"brokers"`
+	DisruptionBudget            DisruptionBudget        `json:"disruptionBudget,omitempty"`
+	RollingUpgradeConfig        RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
 	// +kubebuilder:validation:Enum=envoy;istioingress
 	IngressController string `json:"ingressController,omitempty"`
 	// If true OneBrokerPerNode ensures that each kafka broker will be placed on a different node unless a custom
@@ -131,16 +132,17 @@ type Broker struct {
 
 // BrokerConfig defines the broker configuration
 type BrokerConfig struct {
-	Image              string                        `json:"image,omitempty"`
-	Config             string                        `json:"config,omitempty"`
-	StorageConfigs     []StorageConfig               `json:"storageConfigs,omitempty"`
-	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`
-	Resources          *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
-	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	NodeSelector       map[string]string             `json:"nodeSelector,omitempty"`
-	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
-	KafkaHeapOpts      string                        `json:"kafkaHeapOpts,omitempty"`
-	KafkaJVMPerfOpts   string                        `json:"kafkaJvmPerfOpts,omitempty"`
+	Image                string                        `json:"image,omitempty"`
+	MetricsReporterImage string                        `json:"metricsReporterImage,omitempty"`
+	Config               string                        `json:"config,omitempty"`
+	StorageConfigs       []StorageConfig               `json:"storageConfigs,omitempty"`
+	ServiceAccountName   string                        `json:"serviceAccountName,omitempty"`
+	Resources            *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
+	ImagePullSecrets     []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	NodeSelector         map[string]string             `json:"nodeSelector,omitempty"`
+	Tolerations          []corev1.Toleration           `json:"tolerations,omitempty"`
+	KafkaHeapOpts        string                        `json:"kafkaHeapOpts,omitempty"`
+	KafkaJVMPerfOpts     string                        `json:"kafkaJvmPerfOpts,omitempty"`
 	// Override for the default log4j configuration
 	Log4jConfig string `json:"log4jConfig,omitempty"`
 	// Custom annotations for the broker pods - e.g.: Prometheus scraping annotations:
@@ -565,6 +567,14 @@ func (kSpec *KafkaClusterSpec) GetClusterImage() string {
 		return kSpec.ClusterImage
 	}
 	return "ghcr.io/banzaicloud/kafka:2.13-2.8.1"
+}
+
+// GetClusterMetricsReporterImage returns the default container image for Kafka Cluster
+func (kSpec *KafkaClusterSpec) GetClusterMetricsReporterImage() string {
+	if kSpec.ClusterMetricsReporterImage != "" {
+		return kSpec.ClusterMetricsReporterImage
+	}
+	return kSpec.CruiseControlConfig.GetCCImage()
 }
 
 func (cTaskSpec *CruiseControlTaskSpec) GetDurationMinutes() float64 {
