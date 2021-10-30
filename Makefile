@@ -169,3 +169,16 @@ check_release:
 release: check_release
 	git tag -a ${REL_TAG} -m ${RELEASE_MSG}
 	git push origin ${REL_TAG}
+
+update-go-deps:
+	for dir in api properties .; do \
+		( \
+		echo "Updating $$dir deps"; \
+		cd $$dir; \
+		go mod tidy; \
+		for m in $$(go list -mod=readonly -m -f '{{ if and (not .Replace) (not .Indirect) (not .Main)}}{{.Path}}{{end}}' all); do \
+			go get -d $$m; \
+		done; \
+		go mod tidy \
+		) \
+	done

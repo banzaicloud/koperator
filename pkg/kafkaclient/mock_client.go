@@ -229,6 +229,10 @@ func (m *mockClusterAdmin) DescribeConfig(resource sarama.ConfigResource) ([]sar
 	return []sarama.ConfigEntry{}, nil
 }
 
+func (m *mockClusterAdmin) Controller() (*sarama.Broker, error) {
+	return &sarama.Broker{}, nil
+}
+
 func shallowCopy(original map[string]sarama.TopicDetail) map[string]sarama.TopicDetail {
 	returnMap := make(map[string]sarama.TopicDetail, len(original))
 	for k, v := range original {

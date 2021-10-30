@@ -6,11 +6,11 @@ require (
 	emperror.dev/errors v0.8.0
 	github.com/banzaicloud/istio-client-go v0.0.11
 	github.com/imdario/mergo v0.3.12
-	github.com/jetstack/cert-manager v1.4.4
+	github.com/jetstack/cert-manager v1.6.1
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.22.2
-	k8s.io/apimachinery v0.22.2
-	sigs.k8s.io/controller-runtime v0.10.2
+	k8s.io/api v0.22.4
+	k8s.io/apimachinery v0.22.4
+	sigs.k8s.io/controller-runtime v0.10.3
 )
 
 require (
@@ -24,8 +24,9 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
+	golang.org/x/net v0.0.0-20211029224645-99673261e6eb // indirect
 	golang.org/x/text v0.3.7 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/klog/v2 v2.9.0 // indirect
