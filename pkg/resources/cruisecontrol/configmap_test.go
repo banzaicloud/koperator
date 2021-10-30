@@ -473,7 +473,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 	}
 }
 
-//nolint:fulen
+//nolint:funlen
 func TestReturnErrorStorageConfigLessThan1MB(t *testing.T) {
 	//return error when storage config is specified as 500Ki
 
