@@ -174,6 +174,8 @@ func (c *k8sCSR) ReconcileUserCertificate(
 				return nil, err
 			}
 			secret.Data[v1alpha1.TLSJKSKeyStore] = jks
+			// Adding Truststore to the secret to align with the Cert Manager generated secret
+			secret.Data[v1alpha1.TLSJKSTrustStore] = jks
 			secret.Data[v1alpha1.PasswordKey] = jksPasswd
 		}
 	}
@@ -225,7 +227,7 @@ func generateCSRResource(csr []byte, name, namespace, signerName string,
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: name + "-",
 			Annotations: util.MergeAnnotations(annotation,
-				map[string]string{pkicommon.KafkaUserAnnotationName: owner.String()}),
+				map[string]string{pkicommon.KafkaUserAnnotationName: owner.String(), IncludeFullChainAnnotation: "true"}),
 		},
 		Spec: certsigningreqv1.CertificateSigningRequestSpec{
 			Request:    csr,

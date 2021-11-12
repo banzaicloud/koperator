@@ -340,7 +340,7 @@ x0eepFeUNacaeg7O1ftIrzNlYsSLi2Qm+tnu7odyxafZ65GJ9lcSLUqXuNDCrNOl
 				Expect(err).NotTo(HaveOccurred())
 			}
 			return secret.Data
-		}, 5*time.Second, 100*time.Millisecond).Should(HaveLen(5))
+		}, 5*time.Second, 100*time.Millisecond).Should(HaveLen(6))
 
 		err = k8sClient.Get(context.Background(), types.NamespacedName{
 			Name:      user.Spec.SecretName,
