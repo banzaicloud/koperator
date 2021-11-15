@@ -170,7 +170,7 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		
+
 		return true, nil
 	//Used only for testing purposes
 	case "testing":
