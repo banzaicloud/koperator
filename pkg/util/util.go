@@ -131,6 +131,27 @@ func IsSSLEnabledForInternalCommunication(l []v1beta1.InternalListenerConfig) (e
 	}
 	return enabled
 }
+func RemoveDuplicateStr(strSlice []string) []string {
+	allKeys := make(map[string]bool)
+	list := []string{}
+	for _, item := range strSlice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
+	}
+	return list
+}
+
+func IsCruiseControlMetricsNeedSSL(l []v1beta1.InternalListenerConfig, brokerPort int32) (enabled bool) {
+	for _, listener := range l {
+		if listener.ContainerPort == brokerPort && listener.Type.IsSSL() {
+			enabled = true
+			break
+		}
+	}
+	return enabled
+}
 
 // ConvertPropertiesToMapStringPointer converts a Properties object to map[string]*string
 func ConvertPropertiesToMapStringPointer(pp *properties.Properties) map[string]*string {

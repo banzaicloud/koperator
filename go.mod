@@ -10,6 +10,9 @@ require (
 	github.com/banzaicloud/k8s-objectmatcher v1.6.1
 	github.com/banzaicloud/koperator/api v0.0.0
 	github.com/banzaicloud/koperator/properties v0.1.0
+	github.com/banzaicloud/operator-tools v0.21.3 // indirect
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1 // indirect
 	github.com/envoyproxy/go-control-plane v0.10.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.4.0
@@ -19,8 +22,12 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	github.com/pavel-v-chernykh/keystore-go/v4 v4.2.0
+	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/prometheus/common v0.32.1
 	go.uber.org/zap v1.19.1
+	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1 // indirect
+	golang.org/x/sys v0.0.0-20211015200801-69063c4bb744 // indirect
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/inf.v0 v0.9.1
 	gotest.tools v2.2.0+incompatible
@@ -101,6 +108,7 @@ require (
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
+	istio.io/pkg v0.0.0-20211112173506-bca79fa408e9 // indirect
 )
 
 replace (

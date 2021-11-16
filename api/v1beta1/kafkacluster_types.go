@@ -309,10 +309,12 @@ type StorageConfig struct {
 
 //ListenersConfig defines the Kafka listener types
 type ListenersConfig struct {
-	ExternalListeners  []ExternalListenerConfig `json:"externalListeners,omitempty"`
-	InternalListeners  []InternalListenerConfig `json:"internalListeners"`
-	SSLSecrets         *SSLSecrets              `json:"sslSecrets,omitempty"`
-	ServiceAnnotations map[string]string        `json:"serviceAnnotations,omitempty"`
+	ExternalListeners []ExternalListenerConfig `json:"externalListeners,omitempty"`
+	InternalListeners []InternalListenerConfig `json:"internalListeners"`
+	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
+	ClientSSLCertSecretName string            `json:"clientSSLCertSecretName,omitempty"`
+	SSLSecrets              *SSLSecrets       `json:"sslSecrets,omitempty"`
+	ServiceAnnotations      map[string]string `json:"serviceAnnotations,omitempty"`
 }
 
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
@@ -441,6 +443,8 @@ type InternalListenerConfig struct {
 type CommonListenerSpec struct {
 	// +kubebuilder:validation:Enum=ssl;plaintext;sasl_ssl;sasl_plaintext
 	Type SecurityProtocol `json:"type"`
+	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
+	CustomSSLCertSecretName string `json:"customSSLCertSecretName,omitempty"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
 	Name          string `json:"name"`
 	ContainerPort int32  `json:"containerPort"`

@@ -16428,6 +16428,9 @@ spec:
               listenersConfig:
                 description: ListenersConfig defines the Kafka listener types
                 properties:
+                  clientSSLCertSecretName:
+                    pattern: ^[a-z0-9\-]+
+                    type: string
                   externalListeners:
                     items:
                       description: ExternalListenerConfig defines the external listener
@@ -18384,6 +18387,9 @@ spec:
                         containerPort:
                           format: int32
                           type: integer
+                        customSSLCertSecretName:
+                          pattern: ^[a-z0-9\-]+
+                          type: string
                         externalStartingPort:
                           format: int32
                           type: integer
@@ -18448,6 +18454,9 @@ spec:
                         containerPort:
                           format: int32
                           type: integer
+                        customSSLCertSecretName:
+                          pattern: ^[a-z0-9\-]+
+                          type: string
                         name:
                           pattern: ^[a-z0-9\-]+
                           type: string

@@ -280,7 +280,7 @@ zookeeper.connect=example.zk:2181/`,
 				},
 			}
 
-			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{}, map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, "", "", []string{}, logf.NullLogger{})
+			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{}, map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, nil, "", []string{}, logf.NullLogger{})
 
 			generated, err := properties.NewFromString(generatedConfig)
 			if err != nil {

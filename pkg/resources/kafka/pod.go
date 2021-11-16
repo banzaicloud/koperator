@@ -34,7 +34,7 @@ import (
 	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
-func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
+func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, listenerConfig *v1beta1.ListenersConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
 	var kafkaBrokerContainerPorts []corev1.ContainerPort
 
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
@@ -160,11 +160,11 @@ fi`},
 							Name:          "metrics",
 						},
 					}...),
-					VolumeMounts: getVolumeMounts(brokerConfig.VolumeMounts, dataVolumeMount, r.KafkaCluster.Name, hasSSLSecrets),
+					VolumeMounts: getVolumeMounts(brokerConfig.VolumeMounts, dataVolumeMount, listenerConfig, r.KafkaCluster.Name, hasSSLSecrets),
 					Resources:    *brokerConfig.GetResources(),
 				},
 			}, brokerConfig.Containers...),
-			Volumes:                       getVolumes(brokerConfig.Volumes, dataVolume, r.KafkaCluster.Name, hasSSLSecrets, id),
+			Volumes:                       getVolumes(brokerConfig.Volumes, dataVolume, listenerConfig, r.KafkaCluster.Name, hasSSLSecrets, id),
 			RestartPolicy:                 corev1.RestartPolicyNever,
 			TerminationGracePeriodSeconds: util.Int64Pointer(brokerConfig.GetTerminationGracePeriod()),
 			ImagePullSecrets:              brokerConfig.GetImagePullSecrets(),
@@ -218,7 +218,7 @@ func getInitContainers(brokerConfig *v1beta1.BrokerConfig, kafkaClusterSpec v1be
 }
 
 func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMount,
-	kafkaClusterName string, hasSSLSecrets bool) []corev1.VolumeMount {
+	listenerConfig *v1beta1.ListenersConfig, kafkaClusterName string, hasSSLSecrets bool) []corev1.VolumeMount {
 	volumeMounts := make([]corev1.VolumeMount, 0, len(brokerConfigVolumeMounts))
 	volumeMounts = append(volumeMounts, brokerConfigVolumeMounts...)
 
@@ -227,6 +227,8 @@ func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMo
 	if hasSSLSecrets {
 		volumeMounts = append(volumeMounts, generateVolumeMountForSSL()...)
 	}
+
+	volumeMounts = append(volumeMounts, generateVolumeMountForInternalListenerCerts(listenerConfig)...)
 
 	volumeMounts = append(volumeMounts, []corev1.VolumeMount{
 		{
@@ -258,7 +260,7 @@ func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMo
 	return volumeMounts
 }
 
-func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, kafkaClusterName string, hasSSLSecrets bool, id int32) []corev1.Volume {
+func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, listenersConfig *v1beta1.ListenersConfig, kafkaClusterName string, hasSSLSecrets bool, id int32) []corev1.Volume {
 	volumes := make([]corev1.Volume, 0, len(brokerConfigVolumes))
 	// clone the brokerConfig volumes
 	volumes = append(volumes, brokerConfigVolumes...)
@@ -267,6 +269,8 @@ func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, kafkaClusterNam
 	if hasSSLSecrets {
 		volumes = append(volumes, generateVolumesForSSL(kafkaClusterName)...)
 	}
+
+	volumes = append(volumes, generateVolumesForInternalListernerCerts(listenersConfig, kafkaClusterName)...)
 
 	volumes = append(volumes, []corev1.Volume{
 		{
@@ -395,6 +399,46 @@ func generateVolumesForSSL(clusterName string) []corev1.Volume {
 	}
 }
 
+func generateVolumesForInternalListernerCerts(listenerConfig *v1beta1.ListenersConfig, clusterName string) (ret []corev1.Volume) {
+	for _, internalListener := range listenerConfig.InternalListeners {
+		if internalListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
+			continue
+		}
+		secretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
+		if internalListener.CommonListenerSpec.CustomSSLCertSecretName != "" {
+			secretName = internalListener.CommonListenerSpec.CustomSSLCertSecretName
+		}
+		v := corev1.Volume{
+			Name: fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, internalListener.Name),
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName:  secretName,
+					DefaultMode: util.Int32Pointer(0644),
+				},
+			},
+		}
+		ret = append(ret, v)
+	}
+	if listenerConfig.SSLSecrets != nil || listenerConfig.ClientSSLCertSecretName != "" {
+		clientSecretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
+		if listenerConfig.ClientSSLCertSecretName != "" {
+			clientSecretName = listenerConfig.ClientSSLCertSecretName
+		}
+		VClient := corev1.Volume{
+			Name: clientKeystoreVolume,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName:  clientSecretName,
+					DefaultMode: util.Int32Pointer(0644),
+				},
+			},
+		}
+
+		ret = append(ret, VClient)
+	}
+	return ret
+}
+
 func generateVolumeMountForSSL() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
@@ -406,6 +450,27 @@ func generateVolumeMountForSSL() []corev1.VolumeMount {
 			MountPath: clientKeystorePath,
 		},
 	}
+}
+
+func generateVolumeMountForInternalListenerCerts(listenerConfig *v1beta1.ListenersConfig) (ret []corev1.VolumeMount) {
+	for _, internalListener := range listenerConfig.InternalListeners {
+		if internalListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
+			continue
+		}
+		vm := corev1.VolumeMount{
+			Name:      fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, internalListener.Name),
+			MountPath: fmt.Sprintf(iListenerServerKeyStorePathTemplate, serverKeystorePath, internalListener.CommonListenerSpec.Name),
+		}
+		ret = append(ret, vm)
+	}
+	if listenerConfig.SSLSecrets != nil || listenerConfig.ClientSSLCertSecretName != "" {
+		vMClient := corev1.VolumeMount{
+			Name:      clientKeystoreVolume,
+			MountPath: clientKeystorePath,
+		}
+		ret = append(ret, vMClient)
+	}
+	return ret
 }
 
 func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars []corev1.EnvVar) []corev1.EnvVar {

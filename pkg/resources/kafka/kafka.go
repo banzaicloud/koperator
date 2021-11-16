@@ -67,6 +67,9 @@ const (
 	clientKeystoreVolume = "client-ks-files"
 	clientKeystorePath   = "/var/run/secrets/java.io/keystores/client"
 
+	iListenerSSLCertVolumeNameTemplate  = "iListener-%s-certs"
+	iListenerServerKeyStorePathTemplate = "%s/%s"
+
 	jmxVolumePath      = "/opt/jmx-exporter/"
 	jmxVolumeName      = "jmx-jar-data"
 	MetricsHealthCheck = "/-/healthy"
@@ -195,10 +198,23 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	// We need to grab names for servers and client in case user is enabling ACLs
 	// That way we can continue to manage topics and users
-	serverPass, clientPass, superUsers, err := r.getServerAndClientDetails()
+	// serverPass, clientPass, superUsers, err := r.getServerAndClientDetails()
+	// if err != nil {
+	// 	return err
+	// }
+
+	serverPasses, superUsers, err := r.getServerPasswordKeysAndUsers()
 	if err != nil {
 		return err
 	}
+	clientPass, superUser, err := r.getClientPasswordKeyAndUser()
+	if err != nil {
+		return err
+	}
+	if superUser != "" {
+		superUsers = append(superUsers, superUser)
+	}
+	superUsers = util.RemoveDuplicateStr(superUsers)
 
 	brokersVolumes := make(map[string][]*corev1.PersistentVolumeClaim, len(r.KafkaCluster.Spec.Brokers))
 	for _, broker := range r.KafkaCluster.Spec.Brokers {
@@ -244,14 +260,14 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		var configMap *corev1.ConfigMap
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)
+			configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
 			}
 		} else if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 			if brokerState.RackAwarenessState != "" {
-				configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)
+				configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 				err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 				if err != nil {
 					return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
@@ -271,7 +287,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 		}
-		o := r.pod(broker.Id, brokerConfig, pvcs, log)
+		o := r.pod(broker.Id, brokerConfig, &r.KafkaCluster.Spec.ListenersConfig, pvcs, log)
 		err = r.reconcileKafkaPod(log, o.(*corev1.Pod), brokerConfig)
 		if err != nil {
 			return err
@@ -438,42 +454,88 @@ func arePodsAlreadyDeleted(pods []corev1.Pod, log logr.Logger) bool {
 	}
 	return true
 }
-
-func (r *Reconciler) getServerAndClientDetails() (string, string, []string, error) {
-	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets == nil {
-		return "", "", []string{}, nil
-	}
-	serverName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
-	serverSecret := &corev1.Secret{}
-	if err := r.Client.Get(context.TODO(), serverName, serverSecret); err != nil {
-		if apierrors.IsNotFound(err) {
-			return "", "", nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "server secret not ready")
+func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
+	if r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName != "" {
+		clientName := types.NamespacedName{Name: r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName, Namespace: r.KafkaCluster.Namespace}
+		clientSecret := &corev1.Secret{}
+		if err := r.Client.Get(context.TODO(), clientName, clientSecret); err != nil {
+			if apierrors.IsNotFound(err) {
+				return "", "", errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")
+			}
+			return "", "", errors.WrapIfWithDetails(err, "failed to get client secret")
 		}
-		return "", "", nil, errors.WrapIfWithDetails(err, "failed to get server secret")
-	}
-	serverPass := string(serverSecret.Data[v1alpha1.PasswordKey])
-
-	clientName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
-	clientSecret := &corev1.Secret{}
-	if err := r.Client.Get(context.TODO(), clientName, clientSecret); err != nil {
-		if apierrors.IsNotFound(err) {
-			return "", "", nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")
-		}
-		return "", "", nil, errors.WrapIfWithDetails(err, "failed to get client secret")
-	}
-	clientPass := string(clientSecret.Data[v1alpha1.PasswordKey])
-
-	superUsers := make([]string, 0)
-	for _, secret := range []*corev1.Secret{serverSecret, clientSecret} {
-		cert, err := certutil.DecodeCertificate(secret.Data[corev1.TLSCertKey])
+		cert, err := certutil.DecodeCertificate(clientSecret.Data[corev1.TLSCertKey])
 		if err != nil {
-			return "", "", nil, errors.WrapIfWithDetails(err, "failed to decode certificate")
+			return "", "", errors.WrapIfWithDetails(err, "failed to decode certificate")
 		}
-		superUsers = append(superUsers, cert.Subject.String())
+		CN := cert.Subject.String()
+		return string(clientSecret.Data[v1alpha1.PasswordKey]), CN, nil
 	}
-
-	return serverPass, clientPass, superUsers, nil
+	return "", "", nil
 }
+
+func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []string, error) {
+	pair := make(map[string]string)
+	var CNList []string
+	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
+		if iListener.Type == v1beta1.SecurityProtocolSSL {
+			secretNamespacedName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
+			if iListener.CommonListenerSpec.CustomSSLCertSecretName != "" {
+				secretNamespacedName = types.NamespacedName{Name: iListener.CommonListenerSpec.CustomSSLCertSecretName, Namespace: r.KafkaCluster.Namespace}
+			}
+			serverSecret := &corev1.Secret{}
+			if err := r.Client.Get(context.TODO(), secretNamespacedName, serverSecret); err != nil {
+				if apierrors.IsNotFound(err) {
+					return nil, nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "server secret not ready")
+				}
+				return nil, nil, errors.WrapIfWithDetails(err, "failed to get server secret")
+			}
+			pair[iListener.Name] = string(serverSecret.Data[v1alpha1.PasswordKey])
+			cert, err := certutil.DecodeCertificate(serverSecret.Data[corev1.TLSCertKey])
+			if err != nil {
+				return nil, nil, errors.WrapIfWithDetails(err, "failed to decode certificate")
+			}
+			CNList = append(CNList, cert.Subject.String())
+		}
+	}
+	return pair, CNList, nil
+}
+
+// func (r *Reconciler) getServerAndClientDetails() (string, string, []string, error) {
+// 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets == nil {
+// 		return "", "", []string{}, nil
+// 	}
+// 	serverName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
+// 	serverSecret := &corev1.Secret{}
+// 	if err := r.Client.Get(context.TODO(), serverName, serverSecret); err != nil {
+// 		if apierrors.IsNotFound(err) {
+// 			return "", "", nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "server secret not ready")
+// 		}
+// 		return "", "", nil, errors.WrapIfWithDetails(err, "failed to get server secret")
+// 	}
+// 	serverPass := string(serverSecret.Data[v1alpha1.PasswordKey])
+
+// 	clientName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
+// 	clientSecret := &corev1.Secret{}
+// 	if err := r.Client.Get(context.TODO(), clientName, clientSecret); err != nil {
+// 		if apierrors.IsNotFound(err) {
+// 			return "", "", nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")
+// 		}
+// 		return "", "", nil, errors.WrapIfWithDetails(err, "failed to get client secret")
+// 	}
+// 	clientPass := string(clientSecret.Data[v1alpha1.PasswordKey])
+
+// 	superUsers := make([]string, 0)
+// 	for _, secret := range []*corev1.Secret{serverSecret, clientSecret} {
+// 		cert, err := certutil.DecodeCertificate(secret.Data[corev1.TLSCertKey])
+// 		if err != nil {
+// 			return "", "", nil, errors.WrapIfWithDetails(err, "failed to decode certificate")
+// 		}
+// 		superUsers = append(superUsers, cert.Subject.String())
+// 	}
+
+// 	return serverPass, clientPass, superUsers, nil
+// }
 
 func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, bConfig *v1beta1.BrokerConfig) error {
 	currentPod := desiredPod.DeepCopy()

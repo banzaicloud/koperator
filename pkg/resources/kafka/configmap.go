@@ -21,6 +21,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
+	"istio.io/pkg/log"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -35,11 +36,11 @@ import (
 
 func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32,
 	extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
-	serverPass, clientPass string, superUsers []string, log logr.Logger) *properties.Properties {
+	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) *properties.Properties {
 	config := properties.NewProperties()
 
 	// Add listener configuration
-	listenerConf := generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, log)
+	listenerConf := generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, serverPasses, log)
 	config.Merge(listenerConf)
 
 	// Add listener configuration
@@ -63,38 +64,21 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, "setting zookeeper.connect parameter in broker configuration resulted an error")
 	}
 
-	// Add SSL configuration
-	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
-		if err := config.Set("ssl.keystore.location", serverKeystorePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
-			log.Error(err, "setting ssl.keystore.location parameter in broker configuration resulted an error")
-		}
-		if err := config.Set("ssl.truststore.location", serverKeystorePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
-			log.Error(err, "setting ssl.truststore.location parameter in broker configuration resulted an error")
-		}
-		if err := config.Set("ssl.keystore.password", serverPass); err != nil {
-			log.Error(err, "setting ssl.keystore.password parameter in broker configuration resulted an error")
-		}
-		if err := config.Set("ssl.truststore.password", serverPass); err != nil {
-			log.Error(err, "setting ssl.truststore.password parameter in broker configuration resulted an error")
-		}
-		if err := config.Set("ssl.client.auth", "required"); err != nil {
-			log.Error(err, "setting ssl.client.auth parameter in broker configuration resulted an error")
-		}
+	// Add Cruise Control SSL configuration
+	brokerPort, err := kafkautils.GetBrokerContainerPort(r.KafkaCluster)
 
-		// Add Cruise Control SSL configuration
-		if util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
-			if err := config.Set("cruise.control.metrics.reporter.security.protocol", "SSL"); err != nil {
-				log.Error(err, "setting cruise.control.metrics.reporter.security.protocol in broker configuration resulted an error")
-			}
-			if err := config.Set("cruise.control.metrics.reporter.ssl.truststore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
-				log.Error(err, "setting cruise.control.metrics.reporter.ssl.truststore.location in broker configuration resulted an error")
-			}
-			if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
-				log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.location parameter in broker configuration resulted an error")
-			}
-			if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.password", clientPass); err != nil {
-				log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.password parameter in broker configuration resulted an error")
-			}
+	if util.IsCruiseControlMetricsNeedSSL(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, brokerPort) {
+		if err := config.Set("cruise.control.metrics.reporter.security.protocol", "SSL"); err != nil {
+			log.Error(err, "setting cruise.control.metrics.reporter.security.protocol in broker configuration resulted an error")
+		}
+		if err := config.Set("cruise.control.metrics.reporter.ssl.truststore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
+			log.Error(err, "setting cruise.control.metrics.reporter.ssl.truststore.location in broker configuration resulted an error")
+		}
+		if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
+			log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.location parameter in broker configuration resulted an error")
+		}
+		if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.password", clientPass); err != nil {
+			log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.password parameter in broker configuration resulted an error")
 		}
 	}
 
@@ -146,7 +130,7 @@ func generateSuperUsers(users []string) (suStrings []string) {
 
 func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
 	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
-	serverPass, clientPass string, superUsers []string, log logr.Logger) *corev1.ConfigMap {
+	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) *corev1.ConfigMap {
 	brokerConf := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
@@ -157,7 +141,7 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, ext
 			r.KafkaCluster,
 		),
 		Data: map[string]string{kafkautils.ConfigPropertyName: r.generateBrokerConfig(id, brokerConfig, extListenerStatuses,
-			intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)},
+			intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)},
 	}
 	if brokerConfig.Log4jConfig != "" {
 		brokerConf.Data["log4j.properties"] = brokerConfig.Log4jConfig
@@ -212,10 +196,11 @@ func generateControlPlaneListener(iListeners []v1beta1.InternalListenerConfig) s
 	return controlPlaneListener
 }
 
-func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger) *properties.Properties {
+func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map[string]string, log logr.Logger) *properties.Properties {
 	var interBrokerListenerName string
 	var securityProtocolMapConfig []string
 	var listenerConfig []string
+	config := properties.NewProperties()
 
 	for _, iListener := range l.InternalListeners {
 		if iListener.UsedForInnerBrokerCommunication {
@@ -229,6 +214,11 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger)
 		UpperedListenerName := strings.ToUpper(iListener.Name)
 		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
+
+		// Add internal listeners SSL configuration
+		if iListener.Type == v1beta1.SecurityProtocolSSL {
+			generateInternalListenerSSLConfig(config, iListener.Name, "JKS", serverPasses)
+		}
 	}
 	for _, eListener := range l.ExternalListeners {
 		UpperedListenerType := eListener.Type.ToUpperString()
@@ -236,8 +226,6 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger)
 		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
 	}
-
-	config := properties.NewProperties()
 	if err := config.Set("listener.security.protocol.map", securityProtocolMapConfig); err != nil {
 		log.Error(err, "setting listener.security.protocol.map parameter in broker configuration resulted an error")
 	}
@@ -247,17 +235,50 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, log logr.Logger)
 	if err := config.Set("listeners", listenerConfig); err != nil {
 		log.Error(err, "setting listeners parameter in broker configuration resulted an error")
 	}
-
 	return config
+}
+
+func generateInternalListenerSSLConfig(config *properties.Properties, name string, ssLFormat string, passwordMap map[string]string) {
+	if ssLFormat == "JKS" {
+		keyStoreLocKey := fmt.Sprintf("listener.name.%s.ssl.keystore.location", name)
+		trustStoreLocKey := fmt.Sprintf("listener.name.%s.ssl.truststore.location", name)
+		keyStorePassKey := fmt.Sprintf("listener.name.%s.ssl.keystore.password", name)
+		trustStorePassKey := fmt.Sprintf("listener.name.%s.ssl.truststore.password", name)
+		clientAuthKey := fmt.Sprintf("listener.name.%s.ssl.client.auth", name)
+		certTypeKeyStoreKey := fmt.Sprintf("listener.name.%s.keystore.type", name)
+		certTypeTrustStoreKey := fmt.Sprintf("listener.name.%s.truststore.type", name)
+		namedKeystorePath := fmt.Sprintf(iListenerServerKeyStorePathTemplate, serverKeystorePath, name)
+		if err := config.Set(keyStoreLocKey, namedKeystorePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
+			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", keyStoreLocKey))
+		}
+		if err := config.Set(trustStoreLocKey, namedKeystorePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
+			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", trustStoreLocKey))
+		}
+		if err := config.Set(keyStorePassKey, passwordMap[name]); err != nil {
+			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", keyStorePassKey))
+		}
+		if err := config.Set(trustStorePassKey, passwordMap[name]); err != nil {
+			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", trustStorePassKey))
+		}
+		if err := config.Set(clientAuthKey, "required"); err != nil {
+			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", clientAuthKey))
+		}
+		if err := config.Set(certTypeKeyStoreKey, "JKS"); err != nil {
+			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", certTypeKeyStoreKey))
+		}
+		if err := config.Set(certTypeTrustStoreKey, "JKS"); err != nil {
+			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", certTypeTrustStoreKey))
+		}
+	}
 }
 
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
 	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
-	serverPass, clientPass string, superUsers []string, log logr.Logger) string {
+	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) string {
 	finalBrokerConfig := getBrokerReadOnlyConfig(id, r.KafkaCluster, log)
 
 	// Get operator generated configuration
-	opGenConf := r.getConfigProperties(brokerConfig, id, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPass, clientPass, superUsers, log)
+	opGenConf := r.getConfigProperties(brokerConfig, id, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 
 	// Merge operator generated configuration to the final one
 	if opGenConf != nil {
