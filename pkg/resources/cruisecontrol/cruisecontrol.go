@@ -145,19 +145,21 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 }
 
 func (r *Reconciler) getClientPassword() (string, error) {
-	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets == nil {
-		return "", nil
-	}
-	clientName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
-	clientSecret := &corev1.Secret{}
-	if err := r.Client.Get(context.TODO(), clientName, clientSecret); err != nil {
-		if apierrors.IsNotFound(err) {
-			return "", errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")
+	var clientPass string
+	if r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName != "" || r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
+		clientNamespacedName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
+		if r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName != "" {
+			clientNamespacedName = types.NamespacedName{Name: r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName, Namespace: r.KafkaCluster.Namespace}
 		}
-		return "", errors.WrapIfWithDetails(err, "failed to get client secret")
+		clientSecret := &corev1.Secret{}
+		if err := r.Client.Get(context.TODO(), clientNamespacedName, clientSecret); err != nil {
+			if apierrors.IsNotFound(err) {
+				return "", errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")
+			}
+			return "", errors.WrapIfWithDetails(err, "failed to get client secret")
+		}
+		clientPass = string(clientSecret.Data[v1alpha1.PasswordKey])
 	}
-	clientPass := string(clientSecret.Data[v1alpha1.PasswordKey])
-
 	return clientPass, nil
 }
 

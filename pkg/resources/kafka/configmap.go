@@ -68,6 +68,9 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	brokerPort, err := kafkautils.GetBrokerContainerPort(r.KafkaCluster)
 
 	if util.IsCruiseControlMetricsNeedSSL(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, brokerPort) {
+		if r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName == "" && r.KafkaCluster.Spec.ListenersConfig.SSLSecrets == nil {
+			log.Error(err, "setting cruise.control.metrics.reporter.security.protocol in broker configuration resulted an error")
+		}
 		if err := config.Set("cruise.control.metrics.reporter.security.protocol", "SSL"); err != nil {
 			log.Error(err, "setting cruise.control.metrics.reporter.security.protocol in broker configuration resulted an error")
 		}
@@ -214,17 +217,21 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 		UpperedListenerName := strings.ToUpper(iListener.Name)
 		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
-
 		// Add internal listeners SSL configuration
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
-			generateInternalListenerSSLConfig(config, iListener.Name, "JKS", serverPasses)
+			generateListenerSSLConfig(config, iListener.Name, "JKS", serverPasses)
 		}
 	}
+
 	for _, eListener := range l.ExternalListeners {
 		UpperedListenerType := eListener.Type.ToUpperString()
 		UpperedListenerName := strings.ToUpper(eListener.Name)
 		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
+		// Add external listeners SSL configuration
+		if eListener.Type == v1beta1.SecurityProtocolSSL {
+			generateListenerSSLConfig(config, eListener.Name, "JKS", serverPasses)
+		}
 	}
 	if err := config.Set("listener.security.protocol.map", securityProtocolMapConfig); err != nil {
 		log.Error(err, "setting listener.security.protocol.map parameter in broker configuration resulted an error")
@@ -238,15 +245,15 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 	return config
 }
 
-func generateInternalListenerSSLConfig(config *properties.Properties, name string, ssLFormat string, passwordMap map[string]string) {
+func generateListenerSSLConfig(config *properties.Properties, name string, ssLFormat string, passwordKeyMap map[string]string) {
 	if ssLFormat == "JKS" {
 		keyStoreLocKey := fmt.Sprintf("listener.name.%s.ssl.keystore.location", name)
 		trustStoreLocKey := fmt.Sprintf("listener.name.%s.ssl.truststore.location", name)
 		keyStorePassKey := fmt.Sprintf("listener.name.%s.ssl.keystore.password", name)
 		trustStorePassKey := fmt.Sprintf("listener.name.%s.ssl.truststore.password", name)
 		clientAuthKey := fmt.Sprintf("listener.name.%s.ssl.client.auth", name)
-		certTypeKeyStoreKey := fmt.Sprintf("listener.name.%s.keystore.type", name)
-		certTypeTrustStoreKey := fmt.Sprintf("listener.name.%s.truststore.type", name)
+		certTypeKeyStoreKey := fmt.Sprintf("listener.name.%s.ssl.keystore.type", name)
+		certTypeTrustStoreKey := fmt.Sprintf("listener.name.%s.ssl.truststore.type", name)
 		namedKeystorePath := fmt.Sprintf(iListenerServerKeyStorePathTemplate, serverKeystorePath, name)
 		if err := config.Set(keyStoreLocKey, namedKeystorePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
 			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", keyStoreLocKey))
@@ -254,10 +261,10 @@ func generateInternalListenerSSLConfig(config *properties.Properties, name strin
 		if err := config.Set(trustStoreLocKey, namedKeystorePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
 			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", trustStoreLocKey))
 		}
-		if err := config.Set(keyStorePassKey, passwordMap[name]); err != nil {
+		if err := config.Set(keyStorePassKey, passwordKeyMap[name]); err != nil {
 			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", keyStorePassKey))
 		}
-		if err := config.Set(trustStorePassKey, passwordMap[name]); err != nil {
+		if err := config.Set(trustStorePassKey, passwordKeyMap[name]); err != nil {
 			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", trustStorePassKey))
 		}
 		if err := config.Set(clientAuthKey, "required"); err != nil {

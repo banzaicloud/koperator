@@ -15,52 +15,18 @@
 package certmanagerpki
 
 import (
-	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/banzaicloud/koperator/api/v1alpha1"
-	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/util"
 	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
 // GetControllerTLSConfig creates a TLS config from the user secret created for
 // cruise control and manager operations
 func (c *certManager) GetControllerTLSConfig() (*tls.Config, error) {
-	config := &tls.Config{}
-	tlsKeys := &corev1.Secret{}
-	err := c.client.Get(context.TODO(),
-		types.NamespacedName{
-			Namespace: c.cluster.Namespace,
-			Name:      fmt.Sprintf(pkicommon.BrokerControllerTemplate, c.cluster.Name),
-		},
-		tlsKeys,
-	)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "controller secret not found")
-		}
-		return config, err
-	}
-	clientCert := tlsKeys.Data[corev1.TLSCertKey]
-	clientKey := tlsKeys.Data[corev1.TLSPrivateKeyKey]
-	caCert := tlsKeys.Data[v1alpha1.CoreCACertKey]
-	x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
-	if err != nil {
-		err = errorfactory.New(errorfactory.InternalError{}, err, "could not decode controller certificate")
-		return config, err
-	}
-
-	rootCAs := x509.NewCertPool()
-	rootCAs.AppendCertsFromPEM(caCert)
-
-	config.Certificates = []tls.Certificate{x509ClientCert}
-	config.RootCAs = rootCAs
-
-	return config, err
+	defaultSecretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, c.cluster.Name)
+	return util.GetControllerTLSConfig(c.client, types.NamespacedName{Name: defaultSecretName, Namespace: c.cluster.Namespace})
 }

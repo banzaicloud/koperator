@@ -41,7 +41,7 @@ func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object
 	volume = append(volume, r.KafkaCluster.Spec.CruiseControlConfig.Volumes...)
 	volumeMount = append(volumeMount, r.KafkaCluster.Spec.CruiseControlConfig.VolumeMounts...)
 
-	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
+	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil || r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName != "" && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
 	}
@@ -206,12 +206,16 @@ func GeneratePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, capacityConfig s
 }
 
 func generateVolumesForSSL(cluster *v1beta1.KafkaCluster) []corev1.Volume {
+	secretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, cluster.Name)
+	if cluster.Spec.ListenersConfig.ClientSSLCertSecretName != "" {
+		secretName = cluster.Spec.ListenersConfig.ClientSSLCertSecretName
+	}
 	return []corev1.Volume{
 		{
 			Name: keystoreVolume,
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName:  fmt.Sprintf(pkicommon.BrokerControllerTemplate, cluster.Name),
+					SecretName:  secretName,
 					DefaultMode: util.Int32Pointer(0644),
 				},
 			},

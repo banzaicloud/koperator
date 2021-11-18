@@ -15,6 +15,9 @@
 package util
 
 import (
+	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -29,11 +32,17 @@ import (
 	"github.com/imdario/mergo"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	clientCtrl "sigs.k8s.io/controller-runtime/pkg/client"
 	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
 	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
@@ -432,4 +441,38 @@ func GenerateEnvoyResourceName(resourceNameFormat string, resourceNameWithScopeF
 
 func StorageConfigKafkaMountPath(mountPath string) string {
 	return mountPath + "/kafka"
+}
+
+func GetControllerTLSConfig(client clientCtrl.Reader, secretNamespaceName types.NamespacedName) (*tls.Config, error) {
+	config := &tls.Config{}
+	tlsKeys := &corev1.Secret{}
+	err := client.Get(context.TODO(),
+		types.NamespacedName{
+			Namespace: secretNamespaceName.Namespace,
+			Name:      secretNamespaceName.Name,
+		},
+		tlsKeys,
+	)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "controller secret not found")
+		}
+		return config, err
+	}
+	clientCert := tlsKeys.Data[corev1.TLSCertKey]
+	clientKey := tlsKeys.Data[corev1.TLSPrivateKeyKey]
+	caCert := tlsKeys.Data[v1alpha1.CoreCACertKey]
+	x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
+	if err != nil {
+		err = errorfactory.New(errorfactory.InternalError{}, err, "could not decode controller certificate")
+		return config, err
+	}
+
+	rootCAs := x509.NewCertPool()
+	rootCAs.AppendCertsFromPEM(caCert)
+
+	config.Certificates = []tls.Certificate{x509ClientCert}
+	config.RootCAs = rootCAs
+
+	return config, err
 }
