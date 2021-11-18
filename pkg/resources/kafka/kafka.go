@@ -62,7 +62,6 @@ const (
 	brokerConfigMapVolumeMount = "broker-config"
 	kafkaDataVolumeMount       = "kafka-data"
 
-	serverKeystoreVolume = "server-ks-files"
 	serverKeystorePath   = "/var/run/secrets/java.io/keystores/server"
 	clientKeystoreVolume = "client-ks-files"
 	clientKeystorePath   = "/var/run/secrets/java.io/keystores/client"
@@ -481,12 +480,15 @@ func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
 func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []string, error) {
 	pair := make(map[string]string)
 	var CNList []string
-	var globSSLPass string
+	var globKeyPass string
+	serverSecret := &corev1.Secret{}
 	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
-			if iListener.CommonListenerSpec.CustomSSLCertSecretName != "" {
-				secretNamespacedName := types.NamespacedName{Name: iListener.CommonListenerSpec.CustomSSLCertSecretName, Namespace: r.KafkaCluster.Namespace}
-				serverSecret := &corev1.Secret{}
+			secretNamespacedName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
+			if iListener.CustomSSLCertSecretName != "" {
+				secretNamespacedName = types.NamespacedName{Name: iListener.CommonListenerSpec.CustomSSLCertSecretName, Namespace: r.KafkaCluster.Namespace}
+			}
+			if globKeyPass == "" || iListener.CustomSSLCertSecretName != "" {
 				if err := r.Client.Get(context.TODO(), secretNamespacedName, serverSecret); err != nil {
 					if apierrors.IsNotFound(err) {
 						return nil, nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "server secret not ready")
@@ -494,34 +496,19 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 					return nil, nil, errors.WrapIfWithDetails(err, "failed to get server secret")
 				}
 				pair[iListener.Name] = string(serverSecret.Data[v1alpha1.PasswordKey])
-				if iListener.UsedForControllerCommunication || iListener.UsedForInnerBrokerCommunication {
-					cert, err := certutil.DecodeCertificate(serverSecret.Data[corev1.TLSCertKey])
-					if err != nil {
-						return nil, nil, errors.WrapIfWithDetails(err, "failed to decode certificate")
-					}
-					CNList = append(CNList, cert.Subject.String())
+			}
+			if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
+				if globKeyPass == "" {
+					globKeyPass = string(serverSecret.Data[v1alpha1.PasswordKey])
 				}
-			} else if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
-				// We get secret only once than we used the globSSL pass for the listeners
-				if globSSLPass == "" {
-					secretNamespacedName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
-					serverSecret := &corev1.Secret{}
-					if err := r.Client.Get(context.TODO(), secretNamespacedName, serverSecret); err != nil {
-						if apierrors.IsNotFound(err) {
-							return nil, nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "server secret not ready")
-						}
-						return nil, nil, errors.WrapIfWithDetails(err, "failed to get server secret")
-					}
-					globSSLPass = string(serverSecret.Data[v1alpha1.PasswordKey])
-					cert, err := certutil.DecodeCertificate(serverSecret.Data[corev1.TLSCertKey])
-					if err != nil {
-						return nil, nil, errors.WrapIfWithDetails(err, "failed to decode certificate")
-					}
-					CNList = append(CNList, cert.Subject.String())
+				pair[iListener.Name] = globKeyPass
+			}
+			if iListener.UsedForControllerCommunication || iListener.UsedForInnerBrokerCommunication {
+				cert, err := certutil.DecodeCertificate(serverSecret.Data[corev1.TLSCertKey])
+				if err != nil {
+					return nil, nil, errors.WrapIfWithDetails(err, "failed to decode certificate")
 				}
-				pair[iListener.Name] = globSSLPass
-			} else {
-				return nil, nil, errors.Errorf("there is no certificate for that %s internal listener but ssl needs it", iListener.Name)
+				CNList = append(CNList, cert.Subject.String())
 			}
 		}
 	}
