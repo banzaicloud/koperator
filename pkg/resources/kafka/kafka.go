@@ -213,7 +213,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	if superUser != "" {
 		superUsers = append(superUsers, superUser)
 	}
-	superUsers = util.RemoveDuplicateStr(superUsers)
 
 	brokersVolumes := make(map[string][]*corev1.PersistentVolumeClaim, len(r.KafkaCluster.Spec.Brokers))
 	for _, broker := range r.KafkaCluster.Spec.Brokers {
