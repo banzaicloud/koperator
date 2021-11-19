@@ -290,12 +290,11 @@ func GeneratePrivateKeyInPemFormat() ([]byte, error) {
 }
 
 // GenerateSigningRequestInPemFormat is used to generate a signing request in a pem format
-func GenerateSigningRequestInPemFormat(priv *rsa.PrivateKey, commonName string, organization []string) ([]byte, error) {
+func GenerateSigningRequestInPemFormat(priv *rsa.PrivateKey, commonName string) ([]byte, error) {
 	template := x509.CertificateRequest{
 		SignatureAlgorithm: x509.SHA256WithRSA,
 		Subject: pkix.Name{
-			CommonName:   commonName,
-			Organization: organization,
+			CommonName: commonName,
 		},
 	}
 	csr, err := x509.CreateCertificateRequest(rand.Reader, &template, priv)
