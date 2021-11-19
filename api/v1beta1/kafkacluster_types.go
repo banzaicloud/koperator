@@ -312,6 +312,12 @@ type ListenersConfig struct {
 	ExternalListeners []ExternalListenerConfig `json:"externalListeners,omitempty"`
 	InternalListeners []InternalListenerConfig `json:"internalListeners"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
+	// ClientSSLCertSecretName is where custom client SSL certificate can be provided
+	// It can be used by the koperator, cruise control, cruise control metrics reporter
+	// to communicate on SSL with the internal listener is used for the interbroker communication.
+	// The included certificate have to be signed by the same CA as the corresponding internal listener's certificate
+	// Secret has to contain the keystore and truststore in jks format and the password for them in base64 encoded.
+	// Data fields must be: keystore.jks, truststore.jks, password
 	ClientSSLCertSecretName string            `json:"clientSSLCertSecretName,omitempty"`
 	SSLSecrets              *SSLSecrets       `json:"sslSecrets,omitempty"`
 	ServiceAnnotations      map[string]string `json:"serviceAnnotations,omitempty"`
@@ -444,6 +450,10 @@ type CommonListenerSpec struct {
 	// +kubebuilder:validation:Enum=ssl;plaintext;sasl_ssl;sasl_plaintext
 	Type SecurityProtocol `json:"type"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
+	// CustomSSLCertSecretName is where custom server SSL certificate can be provided.
+	// Secret has to contain the keystore and truststore in jks format and the password for them in base64 encoded.
+	// Data fields must be: keystore.jks, truststore.jks, password
+	// SecurityProtocol has to be set to ssl.
 	CustomSSLCertSecretName string `json:"customSSLCertSecretName,omitempty"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
 	Name          string `json:"name"`
