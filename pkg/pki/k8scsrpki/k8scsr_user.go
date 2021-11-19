@@ -93,17 +93,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	}
 
 	// skip handling CSR if the secret already includes all the required fields
-	kafkaUserSecretReady := true
-	requiredFields := []string{corev1.TLSCertKey, v1alpha1.CaChainPem}
-	if user.Spec.IncludeJKS {
-		requiredFields = append(requiredFields, v1alpha1.TLSJKSKeyStore, v1alpha1.PasswordKey)
-	}
-	for _, field := range requiredFields {
-		if _, ok := secret.Data[field]; !ok {
-			kafkaUserSecretReady = false
-			break
-		}
-	}
+	kafkaUserSecretReady := isKafkaUserCertificateReady(secret, user.Spec.IncludeJKS)
 	if kafkaUserSecretReady {
 		return &pkicommon.UserCertificate{
 			CA:          secret.Data[v1alpha1.CaChainPem],
@@ -295,4 +285,18 @@ func (c *k8sCSR) secretUpdateAnnotation(ctx context.Context, secret *corev1.Secr
 	}
 	secret.TypeMeta = typeMeta
 	return nil
+}
+
+func isKafkaUserCertificateReady(secret *corev1.Secret, includeJKS bool) bool {
+	requiredFields := []string{corev1.TLSCertKey, v1alpha1.CaChainPem}
+	if includeJKS {
+		requiredFields = append(requiredFields, v1alpha1.TLSJKSKeyStore, v1alpha1.PasswordKey)
+	}
+	for _, field := range requiredFields {
+		if _, ok := secret.Data[field]; !ok {
+			return false
+		}
+	}
+
+	return true
 }
