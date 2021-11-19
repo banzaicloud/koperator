@@ -373,26 +373,35 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volu
 	return
 }
 
+func generateVolumeForListenersCertsFromCommonSpec(commonSpec v1beta1.CommonListenerSpec, clusterName string) corev1.Volume {
+	// Use default one if custom has not specified
+	secretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
+	if commonSpec.CustomSSLCertSecretName != "" {
+		secretName = commonSpec.CustomSSLCertSecretName
+	}
+	return corev1.Volume{
+		Name: fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, commonSpec.Name),
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName:  secretName,
+				DefaultMode: util.Int32Pointer(0644),
+			},
+		},
+	}
+}
+
 func generateVolumesForListenerCerts(listenerConfig *v1beta1.ListenersConfig, clusterName string) (ret []corev1.Volume) {
-	for _, internalListener := range listenerConfig.InternalListeners {
-		if internalListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
+	for _, iListener := range listenerConfig.InternalListeners {
+		if iListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
 			continue
 		}
-		// Use default one if custom has not specified
-		secretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
-		if internalListener.CommonListenerSpec.CustomSSLCertSecretName != "" {
-			secretName = internalListener.CommonListenerSpec.CustomSSLCertSecretName
+		ret = append(ret, generateVolumeForListenersCertsFromCommonSpec(iListener.CommonListenerSpec, clusterName))
+	}
+	for _, eListener := range listenerConfig.ExternalListeners {
+		if eListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
+			continue
 		}
-		v := corev1.Volume{
-			Name: fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, internalListener.Name),
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName:  secretName,
-					DefaultMode: util.Int32Pointer(0644),
-				},
-			},
-		}
-		ret = append(ret, v)
+		ret = append(ret, generateVolumeForListenersCertsFromCommonSpec(eListener.CommonListenerSpec, clusterName))
 	}
 	return ret
 }
@@ -415,13 +424,23 @@ func generateVolumeForClientSSLCert(listenerConfig *v1beta1.ListenersConfig, clu
 }
 
 func generateVolumeMountForListenerCerts(listenerConfig *v1beta1.ListenersConfig) (ret []corev1.VolumeMount) {
-	for _, internalListener := range listenerConfig.InternalListeners {
-		if internalListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
+	for _, iListener := range listenerConfig.InternalListeners {
+		if iListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
 			continue
 		}
 		vm := corev1.VolumeMount{
-			Name:      fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, internalListener.Name),
-			MountPath: fmt.Sprintf(iListenerServerKeyStorePathTemplate, serverKeystorePath, internalListener.CommonListenerSpec.Name),
+			Name:      fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, iListener.Name),
+			MountPath: fmt.Sprintf(iListenerServerKeyStorePathTemplate, serverKeystorePath, iListener.CommonListenerSpec.Name),
+		}
+		ret = append(ret, vm)
+	}
+	for _, eListener := range listenerConfig.ExternalListeners {
+		if eListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
+			continue
+		}
+		vm := corev1.VolumeMount{
+			Name:      fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, eListener.Name),
+			MountPath: fmt.Sprintf(iListenerServerKeyStorePathTemplate, serverKeystorePath, eListener.CommonListenerSpec.Name),
 		}
 		ret = append(ret, vm)
 	}
