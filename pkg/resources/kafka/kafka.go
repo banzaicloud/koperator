@@ -496,11 +496,12 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 	pair := make(map[string]string)
 	var CNList []string
 	var globKeyPass string
+	var err error
 	serverSecret := &corev1.Secret{}
 	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
 			if globKeyPass == "" || iListener.CustomSSLCertSecretName != "" {
-				serverSecret, err := getListenerSSLCertSecret(r.Client, iListener.CommonListenerSpec, r.KafkaCluster.Name, r.KafkaCluster.Namespace)
+				serverSecret, err = getListenerSSLCertSecret(r.Client, iListener.CommonListenerSpec, r.KafkaCluster.Name, r.KafkaCluster.Namespace)
 				if err != nil {
 					return nil, nil, err
 				}
