@@ -66,7 +66,7 @@ const (
 	clientKeystoreVolume = "client-ks-files"
 	clientKeystorePath   = "/var/run/secrets/java.io/keystores/client"
 
-	iListenerSSLCertVolumeNameTemplate  = "ilistener-%s-certs"
+	iListenerSSLCertVolumeNameTemplate  = "listener-%s-certs"
 	iListenerServerKeyStorePathTemplate = "%s/%s"
 
 	jmxVolumePath      = "/opt/jmx-exporter/"
@@ -469,12 +469,27 @@ func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
 		}
 		cert, err := certutil.DecodeCertificate(clientSecret.Data[corev1.TLSCertKey])
 		if err != nil {
-			return "", "", errors.WrapIfWithDetails(err, "failed to decode certificate")
+			return "", "", errors.WrapIfWithDetails(err, "failed to decode client certificate")
 		}
 		CN = cert.Subject.String()
 		clientPass = string(clientSecret.Data[v1alpha1.PasswordKey])
 	}
 	return clientPass, CN, nil
+}
+
+func getListenerSSLCertSecret(client client.Reader, commonSpec v1beta1.CommonListenerSpec, clusterName string, clusterNamespace string) (*corev1.Secret, error) {
+	secretNamespacedName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, clusterName), Namespace: clusterNamespace}
+	if commonSpec.CustomSSLCertSecretName != "" {
+		secretNamespacedName = types.NamespacedName{Name: commonSpec.CustomSSLCertSecretName, Namespace: clusterNamespace}
+	}
+	serverSecret := &corev1.Secret{}
+	if err := client.Get(context.TODO(), secretNamespacedName, serverSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "server secret not ready")
+		}
+		return nil, errors.WrapIfWithDetails(err, "failed to get server secret")
+	}
+	return serverSecret, nil
 }
 
 func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []string, error) {
@@ -484,16 +499,10 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 	serverSecret := &corev1.Secret{}
 	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
-			secretNamespacedName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
-			if iListener.CustomSSLCertSecretName != "" {
-				secretNamespacedName = types.NamespacedName{Name: iListener.CommonListenerSpec.CustomSSLCertSecretName, Namespace: r.KafkaCluster.Namespace}
-			}
 			if globKeyPass == "" || iListener.CustomSSLCertSecretName != "" {
-				if err := r.Client.Get(context.TODO(), secretNamespacedName, serverSecret); err != nil {
-					if apierrors.IsNotFound(err) {
-						return nil, nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "server secret not ready")
-					}
-					return nil, nil, errors.WrapIfWithDetails(err, "failed to get server secret")
+				serverSecret, err := getListenerSSLCertSecret(r.Client, iListener.CommonListenerSpec, r.KafkaCluster.Name, r.KafkaCluster.Namespace)
+				if err != nil {
+					return nil, nil, err
 				}
 				pair[iListener.Name] = string(serverSecret.Data[v1alpha1.PasswordKey])
 			}
@@ -509,6 +518,23 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 					return nil, nil, errors.WrapIfWithDetails(err, "failed to decode certificate")
 				}
 				CNList = append(CNList, cert.Subject.String())
+			}
+		}
+	}
+	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		if eListener.Type == v1beta1.SecurityProtocolSSL {
+			if globKeyPass == "" || eListener.CustomSSLCertSecretName != "" {
+				serverSecret, err := getListenerSSLCertSecret(r.Client, eListener.CommonListenerSpec, r.KafkaCluster.Name, r.KafkaCluster.Namespace)
+				if err != nil {
+					return nil, nil, err
+				}
+				pair[eListener.Name] = string(serverSecret.Data[v1alpha1.PasswordKey])
+			}
+			if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
+				if globKeyPass == "" {
+					globKeyPass = string(serverSecret.Data[v1alpha1.PasswordKey])
+				}
+				pair[eListener.Name] = globKeyPass
 			}
 		}
 	}

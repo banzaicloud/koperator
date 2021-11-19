@@ -225,9 +225,9 @@ func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMo
 
 	if listenersConfig.SSLSecrets != nil || listenersConfig.ClientSSLCertSecretName != "" {
 		volumeMounts = append(volumeMounts, generateVolumeMountForClientSSLCerts())
-		volumeMounts = append(volumeMounts, generateVolumeMountForListenerCerts(listenersConfig)...)
 	}
 
+	volumeMounts = append(volumeMounts, generateVolumeMountForListenerCerts(listenersConfig)...)
 	volumeMounts = append(volumeMounts, []corev1.VolumeMount{
 		{
 			Name:      brokerConfigMapVolumeMount,
@@ -266,9 +266,9 @@ func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, listenersConfig
 
 	if listenersConfig.SSLSecrets != nil || listenersConfig.ClientSSLCertSecretName != "" {
 		volumes = append(volumes, generateVolumeForClientSSLCert(listenersConfig, kafkaClusterName))
-		volumes = append(volumes, generateVolumesForListenerCerts(listenersConfig, kafkaClusterName)...)
 	}
 
+	volumes = append(volumes, generateVolumesForListenerCerts(listenersConfig, kafkaClusterName)...)
 	volumes = append(volumes, []corev1.Volume{
 		{
 			Name: "exitfile",
