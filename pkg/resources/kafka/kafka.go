@@ -197,11 +197,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	// We need to grab names for servers and client in case user is enabling ACLs
 	// That way we can continue to manage topics and users
-	// serverPass, clientPass, superUsers, err := r.getServerAndClientDetails()
-	// if err != nil {
-	// 	return err
-	// }
-
 	serverPasses, superUsers, err := r.getServerPasswordKeysAndUsers()
 	if err != nil {
 		return err
