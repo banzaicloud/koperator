@@ -478,8 +478,8 @@ func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
 
 func getListenerSSLCertSecret(client client.Reader, commonSpec v1beta1.CommonListenerSpec, clusterName string, clusterNamespace string) (*corev1.Secret, error) {
 	secretNamespacedName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, clusterName), Namespace: clusterNamespace}
-	if commonSpec.CustomSSLCertSecretName != "" {
-		secretNamespacedName = types.NamespacedName{Name: commonSpec.CustomSSLCertSecretName, Namespace: clusterNamespace}
+	if commonSpec.ServerSSLCertSecretName != "" {
+		secretNamespacedName = types.NamespacedName{Name: commonSpec.ServerSSLCertSecretName, Namespace: clusterNamespace}
 	}
 	serverSecret := &corev1.Secret{}
 	if err := client.Get(context.TODO(), secretNamespacedName, serverSecret); err != nil {
@@ -499,7 +499,7 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 	serverSecret := &corev1.Secret{}
 	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
-			if globKeyPass == "" || iListener.CustomSSLCertSecretName != "" {
+			if globKeyPass == "" || iListener.ServerSSLCertSecretName != "" {
 				serverSecret, err = getListenerSSLCertSecret(r.Client, iListener.CommonListenerSpec, r.KafkaCluster.Name, r.KafkaCluster.Namespace)
 				if err != nil {
 					return nil, nil, err
@@ -523,7 +523,7 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 	}
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 		if eListener.Type == v1beta1.SecurityProtocolSSL {
-			if globKeyPass == "" || eListener.CustomSSLCertSecretName != "" {
+			if globKeyPass == "" || eListener.ServerSSLCertSecretName != "" {
 				serverSecret, err := getListenerSSLCertSecret(r.Client, eListener.CommonListenerSpec, r.KafkaCluster.Name, r.KafkaCluster.Namespace)
 				if err != nil {
 					return nil, nil, err

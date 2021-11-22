@@ -16433,12 +16433,12 @@ spec:
                     description: 'ClientSSLCertSecretName is where custom client SSL
                       certificate can be provided It can be used by the koperator,
                       cruise control, cruise control metrics reporter to communicate
-                      on SSL with the internal listener is used for the interbroker
+                      on SSL with the internal listener which is used for the interbroker
                       communication. The included certificate have to be signed by
-                      the same CA as the corresponding internal listener''s certificate
-                      Secret has to contain the keystore and truststore in jks format
-                      and the password for them in base64 encoded. Data fields must
-                      be: keystore.jks, truststore.jks, password'
+                      the same CA as the corresponding internal listener''s server
+                      certificate. Secret has to contain the keystore and truststore
+                      in jks and the password for them base64 encoded format. Data
+                      fields must be: keystore.jks, truststore.jks, password'
                     pattern: ^[a-z0-9\-]+
                     type: string
                   externalListeners:
@@ -18397,15 +18397,6 @@ spec:
                         containerPort:
                           format: int32
                           type: integer
-                        customSSLCertSecretName:
-                          description: 'CustomSSLCertSecretName is where custom server
-                            SSL certificate can be provided. Secret has to contain
-                            the keystore and truststore in jks format and the password
-                            for them in base64 encoded. Data fields must be: keystore.jks,
-                            truststore.jks, password SecurityProtocol has to be set
-                            to ssl.'
-                          pattern: ^[a-z0-9\-]+
-                          type: string
                         externalStartingPort:
                           format: int32
                           type: integer
@@ -18431,6 +18422,15 @@ spec:
                             on the address having the following format: <kafka-cluster-name>-<broker-id>.<namespace><value-specified-in-hostnameOverride-field>'
                           type: string
                         name:
+                          pattern: ^[a-z0-9\-]+
+                          type: string
+                        serverSSLCertSecretName:
+                          description: 'ServerSSLCertSecretName is where custom server
+                            SSL certificate can be provided. Secret has to contain
+                            the keystore and truststore in jks and the password for
+                            them in base64 encoded format format. Data fields must
+                            be: keystore.jks, truststore.jks, password SecurityProtocol
+                            has to be set to ssl.'
                           pattern: ^[a-z0-9\-]+
                           type: string
                         serviceAnnotations:
@@ -18470,16 +18470,16 @@ spec:
                         containerPort:
                           format: int32
                           type: integer
-                        customSSLCertSecretName:
-                          description: 'CustomSSLCertSecretName is where custom server
-                            SSL certificate can be provided. Secret has to contain
-                            the keystore and truststore in jks format and the password
-                            for them in base64 encoded. Data fields must be: keystore.jks,
-                            truststore.jks, password SecurityProtocol has to be set
-                            to ssl.'
+                        name:
                           pattern: ^[a-z0-9\-]+
                           type: string
-                        name:
+                        serverSSLCertSecretName:
+                          description: 'ServerSSLCertSecretName is where custom server
+                            SSL certificate can be provided. Secret has to contain
+                            the keystore and truststore in jks and the password for
+                            them in base64 encoded format format. Data fields must
+                            be: keystore.jks, truststore.jks, password SecurityProtocol
+                            has to be set to ssl.'
                           pattern: ^[a-z0-9\-]+
                           type: string
                         type:

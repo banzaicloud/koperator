@@ -376,8 +376,8 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volu
 func generateVolumeForListenersCertsFromCommonSpec(commonSpec v1beta1.CommonListenerSpec, clusterName string) corev1.Volume {
 	// Use default one if custom has not specified
 	secretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
-	if commonSpec.CustomSSLCertSecretName != "" {
-		secretName = commonSpec.CustomSSLCertSecretName
+	if commonSpec.ServerSSLCertSecretName != "" {
+		secretName = commonSpec.ServerSSLCertSecretName
 	}
 	return corev1.Volume{
 		Name: fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, commonSpec.Name),
