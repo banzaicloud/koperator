@@ -133,7 +133,7 @@ func ConvertStringToInt32(s string) int32 {
 // IsSSLEnabledForInternalCommunication checks if ssl is enabled for internal communication
 func IsSSLEnabledForInternalCommunication(l []v1beta1.InternalListenerConfig) (enabled bool) {
 	for _, listener := range l {
-		if listener.Type.IsSSL() {
+		if listener.UsedForInnerBrokerCommunication && listener.Type.IsSSL() {
 			enabled = true
 			break
 		}

@@ -77,6 +77,9 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		if err := config.Set("cruise.control.metrics.reporter.ssl.truststore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
 			log.Error(err, "setting cruise.control.metrics.reporter.ssl.truststore.location in broker configuration resulted an error")
 		}
+		if err := config.Set("cruise.control.metrics.reporter.ssl.truststore.password", clientPass); err != nil {
+			log.Error(err, "setting cruise.control.metrics.reporter.ssl.truststore.password parameter in broker configuration resulted an error")
+		}
 		if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
 			log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.location parameter in broker configuration resulted an error")
 		}
