@@ -311,16 +311,15 @@ type StorageConfig struct {
 type ListenersConfig struct {
 	ExternalListeners []ExternalListenerConfig `json:"externalListeners,omitempty"`
 	InternalListeners []InternalListenerConfig `json:"internalListeners"`
-	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
-	// ClientSSLCertSecretName is where custom client SSL certificate can be provided
-	// It can be used by the koperator, cruise control, cruise control metrics reporter
-	// to communicate on SSL with the internal listener which is used for the interbroker communication.
+	// ClientSSLCertSecret is a reference to that secret where custom client SSL certificate can be provided
+	// It can be used by the koperator, cruise control to communicate on SSL with
+	// the internal listener which is used for the interbroker communication.
 	// The included certificate have to be signed by the same CA as the corresponding internal listener's server certificate.
-	// Secret has to contain the keystore and truststore in jks and the password for them base64 encoded format.
+	// Secret has to contain the keystore and truststore in jks and the password for them in base64 encoded format.
 	// Data fields must be: keystore.jks, truststore.jks, password
-	ClientSSLCertSecretName string            `json:"clientSSLCertSecretName,omitempty"`
-	SSLSecrets              *SSLSecrets       `json:"sslSecrets,omitempty"`
-	ServiceAnnotations      map[string]string `json:"serviceAnnotations,omitempty"`
+	ClientSSLCertSecret corev1.LocalObjectReference `json:"clientSSLCertSecret,omitempty"`
+	SSLSecrets          *SSLSecrets                 `json:"sslSecrets,omitempty"`
+	ServiceAnnotations  map[string]string           `json:"serviceAnnotations,omitempty"`
 }
 
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
@@ -449,12 +448,11 @@ type InternalListenerConfig struct {
 type CommonListenerSpec struct {
 	// +kubebuilder:validation:Enum=ssl;plaintext;sasl_ssl;sasl_plaintext
 	Type SecurityProtocol `json:"type"`
-	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
-	// ServerSSLCertSecretName is where custom server SSL certificate can be provided.
-	// Secret has to contain the keystore and truststore in jks and the password for them in base64 encoded format format.
+	// ServerSSLCertSecret is a reference to that secret where custom server SSL certificate can be provided.
+	// Secret has to contain the keystore and truststore in jks and the password for them in base64 encoded format.
 	// Data fields must be: keystore.jks, truststore.jks, password
 	// SecurityProtocol has to be set to ssl.
-	ServerSSLCertSecretName string `json:"serverSSLCertSecretName,omitempty"`
+	ServerSSLCertSecret corev1.LocalObjectReference `json:"serverSSLCertSecret,omitempty"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
 	Name          string `json:"name"`
 	ContainerPort int32  `json:"containerPort"`

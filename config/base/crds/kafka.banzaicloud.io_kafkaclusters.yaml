@@ -16428,18 +16428,22 @@ spec:
               listenersConfig:
                 description: ListenersConfig defines the Kafka listener types
                 properties:
-                  clientSSLCertSecretName:
-                    description: 'ClientSSLCertSecretName is where custom client SSL
-                      certificate can be provided It can be used by the koperator,
-                      cruise control, cruise control metrics reporter to communicate
-                      on SSL with the internal listener which is used for the interbroker
+                  clientSSLCertSecret:
+                    description: 'ClientSSLCertSecret is a reference to that secret
+                      where custom client SSL certificate can be provided It can be
+                      used by the koperator, cruise control to communicate on SSL
+                      with the internal listener which is used for the interbroker
                       communication. The included certificate have to be signed by
                       the same CA as the corresponding internal listener''s server
                       certificate. Secret has to contain the keystore and truststore
-                      in jks and the password for them base64 encoded format. Data
+                      in jks and the password for them in base64 encoded format. Data
                       fields must be: keystore.jks, truststore.jks, password'
-                    pattern: ^[a-z0-9\-]+
-                    type: string
+                    properties:
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                    type: object
                   externalListeners:
                     items:
                       description: ExternalListenerConfig defines the external listener
@@ -18423,15 +18427,19 @@ spec:
                         name:
                           pattern: ^[a-z0-9\-]+
                           type: string
-                        serverSSLCertSecretName:
-                          description: 'ServerSSLCertSecretName is where custom server
-                            SSL certificate can be provided. Secret has to contain
-                            the keystore and truststore in jks and the password for
-                            them in base64 encoded format format. Data fields must
-                            be: keystore.jks, truststore.jks, password SecurityProtocol
-                            has to be set to ssl.'
-                          pattern: ^[a-z0-9\-]+
-                          type: string
+                        serverSSLCertSecret:
+                          description: 'ServerSSLCertSecret is a reference to that
+                            secret where custom server SSL certificate can be provided.
+                            Secret has to contain the keystore and truststore in jks
+                            and the password for them in base64 encoded format. Data
+                            fields must be: keystore.jks, truststore.jks, password
+                            SecurityProtocol has to be set to ssl.'
+                          properties:
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                          type: object
                         serviceAnnotations:
                           additionalProperties:
                             type: string
@@ -18472,15 +18480,19 @@ spec:
                         name:
                           pattern: ^[a-z0-9\-]+
                           type: string
-                        serverSSLCertSecretName:
-                          description: 'ServerSSLCertSecretName is where custom server
-                            SSL certificate can be provided. Secret has to contain
-                            the keystore and truststore in jks and the password for
-                            them in base64 encoded format format. Data fields must
-                            be: keystore.jks, truststore.jks, password SecurityProtocol
-                            has to be set to ssl.'
-                          pattern: ^[a-z0-9\-]+
-                          type: string
+                        serverSSLCertSecret:
+                          description: 'ServerSSLCertSecret is a reference to that
+                            secret where custom server SSL certificate can be provided.
+                            Secret has to contain the keystore and truststore in jks
+                            and the password for them in base64 encoded format. Data
+                            fields must be: keystore.jks, truststore.jks, password
+                            SecurityProtocol has to be set to ssl.'
+                          properties:
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                          type: object
                         type:
                           description: 'SecurityProtocol is the protocol used to communicate
                             with brokers. Valid values are: plaintext, ssl, sasl_plaintext,
