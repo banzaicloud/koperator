@@ -28,7 +28,6 @@ import (
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -62,7 +61,6 @@ type KafkaClusterReconciler struct {
 	client.Client
 	DirectClient        client.Reader
 	Log                 logr.Logger
-	Scheme              *runtime.Scheme
 	Namespaces          []string
 	KafkaClientProvider kafkaclient.Provider
 }
@@ -121,7 +119,7 @@ func (r *KafkaClusterReconciler) Reconcile(ctx context.Context, request ctrl.Req
 		nodeportexternalaccess.New(r.Client, instance),
 		kafkamonitoring.New(r.Client, instance),
 		cruisecontrolmonitoring.New(r.Client, instance),
-		kafka.New(r.Client, r.DirectClient, r.Scheme, instance, r.KafkaClientProvider),
+		kafka.New(r.Client, r.DirectClient, instance, r.KafkaClientProvider),
 		cruisecontrol.New(r.Client, instance),
 	}
 

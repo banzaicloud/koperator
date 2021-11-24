@@ -60,7 +60,7 @@ func TestGetPKIManager(t *testing.T) {
 
 	// Test mock functions
 	var err error
-	if err = mock.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err != nil {
+	if err = mock.ReconcilePKI(ctx, log, make(map[string]v1beta1.ListenerStatusList)); err != nil {
 		t.Error("Expected nil error got:", err)
 	}
 

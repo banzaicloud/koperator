@@ -146,7 +146,6 @@ func main() {
 	kafkaClusterReconciler := &controllers.KafkaClusterReconciler{
 		Client:              mgr.GetClient(),
 		DirectClient:        mgr.GetAPIReader(),
-		Scheme:              mgr.GetScheme(),
 		Namespaces:          namespaceList,
 		Log:                 ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
 		KafkaClientProvider: kafkaclient.NewDefaultProvider(),

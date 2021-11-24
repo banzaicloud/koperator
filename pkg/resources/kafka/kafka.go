@@ -74,14 +74,12 @@ const (
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
-	Scheme              *runtime.Scheme
 	kafkaClientProvider kafkaclient.Provider
 }
 
 // New creates a new reconciler for Kafka
-func New(client client.Client, directClient client.Reader, scheme *runtime.Scheme, cluster *v1beta1.KafkaCluster, kafkaClientProvider kafkaclient.Provider) *Reconciler {
+func New(client client.Client, directClient client.Reader, cluster *v1beta1.KafkaCluster, kafkaClientProvider kafkaclient.Provider) *Reconciler {
 	return &Reconciler{
-		Scheme: scheme,
 		Reconciler: resources.Reconciler{
 			Client:       client,
 			DirectClient: directClient,
@@ -179,7 +177,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	// Setup the PKI if using SSL
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		// reconcile the PKI
-		if err := pki.GetPKIManager(r.Client, r.KafkaCluster, v1beta1.PKIBackendProvided, log).ReconcilePKI(context.TODO(), log, r.Scheme, extListenerStatuses); err != nil {
+		if err := pki.GetPKIManager(r.Client, r.KafkaCluster, v1beta1.PKIBackendProvided, log).ReconcilePKI(context.TODO(), log, extListenerStatuses); err != nil {
 			return err
 		}
 	}

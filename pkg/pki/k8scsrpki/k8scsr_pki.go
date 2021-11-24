@@ -20,16 +20,13 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (c *k8sCSR) ReconcilePKI(
-	ctx context.Context, logger logr.Logger, scheme *runtime.Scheme,
-	externalHostnames map[string]v1beta1.ListenerStatusList) error {
+func (c *k8sCSR) ReconcilePKI(_ context.Context, logger logr.Logger, _ map[string]v1beta1.ListenerStatusList) error {
 	logger.Info("k8sCSR PKI reconcile is skipped since it is not supported yet for server certs")
 	return nil
 }
 
-func (c *k8sCSR) FinalizePKI(ctx context.Context, logger logr.Logger) error {
+func (c *k8sCSR) FinalizePKI(_ context.Context, _ logr.Logger) error {
 	return nil
 }
