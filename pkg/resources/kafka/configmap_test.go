@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	properties "github.com/banzaicloud/koperator/properties/pkg"
@@ -235,7 +234,6 @@ zookeeper.connect=example.zk:2181/`,
 
 		t.Run(test.testName, func(t *testing.T) {
 			r := Reconciler{
-				Scheme: scheme.Scheme,
 				Reconciler: resources.Reconciler{
 					KafkaCluster: &v1beta1.KafkaCluster{
 						ObjectMeta: metav1.ObjectMeta{
