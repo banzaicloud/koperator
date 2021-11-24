@@ -87,10 +87,10 @@ func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error
 	return nil
 }
 
-func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatusList) (err error) {
+func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, extListenerStatuses map[string]v1beta1.ListenerStatusList) (err error) {
 	logger.Info("Reconciling cert-manager PKI")
 
-	resources, err := c.kafkapki(ctx, scheme, extListenerStatuses)
+	resources, err := c.kafkapki(ctx, extListenerStatuses)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, sche
 	return nil
 }
 
-func (c *certManager) kafkapki(ctx context.Context, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatusList) ([]runtime.Object, error) {
+func (c *certManager) kafkapki(ctx context.Context, extListenerStatuses map[string]v1beta1.ListenerStatusList) ([]runtime.Object, error) {
 	sslConfig := c.cluster.Spec.ListenersConfig.SSLSecrets
 	if sslConfig.Create {
 		if sslConfig.IssuerRef == nil {
@@ -112,7 +112,7 @@ func (c *certManager) kafkapki(ctx context.Context, scheme *runtime.Scheme, extL
 		}
 		return userProvidedIssuerPKI(c.cluster, extListenerStatuses), nil
 	}
-	return userProvidedPKI(ctx, c.client, c.cluster, scheme, extListenerStatuses)
+	return userProvidedPKI(ctx, c.client, c.cluster, extListenerStatuses)
 }
 
 func userProvidedIssuerPKI(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) []runtime.Object {
@@ -143,9 +143,9 @@ func fullPKI(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1bet
 
 func userProvidedPKI(
 	ctx context.Context, client client.Client,
-	cluster *v1beta1.KafkaCluster, scheme *runtime.Scheme, extListenerStatuses map[string]v1beta1.ListenerStatusList) ([]runtime.Object, error) {
+	cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) ([]runtime.Object, error) {
 	// If we aren't creating the secrets we need a cluster issuer made from the provided secret
-	caSecret, err := caSecretForProvidedCert(ctx, client, cluster, scheme)
+	caSecret, err := caSecretForProvidedCert(ctx, client, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func userProvidedPKI(
 	}, nil
 }
 
-func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster, _ *runtime.Scheme) (*corev1.Secret, error) {
+func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster *v1beta1.KafkaCluster) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	err := client.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.ListenersConfig.SSLSecrets.TLSSecretName}, secret)
 	if err != nil {

@@ -65,7 +65,7 @@ type Manager interface {
 	// ReconcilePKI ensures a PKI for a kafka cluster - should be idempotent.
 	// This method should at least setup any issuer needed for user certificates
 	// as well as broker/cruise-control secrets
-	ReconcilePKI(ctx context.Context, logger logr.Logger, scheme *runtime.Scheme, externalHostnames map[string]v1beta1.ListenerStatusList) error
+	ReconcilePKI(ctx context.Context, logger logr.Logger, externalHostnames map[string]v1beta1.ListenerStatusList) error
 
 	// FinalizePKI performs any cleanup steps necessary for a PKI backend
 	FinalizePKI(ctx context.Context, logger logr.Logger) error
