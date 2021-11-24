@@ -432,7 +432,7 @@ func StorageConfigKafkaMountPath(mountPath string) string {
 	return mountPath + "/kafka"
 }
 
-func GetControllerTLSConfig(client clientCtrl.Reader, secretNamespaceName types.NamespacedName) (*tls.Config, error) {
+func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.NamespacedName) (*tls.Config, error) {
 	config := &tls.Config{}
 	tlsKeys := &corev1.Secret{}
 	err := client.Get(context.TODO(),

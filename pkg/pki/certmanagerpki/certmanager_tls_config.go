@@ -28,5 +28,5 @@ import (
 // cruise control and manager operations
 func (c *certManager) GetControllerTLSConfig() (*tls.Config, error) {
 	defaultSecretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, c.cluster.Name)
-	return util.GetControllerTLSConfig(c.client, types.NamespacedName{Name: defaultSecretName, Namespace: c.cluster.Namespace})
+	return util.GetClientTLSConfig(c.client, types.NamespacedName{Name: defaultSecretName, Namespace: c.cluster.Namespace})
 }

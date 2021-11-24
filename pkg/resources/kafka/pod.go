@@ -223,7 +223,7 @@ func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMo
 
 	volumeMounts = append(volumeMounts, dataVolumeMount...)
 
-	if listenersConfig.SSLSecrets != nil || listenersConfig.ClientSSLCertSecretName != "" {
+	if listenersConfig.SSLSecrets != nil || listenersConfig.ClientSSLCertSecret.Name != "" {
 		volumeMounts = append(volumeMounts, generateVolumeMountForClientSSLCerts())
 	}
 
@@ -264,7 +264,7 @@ func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, listenersConfig
 	volumes = append(volumes, brokerConfigVolumes...)
 	volumes = append(volumes, dataVolume...)
 
-	if listenersConfig.SSLSecrets != nil || listenersConfig.ClientSSLCertSecretName != "" {
+	if listenersConfig.SSLSecrets != nil || listenersConfig.ClientSSLCertSecret.Name != "" {
 		volumes = append(volumes, generateVolumeForClientSSLCert(listenersConfig, kafkaClusterName))
 	}
 
@@ -376,8 +376,8 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volu
 func generateVolumeForListenersCertsFromCommonSpec(commonSpec v1beta1.CommonListenerSpec, clusterName string) corev1.Volume {
 	// Use default one if custom has not specified
 	secretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
-	if commonSpec.ServerSSLCertSecretName != "" {
-		secretName = commonSpec.ServerSSLCertSecretName
+	if commonSpec.ServerSSLCertSecret.Name != "" {
+		secretName = commonSpec.ServerSSLCertSecret.Name
 	}
 	return corev1.Volume{
 		Name: fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, commonSpec.Name),
@@ -409,8 +409,8 @@ func generateVolumesForListenerCerts(listenerConfig *v1beta1.ListenersConfig, cl
 func generateVolumeForClientSSLCert(listenerConfig *v1beta1.ListenersConfig, clusterName string) (ret corev1.Volume) {
 	// Use default one if custom has not specified
 	clientSecretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
-	if listenerConfig.ClientSSLCertSecretName != "" {
-		clientSecretName = listenerConfig.ClientSSLCertSecretName
+	if listenerConfig.ClientSSLCertSecret.Name != "" {
+		clientSecretName = listenerConfig.ClientSSLCertSecret.Name
 	}
 	return corev1.Volume{
 		Name: clientKeystoreVolume,

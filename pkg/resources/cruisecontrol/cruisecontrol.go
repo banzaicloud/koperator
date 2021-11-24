@@ -146,14 +146,16 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 func (r *Reconciler) getClientPassword() (string, error) {
 	var clientPass string
-	if r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName != "" || r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
+	if r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecret.Name != "" || r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		clientNamespacedName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerControllerTemplate, r.KafkaCluster.Name), Namespace: r.KafkaCluster.Namespace}
-		if r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName != "" {
-			clientNamespacedName = types.NamespacedName{Name: r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName, Namespace: r.KafkaCluster.Namespace}
+		if r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecret.Name != "" {
+			clientNamespacedName = types.NamespacedName{Name: r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecret.Name, Namespace: r.KafkaCluster.Namespace}
 		}
 		clientSecret := &corev1.Secret{}
 		if err := r.Client.Get(context.TODO(), clientNamespacedName, clientSecret); err != nil {
-			if apierrors.IsNotFound(err) {
+			// We only return with ResourceNotReady (which is goin to retry after period time)
+			// when we use our cert generation for client cert
+			if apierrors.IsNotFound(err) && r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecret.Name == "" {
 				return "", errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")
 			}
 			return "", errors.WrapIfWithDetails(err, "failed to get client secret")

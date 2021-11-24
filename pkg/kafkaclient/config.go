@@ -46,8 +46,8 @@ func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaC
 	if clientutil.UseSSL(cluster) {
 		var tlsConfig *tls.Config
 		var err error
-		if cluster.Spec.ListenersConfig.ClientSSLCertSecretName != "" {
-			tlsConfig, err = util.GetControllerTLSConfig(client, types.NamespacedName{Name: cluster.Spec.ListenersConfig.ClientSSLCertSecretName, Namespace: cluster.Namespace})
+		if cluster.Spec.ListenersConfig.ClientSSLCertSecret.Name != "" {
+			tlsConfig, err = util.GetClientTLSConfig(client, types.NamespacedName{Name: cluster.Spec.ListenersConfig.ClientSSLCertSecret.Name, Namespace: cluster.Namespace})
 		} else if cluster.Spec.ListenersConfig.SSLSecrets != nil {
 			tlsConfig, err = pki.GetPKIManager(client, cluster, v1beta1.PKIBackendProvided, log).GetControllerTLSConfig()
 		} else {

@@ -21,7 +21,6 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
-	"istio.io/pkg/log"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -68,7 +67,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	brokerPort, err := kafkautils.GetBrokerContainerPort(r.KafkaCluster)
 
 	if util.IsCruiseControlMetricsNeedSSL(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, brokerPort) {
-		if r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecretName == "" && r.KafkaCluster.Spec.ListenersConfig.SSLSecrets == nil {
+		if r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecret.Name == "" && r.KafkaCluster.Spec.ListenersConfig.SSLSecrets == nil {
 			log.Error(errors.New("cruise control metrics reporter needs ssl but client certificate hasn't specified"), "")
 		}
 		if err := config.Set("cruise.control.metrics.reporter.security.protocol", "SSL"); err != nil {
@@ -87,7 +86,9 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 			log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.password parameter in broker configuration resulted an error")
 		}
 	}
-
+	if err := config.Set("password.encoder.secret", "secret"); err != nil {
+		log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.password parameter in broker configuration resulted an error")
+	}
 	// Add Cruise Control Metrics Reporter configuration
 	if err := config.Set("metric.reporters", "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"); err != nil {
 		log.Error(err, "setting metric.reporters in broker configuration resulted an error")
@@ -222,7 +223,7 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
 		// Add internal listeners SSL configuration
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
-			generateListenerSSLConfig(config, iListener.Name, "JKS", serverPasses)
+			generateListenerSSLConfig(config, iListener.Name, "JKS", serverPasses, log)
 		}
 	}
 
@@ -233,7 +234,7 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
 		// Add external listeners SSL configuration
 		if eListener.Type == v1beta1.SecurityProtocolSSL {
-			generateListenerSSLConfig(config, eListener.Name, "JKS", serverPasses)
+			generateListenerSSLConfig(config, eListener.Name, "JKS", serverPasses, log)
 		}
 	}
 	if err := config.Set("listener.security.protocol.map", securityProtocolMapConfig); err != nil {
@@ -248,8 +249,8 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 	return config
 }
 
-func generateListenerSSLConfig(config *properties.Properties, name string, ssLFormat string, passwordKeyMap map[string]string) {
-	if ssLFormat == "JKS" {
+func generateListenerSSLConfig(config *properties.Properties, name string, sSLFormat string, passwordKeyMap map[string]string, log logr.Logger) {
+	if sSLFormat == "JKS" {
 		keyStoreLocKey := fmt.Sprintf("listener.name.%s.ssl.keystore.location", name)
 		trustStoreLocKey := fmt.Sprintf("listener.name.%s.ssl.truststore.location", name)
 		keyStorePassKey := fmt.Sprintf("listener.name.%s.ssl.keystore.password", name)
