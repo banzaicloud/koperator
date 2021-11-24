@@ -150,7 +150,6 @@ var _ = BeforeSuite(func() {
 		Client:              mgr.GetClient(),
 		DirectClient:        mgr.GetAPIReader(),
 		Log:                 ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
-		Scheme:              mgr.GetScheme(),
 		KafkaClientProvider: kafkaclient.NewMockProvider(),
 	}
 

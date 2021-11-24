@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
@@ -110,7 +109,7 @@ func TestReconcilePKI(t *testing.T) {
 	if err := manager.client.Create(ctx, newServerSecret()); err != nil {
 		t.Error("error during server secret creation", reflect.TypeOf(err))
 	}
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err != nil {
+	if err := manager.ReconcilePKI(ctx, log, make(map[string]v1beta1.ListenerStatusList)); err != nil {
 		if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 			t.Error("Expected not ready error, got:", reflect.TypeOf(err))
 		}
@@ -119,7 +118,7 @@ func TestReconcilePKI(t *testing.T) {
 	if err := manager.client.Create(ctx, newControllerSecret()); err != nil {
 		t.Error("error during controller secret creation", reflect.TypeOf(err))
 	}
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err != nil {
+	if err := manager.ReconcilePKI(ctx, log, make(map[string]v1beta1.ListenerStatusList)); err != nil {
 		if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 			t.Error("Expected not ready error, got:", reflect.TypeOf(err))
 		}
@@ -128,7 +127,7 @@ func TestReconcilePKI(t *testing.T) {
 	if err := manager.client.Create(ctx, newCASecret()); err != nil {
 		t.Error("error during CA secret creation", reflect.TypeOf(err))
 	}
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err != nil {
+	if err := manager.ReconcilePKI(ctx, log, make(map[string]v1beta1.ListenerStatusList)); err != nil {
 		t.Error("Expected successful reconcile, got:", err)
 	}
 
@@ -137,7 +136,7 @@ func TestReconcilePKI(t *testing.T) {
 	if err != nil {
 		t.Error("Expected no error during mocking the cluster, got:", err)
 	}
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err == nil {
+	if err := manager.ReconcilePKI(ctx, log, make(map[string]v1beta1.ListenerStatusList)); err == nil {
 		t.Error("Expected error got nil")
 	} else if reflect.TypeOf(err) != reflect.TypeOf(errorfactory.ResourceNotReady{}) {
 		t.Error("Expected not ready error, got:", reflect.TypeOf(err))
@@ -145,7 +144,7 @@ func TestReconcilePKI(t *testing.T) {
 	if err := manager.client.Create(ctx, newPreCreatedSecret()); err != nil {
 		t.Error("error during pre created secret creation", reflect.TypeOf(err))
 	}
-	if err := manager.ReconcilePKI(ctx, log, scheme.Scheme, make(map[string]v1beta1.ListenerStatusList)); err != nil {
+	if err := manager.ReconcilePKI(ctx, log, make(map[string]v1beta1.ListenerStatusList)); err != nil {
 		t.Error("Expected successful reconcile, got:", err)
 	}
 }
