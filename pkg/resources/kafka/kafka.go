@@ -472,6 +472,7 @@ func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
 }
 
 func getListenerSSLCertSecret(client client.Reader, commonSpec v1beta1.CommonListenerSpec, clusterName string, clusterNamespace string) (*corev1.Secret, error) {
+	// Use default SSL cert secret
 	secretNamespacedName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, clusterName), Namespace: clusterNamespace}
 	if commonSpec.ServerSSLCertSecret.Name != "" {
 		secretNamespacedName = types.NamespacedName{Name: commonSpec.ServerSSLCertSecret.Name, Namespace: clusterNamespace}

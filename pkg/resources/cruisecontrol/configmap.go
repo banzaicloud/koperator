@@ -64,7 +64,7 @@ func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logge
 	}
 
 	// Add SSL configuration
-	sslConf := generateSSLConfig(&r.KafkaCluster.Spec.ListenersConfig, clientPass, log)
+	sslConf := generateSSLConfig(r.KafkaCluster.Spec.ListenersConfig, clientPass, log)
 	if sslConf.Len() != 0 {
 		ccConfig.Merge(sslConf)
 	}
@@ -87,10 +87,10 @@ func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logge
 	return configMap
 }
 
-func generateSSLConfig(l *v1beta1.ListenersConfig, clientPass string, log logr.Logger) *properties.Properties {
+func generateSSLConfig(l v1beta1.ListenersConfig, clientPass string, log logr.Logger) *properties.Properties {
 	sslConf := properties.NewProperties()
 
-	if (l.SSLSecrets != nil || l.ClientSSLCertSecret.Name != "") && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
+	if util.IsClientSSLSecretPresent(l) && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
 		if err := sslConf.Set("security.protocol", "SSL"); err != nil {
 			log.Error(err, "settings security.protocol in Cruise Control configuration failed")
 		}

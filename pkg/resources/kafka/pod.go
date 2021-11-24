@@ -264,7 +264,7 @@ func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, listenersConfig
 	volumes = append(volumes, brokerConfigVolumes...)
 	volumes = append(volumes, dataVolume...)
 
-	if listenersConfig.SSLSecrets != nil || listenersConfig.ClientSSLCertSecret.Name != "" {
+	if util.IsClientSSLSecretPresent(*listenersConfig) {
 		volumes = append(volumes, generateVolumeForClientSSLCert(listenersConfig, kafkaClusterName))
 	}
 

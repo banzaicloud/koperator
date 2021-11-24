@@ -141,7 +141,11 @@ func IsSSLEnabledForInternalCommunication(l []v1beta1.InternalListenerConfig) (e
 	return enabled
 }
 
-func IsCruiseControlMetricsNeedSSL(l []v1beta1.InternalListenerConfig, brokerPort int32) (enabled bool) {
+func IsClientSSLSecretPresent(lconfig v1beta1.ListenersConfig) bool {
+	return lconfig.SSLSecrets != nil || lconfig.ClientSSLCertSecret.Name != ""
+}
+
+func IsListenerPortUseSSL(l []v1beta1.InternalListenerConfig, brokerPort int32) (enabled bool) {
 	for _, listener := range l {
 		if listener.ContainerPort == brokerPort && listener.Type.IsSSL() {
 			enabled = true

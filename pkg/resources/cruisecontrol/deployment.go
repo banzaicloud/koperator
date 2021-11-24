@@ -41,7 +41,7 @@ func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object
 	volume = append(volume, r.KafkaCluster.Spec.CruiseControlConfig.Volumes...)
 	volumeMount = append(volumeMount, r.KafkaCluster.Spec.CruiseControlConfig.VolumeMounts...)
 
-	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil || r.KafkaCluster.Spec.ListenersConfig.ClientSSLCertSecret.Name != "" && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
+	if util.IsClientSSLSecretPresent(r.KafkaCluster.Spec.ListenersConfig) && util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		volume = append(volume, generateVolumesForSSL(r.KafkaCluster)...)
 		volumeMount = append(volumeMount, generateVolumeMountForSSL()...)
 	}
