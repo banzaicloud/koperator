@@ -148,7 +148,7 @@ bin/controller-gen:
 		CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 		cd $$CONTROLLER_GEN_TMP_DIR ;\
 		go mod init tmp ;\
-		GOBIN=$(PWD)/bin go get sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION} ;\
+		GOBIN=$(PWD)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION} ;\
 		rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	fi
 
@@ -159,7 +159,7 @@ bin/setup-envtest:
 		SETUP_ENVTEST_TMP_DIR=$$(mktemp -d) ;\
 		cd $$SETUP_ENVTEST_TMP_DIR ;\
 		go mod init tmp ;\
-		GOBIN=$(PWD)/bin go get sigs.k8s.io/controller-runtime/tools/setup-envtest@latest ;\
+		GOBIN=$(PWD)/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest ;\
 		rm -rf $$SETUP_ENVTEST_TMP_DIR ;\
 	fi
 

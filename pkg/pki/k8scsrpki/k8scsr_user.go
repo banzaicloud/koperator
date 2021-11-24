@@ -91,6 +91,19 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	if !isUserOwnedSecret {
 		return nil, errors.New(fmt.Sprintf("secret: %s does not belong to this KafkaUser", secret.Name))
 	}
+
+	// skip handling CSR if the secret already includes all the required fields
+	kafkaUserSecretReady := isKafkaUserCertificateReady(secret, user.Spec.IncludeJKS)
+	if kafkaUserSecretReady {
+		return &pkicommon.UserCertificate{
+			CA:          secret.Data[v1alpha1.CaChainPem],
+			Certificate: secret.Data[corev1.TLSCertKey],
+			Key:         secret.Data[corev1.TLSPrivateKeyKey],
+			JKS:         secret.Data[v1alpha1.TLSJKSKeyStore],
+			Password:    secret.Data[v1alpha1.PasswordKey],
+		}, nil
+	}
+
 	signingRequestGenName, ok := secret.Annotations[DependingCsrAnnotation]
 	if !ok {
 		// Generate new SigningRequest resource
@@ -188,7 +201,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	secret.TypeMeta = typeMeta
 
 	return &pkicommon.UserCertificate{
-		CA:          secret.Data[corev1.TLSCertKey],
+		CA:          secret.Data[v1alpha1.CaChainPem],
 		Certificate: secret.Data[corev1.TLSCertKey],
 		Key:         secret.Data[corev1.TLSPrivateKeyKey],
 		JKS:         secret.Data[v1alpha1.TLSJKSKeyStore],
@@ -245,7 +258,7 @@ func (c *k8sCSR) generateAndCreateCSR(ctx context.Context, clientkey []byte, use
 		return nil, parseErr
 	}
 	c.logger.Info("Generating SigningRequest")
-	csr, err := certutil.GenerateSigningRequestInPemFormat(privKey, user.GetName(), []string{""})
+	csr, err := certutil.GenerateSigningRequestInPemFormat(privKey, user.GetName())
 	if err != nil {
 		return nil, err
 	}
@@ -272,4 +285,18 @@ func (c *k8sCSR) secretUpdateAnnotation(ctx context.Context, secret *corev1.Secr
 	}
 	secret.TypeMeta = typeMeta
 	return nil
+}
+
+func isKafkaUserCertificateReady(secret *corev1.Secret, includeJKS bool) bool {
+	requiredFields := []string{corev1.TLSCertKey, v1alpha1.CaChainPem}
+	if includeJKS {
+		requiredFields = append(requiredFields, v1alpha1.TLSJKSKeyStore, v1alpha1.PasswordKey)
+	}
+	for _, field := range requiredFields {
+		if _, ok := secret.Data[field]; !ok {
+			return false
+		}
+	}
+
+	return true
 }
