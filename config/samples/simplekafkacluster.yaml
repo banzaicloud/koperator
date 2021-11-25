@@ -5,6 +5,8 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: kafka
 spec:
+  monitoringConfig:
+    jmxImage: "ghcr.io/banzaicloud/jmx-javaagent:0.16.1"
   headlessServiceEnabled: true
   zkAddresses:
     - "zookeeper-client.zookeeper:2181"
