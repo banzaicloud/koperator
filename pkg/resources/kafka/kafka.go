@@ -218,18 +218,9 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errors.WrapIf(err, "failed to list broker pods that belong to Kafka cluster")
 	}
 
-	var controllerID int32
-	kClient, close, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
+	controllerID, err := r.determineControllerId()
 	if err != nil {
-		log.Error(err, "could not create Kafka client, thus could not determine controller")
-	} else {
-		_, controllerID, err = kClient.DescribeCluster()
-		if err != nil {
-			controllerID = -1
-			log.Error(err, "could not find controller broker")
-		}
-
-		defer close()
+		log.Error(err, "could not find controller broker")
 	}
 
 	reorderedBrokers := reorderBrokers(brokerPods, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID)
@@ -961,6 +952,22 @@ func (r *Reconciler) getK8sAssignedNodeport(log logr.Logger, eListenerName strin
 			errors.New("nodeport port number is not allocated"), "nodeport number is still 0")
 	}
 	return nodePort, nil
+}
+
+// determineControllerId returns the ID of the controller broker of the current cluster
+func (r *Reconciler) determineControllerId() (int32, error) {
+	kClient, close, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
+	if err != nil {
+		return -1, errors.WrapIf(err, "could not create Kafka client, thus could not determine controller")
+	}
+	_, controllerID, err := kClient.DescribeCluster()
+	if err != nil {
+		return -1, errors.WrapIf(err, "could not find controller broker")
+	}
+
+	defer close()
+
+	return controllerID, nil
 }
 
 func getServiceFromExternalListener(client client.Client, cluster *v1beta1.KafkaCluster,
