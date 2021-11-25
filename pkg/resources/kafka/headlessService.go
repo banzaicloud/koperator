@@ -52,11 +52,12 @@ func (r *Reconciler) headlessService() runtime.Object {
 			r.KafkaCluster,
 		),
 		Spec: corev1.ServiceSpec{
-			Type:            corev1.ServiceTypeClusterIP,
-			SessionAffinity: corev1.ServiceAffinityNone,
-			Selector:        kafkautils.LabelsForKafka(r.KafkaCluster.Name),
-			Ports:           usedPorts,
-			ClusterIP:       corev1.ClusterIPNone,
+			Type:                     corev1.ServiceTypeClusterIP,
+			SessionAffinity:          corev1.ServiceAffinityNone,
+			Selector:                 kafkautils.LabelsForKafka(r.KafkaCluster.Name),
+			Ports:                    usedPorts,
+			ClusterIP:                corev1.ClusterIPNone,
+			PublishNotReadyAddresses: true,
 		},
 	}
 }

@@ -4095,6 +4095,12 @@ spec:
                         - pvcSpec
                         type: object
                       type: array
+                    terminationGracePeriodSeconds:
+                      default: 120
+                      description: TerminationGracePeriod defines the pod termination
+                        grace period
+                      format: int64
+                      type: integer
                     tolerations:
                       items:
                         description: The pod this Toleration is attached to tolerates
@@ -9947,6 +9953,12 @@ spec:
                             - pvcSpec
                             type: object
                           type: array
+                        terminationGracePeriodSeconds:
+                          default: 120
+                          description: TerminationGracePeriod defines the pod termination
+                            grace period
+                          format: int64
+                          type: integer
                         tolerations:
                           items:
                             description: The pod this Toleration is attached to tolerates
