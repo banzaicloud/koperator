@@ -211,7 +211,28 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	reorderedBrokers := r.reorderBrokers(log, r.KafkaCluster.Spec.Brokers)
+	var brokerPods corev1.PodList
+	matchingLabels := client.MatchingLabels(kafka.LabelsForKafka(r.KafkaCluster.Name))
+	err = r.Client.List(context.TODO(), &brokerPods, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
+	if err != nil {
+		return errors.WrapIf(err, "failed to list broker pods that belong to Kafka cluster")
+	}
+
+	var controllerID int32
+	kClient, close, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
+	if err != nil {
+		log.Error(err, "could not create Kafka client, thus could not determine controller")
+	} else {
+		_, controllerID, err = kClient.DescribeCluster()
+		if err != nil {
+			controllerID = -1
+			log.Error(err, "could not find controller broker")
+		}
+
+		defer close()
+	}
+
+	reorderedBrokers := reorderBrokers(brokerPods, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID)
 	for _, broker := range reorderedBrokers {
 		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
 		if err != nil {
@@ -968,32 +989,50 @@ func getServiceFromExternalListener(client client.Client, cluster *v1beta1.Kafka
 	return foundLBService, nil
 }
 
-func (r *Reconciler) reorderBrokers(log logr.Logger, brokers []v1beta1.Broker) []v1beta1.Broker {
-	kClient, close, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
-	if err != nil {
-		log.Info("could not create Kafka client, thus could not determine controller")
-		return brokers
-	}
-	defer close()
-
-	_, controllerID, err := kClient.DescribeCluster()
-	if err != nil {
-		log.Info("could not find controller broker")
-		return brokers
+// reorderBrokers returns the KafkaCluster brokers list reordered for reconciliation such that:
+// - the controller broker is reconciled last
+// - prioritize upscale in order to allow upscaling the cluster even when there is a stuck RU
+// - prioritize missing broker pods to be able for escaping from offline partitions, not all replicas in sync which
+//		could stall RU flow
+func reorderBrokers(brokerPods corev1.PodList, desiredBrokers []v1beta1.Broker, brokersState map[string]v1beta1.BrokerState, controllerBrokerID int32) []v1beta1.Broker {
+	runningBrokers := make(map[string]struct{})
+	for _, b := range brokerPods.Items {
+		brokerID := b.GetLabels()["brokerId"]
+		runningBrokers[brokerID] = struct{}{}
 	}
 
-	var controllerBroker *v1beta1.Broker
-	reorderedBrokers := make([]v1beta1.Broker, 0, len(brokers))
-	for i := range brokers {
-		if brokers[i].Id == controllerID {
-			controllerBroker = &brokers[i]
-		} else {
-			reorderedBrokers = append(reorderedBrokers, brokers[i])
+	// weights for broker ordering:
+	// -2: new broker
+	// -1: missing broker
+	// 0 : non-controller broker
+	// 1 : controller broker
+	brokersWeight := make(map[string]int, len(desiredBrokers))
+
+	for _, b := range desiredBrokers {
+		brokerID := fmt.Sprintf("%d", b.Id)
+		brokersWeight[brokerID] = 0
+
+		if _, ok := brokersState[brokerID]; !ok {
+			brokersWeight[brokerID] = -2 // new broker
+		} else if _, ok := runningBrokers[brokerID]; !ok {
+			brokersWeight[brokerID] = -1 // missing broker
+		} else if b.Id == controllerBrokerID {
+			brokersWeight[brokerID] = 1 // controller broker
 		}
 	}
-	if controllerBroker != nil {
-		reorderedBrokers = append(reorderedBrokers, *controllerBroker)
-	}
+
+	reorderedBrokers := make([]v1beta1.Broker, 0, len(desiredBrokers))
+	// copy desiredBrokers from KafkaCluster CR for ordering
+	reorderedBrokers = append(reorderedBrokers, desiredBrokers...)
+
+	// sort brokers by weight
+	sort.SliceStable(reorderedBrokers, func(i, j int) bool {
+		brokerID1 := fmt.Sprintf("%d", reorderedBrokers[i].Id)
+		brokerID2 := fmt.Sprintf("%d", reorderedBrokers[j].Id)
+
+		return brokersWeight[brokerID1] < brokersWeight[brokerID2]
+	})
+
 	return reorderedBrokers
 }
 

@@ -18,6 +18,11 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/onsi/gomega"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
@@ -287,6 +292,155 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 			if !reflect.DeepEqual(actual, test.expectedIDs) {
 				t.Error("Expected:", test.expectedIDs, ", got:", actual)
 			}
+		})
+	}
+}
+
+func TestReorderBrokers(t *testing.T) {
+	testCases := []struct {
+		testName                 string
+		brokerPods               corev1.PodList
+		desiredBrokers           []v1beta1.Broker
+		brokersState             map[string]v1beta1.BrokerState
+		controllerBrokerID       int32
+		expectedReorderedBrokers []v1beta1.Broker
+	}{
+		{
+			testName: "all broker pods are up an running with no controller broker",
+			brokerPods: corev1.PodList{
+				Items: []corev1.Pod{
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+				},
+			},
+			desiredBrokers: []v1beta1.Broker{
+				{Id: 0},
+				{Id: 1},
+				{Id: 2},
+			},
+			brokersState: map[string]v1beta1.BrokerState{
+				"0": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"1": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"2": {ConfigurationState: v1beta1.ConfigOutOfSync},
+			},
+			controllerBrokerID: -1, // no controller broker
+			expectedReorderedBrokers: []v1beta1.Broker{
+				{Id: 0},
+				{Id: 1},
+				{Id: 2},
+			},
+		},
+		{
+			testName: "all broker pods are up an running with controller broker",
+			brokerPods: corev1.PodList{
+				Items: []corev1.Pod{
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+				},
+			},
+			desiredBrokers: []v1beta1.Broker{
+				{Id: 0},
+				{Id: 1},
+				{Id: 2},
+			},
+			brokersState: map[string]v1beta1.BrokerState{
+				"0": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"1": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"2": {ConfigurationState: v1beta1.ConfigOutOfSync},
+			},
+			controllerBrokerID: 1,
+			expectedReorderedBrokers: []v1beta1.Broker{
+				{Id: 0},
+				{Id: 2},
+				{Id: 1}, // controller broker should be last
+			},
+		},
+		{
+			testName: "some missing broker pods",
+			brokerPods: corev1.PodList{
+				Items: []corev1.Pod{
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+				},
+			},
+			desiredBrokers: []v1beta1.Broker{
+				{Id: 0},
+				{Id: 1},
+				{Id: 2},
+				{Id: 3},
+				{Id: 4},
+			},
+			brokersState: map[string]v1beta1.BrokerState{
+				"0": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"1": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"2": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"3": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"4": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"5": {
+					ConfigurationState:  v1beta1.ConfigInSync,
+					GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired}},
+			},
+			controllerBrokerID: 1,
+			expectedReorderedBrokers: []v1beta1.Broker{
+				{Id: 3}, // broker pod 3 missing thus should have higher prio
+				{Id: 4}, // broker pod 4 missing thus should have higher prio
+				{Id: 0},
+				{Id: 2},
+				{Id: 1}, // controller broker should be last
+			},
+		},
+		{
+			testName: "some missing broker pods and newly added brokers",
+			brokerPods: corev1.PodList{
+				Items: []corev1.Pod{
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+				},
+			},
+			desiredBrokers: []v1beta1.Broker{
+				{Id: 0},
+				{Id: 1},
+				{Id: 2},
+				{Id: 3},
+				{Id: 4},
+				{Id: 6}, // Kafka cluster upscaled by adding broker 6 to it
+			},
+			brokersState: map[string]v1beta1.BrokerState{
+				"0": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"1": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"2": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"3": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"4": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"5": {
+					ConfigurationState:  v1beta1.ConfigInSync,
+					GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired}},
+			},
+			controllerBrokerID: 1,
+			expectedReorderedBrokers: []v1beta1.Broker{
+				{Id: 6}, // broker 6 is newly added thus should have the highest prio
+				{Id: 3}, // broker pod 3 missing thus should have higher prio
+				{Id: 4}, // broker pod 4 missing thus should have higher prio
+				{Id: 0},
+				{Id: 2},
+				{Id: 1}, // controller broker should be last
+			},
+		},
+	}
+
+	t.Parallel()
+
+	for _, test := range testCases {
+		test := test
+
+		t.Run(test.testName, func(t *testing.T) {
+			g := gomega.NewWithT(t)
+			reorderedBrokers := reorderBrokers(test.brokerPods, test.desiredBrokers, test.brokersState, test.controllerBrokerID)
+
+			g.Expect(reorderedBrokers).To(gomega.Equal(test.expectedReorderedBrokers))
 		})
 	}
 }
