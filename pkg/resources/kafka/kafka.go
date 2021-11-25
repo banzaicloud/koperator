@@ -960,12 +960,12 @@ func (r *Reconciler) determineControllerId() (int32, error) {
 	if err != nil {
 		return -1, errors.WrapIf(err, "could not create Kafka client, thus could not determine controller")
 	}
+	defer close()
+	
 	_, controllerID, err := kClient.DescribeCluster()
 	if err != nil {
 		return -1, errors.WrapIf(err, "could not find controller broker")
 	}
-
-	defer close()
 
 	return controllerID, nil
 }
