@@ -51,7 +51,8 @@ import (
 	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
-type brokerWeight int
+// brokerReconcilePriority lower value represents higher priority for a broker to be reconciled
+type brokerReconcilePriority int
 
 const (
 	componentName         = "kafka"
@@ -71,14 +72,14 @@ const (
 	MetricsHealthCheck = "/-/healthy"
 	MetricsPort        = 9020
 
-	// newBrokerWeight the weight used  for brokers that were just added to the cluster used to determine reconciliation order
-	newBrokerWeight brokerWeight = iota
-	// missingBrokerWeight the weight used for missing brokers to determine reconciliation order
-	missingBrokerWeight
-	// nonControllerBrokerWeight the weight used for running non-controller brokers to determine reconciliation order
-	nonControllerBrokerWeight
-	// controllerBrokerWeight the weight used for controller brokerx to determine reconciliation order
-	controllerBrokerWeight
+	// newBrokerReconcilePriority the priority used  for brokers that were just added to the cluster used to define its priority in the reconciliation order
+	newBrokerReconcilePriority brokerReconcilePriority = iota
+	// missingBrokerReconcilePriority the priority used for missing brokers used to define its priority in the reconciliation order
+	missingBrokerReconcilePriority
+	// nonControllerBrokerReconcilePriority the priority used for running non-controller brokers used to define its priority in the reconciliation order
+	nonControllerBrokerReconcilePriority
+	// controllerBrokerReconcilePriority the priority used for controller broker used to define its priority in the reconciliation order
+	controllerBrokerReconcilePriority
 )
 
 // Reconciler implements the Component Reconciler
@@ -1019,18 +1020,18 @@ func reorderBrokers(brokerPods corev1.PodList, desiredBrokers []v1beta1.Broker, 
 		runningBrokers[brokerID] = struct{}{}
 	}
 
-	brokersWeight := make(map[string]brokerWeight, len(desiredBrokers))
+	brokersReconcilePriority := make(map[string]brokerReconcilePriority, len(desiredBrokers))
 
 	for _, b := range desiredBrokers {
 		brokerID := fmt.Sprintf("%d", b.Id)
-		brokersWeight[brokerID] = nonControllerBrokerWeight
+		brokersReconcilePriority[brokerID] = nonControllerBrokerReconcilePriority
 
 		if _, ok := brokersState[brokerID]; !ok {
-			brokersWeight[brokerID] = newBrokerWeight
+			brokersReconcilePriority[brokerID] = newBrokerReconcilePriority
 		} else if _, ok := runningBrokers[brokerID]; !ok {
-			brokersWeight[brokerID] = missingBrokerWeight
+			brokersReconcilePriority[brokerID] = missingBrokerReconcilePriority
 		} else if b.Id == controllerBrokerID {
-			brokersWeight[brokerID] = controllerBrokerWeight
+			brokersReconcilePriority[brokerID] = controllerBrokerReconcilePriority
 		}
 	}
 
@@ -1043,7 +1044,7 @@ func reorderBrokers(brokerPods corev1.PodList, desiredBrokers []v1beta1.Broker, 
 		brokerID1 := fmt.Sprintf("%d", reorderedBrokers[i].Id)
 		brokerID2 := fmt.Sprintf("%d", reorderedBrokers[j].Id)
 
-		return brokersWeight[brokerID1] < brokersWeight[brokerID2]
+		return brokersReconcilePriority[brokerID1] < brokersReconcilePriority[brokerID2]
 	})
 
 	return reorderedBrokers
