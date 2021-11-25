@@ -280,7 +280,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 		}
-		o := r.pod(broker.Id, brokerConfig, &r.KafkaCluster.Spec.ListenersConfig, pvcs, log)
+		o := r.pod(broker.Id, brokerConfig, pvcs, log)
 		err = r.reconcileKafkaPod(log, o.(*corev1.Pod), brokerConfig)
 		if err != nil {
 			return err
@@ -502,7 +502,7 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 				}
 				pair[iListener.Name] = string(serverSecret.Data[v1alpha1.PasswordKey])
 			}
-			if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
+			if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && iListener.ServerSSLCertSecret.Name == "" {
 				if globKeyPass == "" {
 					globKeyPass = string(serverSecret.Data[v1alpha1.PasswordKey])
 				}
