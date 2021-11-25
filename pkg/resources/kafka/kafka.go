@@ -51,6 +51,8 @@ import (
 	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
+type brokerWeight int
+
 const (
 	componentName         = "kafka"
 	brokerConfigTemplate  = "%s-config"
@@ -68,6 +70,15 @@ const (
 	jmxVolumeName      = "jmx-jar-data"
 	MetricsHealthCheck = "/-/healthy"
 	MetricsPort        = 9020
+
+	// newBrokerWeight the weight used  for brokers that were just added to the cluster used to determine reconciliation order
+	newBrokerWeight brokerWeight = iota
+	// missingBrokerWeight the weight used for missing brokers to determine reconciliation order
+	missingBrokerWeight
+	// nonControllerBrokerWeight the weight used for running non-controller brokers to determine reconciliation order
+	nonControllerBrokerWeight
+	// controllerBrokerWeight the weight used for controller brokerx to determine reconciliation order
+	controllerBrokerWeight
 )
 
 // Reconciler implements the Component Reconciler
@@ -961,7 +972,7 @@ func (r *Reconciler) determineControllerId() (int32, error) {
 		return -1, errors.WrapIf(err, "could not create Kafka client, thus could not determine controller")
 	}
 	defer close()
-	
+
 	_, controllerID, err := kClient.DescribeCluster()
 	if err != nil {
 		return -1, errors.WrapIf(err, "could not find controller broker")
@@ -1008,23 +1019,18 @@ func reorderBrokers(brokerPods corev1.PodList, desiredBrokers []v1beta1.Broker, 
 		runningBrokers[brokerID] = struct{}{}
 	}
 
-	// weights for broker ordering:
-	// -2: new broker
-	// -1: missing broker
-	// 0 : non-controller broker
-	// 1 : controller broker
-	brokersWeight := make(map[string]int, len(desiredBrokers))
+	brokersWeight := make(map[string]brokerWeight, len(desiredBrokers))
 
 	for _, b := range desiredBrokers {
 		brokerID := fmt.Sprintf("%d", b.Id)
-		brokersWeight[brokerID] = 0
+		brokersWeight[brokerID] = nonControllerBrokerWeight
 
 		if _, ok := brokersState[brokerID]; !ok {
-			brokersWeight[brokerID] = -2 // new broker
+			brokersWeight[brokerID] = newBrokerWeight
 		} else if _, ok := runningBrokers[brokerID]; !ok {
-			brokersWeight[brokerID] = -1 // missing broker
+			brokersWeight[brokerID] = missingBrokerWeight
 		} else if b.Id == controllerBrokerID {
-			brokersWeight[brokerID] = 1 // controller broker
+			brokersWeight[brokerID] = controllerBrokerWeight
 		}
 	}
 
