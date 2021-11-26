@@ -206,13 +206,6 @@ func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byt
 	}
 
 	password := GeneratePass(16)
-	//Zeroing password after this function for safety
-	defer func(s []byte) {
-		for i := 0; i < len(s); i++ {
-			s[i] = 0
-		}
-	}(password)
-
 	if err = jksKeyStore.SetPrivateKeyEntry("certs", pkeIn, password); err != nil {
 		return nil, nil, err
 	}
