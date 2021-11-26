@@ -63,11 +63,13 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, "setting zookeeper.connect parameter in broker configuration resulted an error")
 	}
 
-	// Add Cruise Control SSL configuration
 	brokerPort, err := kafkautils.GetBrokerContainerPort(r.KafkaCluster)
-
-	if util.IsListenerPortUseSSL(r.KafkaCluster.Spec.ListenersConfig.InternalListeners, brokerPort) {
-		if !util.IsClientSSLSecretPresent(r.KafkaCluster.Spec.ListenersConfig) {
+	if err != nil {
+		log.Error(err, "getting Kafka broker port for Cruise Control failed")
+	}
+	// Add Cruise Control SSL configuration
+	if util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
+		if !r.KafkaCluster.Spec.ListenersConfig.IsClientSSLSecretPresent() {
 			log.Error(errors.New("cruise control metrics reporter needs ssl but client certificate hasn't specified"), "")
 		}
 		if err := config.Set("cruise.control.metrics.reporter.security.protocol", "SSL"); err != nil {
@@ -86,9 +88,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 			log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.password parameter in broker configuration resulted an error")
 		}
 	}
-	if err := config.Set("password.encoder.secret", "secret"); err != nil {
-		log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.password parameter in broker configuration resulted an error")
-	}
+
 	// Add Cruise Control Metrics Reporter configuration
 	if err := config.Set("metric.reporters", "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"); err != nil {
 		log.Error(err, "setting metric.reporters in broker configuration resulted an error")
@@ -249,36 +249,23 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 	return config
 }
 
-func generateListenerSSLConfig(config *properties.Properties, name string, sSLFormat string, passwordKeyMap map[string]string, log logr.Logger) {
-	if sSLFormat == "JKS" {
-		keyStoreLocKey := fmt.Sprintf("listener.name.%s.ssl.keystore.location", name)
-		trustStoreLocKey := fmt.Sprintf("listener.name.%s.ssl.truststore.location", name)
-		keyStorePassKey := fmt.Sprintf("listener.name.%s.ssl.keystore.password", name)
-		trustStorePassKey := fmt.Sprintf("listener.name.%s.ssl.truststore.password", name)
-		clientAuthKey := fmt.Sprintf("listener.name.%s.ssl.client.auth", name)
-		certTypeKeyStoreKey := fmt.Sprintf("listener.name.%s.ssl.keystore.type", name)
-		certTypeTrustStoreKey := fmt.Sprintf("listener.name.%s.ssl.truststore.type", name)
-		namedKeystorePath := fmt.Sprintf(iListenerServerKeyStorePathTemplate, serverKeystorePath, name)
-		if err := config.Set(keyStoreLocKey, namedKeystorePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
-			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", keyStoreLocKey))
+func generateListenerSSLConfig(config *properties.Properties, name string, certificateStoreType string, passwordKeyMap map[string]string, log logr.Logger) {
+	if certificateStoreType == "JKS" {
+		namedKeystorePath := fmt.Sprintf(listenerServerKeyStorePathTemplate, serverKeystorePath, name)
+		listenerSSLConfig := map[string]string{
+			fmt.Sprintf(`listener.name.%s.ssl.keystore.location`, name):   namedKeystorePath + "/" + v1alpha1.TLSJKSKeyStore,
+			fmt.Sprintf("listener.name.%s.ssl.truststore.location", name): namedKeystorePath + "/" + v1alpha1.TLSJKSTrustStore,
+			fmt.Sprintf("listener.name.%s.ssl.keystore.password", name):   passwordKeyMap[name],
+			fmt.Sprintf("listener.name.%s.ssl.truststore.password", name): passwordKeyMap[name],
+			fmt.Sprintf("listener.name.%s.ssl.client.auth", name):         "required",
+			fmt.Sprintf("listener.name.%s.ssl.keystore.type", name):       "JKS",
+			fmt.Sprintf("listener.name.%s.ssl.truststore.type", name):     "JKS",
 		}
-		if err := config.Set(trustStoreLocKey, namedKeystorePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
-			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", trustStoreLocKey))
-		}
-		if err := config.Set(keyStorePassKey, passwordKeyMap[name]); err != nil {
-			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", keyStorePassKey))
-		}
-		if err := config.Set(trustStorePassKey, passwordKeyMap[name]); err != nil {
-			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", trustStorePassKey))
-		}
-		if err := config.Set(clientAuthKey, "required"); err != nil {
-			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", clientAuthKey))
-		}
-		if err := config.Set(certTypeKeyStoreKey, "JKS"); err != nil {
-			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", certTypeKeyStoreKey))
-		}
-		if err := config.Set(certTypeTrustStoreKey, "JKS"); err != nil {
-			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", certTypeTrustStoreKey))
+
+		for k, v := range listenerSSLConfig {
+			if err := config.Set(k, v); err != nil {
+				log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", k))
+			}
 		}
 	}
 }

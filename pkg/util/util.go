@@ -141,20 +141,6 @@ func IsSSLEnabledForInternalCommunication(l []v1beta1.InternalListenerConfig) (e
 	return enabled
 }
 
-func IsClientSSLSecretPresent(lconfig v1beta1.ListenersConfig) bool {
-	return lconfig.SSLSecrets != nil || lconfig.ClientSSLCertSecret.Name != ""
-}
-
-func IsListenerPortUseSSL(l []v1beta1.InternalListenerConfig, brokerPort int32) (enabled bool) {
-	for _, listener := range l {
-		if listener.ContainerPort == brokerPort && listener.Type.IsSSL() {
-			enabled = true
-			break
-		}
-	}
-	return enabled
-}
-
 // ConvertPropertiesToMapStringPointer converts a Properties object to map[string]*string
 func ConvertPropertiesToMapStringPointer(pp *properties.Properties) map[string]*string {
 	result := make(map[string]*string, pp.Len())
@@ -457,8 +443,7 @@ func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.Name
 	caCert := tlsKeys.Data[v1alpha1.CoreCACertKey]
 	x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
 	if err != nil {
-		err = errorfactory.New(errorfactory.InternalError{}, err, "could not decode controller certificate")
-		return config, err
+		return config, errorfactory.New(errorfactory.InternalError{}, err, "could not decode controller certificate")
 	}
 
 	rootCAs := x509.NewCertPool()

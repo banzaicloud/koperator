@@ -223,7 +223,7 @@ func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMo
 
 	volumeMounts = append(volumeMounts, dataVolumeMount...)
 
-	if listenersConfig.SSLSecrets != nil || listenersConfig.ClientSSLCertSecret.Name != "" {
+	if listenersConfig.IsClientSSLSecretPresent() {
 		volumeMounts = append(volumeMounts, generateVolumeMountForClientSSLCerts())
 	}
 
@@ -264,7 +264,7 @@ func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, listenersConfig
 	volumes = append(volumes, brokerConfigVolumes...)
 	volumes = append(volumes, dataVolume...)
 
-	if util.IsClientSSLSecretPresent(listenersConfig) {
+	if listenersConfig.IsClientSSLSecretPresent() {
 		volumes = append(volumes, generateVolumeForClientSSLCert(listenersConfig, kafkaClusterName))
 	}
 
@@ -375,12 +375,12 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volu
 
 func generateVolumeForListenersCertsFromCommonSpec(commonSpec v1beta1.CommonListenerSpec, clusterName string) corev1.Volume {
 	// Use default one if custom has not specified
-	secretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
-	if commonSpec.ServerSSLCertSecret.Name != "" {
-		secretName = commonSpec.ServerSSLCertSecret.Name
+	secretName := fmt.Sprintf(pkicommon.BrokerServerCertTemplate, clusterName)
+	if commonSpec.GetServerSSLCertSecretName() != "" {
+		secretName = commonSpec.GetServerSSLCertSecretName()
 	}
 	return corev1.Volume{
-		Name: fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, commonSpec.Name),
+		Name: fmt.Sprintf(listenerSSLCertVolumeNameTemplate, commonSpec.Name),
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
 				SecretName:  secretName,
@@ -409,8 +409,8 @@ func generateVolumesForListenerCerts(listenerConfig v1beta1.ListenersConfig, clu
 func generateVolumeForClientSSLCert(listenerConfig v1beta1.ListenersConfig, clusterName string) (ret corev1.Volume) {
 	// Use default one if custom has not specified
 	clientSecretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
-	if listenerConfig.ClientSSLCertSecret.Name != "" {
-		clientSecretName = listenerConfig.ClientSSLCertSecret.Name
+	if listenerConfig.GetClientSSLCertSecretName() != "" {
+		clientSecretName = listenerConfig.GetClientSSLCertSecretName()
 	}
 	return corev1.Volume{
 		Name: clientKeystoreVolume,
@@ -429,8 +429,8 @@ func generateVolumeMountForListenerCerts(listenerConfig v1beta1.ListenersConfig)
 			continue
 		}
 		vm := corev1.VolumeMount{
-			Name:      fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, iListener.Name),
-			MountPath: fmt.Sprintf(iListenerServerKeyStorePathTemplate, serverKeystorePath, iListener.CommonListenerSpec.Name),
+			Name:      fmt.Sprintf(listenerSSLCertVolumeNameTemplate, iListener.Name),
+			MountPath: fmt.Sprintf(listenerServerKeyStorePathTemplate, serverKeystorePath, iListener.CommonListenerSpec.Name),
 		}
 		ret = append(ret, vm)
 	}
@@ -439,8 +439,8 @@ func generateVolumeMountForListenerCerts(listenerConfig v1beta1.ListenersConfig)
 			continue
 		}
 		vm := corev1.VolumeMount{
-			Name:      fmt.Sprintf(iListenerSSLCertVolumeNameTemplate, eListener.Name),
-			MountPath: fmt.Sprintf(iListenerServerKeyStorePathTemplate, serverKeystorePath, eListener.CommonListenerSpec.Name),
+			Name:      fmt.Sprintf(listenerSSLCertVolumeNameTemplate, eListener.Name),
+			MountPath: fmt.Sprintf(listenerServerKeyStorePathTemplate, serverKeystorePath, eListener.CommonListenerSpec.Name),
 		}
 		ret = append(ret, vm)
 	}

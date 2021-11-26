@@ -90,7 +90,7 @@ func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logge
 func generateSSLConfig(l v1beta1.ListenersConfig, clientPass string, log logr.Logger) *properties.Properties {
 	sslConf := properties.NewProperties()
 
-	if util.IsClientSSLSecretPresent(l) && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
+	if l.IsClientSSLSecretPresent() && util.IsSSLEnabledForInternalCommunication(l.InternalListeners) {
 		if err := sslConf.Set("security.protocol", "SSL"); err != nil {
 			log.Error(err, "settings security.protocol in Cruise Control configuration failed")
 		}

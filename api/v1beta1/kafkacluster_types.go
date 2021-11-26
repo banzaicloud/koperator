@@ -317,14 +317,25 @@ type ListenersConfig struct {
 	// The included certificate have to be signed by the same CA as the corresponding internal listener's server certificate.
 	// Secret has to contain the keystore and truststore in jks and the password for them in base64 encoded format.
 	// Data fields must be: keystore.jks, truststore.jks, password
-	ClientSSLCertSecret corev1.LocalObjectReference `json:"clientSSLCertSecret,omitempty"`
-	SSLSecrets          *SSLSecrets                 `json:"sslSecrets,omitempty"`
-	ServiceAnnotations  map[string]string           `json:"serviceAnnotations,omitempty"`
+	ClientSSLCertSecret *corev1.LocalObjectReference `json:"clientSSLCertSecret,omitempty"`
+	SSLSecrets          *SSLSecrets                  `json:"sslSecrets,omitempty"`
+	ServiceAnnotations  map[string]string            `json:"serviceAnnotations,omitempty"`
 }
 
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
 func (c ListenersConfig) GetServiceAnnotations() map[string]string {
 	return util.CloneMap(c.ServiceAnnotations)
+}
+
+func (c ListenersConfig) GetClientSSLCertSecretName() string {
+	if c.ClientSSLCertSecret == nil {
+		return ""
+	}
+	return c.ClientSSLCertSecret.Name
+}
+
+func (c ListenersConfig) IsClientSSLSecretPresent() bool {
+	return c.SSLSecrets != nil || c.GetClientSSLCertSecretName() != ""
 }
 
 func (c ExternalListenerConfig) GetAccessMethod() corev1.ServiceType {
@@ -452,10 +463,17 @@ type CommonListenerSpec struct {
 	// Secret has to contain the keystore and truststore in jks and the password for them in base64 encoded format.
 	// Data fields must be: keystore.jks, truststore.jks, password
 	// SecurityProtocol has to be set to ssl.
-	ServerSSLCertSecret corev1.LocalObjectReference `json:"serverSSLCertSecret,omitempty"`
+	ServerSSLCertSecret *corev1.LocalObjectReference `json:"serverSSLCertSecret,omitempty"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
 	Name          string `json:"name"`
 	ContainerPort int32  `json:"containerPort"`
+}
+
+func (c CommonListenerSpec) GetServerSSLCertSecretName() string {
+	if c.ServerSSLCertSecret == nil {
+		return ""
+	}
+	return c.ServerSSLCertSecret.Name
 }
 
 // ListenerStatuses holds information about the statuses of the configured listeners.
