@@ -159,11 +159,11 @@ fi`},
 							Name:          "metrics",
 						},
 					}...),
-					VolumeMounts: getVolumeMounts(brokerConfig.VolumeMounts, dataVolumeMount, r.KafkaCluster.Spec.ListenersConfig, r.KafkaCluster.Name),
+					VolumeMounts: getVolumeMounts(brokerConfig.VolumeMounts, dataVolumeMount, r.KafkaCluster.Spec, r.KafkaCluster.Name),
 					Resources:    *brokerConfig.GetResources(),
 				},
 			}, brokerConfig.Containers...),
-			Volumes:                       getVolumes(brokerConfig.Volumes, dataVolume, r.KafkaCluster.Spec.ListenersConfig, r.KafkaCluster.Name, id),
+			Volumes:                       getVolumes(brokerConfig.Volumes, dataVolume, r.KafkaCluster.Spec, r.KafkaCluster.Name, id),
 			RestartPolicy:                 corev1.RestartPolicyNever,
 			TerminationGracePeriodSeconds: util.Int64Pointer(brokerConfig.GetTerminationGracePeriod()),
 			ImagePullSecrets:              brokerConfig.GetImagePullSecrets(),
@@ -217,17 +217,17 @@ func getInitContainers(brokerConfig *v1beta1.BrokerConfig, kafkaClusterSpec v1be
 }
 
 func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMount,
-	listenersConfig v1beta1.ListenersConfig, kafkaClusterName string) []corev1.VolumeMount {
+	kafkaClusterSpec v1beta1.KafkaClusterSpec, kafkaClusterName string) []corev1.VolumeMount {
 	volumeMounts := make([]corev1.VolumeMount, 0, len(brokerConfigVolumeMounts))
 	volumeMounts = append(volumeMounts, brokerConfigVolumeMounts...)
 
 	volumeMounts = append(volumeMounts, dataVolumeMount...)
 
-	if listenersConfig.IsClientSSLSecretPresent() {
+	if kafkaClusterSpec.IsClientSSLSecretPresent() {
 		volumeMounts = append(volumeMounts, generateVolumeMountForClientSSLCerts())
 	}
 
-	volumeMounts = append(volumeMounts, generateVolumeMountForListenerCerts(listenersConfig)...)
+	volumeMounts = append(volumeMounts, generateVolumeMountForListenerCerts(kafkaClusterSpec.ListenersConfig)...)
 	volumeMounts = append(volumeMounts, []corev1.VolumeMount{
 		{
 			Name:      brokerConfigMapVolumeMount,
@@ -258,17 +258,17 @@ func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMo
 	return volumeMounts
 }
 
-func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, listenersConfig v1beta1.ListenersConfig, kafkaClusterName string, id int32) []corev1.Volume {
+func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, kafkaClusterSpec v1beta1.KafkaClusterSpec, kafkaClusterName string, id int32) []corev1.Volume {
 	volumes := make([]corev1.Volume, 0, len(brokerConfigVolumes))
 	// clone the brokerConfig volumes
 	volumes = append(volumes, brokerConfigVolumes...)
 	volumes = append(volumes, dataVolume...)
 
-	if listenersConfig.IsClientSSLSecretPresent() {
-		volumes = append(volumes, generateVolumeForClientSSLCert(listenersConfig, kafkaClusterName))
+	if kafkaClusterSpec.IsClientSSLSecretPresent() {
+		volumes = append(volumes, generateVolumeForClientSSLCert(kafkaClusterSpec, kafkaClusterName))
 	}
 
-	volumes = append(volumes, generateVolumesForListenerCerts(listenersConfig, kafkaClusterName)...)
+	volumes = append(volumes, generateVolumesForListenerCerts(kafkaClusterSpec.ListenersConfig, kafkaClusterName)...)
 	volumes = append(volumes, []corev1.Volume{
 		{
 			Name: "exitfile",
@@ -406,11 +406,11 @@ func generateVolumesForListenerCerts(listenerConfig v1beta1.ListenersConfig, clu
 	return ret
 }
 
-func generateVolumeForClientSSLCert(listenerConfig v1beta1.ListenersConfig, clusterName string) (ret corev1.Volume) {
+func generateVolumeForClientSSLCert(kafkaClusterSpec v1beta1.KafkaClusterSpec, clusterName string) (ret corev1.Volume) {
 	// Use default one if custom has not specified
 	clientSecretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
-	if listenerConfig.GetClientSSLCertSecretName() != "" {
-		clientSecretName = listenerConfig.GetClientSSLCertSecretName()
+	if kafkaClusterSpec.GetClientSSLCertSecretName() != "" {
+		clientSecretName = kafkaClusterSpec.GetClientSSLCertSecretName()
 	}
 	return corev1.Volume{
 		Name: clientKeystoreVolume,

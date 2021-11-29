@@ -69,7 +69,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	}
 	// Add Cruise Control SSL configuration
 	if util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
-		if !r.KafkaCluster.Spec.ListenersConfig.IsClientSSLSecretPresent() {
+		if !r.KafkaCluster.Spec.IsClientSSLSecretPresent() {
 			log.Error(errors.New("cruise control metrics reporter needs ssl but client certificate hasn't specified"), "")
 		}
 		if err := config.Set("cruise.control.metrics.reporter.security.protocol", "SSL"); err != nil {

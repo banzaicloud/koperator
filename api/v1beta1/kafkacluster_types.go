@@ -82,6 +82,14 @@ type KafkaClusterSpec struct {
 	// Add the "+" suffix to append.
 	Envs                    []corev1.EnvVar `json:"envs,omitempty"`
 	KubernetesClusterDomain string          `json:"kubernetesClusterDomain,omitempty"`
+	// ClientSSLCertSecret is a reference to that secret where custom client SSL certificate can be provided.
+	// It can be used by the koperator, cruise control to communicate on SSL with
+	// internal listener which is used for interbroker communication.
+	// It should be added only if custom certificate has been specified for that internal listener.
+	// The included certificate has to be signed by the same CA as the corresponding internal listener's server certificate.
+	// Secret has to contain the keystore and truststore in jks and the password for them in base64 encoded format.
+	// Data fields must be: keystore.jks, truststore.jks, password
+	ClientSSLCertSecret *corev1.LocalObjectReference `json:"clientSSLCertSecret,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -309,33 +317,15 @@ type StorageConfig struct {
 
 //ListenersConfig defines the Kafka listener types
 type ListenersConfig struct {
-	ExternalListeners []ExternalListenerConfig `json:"externalListeners,omitempty"`
-	InternalListeners []InternalListenerConfig `json:"internalListeners"`
-	// ClientSSLCertSecret is a reference to that secret where custom client SSL certificate can be provided
-	// It can be used by the koperator, cruise control to communicate on SSL with
-	// the internal listener which is used for the interbroker communication.
-	// The included certificate have to be signed by the same CA as the corresponding internal listener's server certificate.
-	// Secret has to contain the keystore and truststore in jks and the password for them in base64 encoded format.
-	// Data fields must be: keystore.jks, truststore.jks, password
-	ClientSSLCertSecret *corev1.LocalObjectReference `json:"clientSSLCertSecret,omitempty"`
-	SSLSecrets          *SSLSecrets                  `json:"sslSecrets,omitempty"`
-	ServiceAnnotations  map[string]string            `json:"serviceAnnotations,omitempty"`
+	ExternalListeners  []ExternalListenerConfig `json:"externalListeners,omitempty"`
+	InternalListeners  []InternalListenerConfig `json:"internalListeners"`
+	SSLSecrets         *SSLSecrets              `json:"sslSecrets,omitempty"`
+	ServiceAnnotations map[string]string        `json:"serviceAnnotations,omitempty"`
 }
 
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
 func (c ListenersConfig) GetServiceAnnotations() map[string]string {
 	return util.CloneMap(c.ServiceAnnotations)
-}
-
-func (c ListenersConfig) GetClientSSLCertSecretName() string {
-	if c.ClientSSLCertSecret == nil {
-		return ""
-	}
-	return c.ClientSSLCertSecret.Name
-}
-
-func (c ListenersConfig) IsClientSSLSecretPresent() bool {
-	return c.SSLSecrets != nil || c.GetClientSSLCertSecretName() != ""
 }
 
 func (c ExternalListenerConfig) GetAccessMethod() corev1.ServiceType {
@@ -565,6 +555,19 @@ func (iIConfig *IstioIngressConfig) GetReplicas() int32 {
 		return 1
 	}
 	return iIConfig.Replicas
+}
+
+// GetClientSSLCertSecretName returns the ClientSSLCertSecretName. It returns empty string if It's not specified
+func (k KafkaClusterSpec) GetClientSSLCertSecretName() string {
+	if k.ClientSSLCertSecret == nil {
+		return ""
+	}
+	return k.ClientSSLCertSecret.Name
+}
+
+// IsClientSSLSecretPresent returns true if ssl client certification has been setted for the operator and cruise control.
+func (k KafkaClusterSpec) IsClientSSLSecretPresent() bool {
+	return k.ListenersConfig.SSLSecrets != nil || k.GetClientSSLCertSecretName() != ""
 }
 
 // GetIngressController returns the default Envoy ingress controller if not specified otherwise

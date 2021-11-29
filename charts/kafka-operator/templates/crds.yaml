@@ -11692,6 +11692,23 @@ spec:
                   - id
                   type: object
                 type: array
+              clientSSLCertSecret:
+                description: 'ClientSSLCertSecret is a reference to that secret where
+                  custom client SSL certificate can be provided. It can be used by
+                  the koperator, cruise control to communicate on SSL with internal
+                  listener which is used for interbroker communication. It should
+                  be added only if custom certificate has been specified for that
+                  internal listener. The included certificate has to be signed by
+                  the same CA as the corresponding internal listener''s server certificate.
+                  Secret has to contain the keystore and truststore in jks and the
+                  password for them in base64 encoded format. Data fields must be:
+                  keystore.jks, truststore.jks, password'
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
               clusterImage:
                 type: string
               clusterMetricsReporterImage:
@@ -16429,22 +16446,6 @@ spec:
               listenersConfig:
                 description: ListenersConfig defines the Kafka listener types
                 properties:
-                  clientSSLCertSecret:
-                    description: 'ClientSSLCertSecret is a reference to that secret
-                      where custom client SSL certificate can be provided It can be
-                      used by the koperator, cruise control to communicate on SSL
-                      with the internal listener which is used for the interbroker
-                      communication. The included certificate have to be signed by
-                      the same CA as the corresponding internal listener''s server
-                      certificate. Secret has to contain the keystore and truststore
-                      in jks and the password for them in base64 encoded format. Data
-                      fields must be: keystore.jks, truststore.jks, password'
-                    properties:
-                      name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?'
-                        type: string
-                    type: object
                   externalListeners:
                     items:
                       description: ExternalListenerConfig defines the external listener

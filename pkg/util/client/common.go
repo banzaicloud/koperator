@@ -25,6 +25,10 @@ func UseSSL(cluster *v1beta1.KafkaCluster) bool {
 	return cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].Type.IsSSL()
 }
 
+func IsInnerBrokerServerSSLCertSetted(cluster *v1beta1.KafkaCluster) bool {
+	return cluster.Spec.ListenersConfig.InternalListeners[determineInternalListenerForInnerCom(cluster.Spec.ListenersConfig.InternalListeners)].GetServerSSLCertSecretName() != ""
+}
+
 func determineInternalListenerForInnerCom(internalListeners []v1beta1.InternalListenerConfig) int {
 	for id, val := range internalListeners {
 		if val.UsedForInnerBrokerCommunication {
