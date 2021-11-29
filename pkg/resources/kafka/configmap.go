@@ -63,10 +63,6 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, "setting zookeeper.connect parameter in broker configuration resulted an error")
 	}
 
-	brokerPort, err := kafkautils.GetBrokerContainerPort(r.KafkaCluster)
-	if err != nil {
-		log.Error(err, "getting Kafka broker port for Cruise Control failed")
-	}
 	// Add Cruise Control SSL configuration
 	if util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		if !r.KafkaCluster.Spec.IsClientSSLSecretPresent() {
