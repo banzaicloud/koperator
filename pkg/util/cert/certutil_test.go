@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/pavel-v-chernykh/keystore-go/v4"
+
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
@@ -100,10 +102,16 @@ func TestGenerateJKS(t *testing.T) {
 	if err != nil {
 		t.Error("Failed to generate test certificate")
 	}
-	caCert := cert
 
-	if _, _, err = GenerateJKSFromByte(cert, key, caCert); err != nil {
+	caCert := cert
+	keyStoreBytes, password, err := GenerateJKSFromByte(cert, key, caCert)
+	if err != nil {
 		t.Error("Expected to generate JKS, got error:", err)
+	}
+	jksKeyStore := keystore.New()
+	keyStoreBytesReader := bytes.NewReader(keyStoreBytes)
+	if err = jksKeyStore.Load(keyStoreBytesReader, password); err != nil {
+		t.Error("Failed to generate keyStore from keyStore representation in bytes, probably due wrong pssword. Error: ", err)
 	}
 
 	badCACert := cert[:len(cert)-10]
