@@ -527,7 +527,7 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 				}
 				pair[eListener.Name] = string(serverSecret.Data[v1alpha1.PasswordKey])
 			}
-			if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
+			if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && eListener.GetServerSSLCertSecretName() == "" {
 				if globKeyPass == "" {
 					globKeyPass = string(serverSecret.Data[v1alpha1.PasswordKey])
 				}
