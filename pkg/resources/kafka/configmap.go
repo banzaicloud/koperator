@@ -102,11 +102,11 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	if err := config.Set("metric.reporters", "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"); err != nil {
 		log.Error(err, "setting metric.reporters in broker configuration resulted an error")
 	}
-	brokerPort, err := kafkautils.GetBrokerContainerPort(r.KafkaCluster)
+	bootstrapServers, err := kafkautils.GetBootstrapServersService(r.KafkaCluster)
 	if err != nil {
-		log.Error(err, "getting Kafka broker port for Cruise Control failed")
+		log.Error(err, "getting Kafka bootstrap servers for Cruise Control failed")
 	}
-	if err := config.Set("cruise.control.metrics.reporter.bootstrap.servers", fmt.Sprintf("localhost:%d", brokerPort)); err != nil {
+	if err := config.Set("cruise.control.metrics.reporter.bootstrap.servers", bootstrapServers); err != nil {
 		log.Error(err, "setting cruise.control.metrics.reporter.bootstrap.servers in broker configuration resulted an error")
 	}
 	if err := config.Set("cruise.control.metrics.reporter.kubernetes.mode", true); err != nil {
