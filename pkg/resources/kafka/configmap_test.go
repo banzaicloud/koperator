@@ -17,6 +17,7 @@ package kafka
 import (
 	"testing"
 
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -225,6 +226,40 @@ listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 zookeeper.connect=example.zk:2181/`,
 		},
+		{
+			testName:                  "configWithSSL",
+			readOnlyConfig:            ``,
+			zkAddresses:               []string{"example.zk:2181"},
+			zkPath:                    ``,
+			kubernetesClusterDomain:   ``,
+			clusterWideConfig:         ``,
+			perBrokerConfig:           ``,
+			perBrokerReadOnlyConfig:   ``,
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "ssl",
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=localhost:9092
+cruise.control.metrics.reporter.kubernetes.mode=true
+cruise.control.metrics.reporter.security.protocol=SSL
+cruise.control.metrics.reporter.ssl.keystore.location=/var/run/secrets/java.io/keystores/client/keystore.jks
+cruise.control.metrics.reporter.ssl.keystore.password=keystore_clientpassword123
+cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io/keystores/client/truststore.jks
+cruise.control.metrics.reporter.ssl.truststore.password=keystore_clientpassword123
+inter.broker.listener.name=INTERNAL
+listener.name.internal.ssl.client.auth=required
+listener.name.internal.ssl.keystore.location=/var/run/secrets/java.io/keystores/server/internal/keystore.jks
+listener.name.internal.ssl.keystore.password=keystore_serverpassword123
+listener.name.internal.ssl.keystore.type=JKS
+listener.name.internal.ssl.truststore.location=/var/run/secrets/java.io/keystores/server/internal/truststore.jks
+listener.name.internal.ssl.truststore.password=keystore_serverpassword123
+listener.name.internal.ssl.truststore.type=JKS
+listener.security.protocol.map=INTERNAL:SSL
+listeners=INTERNAL://:9092
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+super.users=User:CN=kafka-headless.kafka.svc.cluster.local
+zookeeper.connect=example.zk:2181/`,
+		},
 	}
 
 	t.Parallel()
@@ -243,15 +278,22 @@ zookeeper.connect=example.zk:2181/`,
 						Spec: v1beta1.KafkaClusterSpec{
 							ZKAddresses: test.zkAddresses,
 							ZKPath:      test.zkPath,
+							ClientSSLCertSecret: &v1.LocalObjectReference{
+								Name: "client-secret",
+							},
 							ListenersConfig: v1beta1.ListenersConfig{
-								InternalListeners: []v1beta1.InternalListenerConfig{{
-									CommonListenerSpec: v1beta1.CommonListenerSpec{
-										Type:          v1beta1.SecurityProtocol(test.listenerType),
-										Name:          "internal",
-										ContainerPort: 9092,
+								InternalListeners: []v1beta1.InternalListenerConfig{
+									{
+										CommonListenerSpec: v1beta1.CommonListenerSpec{
+											Type:          v1beta1.SecurityProtocol(test.listenerType),
+											Name:          "internal",
+											ContainerPort: 9092,
+											ServerSSLCertSecret: &v1.LocalObjectReference{
+												Name: "server-secret",
+											},
+										},
+										UsedForInnerBrokerCommunication: true,
 									},
-									UsedForInnerBrokerCommunication: true,
-								},
 								},
 							},
 							ReadOnlyConfig:          test.readOnlyConfig,
@@ -279,8 +321,18 @@ zookeeper.connect=example.zk:2181/`,
 					},
 				},
 			}
+			var (
+				serverPasses map[string]string
+				clientPass   string
+				superUsers   []string
+			)
+			if test.testName == "configWithSSL" {
+				serverPasses = map[string]string{"internal": "keystore_serverpassword123"}
+				clientPass = "keystore_clientpassword123"
+				superUsers = []string{"CN=kafka-headless.kafka.svc.cluster.local"}
+			}
 
-			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{}, map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, nil, "", []string{}, logf.NullLogger{})
+			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{}, map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, serverPasses, clientPass, superUsers, logf.NullLogger{})
 
 			generated, err := properties.NewFromString(generatedConfig)
 			if err != nil {
