@@ -521,7 +521,7 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 		if eListener.Type == v1beta1.SecurityProtocolSSL {
 			if globKeyPass == "" || eListener.GetServerSSLCertSecretName() != "" {
-				serverSecret, err := getListenerSSLCertSecret(r.Client, eListener.CommonListenerSpec, r.KafkaCluster.Name, r.KafkaCluster.Namespace)
+				serverSecret, err = getListenerSSLCertSecret(r.Client, eListener.CommonListenerSpec, r.KafkaCluster.Name, r.KafkaCluster.Namespace)
 				if err != nil {
 					return nil, nil, err
 				}
