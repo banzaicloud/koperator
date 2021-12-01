@@ -558,7 +558,7 @@ func (iIConfig *IstioIngressConfig) GetReplicas() int32 {
 }
 
 // GetClientSSLCertSecretName returns the ClientSSLCertSecretName. It returns empty string if It's not specified
-func (k KafkaClusterSpec) GetClientSSLCertSecretName() string {
+func (k *KafkaClusterSpec) GetClientSSLCertSecretName() string {
 	if k.ClientSSLCertSecret == nil {
 		return ""
 	}
@@ -566,7 +566,7 @@ func (k KafkaClusterSpec) GetClientSSLCertSecretName() string {
 }
 
 // IsClientSSLSecretPresent returns true if ssl client certification has been setted for the operator and cruise control.
-func (k KafkaClusterSpec) IsClientSSLSecretPresent() bool {
+func (k *KafkaClusterSpec) IsClientSSLSecretPresent() bool {
 	return k.ListenersConfig.SSLSecrets != nil || k.GetClientSSLCertSecretName() != ""
 }
 
