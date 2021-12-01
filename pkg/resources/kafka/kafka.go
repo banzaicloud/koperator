@@ -140,7 +140,7 @@ func getLoadBalancerIP(foundLBService *corev1.Service) (string, error) {
 }
 
 // Reconcile implements the reconcile logic for Kafka
-func (r *Reconciler) Reconcile(log logr.Logger) error { //nolint gocyclo
+func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName, "clusterName", r.KafkaCluster.Name, "clusterNamespace", r.KafkaCluster.Namespace)
 
 	log.V(1).Info("Reconciling")
@@ -197,16 +197,9 @@ func (r *Reconciler) Reconcile(log logr.Logger) error { //nolint gocyclo
 
 	// We need to grab names for servers and client in case user is enabling ACLs
 	// That way we can continue to manage topics and users
-	serverPasses, superUsers, err := r.getServerPasswordKeysAndUsers()
+	clientPass, serverPasses, superUsers, err := r.getPasswordKeysAndSuperUsers()
 	if err != nil {
 		return err
-	}
-	clientPass, superUser, err := r.getClientPasswordKeyAndUser()
-	if err != nil {
-		return err
-	}
-	if superUser != "" {
-		superUsers = append(superUsers, superUser)
 	}
 
 	brokersVolumes := make(map[string][]*corev1.PersistentVolumeClaim, len(r.KafkaCluster.Spec.Brokers))
@@ -553,6 +546,20 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 		}
 	}
 	return pair, CNList, nil
+}
+func (r *Reconciler) getPasswordKeysAndSuperUsers() (clientPass string, serverPasses map[string]string, superUsers []string, err error) {
+	serverPasses, superUsers, err = r.getServerPasswordKeysAndUsers()
+	if err != nil {
+		return "", nil, nil, err
+	}
+	clientPass, superUser, err := r.getClientPasswordKeyAndUser()
+	if err != nil {
+		return "", nil, nil, err
+	}
+	if superUser != "" {
+		superUsers = append(superUsers, superUser)
+	}
+	return clientPass, serverPasses, superUsers, nil
 }
 
 func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, bConfig *v1beta1.BrokerConfig) error {
