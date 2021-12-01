@@ -459,7 +459,7 @@ type CommonListenerSpec struct {
 	ContainerPort int32  `json:"containerPort"`
 }
 
-func (c CommonListenerSpec) GetServerSSLCertSecretName() string {
+func (c *CommonListenerSpec) GetServerSSLCertSecretName() string {
 	if c.ServerSSLCertSecret == nil {
 		return ""
 	}
