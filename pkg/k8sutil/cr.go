@@ -22,12 +22,15 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/go-logr/logr"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // UpdateCrWithRackAwarenessConfig updates the CR with rack awareness config
@@ -145,7 +148,8 @@ func UpdateCr(cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
 }
 
 // UpdateCrWithRollingUpgrade modifies CR status
-func UpdateCrWithRollingUpgrade(errorCount int, cr *v1beta1.KafkaCluster, client runtimeClient.Client) error {
+func UpdateCrWithRollingUpgrade(errorCount int, cr *v1beta1.KafkaCluster, client runtimeClient.Client, logger logr.Logger) error {
 	cr.Status.RollingUpgrade.ErrorCount = errorCount
-	return UpdateCr(cr, client)
+
+	return UpdateCRStatus(client, cr, nil, logger)
 }

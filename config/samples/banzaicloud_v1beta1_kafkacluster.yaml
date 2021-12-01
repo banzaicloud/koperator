@@ -39,7 +39,10 @@ spec:
   # brokerConfigGroups specifies multiple broker configs with unique name
   #rollingUpgradeConfig specifies the rolling upgrade config for the cluster
   #rollingUpgradeConfig:
-  #failureThreshold states that how many errors can the cluster tolerate during rolling upgrade
+  #failureThreshold controls how many failures can the cluster tolerate during a rolling upgrade. Once the number of
+  # failures reaches this threshold a rolling upgrade flow stops. The number of failures is computed as the sum of
+  #	distinct broker replicas with either offline replicas or out of sync replicas and the number of alerts triggered by
+  #	alerts with 'rollingupgrade'
   #  failureThreshold: 1
   brokerConfigGroups:
     # Specify desired group name (eg., 'default_group')

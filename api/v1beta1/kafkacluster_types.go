@@ -97,11 +97,17 @@ type KafkaClusterStatus struct {
 // RollingUpgradeStatus defines status of rolling upgrade
 type RollingUpgradeStatus struct {
 	LastSuccess string `json:"lastSuccess"`
-	ErrorCount  int    `json:"errorCount"`
+	// ErrorCount keeps track the number of errors reported by alerts labeled with 'rollingupgrade'.
+	// It's reset once these alerts stop firing.
+	ErrorCount int `json:"errorCount"`
 }
 
 // RollingUpgradeConfig defines the desired config of the RollingUpgrade
 type RollingUpgradeConfig struct {
+	// FailureThreshold controls how many failures can the cluster tolerate during a rolling upgrade. Once the number of
+	// failures reaches this threshold a rolling upgrade flow stops. The number of failures is computed as the sum of
+	// distinct broker replicas with either offline replicas or out of sync replicas and the number of alerts triggered by
+	// alerts with 'rollingupgrade'
 	FailureThreshold int `json:"failureThreshold"`
 }
 
