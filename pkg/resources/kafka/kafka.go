@@ -140,7 +140,7 @@ func getLoadBalancerIP(foundLBService *corev1.Service) (string, error) {
 }
 
 // Reconcile implements the reconcile logic for Kafka
-func (r *Reconciler) Reconcile(log logr.Logger) error {
+func (r *Reconciler) Reconcile(log logr.Logger) error { //nolint gocyclo
 	log = log.WithValues("component", componentName, "clusterName", r.KafkaCluster.Name, "clusterNamespace", r.KafkaCluster.Namespace)
 
 	log.V(1).Info("Reconciling")
