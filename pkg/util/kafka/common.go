@@ -209,9 +209,9 @@ func GetBootstrapServersService(cluster *v1beta1.KafkaCluster) (string, error) {
 	return getBootstrapServers(cluster, true)
 }
 
-// GetBrokerContainerPort return broker container port
-func GetBrokerContainerPort(cluster *v1beta1.KafkaCluster) (int32, error) {
+func getBootstrapServers(cluster *v1beta1.KafkaCluster, useService bool) (string, error) {
 	var listener v1beta1.InternalListenerConfig
+	var bootstrapServersList []string
 
 	for _, lc := range cluster.Spec.ListenersConfig.InternalListeners {
 		if lc.UsedForInnerBrokerCommunication && !lc.UsedForControllerCommunication {
@@ -219,28 +219,20 @@ func GetBrokerContainerPort(cluster *v1beta1.KafkaCluster) (int32, error) {
 			break
 		}
 	}
-	if listener.Name == "" {
-		return -1, errors.New("no suitable listener found for using as Kafka bootstrap server configuration")
-	}
-	return listener.ContainerPort, nil
-}
 
-func getBootstrapServers(cluster *v1beta1.KafkaCluster, useService bool) (string, error) {
-	containerPort, err := GetBrokerContainerPort(cluster)
-	if err != nil {
-		return "", err
+	if listener.Name == "" {
+		return "", errors.New("no suitable listener found for using as Kafka bootstrap server configuration")
 	}
-	var bootstrapServersList []string
 
 	if useService {
 		bootstrapServersList = append(bootstrapServersList,
-			fmt.Sprintf("%s:%d", GetClusterServiceFqdn(cluster), containerPort))
+			fmt.Sprintf("%s:%d", GetClusterServiceFqdn(cluster), listener.ContainerPort))
 	} else {
 		for _, broker := range cluster.Spec.Brokers {
 			broker := broker
 			fqdn := GetBrokerServiceFqdn(cluster, &broker)
 			bootstrapServersList = append(bootstrapServersList,
-				fmt.Sprintf("%s:%d", fqdn, containerPort))
+				fmt.Sprintf("%s:%d", fqdn, listener.ContainerPort))
 		}
 	}
 	return strings.Join(bootstrapServersList, ","), nil
