@@ -472,6 +472,15 @@ func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
 	return clientPass, CN, nil
 }
 
+func IsGeneratedSSLCertSecretFilled(serverSecret corev1.Secret) bool {
+	// TODO if we accept later PEM format cert for listeners than we need to check that case also.
+	if len(serverSecret.Data[v1alpha1.TLSJKSKeyStore]) == 0 || len(serverSecret.Data[v1alpha1.TLSJKSTrustStore]) == 0 ||
+		len(serverSecret.Data[v1alpha1.PasswordKey]) == 0 {
+		return false
+	}
+	return true
+}
+
 func getListenerSSLCertSecret(client client.Reader, commonSpec v1beta1.CommonListenerSpec, clusterName string, clusterNamespace string) (*corev1.Secret, error) {
 	// Use default SSL cert secret
 	secretNamespacedName := types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerServerCertTemplate, clusterName), Namespace: clusterNamespace}
@@ -485,6 +494,14 @@ func getListenerSSLCertSecret(client client.Reader, commonSpec v1beta1.CommonLis
 		}
 		return nil, errors.WrapIfWithDetails(err, "failed to get server secret")
 	}
+	// Check secret data fields
+	if !IsGeneratedSSLCertSecretFilled(*serverSecret) {
+		if commonSpec.GetServerSSLCertSecretName() != "" {
+			return nil, errors.Errorf("secret: %s has missing data fields", serverSecret.Name)
+		}
+		return nil, errorfactory.New(errorfactory.ResourceNotReady{}, errors.Errorf("SSL JKS certificate has not generated properly yet into secret: %s", serverSecret.Name), "checking secret data fields")
+	}
+
 	return serverSecret, nil
 }
 

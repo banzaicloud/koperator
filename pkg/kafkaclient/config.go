@@ -51,7 +51,7 @@ func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaC
 		} else if cluster.Spec.ListenersConfig.SSLSecrets != nil {
 			tlsConfig, err = pki.GetPKIManager(client, cluster, v1beta1.PKIBackendProvided, log).GetControllerTLSConfig()
 		} else {
-			err = errors.Errorf("client certificate has not specified for the controller but kafka listener requests it")
+			err = errors.New("either 'clientSSLCertSecret' or 'sslSecrets' must be specified as internal listener used for inner communication uses SSL")
 		}
 		if err != nil {
 			return conf, err
