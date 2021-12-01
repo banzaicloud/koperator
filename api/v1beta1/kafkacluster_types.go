@@ -82,13 +82,12 @@ type KafkaClusterSpec struct {
 	// Add the "+" suffix to append.
 	Envs                    []corev1.EnvVar `json:"envs,omitempty"`
 	KubernetesClusterDomain string          `json:"kubernetesClusterDomain,omitempty"`
-	// ClientSSLCertSecret is a reference to that secret where custom client SSL certificate can be provided.
-	// It can be used by the koperator, cruise control to communicate on SSL with
-	// internal listener which is used for interbroker communication.
-	// It should be added only if custom certificate has been specified for that internal listener.
-	// The included certificate has to be signed by the same CA as the corresponding internal listener's server certificate.
-	// Secret has to contain the keystore and truststore in jks and the password for them in base64 encoded format.
-	// Data fields must be: keystore.jks, truststore.jks, password
+	// ClientSSLCertSecret is a reference to the Kubernetes secret where custom client SSL certificate can be provided.
+	// It will be used by the koperator, cruise control, cruise control metrics reporter
+	// to communicate on SSL with that internal listener which is used for interbroker communication.
+	// The client certificate must share the same chain of trust as the server certificate used by the corresponding internal listener.
+	// The secret must contains the keystore, truststore jks files and the password for them in base64 encoded format
+	// under the keystore.jks, truststore.jks, password data fields.
 	ClientSSLCertSecret *corev1.LocalObjectReference `json:"clientSSLCertSecret,omitempty"`
 }
 
@@ -449,10 +448,10 @@ type InternalListenerConfig struct {
 type CommonListenerSpec struct {
 	// +kubebuilder:validation:Enum=ssl;plaintext;sasl_ssl;sasl_plaintext
 	Type SecurityProtocol `json:"type"`
-	// ServerSSLCertSecret is a reference to that secret where custom server SSL certificate can be provided.
-	// Secret has to contain the keystore and truststore in jks and the password for them in base64 encoded format.
-	// Data fields must be: keystore.jks, truststore.jks, password
-	// SecurityProtocol has to be set to ssl.
+	// ServerSSLCertSecret is a reference to the Kubernetes secret that contains the server certificate for the listener to be used for SSL communication.
+	// The secret must contain the keystore, truststore jks files and the password for them in base64 encoded format
+	// under the keystore.jks, truststore.jks, password data fields.
+	// If this field is omitted koperator will auto-create a self-signed server certificate using the configuration provided in 'sslSecrets' field.
 	ServerSSLCertSecret *corev1.LocalObjectReference `json:"serverSSLCertSecret,omitempty"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
 	Name          string `json:"name"`
