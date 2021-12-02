@@ -104,7 +104,7 @@ type RollingUpgradeStatus struct {
 
 // RollingUpgradeConfig defines the desired config of the RollingUpgrade
 type RollingUpgradeConfig struct {
-	// FailureThreshold controls how many failures can the cluster tolerate during a rolling upgrade. Once the number of
+	// FailureThreshold controls how many failures the cluster can tolerate during a rolling upgrade. Once the number of
 	// failures reaches this threshold a rolling upgrade flow stops. The number of failures is computed as the sum of
 	// distinct broker replicas with either offline replicas or out of sync replicas and the number of alerts triggered by
 	// alerts with 'rollingupgrade'
