@@ -455,6 +455,12 @@ func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
 			}
 			return "", "", errors.WrapIfWithDetails(err, "failed to get client secret")
 		}
+		if !IsGeneratedSSLCertSecretFilled(*clientSecret) {
+			if r.KafkaCluster.Spec.GetClientSSLCertSecretName() != "" {
+				return "", "", errors.Errorf("secret: %s has missing data fields", clientSecret.Name)
+			}
+			return "", "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.Errorf("SSL JKS certificate has not generated properly yet into secret: %s", clientSecret.Name), "checking secret data fields")
+		}
 		cert, err := certutil.DecodeCertificate(clientSecret.Data[corev1.TLSCertKey])
 		if err != nil {
 			return "", "", errors.WrapIfWithDetails(err, "failed to decode client certificate")
