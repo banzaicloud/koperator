@@ -94,4 +94,6 @@ additionalVolumes: {}
 
 # Pod Security Context
 # See https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-securityContext: {}
+podSecurityContext: {}
+# Container Security Context
+containerSecurityContext: {}

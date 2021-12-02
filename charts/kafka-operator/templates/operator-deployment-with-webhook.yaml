@@ -125,9 +125,9 @@ spec:
       {{- if .Values.additionalVolumes }}
       {{- include "chart.additionalVolumes" . | nindent 8 }}
       {{- end }}
-      {{- if .Values.securityContext }}
+      {{- if .Values.podSecurityContext }}
       securityContext:
-      {{ toYaml .Values.securityContext | nindent 8 }}
+      {{ toYaml .Values.podSecurityContext | nindent 8 }}
       {{- end }}
       containers:
       {{- if and .Values.prometheusMetrics.enabled .Values.prometheusMetrics.authProxy.enabled }}
@@ -204,7 +204,11 @@ spec:
               readOnly: true
           {{- end }}
           resources:
-{{ toYaml .Values.operator.resources | nindent 12 }}
+          {{ toYaml .Values.operator.resources | nindent 12 }}
+          {{- if .Values.containerSecurityContext }}
+          securityContext:
+          {{ toYaml .Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
 {{- if .Values.additionalSidecars }}
 {{- include "chart.additionalSidecars" . | nindent 8 }}
 {{- end }}
