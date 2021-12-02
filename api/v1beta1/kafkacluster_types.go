@@ -564,7 +564,7 @@ func (k *KafkaClusterSpec) GetClientSSLCertSecretName() string {
 	return k.ClientSSLCertSecret.Name
 }
 
-// IsClientSSLSecretPresent returns true if ssl client certification has been setted for the operator and cruise control.
+// IsClientSSLSecretPresent returns true if ssl client certifications have been set for the operator and cruise control.
 func (k *KafkaClusterSpec) IsClientSSLSecretPresent() bool {
 	return k.ListenersConfig.SSLSecrets != nil || k.GetClientSSLCertSecretName() != ""
 }
