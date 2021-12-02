@@ -545,6 +545,7 @@ func TestGetServerPasswordKeysAndUsers(t *testing.T) {
 		listenerType      string
 		secrets           map[string]corev1.Secret
 		internalListeners []v1beta1.InternalListenerConfig
+		externalListeners []v1beta1.ExternalListenerConfig
 		SSLSecrets        *v1beta1.SSLSecrets
 	}{
 		{
@@ -606,6 +607,26 @@ func TestGetServerPasswordKeysAndUsers(t *testing.T) {
 						Namespace: "kafka",
 					},
 					Data: map[string][]byte{v1alpha1.PasswordKey: []byte("custompass")},
+				},
+				"external_custom": {
+
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "customcert-external",
+						Namespace: "kafka",
+					},
+					Data: map[string][]byte{v1alpha1.PasswordKey: []byte("custompass_external")},
+				},
+			},
+			externalListeners: []v1beta1.ExternalListenerConfig{
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{
+						Type:          v1beta1.SecurityProtocol("ssl"),
+						Name:          "external_custom",
+						ContainerPort: 9092,
+						ServerSSLCertSecret: &corev1.LocalObjectReference{
+							Name: "customcert-external",
+						},
+					},
 				},
 			},
 			internalListeners: []v1beta1.InternalListenerConfig{
@@ -753,6 +774,7 @@ func TestGetServerPasswordKeysAndUsers(t *testing.T) {
 						},
 						Spec: v1beta1.KafkaClusterSpec{
 							ListenersConfig: v1beta1.ListenersConfig{
+								ExternalListeners: test.externalListeners,
 								InternalListeners: test.internalListeners,
 								SSLSecrets:        test.SSLSecrets,
 							},
@@ -768,6 +790,19 @@ func TestGetServerPasswordKeysAndUsers(t *testing.T) {
 			expectedGetCount := 0
 			first := true
 			for _, listener := range test.internalListeners {
+				if listener.CommonListenerSpec.Type.IsSSL() {
+					if listener.CommonListenerSpec.GetServerSSLCertSecretName() != "" {
+						expectedGetCount++
+					} else if first {
+						first = false
+						expectedGetCount++
+					}
+
+					expectedServerPasses[listener.Name] = string(test.secrets[listener.Name].Data[v1alpha1.PasswordKey])
+				}
+			}
+
+			for _, listener := range test.externalListeners {
 				if listener.CommonListenerSpec.Type.IsSSL() {
 					if listener.CommonListenerSpec.GetServerSSLCertSecretName() != "" {
 						expectedGetCount++
