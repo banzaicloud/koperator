@@ -505,26 +505,35 @@ func getListenerSSLCertSecret(client client.Reader, commonSpec v1beta1.CommonLis
 }
 
 func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []string, error) {
+	// pair contains the listenerName and the corresponding  JKS cert password
 	pair := make(map[string]string)
 	var CNList []string
+	// globKeyPass contains the generated ssl keystore password.
 	var globKeyPass string
 	var err error
 	serverSecret := &corev1.Secret{}
 	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
+			// This implementation logic gets the generated ssl secret only once even
+			// if multiple listener use the generated one, because they share the same.
 			if globKeyPass == "" || iListener.GetServerSSLCertSecretName() != "" {
+				// get the apropiate secret the generated as default or the custom if its specified
 				serverSecret, err = getListenerSSLCertSecret(r.Client, iListener.CommonListenerSpec, r.KafkaCluster.Name, r.KafkaCluster.Namespace)
 				if err != nil {
 					return nil, nil, err
 				}
 				pair[iListener.Name] = string(serverSecret.Data[v1alpha1.PasswordKey])
 			}
+			// Set the globKeyPass if there is no custom server cert present
 			if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && iListener.GetServerSSLCertSecretName() == "" {
 				if globKeyPass == "" {
 					globKeyPass = string(serverSecret.Data[v1alpha1.PasswordKey])
 				}
 				pair[iListener.Name] = globKeyPass
 			}
+			// We need to grab names for servers and client in case user is enabling ACLs
+			// That way we can continue to manage topics and users
+			// We put these Common Names from certificates into the superusers kafka broker config
 			if iListener.UsedForControllerCommunication || iListener.UsedForInnerBrokerCommunication {
 				cert, err := certutil.DecodeCertificate(serverSecret.Data[corev1.TLSCertKey])
 				if err != nil {
@@ -534,6 +543,7 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 			}
 		}
 	}
+	// Same as at the internalListeners except we dont need to collect Common Names from certificates.
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 		if eListener.Type == v1beta1.SecurityProtocolSSL {
 			if globKeyPass == "" || eListener.GetServerSSLCertSecretName() != "" {
