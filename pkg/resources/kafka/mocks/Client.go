@@ -159,7 +159,7 @@ func (_m *Client) RESTMapper() meta.RESTMapper {
 	var r0 meta.RESTMapper
 	if rf, ok := ret.Get(0).(func() meta.RESTMapper); ok {
 		r0 = rf()
-	} else {
+	} else { //nolint gocritic
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(meta.RESTMapper)
 		}
@@ -175,7 +175,7 @@ func (_m *Client) Scheme() *runtime.Scheme {
 	var r0 *runtime.Scheme
 	if rf, ok := ret.Get(0).(func() *runtime.Scheme); ok {
 		r0 = rf()
-	} else {
+	} else { //nolint gocritic
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*runtime.Scheme)
 		}
@@ -191,7 +191,7 @@ func (_m *Client) Status() client.StatusWriter {
 	var r0 client.StatusWriter
 	if rf, ok := ret.Get(0).(func() client.StatusWriter); ok {
 		r0 = rf()
-	} else {
+	} else { //nolint gocritic
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(client.StatusWriter)
 		}
