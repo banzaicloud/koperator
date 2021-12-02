@@ -21,11 +21,13 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -106,6 +108,8 @@ func updateStatus(t *testing.T, object *v1beta1.KafkaCluster, mgr manager.Manage
 
 func TestGetCurrentAlerts(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	defer ginkgo.GinkgoRecover()
 
 	log := logf.Log.WithName("alertmanager")
 
@@ -208,7 +212,8 @@ func TestGetCurrentAlerts(t *testing.T) {
 		t.Error("Listing alerts failed a1")
 	}
 
-	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c, 0, log)
+	testRollingUpgradeErrorCount := 5
+	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c, testRollingUpgradeErrorCount, log)
 	if err != nil {
 		t.Error("Hanlde alert failed a1 with error", err)
 	}
@@ -217,6 +222,17 @@ func TestGetCurrentAlerts(t *testing.T) {
 	if list1 == nil || list1[testAlert1.FingerPrint].Status != firingAlertStatus || list1[testAlert1.FingerPrint].Processed != true {
 		t.Error("Process alert failed a1")
 	}
+
+	// verify rolling upgrade alert count in KafkaCluster status
+	g.Eventually(func() (int, error) {
+		var actualKafkaCluster v1beta1.KafkaCluster
+		if err := c.Get(ctx, client.ObjectKeyFromObject(kafkaCluster), &actualKafkaCluster); err != nil {
+			return -1, err
+		}
+		return actualKafkaCluster.Status.RollingUpgrade.ErrorCount, nil
+	}, 10*time.Second, 1*time.Second).Should(
+		gomega.Equal(testRollingUpgradeErrorCount),
+		"rolling upgrade error count should match expected error count")
 
 	alerts2 := GetCurrentAlerts()
 	if alerts2 != singleAlerts {

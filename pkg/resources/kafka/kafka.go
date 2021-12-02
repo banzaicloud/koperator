@@ -663,18 +663,31 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 				return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
 			}
 			defer close()
-			offlineReplicaCount, err := kClient.OfflineReplicaCount()
+			allOfflineReplicas, err := kClient.AllOfflineReplicas()
 			if err != nil {
 				return errors.WrapIf(err, "health check failed")
 			}
-			replicasInSync, err := kClient.AllReplicaInSync()
+			if len(allOfflineReplicas) > 0 {
+				log.Info("offline replicas", "IDs", allOfflineReplicas)
+			}
+			outOfSyncReplicas, err := kClient.OutOfSyncReplicas()
 			if err != nil {
 				return errors.WrapIf(err, "health check failed")
+			}
+			if len(outOfSyncReplicas) > 0 {
+				log.Info("out-of-sync replicas", "IDs", outOfSyncReplicas)
 			}
 
-			if offlineReplicaCount > 0 || !replicasInSync {
-				errorCount++
+			impactedReplicas := make(map[int32]struct{})
+			for _, brokerID := range allOfflineReplicas {
+				impactedReplicas[brokerID] = struct{}{}
 			}
+			for _, brokerID := range outOfSyncReplicas {
+				impactedReplicas[brokerID] = struct{}{}
+			}
+
+			errorCount += len(impactedReplicas)
+
 			if errorCount >= r.KafkaCluster.Spec.RollingUpgradeConfig.FailureThreshold {
 				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("cluster is not healthy"), "rolling upgrade in progress")
 			}

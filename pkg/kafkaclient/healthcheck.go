@@ -15,59 +15,79 @@
 package kafkaclient
 
 import (
-	"fmt"
-
 	"emperror.dev/errors"
 )
 
-func (k *kafkaClient) OfflineReplicaCount() (int, error) {
+func (k *kafkaClient) AllOfflineReplicas() ([]int32, error) {
 	availableTopics, err := k.client.Topics()
 	if err != nil {
-		return 0, errors.WrapIf(err, "could not fetch topics")
+		return nil, errors.WrapIf(err, "could not fetch topics")
 	}
-	offlineReplicaCount := 0
+	allOfflineReplicas := make(map[int32]struct{})
 	for _, topic := range availableTopics {
 		partitions, err := k.client.Partitions(topic)
 		if err != nil {
-			return 0, errors.WrapIfWithDetails(err, "could not fetch partition", "topic", topic)
+			return nil, errors.WrapIfWithDetails(err, "could not fetch partition", "topic", topic)
 		}
 		for _, partition := range partitions {
 			offlineReplicas, err := k.client.OfflineReplicas(topic, partition)
 			if err != nil {
-				return 0, errors.WrapIfWithDetails(err, "could not fetch offline replicas", "topic", topic, "partition", partition)
+				return nil, errors.WrapIfWithDetails(err, "could not fetch offline replicas", "topic", topic, "partition", partition)
 			}
-			offlineReplicaCount = offlineReplicaCount + len(offlineReplicas)
+			for _, brokerID := range offlineReplicas {
+				allOfflineReplicas[brokerID] = struct{}{}
+			}
 		}
 	}
-	log.Info(fmt.Sprintf("offline Replica Count is %d", offlineReplicaCount))
-	return offlineReplicaCount, nil
+
+	brokerIDs := make([]int32, 0, len(allOfflineReplicas))
+	for brokerID := range allOfflineReplicas {
+		brokerIDs = append(brokerIDs, brokerID)
+	}
+
+	return brokerIDs, nil
 }
 
-func (k *kafkaClient) AllReplicaInSync() (bool, error) {
+func (k *kafkaClient) OutOfSyncReplicas() ([]int32, error) {
 	availableTopics, err := k.client.Topics()
 	if err != nil {
-		return false, errors.WrapIf(err, "could not fetch topics")
+		return nil, errors.WrapIf(err, "could not fetch topics")
 	}
+	outOfSyncReplicas := make(map[int32]struct{})
 	for _, topic := range availableTopics {
 		partitions, err := k.client.Partitions(topic)
 		if err != nil {
-			return false, errors.WrapIfWithDetails(err, "could not fetch partition", "topic", topic)
+			return nil, errors.WrapIfWithDetails(err, "could not fetch partition", "topic", topic)
 		}
 		for _, partition := range partitions {
 			replicas, err := k.client.Replicas(topic, partition)
 			if err != nil {
-				return false, errors.WrapIfWithDetails(err, "could not fetch replicas", "topic", topic, "partition", partition)
+				return nil, errors.WrapIfWithDetails(err, "could not fetch replicas", "topic", topic, "partition", partition)
 			}
 			isrReplicas, err := k.client.InSyncReplicas(topic, partition)
 			if err != nil {
-				return false, errors.WrapIfWithDetails(err, "could not fetch isr replicas", "topic", topic, "partition", partition)
+				return nil, errors.WrapIfWithDetails(err, "could not fetch isr replicas", "topic", topic, "partition", partition)
 			}
 			if len(replicas) != len(isrReplicas) {
-				log.Info("not all replicas are in sync")
-				return false, nil
+				for i := range replicas {
+					found := false
+					for j := range isrReplicas {
+						if replicas[i] == isrReplicas[j] {
+							found = true
+							break
+						}
+					}
+					if !found {
+						outOfSyncReplicas[replicas[i]] = struct{}{}
+					}
+				}
 			}
 		}
 	}
-	log.Info("all replicas are in sync")
-	return true, nil
+
+	brokerIDs := make([]int32, 0, len(outOfSyncReplicas))
+	for brokerID := range outOfSyncReplicas {
+		brokerIDs = append(brokerIDs, brokerID)
+	}
+	return brokerIDs, nil
 }

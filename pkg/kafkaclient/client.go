@@ -46,8 +46,11 @@ type KafkaClient interface {
 	Brokers() map[int32]string
 	DescribeCluster() ([]*sarama.Broker, int32, error)
 
-	OfflineReplicaCount() (int, error)
-	AllReplicaInSync() (bool, error)
+	// AllOfflineReplicas returns the list of unique offline replica (broker) ids
+	AllOfflineReplicas() ([]int32, error)
+
+	// OutOfSyncReplicas returns the list of unique out of sync replica (broker) ids
+	OutOfSyncReplicas() ([]int32, error)
 
 	AlterPerBrokerConfig(int32, map[string]*string, bool) error
 	DescribePerBrokerConfig(int32, []string) ([]*sarama.ConfigEntry, error)
