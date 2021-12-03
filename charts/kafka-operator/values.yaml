@@ -91,3 +91,9 @@ additionalVolumes: {}
 #   emptyDir: {}
 # - name: volume2
 #   emptyDir: {}
+
+# Pod Security Context
+# See https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+podSecurityContext: {}
+# Container Security Context
+containerSecurityContext: {}
