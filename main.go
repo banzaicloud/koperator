@@ -30,6 +30,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"strings"
@@ -49,6 +50,7 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/controllers"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/util"
 	"github.com/banzaicloud/koperator/pkg/webhook"
@@ -117,6 +119,11 @@ func main() {
 			namespaceList[i] = strings.TrimSpace(namespaceList[i])
 		}
 		managerWatchCache = cache.MultiNamespacedCacheBuilder(namespaceList)
+	}
+	ctx := context.TODO()
+	if !webhookDisabled {
+		// we need to add indexers to KafkaTopics so that the KafkaTopic admission webhooks could work
+		managerWatchCache = k8sutil.AddKafkaTopicIndexers(ctx, managerWatchCache)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
