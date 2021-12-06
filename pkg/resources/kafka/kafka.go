@@ -517,7 +517,7 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 			// This implementation logic gets the generated ssl secret only once even
 			// if multiple listener use the generated one, because they share the same.
 			if globKeyPass == "" || iListener.GetServerSSLCertSecretName() != "" {
-				// get the apropiate secret the generated as default or the custom if its specified
+				// get the appropriate secret: the generated as default or the custom if its specified
 				serverSecret, err = getListenerSSLCertSecret(r.Client, iListener.CommonListenerSpec, r.KafkaCluster.Name, r.KafkaCluster.Namespace)
 				if err != nil {
 					return nil, nil, err
