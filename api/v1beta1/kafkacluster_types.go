@@ -82,6 +82,13 @@ type KafkaClusterSpec struct {
 	// Add the "+" suffix to append.
 	Envs                    []corev1.EnvVar `json:"envs,omitempty"`
 	KubernetesClusterDomain string          `json:"kubernetesClusterDomain,omitempty"`
+	// ClientSSLCertSecret is a reference to the Kubernetes secret where custom client SSL certificate can be provided.
+	// It will be used by the koperator, cruise control, cruise control metrics reporter
+	// to communicate on SSL with that internal listener which is used for interbroker communication.
+	// The client certificate must share the same chain of trust as the server certificate used by the corresponding internal listener.
+	// The secret must contains the keystore, truststore jks files and the password for them in base64 encoded format
+	// under the keystore.jks, truststore.jks, password data fields.
+	ClientSSLCertSecret *corev1.LocalObjectReference `json:"clientSSLCertSecret,omitempty"`
 }
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
@@ -447,9 +454,21 @@ type InternalListenerConfig struct {
 type CommonListenerSpec struct {
 	// +kubebuilder:validation:Enum=ssl;plaintext;sasl_ssl;sasl_plaintext
 	Type SecurityProtocol `json:"type"`
+	// ServerSSLCertSecret is a reference to the Kubernetes secret that contains the server certificate for the listener to be used for SSL communication.
+	// The secret must contain the keystore, truststore jks files and the password for them in base64 encoded format
+	// under the keystore.jks, truststore.jks, password data fields.
+	// If this field is omitted koperator will auto-create a self-signed server certificate using the configuration provided in 'sslSecrets' field.
+	ServerSSLCertSecret *corev1.LocalObjectReference `json:"serverSSLCertSecret,omitempty"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
 	Name          string `json:"name"`
 	ContainerPort int32  `json:"containerPort"`
+}
+
+func (c *CommonListenerSpec) GetServerSSLCertSecretName() string {
+	if c.ServerSSLCertSecret == nil {
+		return ""
+	}
+	return c.ServerSSLCertSecret.Name
 }
 
 // ListenerStatuses holds information about the statuses of the configured listeners.
@@ -541,6 +560,19 @@ func (iIConfig *IstioIngressConfig) GetReplicas() int32 {
 		return 1
 	}
 	return iIConfig.Replicas
+}
+
+// GetClientSSLCertSecretName returns the ClientSSLCertSecretName. It returns empty string if It's not specified
+func (k *KafkaClusterSpec) GetClientSSLCertSecretName() string {
+	if k.ClientSSLCertSecret == nil {
+		return ""
+	}
+	return k.ClientSSLCertSecret.Name
+}
+
+// IsClientSSLSecretPresent returns true if ssl client certifications have been set for the operator and cruise control.
+func (k *KafkaClusterSpec) IsClientSSLSecretPresent() bool {
+	return k.ListenersConfig.SSLSecrets != nil || k.GetClientSSLCertSecretName() != ""
 }
 
 // GetIngressController returns the default Envoy ingress controller if not specified otherwise

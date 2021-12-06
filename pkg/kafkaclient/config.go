@@ -17,10 +17,13 @@ package kafkaclient
 import (
 	"crypto/tls"
 
+	"emperror.dev/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/pki"
+	"github.com/banzaicloud/koperator/pkg/util"
 	clientutil "github.com/banzaicloud/koperator/pkg/util/client"
 )
 
@@ -40,8 +43,16 @@ func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaC
 	conf := &KafkaConfig{}
 	conf.BrokerURI = clientutil.GenerateKafkaAddress(cluster)
 	conf.OperationTimeout = kafkaDefaultTimeout
-	if cluster.Spec.ListenersConfig.SSLSecrets != nil && clientutil.UseSSL(cluster) {
-		tlsConfig, err := pki.GetPKIManager(client, cluster, v1beta1.PKIBackendProvided, log).GetControllerTLSConfig()
+	if clientutil.UseSSL(cluster) {
+		var tlsConfig *tls.Config
+		var err error
+		if cluster.Spec.GetClientSSLCertSecretName() != "" {
+			tlsConfig, err = util.GetClientTLSConfig(client, types.NamespacedName{Name: cluster.Spec.GetClientSSLCertSecretName(), Namespace: cluster.Namespace})
+		} else if cluster.Spec.ListenersConfig.SSLSecrets != nil {
+			tlsConfig, err = pki.GetPKIManager(client, cluster, v1beta1.PKIBackendProvided, log).GetControllerTLSConfig()
+		} else {
+			err = errors.New("either 'clientSSLCertSecret' or 'sslSecrets' must be specified as internal listener used for inner communication uses SSL")
+		}
 		if err != nil {
 			return conf, err
 		}

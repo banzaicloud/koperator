@@ -11692,6 +11692,23 @@ spec:
                   - id
                   type: object
                 type: array
+              clientSSLCertSecret:
+                description: ClientSSLCertSecret is a reference to the Kubernetes
+                  secret where custom client SSL certificate can be provided. It will
+                  be used by the koperator, cruise control, cruise control metrics
+                  reporter to communicate on SSL with that internal listener which
+                  is used for interbroker communication. The client certificate must
+                  share the same chain of trust as the server certificate used by
+                  the corresponding internal listener. The secret must contains the
+                  keystore, truststore jks files and the password for them in base64
+                  encoded format under the keystore.jks, truststore.jks, password
+                  data fields.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
               clusterImage:
                 type: string
               clusterMetricsReporterImage:
@@ -18412,6 +18429,22 @@ spec:
                         name:
                           pattern: ^[a-z0-9\-]+
                           type: string
+                        serverSSLCertSecret:
+                          description: ServerSSLCertSecret is a reference to the Kubernetes
+                            secret that contains the server certificate for the listener
+                            to be used for SSL communication. The secret must contain
+                            the keystore, truststore jks files and the password for
+                            them in base64 encoded format under the keystore.jks,
+                            truststore.jks, password data fields. If this field is
+                            omitted koperator will auto-create a self-signed server
+                            certificate using the configuration provided in 'sslSecrets'
+                            field.
+                          properties:
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                          type: object
                         serviceAnnotations:
                           additionalProperties:
                             type: string
@@ -18452,6 +18485,22 @@ spec:
                         name:
                           pattern: ^[a-z0-9\-]+
                           type: string
+                        serverSSLCertSecret:
+                          description: ServerSSLCertSecret is a reference to the Kubernetes
+                            secret that contains the server certificate for the listener
+                            to be used for SSL communication. The secret must contain
+                            the keystore, truststore jks files and the password for
+                            them in base64 encoded format under the keystore.jks,
+                            truststore.jks, password data fields. If this field is
+                            omitted koperator will auto-create a self-signed server
+                            certificate using the configuration provided in 'sslSecrets'
+                            field.
+                          properties:
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                          type: object
                         type:
                           description: 'SecurityProtocol is the protocol used to communicate
                             with brokers. Valid values are: plaintext, ssl, sasl_plaintext,

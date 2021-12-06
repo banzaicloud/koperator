@@ -74,7 +74,6 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 	}
 
 	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
-	hasSSLSecrets := r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil
 
 	//TODO remove this bash envoy sidecar checker script once sidecar precedence becomes available to Kubernetes(baluchicken)
 	command := []string{"bash", "-c", `
@@ -160,11 +159,11 @@ fi`},
 							Name:          "metrics",
 						},
 					}...),
-					VolumeMounts: getVolumeMounts(brokerConfig.VolumeMounts, dataVolumeMount, r.KafkaCluster.Name, hasSSLSecrets),
+					VolumeMounts: getVolumeMounts(brokerConfig.VolumeMounts, dataVolumeMount, r.KafkaCluster.Spec, r.KafkaCluster.Name),
 					Resources:    *brokerConfig.GetResources(),
 				},
 			}, brokerConfig.Containers...),
-			Volumes:                       getVolumes(brokerConfig.Volumes, dataVolume, r.KafkaCluster.Name, hasSSLSecrets, id),
+			Volumes:                       getVolumes(brokerConfig.Volumes, dataVolume, r.KafkaCluster.Spec, r.KafkaCluster.Name, id),
 			RestartPolicy:                 corev1.RestartPolicyNever,
 			TerminationGracePeriodSeconds: util.Int64Pointer(brokerConfig.GetTerminationGracePeriod()),
 			ImagePullSecrets:              brokerConfig.GetImagePullSecrets(),
@@ -218,16 +217,17 @@ func getInitContainers(brokerConfig *v1beta1.BrokerConfig, kafkaClusterSpec v1be
 }
 
 func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMount,
-	kafkaClusterName string, hasSSLSecrets bool) []corev1.VolumeMount {
+	kafkaClusterSpec v1beta1.KafkaClusterSpec, kafkaClusterName string) []corev1.VolumeMount {
 	volumeMounts := make([]corev1.VolumeMount, 0, len(brokerConfigVolumeMounts))
 	volumeMounts = append(volumeMounts, brokerConfigVolumeMounts...)
 
 	volumeMounts = append(volumeMounts, dataVolumeMount...)
 
-	if hasSSLSecrets {
-		volumeMounts = append(volumeMounts, generateVolumeMountForSSL()...)
+	if kafkaClusterSpec.IsClientSSLSecretPresent() {
+		volumeMounts = append(volumeMounts, generateVolumeMountForClientSSLCerts())
 	}
 
+	volumeMounts = append(volumeMounts, generateVolumeMountForListenerCerts(kafkaClusterSpec.ListenersConfig)...)
 	volumeMounts = append(volumeMounts, []corev1.VolumeMount{
 		{
 			Name:      brokerConfigMapVolumeMount,
@@ -258,16 +258,17 @@ func getVolumeMounts(brokerConfigVolumeMounts, dataVolumeMount []corev1.VolumeMo
 	return volumeMounts
 }
 
-func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, kafkaClusterName string, hasSSLSecrets bool, id int32) []corev1.Volume {
+func getVolumes(brokerConfigVolumes, dataVolume []corev1.Volume, kafkaClusterSpec v1beta1.KafkaClusterSpec, kafkaClusterName string, id int32) []corev1.Volume {
 	volumes := make([]corev1.Volume, 0, len(brokerConfigVolumes))
 	// clone the brokerConfig volumes
 	volumes = append(volumes, brokerConfigVolumes...)
 	volumes = append(volumes, dataVolume...)
 
-	if hasSSLSecrets {
-		volumes = append(volumes, generateVolumesForSSL(kafkaClusterName)...)
+	if kafkaClusterSpec.IsClientSSLSecretPresent() {
+		volumes = append(volumes, generateVolumeForClientSSLCert(kafkaClusterSpec, kafkaClusterName))
 	}
 
+	volumes = append(volumes, generateVolumesForListenerCerts(kafkaClusterSpec.ListenersConfig, kafkaClusterName)...)
 	volumes = append(volumes, []corev1.Volume{
 		{
 			Name: "exitfile",
@@ -372,39 +373,84 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volu
 	return
 }
 
-func generateVolumesForSSL(clusterName string) []corev1.Volume {
-	return []corev1.Volume{
-		{
-			Name: serverKeystoreVolume,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName:  fmt.Sprintf(pkicommon.BrokerServerCertTemplate, clusterName),
-					DefaultMode: util.Int32Pointer(0644),
-				},
-			},
-		},
-		{
-			Name: clientKeystoreVolume,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName:  fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName),
-					DefaultMode: util.Int32Pointer(0644),
-				},
+func generateVolumeForListenersCertsFromCommonSpec(commonSpec v1beta1.CommonListenerSpec, clusterName string) corev1.Volume {
+	// Use default one if custom has not specified
+	secretName := fmt.Sprintf(pkicommon.BrokerServerCertTemplate, clusterName)
+	if commonSpec.GetServerSSLCertSecretName() != "" {
+		secretName = commonSpec.GetServerSSLCertSecretName()
+	}
+	return corev1.Volume{
+		Name: fmt.Sprintf(listenerSSLCertVolumeNameTemplate, commonSpec.Name),
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName:  secretName,
+				DefaultMode: util.Int32Pointer(0644),
 			},
 		},
 	}
 }
 
-func generateVolumeMountForSSL() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
-		{
-			Name:      serverKeystoreVolume,
-			MountPath: serverKeystorePath,
+func generateVolumesForListenerCerts(listenerConfig v1beta1.ListenersConfig, clusterName string) (ret []corev1.Volume) {
+	for _, iListener := range listenerConfig.InternalListeners {
+		if iListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
+			continue
+		}
+		ret = append(ret, generateVolumeForListenersCertsFromCommonSpec(iListener.CommonListenerSpec, clusterName))
+	}
+	for _, eListener := range listenerConfig.ExternalListeners {
+		if eListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
+			continue
+		}
+		ret = append(ret, generateVolumeForListenersCertsFromCommonSpec(eListener.CommonListenerSpec, clusterName))
+	}
+	return ret
+}
+
+func generateVolumeForClientSSLCert(kafkaClusterSpec v1beta1.KafkaClusterSpec, clusterName string) (ret corev1.Volume) {
+	// Use default one if custom has not specified
+	clientSecretName := fmt.Sprintf(pkicommon.BrokerControllerTemplate, clusterName)
+	if kafkaClusterSpec.GetClientSSLCertSecretName() != "" {
+		clientSecretName = kafkaClusterSpec.GetClientSSLCertSecretName()
+	}
+	return corev1.Volume{
+		Name: clientKeystoreVolume,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName:  clientSecretName,
+				DefaultMode: util.Int32Pointer(0644),
+			},
 		},
-		{
-			Name:      clientKeystoreVolume,
-			MountPath: clientKeystorePath,
-		},
+	}
+}
+
+func generateVolumeMountForListenerCerts(listenerConfig v1beta1.ListenersConfig) (ret []corev1.VolumeMount) {
+	for _, iListener := range listenerConfig.InternalListeners {
+		if iListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
+			continue
+		}
+		vm := corev1.VolumeMount{
+			Name:      fmt.Sprintf(listenerSSLCertVolumeNameTemplate, iListener.Name),
+			MountPath: fmt.Sprintf(listenerServerKeyStorePathTemplate, serverKeystorePath, iListener.CommonListenerSpec.Name),
+		}
+		ret = append(ret, vm)
+	}
+	for _, eListener := range listenerConfig.ExternalListeners {
+		if eListener.CommonListenerSpec.Type != v1beta1.SecurityProtocolSSL {
+			continue
+		}
+		vm := corev1.VolumeMount{
+			Name:      fmt.Sprintf(listenerSSLCertVolumeNameTemplate, eListener.Name),
+			MountPath: fmt.Sprintf(listenerServerKeyStorePathTemplate, serverKeystorePath, eListener.CommonListenerSpec.Name),
+		}
+		ret = append(ret, vm)
+	}
+	return ret
+}
+
+func generateVolumeMountForClientSSLCerts() corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      clientKeystoreVolume,
+		MountPath: clientKeystorePath,
 	}
 }
 
