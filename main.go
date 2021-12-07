@@ -30,6 +30,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"strings"
@@ -49,6 +50,7 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/controllers"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/util"
 	"github.com/banzaicloud/koperator/pkg/webhook"
@@ -104,12 +106,15 @@ func main() {
 
 	ctrl.SetLogger(util.CreateLogger(verboseLogging, developmentLogging))
 
+	// adding indexers to KafkaTopics so that the KafkaTopic admission webhooks could work
+	ctx := context.TODO()
+	managerWatchCache := k8sutil.AddKafkaTopicIndexers(ctx)
+
 	//When operator is started to watch resources in a specific set of namespaces, we use the MultiNamespacedCacheBuilder cache.
 	//In this scenario, it is also suggested to restrict the provided authorization to this namespace by replacing the default
 	//ClusterRole and ClusterRoleBinding to Role and RoleBinding respectively
 	//For further information see the kubernetes documentation about
 	//Using [RBAC Authorization](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
-	managerWatchCache := (cache.NewCacheFunc)(nil)
 	var namespaceList []string
 	if namespaces != "" {
 		namespaceList = strings.Split(namespaces, ",")
