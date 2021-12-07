@@ -16,6 +16,7 @@ package cert
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -32,6 +33,12 @@ import (
 
 	"github.com/pavel-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
+)
+
+var (
+	RSAPrivateKeyType = "RSA PRIVATE KEY"
+	PrivateKeyType    = "PRIVATE KEY"
+	ECPrivateKeyType  = "EC PRIVATE KEY"
 )
 
 type CertificateContainer struct {
@@ -90,13 +97,35 @@ var passChars []rune = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 	"0123456789")
 
 // DecodePKCS1PrivateKeyBytes will decode a PEM PKCS1 encoded private key into a rsa.PrivateKey format.
-func DecodePKCS1PrivateKeyBytes(keyBytes []byte) (*rsa.PrivateKey, error) {
+func DecodePrivateKeyBytes(keyBytes []byte) (key crypto.Signer, err error) {
 	block, _ := pem.Decode(keyBytes)
 	if block == nil {
 		return nil, errors.New("failed to decode PEM data")
 	}
 
-	return x509.ParsePKCS1PrivateKey(block.Bytes)
+	switch block.Type {
+	case RSAPrivateKeyType:
+		if key, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
+			return nil, err
+		}
+	case PrivateKeyType:
+		parsedKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		var ok bool
+		key, ok = parsedKey.(crypto.Signer)
+		if !ok {
+			return nil, errors.New("error parsing pkcs8 private key")
+		}
+	case ECPrivateKeyType:
+		if key, err = x509.ParseECPrivateKey(block.Bytes); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unknown private key type: %s", block.Type)
+	}
+	return key, nil
 }
 
 // DecodeCertificate returns an x509.Certificate for a PEM encoded certificate
@@ -149,7 +178,7 @@ func GenerateJKSFromByte(certByte []byte, privateKey []byte, caCert []byte) (out
 
 // GenerateJKS creates a JKS with a random password from a client cert/key combination
 func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byte, err error) {
-	pKeyRaw, err := DecodePKCS1PrivateKeyBytes(privateKey)
+	pKeyRaw, err := DecodePrivateKeyBytes(privateKey)
 	if err != nil {
 		return
 	}
