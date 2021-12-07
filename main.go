@@ -106,12 +106,15 @@ func main() {
 
 	ctrl.SetLogger(util.CreateLogger(verboseLogging, developmentLogging))
 
+	// adding indexers to KafkaTopics so that the KafkaTopic admission webhooks could work
+	ctx := context.TODO()
+	managerWatchCache := k8sutil.AddKafkaTopicIndexers(ctx)
+
 	//When operator is started to watch resources in a specific set of namespaces, we use the MultiNamespacedCacheBuilder cache.
 	//In this scenario, it is also suggested to restrict the provided authorization to this namespace by replacing the default
 	//ClusterRole and ClusterRoleBinding to Role and RoleBinding respectively
 	//For further information see the kubernetes documentation about
 	//Using [RBAC Authorization](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
-	managerWatchCache := (cache.NewCacheFunc)(nil)
 	var namespaceList []string
 	if namespaces != "" {
 		namespaceList = strings.Split(namespaces, ",")
@@ -119,11 +122,6 @@ func main() {
 			namespaceList[i] = strings.TrimSpace(namespaceList[i])
 		}
 		managerWatchCache = cache.MultiNamespacedCacheBuilder(namespaceList)
-	}
-	ctx := context.TODO()
-	if !webhookDisabled {
-		// we need to add indexers to KafkaTopics so that the KafkaTopic admission webhooks could work
-		managerWatchCache = k8sutil.AddKafkaTopicIndexers(ctx, managerWatchCache)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

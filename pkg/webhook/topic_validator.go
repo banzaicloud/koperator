@@ -155,7 +155,6 @@ func (s *webhookServer) checkExistingKafkaTopicCRs(ctx context.Context,
 	// check KafkaTopic in the referred KafkaCluster's namespace
 	kafkaTopicList := banzaicloudv1alpha1.KafkaTopicList{}
 	err := s.client.List(ctx, &kafkaTopicList,
-		client.InNamespace(clusterNamespace),
 		client.MatchingFieldsSelector{
 			Selector: fields.OneTermEqualSelector("spec.name", topic.Spec.Name),
 		},
@@ -167,41 +166,24 @@ func (s *webhookServer) checkExistingKafkaTopicCRs(ctx context.Context,
 		log.Info("failed to list KafkaTopics")
 		return notAllowed("API failure while retrieving KafkaTopic list, please try again", metav1.StatusReasonServiceUnavailable)
 	}
+
 	var foundKafkaTopic *banzaicloudv1alpha1.KafkaTopic
 	for i, kafkaTopic := range kafkaTopicList.Items {
+		// filter the cr under admission
+		if kafkaTopic.Name == topic.Name && kafkaTopic.Namespace == topic.Namespace {
+			continue
+		}
+
 		referredNamespace := kafkaTopic.Spec.ClusterRef.Namespace
-		if referredNamespace == "" || referredNamespace == clusterNamespace {
+		if (kafkaTopic.Namespace == topic.Namespace && referredNamespace == "") || referredNamespace == clusterNamespace {
 			foundKafkaTopic = &kafkaTopicList.Items[i]
+			break
 		}
 	}
 	if foundKafkaTopic != nil {
 		msg := fmt.Sprintf("KafkaTopic CR '%s' in namesapce '%s' is already referencing Kafka topic '%s'",
 			foundKafkaTopic.Name, foundKafkaTopic.Namespace, foundKafkaTopic.Spec.Name)
 		log.Info(msg)
-		return notAllowed(msg, metav1.StatusReasonInvalid)
-	}
-
-	// check KafkaTopic in every namespace
-	kafkaTopicList = banzaicloudv1alpha1.KafkaTopicList{}
-	err = s.client.List(ctx, &kafkaTopicList,
-		client.MatchingFieldsSelector{
-			Selector: fields.OneTermEqualSelector("spec.name", topic.Spec.Name),
-		},
-		client.MatchingFieldsSelector{
-			Selector: fields.OneTermEqualSelector("spec.clusterRef.name", topic.Spec.ClusterRef.Name),
-		},
-		client.MatchingFieldsSelector{
-			Selector: fields.OneTermEqualSelector("spec.clusterRef.namespace", topic.Spec.ClusterRef.Namespace),
-		},
-	)
-	if err != nil {
-		log.Info("failed to list KafkaTopics")
-		return notAllowed("API failure while retrieving KafkaTopic list, please try again", metav1.StatusReasonServiceUnavailable)
-	}
-	if len(kafkaTopicList.Items) > 0 {
-		kafkaTopic := kafkaTopicList.Items[0]
-		msg := fmt.Sprintf("KafkaTopic CR '%s' in namesapce '%s' is already referencing Kafka topic '%s'",
-			kafkaTopic.Name, kafkaTopic.Namespace, kafkaTopic.Spec.Name)
 		return notAllowed(msg, metav1.StatusReasonInvalid)
 	}
 

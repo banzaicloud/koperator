@@ -25,12 +25,9 @@ import (
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 )
 
-func AddKafkaTopicIndexers(ctx context.Context, cacheFunc cache.NewCacheFunc) cache.NewCacheFunc {
-	if cacheFunc == nil {
-		cacheFunc = cache.New
-	}
+func AddKafkaTopicIndexers(ctx context.Context) cache.NewCacheFunc {
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
-		newCache, err := cacheFunc(config, opts)
+		newCache, err := cache.New(config, opts)
 		if err != nil {
 			return nil, err
 		}
