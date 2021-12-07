@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/asn1"
-	"encoding/pem"
 	"reflect"
 	"testing"
 
@@ -33,50 +32,6 @@ type PKCS8Key struct {
 	Version             int
 	PrivateKeyAlgorithm []asn1.ObjectIdentifier
 	PrivateKey          []byte
-}
-
-func TestDecodeKey(t *testing.T) {
-	// Test a regular PKCS1 key
-	_, key, _, err := GenerateTestCert()
-	if err != nil {
-		t.Error("Failed to generate test certificate")
-	}
-
-	var decoded []byte
-	if decoded, err = DecodeKey(key); err != nil {
-		t.Error("Expected to decode PKCS1 key, got error:", err)
-	}
-
-	// Convert to PKCS8 and test
-
-	var pkey PKCS8Key
-	pkey.Version = 0
-	pkey.PrivateKeyAlgorithm = make([]asn1.ObjectIdentifier, 1)
-	pkey.PrivateKeyAlgorithm[0] = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
-	rsaKey, err := x509.ParsePKCS1PrivateKey(decoded)
-	if err != nil {
-		t.Error("Error parsing generated key")
-	}
-	pkey.PrivateKey = x509.MarshalPKCS1PrivateKey(rsaKey)
-
-	marshalledPKCS8, err := asn1.Marshal(pkey)
-	if err != nil {
-		t.Error("Failed to convert test key to PKCS8")
-	}
-	buf := new(bytes.Buffer)
-	if err = pem.Encode(buf, &pem.Block{Type: "PRIVATE KEY", Bytes: marshalledPKCS8}); err != nil {
-		t.Error("Failed to encode test PKCS8 key")
-	}
-
-	if _, err = DecodeKey(buf.Bytes()); err != nil {
-		t.Error("Expected to decode PKCS8 key, got error:", err)
-	}
-
-	// Test error condition(s)
-	stripped := key[:len(key)-10]
-	if _, err = DecodeKey(stripped); err == nil {
-		t.Error("Expected error trying to decode bad key, got nil")
-	}
 }
 
 func TestDecodeCertificate(t *testing.T) {
@@ -112,6 +67,16 @@ func TestGenerateJKS(t *testing.T) {
 	keyStoreBytesReader := bytes.NewReader(keyStoreBytes)
 	if err = jksKeyStore.Load(keyStoreBytesReader, password); err != nil {
 		t.Error("Failed to generate keyStore from keyStore representation in bytes, probably due wrong pssword. Error: ", err)
+	}
+
+	privKeyEntry, err := jksKeyStore.GetPrivateKeyEntry("certs", password)
+	if err != nil {
+		t.Error("Can't get private key entry", err)
+	}
+
+	_, err = x509.ParsePKCS8PrivateKey(privKeyEntry.PrivateKey)
+	if err != nil {
+		t.Error("Private key must be PKCS8 encoded format in JKS", err)
 	}
 
 	badCACert := cert[:len(cert)-10]

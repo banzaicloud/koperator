@@ -30,7 +30,6 @@ import (
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pavel-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -96,38 +95,8 @@ func DecodePKCS1PrivateKeyBytes(keyBytes []byte) (*rsa.PrivateKey, error) {
 	if block == nil {
 		return nil, errors.New("failed to decode PEM data")
 	}
-	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-	return key, nil
-}
 
-// DecodeKey will take a PEM encoded Private Key and convert to raw der bytes
-func DecodeKey(raw []byte) (parsedKey []byte, err error) {
-	block, _ := pem.Decode(raw)
-	if block == nil {
-		err = errors.New("failed to decode PEM data")
-		return
-	}
-
-	var keytype certv1.PrivateKeyEncoding
-	var key interface{}
-	if key, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
-		if key, err = x509.ParsePKCS8PrivateKey(block.Bytes); err != nil {
-			return
-		}
-		keytype = certv1.PKCS8
-	} else {
-		keytype = certv1.PKCS1
-	}
-	rsaKey := key.(*rsa.PrivateKey)
-	if keytype == certv1.PKCS1 {
-		parsedKey = x509.MarshalPKCS1PrivateKey(rsaKey)
-	} else {
-		parsedKey, _ = x509.MarshalPKCS8PrivateKey(rsaKey)
-	}
-	return
+	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
 
 // DecodeCertificate returns an x509.Certificate for a PEM encoded certificate
