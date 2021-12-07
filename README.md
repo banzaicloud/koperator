@@ -52,8 +52,6 @@ The documentation of the Koperator project is available at the [Banzai Cloud Doc
 
 ## Support
 
-**Koperator** is a core part of [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) that helps you create production-ready Apache Kafka clusters on Kubernetes, with scaling, rebalancing, and alerts based self healing. While the Koperator itself is an open-source project, the [Banzai Cloud Supertubes](https://banzaicloud.com/products/supertubes/) product extends the functionality of Koperator with commercial features (for example, built-in monitoring and multiple ways of disaster recovery). Read a [detailed comparison of Supertubes and the Koperator](https://banzaicloud.com/docs/supertubes/kafka-operator-supertubes-feature-comparison/).
-
 ### Community support
 
 If you encounter problems while using Koperator that the documentation does not address, [open an issue](https://github.com/banzaicloud/koperator/issues) or talk to us on the Banzai Cloud Slack channel [#kafka-operator](https://banzaicloud.com/invite-slack/).
