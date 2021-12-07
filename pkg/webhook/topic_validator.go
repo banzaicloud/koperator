@@ -39,11 +39,11 @@ func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic
 	ctx := context.TODO()
 	log.Info(fmt.Sprintf("Doing pre-admission validation of kafka topic %s", topic.Spec.Name))
 
-	// Get the referenced kafkacluster
+	// Get the referenced KafkaCluster
 	clusterName := topic.Spec.ClusterRef.Name
 	clusterNamespace := topic.Spec.ClusterRef.Namespace
 	if clusterNamespace == "" {
-		clusterNamespace = topic.Namespace
+		clusterNamespace = topic.GetNamespace()
 	}
 	var cluster *banzaicloudv1beta1.KafkaCluster
 	var err error
@@ -170,12 +170,12 @@ func (s *webhookServer) checkExistingKafkaTopicCRs(ctx context.Context,
 	var foundKafkaTopic *banzaicloudv1alpha1.KafkaTopic
 	for i, kafkaTopic := range kafkaTopicList.Items {
 		// filter the cr under admission
-		if kafkaTopic.Name == topic.Name && kafkaTopic.Namespace == topic.Namespace {
+		if kafkaTopic.GetName() == topic.GetName() && kafkaTopic.GetNamespace() == topic.GetNamespace() {
 			continue
 		}
 
 		referredNamespace := kafkaTopic.Spec.ClusterRef.Namespace
-		if (kafkaTopic.Namespace == topic.Namespace && referredNamespace == "") || referredNamespace == clusterNamespace {
+		if (kafkaTopic.GetNamespace() == clusterNamespace && referredNamespace == "") || referredNamespace == clusterNamespace {
 			foundKafkaTopic = &kafkaTopicList.Items[i]
 			break
 		}
