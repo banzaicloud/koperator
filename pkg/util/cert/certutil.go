@@ -105,27 +105,23 @@ func DecodePrivateKeyBytes(keyBytes []byte) (key crypto.Signer, err error) {
 
 	switch block.Type {
 	case RSAPrivateKeyType:
-		if key, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
-			return nil, err
-		}
+		key, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 	case PrivateKeyType:
 		parsedKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 		if err != nil {
 			return nil, err
 		}
 		var ok bool
-		key, ok = parsedKey.(crypto.Signer)
-		if !ok {
+		if key, ok = parsedKey.(crypto.Signer); !ok {
 			return nil, errors.New("error parsing pkcs8 private key")
 		}
 	case ECPrivateKeyType:
-		if key, err = x509.ParseECPrivateKey(block.Bytes); err != nil {
-			return nil, err
-		}
+		key, err = x509.ParseECPrivateKey(block.Bytes)
 	default:
 		return nil, fmt.Errorf("unknown private key type: %s", block.Type)
 	}
-	return key, nil
+
+	return
 }
 
 // DecodeCertificate returns an x509.Certificate for a PEM encoded certificate
