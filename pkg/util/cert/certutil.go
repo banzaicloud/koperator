@@ -90,6 +90,19 @@ var passChars []rune = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 	"abcdefghijklmnopqrstuvwxyz" +
 	"0123456789")
 
+// DecodePKCS1PrivateKeyBytes will decode a PEM PKCS1 encoded private key into a rsa.PrivateKey format.
+func DecodePKCS1PrivateKeyBytes(keyBytes []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(keyBytes)
+	if block == nil {
+		return nil, errors.New("failed to decode PEM data")
+	}
+	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
 // DecodeKey will take a PEM encoded Private Key and convert to raw der bytes
 func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 	block, _ := pem.Decode(raw)
@@ -97,6 +110,7 @@ func DecodeKey(raw []byte) (parsedKey []byte, err error) {
 		err = errors.New("failed to decode PEM data")
 		return
 	}
+
 	var keytype certv1.PrivateKeyEncoding
 	var key interface{}
 	if key, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
@@ -166,7 +180,12 @@ func GenerateJKSFromByte(certByte []byte, privateKey []byte, caCert []byte) (out
 
 // GenerateJKS creates a JKS with a random password from a client cert/key combination
 func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byte, err error) {
-	pKeyRaw, err := DecodeKey(privateKey)
+	pKeyRaw, err := DecodePKCS1PrivateKeyBytes(privateKey)
+	if err != nil {
+		return
+	}
+
+	pKeyPKCS8, err := x509.MarshalPKCS8PrivateKey(pKeyRaw)
 	if err != nil {
 		return
 	}
@@ -184,7 +203,7 @@ func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byt
 
 	pkeIn := keystore.PrivateKeyEntry{
 		CreationTime:     time.Now(),
-		PrivateKey:       pKeyRaw,
+		PrivateKey:       pKeyPKCS8,
 		CertificateChain: certCABundle,
 	}
 
