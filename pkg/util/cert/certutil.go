@@ -35,7 +35,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var (
+const (
 	RSAPrivateKeyType = "RSA PRIVATE KEY"
 	PrivateKeyType    = "PRIVATE KEY"
 	ECPrivateKeyType  = "EC PRIVATE KEY"

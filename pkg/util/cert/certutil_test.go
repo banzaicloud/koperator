@@ -17,7 +17,6 @@ package cert
 import (
 	"bytes"
 	"crypto/x509"
-	"encoding/asn1"
 	"reflect"
 	"testing"
 
@@ -28,10 +27,8 @@ import (
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 )
 
-type PKCS8Key struct {
-	Version             int
-	PrivateKeyAlgorithm []asn1.ObjectIdentifier
-	PrivateKey          []byte
+func TestDecodePrivateKeyBytes(t *testing.T) {
+
 }
 
 func TestDecodeCertificate(t *testing.T) {
