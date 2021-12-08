@@ -16,7 +16,13 @@ package cert
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
+	"encoding/pem"
 	"reflect"
 	"testing"
 
@@ -28,7 +34,48 @@ import (
 )
 
 func TestDecodePrivateKeyBytes(t *testing.T) {
+	ecdsaPriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Error("Failed to generate test priv key", err)
+	}
+	pemEcdsaPriv := new(bytes.Buffer)
+	marshaledEcdsaPriv, _ := x509.MarshalECPrivateKey(ecdsaPriv)
+	if err := pem.Encode(pemEcdsaPriv, &pem.Block{Type: "EC PRIVATE KEY", Bytes: marshaledEcdsaPriv}); err != nil {
+		t.Error("Failed to encode test priv key", err)
+	}
+	_, pkcs8Priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Error("Failed to generate test priv key", err)
+	}
+	pemPkcs8Priv := new(bytes.Buffer)
+	marshaledPkcs8Priv, _ := x509.MarshalPKCS8PrivateKey(pkcs8Priv)
+	if err := pem.Encode(pemPkcs8Priv, &pem.Block{Type: "PRIVATE KEY", Bytes: marshaledPkcs8Priv}); err != nil {
+		t.Error("Failed to encode test priv key", err)
+	}
 
+	pkcs1Priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Error("Failed to generate test priv key", err)
+	}
+	pemPkcs1Priv := new(bytes.Buffer)
+	marshaledPkcs1Priv := x509.MarshalPKCS1PrivateKey(pkcs1Priv)
+	if err := pem.Encode(pemPkcs1Priv, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: marshaledPkcs1Priv}); err != nil {
+		t.Error("Failed to encode test priv key", err)
+	}
+	var privs [][]byte
+	privs = append(privs, pemPkcs1Priv.Bytes(), pemPkcs8Priv.Bytes(), pemEcdsaPriv.Bytes())
+
+	for _, priv := range privs {
+		key, err := DecodePrivateKeyBytes(priv)
+		if err != nil {
+			t.Error("Failed to decode priv key", err)
+		}
+		_, err = x509.MarshalPKCS8PrivateKey(key)
+		if err != nil {
+			t.Error("Failed to convert priv key to PKCS8", err)
+		}
+
+	}
 }
 
 func TestDecodeCertificate(t *testing.T) {
