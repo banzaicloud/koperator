@@ -40,7 +40,7 @@ func TestDecodePrivateKeyBytes(t *testing.T) {
 	}
 	pemEcdsaPriv := new(bytes.Buffer)
 	marshaledEcdsaPriv, _ := x509.MarshalECPrivateKey(ecdsaPriv)
-	if err := pem.Encode(pemEcdsaPriv, &pem.Block{Type: "EC PRIVATE KEY", Bytes: marshaledEcdsaPriv}); err != nil {
+	if err := pem.Encode(pemEcdsaPriv, &pem.Block{Type: ECPrivateKeyType, Bytes: marshaledEcdsaPriv}); err != nil {
 		t.Error("Failed to encode test priv key", err)
 	}
 	_, pkcs8Priv, err := ed25519.GenerateKey(rand.Reader)
@@ -49,7 +49,7 @@ func TestDecodePrivateKeyBytes(t *testing.T) {
 	}
 	pemPkcs8Priv := new(bytes.Buffer)
 	marshaledPkcs8Priv, _ := x509.MarshalPKCS8PrivateKey(pkcs8Priv)
-	if err := pem.Encode(pemPkcs8Priv, &pem.Block{Type: "PRIVATE KEY", Bytes: marshaledPkcs8Priv}); err != nil {
+	if err := pem.Encode(pemPkcs8Priv, &pem.Block{Type: PrivateKeyType, Bytes: marshaledPkcs8Priv}); err != nil {
 		t.Error("Failed to encode test priv key", err)
 	}
 
@@ -59,21 +59,42 @@ func TestDecodePrivateKeyBytes(t *testing.T) {
 	}
 	pemPkcs1Priv := new(bytes.Buffer)
 	marshaledPkcs1Priv := x509.MarshalPKCS1PrivateKey(pkcs1Priv)
-	if err := pem.Encode(pemPkcs1Priv, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: marshaledPkcs1Priv}); err != nil {
+	if err := pem.Encode(pemPkcs1Priv, &pem.Block{Type: RSAPrivateKeyType, Bytes: marshaledPkcs1Priv}); err != nil {
 		t.Error("Failed to encode test priv key", err)
 	}
-	var privs [][]byte
-	privs = append(privs, pemPkcs1Priv.Bytes(), pemPkcs8Priv.Bytes(), pemEcdsaPriv.Bytes())
+	testCases := []struct {
+		testName string
+		privKey  []byte
+	}{
+		{
+			testName: RSAPrivateKeyType,
+			privKey:  pemPkcs1Priv.Bytes(),
+		},
+		{
+			testName: PrivateKeyType,
+			privKey:  pemPkcs8Priv.Bytes(),
+		},
+		{
+			testName: ECPrivateKeyType,
+			privKey:  pemEcdsaPriv.Bytes(),
+		},
+	}
 
-	for _, priv := range privs {
-		key, err := DecodePrivateKeyBytes(priv)
-		if err != nil {
-			t.Error("Failed to decode priv key", err)
-		}
-		_, err = x509.MarshalPKCS8PrivateKey(key)
-		if err != nil {
-			t.Error("Failed to convert priv key to PKCS8", err)
-		}
+	t.Parallel()
+
+	for _, test := range testCases {
+		test := test
+
+		t.Run(test.testName, func(t *testing.T) {
+			key, err := DecodePrivateKeyBytes(test.privKey)
+			if err != nil {
+				t.Error("Expected error nil but get at decode priv key", err)
+			}
+			_, err = x509.MarshalPKCS8PrivateKey(key)
+			if err != nil {
+				t.Error("Expected error nil but get error at convert priv key to PKCS8", err)
+			}
+		})
 
 	}
 }
