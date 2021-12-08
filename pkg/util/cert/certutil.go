@@ -16,6 +16,7 @@ package cert
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -30,9 +31,14 @@ import (
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pavel-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
+)
+
+const (
+	RSAPrivateKeyType = "RSA PRIVATE KEY"
+	PrivateKeyType    = "PRIVATE KEY"
+	ECPrivateKeyType  = "EC PRIVATE KEY"
 )
 
 type CertificateContainer struct {
@@ -90,29 +96,32 @@ var passChars []rune = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 	"abcdefghijklmnopqrstuvwxyz" +
 	"0123456789")
 
-// DecodeKey will take a PEM encoded Private Key and convert to raw der bytes
-func DecodeKey(raw []byte) (parsedKey []byte, err error) {
-	block, _ := pem.Decode(raw)
+// DecodePrivateKeyBytes will decode a PEM encoded private key into a crypto.Signer.
+// It supports ECDSA, PKCS1, PKCS8  private key format only. All other types will return err.
+func DecodePrivateKeyBytes(keyBytes []byte) (key crypto.Signer, err error) {
+	block, _ := pem.Decode(keyBytes)
 	if block == nil {
-		err = errors.New("failed to decode PEM data")
-		return
+		return nil, errors.New("failed to decode PEM data")
 	}
-	var keytype certv1.PrivateKeyEncoding
-	var key interface{}
-	if key, err = x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
-		if key, err = x509.ParsePKCS8PrivateKey(block.Bytes); err != nil {
-			return
+
+	switch block.Type {
+	case RSAPrivateKeyType:
+		key, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	case PrivateKeyType:
+		parsedKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, err
 		}
-		keytype = certv1.PKCS8
-	} else {
-		keytype = certv1.PKCS1
+		var ok bool
+		if key, ok = parsedKey.(crypto.Signer); !ok {
+			return nil, errors.New("error parsing pkcs8 private key")
+		}
+	case ECPrivateKeyType:
+		key, err = x509.ParseECPrivateKey(block.Bytes)
+	default:
+		return nil, fmt.Errorf("unknown private key type: %s", block.Type)
 	}
-	rsaKey := key.(*rsa.PrivateKey)
-	if keytype == certv1.PKCS1 {
-		parsedKey = x509.MarshalPKCS1PrivateKey(rsaKey)
-	} else {
-		parsedKey, _ = x509.MarshalPKCS8PrivateKey(rsaKey)
-	}
+
 	return
 }
 
@@ -166,7 +175,12 @@ func GenerateJKSFromByte(certByte []byte, privateKey []byte, caCert []byte) (out
 
 // GenerateJKS creates a JKS with a random password from a client cert/key combination
 func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byte, err error) {
-	pKeyRaw, err := DecodeKey(privateKey)
+	pKeyRaw, err := DecodePrivateKeyBytes(privateKey)
+	if err != nil {
+		return
+	}
+
+	pKeyPKCS8, err := x509.MarshalPKCS8PrivateKey(pKeyRaw)
 	if err != nil {
 		return
 	}
@@ -184,7 +198,7 @@ func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byt
 
 	pkeIn := keystore.PrivateKeyEntry{
 		CreationTime:     time.Now(),
-		PrivateKey:       pKeyRaw,
+		PrivateKey:       pKeyPKCS8,
 		CertificateChain: certCABundle,
 	}
 
