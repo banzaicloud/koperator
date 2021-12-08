@@ -95,7 +95,6 @@ func TestDecodePrivateKeyBytes(t *testing.T) {
 				t.Error("Expected error nil but get error at convert priv key to PKCS8", err)
 			}
 		})
-
 	}
 }
 
