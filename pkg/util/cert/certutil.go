@@ -96,7 +96,8 @@ var passChars []rune = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 	"abcdefghijklmnopqrstuvwxyz" +
 	"0123456789")
 
-// DecodePKCS1PrivateKeyBytes will decode a PEM PKCS1 encoded private key into a rsa.PrivateKey format.
+// DecodePrivateKeyBytes will decode a PEM encoded private key into a crypto.Signer.
+// It supports ECDSA, PKCS1, PKCS8  private key format only. All other types will return err.
 func DecodePrivateKeyBytes(keyBytes []byte) (key crypto.Signer, err error) {
 	block, _ := pem.Decode(keyBytes)
 	if block == nil {
