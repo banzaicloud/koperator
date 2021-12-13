@@ -258,7 +258,7 @@ func (c *k8sCSR) generateAndCreateCSR(ctx context.Context, clientkey []byte, use
 		return nil, parseErr
 	}
 	c.logger.Info("Generating SigningRequest")
-	csr, err := certutil.GenerateSigningRequestInPemFormat(privKey, user.GetName())
+	csr, err := certutil.GenerateSigningRequestInPemFormat(privKey, user.GetName(), user.Spec.DNSNames)
 	if err != nil {
 		return nil, err
 	}
