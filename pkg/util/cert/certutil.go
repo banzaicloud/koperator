@@ -39,6 +39,7 @@ const (
 	RSAPrivateKeyType = "RSA PRIVATE KEY"
 	PrivateKeyType    = "PRIVATE KEY"
 	ECPrivateKeyType  = "EC PRIVATE KEY"
+	CertRequestType   = "CERTIFICATE REQUEST"
 )
 
 type CertificateContainer struct {
@@ -310,7 +311,7 @@ func GenerateSigningRequestInPemFormat(priv *rsa.PrivateKey, commonName string, 
 		return nil, err
 	}
 	buf := new(bytes.Buffer)
-	if err = pem.Encode(buf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr}); err != nil {
+	if err = pem.Encode(buf, &pem.Block{Type: CertRequestType, Bytes: csr}); err != nil {
 		return nil, err
 	}
 	signingReq := buf.Bytes()

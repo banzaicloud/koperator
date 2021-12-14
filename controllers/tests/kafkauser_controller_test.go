@@ -239,7 +239,6 @@ var _ = Describe("KafkaTopic", func() {
 					PKIBackend: string(v1beta1.PKIBackendK8sCSR),
 					SignerName: "foo.bar/foobar",
 				},
-				DNSNames: []string{"subdomain.example.com"},
 			},
 		}
 		err := k8sClient.Create(context.Background(), &user)

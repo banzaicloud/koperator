@@ -40,6 +40,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	notApprovedErrMsg         = "instance is not approved"
+	notFoundApprovedCsrErrMsg = "could not find approved csr"
+)
+
 // ReconcileUserCertificate ensures and returns a user certificate - should be idempotent
 func (c *k8sCSR) ReconcileUserCertificate(
 	ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme, _ string) (*pkicommon.UserCertificate, error) {
@@ -151,8 +156,8 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	}
 
 	if !foundApproved {
-		return nil, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New("instance is not approved"),
-			"could not find approved csr", "csrName", signingReq.GetName())
+		return nil, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New(notApprovedErrMsg),
+			notFoundApprovedCsrErrMsg, "csrName", signingReq.GetName())
 	}
 	if len(signingReq.Status.Certificate) == 0 {
 		return nil, errorfactory.New(errorfactory.ResourceNotReady{},
