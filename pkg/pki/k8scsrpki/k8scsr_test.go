@@ -29,22 +29,26 @@ type mockClient struct {
 }
 
 func newMockCluster() *v1beta1.KafkaCluster {
-	cluster := &v1beta1.KafkaCluster{}
-	cluster.Name = "test"
-	cluster.Namespace = "test-namespace"
-	cluster.Spec = v1beta1.KafkaClusterSpec{}
-	cluster.Spec.ListenersConfig = v1beta1.ListenersConfig{}
-	cluster.Spec.ListenersConfig.InternalListeners = []v1beta1.InternalListenerConfig{
-		{
-			CommonListenerSpec: v1beta1.CommonListenerSpec{
-				ContainerPort: 9092,
+	return &v1beta1.KafkaCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test-namespace",
+		},
+		Spec: v1beta1.KafkaClusterSpec{
+			ListenersConfig: v1beta1.ListenersConfig{
+				InternalListeners: []v1beta1.InternalListenerConfig{
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{
+							ContainerPort: 9092,
+						},
+					},
+				},
+				SSLSecrets: &v1beta1.SSLSecrets{
+					PKIBackend: v1beta1.PKIBackendK8sCSR,
+				},
 			},
 		},
 	}
-	cluster.Spec.ListenersConfig.SSLSecrets = &v1beta1.SSLSecrets{
-		PKIBackend: v1beta1.PKIBackendK8sCSR,
-	}
-	return cluster
 }
 
 func TestNew(t *testing.T) {
