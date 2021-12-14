@@ -39,6 +39,7 @@ const (
 	RSAPrivateKeyType = "RSA PRIVATE KEY"
 	PrivateKeyType    = "PRIVATE KEY"
 	ECPrivateKeyType  = "EC PRIVATE KEY"
+	CertRequestType   = "CERTIFICATE REQUEST"
 )
 
 type CertificateContainer struct {
@@ -297,19 +298,20 @@ func GeneratePrivateKeyInPemFormat() ([]byte, error) {
 }
 
 // GenerateSigningRequestInPemFormat is used to generate a signing request in a pem format
-func GenerateSigningRequestInPemFormat(priv *rsa.PrivateKey, commonName string) ([]byte, error) {
+func GenerateSigningRequestInPemFormat(priv *rsa.PrivateKey, commonName string, dnsNames []string) ([]byte, error) {
 	template := x509.CertificateRequest{
 		SignatureAlgorithm: x509.SHA256WithRSA,
 		Subject: pkix.Name{
 			CommonName: commonName,
 		},
+		DNSNames: dnsNames,
 	}
 	csr, err := x509.CreateCertificateRequest(rand.Reader, &template, priv)
 	if err != nil {
 		return nil, err
 	}
 	buf := new(bytes.Buffer)
-	if err = pem.Encode(buf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr}); err != nil {
+	if err = pem.Encode(buf, &pem.Block{Type: CertRequestType, Bytes: csr}); err != nil {
 		return nil, err
 	}
 	signingReq := buf.Bytes()
