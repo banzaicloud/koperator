@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	certsigningreqv1 "k8s.io/api/certificates/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,10 +90,11 @@ func setupSchemeForTests() (*runtime.Scheme, error) {
 }
 
 func TestReconcileUserCertificate(t *testing.T) {
+	g := NewGomegaWithT(t)
+	RegisterFailHandler(ginkgo.Fail)
 	sch, err := setupSchemeForTests()
-	if err != nil {
-		t.Fatal("failed to setup scheme", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+
 	fakeClient := fake.NewClientBuilder().WithScheme(sch).Build()
 	pkiManager := New(fakeClient, newMockCluster(), log.Log)
 	ctx := context.Background()
@@ -102,32 +106,16 @@ func TestReconcileUserCertificate(t *testing.T) {
 
 	var requestList certsigningreqv1.CertificateSigningRequestList
 	err = fakeClient.List(ctx, &requestList)
-	if err != nil {
-		t.Fatal("failed to get reconciled CertificateSigningRequest")
-	}
-	if len(requestList.Items) == 0 {
-		t.Fatal("could not find CertificateSigningRequest in cluster")
-	}
-	if len(requestList.Items) > 1 {
-		t.Fatal("multiple CertificateSigningRequests found in cluster")
-	}
+	Expect(err).NotTo(HaveOccurred())
+	Expect(requestList.Items).To(HaveLen(1))
+
 	csr := requestList.Items[0]
 	req := csr.Spec.Request
 	block, _ := pem.Decode(req)
-	if block == nil {
-		t.Fatal("found empty block")
-	}
-	if block.Type != cert.CertRequestType {
-		t.Error("type of block mismatch, found:", block.Type)
-	}
+	Expect(block).NotTo(BeNil())
+	Expect(block.Type).To(Equal(cert.CertRequestType))
 	certReq, err := x509.ParseCertificateRequest(block.Bytes)
-	if err != nil {
-		t.Fatal("could not parse cert request", err)
-	}
-	if certReq.Subject.CommonName != user.GetName() {
-		t.Error("wrong common name:", certReq.Subject.CommonName)
-	}
-	if len(certReq.DNSNames) != 1 && certReq.DNSNames[0] != testDns {
-		t.Error("wrong DNS names:", certReq.DNSNames)
-	}
+	Expect(err).NotTo(HaveOccurred())
+	Expect(certReq.Subject.CommonName).To(Equal(user.GetName()))
+	Expect(certReq.DNSNames).To(ConsistOf(testDns))
 }
