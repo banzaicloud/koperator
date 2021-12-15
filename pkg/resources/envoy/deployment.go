@@ -18,6 +18,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,6 +66,11 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 		},
 	}
 
+	arguments := []string{"-c", "/etc/envoy/envoy.yaml"}
+	if ingressConfig.EnvoyConfig.GetConcurrency() > 0 {
+		arguments = append(arguments, "--concurrency", strconv.Itoa(int(ingressConfig.EnvoyConfig.GetConcurrency())))
+	}
+
 	return &appsv1.Deployment{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			deploymentName,
@@ -93,6 +99,7 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 						{
 							Name:  "envoy",
 							Image: ingressConfig.EnvoyConfig.GetEnvoyImage(),
+							Args:  arguments,
 							Ports: append(exposedPorts,
 								[]corev1.ContainerPort{
 									{

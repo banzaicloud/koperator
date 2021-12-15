@@ -280,6 +280,19 @@ type EnvoyConfig struct {
 	HealthCheckPort *int32 `json:"healthCheckPort,omitempty"`
 	// DisruptionBudget is the pod disruption budget attached to Envoy Deployment(s)
 	DisruptionBudget *DisruptionBudgetWithStrategy `json:"disruptionBudget,omitempty"`
+	// Envoy command line arguments
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	CommandLineArgs *EnvoyCommandLineArgs `json:"envoyCommandLineArgs,omitempty"`
+}
+
+// EnvoyCommandLineArgs defines envoy command line arguments
+type EnvoyCommandLineArgs struct {
+	// Envoy --concurrency command line argument.
+	// See https://www.envoyproxy.io/docs/envoy/latest/operations/cli#cmdoption-concurrency
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	Concurrency int32 `json:"concurrency,omitempty"`
 }
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller
@@ -766,6 +779,17 @@ func (eConfig *EnvoyConfig) GetResources() *corev1.ResourceRequirements {
 			"memory": resource.MustParse("100Mi"),
 		},
 	}
+}
+
+// GetConcurrency returns envoy concurrency.
+// Defines the number of worker threads envoy pod should run.
+// If not specified defaults to the number of hardware threads on the underlying kubernetes node.
+// See https://www.envoyproxy.io/docs/envoy/latest/operations/cli#cmdoption-concurrency
+func (eConfig *EnvoyConfig) GetConcurrency() int32 {
+	if eConfig.CommandLineArgs == nil {
+		return 0
+	}
+	return eConfig.CommandLineArgs.Concurrency
 }
 
 // GetResources returns the CC specific Kubernetes resource

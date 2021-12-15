@@ -15833,6 +15833,17 @@ spec:
                         - maxUnavailable
                         type: string
                     type: object
+                  envoyCommandLineArgs:
+                    description: Envoy command line arguments
+                    properties:
+                      concurrency:
+                        description: Envoy --concurrency command line argument. See
+                          https://www.envoyproxy.io/docs/envoy/latest/operations/cli#cmdoption-concurrency
+                        format: int32
+                        minimum: 1
+                        type: integer
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
                   healthCheckPort:
                     description: Envoy health-check port
                     format: int32
@@ -17751,6 +17762,17 @@ spec:
                                             - maxUnavailable
                                             type: string
                                         type: object
+                                      envoyCommandLineArgs:
+                                        description: Envoy command line arguments
+                                        properties:
+                                          concurrency:
+                                            description: Envoy --concurrency command
+                                              line argument. See https://www.envoyproxy.io/docs/envoy/latest/operations/cli#cmdoption-concurrency
+                                            format: int32
+                                            minimum: 1
+                                            type: integer
+                                        type: object
+                                        x-kubernetes-preserve-unknown-fields: true
                                       healthCheckPort:
                                         description: Envoy health-check port
                                         format: int32
