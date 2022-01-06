@@ -333,7 +333,7 @@ type StorageConfig struct {
 	PvcSpec   *corev1.PersistentVolumeClaimSpec `json:"pvcSpec"`
 }
 
-//ListenersConfig defines the Kafka listener types
+// ListenersConfig defines the Kafka listener types
 type ListenersConfig struct {
 	ExternalListeners  []ExternalListenerConfig `json:"externalListeners,omitempty"`
 	InternalListeners  []InternalListenerConfig `json:"internalListeners"`
@@ -596,7 +596,7 @@ func (kSpec *KafkaClusterSpec) GetIngressController() string {
 	return kSpec.IngressController
 }
 
-// GetDomain returns the default domain if not specified otherwise
+// GetKubernetesClusterDomain returns the default domain if not specified otherwise
 func (kSpec *KafkaClusterSpec) GetKubernetesClusterDomain() string {
 	if kSpec.KubernetesClusterDomain == "" {
 		return "cluster.local"
@@ -641,17 +641,17 @@ func (cTaskSpec *CruiseControlTaskSpec) GetDurationMinutes() float64 {
 	return float64(cTaskSpec.RetryDurationMinutes)
 }
 
-//GetLoadBalancerSourceRanges returns LoadBalancerSourceRanges to use for Envoy generated LoadBalancer
+// GetLoadBalancerSourceRanges returns LoadBalancerSourceRanges to use for Envoy generated LoadBalancer
 func (eConfig *EnvoyConfig) GetLoadBalancerSourceRanges() []string {
 	return eConfig.LoadBalancerSourceRanges
 }
 
-//GetAnnotations returns Annotations to use for Envoy generated Deployment and Pods
+// GetAnnotations returns Annotations to use for Envoy generated Deployment and Pods
 func (eConfig *EnvoyConfig) GetAnnotations() map[string]string {
 	return util.CloneMap(eConfig.Annotations)
 }
 
-//GetDistruptionBudget returns DisruptionBudget to use for Envoy generated Pods
+// GetDistruptionBudget returns DisruptionBudget to use for Envoy generated Pods
 func (eConfig *EnvoyConfig) GetDistruptionBudget() DisruptionBudgetWithStrategy {
 	if eConfig.DisruptionBudget != nil {
 		return *eConfig.DisruptionBudget
@@ -667,7 +667,7 @@ func (eConfig *EnvoyConfig) GetReplicas() int32 {
 	return eConfig.Replicas
 }
 
-//GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
+// GetServiceAccount returns the Kubernetes Service Account to use for Kafka Cluster
 func (bConfig *BrokerConfig) GetServiceAccount() string {
 	if bConfig.ServiceAccountName != "" {
 		return bConfig.ServiceAccountName
@@ -675,7 +675,7 @@ func (bConfig *BrokerConfig) GetServiceAccount() string {
 	return DefaultServiceAccountName
 }
 
-//GetServiceAccount returns the Kubernetes Service Account to use for EnvoyConfig
+// GetServiceAccount returns the Kubernetes Service Account to use for EnvoyConfig
 func (eConfig *EnvoyConfig) GetServiceAccount() string {
 	if eConfig.ServiceAccountName != "" {
 		return eConfig.ServiceAccountName
@@ -683,7 +683,7 @@ func (eConfig *EnvoyConfig) GetServiceAccount() string {
 	return DefaultServiceAccountName
 }
 
-//GetServiceAccount returns the Kubernetes Service Account to use for CruiseControl
+// GetServiceAccount returns the Kubernetes Service Account to use for CruiseControl
 func (cConfig *CruiseControlConfig) GetServiceAccount() string {
 	if cConfig.ServiceAccountName != "" {
 		return cConfig.ServiceAccountName
@@ -691,22 +691,22 @@ func (cConfig *CruiseControlConfig) GetServiceAccount() string {
 	return DefaultServiceAccountName
 }
 
-//GetTolerations returns the tolerations for the given broker
+// GetTolerations returns the tolerations for the given broker
 func (bConfig *BrokerConfig) GetTolerations() []corev1.Toleration {
 	return bConfig.Tolerations
 }
 
-//GetTolerations returns the tolerations for envoy
+// GetTolerations returns the tolerations for envoy
 func (eConfig *EnvoyConfig) GetTolerations() []corev1.Toleration {
 	return eConfig.Tolerations
 }
 
-//GetTolerations returns the tolerations for cruise control
+// GetTolerations returns the tolerations for cruise control
 func (cConfig *CruiseControlConfig) GetTolerations() []corev1.Toleration {
 	return cConfig.Tolerations
 }
 
-//GetTerminationGracePeriod returns the termination grace period for the broker pod
+// GetTerminationGracePeriod returns the termination grace period for the broker pod
 func (bConfig *BrokerConfig) GetTerminationGracePeriod() int64 {
 	if bConfig.TerminationGracePeriod == nil {
 		return DefaultBrokerTerminationGracePeriod
@@ -714,32 +714,32 @@ func (bConfig *BrokerConfig) GetTerminationGracePeriod() int64 {
 	return *bConfig.TerminationGracePeriod
 }
 
-//GetNodeSelector returns the node selector for cruise control
+// GetNodeSelector returns the node selector for cruise control
 func (cConfig *CruiseControlConfig) GetNodeSelector() map[string]string {
 	return cConfig.NodeSelector
 }
 
-//GetNodeSelector returns the node selector for envoy
+// GetNodeSelector returns the node selector for envoy
 func (eConfig *EnvoyConfig) GetNodeSelector() map[string]string {
 	return eConfig.NodeSelector
 }
 
-//GetAffinity returns the Affinity config for envoy
+// GetAffinity returns the Affinity config for envoy
 func (eConfig *EnvoyConfig) GetAffinity() *corev1.Affinity {
 	return eConfig.Affinity
 }
 
-//GetTopologySpreadConstaints returns the Affinity config for envoy
+// GetTopologySpreadConstaints returns the Affinity config for envoy
 func (eConfig *EnvoyConfig) GetTopologySpreadConstaints() []corev1.TopologySpreadConstraint {
 	return eConfig.TopologySpreadConstraints
 }
 
-//GetNodeSelector returns the node selector for the given broker
+// GetNodeSelector returns the node selector for the given broker
 func (bConfig *BrokerConfig) GetNodeSelector() map[string]string {
 	return bConfig.NodeSelector
 }
 
-//GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
+// GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
 func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference {
 	return bConfig.ImagePullSecrets
 }
@@ -754,12 +754,12 @@ func (cConfig *CruiseControlConfig) GetCruiseControlAnnotations() map[string]str
 	return util.CloneMap(cConfig.CruiseControlAnnotations)
 }
 
-//GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
+// GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
 func (eConfig *EnvoyConfig) GetImagePullSecrets() []corev1.LocalObjectReference {
 	return eConfig.ImagePullSecrets
 }
 
-//GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
+// GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
 func (cConfig *CruiseControlConfig) GetImagePullSecrets() []corev1.LocalObjectReference {
 	return cConfig.ImagePullSecrets
 }
