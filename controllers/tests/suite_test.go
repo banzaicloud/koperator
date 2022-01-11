@@ -113,7 +113,6 @@ var _ = BeforeSuite(func() {
 	Expect(cmv1.AddToScheme(scheme)).To(Succeed())
 	Expect(banzaicloudv1alpha1.AddToScheme(scheme)).To(Succeed())
 	Expect(banzaicloudv1beta1.AddToScheme(scheme)).To(Succeed())
-	//Expect(banzaiistiov1alpha1.AddToScheme(scheme)).To(Succeed())
 	Expect(istioclientv1alpha3.AddToScheme(scheme)).To(Succeed())
 
 	// +kubebuilder:scaffold:scheme
