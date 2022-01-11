@@ -33,9 +33,9 @@ metadata:
     app.kubernetes.io/component: operator
 rules:
 - apiGroups:
-  - istio.banzaicloud.io
+  - servicemesh.cisco.com
   resources:
-  - meshgateways
+  - istiomeshgateways
   verbs:
   - create
   - delete

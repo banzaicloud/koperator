@@ -39,7 +39,7 @@ import (
 
 	istioclientv1alpha3 "github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
 
-	banzaiistiov1beta1 "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
+	banzaiistiov1alpha1 "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -69,7 +69,7 @@ func init() {
 
 	_ = banzaicloudv1beta1.AddToScheme(scheme)
 
-	_ = banzaiistiov1beta1.AddToScheme(scheme)
+	_ = banzaiistiov1alpha1.AddToScheme(scheme)
 
 	_ = istioclientv1alpha3.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme

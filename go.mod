@@ -6,6 +6,7 @@ require (
 	emperror.dev/errors v0.8.0
 	github.com/Shopify/sarama v1.30.0
 	github.com/banzaicloud/istio-client-go v0.0.11
+	github.com/banzaicloud/istio-operator/api/v2 v2.11.5
 	github.com/banzaicloud/istio-operator/pkg/apis v0.10.8
 	github.com/banzaicloud/k8s-objectmatcher v1.6.1
 	github.com/banzaicloud/koperator/api v0.0.0
@@ -98,6 +99,8 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	istio.io/api v0.0.0-20210420153121-f5a13670bedf // indirect
+	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f // indirect
 	k8s.io/component-base v0.22.4 // indirect
 	k8s.io/klog/v2 v2.9.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c // indirect
@@ -109,4 +112,5 @@ require (
 replace (
 	github.com/banzaicloud/koperator/api => ./api
 	github.com/banzaicloud/koperator/properties => ./properties
+	github.com/gogo/protobuf => github.com/waynz0r/protobuf v1.3.3-0.20210811122234-64636cae0910
 )
