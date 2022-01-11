@@ -43,8 +43,6 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 			externalListenerConfig.Name, ingressConfigName, r.KafkaCluster.GetName())
 	}
 
-	ingressResources := ingressConfig.IstioIngressConfig.GetResources()
-
 	mgateway := &istioOperatorApi.IstioMeshGateway{
 		ObjectMeta: templates.ObjectMeta(
 			meshgatewayName,
@@ -56,17 +54,8 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 					Annotations: ingressConfig.IstioIngressConfig.GetAnnotations(),
 				},
 				//Image:                "",
-				Env: ingressConfig.IstioIngressConfig.Envs,
-				Resources: &istioOperatorApi.ResourceRequirements{
-					Limits: map[string]*istioOperatorApi.Quantity{
-						"cpu":    {Quantity: *ingressResources.Limits.Cpu()},
-						"memory": {Quantity: *ingressResources.Limits.Memory()},
-					},
-					Requests: map[string]*istioOperatorApi.Quantity{
-						"cpu":    {Quantity: *ingressResources.Requests.Cpu()},
-						"memory": {Quantity: *ingressResources.Requests.Memory()},
-					},
-				},
+				Env:          ingressConfig.IstioIngressConfig.Envs,
+				Resources:    istioOperatorApi.InitResourceRequirementsFromK8sRR(ingressConfig.IstioIngressConfig.GetResources()),
 				NodeSelector: ingressConfig.IstioIngressConfig.NodeSelector,
 				//	Affinity:             &corev1.Affinity{},
 				SecurityContext: &corev1.SecurityContext{
@@ -136,29 +125,19 @@ func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
 		}
 		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
 			generatedPorts = append(generatedPorts, istioOperatorApi.ServicePort{
-				Name:     fmt.Sprintf("tcp-broker-%d", brokerId),
-				Protocol: "TCP",
-				Port:     externalListenerConfig.ExternalStartingPort + int32(brokerId),
-				TargetPort: &istioOperatorApi.IntOrString{
-					IntOrString: intstr.IntOrString{
-						Type:   0,
-						IntVal: int32(int(externalListenerConfig.ExternalStartingPort) + brokerId),
-					},
-				},
+				Name:       fmt.Sprintf("tcp-broker-%d", brokerId),
+				Protocol:   "TCP",
+				Port:       externalListenerConfig.ExternalStartingPort + int32(brokerId),
+				TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(int(externalListenerConfig.ExternalStartingPort) + brokerId)},
 			})
 		}
 	}
 
 	generatedPorts = append(generatedPorts, istioOperatorApi.ServicePort{
-		Name:     fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
-		Protocol: "TCP",
-		Port:     externalListenerConfig.GetAnyCastPort(),
-		TargetPort: &istioOperatorApi.IntOrString{
-			IntOrString: intstr.IntOrString{
-				Type:   0,
-				IntVal: int32(int(externalListenerConfig.GetAnyCastPort())),
-			},
-		},
+		Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
+		Protocol:   "TCP",
+		Port:       externalListenerConfig.GetAnyCastPort(),
+		TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(int(externalListenerConfig.GetAnyCastPort()))},
 	})
 
 	return generatedPorts

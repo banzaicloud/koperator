@@ -159,48 +159,28 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 
 			Expect(meshGatewaySpec.Service.Ports).To(ConsistOf(
 				istioOperatorApi.ServicePort{
-					Name:     "tcp-broker-0",
-					Protocol: "TCP",
-					Port:     19090,
-					TargetPort: &istioOperatorApi.IntOrString{
-						IntOrString: intstr.IntOrString{
-							Type:   0,
-							IntVal: int32(19090),
-						},
-					},
+					Name:       "tcp-broker-0",
+					Protocol:   "TCP",
+					Port:       19090,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19090)},
 				},
 				istioOperatorApi.ServicePort{
-					Name:     "tcp-broker-1",
-					Protocol: "TCP",
-					Port:     19091,
-					TargetPort: &istioOperatorApi.IntOrString{
-						IntOrString: intstr.IntOrString{
-							Type:   0,
-							IntVal: int32(19091),
-						},
-					},
+					Name:       "tcp-broker-1",
+					Protocol:   "TCP",
+					Port:       19091,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19091)},
 				},
 				istioOperatorApi.ServicePort{
-					Name:     "tcp-broker-2",
-					Protocol: "TCP",
-					Port:     19092,
-					TargetPort: &istioOperatorApi.IntOrString{
-						IntOrString: intstr.IntOrString{
-							Type:   0,
-							IntVal: int32(19092),
-						},
-					},
+					Name:       "tcp-broker-2",
+					Protocol:   "TCP",
+					Port:       19092,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19092)},
 				},
 				istioOperatorApi.ServicePort{
-					Name:     "tcp-all-broker",
-					Protocol: "TCP",
-					Port:     29092,
-					TargetPort: &istioOperatorApi.IntOrString{
-						IntOrString: intstr.IntOrString{
-							Type:   0,
-							IntVal: int32(29092),
-						},
-					},
+					Name:       "tcp-all-broker",
+					Protocol:   "TCP",
+					Port:       29092,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(29092)},
 				},
 			))
 			Expect(meshGatewaySpec.Type).To(Equal(istioOperatorApi.GatewayType_ingress))
@@ -506,37 +486,22 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 
 			Expect(meshGatewaySpec.Service.Ports).To(ConsistOf(
 				istioOperatorApi.ServicePort{
-					Name:     "tcp-broker-0",
-					Protocol: "TCP",
-					Port:     19090,
-					TargetPort: &istioOperatorApi.IntOrString{
-						IntOrString: intstr.IntOrString{
-							Type:   0,
-							IntVal: int32(19090),
-						},
-					},
+					Name:       "tcp-broker-0",
+					Protocol:   "TCP",
+					Port:       19090,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19090)},
 				},
 				istioOperatorApi.ServicePort{
-					Name:     "tcp-broker-2",
-					Protocol: "TCP",
-					Port:     19092,
-					TargetPort: &istioOperatorApi.IntOrString{
-						IntOrString: intstr.IntOrString{
-							Type:   0,
-							IntVal: int32(19092),
-						},
-					},
+					Name:       "tcp-broker-2",
+					Protocol:   "TCP",
+					Port:       19092,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19092)},
 				},
 				istioOperatorApi.ServicePort{
-					Name:     "tcp-all-broker",
-					Protocol: "TCP",
-					Port:     29092,
-					TargetPort: &istioOperatorApi.IntOrString{
-						IntOrString: intstr.IntOrString{
-							Type:   0,
-							IntVal: int32(29092),
-						},
-					},
+					Name:       "tcp-all-broker",
+					Protocol:   "TCP",
+					Port:       29092,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(29092)},
 				},
 			))
 
@@ -626,26 +591,16 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 
 			Expect(meshGatewaySpec.Service.Ports).To(ConsistOf(
 				istioOperatorApi.ServicePort{
-					Name:     "tcp-broker-1",
-					Protocol: "TCP",
-					Port:     19091,
-					TargetPort: &istioOperatorApi.IntOrString{
-						IntOrString: intstr.IntOrString{
-							Type:   0,
-							IntVal: int32(19091),
-						},
-					},
+					Name:       "tcp-broker-1",
+					Protocol:   "TCP",
+					Port:       19091,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19091)},
 				},
 				istioOperatorApi.ServicePort{
-					Name:     "tcp-all-broker",
-					Protocol: "TCP",
-					Port:     29092,
-					TargetPort: &istioOperatorApi.IntOrString{
-						IntOrString: intstr.IntOrString{
-							Type:   0,
-							IntVal: int32(29092),
-						},
-					},
+					Name:       "tcp-all-broker",
+					Protocol:   "TCP",
+					Port:       29092,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(29092)},
 				},
 			))
 
