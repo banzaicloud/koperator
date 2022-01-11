@@ -68,6 +68,7 @@ type KafkaClusterSpec struct {
 	DisruptionBudget            DisruptionBudget        `json:"disruptionBudget,omitempty"`
 	RollingUpgradeConfig        RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
 	// +kubebuilder:validation:Enum=envoy;istioingress
+	// If istioingress is selected than IstioControlPlane must be filled out in the IstioIngressConfig section
 	IngressController string `json:"ingressController,omitempty"`
 	// If true OneBrokerPerNode ensures that each kafka broker will be placed on a different node unless a custom
 	// Affinity definition overrides this behavior
@@ -298,7 +299,9 @@ type EnvoyCommandLineArgs struct {
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller
 type IstioIngressConfig struct {
-	Resources *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
+	// IstioControlPlane is a reference to the istio controlplane deployment for envoy configuration. It must be specified if istio ingress is used.
+	IstioControlPlane *ObjectReference             `json:"istioControlPlane"`
+	Resources         *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
 	// +kubebuilder:validation:Minimum=1
 	Replicas     int32               `json:"replicas,omitempty"`
 	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`

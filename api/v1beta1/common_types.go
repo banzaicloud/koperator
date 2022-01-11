@@ -122,6 +122,12 @@ const (
 	PKIBackendK8sCSR PKIBackend = "k8s-csr"
 )
 
+// ObjectReference is a reference to a kubernetes object
+type ObjectReference struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+}
+
 // GracefulActionState holds information about GracefulAction State
 type GracefulActionState struct {
 	// ErrorMessage holds the information what happened with CC
