@@ -19,8 +19,6 @@ import (
 
 	"emperror.dev/errors"
 
-	"github.com/banzaicloud/koperator/api/util"
-
 	"github.com/imdario/mergo"
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
@@ -29,6 +27,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/banzaicloud/koperator/api/assets"
+	"github.com/banzaicloud/koperator/api/util"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -882,67 +883,7 @@ func (cConfig *CruiseControlConfig) GetCCLog4jConfig() string {
 	if cConfig.Log4jConfig != "" {
 		return cConfig.Log4jConfig
 	}
-	return `rootLogger.level=INFO
-appenders=console, kafkaCruiseControlAppender, operationAppender, requestAppender
-
-property.filename=./logs
-
-appender.console.type=Console
-appender.console.name=STDOUT
-appender.console.layout.type=PatternLayout
-appender.console.layout.pattern=[%d] %p %m (%c)%n
-
-appender.kafkaCruiseControlAppender.type=RollingFile
-appender.kafkaCruiseControlAppender.name=kafkaCruiseControlFile
-appender.kafkaCruiseControlAppender.fileName=${filename}/kafkacruisecontrol.log
-appender.kafkaCruiseControlAppender.filePattern=${filename}/kafkacruisecontrol.log.%d{yyyy-MM-dd-HH}
-appender.kafkaCruiseControlAppender.layout.type=PatternLayout
-appender.kafkaCruiseControlAppender.layout.pattern=[%d] %p %m (%c)%n
-appender.kafkaCruiseControlAppender.policies.type=Policies
-appender.kafkaCruiseControlAppender.policies.time.type=TimeBasedTriggeringPolicy
-appender.kafkaCruiseControlAppender.policies.time.interval=1
-
-appender.operationAppender.type=RollingFile
-appender.operationAppender.name=operationFile
-appender.operationAppender.fileName=${filename}/kafkacruisecontrol-operation.log
-appender.operationAppender.filePattern=${filename}/kafkacruisecontrol-operation.log.%d{yyyy-MM-dd}
-appender.operationAppender.layout.type=PatternLayout
-appender.operationAppender.layout.pattern=[%d] %p [%c] %m %n
-appender.operationAppender.policies.type=Policies
-appender.operationAppender.policies.time.type=TimeBasedTriggeringPolicy
-appender.operationAppender.policies.time.interval=1
-
-appender.requestAppender.type=RollingFile
-appender.requestAppender.name=requestFile
-appender.requestAppender.fileName=${filename}/kafkacruisecontrol-request.log
-appender.requestAppender.filePattern=${filename}/kafkacruisecontrol-request.log.%d{yyyy-MM-dd-HH}
-appender.requestAppender.layout.type=PatternLayout
-appender.requestAppender.layout.pattern=[%d] %p %m (%c)%n
-appender.requestAppender.policies.type=Policies
-appender.requestAppender.policies.time.type=TimeBasedTriggeringPolicy
-appender.requestAppender.policies.time.interval=1
-
-# Loggers
-logger.cruisecontrol.name=com.linkedin.kafka.cruisecontrol
-logger.cruisecontrol.level=info
-logger.cruisecontrol.appenderRef.kafkaCruiseControlAppender.ref=kafkaCruiseControlFile
-
-logger.detector.name=com.linkedin.kafka.cruisecontrol.detector
-logger.detector.level=info
-logger.detector.appenderRef.kafkaCruiseControlAppender.ref=kafkaCruiseControlFile
-
-logger.operationLogger.name=operationLogger
-logger.operationLogger.level=info
-logger.operationLogger.appenderRef.operationAppender.ref=operationFile
-
-logger.CruiseControlPublicAccessLogger.name=CruiseControlPublicAccessLogger
-logger.CruiseControlPublicAccessLogger.level=info
-logger.CruiseControlPublicAccessLogger.appenderRef.requestAppender.ref=requestFile
-
-rootLogger.appenderRefs=console, kafkaCruiseControlAppender
-rootLogger.appenderRef.console.ref=STDOUT
-rootLogger.appenderRef.kafkaCruiseControlAppender.ref=kafkaCruiseControlFile
-`
+	return assets.CruiseControlLog4jProperties
 }
 
 // GetImage returns the used image for Prometheus JMX exporter
@@ -967,223 +908,7 @@ func (mConfig *MonitoringConfig) GetKafkaJMXExporterConfig() string {
 		return mConfig.KafkaJMXExporterConfig
 	}
 	// Use upstream defined rules https://github.com/prometheus/jmx_exporter/blob/master/example_configs/kafka-2_0_0.yml
-	return `lowercaseOutputName: true
-rules:
-# Special cases and very specific rules
-- pattern: 'kafka.server<type=(app-info), id=(\d+)><>(Version): ([-.~+\w\d]+)'
-  name: kafka_server_$1_$3
-  type: COUNTER
-  labels:
-    broker_id: $2
-    version: $4
-  value: 1.0
-- pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)><>Value
-  name: kafka_server_$1_$2
-  type: GAUGE
-  cache: true
-  labels:
-    clientId: "$3"
-    topic: "$4"
-    partition: "$5"
-- pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), brokerHost=(.+), brokerPort=(.+)><>Value
-  name: kafka_server_$1_$2
-  type: GAUGE
-  cache: true
-  labels:
-    clientId: "$3"
-    broker: "$4:$5"
-- pattern: kafka.server<type=(.+), cipher=(.+), protocol=(.+), listener=(.+), networkProcessor=(.+)><>connections
-  name: kafka_server_$1_connections_tls_info
-  type: GAUGE
-  cache: true
-  labels:
-    listener: "$2"
-    networkProcessor: "$3"
-    protocol: "$4"
-    cipher: "$5"
-- pattern: kafka.server<type=(.+), clientSoftwareName=(.+), clientSoftwareVersion=(.+), listener=(.+), networkProcessor=(.+)><>connections
-  name: kafka_server_$1_connections_software
-  type: GAUGE
-  cache: true
-  labels:
-    clientSoftwareName: "$2"
-    clientSoftwareVersion: "$3"
-    listener: "$4"
-    networkProcessor: "$5"
-- pattern: kafka.server<type=(.+), listener=(.+), networkProcessor=(.+)><>([a-z-]+)
-  name: kafka_server_$1_$4
-  type: GAUGE
-  cache: true
-  labels:
-    listener: "$2"
-    networkProcessor: "$3"
-- pattern : kafka.coordinator.(\w+)<type=(.+), name=(.+)><>Value
-  name: kafka_coordinator_$1_$2_$3
-  cache: true
-  type: GAUGE
-
-# Some percent metrics use *Rate attributes
-# e.g kafka.server<type=(KafkaRequestHandlerPool), name=(RequestHandlerAvgIdlePercent)><>MeanRate
-- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*><>MeanRate
-  name: kafka_$1_$2_$3_meanrate_percent
-  type: GAUGE
-  cache: true
-- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*><>OneMinuteRate
-  name: kafka_$1_$2_$3_oneminuterate_percent
-  type: GAUGE
-  cache: true
-- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*><>FiveMinuteRate
-  name: kafka_$1_$2_$3_fiveminuterate_percent
-  type: GAUGE
-  cache: true
-- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*><>FifteenMinuteRate
-  name: kafka_$1_$2_$3_fifteenminuterate_percent
-  type: GAUGE
-  cache: true
-# Generic gauges for percents
-- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*><>Value
-  name: kafka_$1_$2_$3_percent
-  type: GAUGE
-  cache: true
-- pattern: kafka.(\w+)<type=(.+), name=(.+)Percent\w*, (.+)=(.+)><>Value
-  name: kafka_$1_$2_$3_percent
-  type: GAUGE
-  cache: true
-  labels:
-    "$4": "$5"
-# Generic per-second counters with 0-3 key/value pairs
-- pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+), (.+)=(.+), (.+)=(.+)><>Count
-  name: kafka_$1_$2_$3_total
-  type: COUNTER
-  cache: true
-  labels:
-    "$4": "$5"
-    "$6": "$7"
-    "$8": "$9"
-- pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+), (.+)=(.+)><>Count
-  name: kafka_$1_$2_$3_total
-  cache: true
-  type: COUNTER
-  labels:
-    "$4": "$5"
-    "$6": "$7"
-- pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+)><>Count
-  name: kafka_$1_$2_$3_total
-  cache: true
-  type: COUNTER
-  labels:
-    "$4": "$5"
-- pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*><>Count
-  name: kafka_$1_$2_$3_total
-  cache: true
-  type: COUNTER
-
-- pattern: kafka.server<type=(.+), client-id=(.+)><>([a-z-]+)
-  name: kafka_server_quota_$3
-  cache: true
-  type: GAUGE
-  labels:
-    resource: "$1"
-    clientId: "$2"
-
-- pattern: kafka.server<type=(.+), user=(.+), client-id=(.+)><>([a-z-]+)
-  name: kafka_server_quota_$4
-  cache: true
-  type: GAUGE
-  labels:
-    resource: "$1"
-    user: "$2"
-    clientId: "$3"
-
-# Generic gauges with 0-3 key/value pairs
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+), (.+)=(.+)><>Value
-  name: kafka_$1_$2_$3
-  type: GAUGE
-  cache: true
-  labels:
-    "$4": "$5"
-    "$6": "$7"
-    "$8": "$9"
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+)><>Value
-  name: kafka_$1_$2_$3
-  cache: true
-  type: GAUGE
-  labels:
-    "$4": "$5"
-    "$6": "$7"
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+)><>Value
-  name: kafka_$1_$2_$3
-  cache: true
-  type: GAUGE
-  labels:
-    "$4": "$5"
-- pattern: kafka.(\w+)<type=(.+), name=(.+)><>Value
-  name: kafka_$1_$2_$3
-  cache: true
-  type: GAUGE
-
-# Emulate Prometheus 'Summary' metrics for the exported 'Histogram's.
-#
-# Note that these are missing the '_sum' metric!
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+)><>Count
-  name: kafka_$1_$2_$3_count
-  cache: true
-  type: COUNTER
-  labels:
-    "$4": "$5"
-    "$6": "$7"
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.*), (.+)=(.+)><>(\d+)thPercentile
-  name: kafka_$1_$2_$3
-  cache: true
-  type: GAUGE
-  labels:
-    "$4": "$5"
-    "$6": "$7"
-    quantile: "0.$8"
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+)><>Count
-  name: kafka_$1_$2_$3_count
-  cache: true
-  type: COUNTER
-  labels:
-    "$4": "$5"
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.*)><>(\d+)thPercentile
-  name: kafka_$1_$2_$3
-  cache: true
-  type: GAUGE
-  labels:
-    "$4": "$5"
-    quantile: "0.$6"
-- pattern: kafka.(\w+)<type=(.+), name=(.+)><>Count
-  cache: true
-  name: kafka_$1_$2_$3_count
-  type: COUNTER
-- pattern: kafka.(\w+)<type=(.+), name=(.+)><>(\d+)thPercentile
-  cache: true
-  name: kafka_$1_$2_$3
-  type: GAUGE
-  labels:
-    quantile: "0.$4"
-# Catch all other GAUGES with other types with 0-2 key-value pairs
-- pattern : kafka.(\w+)<type=([A-Za-z-]+), (.+)=(.+), (.+)=(.+)><>([A-Za-z-]+)
-  name: kafka_$1_$2_$7
-  type: GAUGE
-  cache: true
-  labels:
-    "$3": "$4"
-    "$5": "$6"
-- pattern : kafka.(\w+)<type=([A-Za-z-]+), (.+)=(.+)><>([A-Za-z-]+)
-  name: kafka_$1_$2_$5
-  type: GAUGE
-  cache: true
-  labels:
-    "$3": "$4"
-- pattern : kafka.(\w+)<type=([A-Za-z-]+)><>([A-Za-z-]+)
-  name: kafka_$1_$2_$3
-  type: GAUGE
-  cache: true
-# Export all other java.{lang,nio}* beans using default format
-- pattern: java.lang.+
-- pattern: java.nio.+`
+	return assets.KafkaJmxExporterYaml
 }
 
 // GetCCJMXExporterConfig returns the config for CC Prometheus JMX exporter
@@ -1191,9 +916,7 @@ func (mConfig *MonitoringConfig) GetCCJMXExporterConfig() string {
 	if mConfig.CCJMXExporterConfig != "" {
 		return mConfig.CCJMXExporterConfig
 	}
-	return `
-    lowercaseOutputName: true
-`
+	return assets.CruiseControlJmxExporterYaml
 }
 
 // GetBrokerConfig composes the brokerConfig for a given broker using the broker's config group

@@ -20,6 +20,8 @@ import (
 	"strconv"
 	"strings"
 
+	_ "embed"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +34,11 @@ import (
 	"github.com/banzaicloud/koperator/pkg/util"
 	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
+)
+
+var (
+	//go:embed wait-for-envoy-sidecar.sh
+	envoySidecarScript string
 )
 
 func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
@@ -76,24 +83,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
 
 	//TODO remove this bash envoy sidecar checker script once sidecar precedence becomes available to Kubernetes(baluchicken)
-	command := []string{"bash", "-c", `
-if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then
-  COUNT=0
-  MAXCOUNT=${1:-30}
-  HEALTHYSTATUSCODE="200"
-  while true; do
-    COUNT=$(expr $COUNT + 1)
-    SC=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:15000/ready)
-    echo "waiting for envoy proxy to come up";
-    sleep 1;
-    if [[ "$SC" == "$HEALTHYSTATUSCODE" || "$MAXCOUNT" == "$COUNT" ]]; then
-      break
-    fi
-  done
-fi
-touch /var/run/wait/do-not-exit-yet
-/opt/kafka/bin/kafka-server-start.sh /config/broker-config
-rm /var/run/wait/do-not-exit-yet`}
+	command := []string{"bash", "-c", envoySidecarScript}
 
 	pod := &corev1.Pod{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
