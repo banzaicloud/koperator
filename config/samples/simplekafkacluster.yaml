@@ -7,6 +7,7 @@ metadata:
 spec:
   monitoringConfig:
     jmxImage: "ghcr.io/banzaicloud/jmx-javaagent:0.16.1"
+    pathToJar: "/opt/jmx_exporter/jmx_prometheus_javaagent-0.16.1.jar"
   headlessServiceEnabled: true
   zkAddresses:
     - "zookeeper-client.zookeeper:2181"
