@@ -66,6 +66,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 
 		kafkaCluster.Spec.IngressController = istioingress.IngressControllerName
+		kafkaCluster.Spec.IstioControlPlane = &v1beta1.ObjectReference{Name: "icp-v111x-sample", Namespace: "istio-system"}
 		kafkaCluster.Spec.ListenersConfig.ExternalListeners = []v1beta1.ExternalListenerConfig{
 			{
 				CommonListenerSpec: v1beta1.CommonListenerSpec{
@@ -415,6 +416,7 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 
 		kafkaCluster.Spec.IngressController = istioingress.IngressControllerName
+		kafkaCluster.Spec.IstioControlPlane = &v1beta1.ObjectReference{Name: "icp-v111x-sample", Namespace: "istio-system"}
 		kafkaCluster.Spec.ListenersConfig.ExternalListeners = []v1beta1.ExternalListenerConfig{
 			{
 				CommonListenerSpec: v1beta1.CommonListenerSpec{

@@ -15,7 +15,10 @@
 package istioingress
 
 import (
+	"errors"
+
 	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/resources"
 	"github.com/banzaicloud/koperator/pkg/util"
@@ -59,9 +62,11 @@ func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 // Reconcile implements the reconcile logic for IstioIngress
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
-
 	log.V(1).Info("Reconciling")
 	if r.KafkaCluster.Spec.GetIngressController() == istioingress.IngressControllerName {
+		if !r.KafkaCluster.Spec.IsIstioControlPlaneRefPresent() {
+			return errorfactory.New(errorfactory.KafkaClusterMissingField{}, errors.New("missing the IstioControlPlane reference from the KafkaCluster custom resource"), "istioingress")
+		}
 		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 			if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
 				ingressConfigs, defaultControllerName, err := util.GetIngressConfigs(r.KafkaCluster.Spec, eListener)

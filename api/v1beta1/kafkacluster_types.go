@@ -68,8 +68,10 @@ type KafkaClusterSpec struct {
 	DisruptionBudget            DisruptionBudget        `json:"disruptionBudget,omitempty"`
 	RollingUpgradeConfig        RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
 	// +kubebuilder:validation:Enum=envoy;istioingress
-	// If istioingress is selected than IstioControlPlane must be filled out in the IstioIngressConfig section
+	// If istioingress is selected than IstioControlPlane must be filled out.
 	IngressController string `json:"ingressController,omitempty"`
+	// IstioControlPlane is a reference to the istio controlplane deployment for envoy configuration. It must be specified if istio ingress is used.
+	IstioControlPlane *ObjectReference `json:"istioControlPlane,omitempty"`
 	// If true OneBrokerPerNode ensures that each kafka broker will be placed on a different node unless a custom
 	// Affinity definition overrides this behavior
 	OneBrokerPerNode    bool                `json:"oneBrokerPerNode"`
@@ -299,9 +301,7 @@ type EnvoyCommandLineArgs struct {
 
 // IstioIngressConfig defines the config for the Istio Ingress Controller
 type IstioIngressConfig struct {
-	// IstioControlPlane is a reference to the istio controlplane deployment for envoy configuration. It must be specified if istio ingress is used.
-	IstioControlPlane *ObjectReference             `json:"istioControlPlane"`
-	Resources         *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
+	Resources *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
 	// +kubebuilder:validation:Minimum=1
 	Replicas     int32               `json:"replicas,omitempty"`
 	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
@@ -585,6 +585,11 @@ func (k *KafkaClusterSpec) GetClientSSLCertSecretName() string {
 		return ""
 	}
 	return k.ClientSSLCertSecret.Name
+}
+
+// IsIstioControlPlaneRefPresent returns true if the reference to the IstioControlPlane specified.
+func (k *KafkaClusterSpec) IsIstioControlPlaneRefPresent() bool {
+	return k.IstioControlPlane != nil && k.IstioControlPlane.Name != "" && k.IstioControlPlane.Namespace != ""
 }
 
 // IsClientSSLSecretPresent returns true if ssl client certifications have been set for the operator and cruise control.

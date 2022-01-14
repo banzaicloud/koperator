@@ -16163,11 +16163,23 @@ spec:
                 type: boolean
               ingressController:
                 description: If istioingress is selected than IstioControlPlane must
-                  be filled out in the IstioIngressConfig section
+                  be filled out.
                 enum:
                 - envoy
                 - istioingress
                 type: string
+              istioControlPlane:
+                description: IstioControlPlane is a reference to the istio controlplane
+                  deployment for envoy configuration. It must be specified if istio
+                  ingress is used.
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                type: object
               istioIngressConfig:
                 description: IstioIngressConfig defines the config for the Istio Ingress
                   Controller
@@ -16373,18 +16385,6 @@ spec:
                           type: string
                         type: array
                     type: object
-                  istioControlPlane:
-                    description: IstioControlPlane is a reference to the istio controlplane
-                      deployment for envoy configuration. It must be specified if
-                      istio ingress is used.
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    required:
-                    - name
-                    type: object
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -16464,8 +16464,6 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
-                required:
-                - istioControlPlane
                 type: object
               kubernetesClusterDomain:
                 type: string
@@ -18325,19 +18323,6 @@ spec:
                                               type: string
                                             type: array
                                         type: object
-                                      istioControlPlane:
-                                        description: IstioControlPlane is a reference
-                                          to the istio controlplane deployment for
-                                          envoy configuration. It must be specified
-                                          if istio ingress is used.
-                                        properties:
-                                          name:
-                                            type: string
-                                          namespace:
-                                            type: string
-                                        required:
-                                        - name
-                                        type: object
                                       nodeSelector:
                                         additionalProperties:
                                           type: string
@@ -18431,8 +18416,6 @@ spec:
                                         additionalProperties:
                                           type: string
                                         type: object
-                                    required:
-                                    - istioControlPlane
                                     type: object
                                   serviceAnnotations:
                                     additionalProperties:

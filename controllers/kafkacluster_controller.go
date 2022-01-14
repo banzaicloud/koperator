@@ -127,6 +127,11 @@ func (r *KafkaClusterReconciler) Reconcile(ctx context.Context, request ctrl.Req
 		err = rec.Reconcile(log)
 		if err != nil {
 			switch errors.Cause(err).(type) {
+			case errorfactory.KafkaClusterMissingField:
+				log.Info("KafkaCluster custom resource has missing field", "error", err.Error())
+				return ctrl.Result{
+					Requeue: false,
+				}, nil
 			case errorfactory.BrokersUnreachable:
 				log.Info("Brokers unreachable, may still be starting up", "error", err.Error())
 				return ctrl.Result{

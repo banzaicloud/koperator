@@ -104,8 +104,8 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 			RunAsRoot: util.BoolPointer(true),
 			Type:      istioOperatorApi.GatewayType_ingress,
 			IstioControlPlane: &istioOperatorApi.NamespacedName{
-				Name:      "icp-v111x-sample",
-				Namespace: "istio-system",
+				Name:      r.KafkaCluster.Spec.IstioControlPlane.Name,
+				Namespace: r.KafkaCluster.Spec.IstioControlPlane.Namespace,
 			},
 			//	K8SResourceOverlays:  []*istioOperatorApi.K8SResourceOverlayPatch{},
 		},
