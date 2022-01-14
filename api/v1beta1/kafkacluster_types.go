@@ -70,8 +70,8 @@ type KafkaClusterSpec struct {
 	// +kubebuilder:validation:Enum=envoy;istioingress
 	// If istioingress is selected than IstioControlPlane must be filled out.
 	IngressController string `json:"ingressController,omitempty"`
-	// IstioControlPlane is a reference to the istio controlplane deployment for envoy configuration. It must be specified if istio ingress is used.
-	IstioControlPlane *ObjectReference `json:"istioControlPlane,omitempty"`
+	// IstioControlPlane is a reference to the IstioControlPlane resource for envoy configuration. It must be specified if istio ingress is used.
+	IstioControlPlane *IstioControlPlaneReference `json:"istioControlPlane,omitempty"`
 	// If true OneBrokerPerNode ensures that each kafka broker will be placed on a different node unless a custom
 	// Affinity definition overrides this behavior
 	OneBrokerPerNode    bool                `json:"oneBrokerPerNode"`

@@ -16169,8 +16169,8 @@ spec:
                 - istioingress
                 type: string
               istioControlPlane:
-                description: IstioControlPlane is a reference to the istio controlplane
-                  deployment for envoy configuration. It must be specified if istio
+                description: IstioControlPlane is a reference to the IstioControlPlane
+                  resource for envoy configuration. It must be specified if istio
                   ingress is used.
                 properties:
                   name:
@@ -16179,6 +16179,7 @@ spec:
                     type: string
                 required:
                 - name
+                - namespace
                 type: object
               istioIngressConfig:
                 description: IstioIngressConfig defines the config for the Istio Ingress

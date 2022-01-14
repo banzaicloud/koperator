@@ -122,10 +122,10 @@ const (
 	PKIBackendK8sCSR PKIBackend = "k8s-csr"
 )
 
-// ObjectReference is a reference to a kubernetes object
-type ObjectReference struct {
+// IstioControlPlaneReference is a reference to the IstioControlPlane resource.
+type IstioControlPlaneReference struct {
 	Name      string `json:"name"`
-	Namespace string `json:"namespace,omitempty"`
+	Namespace string `json:"namespace"`
 }
 
 // GracefulActionState holds information about GracefulAction State
