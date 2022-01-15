@@ -172,7 +172,7 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 		}
 
 		return true, nil
-	//Used only for testing purposes
+	// Used only for testing purposes
 	case "testing":
 		return true, nil
 	}
@@ -200,7 +200,7 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 		return nil
 	}
 
-	//Check for skipping in case of k8s node cannot attach more PVs, (When there is already a pvc that is unbound)
+	// Check for skipping in case of k8s node cannot attach more PVs, (When there is already a pvc that is unbound)
 	unboundPvcExists, err := unboundPvcOnNodeExists(client, pvc, log, string(alertLabels["node"]))
 	if err != nil {
 		return err
@@ -305,24 +305,29 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 			brokerId := strconv.Itoa(int(id))
 			keyVals = append(keyVals, brokerId, cr.Status.BrokersState[brokerId].GracefulActionState.CruiseControlState)
 		}
-
-		log.Info("downscale is skipped as there are brokers which are pending task to be initiated in CC or already have a running CC task", keyVals...)
-
+		log.Info("downscale is skipped as there are brokers which are pending task to be initiated in CC "+
+			"or already have a running CC task", keyVals...)
 		return nil
 	}
 
-	var brokerId string
+	var brokerID string
 	if broker, ok := labels["brokerId"]; ok {
-		brokerId = string(broker)
+		brokerID = string(broker)
 	} else {
-		cc := scale.NewCruiseControlScaler(string(labels["namespace"]), cr.Spec.GetKubernetesClusterDomain(), cr.Spec.CruiseControlConfig.CruiseControlEndpoint, cr.Name)
-		brokerId, err = cc.GetBrokerIDWithLeastPartition()
+		cruiseControlURL := scale.CruiseControlURLFromKafkaCluster(cr)
+		// FIXME: we should reuse the context of passed to AController.Start() here
+		cc, err := scale.NewCruiseControlScaler(context.TODO(), cruiseControlURL)
+		if err != nil {
+			log.Error(err, "failed to initialize Cruise Control Scaler", "cruise control url", cruiseControlURL)
+			return err
+		}
+		brokerID, err = cc.BrokerWithLeastPartitionReplicas()
 		if err != nil {
 			return err
 		}
 	}
 
-	err = k8sutil.RemoveBrokerFromCr(brokerId, string(labels["kafka_cr"]), string(labels["namespace"]), client)
+	err = k8sutil.RemoveBrokerFromCr(brokerID, string(labels["kafka_cr"]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
 	}

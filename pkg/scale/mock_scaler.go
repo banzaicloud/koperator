@@ -15,43 +15,59 @@
 package scale
 
 import (
-	"github.com/banzaicloud/koperator/api/v1beta1"
+	"context"
 )
+
+func MockNewCruiseControlScaler() {
+	newCruiseControlScaler = createMockCruiseControlScaler
+}
+
+func createMockCruiseControlScaler(_ context.Context, _ string) (CruiseControlScaler, error) {
+	return &mockCruiseControlScaler{}, nil
+}
 
 type mockCruiseControlScaler struct{}
 
-func (mc *mockCruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIds []string) ([]string, error) {
-	return nil, nil
+func (mc *mockCruiseControlScaler) IsReady() bool {
+	return true
 }
 
-func (mc *mockCruiseControlScaler) GetBrokerIDWithLeastPartition() (string, error) {
+func (mc *mockCruiseControlScaler) Status() CruiseControlStatus {
+	return CruiseControlStatus{}
+}
+
+func (mc *mockCruiseControlScaler) GetUserTasks(taskIDs ...string) ([]*Result, error) {
+	return []*Result{}, nil
+}
+
+func (mc *mockCruiseControlScaler) IsUp() bool {
+	return true
+}
+
+func (mc *mockCruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) {
+	return &Result{}, nil
+}
+
+func (mc *mockCruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*Result, error) {
+	return &Result{}, nil
+}
+
+func (mc *mockCruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, error) {
+	return &Result{}, nil
+}
+
+func (mc *mockCruiseControlScaler) BrokersWithState(states ...KafkaBrokerState) ([]string, error) {
+	return []string{}, nil
+}
+
+func (mc *mockCruiseControlScaler) PartitionReplicasByBroker() (map[string]int32, error) {
+	return map[string]int32{}, nil
+}
+
+func (mc *mockCruiseControlScaler) BrokerWithLeastPartitionReplicas() (string, error) {
 	return "", nil
 }
 
-func (mc *mockCruiseControlScaler) UpScaleCluster(brokerIds []string) (string, string, error) {
-	return "", "", nil
-}
-
-func (mc *mockCruiseControlScaler) DownsizeCluster(brokerIds []string) (string, string, error) {
-	return "", "", nil
-}
-
-func (mc *mockCruiseControlScaler) RebalanceDisks(brokerIdsWithMountPath map[string][]string) (string, string, error) {
-	return "", "", nil
-}
-
-func (mc *mockCruiseControlScaler) RebalanceCluster() (string, error) {
-	return "", nil
-}
-
-func (mc *mockCruiseControlScaler) RunPreferedLeaderElectionInCluster() (string, error) {
-	return "", nil
-}
-
-func (mc *mockCruiseControlScaler) KillCCTask() error {
-	return nil
-}
-
-func (mc *mockCruiseControlScaler) GetCCTaskState(uTaskId string) (v1beta1.CruiseControlUserTaskState, error) {
-	return "", nil
+func (mc *mockCruiseControlScaler) LogDirsByBroker() (map[string]map[LogDirState][]string, error) {
+	return make(map[string]map[LogDirState][]string), nil
 }

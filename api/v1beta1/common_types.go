@@ -58,6 +58,14 @@ type PKIBackend string
 // CruiseControlVolumeState holds information about the state of volume rebalance
 type CruiseControlVolumeState string
 
+func (s CruiseControlVolumeState) IsRunningState() bool {
+	return s == GracefulDiskRebalanceRunning
+}
+
+func (s CruiseControlVolumeState) IsActionRequired() bool {
+	return s == GracefulDiskRebalanceRunning || s == GracefulDiskRebalanceRequired
+}
+
 func (r CruiseControlState) IsUpscale() bool {
 	return r == GracefulUpscaleRequired || r == GracefulUpscaleSucceeded || r == GracefulUpscaleRunning
 }
@@ -72,6 +80,10 @@ func (r CruiseControlState) IsRunningState() bool {
 
 func (r CruiseControlState) IsRequiredState() bool {
 	return r == GracefulDownscaleRequired || r == GracefulUpscaleRequired
+}
+
+func (r CruiseControlState) IsActionRequired() bool {
+	return r.IsRunningState() || r.IsRequiredState()
 }
 
 func (r CruiseControlState) Complete() CruiseControlState {
@@ -208,8 +220,6 @@ const (
 	CruiseControlTopicReady CruiseControlTopicStatus = "CruiseControlTopicReady"
 	// CruiseControlTaskActive states the CC task is scheduled but not yet running
 	CruiseControlTaskActive CruiseControlUserTaskState = "Active"
-	// CruiseControlTaskNotFound states the CC task is not found (can happen when CC is restarted during operation)
-	CruiseControlTaskNotFound CruiseControlUserTaskState = "NotFound"
 	// CruiseControlTaskInExecution states the CC task is executing
 	CruiseControlTaskInExecution CruiseControlUserTaskState = "InExecution"
 	// CruiseControlTaskCompleted states the CC task completed successfully

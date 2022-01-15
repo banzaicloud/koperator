@@ -297,44 +297,75 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 	podList := &corev1.PodList{}
-	matchingLabels := client.MatchingLabels(kafka.LabelsForKafka(r.KafkaCluster.Name))
 
-	err := r.Client.List(context.TODO(), podList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
+	err := r.Client.List(context.TODO(), podList,
+		client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)),
+		client.ListOption(client.MatchingLabels(kafka.LabelsForKafka(r.KafkaCluster.Name))),
+		client.ListOption(client.HasLabels{"brokerId"}),
+	)
 	if err != nil {
 		return errors.WrapIf(err, "failed to reconcile resource")
 	}
 
-	deletedBrokers := make([]corev1.Pod, 0)
-OUTERLOOP:
-	for _, pod := range podList.Items {
-		for _, broker := range r.KafkaCluster.Spec.Brokers {
-			if pod.Labels["brokerId"] == fmt.Sprintf("%d", broker.Id) {
-				continue OUTERLOOP
-			}
-		}
-		deletedBrokers = append(deletedBrokers, pod)
+	brokerIDsFromSpec := make(map[string]bool, len(r.KafkaCluster.Spec.Brokers))
+	for _, broker := range r.KafkaCluster.Spec.Brokers {
+		brokerIDsFromSpec[strconv.Itoa(int(broker.Id))] = true
 	}
 
-	if len(deletedBrokers) > 0 {
-		if !arePodsAlreadyDeleted(deletedBrokers, log) {
-			cc := scale.NewCruiseControlScaler(r.KafkaCluster.Namespace, r.KafkaCluster.Spec.GetKubernetesClusterDomain(), r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint, r.KafkaCluster.Name)
-			liveBrokers, err := cc.GetLiveKafkaBrokersFromCruiseControl(generateBrokerIdsFromPodSlice(deletedBrokers))
+	podsDeletedFromSpec := make([]corev1.Pod, 0, len(podList.Items))
+	brokerIDsDeletedFromSpec := make(map[string]bool)
+	for _, pod := range podList.Items {
+		id, ok := pod.Labels["brokerId"]
+		if !ok {
+			continue
+		}
+		if _, ok = brokerIDsFromSpec[id]; !ok {
+			brokerIDsDeletedFromSpec[id] = true
+			podsDeletedFromSpec = append(podsDeletedFromSpec, pod)
+		}
+	}
 
+	if len(podsDeletedFromSpec) > 0 {
+		if !arePodsAlreadyDeleted(podsDeletedFromSpec, log) {
+			cruiseControlURL := scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster)
+			// FIXME: we should reuse the context of the Kafka Controller
+			cc, err := scale.NewCruiseControlScaler(context.TODO(), scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster))
 			if err != nil {
-				log.Error(err, "could not query CC for ALIVE brokers")
-				return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, fmt.Sprintf("broker(s) id(s): %s", strings.Join(liveBrokers, ",")))
+				return errorfactory.New(errorfactory.CruiseControlNotReady{}, err,
+					"failed to initialize Cruise Control Scaler", "cruise control url", cruiseControlURL)
 			}
-			if len(liveBrokers) == 0 {
-				log.Info("No alive broker found in CC. No need to decommission")
+
+			brokerStates := []scale.KafkaBrokerState{
+				scale.KafkaBrokerNew,
+				scale.KafkaBrokerAlive,
+				scale.KafkaBrokerDemoted,
+				scale.KafkaBrokerBadDisks,
+			}
+			availableBrokers, err := cc.BrokersWithState(brokerStates...)
+			if err != nil {
+				log.Error(err, "failed to get the list of available brokers from Cruise Control")
+				return errorfactory.New(errorfactory.CruiseControlNotReady{}, err,
+					"failed to get the list of available brokers from Cruise Control")
+			}
+
+			brokersToUpdateInStatus := make([]string, 0, len(availableBrokers))
+			for _, brokerID := range availableBrokers {
+				if _, ok := brokerIDsDeletedFromSpec[brokerID]; ok {
+					brokersToUpdateInStatus = append(brokersToUpdateInStatus, brokerID)
+				}
+			}
+
+			if len(brokersToUpdateInStatus) == 0 {
+				log.Info("no brokers found in Cruise Control which marked for deletion. No action is needed")
 			} else {
 				var brokersPendingGracefulDownscale []string
 
-				for i := range liveBrokers {
-					if brokerState, ok := r.KafkaCluster.Status.BrokersState[liveBrokers[i]]; ok {
+				for _, brokerID := range brokersToUpdateInStatus {
+					if brokerState, ok := r.KafkaCluster.Status.BrokersState[brokerID]; ok {
 						ccState := brokerState.GracefulActionState.CruiseControlState
-						if ccState != v1beta1.GracefulDownscaleRunning && (ccState == v1beta1.GracefulUpscaleSucceeded ||
-							ccState == v1beta1.GracefulUpscaleRequired) {
-							brokersPendingGracefulDownscale = append(brokersPendingGracefulDownscale, liveBrokers[i])
+						if ccState != v1beta1.GracefulDownscaleRunning &&
+							(ccState == v1beta1.GracefulUpscaleSucceeded || ccState == v1beta1.GracefulUpscaleRequired) {
+							brokersPendingGracefulDownscale = append(brokersPendingGracefulDownscale, brokerID)
 						}
 					}
 				}
@@ -352,7 +383,7 @@ OUTERLOOP:
 			}
 		}
 
-		for _, broker := range deletedBrokers {
+		for _, broker := range podsDeletedFromSpec {
 			broker := broker
 			if broker.ObjectMeta.DeletionTimestamp != nil {
 				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
@@ -421,14 +452,6 @@ OUTERLOOP:
 		}
 	}
 	return nil
-}
-
-func generateBrokerIdsFromPodSlice(pods []corev1.Pod) []string {
-	ids := make([]string, len(pods))
-	for i, broker := range pods {
-		ids[i] = broker.Labels["brokerId"]
-	}
-	return ids
 }
 
 func arePodsAlreadyDeleted(pods []corev1.Pod, log logr.Logger) bool {
@@ -695,8 +718,8 @@ func (r *Reconciler) updateStatusWithDockerImageAndVersion(brokerId int32, broke
 }
 
 func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPod *corev1.Pod, desiredType reflect.Type) error {
-	//Since toleration does not support patchStrategy:"merge,retainKeys",
-	//we need to add all toleration from the current pod if the toleration is set in the CR
+	// Since toleration does not support patchStrategy:"merge,retainKeys",
+	// we need to add all toleration from the current pod if the toleration is set in the CR
 	if len(desiredPod.Spec.Tolerations) > 0 {
 		desiredPod.Spec.Tolerations = append(desiredPod.Spec.Tolerations, currentPod.Spec.Tolerations...)
 		uniqueTolerations := make([]corev1.Toleration, 0, len(desiredPod.Spec.Tolerations))
