@@ -169,7 +169,7 @@ func TestMergeAnnotations(t *testing.T) {
 
 func TestCreateLogger(t *testing.T) {
 	logger := CreateLogger(false, false)
-	if logger == nil {
+	if logger.GetSink() == nil {
 		t.Fatal("created Logger instance should not be nil")
 	}
 	if logger.V(1).Enabled() {

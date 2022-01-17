@@ -19,9 +19,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
@@ -454,7 +454,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 
 		t.Run(test.testName, func(t *testing.T) {
 			var actual CapacityConfig
-			rawStringActual, _ := GenerateCapacityConfig(&test.kafkaCluster, log.NullLogger{}, nil)
+			rawStringActual, _ := GenerateCapacityConfig(&test.kafkaCluster, logr.Discard(), nil)
 			err := json.Unmarshal([]byte(rawStringActual), &actual)
 			if err != nil {
 				t.Error(err, "could not unmarshal actual json")
@@ -475,7 +475,7 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 
 //nolint:funlen
 func TestReturnErrorStorageConfigLessThan1MB(t *testing.T) {
-	//return error when storage config is specified as 500Ki
+	// return error when storage config is specified as 500Ki
 
 	fiveHundredKiQuantity, _ := resource.ParseQuantity("500Ki")
 	kafkaCluster := v1beta1.KafkaCluster{
@@ -505,7 +505,7 @@ func TestReturnErrorStorageConfigLessThan1MB(t *testing.T) {
 		},
 	}
 
-	_, err := GenerateCapacityConfig(&kafkaCluster, log.NullLogger{}, nil)
+	_, err := GenerateCapacityConfig(&kafkaCluster, logr.Discard(), nil)
 
 	if err == nil {
 		t.Error("Expected error to be thrown when storage config < 1MB")
@@ -831,7 +831,7 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 				},
 			}
 			var actual JBODInvariantCapacityConfig
-			rawStringActual, _ := GenerateCapacityConfig(&kafkaCluster, log.NullLogger{}, nil)
+			rawStringActual, _ := GenerateCapacityConfig(&kafkaCluster, logr.Discard(), nil)
 			err := json.Unmarshal([]byte(rawStringActual), &actual)
 			if err != nil {
 				t.Error(err, "could not unmarshal actual json")

@@ -15,12 +15,11 @@
 package kafka
 
 import (
+	_ "embed"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
-
-	_ "embed"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -82,7 +81,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 
 	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
 
-	//TODO remove this bash envoy sidecar checker script once sidecar precedence becomes available to Kubernetes(baluchicken)
+	// TODO remove this bash envoy sidecar checker script once sidecar precedence becomes available to Kubernetes(baluchicken)
 	command := []string{"bash", "-c", envoySidecarScript}
 
 	pod := &corev1.Pod{
@@ -104,7 +103,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 					Name:  "kafka",
 					Image: util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.GetClusterImage()),
 					Lifecycle: &corev1.Lifecycle{
-						PreStop: &corev1.Handler{
+						PreStop: &corev1.LifecycleHandler{
 							Exec: &corev1.ExecAction{
 								Command: []string{"bash", "-c", `
 if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then
@@ -504,7 +503,7 @@ func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars []core
 			Value: brokerConfig.GetKafkaPerfJmvOpts(),
 		}
 	}
-	//Sort map values by key to avoid diff in sequence
+	// Sort map values by key to avoid diff in sequence
 	keys := make([]string, 0, len(envs))
 
 	for k := range envs {
