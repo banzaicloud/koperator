@@ -142,15 +142,12 @@ docker-push:
 
 # find or download controller-gen
 # download controller-gen if necessary
-bin/controller-gen:
-	@ if ! test -x bin/controller-gen; then \
-		set -ex ;\
-		CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-		cd $$CONTROLLER_GEN_TMP_DIR ;\
-		go mod init tmp ;\
-		GOBIN=$(PWD)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION} ;\
-		rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	fi
+bin/controller-gen: bin/controller-gen-$(CONTROLLER_GEN_VERSION)
+	@ln -sf controller-gen-$(CONTROLLER_GEN_VERSION) bin/controller-gen
+
+bin/controller-gen-$(CONTROLLER_GEN_VERSION):
+	GOBIN=$(PWD)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION)
+	mv bin/controller-gen bin/controller-gen-$(CONTROLLER_GEN_VERSION)
 
 # find or download setup-envtest
 bin/setup-envtest:
