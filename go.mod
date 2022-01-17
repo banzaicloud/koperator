@@ -7,7 +7,6 @@ require (
 	github.com/Shopify/sarama v1.30.0
 	github.com/banzaicloud/istio-client-go v0.0.11
 	github.com/banzaicloud/istio-operator/api/v2 v2.11.5
-	github.com/banzaicloud/istio-operator/pkg/apis v0.10.8
 	github.com/banzaicloud/k8s-objectmatcher v1.6.1
 	github.com/banzaicloud/koperator/api v0.0.0
 	github.com/banzaicloud/koperator/properties v0.1.0

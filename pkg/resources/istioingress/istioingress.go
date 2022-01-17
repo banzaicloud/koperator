@@ -64,7 +64,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
 	log.V(1).Info("Reconciling")
 	if r.KafkaCluster.Spec.GetIngressController() == istioingress.IngressControllerName {
-		if !r.KafkaCluster.Spec.IsIstioControlPlaneRefPresent() {
+		if r.KafkaCluster.Spec.IstioControlPlane == nil {
 			return errorfactory.New(errorfactory.KafkaClusterMissingField{}, errors.New("missing the IstioControlPlane reference from the KafkaCluster custom resource"), "istioingress")
 		}
 		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
