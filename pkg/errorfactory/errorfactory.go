@@ -16,9 +16,6 @@ package errorfactory
 
 import "emperror.dev/errors"
 
-// KafkaClusterMissingField states that there is a missing field in KafkaCluster custom resource.
-type KafkaClusterMissingField struct{ error }
-
 // ResourceNotReady states that resource is not ready
 type ResourceNotReady struct{ error }
 
@@ -80,8 +77,6 @@ type LoadBalancerIPNotReady struct{ error }
 func New(t interface{}, err error, msg string, wrapArgs ...interface{}) error {
 	wrapped := errors.WrapIfWithDetails(err, msg, wrapArgs...)
 	switch t.(type) {
-	case KafkaClusterMissingField:
-		return KafkaClusterMissingField{wrapped}
 	case ResourceNotReady:
 		return ResourceNotReady{wrapped}
 	case APIFailure:
