@@ -73,25 +73,25 @@ func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1
 		Expect(service.Spec.Ports).To(ConsistOf(
 			corev1.ServicePort{
 				Name:       "tcp-internal",
-				Protocol:   "TCP",
+				Protocol:   corev1.ProtocolTCP,
 				Port:       29092,
 				TargetPort: intstr.FromInt(29092),
 			},
 			corev1.ServicePort{
 				Name:       "tcp-controller",
-				Protocol:   "TCP",
+				Protocol:   corev1.ProtocolTCP,
 				Port:       29093,
 				TargetPort: intstr.FromInt(29093),
 			},
 			corev1.ServicePort{
 				Name:       "tcp-test",
-				Protocol:   "TCP",
+				Protocol:   corev1.ProtocolTCP,
 				Port:       9094,
 				TargetPort: intstr.FromInt(9094),
 			},
 			corev1.ServicePort{
 				Name:       "metrics",
-				Protocol:   "TCP",
+				Protocol:   corev1.ProtocolTCP,
 				Port:       9020,
 				TargetPort: intstr.FromInt(9020),
 			}))
