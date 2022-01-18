@@ -16162,10 +16162,25 @@ spec:
               headlessServiceEnabled:
                 type: boolean
               ingressController:
+                description: If istioingress is selected than IstioControlPlane must
+                  be filled out.
                 enum:
                 - envoy
                 - istioingress
                 type: string
+              istioControlPlane:
+                description: IstioControlPlane is a reference to the IstioControlPlane
+                  resource for envoy configuration. It must be specified if istio
+                  ingress is used.
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
               istioIngressConfig:
                 description: IstioIngressConfig defines the config for the Istio Ingress
                   Controller

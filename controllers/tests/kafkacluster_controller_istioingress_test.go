@@ -22,7 +22,7 @@ import (
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
 
-	istioOperatorApi "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
+	istioOperatorApi "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/util"
@@ -65,6 +66,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 
 		kafkaCluster.Spec.IngressController = istioingress.IngressControllerName
+		kafkaCluster.Spec.IstioControlPlane = &v1beta1.IstioControlPlaneReference{Name: "icp-v111x-sample", Namespace: "istio-system"}
 		kafkaCluster.Spec.ListenersConfig.ExternalListeners = []v1beta1.ExternalListenerConfig{
 			{
 				CommonListenerSpec: v1beta1.CommonListenerSpec{
@@ -125,68 +127,64 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 		})
 
 		It("creates Istio ingress related objects", func() {
-			var meshGateway istioOperatorApi.MeshGateway
+			var meshGateway istioOperatorApi.IstioMeshGateway
 			meshGatewayName := fmt.Sprintf("meshgateway-external-%s", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: meshGatewayName}, &meshGateway)
 				return err
 			}).Should(Succeed())
 
-			meshGatewayConf := meshGateway.Spec.MeshGatewayConfiguration
-			ExpectIstioIngressLabels(meshGatewayConf.Labels, "external", kafkaClusterCRName)
-			Expect(meshGatewayConf.ServiceType).To(Equal(corev1.ServiceTypeLoadBalancer))
-			baseConf := meshGatewayConf.BaseK8sResourceConfigurationWithHPAWithoutImage
-			Expect(baseConf.ReplicaCount).To(Equal(util.Int32Pointer(1)))
-			Expect(baseConf.MinReplicas).To(Equal(util.Int32Pointer(1)))
-			Expect(baseConf.MaxReplicas).To(Equal(util.Int32Pointer(1)))
+			meshGatewaySpec := meshGateway.Spec
+			ExpectIstioIngressLabels(meshGatewaySpec.Deployment.Metadata.Labels, "external", kafkaClusterCRName)
+			Expect(meshGatewaySpec.Service.Type).To(Equal(string(corev1.ServiceTypeLoadBalancer)))
+			deploymentConf := meshGatewaySpec.Deployment
+			Expect(deploymentConf.Replicas.Count).To(Equal(util.Int32Pointer(1)))
+			Expect(deploymentConf.Replicas.Min).To(Equal(util.Int32Pointer(1)))
+			Expect(deploymentConf.Replicas.Max).To(Equal(util.Int32Pointer(1)))
 
-			actualResourceJSON, err := json.Marshal(baseConf.BaseK8sResourceConfiguration.Resources)
+			actualResourceJSON, err := json.Marshal(deploymentConf.Resources)
 			Expect(err).NotTo(HaveOccurred())
-			expectedResource := corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					"cpu":    resource.MustParse("100m"),
-					"memory": resource.MustParse("128Mi"),
+			expectedResource := istioOperatorApi.ResourceRequirements{
+				Limits: map[string]*istioOperatorApi.Quantity{
+					"cpu":    {Quantity: resource.MustParse("2000m")},
+					"memory": {Quantity: resource.MustParse("1024Mi")},
 				},
-				Limits: corev1.ResourceList{
-					"cpu":    resource.MustParse("2000m"),
-					"memory": resource.MustParse("1024Mi"),
+				Requests: map[string]*istioOperatorApi.Quantity{
+					"cpu":    {Quantity: resource.MustParse("100m")},
+					"memory": {Quantity: resource.MustParse("128Mi")},
 				},
 			}
 			expectedResourceJSON, err := json.Marshal(expectedResource)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualResourceJSON).To(Equal(expectedResourceJSON))
 
-			Expect(meshGateway.Spec.Ports).To(ConsistOf(
+			Expect(meshGatewaySpec.Service.Ports).To(ConsistOf(
 				istioOperatorApi.ServicePort{
-					ServicePort: corev1.ServicePort{
-						Name: "tcp-broker-0",
-						Port: 19090,
-					},
-					TargetPort: util.Int32Pointer(19090),
+					Name:       "tcp-broker-0",
+					Protocol:   string(corev1.ProtocolTCP),
+					Port:       19090,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19090)},
 				},
 				istioOperatorApi.ServicePort{
-					ServicePort: corev1.ServicePort{
-						Name: "tcp-broker-1",
-						Port: 19091,
-					},
-					TargetPort: util.Int32Pointer(19091),
+					Name:       "tcp-broker-1",
+					Protocol:   string(corev1.ProtocolTCP),
+					Port:       19091,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19091)},
 				},
 				istioOperatorApi.ServicePort{
-					ServicePort: corev1.ServicePort{
-						Name: "tcp-broker-2",
-						Port: 19092,
-					},
-					TargetPort: util.Int32Pointer(19092),
+					Name:       "tcp-broker-2",
+					Protocol:   string(corev1.ProtocolTCP),
+					Port:       19092,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19092)},
 				},
 				istioOperatorApi.ServicePort{
-					ServicePort: corev1.ServicePort{
-						Name: "tcp-all-broker",
-						Port: 29092,
-					},
-					TargetPort: util.Int32Pointer(29092),
+					Name:       "tcp-all-broker",
+					Protocol:   string(corev1.ProtocolTCP),
+					Port:       29092,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(29092)},
 				},
 			))
-			Expect(meshGateway.Spec.Type).To(Equal(istioOperatorApi.GatewayTypeIngress))
+			Expect(meshGatewaySpec.Type).To(Equal(istioOperatorApi.GatewayType_ingress))
 
 			var gateway v1alpha3.Gateway
 			gatewayName := fmt.Sprintf("%s-external-gateway", kafkaCluster.Name)
@@ -418,6 +416,7 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 
 		kafkaCluster.Spec.IngressController = istioingress.IngressControllerName
+		kafkaCluster.Spec.IstioControlPlane = &v1beta1.IstioControlPlaneReference{Name: "icp-v111x-sample", Namespace: "istio-system"}
 		kafkaCluster.Spec.ListenersConfig.ExternalListeners = []v1beta1.ExternalListenerConfig{
 			{
 				CommonListenerSpec: v1beta1.CommonListenerSpec{
@@ -477,38 +476,36 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 
 		It("creates Istio ingress related objects", func() {
 			// Istio ingress Az1 related objects
-			var meshGateway istioOperatorApi.MeshGateway
+			var meshGateway istioOperatorApi.IstioMeshGateway
 			meshGatewayAz1Name := fmt.Sprintf("meshgateway-external-az1-%s", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: meshGatewayAz1Name}, &meshGateway)
 				return err
 			}).Should(Succeed())
 
-			meshGatewayConf := meshGateway.Spec.MeshGatewayConfiguration
-			ExpectIstioIngressLabels(meshGatewayConf.Labels, "external-az1", kafkaClusterCRName)
+			meshGatewaySpec := meshGateway.Spec
+			ExpectIstioIngressLabels(meshGatewaySpec.Deployment.Metadata.Labels, "external-az1", kafkaClusterCRName)
 
-			Expect(meshGateway.Spec.Ports).To(ConsistOf(
+			Expect(meshGatewaySpec.Service.Ports).To(ConsistOf(
 				istioOperatorApi.ServicePort{
-					ServicePort: corev1.ServicePort{
-						Name: "tcp-broker-0",
-						Port: 19090,
-					},
-					TargetPort: util.Int32Pointer(int32(19090)),
+					Name:       "tcp-broker-0",
+					Protocol:   string(corev1.ProtocolTCP),
+					Port:       19090,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19090)},
 				},
 				istioOperatorApi.ServicePort{
-					ServicePort: corev1.ServicePort{
-						Name: "tcp-broker-2",
-						Port: 19092,
-					},
-					TargetPort: util.Int32Pointer(int32(19092)),
+					Name:       "tcp-broker-2",
+					Protocol:   string(corev1.ProtocolTCP),
+					Port:       19092,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19092)},
 				},
 				istioOperatorApi.ServicePort{
-					ServicePort: corev1.ServicePort{
-						Name: "tcp-all-broker",
-						Port: 29092,
-					},
-					TargetPort: util.Int32Pointer(int32(29092)),
-				}))
+					Name:       "tcp-all-broker",
+					Protocol:   string(corev1.ProtocolTCP),
+					Port:       29092,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(29092)},
+				},
+			))
 
 			var gateway v1alpha3.Gateway
 			gatewayName := fmt.Sprintf("%s-external-az1-gateway", kafkaCluster.Name)
@@ -591,24 +588,23 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 				return err
 			}).Should(Succeed())
 
-			meshGatewayConf = meshGateway.Spec.MeshGatewayConfiguration
-			ExpectIstioIngressLabels(meshGatewayConf.Labels, "external-az2", kafkaClusterCRName)
+			meshGatewaySpec = meshGateway.Spec
+			ExpectIstioIngressLabels(meshGatewaySpec.Deployment.Metadata.Labels, "external-az2", kafkaClusterCRName)
 
-			Expect(meshGateway.Spec.Ports).To(ConsistOf(
+			Expect(meshGatewaySpec.Service.Ports).To(ConsistOf(
 				istioOperatorApi.ServicePort{
-					ServicePort: corev1.ServicePort{
-						Name: "tcp-broker-1",
-						Port: 19091,
-					},
-					TargetPort: util.Int32Pointer(int32(19091)),
+					Name:       "tcp-broker-1",
+					Protocol:   string(corev1.ProtocolTCP),
+					Port:       19091,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(19091)},
 				},
 				istioOperatorApi.ServicePort{
-					ServicePort: corev1.ServicePort{
-						Name: "tcp-all-broker",
-						Port: 29092,
-					},
-					TargetPort: util.Int32Pointer(int32(29092)),
-				}))
+					Name:       "tcp-all-broker",
+					Protocol:   string(corev1.ProtocolTCP),
+					Port:       29092,
+					TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(29092)},
+				},
+			))
 
 			gatewayName = fmt.Sprintf("%s-external-az2-gateway", kafkaCluster.Name)
 			Eventually(func() error {

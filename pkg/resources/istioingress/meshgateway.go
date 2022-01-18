@@ -17,11 +17,12 @@ package istioingress
 import (
 	"fmt"
 
-	istioOperatorApi "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
+	istioOperatorApi "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
@@ -42,33 +43,46 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 			externalListenerConfig.Name, ingressConfigName, r.KafkaCluster.GetName())
 	}
 
-	mgateway := &istioOperatorApi.MeshGateway{
+	mgateway := &istioOperatorApi.IstioMeshGateway{
 		ObjectMeta: templates.ObjectMeta(
 			meshgatewayName,
 			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName), r.KafkaCluster),
-		Spec: istioOperatorApi.MeshGatewaySpec{
-			MeshGatewayConfiguration: istioOperatorApi.MeshGatewayConfiguration{
-				AdditionalEnvVars:  ingressConfig.IstioIngressConfig.Envs,
-				Labels:             labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName),
-				ServiceAnnotations: ingressConfig.GetServiceAnnotations(),
-				BaseK8sResourceConfigurationWithHPAWithoutImage: istioOperatorApi.BaseK8sResourceConfigurationWithHPAWithoutImage{
-					ReplicaCount: util.Int32Pointer(ingressConfig.IstioIngressConfig.GetReplicas()),
-					MinReplicas:  util.Int32Pointer(ingressConfig.IstioIngressConfig.GetReplicas()),
-					MaxReplicas:  util.Int32Pointer(ingressConfig.IstioIngressConfig.GetReplicas()),
-					BaseK8sResourceConfiguration: istioOperatorApi.BaseK8sResourceConfiguration{
-						Resources:      ingressConfig.IstioIngressConfig.GetResources(),
-						NodeSelector:   ingressConfig.IstioIngressConfig.NodeSelector,
-						Tolerations:    ingressConfig.IstioIngressConfig.Tolerations,
-						PodAnnotations: ingressConfig.IstioIngressConfig.GetAnnotations(),
-					},
+		Spec: &istioOperatorApi.IstioMeshGatewaySpec{
+			Deployment: &istioOperatorApi.BaseKubernetesResourceConfig{
+				Metadata: &istioOperatorApi.K8SObjectMeta{
+					Labels:      labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName),
+					Annotations: ingressConfig.IstioIngressConfig.GetAnnotations(),
 				},
-				ServiceType:                  ingressConfig.GetServiceType(),
-				ServiceExternalTrafficPolicy: ingressConfig.ExternalTrafficPolicy,
+				Env:          ingressConfig.IstioIngressConfig.Envs,
+				Resources:    istioOperatorApi.InitResourceRequirementsFromK8sRR(ingressConfig.IstioIngressConfig.GetResources()),
+				NodeSelector: ingressConfig.IstioIngressConfig.NodeSelector,
+				SecurityContext: &corev1.SecurityContext{
+					RunAsUser:    util.Int64Pointer(0),
+					RunAsGroup:   util.Int64Pointer(0),
+					RunAsNonRoot: util.BoolPointer(false),
+				},
+				Tolerations: ingressConfig.IstioIngressConfig.Tolerations,
+				Replicas: &istioOperatorApi.Replicas{
+					Count: util.Int32Pointer(ingressConfig.IstioIngressConfig.GetReplicas()),
+					Min:   util.Int32Pointer(ingressConfig.IstioIngressConfig.GetReplicas()),
+					Max:   util.Int32Pointer(ingressConfig.IstioIngressConfig.GetReplicas()),
+				},
 			},
-			Ports: generateExternalPorts(r.KafkaCluster,
-				util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log),
-				externalListenerConfig, log, ingressConfigName, defaultIngressConfigName),
-			Type: istioOperatorApi.GatewayTypeIngress,
+			Service: &istioOperatorApi.Service{
+				Metadata: &istioOperatorApi.K8SObjectMeta{
+					Annotations: ingressConfig.GetServiceAnnotations(),
+				},
+				Ports: generateExternalPorts(r.KafkaCluster,
+					util.GetBrokerIdsFromStatusAndSpec(r.KafkaCluster.Status.BrokersState, r.KafkaCluster.Spec.Brokers, log),
+					externalListenerConfig, log, ingressConfigName, defaultIngressConfigName),
+				Type: string(ingressConfig.GetServiceType()),
+			},
+			RunAsRoot: util.BoolPointer(true),
+			Type:      istioOperatorApi.GatewayType_ingress,
+			IstioControlPlane: &istioOperatorApi.NamespacedName{
+				Name:      r.KafkaCluster.Spec.IstioControlPlane.Name,
+				Namespace: r.KafkaCluster.Spec.IstioControlPlane.Namespace,
+			},
 		},
 	}
 
@@ -86,21 +100,19 @@ func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
 		}
 		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
 			generatedPorts = append(generatedPorts, istioOperatorApi.ServicePort{
-				ServicePort: corev1.ServicePort{
-					Name: fmt.Sprintf("tcp-broker-%d", brokerId),
-					Port: externalListenerConfig.ExternalStartingPort + int32(brokerId),
-				},
-				TargetPort: util.Int32Pointer(int32(int(externalListenerConfig.ExternalStartingPort) + brokerId)),
+				Name:       fmt.Sprintf("tcp-broker-%d", brokerId),
+				Protocol:   string(corev1.ProtocolTCP),
+				Port:       externalListenerConfig.ExternalStartingPort + int32(brokerId),
+				TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(int(externalListenerConfig.ExternalStartingPort) + brokerId)},
 			})
 		}
 	}
 
 	generatedPorts = append(generatedPorts, istioOperatorApi.ServicePort{
-		ServicePort: corev1.ServicePort{
-			Name: fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
-			Port: externalListenerConfig.GetAnyCastPort(),
-		},
-		TargetPort: util.Int32Pointer(int32(int(externalListenerConfig.GetAnyCastPort()))),
+		Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
+		Protocol:   string(corev1.ProtocolTCP),
+		Port:       externalListenerConfig.GetAnyCastPort(),
+		TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(int(externalListenerConfig.GetAnyCastPort()))},
 	})
 
 	return generatedPorts

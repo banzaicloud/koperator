@@ -15,6 +15,8 @@
 package istioingress
 
 import (
+	"emperror.dev/errors"
+
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/resources"
@@ -59,11 +61,14 @@ func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
 // Reconcile implements the reconcile logic for IstioIngress
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName)
-
 	log.V(1).Info("Reconciling")
 	if r.KafkaCluster.Spec.GetIngressController() == istioingress.IngressControllerName {
 		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 			if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
+				if r.KafkaCluster.Spec.IstioControlPlane == nil {
+					log.Error(errors.NewPlain("skip the reconciliation of external listener as reference to Istio Control Plane is missing"), "external listener", eListener.Name)
+					continue
+				}
 				ingressConfigs, defaultControllerName, err := util.GetIngressConfigs(r.KafkaCluster.Spec, eListener)
 				if err != nil {
 					return err

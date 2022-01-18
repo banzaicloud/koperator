@@ -83,13 +83,13 @@ func expectCruiseControlService(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(service.Spec.Ports).To(ConsistOf(
 		corev1.ServicePort{
 			Name:       "cc",
-			Protocol:   "TCP",
+			Protocol:   corev1.ProtocolTCP,
 			Port:       8090,
 			TargetPort: intstr.FromInt(8090),
 		},
 		corev1.ServicePort{
 			Name:       "metrics",
-			Protocol:   "TCP",
+			Protocol:   corev1.ProtocolTCP,
 			Port:       9020,
 			TargetPort: intstr.FromInt(9020),
 		},

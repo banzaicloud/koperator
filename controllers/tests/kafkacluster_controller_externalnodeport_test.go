@@ -174,7 +174,7 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 
 			Expect(svc.Spec.Ports).To(ConsistOf(corev1.ServicePort{
 				Name:       "broker-0",
-				Protocol:   "TCP",
+				Protocol:   corev1.ProtocolTCP,
 				Port:       9733,
 				TargetPort: intstr.FromInt(9733),
 				NodePort:   31123,

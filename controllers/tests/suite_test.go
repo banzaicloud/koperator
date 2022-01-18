@@ -55,7 +55,7 @@ import (
 	cmv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 
 	istioclientv1alpha3 "github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
-	banzaiistiov1beta1 "github.com/banzaicloud/istio-operator/pkg/apis/istio/v1beta1"
+	banzaiistiov1alpha1 "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
@@ -107,12 +107,12 @@ var _ = BeforeSuite(func() {
 
 	scheme := runtime.NewScheme()
 
+	Expect(banzaiistiov1alpha1.AddToScheme(scheme)).To(Succeed())
 	Expect(k8sscheme.AddToScheme(scheme)).To(Succeed())
 	Expect(apiv1.AddToScheme(scheme)).To(Succeed())
 	Expect(cmv1.AddToScheme(scheme)).To(Succeed())
 	Expect(banzaicloudv1alpha1.AddToScheme(scheme)).To(Succeed())
 	Expect(banzaicloudv1beta1.AddToScheme(scheme)).To(Succeed())
-	Expect(banzaiistiov1beta1.AddToScheme(scheme)).To(Succeed())
 	Expect(istioclientv1alpha3.AddToScheme(scheme)).To(Succeed())
 
 	// +kubebuilder:scaffold:scheme
