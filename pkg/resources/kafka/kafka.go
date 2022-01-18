@@ -947,7 +947,7 @@ func isDesiredStorageValueInvalid(desired, current *corev1.PersistentVolumeClaim
 func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string]v1beta1.ListenerStatusList, error) {
 	extListenerStatuses := make(map[string]v1beta1.ListenerStatusList, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-		// in case external listener uses loadbalancer service and istiocontrolplane hasnt specified than we skip this listener from status. In this way this listener will not be in the configmap.
+		// in case if external listener uses loadbalancer type of service and istioControlPlane is not specified than we skip this listener from status update. In this way this external listener will not be in the configmap.
 		if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer && r.KafkaCluster.Spec.GetIngressController() == istioingressutils.IngressControllerName && r.KafkaCluster.Spec.IstioControlPlane == nil {
 			continue
 		}
