@@ -70,7 +70,7 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
 			servers = append(servers, v1alpha3.Server{
 				Port: &v1alpha3.Port{
-					Number:   int(externalListenerConfig.ExternalStartingPort) + brokerId,
+					Number:   int(externalListenerConfig.GetBrokerPort(int32(brokerId))),
 					Protocol: protocol,
 					Name:     fmt.Sprintf("tcp-broker-%d", brokerId),
 				},

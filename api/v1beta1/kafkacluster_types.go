@@ -15,6 +15,7 @@
 package v1beta1
 
 import (
+	"strconv"
 	"strings"
 
 	"emperror.dev/errors"
@@ -364,6 +365,16 @@ func (c ExternalListenerConfig) GetAnyCastPort() int32 {
 	return *c.AnyCastPort
 }
 
+// When TLS is enabled AnyCastPort is enough since hostname based multiplexing
+// is used and not port based one
+func (c ExternalListenerConfig) GetBrokerPort(brokerId int32) int32 {
+	if c.TLSEnabled() {
+		return c.GetAnyCastPort()
+	} else {
+		return c.ExternalStartingPort + brokerId
+	}
+}
+
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
 func (c IngressServiceSettings) GetServiceAnnotations() map[string]string {
 	return util.CloneMap(c.ServiceAnnotations)
@@ -375,6 +386,16 @@ func (c IngressServiceSettings) GetServiceType() corev1.ServiceType {
 		return corev1.ServiceTypeLoadBalancer
 	}
 	return c.ServiceType
+}
+
+// Replace %id in brokerHostnameTemplate with actual broker id
+func (c IngressServiceSettings) GetBrokerHostname(brokerId int32) string {
+	return strings.Replace(c.BrokerHostnameTemplate, "%id", strconv.Itoa(int(brokerId)), 1)
+}
+
+// We use -1 for ExternalStartingPort value to enable TLS on envoy
+func (c ExternalListenerConfig) TLSEnabled() bool {
+	return c.ExternalStartingPort == -1
 }
 
 // SSLSecrets defines the Kafka SSL secrets
@@ -411,6 +432,8 @@ type IngressServiceSettings struct {
 	// In case of external listeners using NodePort access method the broker instead of node public IP (see "brokerConfig.nodePortExternalIP")
 	// is advertised on the address having the following format: <kafka-cluster-name>-<broker-id>.<namespace><value-specified-in-hostnameOverride-field>
 	HostnameOverride string `json:"hostnameOverride,omitempty"`
+	// Template used to generate broker hostnames for tls enabled envoy. %id will be replaced with brokerId value
+	BrokerHostnameTemplate string `json:"brokerHostnameTemplate,omitempty"`
 	// ServiceAnnotations defines annotations which will
 	// be placed to the service or services created for the external listener
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
@@ -446,6 +469,8 @@ type ExternalListenerConfig struct {
 	// if set overrides the the default `KafkaClusterSpec.IstioIngressConfig` or `KafkaClusterSpec.EnvoyConfig` for this external listener.
 	// +optional
 	Config *Config `json:"config,omitempty"`
+	// TLS secret
+	TLSSecretName string `json:"tlsSecretName,omitempty"`
 }
 
 // Config defines the external access ingress controller configuration

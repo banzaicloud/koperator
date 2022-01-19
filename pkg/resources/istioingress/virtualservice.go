@@ -79,7 +79,7 @@ func generateTlsRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 			tlsRoutes = append(tlsRoutes, v1alpha3.TLSRoute{
 				Match: []v1alpha3.TLSMatchAttributes{
 					{
-						Port:     util.IntPointer(int(externalListenerConfig.ExternalStartingPort) + brokerId),
+						Port:     util.IntPointer(int(externalListenerConfig.GetBrokerPort(int32(brokerId)))),
 						SniHosts: []string{"*"},
 					},
 				},
@@ -132,7 +132,7 @@ func generateTcpRoutes(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.
 			tcpRoutes = append(tcpRoutes, v1alpha3.TCPRoute{
 				Match: []v1alpha3.L4MatchAttributes{
 					{
-						Port: util.IntPointer(int(externalListenerConfig.ExternalStartingPort) + brokerId),
+						Port: util.IntPointer(int(externalListenerConfig.GetBrokerPort(int32(brokerId)))),
 					},
 				},
 				Route: []*v1alpha3.RouteDestination{

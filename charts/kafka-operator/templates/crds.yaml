@@ -16908,6 +16908,11 @@ spec:
                             access without specifying the exact broker
                           format: int32
                           type: integer
+                        brokerHostnameTemplate:
+                          description: Template used to generate broker hostnames
+                            for tls enabled envoy. %id will be replaced with brokerId
+                            value
+                          type: string
                         config:
                           description: Config allows to specify ingress controller
                             configuration per external listener if set overrides the
@@ -16919,6 +16924,11 @@ spec:
                             ingressConfig:
                               additionalProperties:
                                 properties:
+                                  brokerHostnameTemplate:
+                                    description: Template used to generate broker
+                                      hostnames for tls enabled envoy. %id will be
+                                      replaced with brokerId value
+                                    type: string
                                   envoyConfig:
                                     description: EnvoyConfig defines the config for
                                       Envoy
@@ -18909,6 +18919,9 @@ spec:
                           description: Service Type string describes ingress methods
                             for a service Only "NodePort" and "LoadBalancer" is supported.
                             Default value is LoadBalancer
+                          type: string
+                        tlsSecretName:
+                          description: TLS secret
                           type: string
                         type:
                           description: 'SecurityProtocol is the protocol used to communicate

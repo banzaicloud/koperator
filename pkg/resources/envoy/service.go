@@ -63,19 +63,21 @@ func (r *Reconciler) service(log logr.Logger, extListener v1beta1.ExternalListen
 func getExposedServicePorts(extListener v1beta1.ExternalListenerConfig, brokersIds []int,
 	kafkaCluster *v1beta1.KafkaCluster, ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string, log logr.Logger) []corev1.ServicePort {
 	var exposedPorts []corev1.ServicePort
-	for _, brokerId := range brokersIds {
-		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kafkaCluster.Spec, brokerId)
-		if err != nil {
-			log.Error(err, "could not determine brokerConfig")
-			continue
-		}
-		if util.ShouldIncludeBroker(brokerConfig, kafkaCluster.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
-			exposedPorts = append(exposedPorts, corev1.ServicePort{
-				Name:       fmt.Sprintf("broker-%d", brokerId),
-				Port:       extListener.ExternalStartingPort + int32(brokerId),
-				TargetPort: intstr.FromInt(int(extListener.ExternalStartingPort) + brokerId),
-				Protocol:   corev1.ProtocolTCP,
-			})
+	if !extListener.TLSEnabled() {
+		for _, brokerId := range brokersIds {
+			brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kafkaCluster.Spec, brokerId)
+			if err != nil {
+				log.Error(err, "could not determine brokerConfig")
+				continue
+			}
+			if util.ShouldIncludeBroker(brokerConfig, kafkaCluster.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
+				exposedPorts = append(exposedPorts, corev1.ServicePort{
+					Name:       fmt.Sprintf("broker-%d", brokerId),
+					Port:       extListener.GetBrokerPort(int32(brokerId)),
+					TargetPort: intstr.FromInt(int(extListener.GetBrokerPort(int32(brokerId)))),
+					Protocol:   corev1.ProtocolTCP,
+				})
+			}
 		}
 	}
 
