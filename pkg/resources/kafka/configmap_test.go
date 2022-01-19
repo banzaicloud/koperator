@@ -17,9 +17,9 @@ package kafka
 import (
 	"testing"
 
+	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 
@@ -332,7 +332,7 @@ zookeeper.connect=example.zk:2181/`,
 				superUsers = []string{"CN=kafka-headless.kafka.svc.cluster.local"}
 			}
 
-			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{}, map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, serverPasses, clientPass, superUsers, logf.NullLogger{})
+			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{}, map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, serverPasses, clientPass, superUsers, logr.Discard())
 
 			generated, err := properties.NewFromString(generatedConfig)
 			if err != nil {

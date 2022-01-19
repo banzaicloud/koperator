@@ -99,7 +99,7 @@ func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object
 								},
 							},
 							Lifecycle: &corev1.Lifecycle{
-								PreStop: &corev1.Handler{
+								PreStop: &corev1.LifecycleHandler{
 									Exec: &corev1.ExecAction{
 										Command: []string{"bash", "-c", `
 SIGNAL=${SIGNAL:-TERM}
@@ -126,7 +126,7 @@ fi`},
 							},
 							Resources: *r.KafkaCluster.Spec.CruiseControlConfig.GetResources(),
 							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									TCPSocket: &corev1.TCPSocketAction{
 										Port: *util.IntstrPointer(8090),
 									},
