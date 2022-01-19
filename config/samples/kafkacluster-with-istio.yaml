@@ -7,6 +7,9 @@ metadata:
 spec:
   headlessServiceEnabled: false
   ingressController: "istioingress"
+  istioControlPlane:
+    name: icp-v111x-sample
+    namespace: istio-system
   istioIngressConfig:
     gatewayConfig:
       mode: ISTIO_MUTUAL
