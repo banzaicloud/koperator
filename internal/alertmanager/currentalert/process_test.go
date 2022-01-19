@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
@@ -28,18 +29,17 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	//nolint:staticcheck
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/util"
+
+	//nolint:staticcheck
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func Test_resizePvc(t *testing.T) {
 	testClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 
-	//Setup test kafka cluster and pvc
+	// Setup test kafka cluster and pvc
 	setupEnvironment(t, testClient)
 
 	testCase := []struct {
@@ -218,7 +218,7 @@ func Test_resizePvc(t *testing.T) {
 			}
 
 			for _, alert := range tt.alertList {
-				err := resizePvc(logf.NullLogger{}, alert.Labels, alert.Annotations, testClient)
+				err := resizePvc(logr.Discard(), alert.Labels, alert.Annotations, testClient)
 				if err != nil {
 					t.Errorf("process.resizePvc() error = %v", err)
 				}
@@ -255,7 +255,7 @@ func Test_resizePvc(t *testing.T) {
 func Test_addPvc(t *testing.T) {
 	testClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 
-	//Setup test kafka cluster and pvc
+	// Setup test kafka cluster and pvc
 	setupEnvironment(t, testClient)
 
 	testCase := []struct {
@@ -395,7 +395,7 @@ func Test_addPvc(t *testing.T) {
 			}
 
 			for _, alert := range tt.alertList {
-				err := addPvc(logf.NullLogger{}, alert.Labels, alert.Annotations, testClient)
+				err := addPvc(logr.Discard(), alert.Labels, alert.Annotations, testClient)
 				if err != nil {
 					t.Errorf("process.addPvc() error = %v", err)
 				}
@@ -437,7 +437,7 @@ func Test_addPvc(t *testing.T) {
 				}
 			}
 
-			//Cleanup Pvcs from previous tests
+			// Cleanup Pvcs from previous tests
 			cleanupPvcs(testClient, tt, t)
 		})
 	}
@@ -574,7 +574,7 @@ func Test_upScale(t *testing.T) {
 				}
 			}()
 
-			if err := upScale(logf.NullLogger{}, test.alert.Labels, test.alert.Annotations, testClient); err != nil {
+			if err := upScale(logr.Discard(), test.alert.Labels, test.alert.Annotations, testClient); err != nil {
 				t.Error(err)
 				return
 			}
@@ -665,7 +665,7 @@ func Test_downScale(t *testing.T) {
 				}
 			}()
 
-			if err := downScale(logf.NullLogger{}, test.alert.Labels, testClient); err != nil {
+			if err := downScale(logr.Discard(), test.alert.Labels, testClient); err != nil {
 				t.Error(err)
 				return
 			}

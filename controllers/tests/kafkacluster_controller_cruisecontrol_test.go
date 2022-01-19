@@ -293,8 +293,8 @@ func expectCruiseControlDeployment(kafkaCluster *v1beta1.KafkaCluster) {
 		},
 	}))
 	Expect(container.ReadinessProbe).NotTo(BeNil())
-	Expect(container.ReadinessProbe.Handler).To(Equal(
-		corev1.Handler{
+	Expect(container.ReadinessProbe.ProbeHandler).To(Equal(
+		corev1.ProbeHandler{
 			TCPSocket: &corev1.TCPSocketAction{
 				Port: intstr.FromInt(8090),
 			},
