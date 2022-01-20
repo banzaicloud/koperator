@@ -161,9 +161,9 @@ rules:
   - update
   - watch
 - apiGroups:
-  - istio.banzaicloud.io
+  - servicemesh.cisco.com
   resources:
-  - meshgateways
+  - istiomeshgateways
   verbs:
   - create
   - delete
