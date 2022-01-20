@@ -153,8 +153,8 @@ github.com/aws/aws-sdk-go v1.25.37/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpi
 github.com/aws/aws-sdk-go v1.30.27/go.mod h1:5zCpMtNQVjRREroY7sYe8lOMRSxkhG6MZveU8YkpAk0=
 github.com/aws/aws-sdk-go v1.34.9/go.mod h1:5zCpMtNQVjRREroY7sYe8lOMRSxkhG6MZveU8YkpAk0=
 github.com/aws/aws-sdk-go v1.40.21/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
-github.com/banzaicloud/istio-client-go v0.0.11 h1:Ej6ziXpDAM/ORF19TYNq2Be990w9EeEeC5OIj+4xm1E=
-github.com/banzaicloud/istio-client-go v0.0.11/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
+github.com/banzaicloud/istio-client-go v0.0.15 h1:F2rr1tI/+19kDddLawft8scT8mGLNgBq23gV+I0zsh4=
+github.com/banzaicloud/istio-client-go v0.0.15/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
 github.com/banzaicloud/istio-operator/api/v2 v2.11.5 h1:3L6gfMy1fdH229RJlh/lOIi+ru/jRJt+R1OFYDJi+c0=
 github.com/banzaicloud/istio-operator/api/v2 v2.11.5/go.mod h1:od/KmI8+QoNB4CZxw593Wpn3MqrCoYPwbno7Gi+QsUM=
 github.com/banzaicloud/k8s-objectmatcher v1.7.0 h1:6ufo47TaPC0jXJPg8d8/oooCy1ma3vEfM0J8ZbomKaw=
@@ -1758,8 +1758,9 @@ honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.1-2019.2.3/go.mod h1:a3bituU0lyd329TUQxRnasdCoJDkEUEAqEt0JzvZhAg=
 honnef.co/go/tools v0.0.1-2020.1.3/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
 honnef.co/go/tools v0.0.1-2020.1.4/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
-istio.io/api v0.0.0-20210420153121-f5a13670bedf h1:KAyWgKrZE6CI2BoFFXcD/i+x+MzSX5GAZerdu2x08ss=
 istio.io/api v0.0.0-20210420153121-f5a13670bedf/go.mod h1:nsSFw1LIMmGL7r/+6fJI6FxeG/UGlLxRK8bkojIvBVs=
+istio.io/api v0.0.0-20210809175348-eff556fb5d8a h1:sxWs6PoBztWTsfM6zLNkNtN3zkTSmYQ9xfD48hxPErs=
+istio.io/api v0.0.0-20210809175348-eff556fb5d8a/go.mod h1:nsSFw1LIMmGL7r/+6fJI6FxeG/UGlLxRK8bkojIvBVs=
 istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f h1:9710FpGLvIJ1GGEbpuTh1smVBv+r8cJfR3G82ouSxIQ=
 istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f/go.mod h1:6BwTZRNbWS570wHX/uR1Wqk5e0157TofTAUMzT7N4+s=
 k8s.io/api v0.18.0/go.mod h1:q2HRQkfDzHMBZL9l/y9rH63PkQl4vae0xRT+8prbrK8=
