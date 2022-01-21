@@ -161,18 +161,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - istio.banzaicloud.io
-  resources:
-  - meshgateways
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - kafka.banzaicloud.io
   resources:
   - kafkaclusters
@@ -244,6 +232,18 @@ rules:
   - policy
   resources:
   - poddisruptionbudgets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - servicemesh.cisco.com
+  resources:
+  - istiomeshgateways
   verbs:
   - create
   - delete
