@@ -155,7 +155,7 @@ func (s *webhookServer) checkExistingKafkaTopicCRs(ctx context.Context,
 	kafkaTopicList := banzaicloudv1alpha1.KafkaTopicList{}
 	err := s.client.List(ctx, &kafkaTopicList, client.MatchingFields{"spec.name": topic.Spec.Name})
 	if err != nil {
-		log.Info(fmt.Sprintf("Failed to list KafkaTopics. Error message: %s", err))
+		log.Error(err, "couldn't list KafkaTopic custom resources")
 		return notAllowed("API failure while retrieving KafkaTopic list, please try again", metav1.StatusReasonServiceUnavailable)
 	}
 
