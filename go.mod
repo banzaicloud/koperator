@@ -5,7 +5,7 @@ go 1.17
 require (
 	emperror.dev/errors v0.8.0
 	github.com/Shopify/sarama v1.30.0
-	github.com/banzaicloud/istio-client-go v0.0.11
+	github.com/banzaicloud/istio-client-go v0.0.15
 	github.com/banzaicloud/istio-operator/api/v2 v2.11.5
 	github.com/banzaicloud/k8s-objectmatcher v1.7.0
 	github.com/banzaicloud/koperator/api v0.0.0
@@ -89,7 +89,7 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	istio.io/api v0.0.0-20210420153121-f5a13670bedf // indirect
+	istio.io/api v0.0.0-20210809175348-eff556fb5d8a // indirect
 	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f // indirect
 	k8s.io/component-base v0.23.1 // indirect
 	k8s.io/klog/v2 v2.40.1 // indirect
