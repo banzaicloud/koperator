@@ -14,7 +14,7 @@ RELEASE_MSG ?= "operator release"
 REL_TAG = $(shell ./scripts/increment_version.sh -${RELEASE_TYPE} ${TAG})
 
 GOLANGCI_VERSION = 1.42.1
-LICENSEI_VERSION = 0.2.0
+LICENSEI_VERSION = 0.5.0
 GOPROXY=https://proxy.golang.org
 
 CONTROLLER_GEN_VERSION = v0.8.0
