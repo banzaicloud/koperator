@@ -90,9 +90,9 @@ func ObjectMetaWithGeneratedName(namePrefix string, labels map[string]string, cl
 // ObjectMetaWithName returns a metav1.ObjectMeta object with labels, ownerReference and name
 func ObjectMetaWithName(name string, labels map[string]string, cluster *v1beta1.KafkaCluster) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name: name,
-		Namespace:    cluster.Namespace,
-		Labels:       ObjectMetaLabels(cluster, labels),
+		Name:      name,
+		Namespace: cluster.Namespace,
+		Labels:    ObjectMetaLabels(cluster, labels),
 		OwnerReferences: []metav1.OwnerReference{
 			{
 				APIVersion:         cluster.APIVersion,

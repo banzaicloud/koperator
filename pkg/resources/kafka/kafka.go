@@ -59,7 +59,6 @@ const (
 	brokerConfigTemplate  = "%s-config"
 	brokerStorageTemplate = "%s-%d-storage-%d"
 
-
 	brokerConfigMapVolumeMount = "broker-config"
 	kafkaDataVolumeMount       = "kafka-data"
 
