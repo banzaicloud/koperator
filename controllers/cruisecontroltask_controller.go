@@ -270,9 +270,9 @@ type CruiseControlTask struct {
 func (t *CruiseControlTask) IsDone() bool {
 	switch t.Operation {
 	case OperationAddBroker, OperationRemoveBroker:
-		return !t.BrokerState.IsActionRequired()
+		return !t.BrokerState.IsActive()
 	case OperationRebalanceDisks:
-		return !t.VolumeState.IsActionRequired()
+		return !t.VolumeState.IsActive()
 	}
 	return false
 }
@@ -398,7 +398,7 @@ func getActiveTasksFromCluster(instance *kafkav1beta1.KafkaCluster) *CruiseContr
 	tasksAndStates := newCruiseControlTasksAndStates()
 
 	for brokerId, brokerStatus := range instance.Status.BrokersState {
-		if brokerStatus.GracefulActionState.CruiseControlState.IsActionRequired() {
+		if brokerStatus.GracefulActionState.CruiseControlState.IsActive() {
 			state := brokerStatus.GracefulActionState
 			switch {
 			case state.CruiseControlState.IsUpscale():
@@ -425,7 +425,7 @@ func getActiveTasksFromCluster(instance *kafkav1beta1.KafkaCluster) *CruiseContr
 		}
 
 		for mountPath, volumeState := range brokerStatus.GracefulActionState.VolumeStates {
-			if volumeState.CruiseControlVolumeState.IsActionRequired() {
+			if volumeState.CruiseControlVolumeState.IsActive() {
 				t := &CruiseControlTask{
 					TaskID:      volumeState.CruiseControlTaskId,
 					BrokerID:    brokerId,
