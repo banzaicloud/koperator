@@ -110,11 +110,11 @@ func main() {
 	ctx := context.TODO()
 	managerWatchCache := k8sutil.AddKafkaTopicIndexers(ctx)
 
-	//When operator is started to watch resources in a specific set of namespaces, we use the MultiNamespacedCacheBuilder cache.
-	//In this scenario, it is also suggested to restrict the provided authorization to this namespace by replacing the default
-	//ClusterRole and ClusterRoleBinding to Role and RoleBinding respectively
-	//For further information see the kubernetes documentation about
-	//Using [RBAC Authorization](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
+	// When operator is started to watch resources in a specific set of namespaces, we use the MultiNamespacedCacheBuilder cache.
+	// In this scenario, it is also suggested to restrict the provided authorization to this namespace by replacing the default
+	// ClusterRole and ClusterRoleBinding to Role and RoleBinding respectively
+	// For further information see the kubernetes documentation about
+	// Using [RBAC Authorization](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
 	var namespaceList []string
 	if namespaces != "" {
 		namespaceList = strings.Split(namespaces, ",")
@@ -181,7 +181,6 @@ func main() {
 	kafkaClusterCCReconciler := &controllers.CruiseControlTaskReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controller").WithName("CruiseControlTask"),
 	}
 
 	if err = controllers.SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler); err != nil {

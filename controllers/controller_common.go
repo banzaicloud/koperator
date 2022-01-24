@@ -37,6 +37,12 @@ var clusterRefLabel = "kafkaCluster"
 // use as var so it can be overwritten from unit tests
 var newKafkaFromCluster = kafkaclient.NewFromCluster
 
+func requeueAfter(sec int) (ctrl.Result, error) {
+	return ctrl.Result{
+		RequeueAfter: time.Duration(sec) * time.Second,
+	}, nil
+}
+
 // requeueWithError is a convenience wrapper around logging an error message
 // separate from the stacktrace and then passing the error through to the controller
 // manager

@@ -172,7 +172,6 @@ var _ = BeforeSuite(func() {
 	kafkaClusterCCReconciler := controllers.CruiseControlTaskReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controller").WithName("CruiseControlTask"),
 	}
 
 	err = controllers.SetupCruiseControlWithManager(mgr).Complete(&kafkaClusterCCReconciler)
