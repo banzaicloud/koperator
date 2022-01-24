@@ -267,7 +267,7 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, err
 			continue
 		}
 		for _, diskState := range brokerStat.DiskState {
-			if diskState.NumReplicas <= 0 {
+			if diskState.NumReplicas <= 0 && !diskState.DiskMB.Dead {
 				brokersWithEmptyDisks = append(brokersWithEmptyDisks, brokerStat.Broker)
 			}
 		}
