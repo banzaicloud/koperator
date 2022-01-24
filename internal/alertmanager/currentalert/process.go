@@ -318,8 +318,8 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 		// FIXME: we should reuse the context of passed to AController.Start() here
 		cc, err := scale.NewCruiseControlScaler(context.TODO(), cruiseControlURL)
 		if err != nil {
-			log.Error(err, "failed to initialize Cruise Control Scaler", "cruise control url", cruiseControlURL)
-			return err
+			return errors.WrapIfWithDetails(err, "failed to initialize Cruise Control Scaler",
+				"cruise control url", cruiseControlURL)
 		}
 		brokerID, err = cc.BrokerWithLeastPartitionReplicas()
 		if err != nil {
