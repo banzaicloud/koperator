@@ -268,6 +268,10 @@ type CruiseControlTask struct {
 
 // IsDone returns true if the task is considered finished.
 func (t *CruiseControlTask) IsDone() bool {
+	if t == nil {
+		return true
+	}
+
 	switch t.Operation {
 	case OperationAddBroker, OperationRemoveBroker:
 		return !t.BrokerState.IsActive()
@@ -279,7 +283,7 @@ func (t *CruiseControlTask) IsDone() bool {
 
 // Apply takes a kafkav1beta1.KafkaCluster instance and updates its Status field to reflect the state of the task.
 func (t *CruiseControlTask) Apply(instance *kafkav1beta1.KafkaCluster) {
-	if instance == nil {
+	if t == nil || instance == nil {
 		return
 	}
 
@@ -307,7 +311,7 @@ func (t *CruiseControlTask) Apply(instance *kafkav1beta1.KafkaCluster) {
 
 // FromResult takes a scale.Result instance returned by scale.CruiseControlScaler and updates its own state accordingly.
 func (t *CruiseControlTask) FromResult(result *scale.Result) {
-	if result == nil {
+	if t == nil || result == nil {
 		return
 	}
 
