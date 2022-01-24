@@ -75,7 +75,7 @@ func (r CruiseControlState) IsUpscale() bool {
 	return r == GracefulUpscaleRequired || r == GracefulUpscaleSucceeded || r == GracefulUpscaleRunning
 }
 
-// IsUpscale returns true if CruiseControlState in GracefulDownscale* state.
+// IsDownscale returns true if CruiseControlState in GracefulDownscale* state.
 func (r CruiseControlState) IsDownscale() bool {
 	return r == GracefulDownscaleRequired || r == GracefulDownscaleSucceeded || r == GracefulDownscaleRunning
 }
