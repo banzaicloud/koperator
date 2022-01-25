@@ -78,7 +78,15 @@ install-kustomize:
 # Run tests
 test: generate fmt vet manifests bin/setup-envtest
 	cd api && go test ./...
-	bin/setup-envtest use -p env ${ENVTEST_K8S_VERSION} > bin/envtest.sh && source bin/envtest.sh ; go test ./... -coverprofile cover.out
+	bin/setup-envtest use -p env ${ENVTEST_K8S_VERSION} > bin/envtest.sh \
+		&& source bin/envtest.sh; \
+		go test ./... \
+			-coverprofile cover.out \
+			-v \
+			-failfast \
+			-test.v \
+			-test.paniconexit0 \
+			-timeout 1h
 	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
 # Build manager binary

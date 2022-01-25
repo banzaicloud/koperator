@@ -27,7 +27,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tests
+package clusterregistry
 
 import (
 	"context"
@@ -35,16 +35,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	ginkoconfig "github.com/onsi/ginkgo/config"
+	. "github.com/onsi/gomega"
 
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8sscheme "k8s.io/client-go/kubernetes/scheme"
-	csrclient "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -59,40 +58,46 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/controllers"
-	"github.com/banzaicloud/koperator/pkg/jmxextractor"
-	"github.com/banzaicloud/koperator/pkg/kafkaclient"
-	"github.com/banzaicloud/koperator/pkg/scale"
 	// +kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var k8sClient client.Client
-var csrClient *csrclient.CertificatesV1Client
-var testEnv *envtest.Environment
-var mockKafkaClients map[types.NamespacedName]kafkaclient.KafkaClient
+var (
+	ctx       context.Context
+	k8sClient client.Client
+	testEnv   *envtest.Environment
+	log       logr.Logger
 
-func TestControllers(t *testing.T) {
+	kafkaClusterReconciler      *TestReconciler
+	kafkaTopicReconciler        *TestReconciler
+	kafkaUserReconciler         *TestReconciler
+	cruiseControlTaskReconciler *TestReconciler
+)
+
+func TestControllersWithClusterRegistry(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	ginkoconfig.DefaultReporterConfig.SlowSpecThreshold = 120
 
-	RunSpecs(t, "Controller Suite")
+	RunSpecs(t, "Controller Suite with Cluster Registry")
 }
 
 var _ = BeforeSuite(func() {
 
+	ctx = context.Background()
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
+	log = logf.Log
 
 	By("bootstrapping test environment")
 	stopTimeout, _ := time.ParseDuration("120s")
 	testEnv = &envtest.Environment{
 		ErrorIfCRDPathMissing: true,
 		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "config", "base", "crds"),
-			filepath.Join("..", "..", "config", "test", "crd", "cert-manager"),
-			filepath.Join("..", "..", "config", "test", "crd", "istio"),
+			filepath.Join("..", "..", "..", "config", "base", "crds"),
+			filepath.Join("..", "..", "..", "config", "test", "crd", "cert-manager"),
+			filepath.Join("..", "..", "..", "config", "test", "crd", "istio"),
 		},
 		ControlPlaneStopTimeout:  stopTimeout,
 		AttachControlPlaneOutput: false,
@@ -118,10 +123,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	csrClient, err = csrclient.NewForConfig(cfg)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(csrClient).NotTo(BeNil())
-
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: "0",
@@ -131,53 +132,21 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(mgr).ToNot(BeNil())
 
-	scale.MockNewCruiseControlScaler()
-	jmxextractor.NewMockJMXExtractor()
-
-	mockKafkaClients = make(map[types.NamespacedName]kafkaclient.KafkaClient)
-
-	// mock the creation of Kafka clients
-	controllers.SetNewKafkaFromCluster(
-		func(k8sclient client.Client, cluster *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error) {
-			client, closeFunc := getMockedKafkaClientForCluster(cluster)
-			return client, closeFunc, nil
-		})
-
-	kafkaClusterReconciler := controllers.KafkaClusterReconciler{
-		Client:              mgr.GetClient(),
-		DirectClient:        mgr.GetAPIReader(),
-		Log:                 ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
-		KafkaClientProvider: kafkaclient.NewMockProvider(),
-	}
-
-	err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
+	kafkaClusterReconciler = NewTestReconciler()
+	err = controllers.SetupKafkaClusterWithManager(mgr, logf.Log).Named("KafkaCluster").Complete(kafkaClusterReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
-	kafkaTopicReconciler := &controllers.KafkaTopicReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KafkaTopic"),
-	}
-
-	err = controllers.SetupKafkaTopicWithManager(mgr, 10).Complete(kafkaTopicReconciler)
+	kafkaTopicReconciler = NewTestReconciler()
+	err = controllers.SetupKafkaTopicWithManager(mgr, 10).Named("KafkaTopic").Complete(kafkaTopicReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
 	// Create a new  kafka user reconciler
-	kafkaUserReconciler := controllers.KafkaUserReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KafkaUser"),
-	}
-
-	err = controllers.SetupKafkaUserWithManager(mgr, true, true, kafkaUserReconciler.Log).Complete(&kafkaUserReconciler)
+	kafkaUserReconciler = NewTestReconciler()
+	err = controllers.SetupKafkaUserWithManager(mgr, true, true, logf.Log).Named("KafkaUser").Complete(kafkaUserReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
-	kafkaClusterCCReconciler := controllers.CruiseControlTaskReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}
-
-	err = controllers.SetupCruiseControlWithManager(mgr).Complete(&kafkaClusterCCReconciler)
+	cruiseControlTaskReconciler = NewTestReconciler()
+	err = controllers.SetupCruiseControlWithManager(mgr).Named("CruiseControl").Complete(cruiseControlTaskReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:builder

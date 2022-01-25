@@ -25,6 +25,8 @@ import (
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/banzaicloud/koperator/pkg/util"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 )
 
@@ -35,15 +37,22 @@ var (
 func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissionv1beta1.AdmissionResponse {
 	req := ar.Request
 
-	log.Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
-		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo))
+	l := log.WithValues("kind", req.Kind, "namespace", req.Namespace, "name", req.Name, "uid", req.UID,
+		"operation", req.Operation, "user info", req.UserInfo)
+	l.Info("AdmissionReview")
 
 	switch req.Kind.Kind {
 	case kafkaTopic:
 		var topic v1alpha1.KafkaTopic
 		if err := json.Unmarshal(req.Object.Raw, &topic); err != nil {
-			log.Error(err, "Could not unmarshal raw object")
+			l.Error(err, "Could not unmarshal raw object")
 			return notAllowed(err.Error(), metav1.StatusReasonBadRequest)
+		}
+		if ok := util.ObjectManagedByClusterRegistry(topic.GetObjectMeta()); ok {
+			l.Info("Skip validation as the resource is managed by Cluster Registry")
+			return &admissionv1beta1.AdmissionResponse{
+				Allowed: true,
+			}
 		}
 		return s.validateKafkaTopic(&topic)
 
