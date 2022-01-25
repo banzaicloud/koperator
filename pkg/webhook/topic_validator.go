@@ -21,7 +21,6 @@ import (
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -154,16 +153,9 @@ func (s *webhookServer) checkExistingKafkaTopicCRs(ctx context.Context,
 	clusterNamespace string, topic *banzaicloudv1alpha1.KafkaTopic) *admissionv1beta1.AdmissionResponse {
 	// check KafkaTopic in the referred KafkaCluster's namespace
 	kafkaTopicList := banzaicloudv1alpha1.KafkaTopicList{}
-	err := s.client.List(ctx, &kafkaTopicList,
-		client.MatchingFieldsSelector{
-			Selector: fields.OneTermEqualSelector("spec.name", topic.Spec.Name),
-		},
-		client.MatchingFieldsSelector{
-			Selector: fields.OneTermEqualSelector("spec.clusterRef.name", topic.Spec.ClusterRef.Name),
-		},
-	)
+	err := s.client.List(ctx, &kafkaTopicList, client.MatchingFields{"spec.name": topic.Spec.Name})
 	if err != nil {
-		log.Info("failed to list KafkaTopics")
+		log.Error(err, "couldn't list KafkaTopic custom resources")
 		return notAllowed("API failure while retrieving KafkaTopic list, please try again", metav1.StatusReasonServiceUnavailable)
 	}
 
@@ -175,9 +167,12 @@ func (s *webhookServer) checkExistingKafkaTopicCRs(ctx context.Context,
 		}
 
 		referredNamespace := kafkaTopic.Spec.ClusterRef.Namespace
-		if (kafkaTopic.GetNamespace() == clusterNamespace && referredNamespace == "") || referredNamespace == clusterNamespace {
-			foundKafkaTopic = &kafkaTopicList.Items[i]
-			break
+		referredName := kafkaTopic.Spec.ClusterRef.Name
+		if referredName == topic.Spec.ClusterRef.Name {
+			if (kafkaTopic.GetNamespace() == clusterNamespace && referredNamespace == "") || referredNamespace == clusterNamespace {
+				foundKafkaTopic = &kafkaTopicList.Items[i]
+				break
+			}
 		}
 	}
 	if foundKafkaTopic != nil {
