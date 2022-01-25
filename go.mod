@@ -5,6 +5,7 @@ go 1.17
 require (
 	emperror.dev/errors v0.8.0
 	github.com/Shopify/sarama v1.30.0
+	github.com/banzaicloud/go-cruise-control v0.0.0-20220121135324-9178f00469c5
 	github.com/banzaicloud/istio-client-go v0.0.15
 	github.com/banzaicloud/istio-operator/api/v2 v2.11.5
 	github.com/banzaicloud/k8s-objectmatcher v1.7.0

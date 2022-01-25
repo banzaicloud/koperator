@@ -62,6 +62,7 @@ func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object
 			Selector: &metav1.LabelSelector{
 				MatchLabels: ccLabelSelector(r.KafkaCluster.Name),
 			},
+			Replicas: util.Int32Pointer(1),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      templates.ObjectMetaLabels(r.KafkaCluster, ccLabelSelector(r.KafkaCluster.Name)),

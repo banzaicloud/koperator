@@ -47,7 +47,7 @@ linters:
 
 linters-settings:
   gocyclo:
-    min-complexity: 36
+    min-complexity: 38
   dogsled:
     max-blank-identifiers: 3 # default: 2
   funlen:

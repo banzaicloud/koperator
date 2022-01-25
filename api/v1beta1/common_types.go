@@ -58,20 +58,44 @@ type PKIBackend string
 // CruiseControlVolumeState holds information about the state of volume rebalance
 type CruiseControlVolumeState string
 
+// IsRunningState returns true if CruiseControlVolumeState indicates (GracefulDisk*Running)
+// that there is a running operation in Cruise Control related to the resource the CruiseControlVolumeState belongs to.
+func (s CruiseControlVolumeState) IsRunningState() bool {
+	return s == GracefulDiskRebalanceRunning
+}
+
+// IsActive returns true if CruiseControlVolumeState is in active state (GracefulDisk*Running or GracefulDisk*Required)
+// the controller needs to take care of.
+func (s CruiseControlVolumeState) IsActive() bool {
+	return s == GracefulDiskRebalanceRunning || s == GracefulDiskRebalanceRequired
+}
+
+// IsUpscale returns true if CruiseControlState in GracefulUpscale* state.
 func (r CruiseControlState) IsUpscale() bool {
 	return r == GracefulUpscaleRequired || r == GracefulUpscaleSucceeded || r == GracefulUpscaleRunning
 }
 
+// IsDownscale returns true if CruiseControlState in GracefulDownscale* state.
 func (r CruiseControlState) IsDownscale() bool {
 	return r == GracefulDownscaleRequired || r == GracefulDownscaleSucceeded || r == GracefulDownscaleRunning
 }
 
+// IsRunningState returns true if CruiseControlState indicates (any of Graceful*Running)
+// that there is a running operation in Cruise Control related to the resource the CruiseControlState belongs to.
 func (r CruiseControlState) IsRunningState() bool {
 	return r == GracefulDownscaleRunning || r == GracefulUpscaleRunning
 }
 
+// IsRequiredState returns true if CruiseControlVolumeState indicates that either upscaling or downscaling
+// (GracefulDownscaleRequired or GracefulUpscaleRequired) operation needs to be performed.
 func (r CruiseControlState) IsRequiredState() bool {
 	return r == GracefulDownscaleRequired || r == GracefulUpscaleRequired
+}
+
+// IsActive returns true if CruiseControlState is in active state (Graceful*Running or Graceful*Required)
+// the controller needs to take care of.
+func (r CruiseControlState) IsActive() bool {
+	return r.IsRunningState() || r.IsRequiredState()
 }
 
 func (r CruiseControlState) Complete() CruiseControlState {
@@ -208,8 +232,6 @@ const (
 	CruiseControlTopicReady CruiseControlTopicStatus = "CruiseControlTopicReady"
 	// CruiseControlTaskActive states the CC task is scheduled but not yet running
 	CruiseControlTaskActive CruiseControlUserTaskState = "Active"
-	// CruiseControlTaskNotFound states the CC task is not found (can happen when CC is restarted during operation)
-	CruiseControlTaskNotFound CruiseControlUserTaskState = "NotFound"
 	// CruiseControlTaskInExecution states the CC task is executing
 	CruiseControlTaskInExecution CruiseControlUserTaskState = "InExecution"
 	// CruiseControlTaskCompleted states the CC task completed successfully

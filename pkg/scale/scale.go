@@ -15,497 +15,377 @@
 package scale
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"strings"
+	"math"
+	"strconv"
 
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"github.com/go-logr/logr"
 
-	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
-	bcutil "github.com/banzaicloud/koperator/pkg/util"
+	"github.com/banzaicloud/go-cruise-control/pkg/api"
+	"github.com/banzaicloud/go-cruise-control/pkg/client"
+	"github.com/banzaicloud/go-cruise-control/pkg/types"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
-const (
-	basePath                = "kafkacruisecontrol"
-	removeBrokerAction      = "remove_broker"
-	addBrokerAction         = "add_broker"
-	getTaskListAction       = "user_tasks"
-	kafkaClusterStateAction = "kafka_cluster_state"
-	clusterLoadAction       = "load"
-	rebalanceAction         = "rebalance"
-	killProposalAction      = "stop_proposal_execution"
-	serviceNameTemplate     = "%s-cruisecontrol-svc"
-	brokerAlive             = "ALIVE"
-)
-
-var errCruiseControlNotReturned200 = errors.New("non 200 response from cruise-control")
 var newCruiseControlScaler = createNewDefaultCruiseControlScaler
 
-var log = logf.Log.WithName("cruise-control-methods")
+func NewCruiseControlScaler(ctx context.Context, serverURL string) (CruiseControlScaler, error) {
+	return newCruiseControlScaler(ctx, serverURL)
+}
 
-type CruiseControlScaler interface {
-	GetLiveKafkaBrokersFromCruiseControl(brokerIDs []string) ([]string, error)
-	GetBrokerIDWithLeastPartition() (string, error)
-	UpScaleCluster(brokerIDs []string) (string, string, error)
-	DownsizeCluster(brokerIDs []string) (string, string, error)
-	RebalanceDisks(brokerIDsWithMountPath map[string][]string) (string, string, error)
-	RebalanceCluster() (string, error)
-	RunPreferedLeaderElectionInCluster() (string, error)
-	KillCCTask() error
-	GetCCTaskState(uTaskID string) (banzaicloudv1beta1.CruiseControlUserTaskState, error)
+func createNewDefaultCruiseControlScaler(ctx context.Context, serverURL string) (CruiseControlScaler, error) {
+	log := logr.FromContextOrDiscard(ctx).WithName("Scaler")
+
+	cfg := &client.Config{
+		ServerURL: serverURL,
+		UserAgent: "koperator",
+	}
+
+	cruisecontrol, err := client.NewClient(ctx, cfg)
+	if err != nil {
+		log.Error(err, "creating Cruise Control client failed")
+		return nil, err
+	}
+	return &cruiseControlScaler{
+		log:    log,
+		client: cruisecontrol,
+	}, nil
 }
 
 type cruiseControlScaler struct {
 	CruiseControlScaler
-	namespace               string
-	kubernetesClusterDomain string
-	endpoint                string
-	clusterName             string
+
+	log    logr.Logger
+	client *client.Client
 }
 
-func NewCruiseControlScaler(namespace, kubernetesClusterDomain, endpoint, clusterName string) CruiseControlScaler {
-	return newCruiseControlScaler(namespace, kubernetesClusterDomain, endpoint, clusterName)
-}
-
-func MockNewCruiseControlScaler() {
-	newCruiseControlScaler = createMockCruiseControlScaler
-}
-
-func createNewDefaultCruiseControlScaler(namespace, kubernetesClusterDomain, endpoint, clusterName string) CruiseControlScaler {
-	return &cruiseControlScaler{
-		namespace:               namespace,
-		kubernetesClusterDomain: kubernetesClusterDomain,
-		endpoint:                endpoint,
-		clusterName:             clusterName,
-	}
-}
-
-func createMockCruiseControlScaler(namespace, kubernetesClusterDomain, endpoint, clusterName string) CruiseControlScaler {
-	return &mockCruiseControlScaler{}
-}
-
-func (cc *cruiseControlScaler) generateUrlForCC(action string, options map[string]string) string {
-	optionURL := ""
-	for option, value := range options {
-		optionURL = optionURL + option + "=" + value + "&"
-	}
-	if cc.endpoint != "" {
-		return "http://" + cc.endpoint + "/" + basePath + "/" + action + "?" + strings.TrimSuffix(optionURL, "&")
-	}
-	return "http://" + fmt.Sprintf(serviceNameTemplate, cc.clusterName) + "." + cc.namespace + ".svc." + cc.kubernetesClusterDomain + ":8090/" + basePath + "/" + action + "?" + strings.TrimSuffix(optionURL, "&")
-}
-
-func (cc *cruiseControlScaler) postCruiseControl(action string, options map[string]string) (*http.Response, error) {
-	requestURL := cc.generateUrlForCC(action, options)
-	rsp, err := http.Post(requestURL, "text/plain", nil)
+// Status returns a CruiseControlStatus describing the internal state of Cruise Control.
+func (cc *cruiseControlScaler) Status() CruiseControlStatus {
+	req := api.StateRequestWithDefaults()
+	req.Verbose = true
+	resp, err := cc.client.State(req)
 	if err != nil {
-		log.Error(err, "error during talking to cruise-control")
-		return nil, err
-	}
-	if rsp.StatusCode != 200 && rsp.StatusCode != 202 {
-		ccErr, parseErr := parseCCErrorFromResp(rsp.Body)
-		if parseErr != nil {
-			return nil, parseErr
-		}
-		closeErr := rsp.Body.Close()
-		if closeErr != nil {
-			return nil, closeErr
-		}
-		log.Error(errCruiseControlNotReturned200, "non-200 response returned by cruise-control",
-			"request", requestURL, "status", rsp.Status, "error message", ccErr)
-		return rsp, errCruiseControlNotReturned200
-	}
-	return rsp, nil
-}
-
-func (cc *cruiseControlScaler) getCruiseControl(action string, options map[string]string) (*http.Response, error) {
-	requestURL := cc.generateUrlForCC(action, options)
-	rsp, err := http.Get(requestURL)
-	if err != nil {
-		log.Error(err, "error during talking to cruise-control")
-		return nil, err
-	}
-	if rsp.StatusCode != 200 {
-		ccErr, parseErr := parseCCErrorFromResp(rsp.Body)
-		if parseErr != nil {
-			return nil, parseErr
-		}
-		closeErr := rsp.Body.Close()
-		if closeErr != nil {
-			return nil, closeErr
-		}
-		log.Error(errCruiseControlNotReturned200, "non-200 response returned by cruise-control",
-			"request", requestURL, "status", rsp.Status, "error message", ccErr)
-		return rsp, errCruiseControlNotReturned200
-	}
-	return rsp, nil
-}
-
-func parseCCErrorFromResp(input io.Reader) (string, error) {
-	var errorFromResponse struct {
-		ErrorMessage string
+		cc.log.Error(err, "failed to get Cruise Control state")
+		return CruiseControlStatus{}
 	}
 
-	body, err := ioutil.ReadAll(input)
-	if err != nil {
-		return "", err
-	}
-	err = json.Unmarshal(body, &errorFromResponse)
-	if err != nil {
-		return "", err
-	}
-
-	return errorFromResponse.ErrorMessage, err
-}
-
-func (cc *cruiseControlScaler) isKafkaBrokerDiskReady(brokerIDsWithMountPath map[string][]string) (bool, error) {
-	options := map[string]string{
-		"json": "true",
-	}
-
-	rsp, err := cc.getCruiseControl(kafkaClusterStateAction, options)
-	if err != nil {
-		keyVals := []interface{}{
-			"namespace", cc.namespace,
-			"clusterName", cc.clusterName,
-			//"brokerId", brokerIDs,
-			//"path", mountPath,
-		}
-		log.Error(err, "can't check if broker disk is ready as Cruise Control not ready", keyVals...)
-		return false, err
-	}
-
-	body, err := ioutil.ReadAll(rsp.Body)
-	if err != nil {
-		return false, err
-	}
-
-	err = rsp.Body.Close()
-	if err != nil {
-		return false, err
-	}
-
-	var response struct {
-		KafkaBrokerState struct {
-			OnlineLogDirsByBrokerID map[string][]string
-		}
-	}
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return false, err
-	}
-
-	for brokerID, volumeMounts := range brokerIDsWithMountPath {
-		if ccOnlineLogDirs, ok := response.KafkaBrokerState.OnlineLogDirsByBrokerID[brokerID]; ok {
-			for _, volumeMount := range volumeMounts {
-				match := false
-				for _, ccOnlineLogDir := range ccOnlineLogDirs {
-					if strings.HasPrefix(strings.TrimSpace(ccOnlineLogDir), strings.TrimSpace(volumeMount)) {
-						match = true
-						break
-					}
-				}
-
-				if !match {
-					return false, nil
-				}
+	goalsReady := true
+	if len(resp.Result.AnalyzerState.GoalReadiness) > 0 {
+		for _, goal := range resp.Result.AnalyzerState.GoalReadiness {
+			if goal.Status != types.GoalReadinessStatusReady {
+				goalsReady = false
+				break
 			}
-		} else {
-			return false, nil
 		}
 	}
 
-	return true, nil
+	return CruiseControlStatus{
+		MonitorReady:       resp.Result.MonitorState.State == types.MonitorStateRunning,
+		ExecutorReady:      resp.Result.ExecutorState.State == types.ExecutorStateTypeNoTaskInProgress,
+		AnalyzerReady:      resp.Result.AnalyzerState.IsProposalReady && goalsReady,
+		ProposalReady:      resp.Result.AnalyzerState.IsProposalReady,
+		GoalsReady:         goalsReady,
+		MonitoredWindows:   resp.Result.MonitorState.NumMonitoredWindows,
+		MonitoringCoverage: resp.Result.MonitorState.MonitoringCoveragePercentage,
+	}
 }
 
-// Get brokers status from CC from a provided list of broker ids
-func (cc *cruiseControlScaler) GetLiveKafkaBrokersFromCruiseControl(brokerIDs []string) ([]string, error) {
-	options := map[string]string{
-		"json": "true",
-	}
-
-	rsp, err := cc.getCruiseControl(clusterLoadAction, options)
-	if err != nil {
-		log.Error(err, "can't work with cruise-control because it is not ready")
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(rsp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	err = rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	var response struct {
-		Brokers []struct {
-			Broker      float64
-			BrokerState string
-		}
-	}
-
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return nil, err
-	}
-
-	aliveBrokers := make([]string, 0, len(brokerIDs))
-
-	for _, broker := range response.Brokers {
-		bIDStr := fmt.Sprintf("%g", broker.Broker)
-		if broker.BrokerState == brokerAlive && bcutil.StringSliceContains(brokerIDs, bIDStr) {
-			aliveBrokers = append(aliveBrokers, bIDStr)
-			log.Info("broker is available in cruise-control", "brokerID", bIDStr)
-		}
-	}
-	return aliveBrokers, nil
+// IsReady returns true if the Analyzer and Monitor components of Cruise Control are in ready state.
+func (cc *cruiseControlScaler) IsReady() bool {
+	status := cc.Status()
+	cc.log.Info("cruise control readiness",
+		"analyzer", status.AnalyzerReady,
+		"monitor", status.MonitorReady,
+		"executor", status.ExecutorReady,
+		"goals ready", status.GoalsReady,
+		"monitored windows", status.MonitoredWindows,
+		"monitoring coverage percentage", status.MonitoringCoverage)
+	return status.IsReady()
 }
 
-// GetBrokerIDWithLeastPartition returns
-func (cc *cruiseControlScaler) GetBrokerIDWithLeastPartition() (string, error) {
-	brokerWithLeastPartition := ""
+// IsUp returns true if Cruise Control is online.
+func (cc *cruiseControlScaler) IsUp() bool {
+	_, err := cc.client.State(api.StateRequestWithDefaults())
+	return err == nil
+}
 
-	options := map[string]string{
-		"json": "true",
+// GetUserTasks returns list of Result describing User Tasks from Cruise Control for the provided task IDs.
+func (cc *cruiseControlScaler) GetUserTasks(taskIDs ...string) ([]*Result, error) {
+	req := &api.UserTasksRequest{
+		UserTaskIDs: taskIDs,
+		Entries:     100,
 	}
 
-	rsp, err := cc.getCruiseControl(kafkaClusterStateAction, options)
+	resp, err := cc.client.UserTasks(req)
 	if err != nil {
-		log.Error(err, "can't work with cruise-control because it is not ready")
-		return brokerWithLeastPartition, err
+		return nil, err
 	}
 
-	body, err := ioutil.ReadAll(rsp.Body)
-	if err != nil {
-		return brokerWithLeastPartition, err
-	}
-
-	err = rsp.Body.Close()
-	if err != nil {
-		return brokerWithLeastPartition, err
-	}
-
-	var response struct {
-		KafkaBrokerState struct {
-			ReplicaCountByBrokerID map[string]float64
+	results := make([]*Result, len(resp.Result.UserTasks))
+	for idx, taskInfo := range resp.Result.UserTasks {
+		results[idx] = &Result{
+			TaskID:    taskInfo.UserTaskID,
+			StartedAt: taskInfo.StartMs.UTC().String(),
+			State:     v1beta1.CruiseControlUserTaskState(taskInfo.Status.String()),
 		}
 	}
 
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return brokerWithLeastPartition, err
+	return results, nil
+}
+
+// AddBrokers requests Cruise Control to add the list of provided brokers to the Kafka cluster
+// by reassigning partition replicas to them.
+// Request returns an error if not all brokers are available in Cruise Control.
+func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) {
+	if len(brokerIDs) == 0 {
+		return nil, errors.New("no broker id(s) provided for add brokers request")
 	}
 
-	replicaCountByBroker := response.KafkaBrokerState.ReplicaCountByBrokerID
-	replicaCount := float64(99999)
+	brokersToAdd, err := brokerIDsFromStringSlice(brokerIDs)
+	if err != nil {
+		cc.log.Error(err, "failed to cast broker IDs from string slice")
+		return nil, err
+	}
 
-	for brokerID, replica := range replicaCountByBroker {
+	states := []KafkaBrokerState{KafkaBrokerAlive, KafkaBrokerNew}
+	availableBrokers, err := cc.BrokersWithState(states...)
+	if err != nil {
+		cc.log.Error(err, "failed to retrieve list of available brokers from Cruise Control")
+		return nil, err
+	}
+
+	availableBrokersMap := stringSliceToMap(availableBrokers)
+	unavailableBrokerIDs := make([]string, 0, len(brokerIDs))
+	for _, id := range brokerIDs {
+		if _, ok := availableBrokersMap[id]; !ok {
+			unavailableBrokerIDs = append(unavailableBrokerIDs, id)
+		}
+	}
+
+	if len(unavailableBrokerIDs) > 0 {
+		cc.log.Error(err, "there are offline brokers to be added", "broker(s)", unavailableBrokerIDs)
+		return nil, errors.New("not all brokers are available which are meant to be added to the Kafka cluster")
+	}
+
+	addBrokerReq := &api.AddBrokerRequest{
+		AllowCapacityEstimation: true,
+		BrokerIDs:               brokersToAdd,
+		DataFrom:                types.ProposalDataSourceValidWindows,
+		UseReadyDefaultGoals:    true,
+	}
+	addBrokerResp, err := cc.client.AddBroker(addBrokerReq)
+	if err != nil {
+		return &Result{
+			TaskID:    addBrokerResp.TaskID,
+			StartedAt: addBrokerResp.Date,
+			State:     v1beta1.CruiseControlTaskCompletedWithError,
+			Err:       fmt.Sprintf("%v", err),
+		}, err
+	}
+
+	return &Result{
+		TaskID:    addBrokerResp.TaskID,
+		StartedAt: addBrokerResp.Date,
+		State:     v1beta1.CruiseControlTaskActive,
+	}, nil
+}
+
+// RemoveBrokers requests Cruise Control to move partition replicase off from the provided brokers.
+// It does not attempt to remove the provided brokers in case none of them are available in Cruise Control.
+func (cc *cruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*Result, error) {
+	if len(brokerIDs) == 0 {
+		return nil, errors.New("no broker id(s) provided for remove brokers request")
+	}
+
+	clusterStateReq := api.KafkaClusterStateRequestWithDefaults()
+	clusterStateResp, err := cc.client.KafkaClusterState(clusterStateReq)
+	if err != nil {
+		return nil, err
+	}
+
+	brokersToRemove := make([]int32, 0, len(brokerIDs))
+	brokerStates := clusterStateResp.Result.KafkaBrokerState
+	for _, brokerID := range brokerIDs {
+		replicas, ok := brokerStates.ReplicaCountByBrokerID[brokerID]
+		if !ok || replicas <= 0 {
+			cc.log.Info("removing broker is skipped as it is either not available or has 0 partition replicas",
+				"broker_id", brokerID, "replicas", replicas)
+			continue
+		}
+		var bID int
+		bID, err = strconv.Atoi(brokerID)
+		if err != nil {
+			cc.log.Error(err, "failed to cast broker ID from string to integer", "broker_id", brokerID)
+			return nil, err
+		}
+		brokersToRemove = append(brokersToRemove, int32(bID))
+	}
+
+	if len(brokersToRemove) == 0 {
+		return &Result{
+			State: v1beta1.CruiseControlTaskCompleted,
+		}, nil
+	}
+
+	rmBrokerReq := &api.RemoveBrokerRequest{
+		AllowCapacityEstimation: true,
+		BrokerIDs:               brokersToRemove,
+		DataFrom:                types.ProposalDataSourceValidWindows,
+		UseReadyDefaultGoals:    true,
+	}
+	rmBrokerResp, err := cc.client.RemoveBroker(rmBrokerReq)
+	if err != nil {
+		return &Result{
+			TaskID:    rmBrokerResp.TaskID,
+			StartedAt: rmBrokerResp.Date,
+			State:     v1beta1.CruiseControlTaskCompletedWithError,
+			Err:       fmt.Sprintf("%v", err),
+		}, err
+	}
+
+	return &Result{
+		TaskID:    rmBrokerResp.TaskID,
+		StartedAt: rmBrokerResp.Date,
+		State:     v1beta1.CruiseControlTaskActive,
+	}, nil
+}
+
+// RebalanceDisks performs a disk rebalance via Cruise Control for the provided list of brokers.
+func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, error) {
+	clusterLoadResp, err := cc.client.KafkaClusterLoad(api.KafkaClusterLoadRequestWithDefaults())
+	if err != nil {
+		return nil, err
+	}
+
+	brokerIDsMap := stringSliceToMap(brokerIDs)
+
+	brokersWithEmptyDisks := make([]int32, 0, len(brokerIDs))
+	for _, brokerStat := range clusterLoadResp.Result.Brokers {
+		if _, ok := brokerIDsMap[strconv.Itoa(int(brokerStat.Broker))]; !ok {
+			continue
+		}
+		for _, diskState := range brokerStat.DiskState {
+			if diskState.NumReplicas <= 0 && !diskState.DiskMB.Dead {
+				brokersWithEmptyDisks = append(brokersWithEmptyDisks, brokerStat.Broker)
+			}
+		}
+	}
+
+	if len(brokersWithEmptyDisks) == 0 {
+		return &Result{
+			State: v1beta1.CruiseControlTaskCompleted,
+		}, nil
+	}
+
+	rebalanceReq := &api.RebalanceRequest{
+		AllowCapacityEstimation:       true,
+		DestinationBrokerIDs:          brokersWithEmptyDisks,
+		DataFrom:                      types.ProposalDataSourceValidWindows,
+		UseReadyDefaultGoals:          true,
+		ExcludeRecentlyRemovedBrokers: true,
+	}
+	rebalanceResp, err := cc.client.Rebalance(rebalanceReq)
+	if err != nil {
+		return &Result{
+			TaskID:    rebalanceResp.TaskID,
+			StartedAt: rebalanceResp.Date,
+			State:     v1beta1.CruiseControlTaskCompletedWithError,
+			Err:       fmt.Sprintf("%v", err),
+		}, err
+	}
+
+	return &Result{
+		TaskID:    rebalanceResp.TaskID,
+		StartedAt: rebalanceResp.Date,
+		State:     v1beta1.CruiseControlTaskActive,
+	}, nil
+}
+
+// BrokersWithState returns a list of IDs for Kafka brokers which are available in Cruise Control
+// and have one of the expected states.
+func (cc *cruiseControlScaler) BrokersWithState(states ...KafkaBrokerState) ([]string, error) {
+	resp, err := cc.client.KafkaClusterLoad(api.KafkaClusterLoadRequestWithDefaults())
+	if err != nil {
+		cc.log.Error(err, "getting Kafka cluster load from Cruise Control returned an error")
+		return nil, err
+	}
+
+	statesMap := kafkaBrokerStatesToMap(states...)
+	brokersIDs := make([]string, 0, len(resp.Result.Brokers))
+	for _, broker := range resp.Result.Brokers {
+		if _, ok := statesMap[broker.BrokerState]; ok {
+			brokerID := strconv.Itoa(int(broker.Broker))
+			brokersIDs = append(brokersIDs, brokerID)
+			cc.log.Info("Kafka broker is available in Cruise Control",
+				"broker id", brokerID, "state", broker.BrokerState)
+		}
+	}
+	return brokersIDs, nil
+}
+
+// PartitionReplicasByBroker returns the number of partition replicas for every broker in the Kafka cluster.
+func (cc *cruiseControlScaler) PartitionReplicasByBroker() (map[string]int32, error) {
+	clusterStateReq := api.KafkaClusterStateRequestWithDefaults()
+	clusterStateResp, err := cc.client.KafkaClusterState(clusterStateReq)
+	if err != nil {
+		return nil, err
+	}
+	return clusterStateResp.Result.KafkaBrokerState.ReplicaCountByBrokerID, nil
+}
+
+// BrokerWithLeastPartitionReplicas returns the ID of the broker which host the least partition replicas.
+func (cc *cruiseControlScaler) BrokerWithLeastPartitionReplicas() (string, error) {
+	var brokerWithLeastPartitionReplicas string
+
+	brokerPartitions, err := cc.PartitionReplicasByBroker()
+	if err != nil {
+		cc.log.Error(err, "could not retrieve partition map for brokers")
+		return brokerWithLeastPartitionReplicas, err
+	}
+
+	replicaCount := int32(math.MaxInt32)
+	for brokerID, replica := range brokerPartitions {
 		if replicaCount > replica {
 			replicaCount = replica
-			brokerWithLeastPartition = brokerID
+			brokerWithLeastPartitionReplicas = brokerID
 		}
 	}
-	return brokerWithLeastPartition, nil
+	return brokerWithLeastPartitionReplicas, nil
 }
 
-// UpScaleCluster upscales Kafka cluster
-func (cc *cruiseControlScaler) UpScaleCluster(brokerIDs []string) (string, string, error) {
-	liveBrokers, err := cc.GetLiveKafkaBrokersFromCruiseControl(brokerIDs)
+// LogDirsByBroker returns the ID of the broker which host the least partition replicas.
+func (cc *cruiseControlScaler) LogDirsByBroker() (map[string]map[LogDirState][]string, error) {
+	resp, err := cc.client.KafkaClusterState(api.KafkaClusterStateRequestWithDefaults())
 	if err != nil {
-		return "", "", err
-	}
-	ready := bcutil.AreStringSlicesIdentical(liveBrokers, brokerIDs)
-
-	if !ready {
-		return "", "", errors.New("broker(s) not yet ready in cruise-control")
+		cc.log.Error(err, "getting Kafka cluster state from Cruise Control returned an error")
+		return nil, err
 	}
 
-	options := map[string]string{
-		"json":     "true",
-		"dryrun":   "false",
-		"brokerid": strings.Join(brokerIDs, ","),
-	}
-
-	uResp, err := cc.postCruiseControl(addBrokerAction, options)
-	if err != nil && err != errCruiseControlNotReturned200 {
-		log.Error(err, "can't upscale cluster gracefully since post to cruise-control failed")
-		return "", "", err
-	}
-	defer uResp.Body.Close()
-
-	log.Info("Initiated upscale in cruise control")
-
-	uTaskID := uResp.Header.Get("User-Task-Id")
-	startTimeStamp := uResp.Header.Get("Date")
-
-	return uTaskID, startTimeStamp, nil
-}
-
-// DownsizeCluster downscales Kafka cluster
-func (cc *cruiseControlScaler) DownsizeCluster(brokerIDs []string) (string, string, error) {
-	options := map[string]string{
-		"brokerid": strings.Join(brokerIDs, ","),
-		"dryrun":   "false",
-		"json":     "true",
-	}
-
-	var dResp *http.Response
-
-	dResp, err := cc.postCruiseControl(removeBrokerAction, options)
-	if err != nil && err != errCruiseControlNotReturned200 {
-		log.Error(err, "downsize cluster gracefully failed since CC returned non 200")
-		return "", "", err
-	}
-
-	defer dResp.Body.Close()
-
-	log.Info("Initiated downsize in cruise control")
-	uTaskID := dResp.Header.Get("User-Task-Id")
-	startTimeStamp := dResp.Header.Get("Date")
-
-	return uTaskID, startTimeStamp, nil
-}
-
-// RebalanceDisks rebalances Kafka broker replicas between disks using CC
-func (cc *cruiseControlScaler) RebalanceDisks(brokerIDsWithMountPath map[string][]string) (string, string, error) {
-	ready, err := cc.isKafkaBrokerDiskReady(brokerIDsWithMountPath)
-	if err != nil {
-		return "", "", err
-	}
-	if !ready {
-		return "", "", errors.New("broker disk is not ready yet")
-	}
-
-	options := map[string]string{
-		"dryrun":         "false",
-		"json":           "true",
-		"rebalance_disk": "true",
-	}
-
-	rResp, err := cc.postCruiseControl(rebalanceAction, options)
-	if err != nil && err != errCruiseControlNotReturned200 {
-		log.Error(err, "can't rebalance brokers disk gracefully since post to cruise-control failed")
-		return "", "", err
-	}
-
-	rResp.Body.Close()
-
-	log.Info("Initiated disk rebalance in cruise control")
-	uTaskID := rResp.Header.Get("User-Task-Id")
-	startTimeStamp := rResp.Header.Get("Date")
-
-	return uTaskID, startTimeStamp, nil
-}
-
-// RebalanceCluster rebalances Kafka cluster using CC
-func (cc *cruiseControlScaler) RebalanceCluster() (string, error) {
-	options := map[string]string{
-		"dryrun": "false",
-		"json":   "true",
-	}
-
-	dResp, err := cc.postCruiseControl(rebalanceAction, options)
-	if err != nil {
-		log.Error(err, "can't rebalance cluster gracefully since post to cruise-control failed")
-		return "", err
-	}
-	defer dResp.Body.Close()
-	log.Info("Initiated rebalance in cruise control")
-
-	uTaskID := dResp.Header.Get("User-Task-Id")
-
-	return uTaskID, nil
-}
-
-// RunPreferedLeaderElectionInCluster runs leader election in  Kafka cluster using CC
-func (cc *cruiseControlScaler) RunPreferedLeaderElectionInCluster() (string, error) {
-	options := map[string]string{
-		"dryrun": "false",
-		"json":   "true",
-		"goals":  "PreferredLeaderElectionGoal",
-	}
-
-	dResp, err := cc.postCruiseControl(rebalanceAction, options)
-	if err != nil {
-		log.Error(err, "can't rebalance cluster gracefully since post to cruise-control failed")
-		return "", err
-	}
-	defer dResp.Body.Close()
-
-	log.Info("Initiated rebalance in cruise control")
-
-	uTaskID := dResp.Header.Get("User-Task-Id")
-
-	return uTaskID, nil
-}
-
-// KillCCTask kills the specified CC task
-func (cc *cruiseControlScaler) KillCCTask() error {
-	options := map[string]string{
-		"json": "true",
-	}
-
-	resp, err := cc.postCruiseControl(killProposalAction, options)
-	if err != nil {
-		log.Error(err, "can't kill running tasks since post to cruise-control failed")
-		return err
-	}
-	defer resp.Body.Close()
-	log.Info("Task killed")
-
-	return nil
-}
-
-// GetCCTaskState checks whether the given CC Task ID finished or not
-func (cc *cruiseControlScaler) GetCCTaskState(uTaskID string) (banzaicloudv1beta1.CruiseControlUserTaskState, error) {
-	gResp, err := cc.getCruiseControl(getTaskListAction, map[string]string{
-		"json":          "true",
-		"user_task_ids": uTaskID,
-	})
-	if err != nil {
-		log.Error(err, "can't get task list from cruise-control")
-		return "", err
-	}
-
-	var taskLists struct {
-		UserTasks []struct {
-			Status     string
-			UserTaskID string
+	newLogDirsByBroker := func() map[LogDirState][]string {
+		return map[LogDirState][]string{
+			LogDirStateOnline:  {},
+			LogDirStateOffline: {},
 		}
 	}
 
-	body, err := ioutil.ReadAll(gResp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	err = gResp.Body.Close()
-	if err != nil {
-		return "", err
-	}
-
-	err = json.Unmarshal(body, &taskLists)
-	if err != nil {
-		return "", err
-	}
-	// No cc task found with this UID
-	if len(taskLists.UserTasks) == 0 {
-		return banzaicloudv1beta1.CruiseControlTaskNotFound, nil
-	}
-
-	for _, task := range taskLists.UserTasks {
-		if task.UserTaskID == uTaskID {
-			log.Info("Cruise control task state", "state", task.Status, "taskID", uTaskID)
-			return banzaicloudv1beta1.CruiseControlUserTaskState(task.Status), nil
+	logDirsByBrokers := make(map[string]map[LogDirState][]string)
+	for broker, onlineLogDirs := range resp.Result.KafkaBrokerState.OnlineLogDirsByBrokerID {
+		logDirsByBroker, ok := logDirsByBrokers[broker]
+		if !ok || logDirsByBroker == nil {
+			logDirsByBroker = newLogDirsByBroker()
 		}
+		logDirsByBroker[LogDirStateOnline] = onlineLogDirs
+		logDirsByBrokers[broker] = logDirsByBroker
 	}
-	log.Info("Cruise control task not found", "taskID", uTaskID)
-	return banzaicloudv1beta1.CruiseControlTaskNotFound, nil
+	for broker, offlineLogDirs := range resp.Result.KafkaBrokerState.OfflineLogDirsByBrokerID {
+		logDirsByBroker, ok := logDirsByBrokers[broker]
+		if !ok || logDirsByBroker == nil {
+			logDirsByBroker = newLogDirsByBroker()
+		}
+		logDirsByBroker[LogDirStateOffline] = offlineLogDirs
+		logDirsByBrokers[broker] = logDirsByBroker
+	}
+	return logDirsByBrokers, nil
 }

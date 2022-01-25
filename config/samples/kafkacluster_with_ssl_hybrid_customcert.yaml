@@ -48,7 +48,7 @@ spec:
           name: kafka-server
         name: "external"
         externalStartingPort: 19090
-        containerPort: 9094 
+        containerPort: 9094
     internalListeners:
       - type: "ssl"
         serverSSLCertSecret:
@@ -68,7 +68,7 @@ spec:
     sslSecrets:
       tlsSecretName: "test-kafka-operator"
       jksPasswordName: "test-kafka-operator-pass"
-      create: true    
+      create: true
   cruiseControlConfig:
     config: |
       # Copyright 2017 LinkedIn Corp. Licensed under the BSD 2-Clause License (the "License"). See License in the project root for license information.
@@ -209,7 +209,7 @@ spec:
       # The maximum number of completed user tasks for which the response and access details will be cached.
       max.cached.completed.user.tasks=100
       # The maximum number of user tasks for concurrently running in async endpoints across all users.
-      max.active.user.tasks=5
+      max.active.user.tasks=25
       # Enable self healing for all anomaly detectors, unless the particular anomaly detector is explicitly disabled
       self.healing.enabled=true
       # Enable self healing for broker failure detector

@@ -37,6 +37,20 @@ const (
 	testNamespace = "test-namespace"
 )
 
+func TestRequeueAfter(t *testing.T) {
+	sec := 5
+	res, err := requeueAfter(sec)
+	if err != nil {
+		t.Error("Expected to get nil but got error")
+	}
+	if res.IsZero() {
+		t.Error("Result must not be zero")
+	}
+	if res.RequeueAfter.Seconds() != float64(sec) {
+		t.Error("Mismatch in time to set for requeue")
+	}
+}
+
 func TestRequeueWithError(t *testing.T) {
 	_, err := requeueWithError(log, "test", errors.New("test error"))
 	if err == nil {
