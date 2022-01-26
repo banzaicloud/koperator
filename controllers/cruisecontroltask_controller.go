@@ -30,6 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	"github.com/banzaicloud/koperator/pkg/util"
+
 	kafkav1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/scale"
 )
@@ -221,9 +223,24 @@ func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
 
 	builder.WithEventFilter(
 		predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				object, err := meta.Accessor(e.Object)
+				if err != nil {
+					return false
+				}
+				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
+				if ok := util.ObjectManagedByClusterRegistry(object); ok {
+					return false
+				}
+				return true
+			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				object, err := meta.Accessor(e.ObjectNew)
 				if err != nil {
+					return false
+				}
+				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
+				if ok := util.ObjectManagedByClusterRegistry(object); ok {
 					return false
 				}
 				if _, ok := object.(*kafkav1beta1.KafkaCluster); ok {
@@ -234,6 +251,17 @@ func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
 						oldObj.GetGeneration() != newObj.GetGeneration() {
 						return true
 					}
+					return false
+				}
+				return true
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				object, err := meta.Accessor(e.Object)
+				if err != nil {
+					return false
+				}
+				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
+				if ok := util.ObjectManagedByClusterRegistry(object); ok {
 					return false
 				}
 				return true

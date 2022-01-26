@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 
@@ -67,6 +68,42 @@ func SetupKafkaUserWithManager(mgr ctrl.Manager, certSigningEnabled bool, certMa
 	if certManagerNamespace {
 		builder.Owns(&certv1.Certificate{})
 	}
+	builder.WithEventFilter(
+		predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				object, err := meta.Accessor(e.Object)
+				if err != nil {
+					return false
+				}
+				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
+				if ok := util.ObjectManagedByClusterRegistry(object); ok {
+					return false
+				}
+				return true
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				object, err := meta.Accessor(e.Object)
+				if err != nil {
+					return false
+				}
+				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
+				if ok := util.ObjectManagedByClusterRegistry(object); ok {
+					return false
+				}
+				return true
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				object, err := meta.Accessor(e.ObjectNew)
+				if err != nil {
+					return false
+				}
+				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
+				if ok := util.ObjectManagedByClusterRegistry(object); ok {
+					return false
+				}
+				return true
+			},
+		})
 	return builder
 }
 

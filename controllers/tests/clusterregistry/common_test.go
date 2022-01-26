@@ -12,20 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tests
+package clusterregistry
 
 import (
 	"context"
-	"time"
 
-	. "github.com/onsi/gomega"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
-	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 )
 
 const defaultBrokerConfigGroup = "default"
@@ -116,61 +114,49 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 	}
 }
 
-func waitForClusterRunningState(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	ch := make(chan struct{}, 1)
-
-	treshold := 10
-	consecutiveRunningState := 0
-
-	go func() {
-		for {
-			time.Sleep(50 * time.Millisecond)
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				createdKafkaCluster := &v1beta1.KafkaCluster{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, createdKafkaCluster)
-				if err != nil || createdKafkaCluster.Status.State != v1beta1.KafkaClusterRunning {
-					consecutiveRunningState = 0
-					continue
-				}
-				consecutiveRunningState++
-				if consecutiveRunningState > treshold {
-					ch <- struct{}{}
-					return
-				}
-			}
-		}
-	}()
-
-	Eventually(ch, 120*time.Second, 50*time.Millisecond).Should(Receive())
+type ReconcileResult struct {
+	result reconcile.Result
+	err    error
 }
 
-func getMockedKafkaClientForCluster(kafkaCluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func()) {
-	name := types.NamespacedName{
-		Name:      kafkaCluster.Name,
-		Namespace: kafkaCluster.Namespace,
-	}
-	if val, ok := mockKafkaClients[name]; ok {
-		return val, func() { val.Close() }
-	}
-	mockKafkaClient, _, _ := kafkaclient.NewMockFromCluster(k8sClient, kafkaCluster)
-	mockKafkaClients[name] = mockKafkaClient
-	return mockKafkaClient, func() { mockKafkaClient.Close() }
+type TestReconciler struct {
+	requests []reconcile.Request
+	result   ReconcileResult
 }
 
-func resetMockKafkaClient(kafkaCluster *v1beta1.KafkaCluster) {
-	// delete all topics
-	mockKafkaClient, _ := getMockedKafkaClientForCluster(kafkaCluster)
-	topics, _ := mockKafkaClient.ListTopics()
-	for topicName := range topics {
-		_ = mockKafkaClient.DeleteTopic(topicName, false)
+func (r *TestReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
+	log := logr.FromContextOrDiscard(ctx)
+	if r.requests == nil {
+		r.requests = make([]reconcile.Request, 0)
 	}
+	log.Info("received event")
+	r.requests = append(r.requests, request)
 
-	// delete all acls
-	_ = mockKafkaClient.DeleteUserACLs("")
+	return r.result.result, r.result.err
+}
+
+func (r *TestReconciler) WithResult(result reconcile.Result, err error) {
+	r.result = ReconcileResult{
+		result: result,
+		err:    err,
+	}
+}
+
+func (r *TestReconciler) Reset() {
+	r.requests = make([]reconcile.Request, 0)
+}
+
+func (r TestReconciler) Requests() []reconcile.Request {
+	return r.requests
+}
+
+func (r TestReconciler) NumOfRequests() int {
+	return len(r.requests)
+}
+
+func NewTestReconciler() *TestReconciler {
+	return &TestReconciler{
+		requests: make([]reconcile.Request, 0),
+		result:   ReconcileResult{result: reconcile.Result{}},
+	}
 }

@@ -178,7 +178,7 @@ func (r *KafkaClusterReconciler) Reconcile(ctx context.Context, request ctrl.Req
 		return requeueWithError(log, "failed to ensure finalizers on kafkacluster instance", err)
 	}
 
-	//Update rolling upgrade last successful state
+	// Update rolling upgrade last successful state
 	if instance.Status.State == v1beta1.KafkaClusterRollingUpgrading {
 		if err := k8sutil.UpdateRollingUpgradeState(r.Client, instance, time.Now(), log); err != nil {
 			return requeueWithError(log, err.Error(), err)
@@ -364,17 +364,33 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Build
 				if err != nil {
 					return false
 				}
+				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
+				if ok := util.ObjectManagedByClusterRegistry(object); ok {
+					return false
+				}
 				if _, ok := object.(*v1beta1.KafkaCluster); ok {
 					return true
 				}
 				return false
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
+				object, err := meta.Accessor(e.Object)
+				if err != nil {
+					return false
+				}
+				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
+				if ok := util.ObjectManagedByClusterRegistry(object); ok {
+					return false
+				}
 				return true
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				object, err := meta.Accessor(e.ObjectNew)
 				if err != nil {
+					return false
+				}
+				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
+				if ok := util.ObjectManagedByClusterRegistry(object); ok {
 					return false
 				}
 				switch object.(type) {
@@ -386,12 +402,12 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Build
 						return false
 					}
 				case *v1beta1.KafkaCluster:
-					old := e.ObjectOld.(*v1beta1.KafkaCluster)
-					new := e.ObjectNew.(*v1beta1.KafkaCluster)
-					if !reflect.DeepEqual(old.Spec, new.Spec) ||
-						old.GetDeletionTimestamp() != new.GetDeletionTimestamp() ||
-						old.GetGeneration() != new.GetGeneration() ||
-						!reflect.DeepEqual(old.Status.BrokersState, new.Status.BrokersState) {
+					oldObj := e.ObjectOld.(*v1beta1.KafkaCluster)
+					newObj := e.ObjectNew.(*v1beta1.KafkaCluster)
+					if !reflect.DeepEqual(oldObj.Spec, newObj.Spec) ||
+						oldObj.GetDeletionTimestamp() != newObj.GetDeletionTimestamp() ||
+						oldObj.GetGeneration() != newObj.GetGeneration() ||
+						!reflect.DeepEqual(oldObj.Status.BrokersState, newObj.Status.BrokersState) {
 						return true
 					}
 					return false

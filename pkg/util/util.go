@@ -35,11 +35,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	clientCtrl "sigs.k8s.io/controller-runtime/pkg/client"
 	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	clusterregv1alpha1 "github.com/banzaicloud/cluster-registry/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
@@ -453,4 +455,10 @@ func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.Name
 	config.RootCAs = rootCAs
 
 	return config, err
+}
+
+func ObjectManagedByClusterRegistry(object metav1.Object) bool {
+	annotations := object.GetAnnotations()
+	_, ok := annotations[clusterregv1alpha1.OwnershipAnnotation]
+	return ok
 }
