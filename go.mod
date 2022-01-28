@@ -8,7 +8,7 @@ require (
 	github.com/banzaicloud/cluster-registry v0.0.7
 	github.com/banzaicloud/go-cruise-control v0.0.0-20220121135324-9178f00469c5
 	github.com/banzaicloud/istio-client-go v0.0.15
-	github.com/banzaicloud/istio-operator/api/v2 v2.11.5
+	github.com/banzaicloud/istio-operator/api/v2 v2.11.6
 	github.com/banzaicloud/k8s-objectmatcher v1.7.0
 	github.com/banzaicloud/koperator/api v0.0.0
 	github.com/banzaicloud/koperator/properties v0.1.0
