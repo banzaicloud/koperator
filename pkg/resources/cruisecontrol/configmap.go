@@ -17,6 +17,7 @@ package cruisecontrol
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 
 	"emperror.dev/errors"
@@ -145,10 +146,6 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	// If there is already a config added manually, use that one
 	if kafkaCluster.Spec.CruiseControlConfig.CapacityConfig != "" {
 		userProvidedCapacityConfig := kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
-		updatedProvidedCapacityConfig := ensureContainsDefaultBrokerCapacity([]byte(userProvidedCapacityConfig), log)
-		if updatedProvidedCapacityConfig != nil {
-			return string(updatedProvidedCapacityConfig), err
-		}
 		return userProvidedCapacityConfig, err
 	}
 	// During cluster downscale the CR does not contain data for brokers being downscaled which is
@@ -162,29 +159,49 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 
 	capacityConfig := CapacityConfig{}
 
-	for _, broker := range kafkaCluster.Spec.Brokers {
-		brokerDisks, err := generateBrokerDisks(broker, kafkaCluster.Spec, log)
-		if err != nil {
-			return "", errors.WrapIfWithDetails(err, "could not generate broker disks config for broker", "brokerID", broker.Id)
-		}
-		brokerCapacity := BrokerCapacity{
-			BrokerID: fmt.Sprintf("%d", broker.Id),
-			Capacity: Capacity{
-				DISK:  brokerDisks,
-				CPU:   generateBrokerCPU(broker, kafkaCluster.Spec, log),
-				NWIN:  generateBrokerNetworkIn(broker, kafkaCluster.Spec, log),
-				NWOUT: generateBrokerNetworkOut(broker, kafkaCluster.Spec, log),
-			},
-			Doc: defaultDoc,
-		}
-
-		log.Info("The following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
-
-		capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
+	var strkeys []string
+	for key := range kafkaCluster.Status.BrokersState {
+		strkeys = append(strkeys, key)
 	}
+	sort.Strings(strkeys)
 
-	// adding default broker capacity config
-	capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, generateDefaultBrokerCapacity())
+	for _, brokerId := range strkeys {
+		brokerFound := false
+		for _, broker := range kafkaCluster.Spec.Brokers {
+			if brokerId == fmt.Sprintf("%d", broker.Id) {
+				brokerFound = true
+				brokerDisks, err := generateBrokerDisks(broker, kafkaCluster.Spec, log)
+				if err != nil {
+					return "", errors.WrapIfWithDetails(err, "could not generate broker disks config for broker", "brokerID", broker.Id)
+				}
+				brokerCapacity := BrokerCapacity{
+					BrokerID: fmt.Sprintf("%d", broker.Id),
+					Capacity: Capacity{
+						DISK:  brokerDisks,
+						CPU:   generateBrokerCPU(broker, kafkaCluster.Spec, log),
+						NWIN:  generateBrokerNetworkIn(broker, kafkaCluster.Spec, log),
+						NWOUT: generateBrokerNetworkOut(broker, kafkaCluster.Spec, log),
+					},
+					Doc: defaultDoc,
+				}
+
+				log.Info("The following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
+
+				capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
+			}
+		}
+		// When removing a broker it still needs to have values assigned in capacity config
+		// although it doesn't really matter what the values are, so we are setting defaults
+		// here, this way we don't have to deal with a universal default.
+		if !brokerFound {
+			log.Info("Broker spec not found, using default fallback")
+			brokerCapacity := generateDefaultBrokerCapacityWithId(brokerId)
+
+			log.Info("The following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
+
+			capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
+		}
+	}
 
 	result, err := json.MarshalIndent(capacityConfig, "", "    ")
 	if err != nil {
@@ -195,45 +212,9 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	return string(result), err
 }
 
-func ensureContainsDefaultBrokerCapacity(data []byte, log logr.Logger) []byte {
-	config := JBODInvariantCapacityConfig{}
-	err := json.Unmarshal(data, &config)
-	if err != nil {
-		log.Info("could not unmarshal the user-provided broker capacity config")
-		return nil
-	}
-	for _, brokerConfig := range config.Capacities {
-		brokerConfigMap, ok := brokerConfig.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		var brokerId interface{}
-		brokerId, ok = brokerConfigMap["brokerId"]
-		if !ok {
-			continue
-		}
-		if brokerId == "-1" {
-			return nil
-		}
-	}
-
-	// should add default broker capacity config
-	config.Capacities = append(config.Capacities, generateDefaultBrokerCapacity())
-
-	result, err := json.MarshalIndent(config, "", "    ")
-	if err != nil {
-		log.Info("could not marshal the modified broker capacity config")
-		return nil
-	}
-	return result
-}
-
-// generates default broker capacity
-// the exact values do not matter as for every broker it is set explicitly above
-// upon broker deletion CruiseControl does not use these value, it requires to detect that a broker exists
-func generateDefaultBrokerCapacity() BrokerCapacity {
+func generateDefaultBrokerCapacityWithId(brokerId string) BrokerCapacity {
 	return BrokerCapacity{
-		BrokerID: "-1",
+		BrokerID: brokerId,
 		Capacity: Capacity{
 			DISK: map[string]string{
 				"/kafka-logs/kafka": "10737",
