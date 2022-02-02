@@ -159,23 +159,25 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 
 	capacityConfig := CapacityConfig{}
 
-	var strkeys []string
+	brokerIdFromStatus := make([]string, 0, len(kafkaCluster.Status.BrokersState))
 	for key := range kafkaCluster.Status.BrokersState {
-		strkeys = append(strkeys, key)
+		brokerIdFromStatus = append(brokerIdFromStatus, key)
 	}
-	sort.Strings(strkeys)
+	sort.Strings(brokerIdFromStatus)
+	log.Info("String keys", "brokerIdFromStatus", brokerIdFromStatus)
 
-	for _, brokerId := range strkeys {
+	for _, brokerId := range brokerIdFromStatus {
+		brokerCapacity := BrokerCapacity{}
 		brokerFound := false
 		for _, broker := range kafkaCluster.Spec.Brokers {
-			if brokerId == fmt.Sprintf("%d", broker.Id) {
+			if brokerId == strconv.Itoa(int(broker.Id)) {
 				brokerFound = true
 				brokerDisks, err := generateBrokerDisks(broker, kafkaCluster.Spec, log)
 				if err != nil {
 					return "", errors.WrapIfWithDetails(err, "could not generate broker disks config for broker", "brokerID", broker.Id)
 				}
-				brokerCapacity := BrokerCapacity{
-					BrokerID: fmt.Sprintf("%d", broker.Id),
+				brokerCapacity = BrokerCapacity{
+					BrokerID: strconv.Itoa(int(broker.Id)),
 					Capacity: Capacity{
 						DISK:  brokerDisks,
 						CPU:   generateBrokerCPU(broker, kafkaCluster.Spec, log),
@@ -184,10 +186,6 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 					},
 					Doc: defaultDoc,
 				}
-
-				log.Info("The following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
-
-				capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
 			}
 		}
 		// When removing a broker it still needs to have values assigned in capacity config
@@ -195,12 +193,12 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 		// here, this way we don't have to deal with a universal default.
 		if !brokerFound {
 			log.Info("Broker spec not found, using default fallback")
-			brokerCapacity := generateDefaultBrokerCapacityWithId(brokerId)
+			brokerCapacity = generateDefaultBrokerCapacityWithId(brokerId)
 
-			log.Info("The following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
-
-			capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
 		}
+		log.Info("The following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
+
+		capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
 	}
 
 	result, err := json.MarshalIndent(capacityConfig, "", "    ")
