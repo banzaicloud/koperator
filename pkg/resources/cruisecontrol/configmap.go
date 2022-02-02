@@ -194,7 +194,6 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 		if !brokerFound {
 			log.Info("Broker spec not found, using default fallback")
 			brokerCapacity = generateDefaultBrokerCapacityWithId(brokerId)
-
 		}
 		log.Info("The following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
 
