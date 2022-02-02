@@ -160,18 +160,17 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	capacityConfig := CapacityConfig{}
 
 	brokerIdFromStatus := make([]string, 0, len(kafkaCluster.Status.BrokersState))
-	for key := range kafkaCluster.Status.BrokersState {
-		brokerIdFromStatus = append(brokerIdFromStatus, key)
+	for brokerId := range kafkaCluster.Status.BrokersState {
+		brokerIdFromStatus = append(brokerIdFromStatus, brokerId)
 	}
 	sort.Strings(brokerIdFromStatus)
-	log.Info("String keys", "brokerIdFromStatus", brokerIdFromStatus)
 
 	for _, brokerId := range brokerIdFromStatus {
 		brokerCapacity := BrokerCapacity{}
-		brokerFound := false
+		brokerFoundInSpec := false
 		for _, broker := range kafkaCluster.Spec.Brokers {
 			if brokerId == strconv.Itoa(int(broker.Id)) {
-				brokerFound = true
+				brokerFoundInSpec = true
 				brokerDisks, err := generateBrokerDisks(broker, kafkaCluster.Spec, log)
 				if err != nil {
 					return "", errors.WrapIfWithDetails(err, "could not generate broker disks config for broker", "brokerID", broker.Id)
@@ -191,7 +190,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 		// When removing a broker it still needs to have values assigned in capacity config
 		// although it doesn't really matter what the values are, so we are setting defaults
 		// here, this way we don't have to deal with a universal default.
-		if !brokerFound {
+		if !brokerFoundInSpec {
 			log.Info("Broker spec not found, using default fallback")
 			brokerCapacity = generateDefaultBrokerCapacityWithId(brokerId)
 		}

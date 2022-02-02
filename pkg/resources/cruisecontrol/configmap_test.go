@@ -262,6 +262,127 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
                   }`,
 		},
 		{
+			testName: "generate correct capacity config when there is a broker missing from spec but present in status",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+						"default": {
+							StorageConfigs: []v1beta1.StorageConfig{
+								{
+									MountPath: "/path-from-default",
+									PvcSpec: &v1.PersistentVolumeClaimSpec{
+										Resources: v1.ResourceRequirements{
+											Requests: v1.ResourceList{
+												v1.ResourceStorage: quantity,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Brokers: []v1beta1.Broker{
+						{
+							Id:                0,
+							BrokerConfigGroup: "default",
+							BrokerConfig: &v1beta1.BrokerConfig{
+								Resources: &v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										"cpu": cpuQuantity,
+									}},
+							},
+						},
+						{
+							Id:                1,
+							BrokerConfigGroup: "default",
+						},
+						{
+							Id:                2,
+							BrokerConfigGroup: "default",
+						},
+						{
+							Id:                3,
+							BrokerConfigGroup: "default",
+						},
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {},
+						"1": {},
+						"2": {},
+						"3": {},
+						"4": {},
+					},
+				},
+			},
+			expectedConfiguration: `
+				  {
+					"brokerCapacities": [
+                      {
+					  "brokerId": "0",
+					  "capacity": {
+					   "DISK": {
+						"/path-from-default/kafka": "10737"
+					   },
+					   "CPU": "200",
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
+					  },
+					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 },
+                     {
+					  "brokerId": "1",
+					  "capacity": {
+					   "DISK": {
+						"/path-from-default/kafka": "10737"
+					   },
+					   "CPU": "150",
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
+					  },
+					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 },
+                     {
+					  "brokerId": "2",
+					  "capacity": {
+					   "DISK": {
+						"/path-from-default/kafka": "10737"
+					   },
+					   "CPU": "150",
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
+					  },
+					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 },
+                     {
+					   "brokerId": "3",
+					   "capacity": {
+					    "DISK": {
+					     "/path-from-default/kafka": "10737"
+					    },
+					    "CPU": "150",
+					    "NW_IN": "125000",
+					    "NW_OUT": "125000"
+					   },
+					   "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 },
+					 {
+					   "brokerId": "4",
+					   "capacity": {
+					    "DISK": {
+							"/kafka-logs/kafka": "10737"
+					    },
+					    "CPU": "100",
+					    "NW_IN": "125000",
+					    "NW_OUT": "125000"
+					   },
+					   "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 }
+					]
+                  }`,
+		},
+		{
 			testName: "generate correct capacity config when storage config is specified as 1Mi ",
 			kafkaCluster: v1beta1.KafkaCluster{
 				Spec: v1beta1.KafkaClusterSpec{
