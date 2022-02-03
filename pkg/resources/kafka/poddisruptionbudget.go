@@ -74,7 +74,7 @@ func (r *Reconciler) computeMinAvailable(log logr.Logger) (intstr.IntOrString, e
 
 	*/
 	// number of brokers in the KafkaCluster
-	brokers := len(r.KafkaCluster.Spec.Brokers)
+	brokers := len(r.KafkaCluster.Status.BrokersState)
 
 	// configured budget in the KafkaCluster
 	disruptionBudget := r.KafkaCluster.Spec.DisruptionBudget.Budget
