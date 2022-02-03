@@ -626,7 +626,6 @@ func TestReturnErrorStorageConfigLessThan1MB(t *testing.T) {
 //nolint:funlen
 func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 	cpuQuantity, _ := resource.ParseQuantity("2000m")
-
 	testCases := []struct {
 		testName              string
 		capacityConfig        string
@@ -681,6 +680,26 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 						"NW_OUT": "50000"
 					  },
 					  "doc": "This overrides the capacity for broker 1. This broker is a JBOD broker."
+					},
+					{
+						"brokerId": "2",
+						"capacity": {
+						  "DISK": {},
+						  "CPU": "200",
+						  "NW_IN": "125000",
+						  "NW_OUT": "125000"
+						},
+						"doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					},
+					{
+						"brokerId": "4",
+						"capacity": {
+						  "DISK": {},
+						  "CPU": "200",
+						  "NW_IN": "125000",
+						  "NW_OUT": "125000"
+						},
+						"doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					}
 				  ]
 				}`,
@@ -809,6 +828,26 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 						"NW_OUT": "50000"
 					  },
 					  "doc": "This overrides the capacity for broker 1. This broker is a JBOD broker."
+					},
+					{
+						"brokerId": "2",
+						"capacity": {
+						  "DISK": {},
+						  "CPU": "200",
+						  "NW_IN": "125000",
+						  "NW_OUT": "125000"
+						},
+						"doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					},
+					{
+						"brokerId": "4",
+						"capacity": {
+						  "DISK": {},
+						  "CPU": "200",
+						  "NW_IN": "125000",
+						  "NW_OUT": "125000"
+						},
+						"doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					}
 				  ]
 				}`,
@@ -908,16 +947,42 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 						},
 						{
 							Id: 1,
+							BrokerConfig: &v1beta1.BrokerConfig{
+								Resources: &v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										"cpu": cpuQuantity,
+									}},
+							},
 						},
 						{
 							Id: 2,
+							BrokerConfig: &v1beta1.BrokerConfig{
+								Resources: &v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										"cpu": cpuQuantity,
+									}},
+							},
 						},
 						{
 							Id: 4,
+							BrokerConfig: &v1beta1.BrokerConfig{
+								Resources: &v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										"cpu": cpuQuantity,
+									}},
+							},
 						},
 					},
 					CruiseControlConfig: v1beta1.CruiseControlConfig{
 						CapacityConfig: test.capacityConfig,
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {},
+						"1": {},
+						"2": {},
+						"4": {},
 					},
 				},
 			}

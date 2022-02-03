@@ -146,6 +146,10 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	// If there is already a config added manually, use that one
 	if kafkaCluster.Spec.CruiseControlConfig.CapacityConfig != "" {
 		userProvidedCapacityConfig := kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
+		updatedProvidedCapacityConfig, err := extendUserProvidedCapacityConfig([]byte(userProvidedCapacityConfig), kafkaCluster, log)
+		if updatedProvidedCapacityConfig != "" {
+			return updatedProvidedCapacityConfig, err
+		}
 		return userProvidedCapacityConfig, err
 	}
 	// During cluster downscale the CR does not contain data for brokers being downscaled which is
@@ -158,12 +162,41 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	}
 
 	capacityConfig := CapacityConfig{}
+	BrokerCapacities, err := appendGeneratedBrokerCapacities(kafkaCluster, log, nil)
+	if err != nil {
+		return "", err
+	}
+	capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, BrokerCapacities...)
+	result, err := json.MarshalIndent(capacityConfig, "", "    ")
+	if err != nil {
+		log.Error(err, "Could not marshal cruise control capacity config")
+	}
+	log.Info(fmt.Sprintf("Generated capacity config was successful with values: %s", result))
+	return string(result), err
+}
+
+func appendGeneratedBrokerCapacities(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, presentBrokerIds []string) ([]BrokerCapacity, error) {
+	capacityConfig := CapacityConfig{}
 
 	brokerIdFromStatus := make([]string, 0, len(kafkaCluster.Status.BrokersState))
 	for brokerId := range kafkaCluster.Status.BrokersState {
 		brokerIdFromStatus = append(brokerIdFromStatus, brokerId)
 	}
 	sort.Strings(brokerIdFromStatus)
+
+RemovePresentBrokerIds:
+	for _, presentBrokerId := range presentBrokerIds {
+		for i, statusBrokerId := range brokerIdFromStatus {
+			if statusBrokerId == presentBrokerId {
+				brokerIdFromStatus = append(brokerIdFromStatus[:i], brokerIdFromStatus[i+1:]...)
+				continue RemovePresentBrokerIds
+			}
+		}
+	}
+
+	if len(brokerIdFromStatus) == 0 {
+		return []BrokerCapacity{}, nil
+	}
 
 	for _, brokerId := range brokerIdFromStatus {
 		brokerCapacity := BrokerCapacity{}
@@ -173,7 +206,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 				brokerFoundInSpec = true
 				brokerDisks, err := generateBrokerDisks(broker, kafkaCluster.Spec, log)
 				if err != nil {
-					return "", errors.WrapIfWithDetails(err, "could not generate broker disks config for broker", "brokerID", broker.Id)
+					return []BrokerCapacity{}, errors.WrapIfWithDetails(err, "could not generate broker disks config for broker", "brokerID", broker.Id)
 				}
 				brokerCapacity = BrokerCapacity{
 					BrokerID: strconv.Itoa(int(broker.Id)),
@@ -198,13 +231,47 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 
 		capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
 	}
+	return capacityConfig.BrokerCapacities, nil
+}
 
-	result, err := json.MarshalIndent(capacityConfig, "", "    ")
+func extendUserProvidedCapacityConfig(data []byte, kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) (string, error) {
+	var presentBrokerIds []string
+	config := JBODInvariantCapacityConfig{}
+	err := json.Unmarshal(data, &config)
+	if err != nil {
+		log.Info("could not unmarshal the user-provided broker capacity config")
+		return "", errors.Wrap(err, "could not unmarshal the user-provided broker capacity config")
+	}
+	for _, brokerConfig := range config.Capacities {
+		brokerConfigMap, ok := brokerConfig.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		var brokerId interface{}
+		brokerId, ok = brokerConfigMap["brokerId"]
+		if !ok {
+			continue
+		} else {
+			presentBrokerIds = append(presentBrokerIds, fmt.Sprint(brokerId))
+		}
+		if brokerId == "-1" {
+			return "", nil
+		}
+	}
+
+	//Addig generated values to all Brokers not already present in the list
+	BrokerCapacities, err := appendGeneratedBrokerCapacities(kafkaCluster, log, presentBrokerIds)
+	if err != nil {
+		return "", err
+	}
+	for _, brokerCapacity := range BrokerCapacities {
+		config.Capacities = append(config.Capacities, brokerCapacity)
+	}
+	result, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		log.Error(err, "Could not marshal cruise control capacity config")
 	}
 	log.Info(fmt.Sprintf("Generated capacity config was successful with values: %s", result))
-
 	return string(result), err
 }
 
