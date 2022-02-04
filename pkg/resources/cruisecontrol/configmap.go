@@ -25,6 +25,7 @@ import (
 	"github.com/go-logr/logr"
 	"gopkg.in/inf.v0"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
@@ -143,48 +144,34 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 
 	log.Info("generating capacity config")
 
-	var capacityConfig CapacityConfig
-	var brokerCapacities []BrokerCapacity
+	var capacityConfig JBODInvariantCapacityConfig
+	var userConfigBrokerIds []string
 	// If there is already a config added manually, use that one
 	if kafkaCluster.Spec.CruiseControlConfig.CapacityConfig != "" {
 		userProvidedCapacityConfig := kafkaCluster.Spec.CruiseControlConfig.CapacityConfig
-		var presentBrokerIds []string
-		config := JBODInvariantCapacityConfig{}
-		err := json.Unmarshal([]byte(userProvidedCapacityConfig), &config)
+		err := json.Unmarshal([]byte(userProvidedCapacityConfig), &capacityConfig)
 		if err != nil {
 			return "", errors.Wrap(err, "could not unmarshal the user-provided broker capacity config")
 		}
-		for _, brokerConfig := range config.Capacities {
-			brokerConfigMap, ok := brokerConfig.(map[string]interface{})
+		for _, brokerCapacity := range capacityConfig.Capacities {
+			brokerCapacityMap, ok := brokerCapacity.(map[string]interface{})
 			if !ok {
 				continue
 			}
-			brokerId, ok := brokerConfigMap["brokerId"].(string)
+			brokerId, ok, err := unstructured.NestedString(brokerCapacityMap, "brokerId")
+			if err != nil {
+				return "", errors.WrapIfWithDetails(err,
+					"could retrieve broker Id from broker capacity configuration",
+					"capacity configuration", brokerCapacityMap)
+			}
 			if !ok {
 				continue
 			}
-			presentBrokerIds = append(presentBrokerIds, brokerId)
-			//If the -1 default exists we don't have to do anything else here since all brokers will have values.
+			// If the -1 default exists we don't have to do anything else here since all brokers will have values.
 			if brokerId == "-1" {
 				return userProvidedCapacityConfig, nil
 			}
-		}
-
-		//Addig generated values to all Brokers not provided by the user.
-		brokerCapacities, err = appendGeneratedBrokerCapacities(kafkaCluster, log, presentBrokerIds)
-		if err != nil {
-			return "", err
-		}
-		if brokerCapacities != nil {
-			for _, brokerCapacity := range brokerCapacities {
-				config.Capacities = append(config.Capacities, brokerCapacity)
-			}
-			result, err := json.MarshalIndent(config, "", "    ")
-			if err != nil {
-				return "", err
-			}
-			log.Info(fmt.Sprintf("generated capacity config was successful with values: %s", result))
-			return string(result), err
+			userConfigBrokerIds = append(userConfigBrokerIds, brokerId)
 		}
 	}
 	// During cluster downscale the CR does not contain data for brokers being downscaled which is
@@ -196,13 +183,14 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 		}
 	}
 
-	//If there was no user provided config we shall generate all configuration
-	brokerCapacities, err = appendGeneratedBrokerCapacities(kafkaCluster, log, nil)
+	// If there was no user provided config we shall generate all configuration or
+	// addig generated values to all Brokers not provided by the user.
+	brokerCapacities, err := appendGeneratedBrokerCapacities(kafkaCluster, log, userConfigBrokerIds)
 	if err != nil {
 		return "", err
 	}
 
-	capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacities...)
+	capacityConfig.Capacities = append(capacityConfig.Capacities, brokerCapacities...)
 	result, err := json.MarshalIndent(capacityConfig, "", "    ")
 	if err != nil {
 		return "", err
@@ -211,8 +199,8 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	return string(result), err
 }
 
-func appendGeneratedBrokerCapacities(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, presentBrokerIds []string) ([]BrokerCapacity, error) {
-	capacityConfig := CapacityConfig{}
+func appendGeneratedBrokerCapacities(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, userConfigBrokerIds []string) ([]interface{}, error) {
+	var brokerCapacities []interface{}
 
 	brokerIdFromStatus := make([]string, 0, len(kafkaCluster.Status.BrokersState))
 	for brokerId := range kafkaCluster.Status.BrokersState {
@@ -220,8 +208,8 @@ func appendGeneratedBrokerCapacities(kafkaCluster *v1beta1.KafkaCluster, log log
 	}
 	sort.Strings(brokerIdFromStatus)
 
-	for _, presentBrokerId := range presentBrokerIds {
-		brokerIdFromStatus = util.StringSliceRemove(brokerIdFromStatus, presentBrokerId)
+	for _, userConfigBrokerId := range userConfigBrokerIds {
+		brokerIdFromStatus = util.StringSliceRemove(brokerIdFromStatus, userConfigBrokerId)
 	}
 
 	if len(brokerIdFromStatus) == 0 {
@@ -259,9 +247,9 @@ func appendGeneratedBrokerCapacities(kafkaCluster *v1beta1.KafkaCluster, log log
 		}
 		log.Info("the following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
 
-		capacityConfig.BrokerCapacities = append(capacityConfig.BrokerCapacities, brokerCapacity)
+		brokerCapacities = append(brokerCapacities, &brokerCapacity)
 	}
-	return capacityConfig.BrokerCapacities, nil
+	return brokerCapacities, nil
 }
 
 func generateDefaultBrokerCapacityWithId(brokerId string) BrokerCapacity {

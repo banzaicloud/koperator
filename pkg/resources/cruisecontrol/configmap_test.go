@@ -694,7 +694,7 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 					{
 						"brokerId": "4",
 						"capacity": {
-						  "DISK": {},
+						  "DISK": {"/path1/kafka": "100"},
 						  "CPU": "200",
 						  "NW_IN": "125000",
 						  "NW_OUT": "125000"
@@ -842,7 +842,7 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 					{
 						"brokerId": "4",
 						"capacity": {
-						  "DISK": {},
+						  "DISK": {"/path1/kafka": "100"},
 						  "CPU": "200",
 						  "NW_IN": "125000",
 						  "NW_OUT": "125000"
@@ -970,6 +970,18 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 									Limits: v1.ResourceList{
 										"cpu": cpuQuantity,
 									}},
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/path1",
+										PvcSpec: &v1.PersistentVolumeClaimSpec{
+											Resources: v1.ResourceRequirements{
+												Requests: v1.ResourceList{
+													v1.ResourceStorage: resource.MustParse("100M"),
+												},
+											},
+										},
+									},
+								},
 							},
 						},
 					},
