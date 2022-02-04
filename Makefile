@@ -53,6 +53,10 @@ lint: bin/golangci-lint ## Run linter
 	cd api && golangci-lint run -c ../.golangci.yml
 	cd properties && golangci-lint run -c ../.golangci.yml
 
+.PHONY: lint-fix
+lint-fix: bin/golangci-lint ## Run linter
+	@bin/golangci-lint run --fix
+
 bin/licensei: bin/licensei-${LICENSEI_VERSION}
 	@ln -sf licensei-${LICENSEI_VERSION} bin/licensei
 bin/licensei-${LICENSEI_VERSION}:
