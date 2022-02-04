@@ -18,7 +18,6 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/util/pki"
 
-	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -35,9 +34,8 @@ type K8sCSR interface {
 type k8sCSR struct {
 	client  client.Client
 	cluster *v1beta1.KafkaCluster
-	logger  logr.Logger
 }
 
-func New(client client.Client, cluster *v1beta1.KafkaCluster, logger logr.Logger) K8sCSR {
-	return &k8sCSR{client: client, cluster: cluster, logger: logger}
+func New(client client.Client, cluster *v1beta1.KafkaCluster) K8sCSR {
+	return &k8sCSR{client: client, cluster: cluster}
 }

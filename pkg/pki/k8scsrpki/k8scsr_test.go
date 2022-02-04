@@ -18,11 +18,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/banzaicloud/koperator/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 type mockClient struct {
@@ -53,7 +51,7 @@ func newMockCluster() *v1beta1.KafkaCluster {
 }
 
 func TestNew(t *testing.T) {
-	pkiManager := New(&mockClient{}, newMockCluster(), log.Log)
+	pkiManager := New(&mockClient{}, newMockCluster())
 	if reflect.TypeOf(pkiManager) != reflect.TypeOf(&k8sCSR{}) {
 		t.Error("Expected new k8sCSR from New, got:", reflect.TypeOf(pkiManager))
 	}

@@ -18,7 +18,6 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -33,7 +32,7 @@ import (
 var MockBackend = v1beta1.PKIBackend("mock")
 
 // GetPKIManager returns a PKI/User manager interface for a given cluster
-func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBackend v1beta1.PKIBackend, log logr.Logger) pki.Manager {
+func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBackend v1beta1.PKIBackend) pki.Manager {
 	var backend v1beta1.PKIBackend
 	if pkiBackend == v1beta1.PKIBackendProvided {
 		backend = cluster.Spec.ListenersConfig.SSLSecrets.PKIBackend
@@ -47,7 +46,7 @@ func GetPKIManager(client client.Client, cluster *v1beta1.KafkaCluster, pkiBacke
 		return certmanagerpki.New(client, cluster)
 	// Use k8s csr api for pki backend
 	case v1beta1.PKIBackendK8sCSR:
-		return k8scsrpki.New(client, cluster, log)
+		return k8scsrpki.New(client, cluster)
 	// Return mock backend for testing - cannot be triggered by CR due to enum in api schema
 	case MockBackend:
 		return newMockPKIManager(client, cluster)
@@ -69,11 +68,11 @@ func newMockPKIManager(client client.Client, cluster *v1beta1.KafkaCluster) pki.
 	return &mockPKIManager{client: client, cluster: cluster}
 }
 
-func (m *mockPKIManager) ReconcilePKI(ctx context.Context, logger logr.Logger, extListenerStatuses map[string]v1beta1.ListenerStatusList) error {
+func (m *mockPKIManager) ReconcilePKI(ctx context.Context, externalHostnames map[string]v1beta1.ListenerStatusList) error {
 	return nil
 }
 
-func (m *mockPKIManager) FinalizePKI(ctx context.Context, logger logr.Logger) error {
+func (m *mockPKIManager) FinalizePKI(ctx context.Context) error {
 	return nil
 }
 

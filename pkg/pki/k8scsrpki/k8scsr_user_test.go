@@ -96,7 +96,7 @@ func TestReconcileUserCertificate(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 
 	fakeClient := fake.NewClientBuilder().WithScheme(sch).Build()
-	pkiManager := New(fakeClient, newMockCluster(), log.Log)
+	pkiManager := New(fakeClient, newMockCluster())
 	ctx := context.Background()
 	user := createKafkaUser()
 	_, err = pkiManager.ReconcileUserCertificate(ctx, user, sch, "")

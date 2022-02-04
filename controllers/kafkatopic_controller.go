@@ -92,7 +92,6 @@ type KafkaTopicReconciler struct {
 	// that reads objects from the cache and writes to the apiserver
 	Client client.Client
 	Scheme *runtime.Scheme
-	Log    logr.Logger
 }
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics,verbs=get;list;watch;create;update;patch;delete;deletecollection
@@ -100,7 +99,7 @@ type KafkaTopicReconciler struct {
 
 // Reconcile reconciles the kafka topic
 func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := r.Log.WithValues("kafkatopic", request.NamespacedName, "Request.Name", request.Name)
+	reqLogger := logr.FromContextOrDiscard(ctx).WithValues("kafkatopic", request.NamespacedName, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KafkaTopic")
 	var err error
 
@@ -141,7 +140,7 @@ func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.
 
 	// Check if marked for deletion and if so run finalizers
 	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
-		return r.checkFinalizers(ctx, reqLogger, broker, instance)
+		return r.checkFinalizers(ctx, broker, instance)
 	}
 
 	// Check if the topic already exists
@@ -226,7 +225,8 @@ func (r *KafkaTopicReconciler) updateAndFetchLatest(ctx context.Context, topic *
 	return topic, nil
 }
 
-func (r *KafkaTopicReconciler) checkFinalizers(ctx context.Context, reqLogger logr.Logger, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {
+func (r *KafkaTopicReconciler) checkFinalizers(ctx context.Context, broker kafkaclient.KafkaClient, topic *v1alpha1.KafkaTopic) (reconcile.Result, error) {
+	reqLogger := logr.FromContextOrDiscard(ctx)
 	reqLogger.Info("Kafka topic is marked for deletion")
 	var err error
 	if util.StringSliceContains(topic.GetFinalizers(), topicFinalizer) {
