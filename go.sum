@@ -183,8 +183,8 @@ github.com/banzaicloud/go-cruise-control v0.0.0-20220121135324-9178f00469c5/go.m
 github.com/banzaicloud/istio-client-go v0.0.11/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
 github.com/banzaicloud/istio-client-go v0.0.15 h1:F2rr1tI/+19kDddLawft8scT8mGLNgBq23gV+I0zsh4=
 github.com/banzaicloud/istio-client-go v0.0.15/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
-github.com/banzaicloud/istio-operator/api/v2 v2.11.6 h1:nl8u4OGdBbu2VX6QZnnniOWCWGQe0jnsgYp9FiB4MEA=
-github.com/banzaicloud/istio-operator/api/v2 v2.11.6/go.mod h1:od/KmI8+QoNB4CZxw593Wpn3MqrCoYPwbno7Gi+QsUM=
+github.com/banzaicloud/istio-operator/api/v2 v2.11.7 h1:A/RGZVo6X4hl3ifBY8bLZKF90eh6nNYiHf3+OTlrLcQ=
+github.com/banzaicloud/istio-operator/api/v2 v2.11.7/go.mod h1:od/KmI8+QoNB4CZxw593Wpn3MqrCoYPwbno7Gi+QsUM=
 github.com/banzaicloud/k8s-objectmatcher v1.5.0/go.mod h1:9MWY5HsM/OaTmoTirczhlO8UALbH722WgdpaaR7Y8OE=
 github.com/banzaicloud/k8s-objectmatcher v1.7.0 h1:6ufo47TaPC0jXJPg8d8/oooCy1ma3vEfM0J8ZbomKaw=
 github.com/banzaicloud/k8s-objectmatcher v1.7.0/go.mod h1:DSctpi6o9FqTfX7RluuEBeRLUahoDC7JavCeuu6Y+sg=
