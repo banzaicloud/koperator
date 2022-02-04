@@ -19,15 +19,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-logr/logr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
-
-var log logr.Logger
 
 type mockClient struct {
 	client.Client
