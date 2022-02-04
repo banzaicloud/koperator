@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
 	banzaiistiov1alpha1 "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"

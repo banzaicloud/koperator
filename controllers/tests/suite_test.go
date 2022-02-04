@@ -144,8 +144,8 @@ var _ = BeforeSuite(func() {
 		})
 
 	kafkaClusterReconciler := controllers.KafkaClusterReconciler{
-		Client:       mgr.GetClient(),
-		DirectClient: mgr.GetAPIReader(),
+		Client:              mgr.GetClient(),
+		DirectClient:        mgr.GetAPIReader(),
 		KafkaClientProvider: kafkaclient.NewMockProvider(),
 	}
 
