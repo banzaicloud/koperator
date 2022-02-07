@@ -167,7 +167,7 @@ type KafkaUserReconciler struct {
 // Reconcile reads that state of the cluster for a KafkaUser object and makes changes based on the state read
 // and what is in the KafkaUser.Spec
 func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := logr.FromContextOrDiscard(ctx).WithValues("kafkauser", request.NamespacedName, "Request.Name", request.Name)
+	reqLogger := logr.FromContextOrDiscard(ctx)
 	reqLogger.Info("Reconciling KafkaUser")
 	var err error
 

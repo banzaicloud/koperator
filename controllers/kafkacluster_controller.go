@@ -84,7 +84,7 @@ type KafkaClusterReconciler struct {
 // +kubebuilder:rbac:groups=networking.istio.io,resources=*,verbs=*
 
 func (r *KafkaClusterReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
-	log := logr.FromContextOrDiscard(ctx).WithValues("Request.Namespace", request.NamespacedName, "Request.Name", request.Name)
+	log := logr.FromContextOrDiscard(ctx)
 
 	log.Info("Reconciling KafkaCluster")
 

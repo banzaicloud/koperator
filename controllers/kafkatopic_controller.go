@@ -99,7 +99,7 @@ type KafkaTopicReconciler struct {
 
 // Reconcile reconciles the kafka topic
 func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := logr.FromContextOrDiscard(ctx).WithValues("kafkatopic", request.NamespacedName, "Request.Name", request.Name)
+	reqLogger := logr.FromContextOrDiscard(ctx)
 	reqLogger.Info("Reconciling KafkaTopic")
 	var err error
 
