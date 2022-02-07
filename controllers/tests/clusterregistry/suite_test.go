@@ -133,7 +133,7 @@ var _ = BeforeSuite(func() {
 	Expect(mgr).ToNot(BeNil())
 
 	kafkaClusterReconciler = NewTestReconciler()
-	err = controllers.SetupKafkaClusterWithManager(mgr, logf.Log).Named("KafkaCluster").Complete(kafkaClusterReconciler)
+	err = controllers.SetupKafkaClusterWithManager(mgr).Named("KafkaCluster").Complete(kafkaClusterReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
 	kafkaTopicReconciler = NewTestReconciler()
@@ -142,7 +142,7 @@ var _ = BeforeSuite(func() {
 
 	// Create a new  kafka user reconciler
 	kafkaUserReconciler = NewTestReconciler()
-	err = controllers.SetupKafkaUserWithManager(mgr, true, true, logf.Log).Named("KafkaUser").Complete(kafkaUserReconciler)
+	err = controllers.SetupKafkaUserWithManager(mgr, true, true).Named("KafkaUser").Complete(kafkaUserReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
 	cruiseControlTaskReconciler = NewTestReconciler()

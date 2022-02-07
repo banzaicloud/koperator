@@ -152,11 +152,10 @@ func main() {
 		Client:              mgr.GetClient(),
 		DirectClient:        mgr.GetAPIReader(),
 		Namespaces:          namespaceList,
-		Log:                 ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
 		KafkaClientProvider: kafkaclient.NewDefaultProvider(),
 	}
 
-	if err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(kafkaClusterReconciler); err != nil {
+	if err = controllers.SetupKafkaClusterWithManager(mgr).Complete(kafkaClusterReconciler); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KafkaCluster")
 		os.Exit(1)
 	}
@@ -164,7 +163,6 @@ func main() {
 	kafkaTopicReconciler := &controllers.KafkaTopicReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KafkaTopic"),
 	}
 
 	if err = controllers.SetupKafkaTopicWithManager(mgr, maxKafkaTopicConcurrentReconciles).Complete(kafkaTopicReconciler); err != nil {
@@ -176,10 +174,9 @@ func main() {
 	kafkaUserReconciler := &controllers.KafkaUserReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KafkaUser"),
 	}
 
-	if err = controllers.SetupKafkaUserWithManager(mgr, !certSigningDisabled, certManagerEnabled, kafkaUserReconciler.Log).Complete(kafkaUserReconciler); err != nil {
+	if err = controllers.SetupKafkaUserWithManager(mgr, !certSigningDisabled, certManagerEnabled).Complete(kafkaUserReconciler); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KafkaUser")
 		os.Exit(1)
 	}

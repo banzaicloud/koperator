@@ -35,7 +35,8 @@ import (
 	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
-func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error {
+func (c *certManager) FinalizePKI(ctx context.Context) error {
+	logger := logr.FromContextOrDiscard(ctx)
 	logger.Info("Removing cert-manager certificates and secrets")
 
 	// Safety check that we are actually doing something
@@ -87,7 +88,8 @@ func (c *certManager) FinalizePKI(ctx context.Context, logger logr.Logger) error
 	return nil
 }
 
-func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, extListenerStatuses map[string]v1beta1.ListenerStatusList) (err error) {
+func (c *certManager) ReconcilePKI(ctx context.Context, extListenerStatuses map[string]v1beta1.ListenerStatusList) (err error) {
+	logger := logr.FromContextOrDiscard(ctx)
 	logger.Info("Reconciling cert-manager PKI")
 
 	resources, err := c.kafkapki(ctx, extListenerStatuses)
@@ -96,7 +98,7 @@ func (c *certManager) ReconcilePKI(ctx context.Context, logger logr.Logger, extL
 	}
 
 	for _, o := range resources {
-		if err := reconcile(ctx, logger, c.client, o); err != nil {
+		if err := reconcile(ctx, c.client, o); err != nil {
 			return err
 		}
 	}
