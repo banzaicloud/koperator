@@ -169,6 +169,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 			}
 			// If the -1 default exists we don't have to do anything else here since all brokers will have values.
 			if brokerId == "-1" {
+				log.Info("Using user provided capacity config because it has universal default defined", "capacity config", userProvidedCapacityConfig)
 				return userProvidedCapacityConfig, nil
 			}
 			userConfigBrokerIds = append(userConfigBrokerIds, brokerId)
@@ -184,7 +185,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	}
 
 	// If there was no user provided config we shall generate all configuration or
-	// addig generated values to all Brokers not provided by the user.
+	// adding generated values to all Brokers not provided by the user.
 	brokerCapacities, err := appendGeneratedBrokerCapacities(kafkaCluster, log, userConfigBrokerIds)
 	if err != nil {
 		return "", err
@@ -193,9 +194,9 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 	capacityConfig.Capacities = append(capacityConfig.Capacities, brokerCapacities...)
 	result, err := json.MarshalIndent(capacityConfig, "", "    ")
 	if err != nil {
-		return "", err
+		return "", errors.WrapIf(err, "could not marshal cruise control capacity config")
 	}
-	log.Info(fmt.Sprintf("generated capacity config was successful with values: %s", result))
+	log.Info("broker capacity config generated successfully", "capacity config", string(result))
 	return string(result), err
 }
 
@@ -206,6 +207,7 @@ func appendGeneratedBrokerCapacities(kafkaCluster *v1beta1.KafkaCluster, log log
 	for brokerId := range kafkaCluster.Status.BrokersState {
 		brokerIdFromStatus = append(brokerIdFromStatus, brokerId)
 	}
+	// Since maps aren't ordered we need to order this list before using it
 	sort.Strings(brokerIdFromStatus)
 
 	for _, userConfigBrokerId := range userConfigBrokerIds {
@@ -245,13 +247,15 @@ func appendGeneratedBrokerCapacities(kafkaCluster *v1beta1.KafkaCluster, log log
 			log.Info("broker spec not found, using default fallback")
 			brokerCapacity = generateDefaultBrokerCapacityWithId(brokerId)
 		}
-		log.Info("the following brokerCapacity was generated", "brokerCapacity", brokerCapacity)
+		log.V(1).Info("capacity config successfully generated for broker", "capacity config", brokerCapacity)
 
 		brokerCapacities = append(brokerCapacities, &brokerCapacity)
 	}
 	return brokerCapacities, nil
 }
 
+// Generate default broker capacity
+// This value is used by every broker not in the spec, for example when deleting a broker
 func generateDefaultBrokerCapacityWithId(brokerId string) BrokerCapacity {
 	return BrokerCapacity{
 		BrokerID: brokerId,
