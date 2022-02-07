@@ -197,6 +197,14 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 						},
 					},
 				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {},
+						"1": {},
+						"2": {},
+						"3": {},
+					},
+				},
 			},
 			expectedConfiguration: `
 				  {
@@ -249,18 +257,127 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					   "NW_OUT": "125000"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
-					 },
-					 {
-					  "brokerId": "-1",
+					 }
+					]
+                  }`,
+		},
+		{
+			testName: "generate correct capacity config when there is a broker missing from spec but present in status",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+						"default": {
+							StorageConfigs: []v1beta1.StorageConfig{
+								{
+									MountPath: "/path-from-default",
+									PvcSpec: &v1.PersistentVolumeClaimSpec{
+										Resources: v1.ResourceRequirements{
+											Requests: v1.ResourceList{
+												v1.ResourceStorage: quantity,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Brokers: []v1beta1.Broker{
+						{
+							Id:                0,
+							BrokerConfigGroup: "default",
+							BrokerConfig: &v1beta1.BrokerConfig{
+								Resources: &v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										"cpu": cpuQuantity,
+									}},
+							},
+						},
+						{
+							Id:                1,
+							BrokerConfigGroup: "default",
+						},
+						{
+							Id:                2,
+							BrokerConfigGroup: "default",
+						},
+						{
+							Id:                3,
+							BrokerConfigGroup: "default",
+						},
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {},
+						"1": {},
+						"2": {},
+						"3": {},
+						"4": {},
+					},
+				},
+			},
+			expectedConfiguration: `
+				  {
+					"brokerCapacities": [
+                      {
+					  "brokerId": "0",
 					  "capacity": {
 					   "DISK": {
-						"/kafka-logs/kafka": "10737"
+						"/path-from-default/kafka": "10737"
 					   },
-					   "CPU": "100",
+					   "CPU": "200",
 					   "NW_IN": "125000",
 					   "NW_OUT": "125000"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 },
+                     {
+					  "brokerId": "1",
+					  "capacity": {
+					   "DISK": {
+						"/path-from-default/kafka": "10737"
+					   },
+					   "CPU": "150",
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
+					  },
+					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 },
+                     {
+					  "brokerId": "2",
+					  "capacity": {
+					   "DISK": {
+						"/path-from-default/kafka": "10737"
+					   },
+					   "CPU": "150",
+					   "NW_IN": "125000",
+					   "NW_OUT": "125000"
+					  },
+					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 },
+                     {
+					   "brokerId": "3",
+					   "capacity": {
+					    "DISK": {
+					     "/path-from-default/kafka": "10737"
+					    },
+					    "CPU": "150",
+					    "NW_IN": "125000",
+					    "NW_OUT": "125000"
+					   },
+					   "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					 },
+					 {
+					   "brokerId": "4",
+					   "capacity": {
+					    "DISK": {
+							"/kafka-logs/kafka": "10737"
+					    },
+					    "CPU": "100",
+					    "NW_IN": "125000",
+					    "NW_OUT": "125000"
+					   },
+					   "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					 }
 					]
                   }`,
@@ -292,6 +409,11 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 						},
 					},
 				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {},
+					},
+				},
 			},
 			expectedConfiguration: `
 				  {
@@ -303,18 +425,6 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 						"/path-from-default/kafka": "1"
 					   },
 					   "CPU": "150",
-					   "NW_IN": "125000",
-					   "NW_OUT": "125000"
-					  },
-					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
-					 },
-					 {
-					  "brokerId": "-1",
-					  "capacity": {
-					   "DISK": {
-						"/kafka-logs/kafka": "10737"
-					   },
-					   "CPU": "100",
 					   "NW_IN": "125000",
 					   "NW_OUT": "125000"
 					  },
@@ -379,6 +489,14 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 						},
 					},
 				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {},
+						"1": {},
+						"2": {},
+						"3": {},
+					},
+				},
 			},
 			expectedConfiguration: `{
 					"brokerCapacities": [
@@ -427,18 +545,6 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 					   "CPU": "150",
 					   "NW_IN": "200",
 					   "NW_OUT": "200"
-					  },
-					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
-					 },
-					 {
-					  "brokerId": "-1",
-					  "capacity": {
-					   "DISK": {
-						"/kafka-logs/kafka": "10737"
-					   },
-					   "CPU": "100",
-					   "NW_IN": "125000",
-					   "NW_OUT": "125000"
 					  },
 					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					 }
@@ -503,6 +609,11 @@ func TestReturnErrorStorageConfigLessThan1MB(t *testing.T) {
 				},
 			},
 		},
+		Status: v1beta1.KafkaClusterStatus{
+			BrokersState: map[string]v1beta1.BrokerState{
+				"0": {},
+			},
+		},
 	}
 
 	_, err := GenerateCapacityConfig(&kafkaCluster, logr.Discard(), nil)
@@ -515,7 +626,6 @@ func TestReturnErrorStorageConfigLessThan1MB(t *testing.T) {
 //nolint:funlen
 func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 	cpuQuantity, _ := resource.ParseQuantity("2000m")
-
 	testCases := []struct {
 		testName              string
 		capacityConfig        string
@@ -572,14 +682,24 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 					  "doc": "This overrides the capacity for broker 1. This broker is a JBOD broker."
 					},
 					{
-					  "brokerId": "-1",
-					  "capacity": {
-						"DISK": {"/kafka-logs/kafka": "10737"},
-						"CPU": "100",
-						"NW_IN": "125000",
-						"NW_OUT": "125000"
-					  },
-					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+						"brokerId": "2",
+						"capacity": {
+						  "DISK": {},
+						  "CPU": "200",
+						  "NW_IN": "125000",
+						  "NW_OUT": "125000"
+						},
+						"doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					},
+					{
+						"brokerId": "4",
+						"capacity": {
+						  "DISK": {"/path1/kafka": "100"},
+						  "CPU": "200",
+						  "NW_IN": "125000",
+						  "NW_OUT": "125000"
+						},
+						"doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					}
 				  ]
 				}`,
@@ -710,14 +830,24 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 					  "doc": "This overrides the capacity for broker 1. This broker is a JBOD broker."
 					},
 					{
-					  "brokerId": "-1",
-					  "capacity": {
-						"DISK": {"/kafka-logs/kafka": "10737"},
-						"CPU": "100",
-						"NW_IN": "125000",
-						"NW_OUT": "125000"
-					  },
-					  "doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+						"brokerId": "2",
+						"capacity": {
+						  "DISK": {},
+						  "CPU": "200",
+						  "NW_IN": "125000",
+						  "NW_OUT": "125000"
+						},
+						"doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+					},
+					{
+						"brokerId": "4",
+						"capacity": {
+						  "DISK": {"/path1/kafka": "100"},
+						  "CPU": "200",
+						  "NW_IN": "125000",
+						  "NW_OUT": "125000"
+						},
+						"doc": "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
 					}
 				  ]
 				}`,
@@ -817,16 +947,54 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 						},
 						{
 							Id: 1,
+							BrokerConfig: &v1beta1.BrokerConfig{
+								Resources: &v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										"cpu": cpuQuantity,
+									}},
+							},
 						},
 						{
 							Id: 2,
+							BrokerConfig: &v1beta1.BrokerConfig{
+								Resources: &v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										"cpu": cpuQuantity,
+									}},
+							},
 						},
 						{
 							Id: 4,
+							BrokerConfig: &v1beta1.BrokerConfig{
+								Resources: &v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										"cpu": cpuQuantity,
+									}},
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/path1",
+										PvcSpec: &v1.PersistentVolumeClaimSpec{
+											Resources: v1.ResourceRequirements{
+												Requests: v1.ResourceList{
+													v1.ResourceStorage: resource.MustParse("100M"),
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 					CruiseControlConfig: v1beta1.CruiseControlConfig{
 						CapacityConfig: test.capacityConfig,
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{
+					BrokersState: map[string]v1beta1.BrokerState{
+						"0": {},
+						"1": {},
+						"2": {},
+						"4": {},
 					},
 				},
 			}
