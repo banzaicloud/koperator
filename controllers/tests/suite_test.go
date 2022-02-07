@@ -146,17 +146,15 @@ var _ = BeforeSuite(func() {
 	kafkaClusterReconciler := controllers.KafkaClusterReconciler{
 		Client:              mgr.GetClient(),
 		DirectClient:        mgr.GetAPIReader(),
-		Log:                 ctrl.Log.WithName("controllers").WithName("KafkaCluster"),
 		KafkaClientProvider: kafkaclient.NewMockProvider(),
 	}
 
-	err = controllers.SetupKafkaClusterWithManager(mgr, kafkaClusterReconciler.Log).Complete(&kafkaClusterReconciler)
+	err = controllers.SetupKafkaClusterWithManager(mgr).Complete(&kafkaClusterReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
 	kafkaTopicReconciler := &controllers.KafkaTopicReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KafkaTopic"),
 	}
 
 	err = controllers.SetupKafkaTopicWithManager(mgr, 10).Complete(kafkaTopicReconciler)
@@ -166,10 +164,9 @@ var _ = BeforeSuite(func() {
 	kafkaUserReconciler := controllers.KafkaUserReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KafkaUser"),
 	}
 
-	err = controllers.SetupKafkaUserWithManager(mgr, true, true, kafkaUserReconciler.Log).Complete(&kafkaUserReconciler)
+	err = controllers.SetupKafkaUserWithManager(mgr, true, true).Complete(&kafkaUserReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
 	kafkaClusterCCReconciler := controllers.CruiseControlTaskReconciler{

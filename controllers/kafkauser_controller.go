@@ -56,7 +56,8 @@ import (
 var userFinalizer = "finalizer.kafkausers.kafka.banzaicloud.io"
 
 // SetupKafkaUserWithManager registers KafkaUser controller to the manager
-func SetupKafkaUserWithManager(mgr ctrl.Manager, certSigningEnabled bool, certManagerNamespace bool, log logr.Logger) *ctrl.Builder {
+func SetupKafkaUserWithManager(mgr ctrl.Manager, certSigningEnabled bool, certManagerNamespace bool) *ctrl.Builder {
+	log := mgr.GetLogger()
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.KafkaUser{}).Named("KafkaUser")
 	if certSigningEnabled {
@@ -154,7 +155,6 @@ type KafkaUserReconciler struct {
 	// that reads objects from the cache and writes to the apiserver
 	Client client.Client
 	Scheme *runtime.Scheme
-	Log    logr.Logger
 }
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkausers,verbs=get;list;watch;create;update;patch;delete;deletecollection
@@ -167,7 +167,7 @@ type KafkaUserReconciler struct {
 // Reconcile reads that state of the cluster for a KafkaUser object and makes changes based on the state read
 // and what is in the KafkaUser.Spec
 func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := r.Log.WithValues("kafkauser", request.NamespacedName, "Request.Name", request.Name)
+	reqLogger := logr.FromContextOrDiscard(ctx)
 	reqLogger.Info("Reconciling KafkaUser")
 	var err error
 
@@ -212,7 +212,7 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 			backend = v1beta1.PKIBackendProvided
 		}
 
-		pkiManager := pki.GetPKIManager(r.Client, cluster, backend, r.Log)
+		pkiManager := pki.GetPKIManager(r.Client, cluster, backend)
 
 		user, err := pkiManager.ReconcileUserCertificate(ctx, instance, r.Scheme, cluster.Spec.GetKubernetesClusterDomain())
 		if err != nil {
@@ -257,7 +257,7 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 
 	// check if marked for deletion and remove kafka ACLs
 	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
-		return r.checkFinalizers(ctx, reqLogger, cluster, instance, kafkaUser)
+		return r.checkFinalizers(ctx, cluster, instance, kafkaUser)
 	}
 
 	// ensure a kafkaCluster label
@@ -324,7 +324,8 @@ func (r *KafkaUserReconciler) updateAndFetchLatest(ctx context.Context, user *v1
 	return user, nil
 }
 
-func (r *KafkaUserReconciler) checkFinalizers(ctx context.Context, reqLogger logr.Logger, cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaUser, user string) (reconcile.Result, error) {
+func (r *KafkaUserReconciler) checkFinalizers(ctx context.Context, cluster *v1beta1.KafkaCluster, instance *v1alpha1.KafkaUser, user string) (reconcile.Result, error) {
+	reqLogger := logr.FromContextOrDiscard(ctx)
 	// run finalizers
 	var err error
 	if util.StringSliceContains(instance.GetFinalizers(), userFinalizer) {

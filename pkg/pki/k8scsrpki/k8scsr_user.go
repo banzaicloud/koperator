@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
+	"github.com/go-logr/logr"
 
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 
@@ -48,6 +49,7 @@ const (
 // ReconcileUserCertificate ensures and returns a user certificate - should be idempotent
 func (c *k8sCSR) ReconcileUserCertificate(
 	ctx context.Context, user *v1alpha1.KafkaUser, scheme *runtime.Scheme, _ string) (*pkicommon.UserCertificate, error) {
+	log := logr.FromContextOrDiscard(ctx)
 	var clientKey []byte
 	var signingReq *certsigningreqv1.CertificateSigningRequest
 	secret := &corev1.Secret{}
@@ -148,7 +150,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	// Handle case when signing request is present
 	var foundApproved bool
 	for _, cond := range signingReq.Status.Conditions {
-		c.logger.Info(fmt.Sprintf("Signing request condition is: %s", cond.Type))
+		log.Info(fmt.Sprintf("Signing request condition is: %s", cond.Type))
 		if cond.Type == certsigningreqv1.CertificateApproved {
 			foundApproved = true
 			break
@@ -256,21 +258,22 @@ func generateCSRResource(csr []byte, name, namespace, signerName string,
 }
 
 func (c *k8sCSR) generateAndCreateCSR(ctx context.Context, clientkey []byte, user *v1alpha1.KafkaUser) (*certsigningreqv1.CertificateSigningRequest, error) {
-	c.logger.Info("Creating PKCS1PrivateKey from secret")
+	log := logr.FromContextOrDiscard(ctx)
+	log.Info("Creating PKCS1PrivateKey from secret")
 	block, _ := pem.Decode(clientkey)
 	privKey, parseErr := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if parseErr != nil {
 		return nil, parseErr
 	}
-	c.logger.Info("Generating SigningRequest")
+	log.Info("Generating SigningRequest")
 	csr, err := certutil.GenerateSigningRequestInPemFormat(privKey, user.GetName(), user.Spec.DNSNames)
 	if err != nil {
 		return nil, err
 	}
-	c.logger.Info("Generating k8s csr object")
+	log.Info("Generating k8s csr object")
 	signingReq := generateCSRResource(csr, user.GetName(), user.GetNamespace(),
 		user.Spec.PKIBackendSpec.SignerName, user.Spec.GetAnnotations())
-	c.logger.Info("Creating k8s csr object")
+	log.Info("Creating k8s csr object")
 	if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(signingReq); err != nil {
 		return nil, errors.WrapIf(err, "could not apply last state to annotation")
 	}

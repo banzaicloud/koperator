@@ -261,8 +261,9 @@ func UpdateRollingUpgradeState(c client.Client, cluster *banzaicloudv1beta1.Kafk
 	return nil
 }
 
-func UpdateListenerStatuses(ctx context.Context, c client.Client, cluster *banzaicloudv1beta1.KafkaCluster, logger logr.Logger,
-	intListenerStatuses, extListenerStatuses map[string]banzaicloudv1beta1.ListenerStatusList) error {
+func UpdateListenerStatuses(ctx context.Context, c client.Client, cluster *banzaicloudv1beta1.KafkaCluster, intListenerStatuses, extListenerStatuses map[string]banzaicloudv1beta1.ListenerStatusList) error {
+	logger := logr.FromContextOrDiscard(ctx)
+
 	typeMeta := cluster.TypeMeta
 
 	cluster.Status.ListenerStatuses = banzaicloudv1beta1.ListenerStatuses{

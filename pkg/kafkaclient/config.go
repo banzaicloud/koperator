@@ -49,7 +49,7 @@ func ClusterConfig(client client.Client, cluster *v1beta1.KafkaCluster) (*KafkaC
 		if cluster.Spec.GetClientSSLCertSecretName() != "" {
 			tlsConfig, err = util.GetClientTLSConfig(client, types.NamespacedName{Name: cluster.Spec.GetClientSSLCertSecretName(), Namespace: cluster.Namespace})
 		} else if cluster.Spec.ListenersConfig.SSLSecrets != nil {
-			tlsConfig, err = pki.GetPKIManager(client, cluster, v1beta1.PKIBackendProvided, log).GetControllerTLSConfig()
+			tlsConfig, err = pki.GetPKIManager(client, cluster, v1beta1.PKIBackendProvided).GetControllerTLSConfig()
 		} else {
 			err = errors.New("either 'clientSSLCertSecret' or 'sslSecrets' must be specified as internal listener used for inner communication uses SSL")
 		}

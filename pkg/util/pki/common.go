@@ -24,7 +24,6 @@ import (
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -65,10 +64,10 @@ type Manager interface {
 	// ReconcilePKI ensures a PKI for a kafka cluster - should be idempotent.
 	// This method should at least setup any issuer needed for user certificates
 	// as well as broker/cruise-control secrets
-	ReconcilePKI(ctx context.Context, logger logr.Logger, externalHostnames map[string]v1beta1.ListenerStatusList) error
+	ReconcilePKI(ctx context.Context, externalHostnames map[string]v1beta1.ListenerStatusList) error
 
 	// FinalizePKI performs any cleanup steps necessary for a PKI backend
-	FinalizePKI(ctx context.Context, logger logr.Logger) error
+	FinalizePKI(ctx context.Context) error
 
 	// ReconcileUserCertificate ensures and returns a user certificate - should be idempotent
 	ReconcileUserCertificate(

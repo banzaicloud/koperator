@@ -60,7 +60,6 @@ var clusterUsersFinalizer = "users.kafkaclusters.kafka.banzaicloud.io"
 type KafkaClusterReconciler struct {
 	client.Client
 	DirectClient        client.Reader
-	Log                 logr.Logger
 	Namespaces          []string
 	KafkaClientProvider kafkaclient.Provider
 }
@@ -85,7 +84,7 @@ type KafkaClusterReconciler struct {
 // +kubebuilder:rbac:groups=networking.istio.io,resources=*,verbs=*
 
 func (r *KafkaClusterReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("Request.Namespace", request.NamespacedName, "Request.Name", request.Name)
+	log := logr.FromContextOrDiscard(ctx)
 
 	log.Info("Reconciling KafkaCluster")
 
@@ -104,7 +103,7 @@ func (r *KafkaClusterReconciler) Reconcile(ctx context.Context, request ctrl.Req
 
 	// Check if marked for deletion and run finalizers
 	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
-		return r.checkFinalizers(ctx, log, instance)
+		return r.checkFinalizers(ctx, instance)
 	}
 
 	if instance.Status.State != v1beta1.KafkaClusterRollingUpgrading {
@@ -192,7 +191,8 @@ func (r *KafkaClusterReconciler) Reconcile(ctx context.Context, request ctrl.Req
 	return reconciled()
 }
 
-func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.Logger, cluster *v1beta1.KafkaCluster) (ctrl.Result, error) {
+func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, cluster *v1beta1.KafkaCluster) (ctrl.Result, error) {
+	log := logr.FromContextOrDiscard(ctx)
 	log.Info("KafkaCluster is marked for deletion, checking for children")
 
 	// If the main finalizer is gone then we've already finished up
@@ -287,7 +287,7 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, log logr.L
 		// Do any necessary PKI cleanup - a PKI backend should make sure any
 		// user finalizations are done before it does its final cleanup
 		log.Info("Tearing down any PKI resources for the kafkacluster")
-		if err = pki.GetPKIManager(r.Client, cluster, v1beta1.PKIBackendProvided, r.Log).FinalizePKI(ctx, log); err != nil {
+		if err = pki.GetPKIManager(r.Client, cluster, v1beta1.PKIBackendProvided).FinalizePKI(ctx); err != nil {
 			switch err.(type) {
 			case errorfactory.ResourceNotReady:
 				log.Info("The PKI is not ready to be torn down")
@@ -349,7 +349,8 @@ func (r *KafkaClusterReconciler) updateAndFetchLatest(ctx context.Context, clust
 }
 
 // SetupKafkaClusterWithManager registers kafka cluster controller to the manager
-func SetupKafkaClusterWithManager(mgr ctrl.Manager, log logr.Logger) *ctrl.Builder {
+func SetupKafkaClusterWithManager(mgr ctrl.Manager) *ctrl.Builder {
+	log := mgr.GetLogger()
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.KafkaCluster{}).Named("KafkaCluster")
 
