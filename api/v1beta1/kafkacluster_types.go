@@ -627,7 +627,7 @@ func (kSpec *KafkaClusterSpec) GetClusterImage() string {
 	if kSpec.ClusterImage != "" {
 		return kSpec.ClusterImage
 	}
-	return "ghcr.io/banzaicloud/kafka:2.13-2.8.1"
+	return "ghcr.io/banzaicloud/kafka:2.13-3.1.0"
 }
 
 // GetClusterMetricsReporterImage returns the default container image for Kafka Cluster
@@ -878,7 +878,7 @@ func (cConfig *CruiseControlConfig) GetCCImage() string {
 	if cConfig.Image != "" {
 		return cConfig.Image
 	}
-	return "ghcr.io/banzaicloud/cruise-control:2.5.80"
+	return "ghcr.io/banzaicloud/cruise-control:2.5.85"
 }
 
 // GetCCLog4jConfig returns the used Cruise Control log4j configuration
