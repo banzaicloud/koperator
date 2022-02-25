@@ -12,7 +12,7 @@ spec:
     - "zookeeper-client.zookeeper:2181"
   propagateLabels: false
   oneBrokerPerNode: false
-  clusterImage: "ghcr.io/banzaicloud/kafka:2.13-2.8.1"
+  clusterImage: "ghcr.io/banzaicloud/kafka:2.13-3.1.0"
   readOnlyConfig: |
     auto.create.topics.enable=false
     cruise.control.metrics.topic.auto.create=true
@@ -78,7 +78,7 @@ spec:
 #      limits:
 #        cpu: 500m
 #        memory: 1Gi
-#    image: "ghcr.io/banzaicloud/cruise-control:2.5.80"
+#    image: "ghcr.io/banzaicloud/cruise-control:2.5.85"
     config: |
       # Copyright 2017 LinkedIn Corp. Licensed under the BSD 2-Clause License (the "License"). See License in the project root for license information.
       #
