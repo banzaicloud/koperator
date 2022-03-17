@@ -103,8 +103,8 @@ func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
 			generatedPorts = append(generatedPorts, &istioOperatorApi.ServicePort{
 				Name:       fmt.Sprintf("tcp-broker-%d", brokerId),
 				Protocol:   string(corev1.ProtocolTCP),
-				Port:       externalListenerConfig.ExternalStartingPort + int32(brokerId),
-				TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(int(externalListenerConfig.ExternalStartingPort) + brokerId)},
+				Port:       externalListenerConfig.GetBrokerPort(int32(brokerId)),
+				TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(int(externalListenerConfig.GetBrokerPort(int32(brokerId))))},
 			})
 		}
 	}

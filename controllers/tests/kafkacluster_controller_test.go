@@ -380,6 +380,80 @@ var _ = Describe("KafkaCluster with two config external listener", func() {
 	})
 })
 
+var _ = Describe("KafkaCluster with two config external listener and tls", func() {
+	var (
+		count        uint64 = 0
+		namespace    string
+		namespaceObj *corev1.Namespace
+		kafkaCluster *v1beta1.KafkaCluster
+	)
+
+	BeforeEach(func() {
+		atomic.AddUint64(&count, 1)
+
+		namespace = fmt.Sprintf("kafkatlsconfigtest-%v", count)
+		namespaceObj = &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		}
+
+		kafkaCluster = createMinimalKafkaClusterCR(fmt.Sprintf("kafkaclustertls-%d", count), namespace)
+		kafkaCluster.Spec.ListenersConfig.ExternalListeners[0].HostnameOverride = ""
+		testExternalListener := kafkaCluster.Spec.ListenersConfig.ExternalListeners[0]
+		testExternalListener.ExternalStartingPort = -1
+		testExternalListener.TLSSecretName = "tls-secret"
+		testExternalListener.Config = &v1beta1.Config{
+			DefaultIngressConfig: "az2",
+			IngressConfig: map[string]v1beta1.IngressConfig{
+				"az1": {
+					EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations:            map[string]string{"zone": "az1"},
+						BrokerHostnameTemplate: "broker-%id",
+					},
+					IngressServiceSettings: v1beta1.IngressServiceSettings{
+						HostnameOverride: "all-brokers-az1",
+					},
+				},
+				"az2": {
+					EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations:            map[string]string{"zone": "az2"},
+						BrokerHostnameTemplate: "broker-%id",
+					},
+					IngressServiceSettings: v1beta1.IngressServiceSettings{
+						HostnameOverride: "all-brokers-az2",
+					},
+				},
+			},
+		}
+		kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
+	})
+	JustBeforeEach(func(ctx SpecContext) {
+		By("creating namespace " + namespace)
+		err := k8sClient.Create(ctx, namespaceObj)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
+		err = k8sClient.Create(ctx, kafkaCluster)
+		Expect(err).NotTo(HaveOccurred())
+
+		waitForClusterRunningState(ctx, kafkaCluster, namespace)
+	})
+
+	When("configuring two ingress envoy controller config inside the external listener using both as bindings", func() {
+		BeforeEach(func() {
+			kafkaCluster.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az1"}}
+			kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az2"}}
+		})
+		It("should reconcile object properly", func() {
+			expectEnvoyWithConfigAz1Tls(kafkaCluster)
+			expectEnvoyWithConfigAz2Tls(kafkaCluster)
+			expectBrokerConfigmapForAz1ExternalListenerTls(kafkaCluster, count)
+			expectBrokerConfigmapForAz2ExternalListenerTls(kafkaCluster, count)
+		})
+	})
+})
+
 func expectKafkaMonitoring(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	configMap := corev1.ConfigMap{}
 	configMapName := fmt.Sprintf("%s-kafka-jmx-exporter", kafkaCluster.Name)
