@@ -1141,7 +1141,7 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 			}
 			for _, broker := range r.KafkaCluster.Spec.Brokers {
 				brokerHost := host
-				portNumber := eListener.ExternalStartingPort + broker.Id
+				portNumber := eListener.GetBrokerPort(broker.Id)
 
 				if eListener.GetAccessMethod() != corev1.ServiceTypeLoadBalancer {
 					bConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
@@ -1170,6 +1170,12 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 				brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
 				if err != nil {
 					return nil, err
+				}
+				if eListener.TLSEnabled() {
+					brokerHost = iConfig.EnvoyConfig.GetBrokerHostname(broker.Id)
+					if brokerHost == "" {
+						return nil, errors.New("brokerHostnameTemplate is not set in the ingress service settings")
+					}
 				}
 				if util.ShouldIncludeBroker(brokerConfig, r.KafkaCluster.Status, int(broker.Id), defaultControllerName, iConfigName) {
 					listenerStatus := v1beta1.ListenerStatus{

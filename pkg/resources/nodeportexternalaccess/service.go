@@ -33,7 +33,7 @@ func (r *Reconciler) service(_ logr.Logger, id int32,
 	brokerConfig *v1beta1.BrokerConfig, extListener v1beta1.ExternalListenerConfig) runtime.Object {
 	nodePort := int32(0)
 	if extListener.ExternalStartingPort > 0 {
-		nodePort = extListener.ExternalStartingPort + id
+		nodePort = extListener.GetBrokerPort(id)
 	}
 	service := &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
