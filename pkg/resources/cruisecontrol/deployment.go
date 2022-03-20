@@ -193,6 +193,7 @@ func GeneratePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, capacityConfig s
 			"cruiseControlConfig.json":        hex.EncodeToString(hashedCruiseControlConfigJson[:]),
 			"cruiseControlClusterConfig.json": hex.EncodeToString(hashedCruiseControlClusterConfigJson[:]),
 			"cruiseControlLogConfig.json":     hex.EncodeToString(hashedCruiseControlLogConfigJson[:]),
+			"kafkaHeadlessServiceEnabled":     fmt.Sprintf("%t", kafkaCluster.Spec.HeadlessServiceEnabled),
 		},
 		ccAnnotationsFromCR,
 	}

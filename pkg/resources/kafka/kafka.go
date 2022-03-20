@@ -290,6 +290,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return err
 	}
 
+	if err = r.reconcileHeadlessService(log); err != nil {
+		return err
+	}
+
 	log.V(1).Info("Reconciled")
 
 	return nil
@@ -1222,4 +1226,54 @@ func generateServicePortForEListeners(listeners []v1beta1.ExternalListenerConfig
 		})
 	}
 	return usedPorts
+}
+
+func (r *Reconciler) reconcileHeadlessService(log logr.Logger) error {
+	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
+		// Delete kafka all broker service
+		allBrokerServiceName := fmt.Sprintf(kafka.AllBrokerServiceTemplate, r.KafkaCluster.Name)
+		err := r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(allBrokerServiceName, kafka.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				log.V(1).Info("all broker service not found. Continue")
+			} else {
+				return errors.WrapIfWithDetails(err, "could not delete all broker service")
+			}
+		} else {
+			log.V(1).Info("all broker service deleted", "service name", allBrokerServiceName)
+		}
+		// Delete kafka broker service
+		for _, broker := range r.KafkaCluster.Spec.Brokers {
+			serviceName := fmt.Sprintf("%s-%d", r.KafkaCluster.Name, broker.Id)
+			err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(serviceName,
+				util.MergeLabels(
+					kafka.LabelsForKafka(r.KafkaCluster.Name),
+					map[string]string{"brokerId": fmt.Sprintf("%d", broker.Id)},
+				),
+				r.KafkaCluster)})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					log.V(1).Info("broker service not found. Continue")
+				} else {
+					return errors.WrapIfWithDetails(err, "could not delete broker service", "id", broker.Id)
+				}
+			} else {
+				log.V(1).Info("broker service deleted", "service name", serviceName)
+			}
+		}
+	} else {
+		// Delete kafka headless service
+		headlessServiceName := fmt.Sprintf(kafka.HeadlessServiceTemplate, r.KafkaCluster.Name)
+		err := r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(headlessServiceName, util.MergeLabels(kafka.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster.Labels), r.KafkaCluster)})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				log.V(1).Info("headless service not found. Continue")
+			} else {
+				return errors.WrapIfWithDetails(err, "could not delete headless service")
+			}
+		} else {
+			log.V(1).Info("headless service deleted", "service name", headlessServiceName)
+		}
+	}
+	return nil
 }
