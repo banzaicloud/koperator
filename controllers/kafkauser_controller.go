@@ -102,7 +102,7 @@ type csrMapper struct {
 	log    logr.Logger
 }
 
-// mapToKafkaUser maps CertificateSigningRequest event to KafkaUser reconcile event
+// mapToKafkaUser maps CertificateSigningRequest events to KafkaUser reconcile events
 func (m *csrMapper) mapToKafkaUser(obj client.Object) []ctrl.Request {
 	certSigningReqAnnotations := obj.GetAnnotations()
 	kafkaUserResourceNamespacedName, ok := certSigningReqAnnotations[pkicommon.KafkaUserAnnotationName]
