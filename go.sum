@@ -180,6 +180,8 @@ github.com/banzaicloud/cluster-registry v0.0.7 h1:R7hE9YBybCWKOJSzrNPDIO+l8P03kG
 github.com/banzaicloud/cluster-registry v0.0.7/go.mod h1:2tcT4bq6UaWOOeIBsjcrqawOfrybamYUJSM4jRVHQic=
 github.com/banzaicloud/go-cruise-control v0.0.0-20220121135324-9178f00469c5 h1:6QjGAJrjVBf+7pjnnY6XE+D1DeMZmliv6DdpHeJW+EU=
 github.com/banzaicloud/go-cruise-control v0.0.0-20220121135324-9178f00469c5/go.mod h1:ZOrxSqMkpjRnA6eyjaSfpnkPLuCy1JKBGIi6h9hyiuM=
+github.com/banzaicloud/go-cruise-control v0.0.0-20220324110942-71a3405be337 h1:HnA0QC34j8Vd6uwP4priC2eO+0FQT0c41qnBE3DsfWw=
+github.com/banzaicloud/go-cruise-control v0.0.0-20220324110942-71a3405be337/go.mod h1:ZOrxSqMkpjRnA6eyjaSfpnkPLuCy1JKBGIi6h9hyiuM=
 github.com/banzaicloud/istio-client-go v0.0.11/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
 github.com/banzaicloud/istio-client-go v0.0.15 h1:F2rr1tI/+19kDddLawft8scT8mGLNgBq23gV+I0zsh4=
 github.com/banzaicloud/istio-client-go v0.0.15/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
