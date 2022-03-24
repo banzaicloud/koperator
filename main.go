@@ -107,8 +107,8 @@ func main() {
 	ctrl.SetLogger(util.CreateLogger(verboseLogging, developmentLogging))
 
 	// adding indexers to KafkaTopics so that the KafkaTopic admission webhooks could work
-	ctx := context.TODO()
-	managerWatchCache := k8sutil.AddKafkaTopicIndexers(ctx)
+	ctx := context.Background()
+	var managerWatchCacheBuilder cache.NewCacheFunc
 
 	// When operator is started to watch resources in a specific set of namespaces, we use the MultiNamespacedCacheBuilder cache.
 	// In this scenario, it is also suggested to restrict the provided authorization to this namespace by replacing the default
@@ -121,7 +121,7 @@ func main() {
 		for i := range namespaceList {
 			namespaceList[i] = strings.TrimSpace(namespaceList[i])
 		}
-		managerWatchCache = cache.MultiNamespacedCacheBuilder(namespaceList)
+		managerWatchCacheBuilder = cache.MultiNamespacedCacheBuilder(namespaceList)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -129,7 +129,7 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "controller-leader-election-helper",
-		NewCache:           managerWatchCache,
+		NewCache:           managerWatchCacheBuilder,
 		Port:               webhookServerPort,
 	})
 
@@ -196,6 +196,11 @@ func main() {
 	}
 
 	// +kubebuilder:scaffold:builder
+
+	if err := k8sutil.AddKafkaTopicIndexers(ctx, mgr.GetCache()); err != nil {
+		setupLog.Error(err, "unable to add indexers to manager's cache")
+		os.Exit(1)
+	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
