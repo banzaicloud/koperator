@@ -123,7 +123,7 @@ func SetNewKafkaFromCluster(f func(k8sclient client.Client, cluster *v1beta1.Kaf
 	newKafkaFromCluster = f
 }
 
-// SkipClusterRegistryOwnedResourcePredicate returns controller event filter that filters
+// SkipClusterRegistryOwnedResourcePredicate returns a controller event filter that filters
 // out events triggered by Cluster Registry owned resources
 type SkipClusterRegistryOwnedResourcePredicate struct{}
 
