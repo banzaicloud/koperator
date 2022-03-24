@@ -20,7 +20,7 @@ spec:
     cruise.control.metrics.topic.auto.create=true
     cruise.control.metrics.topic.num.partitions=1
     cruise.control.metrics.topic.replication.factor=2
-    authorizer.class.name=kafka.security.auth.SimpleAclAuthorizer
+    authorizer.class.name=kafka.security.authorizer.AclAuthorizer
     allow.everyone.if.no.acl.found=false
   brokerConfigGroups:
     default:
