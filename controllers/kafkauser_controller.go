@@ -128,7 +128,7 @@ func (m *csrMapper) mapToKafkaUser(obj client.Object) []ctrl.Request {
 		return []ctrl.Request{}
 	}
 
-	// skip reconciling KafkaUser if owned by Schema Registry
+	// skip reconciling KafkaUser if owned by Cluster Registry
 	if ok := util.ObjectManagedByClusterRegistry(&kafkaUser); ok {
 		return []ctrl.Request{}
 	}
