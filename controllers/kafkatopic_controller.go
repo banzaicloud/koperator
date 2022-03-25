@@ -21,13 +21,10 @@ import (
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
@@ -41,45 +38,12 @@ var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
 
 // SetupKafkaTopicWithManager registers kafka topic controller with manager
 func SetupKafkaTopicWithManager(mgr ctrl.Manager, maxConcurrentReconciles int) *ctrl.Builder {
-	builder := ctrl.NewControllerManagedBy(mgr).For(&v1alpha1.KafkaTopic{}).Named("KafkaTopic")
+	builder := ctrl.NewControllerManagedBy(mgr).
+		For(&v1alpha1.KafkaTopic{}).
+		WithEventFilter(SkipClusterRegistryOwnedResourcePredicate{}).
+		Named("KafkaTopic")
 	builder.WithOptions(controller.Options{MaxConcurrentReconciles: maxConcurrentReconciles})
 
-	builder.WithEventFilter(
-		predicate.Funcs{
-			CreateFunc: func(e event.CreateEvent) bool {
-				object, err := meta.Accessor(e.Object)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				return true
-			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				object, err := meta.Accessor(e.Object)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				return true
-			},
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				object, err := meta.Accessor(e.ObjectNew)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				return true
-			},
-		})
 	return builder
 }
 

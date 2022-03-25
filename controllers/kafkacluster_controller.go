@@ -26,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -352,7 +351,9 @@ func (r *KafkaClusterReconciler) updateAndFetchLatest(ctx context.Context, clust
 func SetupKafkaClusterWithManager(mgr ctrl.Manager) *ctrl.Builder {
 	log := mgr.GetLogger()
 	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&v1beta1.KafkaCluster{}).Named("KafkaCluster")
+		For(&v1beta1.KafkaCluster{}).
+		WithEventFilter(SkipClusterRegistryOwnedResourcePredicate{}).
+		Named("KafkaCluster")
 
 	kafkaWatches(builder)
 	envoyWatches(builder)
@@ -361,40 +362,13 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager) *ctrl.Builder {
 	builder.WithEventFilter(
 		predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
-				object, err := meta.Accessor(e.Object)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				if _, ok := object.(*v1beta1.KafkaCluster); ok {
+				if _, ok := e.Object.(*v1beta1.KafkaCluster); ok {
 					return true
 				}
 				return false
 			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				object, err := meta.Accessor(e.Object)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				return true
-			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				object, err := meta.Accessor(e.ObjectNew)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				switch object.(type) {
+				switch newObj := e.ObjectNew.(type) {
 				case *corev1.Pod, *corev1.ConfigMap, *corev1.PersistentVolumeClaim:
 					patchResult, err := patch.DefaultPatchMaker.Calculate(e.ObjectOld, e.ObjectNew)
 					if err != nil {
@@ -404,7 +378,6 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager) *ctrl.Builder {
 					}
 				case *v1beta1.KafkaCluster:
 					oldObj := e.ObjectOld.(*v1beta1.KafkaCluster)
-					newObj := e.ObjectNew.(*v1beta1.KafkaCluster)
 					if !reflect.DeepEqual(oldObj.Spec, newObj.Spec) ||
 						oldObj.GetDeletionTimestamp() != newObj.GetDeletionTimestamp() ||
 						oldObj.GetGeneration() != newObj.GetGeneration() ||
