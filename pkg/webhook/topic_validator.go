@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/banzaicloud/koperator/pkg/util"
+
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +37,7 @@ const (
 )
 
 func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic) *admissionv1beta1.AdmissionResponse {
-	ctx := context.TODO()
+	ctx := context.Background()
 	log.Info(fmt.Sprintf("Doing pre-admission validation of kafka topic %s", topic.Spec.Name))
 
 	// Get the referenced KafkaCluster
@@ -48,7 +50,7 @@ func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic
 	var err error
 
 	// Check if the cluster being referenced actually exists
-	if cluster, err = k8sutil.LookupKafkaCluster(s.client, clusterName, clusterNamespace); err != nil {
+	if cluster, err = k8sutil.LookupKafkaCluster(ctx, s.client, clusterName, clusterNamespace); err != nil {
 		if apierrors.IsNotFound(err) {
 			if k8sutil.IsMarkedForDeletion(topic.ObjectMeta) {
 				log.Info("Deleted as a result of a cluster deletion")
@@ -73,6 +75,14 @@ func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic
 		return &admissionv1beta1.AdmissionResponse{
 			Allowed: true,
 		}
+	}
+
+	if util.ObjectManagedByClusterRegistry(cluster) {
+		// referencing remote Kafka clusters is not allowed
+		return notAllowed(
+			fmt.Sprintf("KafkaCluster '%s' in the namespace '%s' is a remote kafka cluster", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace),
+			metav1.StatusReasonInvalid,
+		)
 	}
 
 	res := s.checkExistingKafkaTopicCRs(ctx, clusterNamespace, topic)
@@ -163,6 +173,11 @@ func (s *webhookServer) checkExistingKafkaTopicCRs(ctx context.Context,
 	for i, kafkaTopic := range kafkaTopicList.Items {
 		// filter the cr under admission
 		if kafkaTopic.GetName() == topic.GetName() && kafkaTopic.GetNamespace() == topic.GetNamespace() {
+			continue
+		}
+
+		// filter remote KafkaTopic CRs
+		if util.ObjectManagedByClusterRegistry(&kafkaTopic) {
 			continue
 		}
 

@@ -24,9 +24,9 @@ import (
 )
 
 // LookupKafkaCluster returns the running cluster instance based on its name and namespace
-func LookupKafkaCluster(client runtimeClient.Client, clusterName, clusterNamespace string) (cluster *v1beta1.KafkaCluster, err error) {
+func LookupKafkaCluster(ctx context.Context, client runtimeClient.Reader, clusterName, clusterNamespace string) (cluster *v1beta1.KafkaCluster, err error) {
 	cluster = &v1beta1.KafkaCluster{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: clusterName, Namespace: clusterNamespace}, cluster)
+	err = client.Get(ctx, types.NamespacedName{Name: clusterName, Namespace: clusterNamespace}, cluster)
 	return
 }
 
