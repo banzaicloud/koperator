@@ -18,6 +18,10 @@ import (
 	"fmt"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/event"
+
+	"github.com/banzaicloud/koperator/pkg/util"
+
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -117,4 +121,24 @@ func applyClusterRefLabel(cluster *v1beta1.KafkaCluster, labels map[string]strin
 
 func SetNewKafkaFromCluster(f func(k8sclient client.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error)) {
 	newKafkaFromCluster = f
+}
+
+// SkipClusterRegistryOwnedResourcePredicate returns a controller event filter that filters
+// out events triggered by Cluster Registry owned resources
+type SkipClusterRegistryOwnedResourcePredicate struct{}
+
+func (SkipClusterRegistryOwnedResourcePredicate) Create(e event.CreateEvent) bool {
+	return !util.ObjectManagedByClusterRegistry(e.Object)
+}
+
+func (SkipClusterRegistryOwnedResourcePredicate) Delete(e event.DeleteEvent) bool {
+	return !util.ObjectManagedByClusterRegistry(e.Object)
+}
+
+func (p SkipClusterRegistryOwnedResourcePredicate) Update(e event.UpdateEvent) bool {
+	return !util.ObjectManagedByClusterRegistry(e.ObjectNew)
+}
+
+func (p SkipClusterRegistryOwnedResourcePredicate) Generic(e event.GenericEvent) bool {
+	return !util.ObjectManagedByClusterRegistry(e.Object)
 }

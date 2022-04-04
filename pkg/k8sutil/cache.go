@@ -18,43 +18,35 @@ import (
 	"context"
 
 	"emperror.dev/errors"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 )
 
-func AddKafkaTopicIndexers(ctx context.Context) cache.NewCacheFunc {
-	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
-		newCache, err := cache.New(config, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		nameIndexFunc := func(obj client.Object) []string {
-			return []string{obj.(*v1alpha1.KafkaTopic).Spec.Name}
-		}
-		err = newCache.IndexField(ctx, &v1alpha1.KafkaTopic{}, "spec.name", nameIndexFunc)
-		if err != nil {
-			return nil, errors.WrapIfWithDetails(err, "could not setup indexer for field", "field", "spec.name")
-		}
-
-		clusterNameIndexFunc := func(obj client.Object) []string {
-			return []string{obj.(*v1alpha1.KafkaTopic).Spec.ClusterRef.Name}
-		}
-		err = newCache.IndexField(ctx, &v1alpha1.KafkaTopic{}, "spec.clusterRef.name", clusterNameIndexFunc)
-		if err != nil {
-			return nil, errors.WrapIfWithDetails(err, "could not setup indexer for field", "field", "spec.clusterRef.name")
-		}
-
-		clusterNamespaceIndexFunc := func(obj client.Object) []string {
-			return []string{obj.(*v1alpha1.KafkaTopic).Spec.ClusterRef.Namespace}
-		}
-		err = newCache.IndexField(ctx, &v1alpha1.KafkaTopic{}, "spec.clusterRef.namespace", clusterNamespaceIndexFunc)
-		if err != nil {
-			return nil, errors.WrapIfWithDetails(err, "could not setup indexer for field", "field", "spec.clusterRef.namespace")
-		}
-		return newCache, nil
+func AddKafkaTopicIndexers(ctx context.Context, cache cache.Cache) error {
+	nameIndexFunc := func(obj client.Object) []string {
+		return []string{obj.(*v1alpha1.KafkaTopic).Spec.Name}
 	}
+	err := cache.IndexField(ctx, &v1alpha1.KafkaTopic{}, "spec.name", nameIndexFunc)
+	if err != nil {
+		return errors.WrapIfWithDetails(err, "could not setup indexer for field", "field", "spec.name")
+	}
+
+	clusterNameIndexFunc := func(obj client.Object) []string {
+		return []string{obj.(*v1alpha1.KafkaTopic).Spec.ClusterRef.Name}
+	}
+	err = cache.IndexField(ctx, &v1alpha1.KafkaTopic{}, "spec.clusterRef.name", clusterNameIndexFunc)
+	if err != nil {
+		return errors.WrapIfWithDetails(err, "could not setup indexer for field", "field", "spec.clusterRef.name")
+	}
+
+	clusterNamespaceIndexFunc := func(obj client.Object) []string {
+		return []string{obj.(*v1alpha1.KafkaTopic).Spec.ClusterRef.Namespace}
+	}
+	err = cache.IndexField(ctx, &v1alpha1.KafkaTopic{}, "spec.clusterRef.namespace", clusterNamespaceIndexFunc)
+	if err != nil {
+		return errors.WrapIfWithDetails(err, "could not setup indexer for field", "field", "spec.clusterRef.namespace")
+	}
+	return nil
 }

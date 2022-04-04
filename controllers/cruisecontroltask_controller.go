@@ -22,15 +22,12 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	"github.com/banzaicloud/koperator/pkg/util"
 
 	kafkav1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/scale"
@@ -219,31 +216,15 @@ func (r *CruiseControlTaskReconciler) UpdateStatus(ctx context.Context, instance
 
 // SetupCruiseControlWithManager registers cruise control controller to the manager
 func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
-	builder := ctrl.NewControllerManagedBy(mgr).For(&kafkav1beta1.KafkaCluster{}).Named("CruiseControl")
+	builder := ctrl.NewControllerManagedBy(mgr).
+		For(&kafkav1beta1.KafkaCluster{}).
+		WithEventFilter(SkipClusterRegistryOwnedResourcePredicate{}).
+		Named("CruiseControl")
 
 	builder.WithEventFilter(
 		predicate.Funcs{
-			CreateFunc: func(e event.CreateEvent) bool {
-				object, err := meta.Accessor(e.Object)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				return true
-			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				object, err := meta.Accessor(e.ObjectNew)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				if _, ok := object.(*kafkav1beta1.KafkaCluster); ok {
+				if _, ok := e.ObjectNew.(*kafkav1beta1.KafkaCluster); ok {
 					oldObj := e.ObjectOld.(*kafkav1beta1.KafkaCluster)
 					newObj := e.ObjectNew.(*kafkav1beta1.KafkaCluster)
 					if !reflect.DeepEqual(oldObj.Status.BrokersState, newObj.Status.BrokersState) ||
@@ -251,17 +232,6 @@ func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
 						oldObj.GetGeneration() != newObj.GetGeneration() {
 						return true
 					}
-					return false
-				}
-				return true
-			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				object, err := meta.Accessor(e.Object)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
 					return false
 				}
 				return true

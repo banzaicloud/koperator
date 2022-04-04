@@ -878,7 +878,7 @@ func (cConfig *CruiseControlConfig) GetCCImage() string {
 	if cConfig.Image != "" {
 		return cConfig.Image
 	}
-	return "ghcr.io/banzaicloud/cruise-control:2.5.85"
+	return "ghcr.io/banzaicloud/cruise-control:2.5.86"
 }
 
 // GetCCLog4jConfig returns the used Cruise Control log4j configuration

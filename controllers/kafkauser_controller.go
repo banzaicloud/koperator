@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 
@@ -59,52 +58,22 @@ var userFinalizer = "finalizer.kafkausers.kafka.banzaicloud.io"
 func SetupKafkaUserWithManager(mgr ctrl.Manager, certSigningEnabled bool, certManagerNamespace bool) *ctrl.Builder {
 	log := mgr.GetLogger()
 	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.KafkaUser{}).Named("KafkaUser")
+		For(&v1alpha1.KafkaUser{}).
+		WithEventFilter(SkipClusterRegistryOwnedResourcePredicate{}).
+		Named("KafkaUser")
 	if certSigningEnabled {
+		csrMapper := csrMapper{
+			client: mgr.GetClient(),
+			log:    log,
+		}
 		builder.Watches(
 			&source.Kind{Type: &certsigningreqv1.CertificateSigningRequest{}},
-			handler.EnqueueRequestsFromMapFunc(certificateSigningRequestMapper),
+			handler.EnqueueRequestsFromMapFunc(csrMapper.mapToKafkaUser),
 			ctrlBuilder.WithPredicates(certificateSigningRequestFilter(log)))
 	}
 	if certManagerNamespace {
 		builder.Owns(&certv1.Certificate{})
 	}
-	builder.WithEventFilter(
-		predicate.Funcs{
-			CreateFunc: func(e event.CreateEvent) bool {
-				object, err := meta.Accessor(e.Object)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				return true
-			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				object, err := meta.Accessor(e.Object)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				return true
-			},
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				object, err := meta.Accessor(e.ObjectNew)
-				if err != nil {
-					return false
-				}
-				// Skip object if v1alpha1.OwnershipAnnotation is set as it is owned by other system.
-				if ok := util.ObjectManagedByClusterRegistry(object); ok {
-					return false
-				}
-				return true
-			},
-		})
 	return builder
 }
 
@@ -128,7 +97,13 @@ func certificateSigningRequestFilter(log logr.Logger) predicate.Funcs {
 	}
 }
 
-func certificateSigningRequestMapper(obj client.Object) []ctrl.Request {
+type csrMapper struct {
+	client client.Reader
+	log    logr.Logger
+}
+
+// mapToKafkaUser maps CertificateSigningRequest events to KafkaUser reconcile events
+func (m *csrMapper) mapToKafkaUser(obj client.Object) []ctrl.Request {
 	certSigningReqAnnotations := obj.GetAnnotations()
 	kafkaUserResourceNamespacedName, ok := certSigningReqAnnotations[pkicommon.KafkaUserAnnotationName]
 	if !ok {
@@ -138,10 +113,30 @@ func certificateSigningRequestMapper(obj client.Object) []ctrl.Request {
 	if len(namespaceWithName) != 2 {
 		return []ctrl.Request{}
 	}
+
+	namespace := namespaceWithName[0]
+	name := namespaceWithName[1]
+
+	ctx := context.Background()
+	var kafkaUser v1alpha1.KafkaUser
+	err := m.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &kafkaUser)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return []ctrl.Request{}
+		}
+		m.log.Error(err, "couldn't retrieve KafkaUser", "namespace", namespace, "name", name)
+		return []ctrl.Request{}
+	}
+
+	// skip reconciling KafkaUser if owned by Cluster Registry
+	if ok := util.ObjectManagedByClusterRegistry(&kafkaUser); ok {
+		return []ctrl.Request{}
+	}
+
 	return []ctrl.Request{{
 		NamespacedName: types.NamespacedName{
-			Namespace: namespaceWithName[0],
-			Name:      namespaceWithName[1],
+			Namespace: namespace,
+			Name:      name,
 		},
 	}}
 }
@@ -185,7 +180,7 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 	// Get the referenced kafkacluster
 	clusterNamespace := getClusterRefNamespace(instance.Namespace, instance.Spec.ClusterRef)
 	var cluster *v1beta1.KafkaCluster
-	if cluster, err = k8sutil.LookupKafkaCluster(r.Client, instance.Spec.ClusterRef.Name, clusterNamespace); err != nil {
+	if cluster, err = k8sutil.LookupKafkaCluster(ctx, r.Client, instance.Spec.ClusterRef.Name, clusterNamespace); err != nil {
 		// This shouldn't trigger anymore, but leaving it here as a safetybelt
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
 			reqLogger.Info("Cluster is gone already, there is nothing we can do")
