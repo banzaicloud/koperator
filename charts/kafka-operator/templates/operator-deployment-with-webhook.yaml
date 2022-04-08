@@ -31,7 +31,7 @@ metadata:
   name: {{ include "kafka-operator.name" . }}-validating-webhook
 webhooks:
 - admissionReviewVersions:
-  - v1beta1
+  - v1
   clientConfig:
     caBundle: {{ $caCrt }}
     service:
