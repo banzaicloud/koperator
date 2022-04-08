@@ -178,7 +178,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: prometheus
-  namespace: default
+  namespace: kafka
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
@@ -196,8 +196,8 @@ spec:
       port: alerts
   serviceMonitorSelector:
     matchLabels:
-      app: kafka
       kafka_cr: kafka
+      release: prometheus-operator
   ruleSelector:
     matchLabels:
       prometheus: kafka-rules
