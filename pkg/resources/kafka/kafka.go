@@ -297,11 +297,9 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 	podList := &corev1.PodList{}
-
 	err := r.Client.List(context.TODO(), podList,
-		client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)),
-		client.ListOption(client.MatchingLabels(kafka.LabelsForKafka(r.KafkaCluster.Name))),
-		client.ListOption(client.HasLabels{"brokerId"}),
+		client.InNamespace(r.KafkaCluster.Namespace),
+		client.MatchingLabels(kafka.LabelsForKafka(r.KafkaCluster.Name)),
 	)
 	if err != nil {
 		return errors.WrapIf(err, "failed to reconcile resource")
