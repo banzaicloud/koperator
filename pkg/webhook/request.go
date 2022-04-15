@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"reflect"
 
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/banzaicloud/koperator/pkg/util"
@@ -34,7 +34,7 @@ var (
 	kafkaTopic = reflect.TypeOf(v1alpha1.KafkaTopic{}).Name()
 )
 
-func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissionv1beta1.AdmissionResponse {
+func (s *webhookServer) validate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	req := ar.Request
 
 	l := log.WithValues("kind", req.Kind, "namespace", req.Namespace, "name", req.Name, "uid", req.UID,
@@ -50,7 +50,7 @@ func (s *webhookServer) validate(ar *admissionv1beta1.AdmissionReview) *admissio
 		}
 		if ok := util.ObjectManagedByClusterRegistry(topic.GetObjectMeta()); ok {
 			l.Info("Skip validation as the resource is managed by Cluster Registry")
-			return &admissionv1beta1.AdmissionResponse{
+			return &admissionv1.AdmissionResponse{
 				Allowed: true,
 			}
 		}
@@ -85,8 +85,8 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var admissionResponse *admissionv1beta1.AdmissionResponse
-	ar := admissionv1beta1.AdmissionReview{}
+	var admissionResponse *admissionv1.AdmissionResponse
+	ar := admissionv1.AdmissionReview{}
 	if _, _, err := s.deserializer.Decode(body, nil, &ar); err != nil {
 		log.Error(err, "Can't decode body")
 		admissionResponse = notAllowed(err.Error(), metav1.StatusReasonBadRequest)
@@ -94,13 +94,17 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 		admissionResponse = s.validate(&ar)
 	}
 
-	admissionReview := admissionv1beta1.AdmissionReview{}
+	admissionReview := admissionv1.AdmissionReview{}
 	if admissionResponse != nil {
 		admissionReview.Response = admissionResponse
 		if ar.Request != nil {
 			admissionReview.Response.UID = ar.Request.UID
 		}
 	}
+
+	// APIVersion and Kind must be set for admission/v1, or the request would fail
+	admissionReview.APIVersion = "admission.k8s.io/v1"
+	admissionReview.Kind = "AdmissionReview"
 
 	resp, err := json.Marshal(admissionReview)
 	if err != nil {
@@ -113,8 +117,8 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func notAllowed(msg string, reason metav1.StatusReason) *admissionv1beta1.AdmissionResponse {
-	return &admissionv1beta1.AdmissionResponse{
+func notAllowed(msg string, reason metav1.StatusReason) *admissionv1.AdmissionResponse {
+	return &admissionv1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: msg,
 			Reason:  reason,
