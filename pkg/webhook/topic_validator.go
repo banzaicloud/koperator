@@ -20,15 +20,11 @@ import (
 
 	"github.com/banzaicloud/koperator/pkg/util"
 
-	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
-	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
-	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
 
 const (
