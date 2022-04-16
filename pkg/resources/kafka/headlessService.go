@@ -15,11 +15,14 @@
 package kafka
 
 import (
+	"context"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
 	"github.com/banzaicloud/koperator/pkg/util"
@@ -46,8 +49,8 @@ func (r *Reconciler) headlessService() runtime.Object {
 
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
-			fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.Name),
-			util.MergeLabels(kafkautils.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster.Labels),
+			fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.GetName()),
+			util.MergeLabels(kafkautils.LabelsForKafka(r.KafkaCluster.GetName()), r.KafkaCluster.GetLabels()),
 			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
 			r.KafkaCluster,
 		),
@@ -60,4 +63,28 @@ func (r *Reconciler) headlessService() runtime.Object {
 			PublishNotReadyAddresses: true,
 		},
 	}
+}
+
+// deleteHeadlessService deletes the headless service that was created for the current KafkaCluster
+// if there is any
+func (r *Reconciler) deleteHeadlessService() error {
+	ctx := context.Background()
+
+	svc := corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Service",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: r.KafkaCluster.GetNamespace(),
+			Name:      fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.GetName()),
+		},
+	}
+
+	err := r.Client.Delete(ctx, &svc)
+	if err != nil {
+		err = client.IgnoreNotFound(err)
+	}
+
+	return err
 }

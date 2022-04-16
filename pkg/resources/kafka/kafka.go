@@ -146,12 +146,14 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciling")
 
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
+		// reconcile headless service
 		o := r.headlessService()
 		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 		}
 	} else {
+		// reconcile all-broker service
 		o := r.allBrokerService()
 		err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 		if err != nil {
@@ -288,6 +290,31 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	if err = r.reconcileClusterWideDynamicConfig(); err != nil {
 		return err
+	}
+
+	// in case HeadlessServiceEnabled is changed delete the service that was created by the previous
+	// reconcile flow. The services must be deleted at the end of the reconcile flow after the new services
+	// were created and broker configurations reflecting the new services otherwise the Kafka brokers
+	// won't be reachable by koperator.
+	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
+		// delete non headless services for all brokers
+		log.V(1).Info("deleting non headless services for all brokers")
+
+		if err := r.deleteNonHeadlessServices(); err != nil {
+			return errors.WrapIfWithDetails(err, "failed to delete non headless services for all brokers",
+				"component", componentName,
+				"clusterName", r.KafkaCluster.Name,
+				"clusterNamespace", r.KafkaCluster.Namespace)
+		}
+	} else {
+		// delete headless service
+		log.V(1).Info("deleting headless service")
+		if err := r.deleteHeadlessService(); err != nil {
+			return errors.WrapIfWithDetails(err, "failed to delete headless service",
+				"component", componentName,
+				"clusterName", r.KafkaCluster.Name,
+				"clusterNamespace", r.KafkaCluster.Namespace)
+		}
 	}
 
 	log.V(1).Info("Reconciled")
