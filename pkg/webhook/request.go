@@ -98,7 +98,7 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 		// APIVersion and Kind must be set for admission/v1, or the request would fail
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: admissionv1.SchemeGroupVersion.String(),
-			Kind: "AdmissionReview",
+			Kind:       "AdmissionReview",
 		},
 	}
 	if admissionResponse != nil {
