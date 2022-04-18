@@ -94,17 +94,19 @@ func (s *webhookServer) serve(w http.ResponseWriter, r *http.Request) {
 		admissionResponse = s.validate(&ar)
 	}
 
-	admissionReview := admissionv1.AdmissionReview{}
+	admissionReview := admissionv1.AdmissionReview{
+		// APIVersion and Kind must be set for admission/v1, or the request would fail
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: admissionv1.SchemeGroupVersion.String(),
+			Kind: "AdmissionReview",
+		},
+	}
 	if admissionResponse != nil {
 		admissionReview.Response = admissionResponse
 		if ar.Request != nil {
 			admissionReview.Response.UID = ar.Request.UID
 		}
 	}
-
-	// APIVersion and Kind must be set for admission/v1, or the request would fail
-	admissionReview.APIVersion = "admission.k8s.io/v1"
-	admissionReview.Kind = "AdmissionReview"
 
 	resp, err := json.Marshal(admissionReview)
 	if err != nil {
