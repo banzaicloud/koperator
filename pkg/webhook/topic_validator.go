@@ -20,7 +20,7 @@ import (
 
 	"github.com/banzaicloud/koperator/pkg/util"
 
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,7 +36,7 @@ const (
 	invalidReplicationFactorErrMsg = "Replication factor is larger than the number of nodes in the kafka cluster"
 )
 
-func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic) *admissionv1beta1.AdmissionResponse {
+func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic) *admissionv1.AdmissionResponse {
 	ctx := context.Background()
 	log.Info(fmt.Sprintf("Doing pre-admission validation of kafka topic %s", topic.Spec.Name))
 
@@ -54,25 +54,21 @@ func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic
 		if apierrors.IsNotFound(err) {
 			if k8sutil.IsMarkedForDeletion(topic.ObjectMeta) {
 				log.Info("Deleted as a result of a cluster deletion")
-				return &admissionv1beta1.AdmissionResponse{
+				return &admissionv1.AdmissionResponse{
 					Allowed: true,
 				}
 			}
 			log.Error(err, "Referenced kafka cluster does not exist")
-			return notAllowed(
-				fmt.Sprintf("KafkaCluster '%s' in the namespace '%s' does not exist", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace),
-				metav1.StatusReasonNotFound,
-			)
+			return notAllowed(fmt.Sprintf("KafkaCluster '%s' in the namespace '%s' does not exist", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace), metav1.StatusReasonNotFound)
 		}
 		log.Error(err, "API failure while running topic validation")
 		return notAllowed("API failure while validating topic, please try again", metav1.StatusReasonServiceUnavailable)
 	}
-
 	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
 		// Let this through, it's a delete topic request from a parent cluster being
 		// deleted
 		log.Info("Cluster is going down for deletion, assuming a delete topic request")
-		return &admissionv1beta1.AdmissionResponse{
+		return &admissionv1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
@@ -96,7 +92,7 @@ func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic
 	}
 
 	// everything looks a-okay
-	return &admissionv1beta1.AdmissionResponse{
+	return &admissionv1.AdmissionResponse{
 		Allowed: true,
 	}
 }
@@ -104,7 +100,7 @@ func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic
 // checkKafka creates a Kafka admin client and connects to the Kafka brokers to check
 // whether the referred topic exists, and what are its properties
 func (s *webhookServer) checkKafka(ctx context.Context, topic *banzaicloudv1alpha1.KafkaTopic,
-	cluster *banzaicloudv1beta1.KafkaCluster) *admissionv1beta1.AdmissionResponse {
+	cluster *banzaicloudv1beta1.KafkaCluster) *admissionv1.AdmissionResponse {
 	// retrieve an admin client for the cluster
 	broker, closeClient, err := s.newKafkaFromCluster(s.client, cluster)
 	if err != nil {
@@ -128,10 +124,7 @@ func (s *webhookServer) checkKafka(ctx context.Context, topic *banzaicloudv1alph
 			if apierrors.IsNotFound(err) {
 				// User is trying to overwrite an existing topic - bad user
 				log.Info("User attempted to create topic with name that already exists in the kafka cluster")
-				return notAllowed(
-					fmt.Sprintf("Topic '%s' already exists on kafka cluster '%s'", topic.Spec.Name, topic.Spec.ClusterRef.Name),
-					metav1.StatusReasonAlreadyExists,
-				)
+				return notAllowed(fmt.Sprintf("Topic '%s' already exists on kafka cluster '%s'", topic.Spec.Name, topic.Spec.ClusterRef.Name), metav1.StatusReasonAlreadyExists)
 			}
 			log.Error(err, "API failure while running topic validation")
 			return notAllowed("API failure while validating topic, please try again", metav1.StatusReasonServiceUnavailable)
@@ -160,7 +153,7 @@ func (s *webhookServer) checkKafka(ctx context.Context, topic *banzaicloudv1alph
 // checkExistingKafkaTopicCRs checks whether there's any other duplicate KafkaTopic CR exists
 // that refers to the same KafkaCluster's same topic
 func (s *webhookServer) checkExistingKafkaTopicCRs(ctx context.Context,
-	clusterNamespace string, topic *banzaicloudv1alpha1.KafkaTopic) *admissionv1beta1.AdmissionResponse {
+	clusterNamespace string, topic *banzaicloudv1alpha1.KafkaTopic) *admissionv1.AdmissionResponse {
 	// check KafkaTopic in the referred KafkaCluster's namespace
 	kafkaTopicList := banzaicloudv1alpha1.KafkaTopicList{}
 	err := s.client.List(ctx, &kafkaTopicList, client.MatchingFields{"spec.name": topic.Spec.Name})

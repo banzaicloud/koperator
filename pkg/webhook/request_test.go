@@ -24,7 +24,7 @@ import (
 	"strings"
 	"testing"
 
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	authv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -41,9 +41,9 @@ func newRawTopic() []byte {
 	return out
 }
 
-func newAdmissionReview() *admissionv1beta1.AdmissionReview {
-	return &admissionv1beta1.AdmissionReview{
-		Request: &admissionv1beta1.AdmissionRequest{
+func newAdmissionReview() *admissionv1.AdmissionReview {
+	return &admissionv1.AdmissionReview{
+		Request: &admissionv1.AdmissionRequest{
 			Kind: metav1.GroupVersionKind{
 				Kind: "non-topic-kind",
 			},
@@ -170,7 +170,7 @@ func TestServe(t *testing.T) {
 		if err != nil {
 			t.Error("Expected admission review response, got error")
 		}
-		admissionReview := admissionv1beta1.AdmissionReview{}
+		admissionReview := admissionv1.AdmissionReview{}
 		if err := json.Unmarshal(body, &admissionReview); err != nil {
 			t.Error("Expected no error got:", err)
 		}
@@ -196,7 +196,7 @@ func TestServe(t *testing.T) {
 		if err != nil {
 			t.Error("Expected admission review response, got error")
 		}
-		admissionReview := admissionv1beta1.AdmissionReview{}
+		admissionReview := admissionv1.AdmissionReview{}
 		if err := json.Unmarshal(body, &admissionReview); err != nil {
 			t.Error("Expected no error got:", err)
 		}
