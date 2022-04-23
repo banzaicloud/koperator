@@ -109,11 +109,11 @@ func (r *Reconciler) deleteNonHeadlessServices() error {
 	}
 
 	for i := range services.Items {
-		svc := services.Items[i]
+		svc = services.Items[i]
 		if !svc.GetDeletionTimestamp().IsZero() {
 			continue
 		}
-		err := r.Client.Delete(ctx, &svc)
+		err = r.Client.Delete(ctx, &svc)
 		if err != nil && client.IgnoreNotFound(err) != nil {
 			return err
 		}
