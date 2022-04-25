@@ -193,7 +193,7 @@ spec:
     alertmanagers:
     - namespace: kafka
       name: kafka-operator-alertmanager
-      port: alerts
+      port: http-alerts
   serviceMonitorSelector:
     matchLabels:
       kafka_cr: kafka
