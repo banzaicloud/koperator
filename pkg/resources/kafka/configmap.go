@@ -201,9 +201,9 @@ func generateControlPlaneListener(iListeners []v1beta1.InternalListenerConfig) s
 
 func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map[string]string, log logr.Logger) *properties.Properties {
 	var (
-		interBrokerListenerName string
+		interBrokerListenerName   string
 		securityProtocolMapConfig []string
-		listenerConfig []string
+		listenerConfig            []string
 	)
 
 	config := properties.NewProperties()

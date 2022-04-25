@@ -17,10 +17,11 @@ package kafka
 import (
 	"testing"
 
-	"github.com/banzaicloud/koperator/pkg/util"
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/banzaicloud/koperator/pkg/util"
 
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 
@@ -28,7 +29,7 @@ import (
 	"github.com/banzaicloud/koperator/pkg/resources"
 )
 
-func TestGenerateBrokerConfig(t *testing.T) {
+func TestGenerateBrokerConfig(t *testing.T) { //nolint funlen
 	tests := []struct {
 		testName                  string
 		readOnlyConfig            string
