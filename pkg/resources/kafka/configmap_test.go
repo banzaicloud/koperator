@@ -17,6 +17,7 @@ package kafka
 import (
 	"testing"
 
+	"github.com/banzaicloud/koperator/pkg/util"
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +40,7 @@ func TestGenerateBrokerConfig(t *testing.T) {
 		perBrokerConfig           string
 		advertisedListenerAddress string
 		listenerType              string
+		sslClientAuth             v1beta1.SSLClientAuthentication
 		expectedConfig            string
 		perBrokerStorageConfig    []v1beta1.StorageConfig
 	}{
@@ -227,7 +229,7 @@ metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlM
 zookeeper.connect=example.zk:2181/`,
 		},
 		{
-			testName:                  "configWithSSL",
+			testName:                  "configWithSSL_SSLClientAuth_not_provided",
 			readOnlyConfig:            ``,
 			zkAddresses:               []string{"example.zk:2181"},
 			zkPath:                    ``,
@@ -248,6 +250,111 @@ cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io
 cruise.control.metrics.reporter.ssl.truststore.password=keystore_clientpassword123
 inter.broker.listener.name=INTERNAL
 listener.name.internal.ssl.client.auth=required
+listener.name.internal.ssl.keystore.location=/var/run/secrets/java.io/keystores/server/internal/keystore.jks
+listener.name.internal.ssl.keystore.password=keystore_serverpassword123
+listener.name.internal.ssl.keystore.type=JKS
+listener.name.internal.ssl.truststore.location=/var/run/secrets/java.io/keystores/server/internal/truststore.jks
+listener.name.internal.ssl.truststore.password=keystore_serverpassword123
+listener.name.internal.ssl.truststore.type=JKS
+listener.security.protocol.map=INTERNAL:SSL
+listeners=INTERNAL://:9092
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+super.users=User:CN=kafka-headless.kafka.svc.cluster.local
+zookeeper.connect=example.zk:2181/`,
+		},
+		{
+			testName:                  "configWithSSL_SSLClientAuth_required",
+			readOnlyConfig:            ``,
+			zkAddresses:               []string{"example.zk:2181"},
+			zkPath:                    ``,
+			kubernetesClusterDomain:   ``,
+			clusterWideConfig:         ``,
+			perBrokerConfig:           ``,
+			perBrokerReadOnlyConfig:   ``,
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "ssl",
+			sslClientAuth:             "required",
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.kubernetes.mode=true
+cruise.control.metrics.reporter.security.protocol=SSL
+cruise.control.metrics.reporter.ssl.keystore.location=/var/run/secrets/java.io/keystores/client/keystore.jks
+cruise.control.metrics.reporter.ssl.keystore.password=keystore_clientpassword123
+cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io/keystores/client/truststore.jks
+cruise.control.metrics.reporter.ssl.truststore.password=keystore_clientpassword123
+inter.broker.listener.name=INTERNAL
+listener.name.internal.ssl.client.auth=required
+listener.name.internal.ssl.keystore.location=/var/run/secrets/java.io/keystores/server/internal/keystore.jks
+listener.name.internal.ssl.keystore.password=keystore_serverpassword123
+listener.name.internal.ssl.keystore.type=JKS
+listener.name.internal.ssl.truststore.location=/var/run/secrets/java.io/keystores/server/internal/truststore.jks
+listener.name.internal.ssl.truststore.password=keystore_serverpassword123
+listener.name.internal.ssl.truststore.type=JKS
+listener.security.protocol.map=INTERNAL:SSL
+listeners=INTERNAL://:9092
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+super.users=User:CN=kafka-headless.kafka.svc.cluster.local
+zookeeper.connect=example.zk:2181/`,
+		},
+		{
+			testName:                  "configWithSSL_SSLClientAuth_requested",
+			readOnlyConfig:            ``,
+			zkAddresses:               []string{"example.zk:2181"},
+			zkPath:                    ``,
+			kubernetesClusterDomain:   ``,
+			clusterWideConfig:         ``,
+			perBrokerConfig:           ``,
+			perBrokerReadOnlyConfig:   ``,
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "ssl",
+			sslClientAuth:             "requested",
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.kubernetes.mode=true
+cruise.control.metrics.reporter.security.protocol=SSL
+cruise.control.metrics.reporter.ssl.keystore.location=/var/run/secrets/java.io/keystores/client/keystore.jks
+cruise.control.metrics.reporter.ssl.keystore.password=keystore_clientpassword123
+cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io/keystores/client/truststore.jks
+cruise.control.metrics.reporter.ssl.truststore.password=keystore_clientpassword123
+inter.broker.listener.name=INTERNAL
+listener.name.internal.ssl.client.auth=requested
+listener.name.internal.ssl.keystore.location=/var/run/secrets/java.io/keystores/server/internal/keystore.jks
+listener.name.internal.ssl.keystore.password=keystore_serverpassword123
+listener.name.internal.ssl.keystore.type=JKS
+listener.name.internal.ssl.truststore.location=/var/run/secrets/java.io/keystores/server/internal/truststore.jks
+listener.name.internal.ssl.truststore.password=keystore_serverpassword123
+listener.name.internal.ssl.truststore.type=JKS
+listener.security.protocol.map=INTERNAL:SSL
+listeners=INTERNAL://:9092
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+super.users=User:CN=kafka-headless.kafka.svc.cluster.local
+zookeeper.connect=example.zk:2181/`,
+		},
+		{
+			testName:                  "configWithSSL_SSLClientAuth_none",
+			readOnlyConfig:            ``,
+			zkAddresses:               []string{"example.zk:2181"},
+			zkPath:                    ``,
+			kubernetesClusterDomain:   ``,
+			clusterWideConfig:         ``,
+			perBrokerConfig:           ``,
+			perBrokerReadOnlyConfig:   ``,
+			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
+			listenerType:              "ssl",
+			sslClientAuth:             "none",
+			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.kubernetes.mode=true
+cruise.control.metrics.reporter.security.protocol=SSL
+cruise.control.metrics.reporter.ssl.keystore.location=/var/run/secrets/java.io/keystores/client/keystore.jks
+cruise.control.metrics.reporter.ssl.keystore.password=keystore_clientpassword123
+cruise.control.metrics.reporter.ssl.truststore.location=/var/run/secrets/java.io/keystores/client/truststore.jks
+cruise.control.metrics.reporter.ssl.truststore.password=keystore_clientpassword123
+inter.broker.listener.name=INTERNAL
+listener.name.internal.ssl.client.auth=none
 listener.name.internal.ssl.keystore.location=/var/run/secrets/java.io/keystores/server/internal/keystore.jks
 listener.name.internal.ssl.keystore.password=keystore_serverpassword123
 listener.name.internal.ssl.keystore.type=JKS
@@ -291,6 +398,7 @@ zookeeper.connect=example.zk:2181/`,
 											ServerSSLCertSecret: &v1.LocalObjectReference{
 												Name: "server-secret",
 											},
+											SSLClientAuth: test.sslClientAuth,
 										},
 										UsedForInnerBrokerCommunication: true,
 									},
@@ -326,7 +434,10 @@ zookeeper.connect=example.zk:2181/`,
 				clientPass   string
 				superUsers   []string
 			)
-			if test.testName == "configWithSSL" {
+
+			sslConfigTestNames := []string{"configWithSSL_SSLClientAuth_not_provided", "configWithSSL_SSLClientAuth_required", "configWithSSL_SSLClientAuth_requested",
+				"configWithSSL_SSLClientAuth_none"}
+			if util.StringSliceContains(sslConfigTestNames, test.testName) {
 				serverPasses = map[string]string{"internal": "keystore_serverpassword123"}
 				clientPass = "keystore_clientpassword123"
 				superUsers = []string{"CN=kafka-headless.kafka.svc.cluster.local"}

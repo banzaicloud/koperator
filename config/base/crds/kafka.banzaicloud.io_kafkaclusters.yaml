@@ -18909,6 +18909,14 @@ spec:
                             for a service Only "NodePort" and "LoadBalancer" is supported.
                             Default value is LoadBalancer
                           type: string
+                        sslClientAuth:
+                          description: SSLClientAuth specifies whether client authentication
+                            is required, requested, or not required
+                          enum:
+                          - required
+                          - requested
+                          - none
+                          type: string
                         type:
                           description: 'SecurityProtocol is the protocol used to communicate
                             with brokers. Valid values are: plaintext, ssl, sasl_plaintext,
@@ -18953,6 +18961,14 @@ spec:
                                 TODO: Add other useful fields. apiVersion, kind, uid?'
                               type: string
                           type: object
+                        sslClientAuth:
+                          description: SSLClientAuth specifies whether client authentication
+                            is required, requested, or not required
+                          enum:
+                          - required
+                          - requested
+                          - none
+                          type: string
                         type:
                           description: 'SecurityProtocol is the protocol used to communicate
                             with brokers. Valid values are: plaintext, ssl, sasl_plaintext,
