@@ -18912,7 +18912,8 @@ spec:
                           type: string
                         sslClientAuth:
                           description: SSLClientAuth specifies whether client authentication
-                            is required, requested, or not required
+                            is required, requested, or not required. This field defaults
+                            to "required" if it is omitted
                           enum:
                           - required
                           - requested
@@ -18964,7 +18965,8 @@ spec:
                           type: object
                         sslClientAuth:
                           description: SSLClientAuth specifies whether client authentication
-                            is required, requested, or not required
+                            is required, requested, or not required. This field defaults
+                            to "required" if it is omitted
                           enum:
                           - required
                           - requested
