@@ -271,8 +271,4 @@ const (
 
 	// SSLClientAuthRequired states that the client authentication is required when SSL is enabled
 	SSLClientAuthRequired SSLClientAuthentication = "required"
-	// SSLClientAuthRequested states that the client authentication is requested, but a client without certs can still connect when SSL is enabled
-	SSLClientAuthRequested SSLClientAuthentication = "required"
-	// SSLClientAuthRequired states that the no client authentication is performed when SSL is enabled
-	SSLClientAuthNone SSLClientAuthentication = "required"
 )
