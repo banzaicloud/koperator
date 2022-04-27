@@ -200,9 +200,12 @@ func generateControlPlaneListener(iListeners []v1beta1.InternalListenerConfig) s
 }
 
 func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map[string]string, log logr.Logger) *properties.Properties {
-	var interBrokerListenerName string
-	var securityProtocolMapConfig []string
-	var listenerConfig []string
+	var (
+		interBrokerListenerName   string
+		securityProtocolMapConfig []string
+		listenerConfig            []string
+	)
+
 	config := properties.NewProperties()
 
 	for _, iListener := range l.InternalListeners {
@@ -219,7 +222,7 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
 		// Add internal listeners SSL configuration
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
-			generateListenerSSLConfig(config, iListener.Name, "JKS", serverPasses, log)
+			generateListenerSSLConfig(config, iListener.Name, iListener.SSLClientAuth, "JKS", serverPasses, log)
 		}
 	}
 
@@ -230,7 +233,7 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
 		// Add external listeners SSL configuration
 		if eListener.Type == v1beta1.SecurityProtocolSSL {
-			generateListenerSSLConfig(config, eListener.Name, "JKS", serverPasses, log)
+			generateListenerSSLConfig(config, eListener.Name, eListener.SSLClientAuth, "JKS", serverPasses, log)
 		}
 	}
 	if err := config.Set("listener.security.protocol.map", securityProtocolMapConfig); err != nil {
@@ -245,7 +248,7 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 	return config
 }
 
-func generateListenerSSLConfig(config *properties.Properties, name string, certificateStoreType string, passwordKeyMap map[string]string, log logr.Logger) {
+func generateListenerSSLConfig(config *properties.Properties, name string, sslClientAuth v1beta1.SSLClientAuthentication, certificateStoreType string, passwordKeyMap map[string]string, log logr.Logger) {
 	if certificateStoreType == "JKS" {
 		namedKeystorePath := fmt.Sprintf(listenerServerKeyStorePathTemplate, serverKeystorePath, name)
 		listenerSSLConfig := map[string]string{
@@ -253,9 +256,15 @@ func generateListenerSSLConfig(config *properties.Properties, name string, certi
 			fmt.Sprintf("listener.name.%s.ssl.truststore.location", name): namedKeystorePath + "/" + v1alpha1.TLSJKSTrustStore,
 			fmt.Sprintf("listener.name.%s.ssl.keystore.password", name):   passwordKeyMap[name],
 			fmt.Sprintf("listener.name.%s.ssl.truststore.password", name): passwordKeyMap[name],
-			fmt.Sprintf("listener.name.%s.ssl.client.auth", name):         "required",
 			fmt.Sprintf("listener.name.%s.ssl.keystore.type", name):       "JKS",
 			fmt.Sprintf("listener.name.%s.ssl.truststore.type", name):     "JKS",
+		}
+
+		// enable 2-way SSL authentication if SSL is enabled but this field is not provided in the listener config
+		if sslClientAuth == "" {
+			listenerSSLConfig[fmt.Sprintf("listener.name.%s.ssl.client.auth", name)] = string(v1beta1.SSLClientAuthRequired)
+		} else {
+			listenerSSLConfig[fmt.Sprintf("listener.name.%s.ssl.client.auth", name)] = string(sslClientAuth)
 		}
 
 		for k, v := range listenerSSLConfig {

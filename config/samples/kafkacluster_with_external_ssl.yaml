@@ -54,6 +54,8 @@ spec:
         name: "external"
         externalStartingPort: 19090
         containerPort: 9094
+        # sslClientAuth defaults to be "required" for two-way SSL authentication, possible values are: "required", "requested", and "none"
+        # sslClientAuth: "requested"
     internalListeners:
       - type: "plaintext"
         name: "plaintext"

@@ -38,6 +38,10 @@ type ConfigurationState string
 // Valid values are: plaintext, ssl, sasl_plaintext, sasl_ssl.
 type SecurityProtocol string
 
+// SSLClientAuthentication specifies whether client authentication is required, requested, or not required.
+// Valid values are: required, requested, none
+type SSLClientAuthentication string
+
 // PerBrokerConfigurationState holds info about the per-broker configuration state
 type PerBrokerConfigurationState string
 
@@ -264,4 +268,7 @@ const (
 	SecurityProtocolSaslSSL SecurityProtocol = "sasl_ssl"
 	// SecurityProtocolSaslPlaintext
 	SecurityProtocolSaslPlaintext SecurityProtocol = "sasl_plaintext"
+
+	// SSLClientAuthRequired states that the client authentication is required when SSL is enabled
+	SSLClientAuthRequired SSLClientAuthentication = "required"
 )
