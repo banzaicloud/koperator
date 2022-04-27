@@ -239,6 +239,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		log.Error(err, "could not find controller broker")
 	}
 
+	var perBrokerDynamicConfigCombineError error
 	reorderedBrokers := reorderBrokers(brokerPods, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID)
 	for _, broker := range reorderedBrokers {
 		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
@@ -283,9 +284,16 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		if err = r.updateStatusWithDockerImageAndVersion(broker.Id, brokerConfig, log); err != nil {
 			return err
 		}
+		// If dynamic configuration gets an error then let the loop continue to the next broker
+		// combined error will be returned after the broker loop. This solve that case when other brokers could get healthy,
+		// but the loop exits too soon because brokers are unreachable and dynamic configs cannot be set.
 		if err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, configMap, log); err != nil {
-			return err
+			perBrokerDynamicConfigCombineError = errors.Combine(perBrokerDynamicConfigCombineError, err)
 		}
+	}
+
+	if perBrokerDynamicConfigCombineError != nil {
+		return perBrokerDynamicConfigCombineError
 	}
 
 	if err = r.reconcileClusterWideDynamicConfig(); err != nil {
