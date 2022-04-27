@@ -168,6 +168,10 @@ type BrokerConfig struct {
 	// prometheus.io/scrape: "true"
 	// prometheus.io/port: "9020"
 	BrokerAnnotations map[string]string `json:"brokerAnnotations,omitempty"`
+	// Custom labels for the broker pods, example use case: for Prometheus monitoring to capture the group for each broker as a label, e.g.:
+	// kafka_broker_group: "default_group"
+	// +optional
+	BrokerLabels map[string]string `json:"brokerLabels,omitempty"`
 	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.
 	// By default it is set to `125000` which means 1Gbit/s in network throughput.
 	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`

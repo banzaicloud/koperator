@@ -56,6 +56,9 @@ spec:
             resources:
               requests:
                 storage: 10Gi
+      # Add custom labels to the config group
+      # brokerLabels:
+      #   kafka_broker_group: "default_group"
   # All Broker requires an image, unique id, and storageConfigs settings
   brokers:
       # Unique broker id which is used as kafka config broker.id

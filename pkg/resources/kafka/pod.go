@@ -90,6 +90,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 			util.MergeLabels(
 				kafkautils.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
+				brokerConfig.BrokerLabels,
 			),
 			brokerConfig.GetBrokerAnnotations(),
 			r.KafkaCluster,
