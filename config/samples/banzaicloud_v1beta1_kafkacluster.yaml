@@ -180,6 +180,9 @@ spec:
         # containerPort describes what port should be used by the broker to handle the communication
         # originates from outside of the cluster
         containerPort: 9094
+        # sslClientAuth corresponds to the ssl.client.auth field from the Broker Configs in Kafka documentation
+        # This defaults to be "required" for two-way SSL authentication when SSL is enabled, possible values are: "required", "requested", and "none"
+        # sslClientAuth: "requested"
         # Config allows to specify ingress controller configuration per external listener
         config:
           # defaultIngressConfig describes which ingress configuration to use
@@ -273,6 +276,9 @@ spec:
         # Support for multiple internal and external listeners are coming soon this value tells the operator which
         # internal listener configuration must be used for broker to broker communication
         usedForInnerBrokerCommunication: true
+        # sslClientAuth corresponds to the ssl.client.auth field from the Broker Configs in Kafka documentation
+        # This defaults to be "required" for two-way SSL authentication when SSL is enabled, possible values are: "required", "requested", and "none"
+        # sslClientAuth: "requested"
     # sslSecrets contains information about ssl related kubernetes secrets if one of the
     # listener setting type set to ssl these fields must be populated too.
     sslSecrets:

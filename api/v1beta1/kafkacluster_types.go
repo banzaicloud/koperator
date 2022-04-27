@@ -476,6 +476,10 @@ type CommonListenerSpec struct {
 	// under the keystore.jks, truststore.jks, password data fields.
 	// If this field is omitted koperator will auto-create a self-signed server certificate using the configuration provided in 'sslSecrets' field.
 	ServerSSLCertSecret *corev1.LocalObjectReference `json:"serverSSLCertSecret,omitempty"`
+	// SSLClientAuth specifies whether client authentication is required, requested, or not required.
+	// This field defaults to "required" if it is omitted
+	// +kubebuilder:validation:Enum=required;requested;none
+	SSLClientAuth SSLClientAuthentication `json:"sslClientAuth,omitempty"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
 	Name          string `json:"name"`
 	ContainerPort int32  `json:"containerPort"`
