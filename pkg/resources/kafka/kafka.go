@@ -239,8 +239,8 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		log.Error(err, "could not find controller broker")
 	}
 
-	var perBrokerDynamicConfigCombineError error
 	reorderedBrokers := reorderBrokers(brokerPods, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID)
+	isPerBrokerDynamicConfigFailed := false
 	for _, broker := range reorderedBrokers {
 		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
 		if err != nil {
@@ -284,16 +284,19 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		if err = r.updateStatusWithDockerImageAndVersion(broker.Id, brokerConfig, log); err != nil {
 			return err
 		}
-		// If dynamic configuration gets an error then let the loop continue to the next broker
-		// combined error will be returned after the broker loop. This solve that case when other brokers could get healthy,
-		// but the loop exits too soon because brokers are unreachable and dynamic configs cannot be set.
-		if err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, configMap, log); err != nil {
-			perBrokerDynamicConfigCombineError = errors.Combine(perBrokerDynamicConfigCombineError, err)
+		// If dynamic configs can not be set then let the loop continue to the next broker,
+		// after the loop we return error. This solve that case when other brokers could get healthy,
+		// but the loop exits too soon because dynamic configs can not be set.
+		err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, configMap, log)
+		if err != nil {
+			log.Error(err, "setting dynamic configs has failed", "brokerID", broker.Id)
+			isPerBrokerDynamicConfigFailed = true
 		}
 	}
 
-	if perBrokerDynamicConfigCombineError != nil {
-		return perBrokerDynamicConfigCombineError
+	if isPerBrokerDynamicConfigFailed {
+		// re-reconcile to retry setting the dynamic configs
+		return errors.New("setting dynamic configs for some brokers has failed.")
 	}
 
 	if err = r.reconcileClusterWideDynamicConfig(); err != nil {
