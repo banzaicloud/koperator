@@ -58,7 +58,8 @@ var _ = Describe("KafkaCluster", func() {
 				Partitions:        7,
 				ReplicationFactor: 2,
 			},
-			Config: "some.config=value",
+			Config:                   "some.config=value",
+			CruiseControlAnnotations: map[string]string{"test-cc-ann": "test-cc-ann-val"},
 		}
 		kafkaCluster.Spec.ReadOnlyConfig = ""
 		// Set some Kafka pod and container related SecurityContext values

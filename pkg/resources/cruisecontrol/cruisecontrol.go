@@ -129,7 +129,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())
 			}
 
-			podAnnotations := GeneratePodAnnotations(r.KafkaCluster, capacityConfig)
+			podAnnotations := GeneratePodAnnotations(
+				r.KafkaCluster.Spec.CruiseControlConfig.GetCruiseControlAnnotations(),
+				o.(*corev1.ConfigMap).Data,
+			)
 
 			o = r.deployment(podAnnotations)
 			err = k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
