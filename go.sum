@@ -188,7 +188,6 @@ github.com/banzaicloud/istio-operator/api/v2 v2.11.8/go.mod h1:od/KmI8+QoNB4CZxw
 github.com/banzaicloud/k8s-objectmatcher v1.5.0/go.mod h1:9MWY5HsM/OaTmoTirczhlO8UALbH722WgdpaaR7Y8OE=
 github.com/banzaicloud/k8s-objectmatcher v1.7.0 h1:6ufo47TaPC0jXJPg8d8/oooCy1ma3vEfM0J8ZbomKaw=
 github.com/banzaicloud/k8s-objectmatcher v1.7.0/go.mod h1:DSctpi6o9FqTfX7RluuEBeRLUahoDC7JavCeuu6Y+sg=
-github.com/banzaicloud/koperator v0.21.2/go.mod h1:e7kMnnmAgtt95LCos1jA21niYNQw+89ZlcJzkQ5HFwA=
 github.com/banzaicloud/operator-tools v0.21.0/go.mod h1:rbGr9Ud1uQs9KDWDWe6r/gLQdrr1wtBtTP9uo9Aw5Ss=
 github.com/banzaicloud/operator-tools v0.28.0 h1:GSfc0qZr6zo7WrNxdgWZE1LcTChPU8QFYOTDirYVtIM=
 github.com/banzaicloud/operator-tools v0.28.0/go.mod h1:t0dyFGJUR9Q5CwsUcq1nDJC0wSZqeh6nzUZkUp3vCXg=

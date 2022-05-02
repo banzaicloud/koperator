@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 
 	"github.com/imdario/mergo"
 
@@ -32,8 +31,6 @@ import (
 
 	"github.com/banzaicloud/koperator/api/assets"
 	"github.com/banzaicloud/koperator/api/util"
-
-	pkgutil "github.com/banzaicloud/koperator/pkg/util"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -768,9 +765,9 @@ func (bConfig *BrokerConfig) GetBrokerAnnotations() map[string]string {
 
 // GetBrokerLabels return the labels which applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerLabels(kafkaClusterName string, brokerId int32) map[string]string {
-	return pkgutil.MergeLabels(
+	return util.MergeLabels(
 		bConfig.BrokerLabels,
-		kafkautils.LabelsForKafka(kafkaClusterName),
+		util.LabelsForKafka(kafkaClusterName),
 		map[string]string{"brokerId": fmt.Sprintf("%d", brokerId)},
 	)
 }

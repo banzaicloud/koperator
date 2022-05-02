@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 
 	"gotest.tools/assert"
@@ -428,15 +429,17 @@ func TestGetBrokerConfigEnvs(t *testing.T) {
 
 func TestGetBrokerLabels(t *testing.T) {
 	const (
-		expectedLabelApp    = "kafka"
-		expectedBrokerId    = int32(0)
-		expectedKafkaCRName = "kafka"
+		expectedDefaultLabelApp = "kafka"
+		expectedKafkaCRName     = "kafka"
+
+		expectedBrokerId        = 0
 	)
 
 	expected := map[string]string{
-		"app":      expectedLabelApp,
-		"brokerId": string(expectedBrokerId),
-		"kafka_cr": expectedKafkaCRName,
+		"app":            expectedDefaultLabelApp,
+		"brokerId":       strconv.Itoa(0),
+		"kafka_cr":       expectedKafkaCRName,
+		"test_label_key": "test_label_value",
 	}
 
 	brokerConfig := &BrokerConfig{
@@ -444,7 +447,7 @@ func TestGetBrokerLabels(t *testing.T) {
 			"app":            "test-app",
 			"brokerId":       "test-id",
 			"kafka_cr":       "test-cr-name",
-			"test_label_key": "test-label-value",
+			"test_label_key": "test_label_value",
 		},
 	}
 
