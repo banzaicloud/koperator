@@ -432,7 +432,7 @@ func TestGetBrokerLabels(t *testing.T) {
 		expectedDefaultLabelApp = "kafka"
 		expectedKafkaCRName     = "kafka"
 
-		expectedBrokerId        = 0
+		expectedBrokerId = 0
 	)
 
 	expected := map[string]string{
