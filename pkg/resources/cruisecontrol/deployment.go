@@ -182,23 +182,22 @@ fi`},
 	}
 }
 
-func GeneratePodAnnotations(kafkaCluster *v1beta1.KafkaCluster, capacityConfig string) map[string]string {
-	ccAnnotationsFromCR := kafkaCluster.Spec.CruiseControlConfig.GetCruiseControlAnnotations()
-	hashedCruiseControlConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.Config))
-	hashedCruiseControlClusterConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.ClusterConfig))
-	hashedCruiseControlLogConfigJson := sha256.Sum256([]byte(kafkaCluster.Spec.CruiseControlConfig.GetCCLog4jConfig()))
+func GeneratePodAnnotations(cruiseControlAnnotations, cruiseControlConfig map[string]string) map[string]string {
+	hashedCruiseControlConfigJson := sha256.Sum256([]byte(cruiseControlConfig["cruisecontrol.properties"]))
+	hashedCruiseControlClusterConfigJson := sha256.Sum256([]byte(cruiseControlConfig["clusterConfigs.json"]))
+	hashedCruiseControlLogConfigJson := sha256.Sum256([]byte(cruiseControlConfig["log4j.properties"]))
 
 	annotations := []map[string]string{
+		cruiseControlAnnotations,
 		{
 			"cruiseControlConfig.json":        hex.EncodeToString(hashedCruiseControlConfigJson[:]),
 			"cruiseControlClusterConfig.json": hex.EncodeToString(hashedCruiseControlClusterConfigJson[:]),
 			"cruiseControlLogConfig.json":     hex.EncodeToString(hashedCruiseControlLogConfigJson[:]),
 		},
-		ccAnnotationsFromCR,
 	}
-	if value, ok := ccAnnotationsFromCR[capacityConfigAnnotation]; !ok ||
+	if value, ok := cruiseControlAnnotations[capacityConfigAnnotation]; !ok ||
 		value == string(staticCapacityConfig) {
-		hashedCruiseControlCapacityJson := sha256.Sum256([]byte(capacityConfig))
+		hashedCruiseControlCapacityJson := sha256.Sum256([]byte(cruiseControlConfig["capacity.json"]))
 		annotations = append(annotations,
 			map[string]string{"cruiseControlCapacity.json": hex.EncodeToString(hashedCruiseControlCapacityJson[:])})
 	}

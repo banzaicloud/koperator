@@ -109,14 +109,6 @@ rules:
     cache: true
     type: COUNTER
 
-  - pattern: kafka.server<type=(.+), client-id=(.+)><>([a-z-]+)
-    name: kafka_server_quota_$3
-    cache: true
-    type: GAUGE
-    labels:
-      resource: "$1"
-      clientId: "$2"
-
   - pattern: kafka.server<type=(.+), user=(.+), client-id=(.+)><>([a-z-]+)
     name: kafka_server_quota_$4
     cache: true
@@ -125,6 +117,22 @@ rules:
       resource: "$1"
       user: "$2"
       clientId: "$3"
+
+  - pattern: kafka.server<type=(.+), user=(.+)><>([a-z-]+)
+    name: kafka_server_quota_$3
+    cache: true
+    type: GAUGE
+    labels:
+      resource: "$1"
+      user: "$2"
+
+  - pattern: kafka.server<type=(.+), client-id=(.+)><>([a-z-]+)
+    name: kafka_server_quota_$3
+    cache: true
+    type: GAUGE
+    labels:
+      resource: "$1"
+      clientId: "$2"
 
   # Generic gauges with 0-3 key/value pairs
   - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+), (.+)=(.+)><>Value
@@ -211,7 +219,7 @@ rules:
       "$3": "$4"
       "$5": "$6"
       "$7": "$8"
-  # Catch all other GAUGES with other types with 0-2 key-value pairs   
+  # Catch all other GAUGES with other types with 0-2 key-value pairs
   - pattern : kafka.(\w+)<type=([A-Za-z-]+), (.+)=(.+), (.+)=(.+)><>([A-Za-z-]+)
     name: kafka_$1_$2_$7
     type: GAUGE
