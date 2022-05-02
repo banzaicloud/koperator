@@ -138,7 +138,7 @@ type JBODInvariantCapacityConfig struct {
 	Capacities []interface{} `json:"brokerCapacities"`
 }
 
-// generateCapacityConfig generates a CC capacity config with default values or returns the manually overridden value if it exists
+// GenerateCapacityConfig generates a CC capacity config with default values or returns the manually overridden value if it exists
 func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, config *corev1.ConfigMap) (string, error) {
 	var err error
 

@@ -16,6 +16,8 @@ package tests
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 
 	. "github.com/onsi/gomega"
@@ -331,4 +333,33 @@ func expectCruiseControlDeployment(kafkaCluster *v1beta1.KafkaCluster) {
 	// Check if the securityContext values are propagated correctly
 	Expect(deployment.Spec.Template.Spec.SecurityContext.RunAsNonRoot).To(Equal(util.BoolPointer(false)))
 	Expect(container.SecurityContext.Privileged).To(Equal(util.BoolPointer(true)))
+
+	// Check config checksum annotations
+	configMap := &corev1.ConfigMap{}
+	Eventually(func() error {
+		return k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: kafkaCluster.Namespace,
+			Name:      fmt.Sprintf("%s-cruisecontrol-config", kafkaCluster.Name),
+		}, configMap)
+	}).Should(Succeed())
+
+	userProvidedCCPodAnnotations := kafkaCluster.Spec.CruiseControlConfig.GetCruiseControlAnnotations()
+	ccConfigHash := sha256.Sum256([]byte(configMap.Data["cruisecontrol.properties"]))
+	ccClusterConfigHash := sha256.Sum256([]byte(configMap.Data["clusterConfigs.json"]))
+	ccLogConfigHash := sha256.Sum256([]byte(configMap.Data["log4j.properties"]))
+	ccBrokerCapacityConfigHash := sha256.Sum256([]byte(configMap.Data["capacity.json"]))
+	expectedPodAnnotations := util.MergeAnnotations(
+		userProvidedCCPodAnnotations,
+		map[string]string{
+			"cruiseControlConfig.json":        hex.EncodeToString(ccConfigHash[:]),
+			"cruiseControlClusterConfig.json": hex.EncodeToString(ccClusterConfigHash[:]),
+			"cruiseControlLogConfig.json":     hex.EncodeToString(ccLogConfigHash[:]),
+		},
+	)
+
+	if capacityConfigType, ok := userProvidedCCPodAnnotations["cruise-control.banzaicloud.com/broker-capacity-config"]; !ok || capacityConfigType == "static" {
+		expectedPodAnnotations["cruiseControlCapacity.json"] = hex.EncodeToString(ccBrokerCapacityConfigHash[:])
+	}
+
+	Expect(deployment.Spec.Template.GetAnnotations()).To(Equal(expectedPodAnnotations))
 }
