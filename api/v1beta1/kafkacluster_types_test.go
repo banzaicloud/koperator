@@ -444,9 +444,9 @@ func TestGetBrokerLabels(t *testing.T) {
 
 	brokerConfig := &BrokerConfig{
 		BrokerLabels: map[string]string{
-			"app":            "test-app",
-			"brokerId":       "test-id",
-			"kafka_cr":       "test-cr-name",
+			"app":            "test_app",
+			"brokerId":       "test_id",
+			"kafka_cr":       "test_cr_name",
 			"test_label_key": "test_label_value",
 		},
 	}
