@@ -427,6 +427,7 @@ func TestGetBrokerConfigEnvs(t *testing.T) {
 	}
 }
 
+// TestGetBrokerLabels makes sure the reserved labels "app", "brokerId", and "kafka_cr" are not overridden by the BrokerConfig
 func TestGetBrokerLabels(t *testing.T) {
 	const (
 		expectedDefaultLabelApp = "kafka"
