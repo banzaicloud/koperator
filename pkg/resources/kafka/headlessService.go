@@ -24,8 +24,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
-	"github.com/banzaicloud/koperator/pkg/util"
 	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 )
 
@@ -50,14 +50,14 @@ func (r *Reconciler) headlessService() runtime.Object {
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.GetName()),
-			util.MergeLabels(kafkautils.LabelsForKafka(r.KafkaCluster.GetName()), r.KafkaCluster.GetLabels()),
+			apiutil.MergeLabels(apiutil.LabelsForKafka(r.KafkaCluster.GetName()), r.KafkaCluster.GetLabels()),
 			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
 			r.KafkaCluster,
 		),
 		Spec: corev1.ServiceSpec{
 			Type:                     corev1.ServiceTypeClusterIP,
 			SessionAffinity:          corev1.ServiceAffinityNone,
-			Selector:                 kafkautils.LabelsForKafka(r.KafkaCluster.Name),
+			Selector:                 apiutil.LabelsForKafka(r.KafkaCluster.Name),
 			Ports:                    usedPorts,
 			ClusterIP:                corev1.ClusterIPNone,
 			PublishNotReadyAddresses: true,

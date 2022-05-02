@@ -100,18 +100,6 @@ func MapStringStringPointer(in map[string]string) (out map[string]*string) {
 	return
 }
 
-// MergeLabels merges two given labels
-func MergeLabels(l ...map[string]string) map[string]string {
-	res := make(map[string]string)
-
-	for _, v := range l {
-		for lKey, lValue := range v {
-			res[lKey] = lValue
-		}
-	}
-	return res
-}
-
 func MergeAnnotations(annotations ...map[string]string) map[string]string {
 	rtn := make(map[string]string)
 	for _, a := range annotations {

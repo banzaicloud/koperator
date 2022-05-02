@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/resources/kafkamonitoring"
@@ -317,7 +318,7 @@ func generatePodAntiAffinity(clusterName string, hardRuleEnabled bool) *corev1.P
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 				{
 					LabelSelector: &metav1.LabelSelector{
-						MatchLabels: kafkautils.LabelsForKafka(clusterName),
+						MatchLabels: apiutil.LabelsForKafka(clusterName),
 					},
 					TopologyKey: "kubernetes.io/hostname",
 				},
@@ -330,7 +331,7 @@ func generatePodAntiAffinity(clusterName string, hardRuleEnabled bool) *corev1.P
 					Weight: int32(100),
 					PodAffinityTerm: corev1.PodAffinityTerm{
 						LabelSelector: &metav1.LabelSelector{
-							MatchLabels: kafkautils.LabelsForKafka(clusterName),
+							MatchLabels: apiutil.LabelsForKafka(clusterName),
 						},
 						TopologyKey: "kubernetes.io/hostname",
 					},

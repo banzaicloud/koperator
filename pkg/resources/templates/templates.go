@@ -17,6 +17,7 @@ package templates
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/util"
@@ -89,7 +90,7 @@ func ObjectMetaWithGeneratedName(namePrefix string, labels map[string]string, cl
 
 func ObjectMetaLabels(cluster *v1beta1.KafkaCluster, l map[string]string) map[string]string {
 	if cluster.Spec.PropagateLabels {
-		return util.MergeLabels(cluster.Labels, l)
+		return apiutil.MergeLabels(cluster.Labels, l)
 	}
 	return l
 }
