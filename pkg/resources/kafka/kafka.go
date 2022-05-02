@@ -240,7 +240,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 
 	reorderedBrokers := reorderBrokers(brokerPods, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID)
-	isPerBrokerDynamicConfigFailed := false
+	allBrokerDynamicConfigSucceeded := true
 	for _, broker := range reorderedBrokers {
 		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
 		if err != nil {
@@ -290,13 +290,16 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, configMap, log)
 		if err != nil {
 			log.Error(err, "setting dynamic configs has failed", "brokerID", broker.Id)
-			isPerBrokerDynamicConfigFailed = true
+			allBrokerDynamicConfigSucceeded = false
 		}
 	}
 
-	if isPerBrokerDynamicConfigFailed {
+	if !allBrokerDynamicConfigSucceeded {
 		// re-reconcile to retry setting the dynamic configs
-		return errors.New("setting dynamic configs for some brokers has failed.")
+		return errors.NewWithDetails("setting dynamic configs for some brokers has failed",
+			"component", componentName,
+			"clusterName", r.KafkaCluster.Name,
+			"clusterNamespace", r.KafkaCluster.Namespace)
 	}
 
 	if err = r.reconcileClusterWideDynamicConfig(); err != nil {
