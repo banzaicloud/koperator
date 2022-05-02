@@ -15,9 +15,11 @@
 package v1beta1
 
 import (
+	"fmt"
 	"strings"
 
 	"emperror.dev/errors"
+	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 
 	"github.com/imdario/mergo"
 
@@ -30,6 +32,8 @@ import (
 
 	"github.com/banzaicloud/koperator/api/assets"
 	"github.com/banzaicloud/koperator/api/util"
+
+	pkgutil "github.com/banzaicloud/koperator/pkg/util"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -170,6 +174,7 @@ type BrokerConfig struct {
 	BrokerAnnotations map[string]string `json:"brokerAnnotations,omitempty"`
 	// Custom labels for the broker pods, example use case: for Prometheus monitoring to capture the group for each broker as a label, e.g.:
 	// kafka_broker_group: "default_group"
+	// these labels won't override the reserved labels that the operator relies on, for example, "app", "brokerId", and "kafka_cr"
 	// +optional
 	BrokerLabels map[string]string `json:"brokerLabels,omitempty"`
 	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.
@@ -759,6 +764,15 @@ func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference
 // GetBrokerAnnotations return the annotations which applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerAnnotations() map[string]string {
 	return util.CloneMap(bConfig.BrokerAnnotations)
+}
+
+// GetBrokerLabels return the labels which applied to broker pods
+func (bConfig *BrokerConfig) GetBrokerLabels(kafkaClusterName string, brokerId int32) map[string]string {
+	return pkgutil.MergeLabels(
+		bConfig.BrokerLabels,
+		kafkautils.LabelsForKafka(kafkaClusterName),
+		map[string]string{"brokerId": fmt.Sprintf("%d", brokerId)},
+	)
 }
 
 // GetCruiseControlAnnotations return the annotations which applied to CruiseControl pod

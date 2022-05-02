@@ -425,3 +425,32 @@ func TestGetBrokerConfigEnvs(t *testing.T) {
 		t.Error("Expected:", expected, "Got:", result)
 	}
 }
+
+func TestGetBrokerLabels(t *testing.T) {
+	const (
+		expectedLabelApp    = "kafka"
+		expectedBrokerId    = int32(0)
+		expectedKafkaCRName = "kafka"
+	)
+
+	expected := map[string]string{
+		"app":      expectedLabelApp,
+		"brokerId": string(expectedBrokerId),
+		"kafka_cr": expectedKafkaCRName,
+	}
+
+	brokerConfig := &BrokerConfig{
+		BrokerLabels: map[string]string{
+			"app":            "test-app",
+			"brokerId":       "test-id",
+			"kafka_cr":       "test-cr-name",
+			"test_label_key": "test-label-value",
+		},
+	}
+
+	result := brokerConfig.GetBrokerLabels(expectedKafkaCRName, expectedBrokerId)
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("Expected:", expected, "Got:", result)
+	}
+}
