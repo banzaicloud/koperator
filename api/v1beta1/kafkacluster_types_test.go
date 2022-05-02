@@ -438,7 +438,7 @@ func TestGetBrokerLabels(t *testing.T) {
 
 	expected := map[string]string{
 		"app":            expectedDefaultLabelApp,
-		"brokerId":       strconv.Itoa(0),
+		"brokerId":       strconv.Itoa(expectedBrokerId),
 		"kafka_cr":       expectedKafkaCRName,
 		"test_label_key": "test_label_value",
 	}
