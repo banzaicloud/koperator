@@ -758,12 +758,12 @@ func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference
 	return bConfig.ImagePullSecrets
 }
 
-// GetBrokerAnnotations return the annotations which applied to broker pods
+// GetBrokerAnnotations returns the annotations that are applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerAnnotations() map[string]string {
 	return util.CloneMap(bConfig.BrokerAnnotations)
 }
 
-// GetBrokerLabels return the labels which applied to broker pods
+// GetBrokerLabels returns the labels that are applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerLabels(kafkaClusterName string, brokerId int32) map[string]string {
 	return util.MergeLabels(
 		bConfig.BrokerLabels,
