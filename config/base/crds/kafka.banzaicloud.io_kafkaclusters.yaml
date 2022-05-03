@@ -19516,6 +19516,7 @@ spec:
                           - required
                           - requested
                           - none
+                          type: string
                         tlsSecretName:
                           description: TLS secret
                           type: string
