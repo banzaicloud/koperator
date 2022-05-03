@@ -24,6 +24,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
@@ -137,8 +138,8 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, ext
 	brokerConf := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
-			util.MergeLabels(
-				kafkautils.LabelsForKafka(r.KafkaCluster.Name),
+			apiutil.MergeLabels(
+				apiutil.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			r.KafkaCluster,

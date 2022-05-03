@@ -21,3 +21,21 @@ func CloneMap(original map[string]string) map[string]string {
 	}
 	return m
 }
+
+// MergeLabels merges two given labels
+func MergeLabels(l ...map[string]string) map[string]string {
+	res := make(map[string]string)
+
+	for _, v := range l {
+		for lKey, lValue := range v {
+			res[lKey] = lValue
+		}
+	}
+	return res
+}
+
+// LabelsForKafka returns the labels for selecting the resources
+// belonging to the given kafka CR name.
+func LabelsForKafka(name string) map[string]string {
+	return map[string]string{"app": "kafka", "kafka_cr": name}
+}

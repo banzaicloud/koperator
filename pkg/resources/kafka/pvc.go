@@ -17,22 +17,21 @@ package kafka
 import (
 	"fmt"
 
-	"github.com/banzaicloud/koperator/api/v1beta1"
-	"github.com/banzaicloud/koperator/pkg/resources/templates"
-	"github.com/banzaicloud/koperator/pkg/util"
-	"github.com/banzaicloud/koperator/pkg/util/kafka"
-
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	apiutil "github.com/banzaicloud/koperator/api/util"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
 )
 
 func (r *Reconciler) pvc(brokerId int32, storageIndex int, storage v1beta1.StorageConfig, _ logr.Logger) runtime.Object {
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
 			fmt.Sprintf(brokerStorageTemplate, r.KafkaCluster.Name, brokerId, storageIndex),
-			util.MergeLabels(
-				kafka.LabelsForKafka(r.KafkaCluster.Name),
+			apiutil.MergeLabels(
+				apiutil.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", brokerId)},
 			),
 			map[string]string{"mountPath": storage.MountPath}, r.KafkaCluster),

@@ -21,15 +21,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
-	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 func (r *Reconciler) service() runtime.Object {
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(serviceNameTemplate, r.KafkaCluster.Name),
-			util.MergeLabels(ccLabelSelector(r.KafkaCluster.Name), r.KafkaCluster.Labels),
+			apiutil.MergeLabels(ccLabelSelector(r.KafkaCluster.Name), r.KafkaCluster.Labels),
 			r.KafkaCluster,
 		),
 		Spec: corev1.ServiceSpec{

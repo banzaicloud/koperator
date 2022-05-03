@@ -17,13 +17,12 @@ package kafka
 import (
 	"fmt"
 
-	"github.com/banzaicloud/koperator/api/v1beta1"
-	"github.com/banzaicloud/koperator/pkg/resources/templates"
-	"github.com/banzaicloud/koperator/pkg/util"
-	"github.com/banzaicloud/koperator/pkg/util/kafka"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	apiutil "github.com/banzaicloud/koperator/api/util"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -46,8 +45,8 @@ func (r *Reconciler) service(id int32, _ *v1beta1.BrokerConfig) runtime.Object {
 
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id),
-			util.MergeLabels(
-				kafka.LabelsForKafka(r.KafkaCluster.Name),
+			apiutil.MergeLabels(
+				apiutil.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
 			),
 			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
@@ -55,7 +54,7 @@ func (r *Reconciler) service(id int32, _ *v1beta1.BrokerConfig) runtime.Object {
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
 			SessionAffinity: corev1.ServiceAffinityNone,
-			Selector:        util.MergeLabels(kafka.LabelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
+			Selector:        apiutil.MergeLabels(apiutil.LabelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
 			Ports:           usedPorts,
 		},
 	}
