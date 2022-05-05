@@ -20,13 +20,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/banzaicloud/koperator/pkg/resources/templates"
-	"github.com/banzaicloud/koperator/pkg/util"
-	"github.com/banzaicloud/koperator/pkg/util/kafka"
-
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	apiutil "github.com/banzaicloud/koperator/api/util"
+	"github.com/banzaicloud/koperator/pkg/resources/templates"
+	"github.com/banzaicloud/koperator/pkg/util"
 
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,14 +46,14 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger) (runtime.Object, error
 		},
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf("%s-pdb", r.KafkaCluster.Name),
-			util.MergeLabels(kafka.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster.Labels),
+			apiutil.MergeLabels(apiutil.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster.Labels),
 			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
 			r.KafkaCluster,
 		),
 		Spec: policyv1beta1.PodDisruptionBudgetSpec{
 			MinAvailable: &minAvailable,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: kafka.LabelsForKafka(r.KafkaCluster.Name),
+				MatchLabels: apiutil.LabelsForKafka(r.KafkaCluster.Name),
 			},
 		},
 	}, nil

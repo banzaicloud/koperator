@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
 	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 )
@@ -46,13 +47,13 @@ func (r *Reconciler) allBrokerService() runtime.Object {
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, r.KafkaCluster.GetName()),
-			kafkautils.LabelsForKafka(r.KafkaCluster.GetName()),
+			apiutil.LabelsForKafka(r.KafkaCluster.GetName()),
 			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
 			r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
 			SessionAffinity: corev1.ServiceAffinityNone,
-			Selector:        kafkautils.LabelsForKafka(r.KafkaCluster.GetName()),
+			Selector:        apiutil.LabelsForKafka(r.KafkaCluster.GetName()),
 			Ports:           usedPorts,
 		},
 	}
@@ -81,7 +82,7 @@ func (r *Reconciler) deleteNonHeadlessServices() error {
 
 	// delete broker services
 	labelSelector := labels.NewSelector()
-	for k, v := range kafkautils.LabelsForKafka(r.KafkaCluster.GetName()) {
+	for k, v := range apiutil.LabelsForKafka(r.KafkaCluster.GetName()) {
 		req, err := labels.NewRequirement(k, selection.Equals, []string{v})
 		if err != nil {
 			return err

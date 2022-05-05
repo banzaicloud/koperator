@@ -35,6 +35,8 @@ spec:
       brokerAnnotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9020"
+      # brokerLabels:
+      #   kafka_broker_group: "default_group"
   brokers:
     - id: 0
       brokerConfigGroup: "default"

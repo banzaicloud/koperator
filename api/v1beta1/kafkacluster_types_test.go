@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 
 	"gotest.tools/assert"
@@ -421,6 +422,38 @@ func TestGetBrokerConfigEnvs(t *testing.T) {
 	if err != nil {
 		t.Error("Error GetBrokerConfig throw an unexpected error")
 	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("Expected:", expected, "Got:", result)
+	}
+}
+
+// TestGetBrokerLabels makes sure the reserved labels "app", "brokerId", and "kafka_cr" are not overridden by the BrokerConfig
+func TestGetBrokerLabels(t *testing.T) {
+	const (
+		expectedDefaultLabelApp = "kafka"
+		expectedKafkaCRName     = "kafka"
+
+		expectedBrokerId = 0
+	)
+
+	expected := map[string]string{
+		"app":            expectedDefaultLabelApp,
+		"brokerId":       strconv.Itoa(expectedBrokerId),
+		"kafka_cr":       expectedKafkaCRName,
+		"test_label_key": "test_label_value",
+	}
+
+	brokerConfig := &BrokerConfig{
+		BrokerLabels: map[string]string{
+			"app":            "test_app",
+			"brokerId":       "test_id",
+			"kafka_cr":       "test_cr_name",
+			"test_label_key": "test_label_value",
+		},
+	}
+
+	result := brokerConfig.GetBrokerLabels(expectedKafkaCRName, expectedBrokerId)
+
 	if !reflect.DeepEqual(result, expected) {
 		t.Error("Expected:", expected, "Got:", result)
 	}
