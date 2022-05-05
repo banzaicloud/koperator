@@ -37,7 +37,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 
-	istioclientv1alpha3 "github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	istioclientv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 
 	banzaiistiov1alpha1 "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
@@ -71,7 +71,7 @@ func init() {
 
 	_ = banzaiistiov1alpha1.AddToScheme(scheme)
 
-	_ = istioclientv1alpha3.AddToScheme(scheme)
+	_ = istioclientv1beta1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	istioclientv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 
 	istioOperatorApi "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
@@ -186,7 +186,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			))
 			Expect(meshGatewaySpec.Type).To(Equal(istioOperatorApi.GatewayType_ingress))
 
-			var gateway v1alpha3.Gateway
+			var gateway istioclientv1beta1.Gateway
 			gatewayName := fmt.Sprintf("%s-external-gateway", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: gatewayName}, &gateway)
@@ -196,29 +196,29 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			ExpectIstioIngressLabels(gateway.Labels, "external", kafkaClusterCRName)
 			ExpectIstioIngressLabels(gateway.Spec.Selector, "external", kafkaClusterCRName)
 			Expect(gateway.Spec.Servers).To(ConsistOf(
-				v1alpha3.Server{
-					Port: &v1alpha3.Port{
+				istioclientv1beta1.Server{
+					Port: &istioclientv1beta1.Port{
 						Number:   19090,
 						Protocol: "TCP",
 						Name:     "tcp-broker-0"},
 					Hosts: []string{"*"},
 				},
-				v1alpha3.Server{
-					Port: &v1alpha3.Port{
+				istioclientv1beta1.Server{
+					Port: &istioclientv1beta1.Port{
 						Number:   19091,
 						Protocol: "TCP",
 						Name:     "tcp-broker-1"},
 					Hosts: []string{"*"},
 				},
-				v1alpha3.Server{
-					Port: &v1alpha3.Port{
+				istioclientv1beta1.Server{
+					Port: &istioclientv1beta1.Port{
 						Number:   19092,
 						Protocol: "TCP",
 						Name:     "tcp-broker-2"},
 					Hosts: []string{"*"},
 				},
-				v1alpha3.Server{
-					Port: &v1alpha3.Port{
+				istioclientv1beta1.Server{
+					Port: &istioclientv1beta1.Port{
 						Number:   29092,
 						Protocol: "TCP",
 						Name:     "tcp-all-broker",
@@ -226,7 +226,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 					Hosts: []string{"*"},
 				}))
 
-			var virtualService v1alpha3.VirtualService
+			var virtualService istioclientv1beta1.VirtualService
 			virtualServiceName := fmt.Sprintf("%s-external-virtualservice", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: virtualServiceName}, &virtualService)
@@ -234,43 +234,43 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			}).Should(Succeed())
 
 			ExpectIstioIngressLabels(virtualService.Labels, "external", kafkaClusterCRName)
-			Expect(virtualService.Spec).To(Equal(v1alpha3.VirtualServiceSpec{
+			Expect(virtualService.Spec).To(Equal(istioclientv1beta1.VirtualServiceSpec{
 				Hosts:    []string{"*"},
 				Gateways: []string{fmt.Sprintf("%s-external-gateway", kafkaClusterCRName)},
-				TCP: []v1alpha3.TCPRoute{
+				TCP: []istioclientv1beta1.TCPRoute{
 					{
-						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(19090)}},
-						Route: []*v1alpha3.RouteDestination{{
-							Destination: &v1alpha3.Destination{
+						Match: []istioclientv1beta1.L4MatchAttributes{{Port: util.IntPointer(19090)}},
+						Route: []*istioclientv1beta1.RouteDestination{{
+							Destination: &istioclientv1beta1.Destination{
 								Host: "kafkacluster-1-0",
-								Port: &v1alpha3.PortSelector{Number: 9094},
+								Port: &istioclientv1beta1.PortSelector{Number: 9094},
 							},
 						}},
 					},
 					{
-						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(19091)}},
-						Route: []*v1alpha3.RouteDestination{{
-							Destination: &v1alpha3.Destination{
+						Match: []istioclientv1beta1.L4MatchAttributes{{Port: util.IntPointer(19091)}},
+						Route: []*istioclientv1beta1.RouteDestination{{
+							Destination: &istioclientv1beta1.Destination{
 								Host: "kafkacluster-1-1",
-								Port: &v1alpha3.PortSelector{Number: 9094},
+								Port: &istioclientv1beta1.PortSelector{Number: 9094},
 							},
 						}},
 					},
 					{
-						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(19092)}},
-						Route: []*v1alpha3.RouteDestination{{
-							Destination: &v1alpha3.Destination{
+						Match: []istioclientv1beta1.L4MatchAttributes{{Port: util.IntPointer(19092)}},
+						Route: []*istioclientv1beta1.RouteDestination{{
+							Destination: &istioclientv1beta1.Destination{
 								Host: "kafkacluster-1-2",
-								Port: &v1alpha3.PortSelector{Number: 9094},
+								Port: &istioclientv1beta1.PortSelector{Number: 9094},
 							},
 						}},
 					},
 					{
-						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(29092)}},
-						Route: []*v1alpha3.RouteDestination{{
-							Destination: &v1alpha3.Destination{
+						Match: []istioclientv1beta1.L4MatchAttributes{{Port: util.IntPointer(29092)}},
+						Route: []*istioclientv1beta1.RouteDestination{{
+							Destination: &istioclientv1beta1.Destination{
 								Host: "kafkacluster-1-all-broker",
-								Port: &v1alpha3.PortSelector{Number: 9094},
+								Port: &istioclientv1beta1.PortSelector{Number: 9094},
 							},
 						}},
 					},
@@ -434,8 +434,8 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 						},
 						"az2": {IstioIngressConfig: &v1beta1.IstioIngressConfig{
 							Annotations: map[string]string{"zone": "az2"},
-							TLSOptions: &v1alpha3.TLSOptions{
-								Mode:           v1alpha3.TLSModeSimple,
+							TLSOptions: &istioclientv1beta1.TLSOptions{
+								Mode:           istioclientv1beta1.TLSModeSimple,
 								CredentialName: util.StringPointer("foobar"),
 							},
 						},
@@ -507,7 +507,7 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 				},
 			))
 
-			var gateway v1alpha3.Gateway
+			var gateway istioclientv1beta1.Gateway
 			gatewayName := fmt.Sprintf("%s-external-az1-gateway", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: gatewayName}, &gateway)
@@ -517,22 +517,22 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			ExpectIstioIngressLabels(gateway.Labels, "external-az1", kafkaClusterCRName)
 			ExpectIstioIngressLabels(gateway.Spec.Selector, "external-az1", kafkaClusterCRName)
 			Expect(gateway.Spec.Servers).To(ConsistOf(
-				v1alpha3.Server{
-					Port: &v1alpha3.Port{
+				istioclientv1beta1.Server{
+					Port: &istioclientv1beta1.Port{
 						Number:   19090,
 						Protocol: "TCP",
 						Name:     "tcp-broker-0"},
 					Hosts: []string{"*"},
 				},
-				v1alpha3.Server{
-					Port: &v1alpha3.Port{
+				istioclientv1beta1.Server{
+					Port: &istioclientv1beta1.Port{
 						Number:   19092,
 						Protocol: "TCP",
 						Name:     "tcp-broker-2"},
 					Hosts: []string{"*"},
 				},
-				v1alpha3.Server{
-					Port: &v1alpha3.Port{
+				istioclientv1beta1.Server{
+					Port: &istioclientv1beta1.Port{
 						Number:   29092,
 						Protocol: "TCP",
 						Name:     "tcp-all-broker",
@@ -540,7 +540,7 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 					Hosts: []string{"*"},
 				}))
 
-			var virtualService v1alpha3.VirtualService
+			var virtualService istioclientv1beta1.VirtualService
 			virtualServiceName := fmt.Sprintf("%s-external-az1-virtualservice", kafkaCluster.Name)
 			Eventually(func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: virtualServiceName}, &virtualService)
@@ -548,34 +548,34 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			}).Should(Succeed())
 
 			ExpectIstioIngressLabels(virtualService.Labels, "external-az1", kafkaClusterCRName)
-			Expect(virtualService.Spec).To(Equal(v1alpha3.VirtualServiceSpec{
+			Expect(virtualService.Spec).To(Equal(istioclientv1beta1.VirtualServiceSpec{
 				Hosts:    []string{"*"},
 				Gateways: []string{gatewayName},
-				TCP: []v1alpha3.TCPRoute{
+				TCP: []istioclientv1beta1.TCPRoute{
 					{
-						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(19090)}},
-						Route: []*v1alpha3.RouteDestination{{
-							Destination: &v1alpha3.Destination{
+						Match: []istioclientv1beta1.L4MatchAttributes{{Port: util.IntPointer(19090)}},
+						Route: []*istioclientv1beta1.RouteDestination{{
+							Destination: &istioclientv1beta1.Destination{
 								Host: "kafkacluster-1-0",
-								Port: &v1alpha3.PortSelector{Number: 9094},
+								Port: &istioclientv1beta1.PortSelector{Number: 9094},
 							},
 						}},
 					},
 					{
-						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(19092)}},
-						Route: []*v1alpha3.RouteDestination{{
-							Destination: &v1alpha3.Destination{
+						Match: []istioclientv1beta1.L4MatchAttributes{{Port: util.IntPointer(19092)}},
+						Route: []*istioclientv1beta1.RouteDestination{{
+							Destination: &istioclientv1beta1.Destination{
 								Host: "kafkacluster-1-2",
-								Port: &v1alpha3.PortSelector{Number: 9094},
+								Port: &istioclientv1beta1.PortSelector{Number: 9094},
 							},
 						}},
 					},
 					{
-						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(29092)}},
-						Route: []*v1alpha3.RouteDestination{{
-							Destination: &v1alpha3.Destination{
+						Match: []istioclientv1beta1.L4MatchAttributes{{Port: util.IntPointer(29092)}},
+						Route: []*istioclientv1beta1.RouteDestination{{
+							Destination: &istioclientv1beta1.Destination{
 								Host: "kafkacluster-1-all-broker",
-								Port: &v1alpha3.PortSelector{Number: 9094},
+								Port: &istioclientv1beta1.PortSelector{Number: 9094},
 							},
 						}},
 					},
@@ -615,23 +615,23 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			ExpectIstioIngressLabels(gateway.Labels, "external-az2", kafkaClusterCRName)
 			ExpectIstioIngressLabels(gateway.Spec.Selector, "external-az2", kafkaClusterCRName)
 			Expect(gateway.Spec.Servers).To(ConsistOf(
-				v1alpha3.Server{
-					TLS: &v1alpha3.TLSOptions{
-						Mode:           v1alpha3.TLSModeSimple,
+				istioclientv1beta1.Server{
+					TLS: &istioclientv1beta1.TLSOptions{
+						Mode:           istioclientv1beta1.TLSModeSimple,
 						CredentialName: util.StringPointer("foobar"),
 					},
-					Port: &v1alpha3.Port{
+					Port: &istioclientv1beta1.Port{
 						Number:   19091,
 						Protocol: "TLS",
 						Name:     "tcp-broker-1"},
 					Hosts: []string{"*"},
 				},
-				v1alpha3.Server{
-					TLS: &v1alpha3.TLSOptions{
-						Mode:           v1alpha3.TLSModeSimple,
+				istioclientv1beta1.Server{
+					TLS: &istioclientv1beta1.TLSOptions{
+						Mode:           istioclientv1beta1.TLSModeSimple,
 						CredentialName: util.StringPointer("foobar"),
 					},
-					Port: &v1alpha3.Port{
+					Port: &istioclientv1beta1.Port{
 						Number:   29092,
 						Protocol: "TLS",
 						Name:     "tcp-all-broker",
@@ -646,25 +646,25 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			}).Should(Succeed())
 
 			ExpectIstioIngressLabels(virtualService.Labels, "external-az2", kafkaClusterCRName)
-			Expect(virtualService.Spec).To(Equal(v1alpha3.VirtualServiceSpec{
+			Expect(virtualService.Spec).To(Equal(istioclientv1beta1.VirtualServiceSpec{
 				Hosts:    []string{"*"},
 				Gateways: []string{gatewayName},
-				TCP: []v1alpha3.TCPRoute{
+				TCP: []istioclientv1beta1.TCPRoute{
 					{
-						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(19091)}},
-						Route: []*v1alpha3.RouteDestination{{
-							Destination: &v1alpha3.Destination{
+						Match: []istioclientv1beta1.L4MatchAttributes{{Port: util.IntPointer(19091)}},
+						Route: []*istioclientv1beta1.RouteDestination{{
+							Destination: &istioclientv1beta1.Destination{
 								Host: "kafkacluster-1-1",
-								Port: &v1alpha3.PortSelector{Number: 9094},
+								Port: &istioclientv1beta1.PortSelector{Number: 9094},
 							},
 						}},
 					},
 					{
-						Match: []v1alpha3.L4MatchAttributes{{Port: util.IntPointer(29092)}},
-						Route: []*v1alpha3.RouteDestination{{
-							Destination: &v1alpha3.Destination{
+						Match: []istioclientv1beta1.L4MatchAttributes{{Port: util.IntPointer(29092)}},
+						Route: []*istioclientv1beta1.RouteDestination{{
+							Destination: &istioclientv1beta1.Destination{
 								Host: "kafkacluster-1-all-broker",
-								Port: &v1alpha3.PortSelector{Number: 9094},
+								Port: &istioclientv1beta1.PortSelector{Number: 9094},
 							},
 						}},
 					},

@@ -7,8 +7,8 @@ require (
 	github.com/Shopify/sarama v1.32.0
 	github.com/banzaicloud/cluster-registry v0.0.8
 	github.com/banzaicloud/go-cruise-control v0.0.0-20220324110942-71a3405be337
-	github.com/banzaicloud/istio-client-go v0.0.15
-	github.com/banzaicloud/istio-operator/api/v2 v2.11.8
+	github.com/banzaicloud/istio-client-go v0.0.17
+	github.com/banzaicloud/istio-operator/api/v2 v2.13.0-rc.0
 	github.com/banzaicloud/k8s-objectmatcher v1.7.0
 	github.com/banzaicloud/koperator/api v0.0.0
 	github.com/banzaicloud/koperator/properties v0.1.0
