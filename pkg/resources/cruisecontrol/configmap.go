@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
@@ -76,7 +77,7 @@ func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logge
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(configAndVolumeNameTemplate, r.KafkaCluster.Name),
-			util.MergeLabels(ccLabelSelector(r.KafkaCluster.Name), r.KafkaCluster.Labels),
+			apiutil.MergeLabels(ccLabelSelector(r.KafkaCluster.Name), r.KafkaCluster.Labels),
 			r.KafkaCluster,
 		),
 		Data: map[string]string{
@@ -138,7 +139,7 @@ type JBODInvariantCapacityConfig struct {
 	Capacities []interface{} `json:"brokerCapacities"`
 }
 
-// generateCapacityConfig generates a CC capacity config with default values or returns the manually overridden value if it exists
+// GenerateCapacityConfig generates a CC capacity config with default values or returns the manually overridden value if it exists
 func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger, config *corev1.ConfigMap) (string, error) {
 	var err error
 

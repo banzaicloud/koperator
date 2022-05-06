@@ -15,13 +15,14 @@
 package v1beta1
 
 import (
+	"fmt"
 	"strings"
 
 	"emperror.dev/errors"
 
 	"github.com/imdario/mergo"
 
-	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	"github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -168,6 +169,11 @@ type BrokerConfig struct {
 	// prometheus.io/scrape: "true"
 	// prometheus.io/port: "9020"
 	BrokerAnnotations map[string]string `json:"brokerAnnotations,omitempty"`
+	// Custom labels for the broker pods, example use case: for Prometheus monitoring to capture the group for each broker as a label, e.g.:
+	// kafka_broker_group: "default_group"
+	// these labels will not override the reserved labels that the operator relies on, for example, "app", "brokerId", and "kafka_cr"
+	// +optional
+	BrokerLabels map[string]string `json:"brokerLabels,omitempty"`
 	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.
 	// By default it is set to `125000` which means 1Gbit/s in network throughput.
 	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`
@@ -307,9 +313,9 @@ type IstioIngressConfig struct {
 	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
 	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 	// Annotations defines the annotations placed on the istio ingress controller deployment
-	Annotations               map[string]string    `json:"annotations,omitempty"`
-	TLSOptions                *v1alpha3.TLSOptions `json:"gatewayConfig,omitempty"`
-	VirtualServiceAnnotations map[string]string    `json:"virtualServiceAnnotations,omitempty"`
+	Annotations               map[string]string   `json:"annotations,omitempty"`
+	TLSOptions                *v1beta1.TLSOptions `json:"gatewayConfig,omitempty"`
+	VirtualServiceAnnotations map[string]string   `json:"virtualServiceAnnotations,omitempty"`
 	// Envs allows to add additional env vars to the istio meshgateway resource
 	Envs []corev1.EnvVar `json:"envs,omitempty"`
 }
@@ -752,9 +758,18 @@ func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference
 	return bConfig.ImagePullSecrets
 }
 
-// GetBrokerAnnotations return the annotations which applied to broker pods
+// GetBrokerAnnotations returns the annotations that are applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerAnnotations() map[string]string {
 	return util.CloneMap(bConfig.BrokerAnnotations)
+}
+
+// GetBrokerLabels returns the labels that are applied to broker pods
+func (bConfig *BrokerConfig) GetBrokerLabels(kafkaClusterName string, brokerId int32) map[string]string {
+	return util.MergeLabels(
+		bConfig.BrokerLabels,
+		util.LabelsForKafka(kafkaClusterName),
+		map[string]string{"brokerId": fmt.Sprintf("%d", brokerId)},
+	)
 }
 
 // GetCruiseControlAnnotations return the annotations which applied to CruiseControl pod

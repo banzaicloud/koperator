@@ -20,7 +20,7 @@
 package v1beta1
 
 import (
-	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	networkingv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 	metav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -97,6 +97,13 @@ func (in *BrokerConfig) DeepCopyInto(out *BrokerConfig) {
 	}
 	if in.BrokerAnnotations != nil {
 		in, out := &in.BrokerAnnotations, &out.BrokerAnnotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.BrokerLabels != nil {
+		in, out := &in.BrokerLabels, &out.BrokerLabels
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
@@ -654,7 +661,7 @@ func (in *IstioIngressConfig) DeepCopyInto(out *IstioIngressConfig) {
 	}
 	if in.TLSOptions != nil {
 		in, out := &in.TLSOptions, &out.TLSOptions
-		*out = new(v1alpha3.TLSOptions)
+		*out = new(networkingv1beta1.TLSOptions)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.VirtualServiceAnnotations != nil {

@@ -88,23 +88,6 @@ func TestMapStringStringPointer(t *testing.T) {
 	}
 }
 
-func TestMergeLabels(t *testing.T) {
-	m1 := map[string]string{"key1": "value1"}
-	m2 := map[string]string{"key2": "value2"}
-	expected := map[string]string{"key1": "value1", "key2": "value2"}
-	merged := MergeLabels(m1, m2)
-	if !reflect.DeepEqual(merged, expected) {
-		t.Error("Expected:", expected, "Got:", merged)
-	}
-
-	m1 = nil
-	expected = m2
-	merged = MergeLabels(m1, m2)
-	if !reflect.DeepEqual(merged, expected) {
-		t.Error("Expected:", expected, "Got:", merged)
-	}
-}
-
 func TestConvertStringToInt32(t *testing.T) {
 	i := ConvertStringToInt32("10")
 	if i != 10 {

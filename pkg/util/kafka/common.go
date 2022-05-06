@@ -53,12 +53,6 @@ var PerBrokerConfigs = []string{
 	securityProtocolMapConfigName,
 }
 
-// LabelsForKafka returns the labels for selecting the resources
-// belonging to the given kafka CR name.
-func LabelsForKafka(name string) map[string]string {
-	return map[string]string{"app": "kafka", "kafka_cr": name}
-}
-
 // commonACLString is the raw representation of an ACL allowing Describe on a Topic
 var commonACLString = "User:%s,Topic,%s,%s,Describe,Allow,*"
 
