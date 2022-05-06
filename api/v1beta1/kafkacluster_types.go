@@ -171,7 +171,7 @@ type BrokerConfig struct {
 	BrokerAnnotations map[string]string `json:"brokerAnnotations,omitempty"`
 	// Custom labels for the broker pods, example use case: for Prometheus monitoring to capture the group for each broker as a label, e.g.:
 	// kafka_broker_group: "default_group"
-	// these labels won't override the reserved labels that the operator relies on, for example, "app", "brokerId", and "kafka_cr"
+	// these labels will not override the reserved labels that the operator relies on, for example, "app", "brokerId", and "kafka_cr"
 	// +optional
 	BrokerLabels map[string]string `json:"brokerLabels,omitempty"`
 	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.

@@ -979,7 +979,7 @@ spec:
                       description: 'Custom labels for the broker pods, example use
                         case: for Prometheus monitoring to capture the group for each
                         broker as a label, e.g.: kafka_broker_group: "default_group"
-                        these labels won''t override the reserved labels that the
+                        these labels will not override the reserved labels that the
                         operator relies on, for example, "app", "brokerId", and "kafka_cr"'
                       type: object
                     config:
@@ -6876,7 +6876,7 @@ spec:
                           description: 'Custom labels for the broker pods, example
                             use case: for Prometheus monitoring to capture the group
                             for each broker as a label, e.g.: kafka_broker_group:
-                            "default_group" these labels won''t override the reserved
+                            "default_group" these labels will not override the reserved
                             labels that the operator relies on, for example, "app",
                             "brokerId", and "kafka_cr"'
                           type: object
