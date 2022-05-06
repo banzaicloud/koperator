@@ -4,4 +4,4 @@ version: 0.22.0-rc.0
 description: kafka-operator manages Kafka deployments on Kubernetes
 sources:
   - https://github.com/banzaicloud/koperator
-appVersion: 0.22.0-rc.0
+appVersion: v0.22.0-rc.0
