@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	emperror.dev/errors v0.8.0
-	github.com/banzaicloud/istio-client-go v0.0.11
+	github.com/banzaicloud/istio-client-go v0.0.17
 	github.com/imdario/mergo v0.3.12
 	github.com/jetstack/cert-manager v1.6.1
 	gotest.tools v2.2.0+incompatible

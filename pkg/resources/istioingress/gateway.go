@@ -17,7 +17,7 @@ package istioingress
 import (
 	"fmt"
 
-	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	istioclientv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,10 +38,10 @@ func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.Ext
 	} else {
 		gatewayName = fmt.Sprintf(gatewayNameTemplateWithScope, r.KafkaCluster.Name, externalListenerConfig.Name, ingressConfigName)
 	}
-	return &v1alpha3.Gateway{
+	return &istioclientv1beta1.Gateway{
 		ObjectMeta: templates.ObjectMeta(gatewayName,
 			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName), r.KafkaCluster),
-		Spec: v1alpha3.GatewaySpec{
+		Spec: istioclientv1beta1.GatewaySpec{
 			Selector: labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName),
 			Servers: generateServers(r.KafkaCluster, externalListenerConfig, log, ingressConf,
 				ingressConfigName, defaultIngressConfigName),
@@ -50,13 +50,13 @@ func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.Ext
 }
 
 func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger,
-	ingressConf v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) []v1alpha3.Server {
-	servers := make([]v1alpha3.Server, 0)
-	protocol := v1alpha3.ProtocolTCP
-	var tlsConfig *v1alpha3.TLSOptions
+	ingressConf v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) []istioclientv1beta1.Server {
+	servers := make([]istioclientv1beta1.Server, 0)
+	protocol := istioclientv1beta1.ProtocolTCP
+	var tlsConfig *istioclientv1beta1.TLSOptions
 	if ingressConf.IstioIngressConfig.TLSOptions != nil {
 		tlsConfig = ingressConf.IstioIngressConfig.TLSOptions
-		protocol = v1alpha3.ProtocolTLS
+		protocol = istioclientv1beta1.ProtocolTLS
 	}
 
 	brokerIds := util.GetBrokerIdsFromStatusAndSpec(kc.Status.BrokersState, kc.Spec.Brokers, log)
@@ -68,8 +68,8 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 			continue
 		}
 		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
-			servers = append(servers, v1alpha3.Server{
-				Port: &v1alpha3.Port{
+			servers = append(servers, istioclientv1beta1.Server{
+				Port: &istioclientv1beta1.Port{
 					Number:   int(externalListenerConfig.ExternalStartingPort) + brokerId,
 					Protocol: protocol,
 					Name:     fmt.Sprintf("tcp-broker-%d", brokerId),
@@ -79,8 +79,8 @@ func generateServers(kc *v1beta1.KafkaCluster, externalListenerConfig v1beta1.Ex
 			})
 		}
 	}
-	servers = append(servers, v1alpha3.Server{
-		Port: &v1alpha3.Port{
+	servers = append(servers, istioclientv1beta1.Server{
+		Port: &istioclientv1beta1.Port{
 			Number:   int(externalListenerConfig.GetAnyCastPort()),
 			Protocol: protocol,
 			Name:     fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),

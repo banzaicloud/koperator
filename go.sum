@@ -180,11 +180,10 @@ github.com/banzaicloud/cluster-registry v0.0.8 h1:hFVgNDcNeBo2tL1R/iUVx7MEYCqU12
 github.com/banzaicloud/cluster-registry v0.0.8/go.mod h1:4ICSf7IMl2mcBByqZ2kZoDwu0bWXGSpHie+6jobSQBI=
 github.com/banzaicloud/go-cruise-control v0.0.0-20220324110942-71a3405be337 h1:HnA0QC34j8Vd6uwP4priC2eO+0FQT0c41qnBE3DsfWw=
 github.com/banzaicloud/go-cruise-control v0.0.0-20220324110942-71a3405be337/go.mod h1:ZOrxSqMkpjRnA6eyjaSfpnkPLuCy1JKBGIi6h9hyiuM=
-github.com/banzaicloud/istio-client-go v0.0.11/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
-github.com/banzaicloud/istio-client-go v0.0.15 h1:F2rr1tI/+19kDddLawft8scT8mGLNgBq23gV+I0zsh4=
-github.com/banzaicloud/istio-client-go v0.0.15/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
-github.com/banzaicloud/istio-operator/api/v2 v2.11.8 h1:j17Df20gfgv1+iFmBosfF+apCtfqd6nQttyrt8ZX2uA=
-github.com/banzaicloud/istio-operator/api/v2 v2.11.8/go.mod h1:od/KmI8+QoNB4CZxw593Wpn3MqrCoYPwbno7Gi+QsUM=
+github.com/banzaicloud/istio-client-go v0.0.17 h1:wiplbM7FDiIHopujInAnin3zuovtVcphtKy9En39q5I=
+github.com/banzaicloud/istio-client-go v0.0.17/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
+github.com/banzaicloud/istio-operator/api/v2 v2.13.0-rc.0 h1:M3iI/fVG3Nq6hOGgci6bVdLAsUiJxPiSH6X3Cxm65ck=
+github.com/banzaicloud/istio-operator/api/v2 v2.13.0-rc.0/go.mod h1:ZR2D7ekfa2N5r4u/gnPrx2t69IYV9WjBdMSQe7R8BiA=
 github.com/banzaicloud/k8s-objectmatcher v1.5.0/go.mod h1:9MWY5HsM/OaTmoTirczhlO8UALbH722WgdpaaR7Y8OE=
 github.com/banzaicloud/k8s-objectmatcher v1.7.0 h1:6ufo47TaPC0jXJPg8d8/oooCy1ma3vEfM0J8ZbomKaw=
 github.com/banzaicloud/k8s-objectmatcher v1.7.0/go.mod h1:DSctpi6o9FqTfX7RluuEBeRLUahoDC7JavCeuu6Y+sg=

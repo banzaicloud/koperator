@@ -22,7 +22,7 @@ import (
 
 	"github.com/imdario/mergo"
 
-	"github.com/banzaicloud/istio-client-go/pkg/networking/v1alpha3"
+	"github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -171,7 +171,7 @@ type BrokerConfig struct {
 	BrokerAnnotations map[string]string `json:"brokerAnnotations,omitempty"`
 	// Custom labels for the broker pods, example use case: for Prometheus monitoring to capture the group for each broker as a label, e.g.:
 	// kafka_broker_group: "default_group"
-	// these labels won't override the reserved labels that the operator relies on, for example, "app", "brokerId", and "kafka_cr"
+	// these labels will not override the reserved labels that the operator relies on, for example, "app", "brokerId", and "kafka_cr"
 	// +optional
 	BrokerLabels map[string]string `json:"brokerLabels,omitempty"`
 	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.
@@ -313,9 +313,9 @@ type IstioIngressConfig struct {
 	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
 	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 	// Annotations defines the annotations placed on the istio ingress controller deployment
-	Annotations               map[string]string    `json:"annotations,omitempty"`
-	TLSOptions                *v1alpha3.TLSOptions `json:"gatewayConfig,omitempty"`
-	VirtualServiceAnnotations map[string]string    `json:"virtualServiceAnnotations,omitempty"`
+	Annotations               map[string]string   `json:"annotations,omitempty"`
+	TLSOptions                *v1beta1.TLSOptions `json:"gatewayConfig,omitempty"`
+	VirtualServiceAnnotations map[string]string   `json:"virtualServiceAnnotations,omitempty"`
 	// Envs allows to add additional env vars to the istio meshgateway resource
 	Envs []corev1.EnvVar `json:"envs,omitempty"`
 }
