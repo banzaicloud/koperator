@@ -47,6 +47,7 @@ import (
 	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
 	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
+
 	clusterregv1alpha1 "github.com/cisco-open/cluster-registry-controller/api/v1alpha1"
 )
 
