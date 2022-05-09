@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	clusterregv1alpha1 "github.com/banzaicloud/cluster-registry/api/v1alpha1"
+	clusterregv1alpha1 "github.com/cisco-open/cluster-registry-controller/api/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

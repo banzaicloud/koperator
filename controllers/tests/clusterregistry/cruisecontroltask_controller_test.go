@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	clusterregv1alpha1 "github.com/banzaicloud/cluster-registry/api/v1alpha1"
+	clusterregv1alpha1 "github.com/cisco-open/cluster-registry-controller/api/v1alpha1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

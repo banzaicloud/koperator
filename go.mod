@@ -5,13 +5,13 @@ go 1.17
 require (
 	emperror.dev/errors v0.8.0
 	github.com/Shopify/sarama v1.32.0
-	github.com/banzaicloud/cluster-registry v0.0.8
 	github.com/banzaicloud/go-cruise-control v0.0.0-20220324110942-71a3405be337
 	github.com/banzaicloud/istio-client-go v0.0.17
 	github.com/banzaicloud/istio-operator/api/v2 v2.13.1
-	github.com/banzaicloud/k8s-objectmatcher v1.7.0
+	github.com/banzaicloud/k8s-objectmatcher v1.8.0
 	github.com/banzaicloud/koperator/api v0.0.0
 	github.com/banzaicloud/koperator/properties v0.1.0
+	github.com/cisco-open/cluster-registry-controller/api v0.1.9
 	github.com/envoyproxy/go-control-plane v0.10.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v1.2.2
