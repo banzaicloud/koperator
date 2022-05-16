@@ -80,6 +80,8 @@ github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj
 github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
 github.com/banzaicloud/go-cruise-control v0.0.0-20220324110942-71a3405be337 h1:HnA0QC34j8Vd6uwP4priC2eO+0FQT0c41qnBE3DsfWw=
 github.com/banzaicloud/go-cruise-control v0.0.0-20220324110942-71a3405be337/go.mod h1:ZOrxSqMkpjRnA6eyjaSfpnkPLuCy1JKBGIi6h9hyiuM=
+github.com/banzaicloud/go-cruise-control v0.0.0-20220513092243-36ac29a094cb h1:nU9Fuhh5bDiXpHl7G4wWmVSWStc2mlUul1DNWMwYwpU=
+github.com/banzaicloud/go-cruise-control v0.0.0-20220513092243-36ac29a094cb/go.mod h1:TdgOy6tNm8tXAIck6lDBRXClGV+/TWoqR/DD1aKvW0U=
 github.com/banzaicloud/istio-client-go v0.0.17 h1:wiplbM7FDiIHopujInAnin3zuovtVcphtKy9En39q5I=
 github.com/banzaicloud/istio-client-go v0.0.17/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
 github.com/banzaicloud/istio-operator/api/v2 v2.13.1 h1:c0LfFVZwltV/t8yws2HAOe6jL3MhgxEGcBYduzgke7Q=
