@@ -5,7 +5,7 @@ go 1.18
 require (
 	emperror.dev/errors v0.8.0
 	github.com/Shopify/sarama v1.32.0
-	github.com/banzaicloud/go-cruise-control v0.0.0-20220513092243-36ac29a094cb
+	github.com/banzaicloud/go-cruise-control v0.0.0-20220526151648-4883c92a9959
 	github.com/banzaicloud/istio-client-go v0.0.17
 	github.com/banzaicloud/istio-operator/api/v2 v2.13.1
 	github.com/banzaicloud/k8s-objectmatcher v1.8.0
@@ -102,7 +102,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.0 // indirect
 	istio.io/api v0.0.0-20210809175348-eff556fb5d8a // indirect
 	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f // indirect
 	k8s.io/component-base v0.23.1 // indirect
