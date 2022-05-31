@@ -37,6 +37,17 @@ func newRawTopic() []byte {
 		Name:      "test-topic",
 		Namespace: "test-namespace",
 	}
+	topic.Spec.Partitions = 1
+	out, _ := json.Marshal(topic)
+	return out
+}
+
+func newRawInvalidTopic() []byte {
+	topic := &v1alpha1.KafkaTopic{}
+	topic.ObjectMeta = metav1.ObjectMeta{
+		Name:      "test-topic",
+		Namespace: "test-namespace",
+	}
 	out, _ := json.Marshal(topic)
 	return out
 }
@@ -88,6 +99,14 @@ func TestValidate(t *testing.T) {
 		t.Error("Expected denied request for non-unmarshalable object, got allowed")
 	} else if res.Result.Reason != metav1.StatusReasonBadRequest {
 		t.Error("Expected bad request, got:", res.Result.Reason)
+	}
+
+	req.Request.Object.Raw = newRawInvalidTopic()
+
+	if res := server.validate(req); res.Allowed {
+		t.Error("Expected not allowed, got allowed")
+	} else if res.Result.Reason != metav1.StatusReasonInvalid {
+		t.Error("Expected invalid for no partitions, got:", res.Result.Reason)
 	}
 
 	req.Request.Object.Raw = newRawTopic()
