@@ -42,7 +42,7 @@ func newMockTopic() *v1alpha1.KafkaTopic {
 		ObjectMeta: metav1.ObjectMeta{Name: "test-topic", Namespace: "test-namespace"},
 		Spec: v1alpha1.KafkaTopicSpec{
 			Name:              "test-topic",
-			Partitions:        2,
+			Partitions:        0,
 			ReplicationFactor: 1,
 			ClusterRef: v1alpha1.ClusterReference{
 				Name:      "test-cluster",
@@ -70,8 +70,16 @@ func TestValidateTopic(t *testing.T) {
 	}
 	topic := newMockTopic()
 
-	// Test non-existent kafka cluster
+	// Test kafka topic with partitions number less than 1
 	res := server.validateKafkaTopic(topic)
+	if res.Allowed {
+		t.Error("Expected not allowed due to invalid partitions number, got allowed")
+	}
+
+	topic.Spec.Partitions = 2
+
+	// Test non-existent kafka cluster
+	res = server.validateKafkaTopic(topic)
 	if res.Result.Reason != metav1.StatusReasonNotFound {
 		t.Error("Expected not found cluster, got:", res.Result)
 	}

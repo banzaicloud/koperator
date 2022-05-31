@@ -18,10 +18,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+
+const MinPartitions = 1
+
 // KafkaTopicSpec defines the desired state of KafkaTopic
 // +k8s:openapi-gen=true
 type KafkaTopicSpec struct {
-	Name              string            `json:"name"`
+	Name string `json:"name"`
+	// +kubebuilder:validation:Minimum=1
 	Partitions        int32             `json:"partitions"`
 	ReplicationFactor int32             `json:"replicationFactor"`
 	Config            map[string]string `json:"config,omitempty"`

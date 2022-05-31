@@ -34,11 +34,21 @@ import (
 const (
 	cantConnectErrorMsg            = "Failed to connect to kafka cluster"
 	invalidReplicationFactorErrMsg = "Replication factor is larger than the number of nodes in the kafka cluster"
+	invalidPartitionsErrMsg        = "Number of partitions is less than the minimum partitions number"
 )
 
 func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic) *admissionv1.AdmissionResponse {
 	ctx := context.Background()
 	log.Info(fmt.Sprintf("Doing pre-admission validation of kafka topic %s", topic.Spec.Name))
+
+	// First check if the kafkatopic is valid
+	if topic.Spec.Partitions < banzaicloudv1alpha1.MinPartitions {
+		log.Info(invalidPartitionsErrMsg)
+		return notAllowed(
+			fmt.Sprintf("KafkaTopic '%s' is invalid: %s - %d.", topic.Spec.Name, invalidPartitionsErrMsg, banzaicloudv1alpha1.MinPartitions),
+			metav1.StatusReasonInvalid,
+		)
+	}
 
 	// Get the referenced KafkaCluster
 	clusterName := topic.Spec.ClusterRef.Name

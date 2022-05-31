@@ -7,6 +7,7 @@ spec:
   clusterRef:
     name: kafka
   name: example-topic
+  # valid partitions values: [1,...]
   partitions: 3
   replicationFactor: 2
   config:

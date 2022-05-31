@@ -19349,6 +19349,7 @@ spec:
                 type: string
               partitions:
                 format: int32
+                minimum: 1
                 type: integer
               replicationFactor:
                 format: int32
