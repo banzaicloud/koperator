@@ -18,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-
 const MinPartitions = 1
 
 // KafkaTopicSpec defines the desired state of KafkaTopic
