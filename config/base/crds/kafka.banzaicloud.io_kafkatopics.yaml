@@ -53,11 +53,16 @@ spec:
               name:
                 type: string
               partitions:
+                description: Partitions defines the desired number of partitions;
+                  must be positive, or -1 to signify using the broker's default
                 format: int32
-                minimum: 1
+                minimum: -1
                 type: integer
               replicationFactor:
+                description: ReplicationFactor defines the desired replication factor;
+                  must be positive, or -1 to signify using the broker's default
                 format: int32
+                minimum: -1
                 type: integer
             required:
             - clusterRef

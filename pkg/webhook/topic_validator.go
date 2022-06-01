@@ -32,9 +32,10 @@ import (
 )
 
 const (
-	cantConnectErrorMsg            = "Failed to connect to kafka cluster"
-	invalidReplicationFactorErrMsg = "Replication factor is larger than the number of nodes in the kafka cluster"
-	invalidPartitionsErrMsg        = "Number of partitions is less than the minimum partitions number"
+	cantConnectErrorMsg               = "Failed to connect to kafka cluster"
+	outOfRangeReplicationFactorErrMsg = "Replication factor must be larger than 0 (or set it to be -1 to use the broker's default)"
+	invalidReplicationFactorErrMsg    = "Replication factor is larger than the number of nodes in the kafka cluster"
+	outOfRangePartitionsErrMsg        = "Number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)"
 )
 
 func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic) *admissionv1.AdmissionResponse {
@@ -42,10 +43,18 @@ func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic
 	log.Info(fmt.Sprintf("Doing pre-admission validation of kafka topic %s", topic.Spec.Name))
 
 	// First check if the kafkatopic is valid
-	if topic.Spec.Partitions < banzaicloudv1alpha1.MinPartitions {
-		log.Info(invalidPartitionsErrMsg)
+	if topic.Spec.Partitions < banzaicloudv1alpha1.MinPartitions || topic.Spec.Partitions == 0 {
+		log.Info(outOfRangePartitionsErrMsg)
 		return notAllowed(
-			fmt.Sprintf("KafkaTopic '%s' is invalid: %s - %d.", topic.Spec.Name, invalidPartitionsErrMsg, banzaicloudv1alpha1.MinPartitions),
+			fmt.Sprintf("KafkaTopic '%s' is invalid: %s.", topic.Spec.Name, outOfRangePartitionsErrMsg),
+			metav1.StatusReasonInvalid,
+		)
+	}
+
+	if topic.Spec.ReplicationFactor < banzaicloudv1alpha1.MinReplicationFactor || topic.Spec.ReplicationFactor == 0{
+		log.Info(outOfRangeReplicationFactorErrMsg)
+		return notAllowed(
+			fmt.Sprintf("KafkaTopic '%s' is invalid: %s.", topic.Spec.Name, outOfRangeReplicationFactorErrMsg),
 			metav1.StatusReasonInvalid,
 		)
 	}

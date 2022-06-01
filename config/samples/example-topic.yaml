@@ -7,8 +7,9 @@ spec:
   clusterRef:
     name: kafka
   name: example-topic
-  # valid partitions values: [1,...]
+  # valid partitions values: [1,...], or -1 to use the broker's default
   partitions: 3
+  # valid repliaction factor values: [1, ...], or -1 to use the broker's default
   replicationFactor: 2
   config:
     "retention.ms": "604800000"
