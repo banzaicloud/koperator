@@ -51,7 +51,7 @@ func (s *webhookServer) validateKafkaTopic(topic *banzaicloudv1alpha1.KafkaTopic
 		)
 	}
 
-	if topic.Spec.ReplicationFactor < banzaicloudv1alpha1.MinReplicationFactor || topic.Spec.ReplicationFactor == 0{
+	if topic.Spec.ReplicationFactor < banzaicloudv1alpha1.MinReplicationFactor || topic.Spec.ReplicationFactor == 0 {
 		log.Info(outOfRangeReplicationFactorErrMsg)
 		return notAllowed(
 			fmt.Sprintf("KafkaTopic '%s' is invalid: %s.", topic.Spec.Name, outOfRangeReplicationFactorErrMsg),
