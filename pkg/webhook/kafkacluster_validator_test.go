@@ -31,16 +31,16 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			testName: "1",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 					},
@@ -48,16 +48,16 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			},
 			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 					},
@@ -69,23 +69,23 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			testName: "2",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
-					"default2": v1beta1.BrokerConfig{
+					"default2": {
 						StorageConfigs: []v1beta1.StorageConfig{
 							//	v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default2",
 					},
@@ -93,16 +93,16 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			},
 			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 					},
@@ -114,16 +114,16 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			testName: "3",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
 							//v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 					},
@@ -131,16 +131,16 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			},
 			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 					},
@@ -152,16 +152,16 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			testName: "4",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 					},
@@ -169,16 +169,16 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			},
 			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
 							//v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 					},
@@ -190,16 +190,16 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			testName: "5",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs3"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs1"},
+							{MountPath: "logs3"},
+							{MountPath: "logs2"},
+							{MountPath: "logs1"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 					},
@@ -207,16 +207,16 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			},
 			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 					},
@@ -228,23 +228,23 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			testName: "6",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 						BrokerConfig: &v1beta1.BrokerConfig{
 							StorageConfigs: []v1beta1.StorageConfig{
-								v1beta1.StorageConfig{MountPath: "logs4"},
-								v1beta1.StorageConfig{MountPath: "logs5"},
-								v1beta1.StorageConfig{MountPath: "logs6"},
+								{MountPath: "logs4"},
+								{MountPath: "logs5"},
+								{MountPath: "logs6"},
 							},
 						},
 					},
@@ -252,23 +252,23 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			},
 			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 						BrokerConfig: &v1beta1.BrokerConfig{
 							StorageConfigs: []v1beta1.StorageConfig{
-								v1beta1.StorageConfig{MountPath: "logs4"},
-								v1beta1.StorageConfig{MountPath: "logs5"},
-								v1beta1.StorageConfig{MountPath: "logs6"},
+								{MountPath: "logs4"},
+								{MountPath: "logs5"},
+								{MountPath: "logs6"},
 							},
 						},
 					},
@@ -280,23 +280,23 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			testName: "7",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 						BrokerConfig: &v1beta1.BrokerConfig{
 							StorageConfigs: []v1beta1.StorageConfig{
-								v1beta1.StorageConfig{MountPath: "logs4"},
-								v1beta1.StorageConfig{MountPath: "logs5"},
-								v1beta1.StorageConfig{MountPath: "logs6"},
+								{MountPath: "logs4"},
+								{MountPath: "logs5"},
+								{MountPath: "logs6"},
 							},
 						},
 					},
@@ -304,23 +304,23 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			},
 			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
-					"default": v1beta1.BrokerConfig{
+					"default": {
 						StorageConfigs: []v1beta1.StorageConfig{
-							v1beta1.StorageConfig{MountPath: "logs1"},
-							v1beta1.StorageConfig{MountPath: "logs2"},
-							v1beta1.StorageConfig{MountPath: "logs3"},
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
 						},
 					},
 				},
 				Brokers: []v1beta1.Broker{
-					v1beta1.Broker{
+					{
 						Id:                1,
 						BrokerConfigGroup: "default",
 						BrokerConfig: &v1beta1.BrokerConfig{
 							StorageConfigs: []v1beta1.StorageConfig{
-								v1beta1.StorageConfig{MountPath: "logs4"},
-								v1beta1.StorageConfig{MountPath: "logs5"},
-								v1beta1.StorageConfig{MountPath: "logs8"},
+								{MountPath: "logs4"},
+								{MountPath: "logs5"},
+								{MountPath: "logs8"},
 							},
 						},
 					},
@@ -337,7 +337,5 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 		} else if res == nil && !testCase.isValid {
 			t.Errorf("there should be storage removal, testName: %s", testCase.testName)
 		}
-
 	}
-
 }
