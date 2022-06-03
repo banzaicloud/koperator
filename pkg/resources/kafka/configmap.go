@@ -15,14 +15,18 @@
 package kafka
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
 
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 
 	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/api/v1alpha1"
@@ -33,6 +37,8 @@ import (
 	zookeeperutils "github.com/banzaicloud/koperator/pkg/util/zookeeper"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
+
+const logDirPropertyName = "log.dirs"
 
 func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32,
 	extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
@@ -106,10 +112,24 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, "setting broker.id in broker configuration resulted an error")
 	}
 
-	// Storage configuration
-	storageConf := generateStorageConfig(bConfig.StorageConfigs)
-	if storageConf != "" {
-		if err := config.Set("log.dirs", storageConf); err != nil {
+	// This logic prevents the removal of the mounthPath from the broker configmap
+	brokerConfigMapName := fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id)
+	var brokerConfigMapOld v1.ConfigMap
+	err = r.Client.Get(context.Background(), client.ObjectKey{Name: brokerConfigMapName, Namespace: r.KafkaCluster.GetNamespace()}, &brokerConfigMapOld)
+	if err != nil && !apierrors.IsNotFound(err) {
+		log.Error(err, "getting broker configmap from the Kubernetes API server resulted an error")
+	}
+
+	mounthPathsOld := getMountPathsFromBrokerConfigMap(brokerConfigMapOld)
+	mounthPathsNew := generateStorageConfig(bConfig.StorageConfigs)
+	mounthPathsMerged, isMounthPathRemoved := mergeMounthPaths(mounthPathsOld, mounthPathsNew)
+
+	if isMounthPathRemoved {
+		log.Error(errors.New("removing storage from a running broker is not supported"), "", "brokerID", id)
+	}
+
+	if len(mounthPathsMerged) != 0 {
+		if err := config.Set("log.dirs", strings.Join(mounthPathsMerged, ",")); err != nil {
 			log.Error(err, "setting log.dirs in broker configuration resulted an error")
 		}
 	}
@@ -122,6 +142,36 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		}
 	}
 	return config
+}
+
+// mergeMounthPaths is merges the new mounthPaths with the old.
+// It returns the merged []string and a bool which true or false depend on mounthPathsNew contains or not all of the elements of the mounthPathsOld
+func mergeMounthPaths(mounthPathsOld, mounthPathsNew []string) ([]string, bool) {
+	var mounthPathsMerged []string
+	mounthPathsMerged = append(mounthPathsMerged, mounthPathsOld...)
+	mounthPathsOldLen := len(mounthPathsOld)
+	// Merging the new mounthPaths with the old. If any of them is removed we can check the difference in the mounthPathsOldLen
+	for i := range mounthPathsNew {
+		found := false
+		for k := range mounthPathsOld {
+			if mounthPathsOld[k] == mounthPathsNew[i] {
+				found = true
+				mounthPathsOldLen--
+				break
+			}
+		}
+		// if this is a new mounthPath then add it to te current
+		if !found {
+			mounthPathsMerged = append(mounthPathsMerged, mounthPathsNew[i])
+		}
+	}
+	// If any of them is removed we can check the difference in the mounthPathsOldLen
+	isMounthPathRemoved := false
+	if mounthPathsOldLen > 0 {
+		isMounthPathRemoved = true
+	}
+
+	return mounthPathsMerged, isMounthPathRemoved
 }
 
 func generateSuperUsers(users []string) (suStrings []string) {
@@ -180,12 +230,25 @@ func appendListenerConfigs(advertisedListenerConfig []string, id int32,
 	return advertisedListenerConfig
 }
 
-func generateStorageConfig(sConfig []v1beta1.StorageConfig) string {
+func getMountPathsFromBrokerConfigMap(configMap v1.ConfigMap) []string {
+	brokerConfig := configMap.Data[kafkautils.ConfigPropertyName]
+	brokerConfigsLines := strings.Split(brokerConfig, "\n")
+	var mountPaths string
+	for i := range brokerConfigsLines {
+		keyVal := strings.Split(brokerConfigsLines[i], "=")
+		if len(keyVal) == 2 && keyVal[0] == logDirPropertyName {
+			mountPaths = keyVal[1]
+		}
+	}
+	return strings.Split(mountPaths, ",")
+}
+
+func generateStorageConfig(sConfig []v1beta1.StorageConfig) []string {
 	mountPaths := make([]string, 0, len(sConfig))
 	for _, storage := range sConfig {
 		mountPaths = append(mountPaths, util.StorageConfigKafkaMountPath(storage.MountPath))
 	}
-	return strings.Join(mountPaths, ",")
+	return mountPaths
 }
 
 func generateControlPlaneListener(iListeners []v1beta1.InternalListenerConfig) string {
