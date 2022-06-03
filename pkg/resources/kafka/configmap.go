@@ -38,7 +38,7 @@ import (
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
-const logDirPropertyName = "log.dirs"
+const brokerLogDirPropertyName = "log.dirs"
 
 func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32,
 	extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
@@ -120,7 +120,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, "getting broker configmap from the Kubernetes API server resulted an error")
 	}
 
-	mounthPathsOld := getMountPathsFromBrokerConfigMap(brokerConfigMapOld)
+	mounthPathsOld := getMountPathsFromBrokerConfigMap(&brokerConfigMapOld)
 	mounthPathsNew := generateStorageConfig(bConfig.StorageConfigs)
 	mounthPathsMerged, isMounthPathRemoved := mergeMounthPaths(mounthPathsOld, mounthPathsNew)
 
@@ -129,7 +129,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	}
 
 	if len(mounthPathsMerged) != 0 {
-		if err := config.Set("log.dirs", strings.Join(mounthPathsMerged, ",")); err != nil {
+		if err := config.Set(brokerLogDirPropertyName, strings.Join(mounthPathsMerged, ",")); err != nil {
 			log.Error(err, "setting log.dirs in broker configuration resulted an error")
 		}
 	}
@@ -230,13 +230,13 @@ func appendListenerConfigs(advertisedListenerConfig []string, id int32,
 	return advertisedListenerConfig
 }
 
-func getMountPathsFromBrokerConfigMap(configMap v1.ConfigMap) []string {
+func getMountPathsFromBrokerConfigMap(configMap *v1.ConfigMap) []string {
 	brokerConfig := configMap.Data[kafkautils.ConfigPropertyName]
 	brokerConfigsLines := strings.Split(brokerConfig, "\n")
 	var mountPaths string
 	for i := range brokerConfigsLines {
 		keyVal := strings.Split(brokerConfigsLines[i], "=")
-		if len(keyVal) == 2 && keyVal[0] == logDirPropertyName {
+		if len(keyVal) == 2 && keyVal[0] == brokerLogDirPropertyName {
 			mountPaths = keyVal[1]
 		}
 	}
