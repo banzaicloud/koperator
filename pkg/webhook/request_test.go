@@ -37,6 +37,32 @@ func newRawTopic() []byte {
 		Name:      "test-topic",
 		Namespace: "test-namespace",
 	}
+	topic.Spec.Partitions = 1
+	topic.Spec.ReplicationFactor = 1
+	out, _ := json.Marshal(topic)
+	return out
+}
+
+func newRawTopicWithInvalidPartitions() []byte {
+	topic := &v1alpha1.KafkaTopic{}
+	topic.ObjectMeta = metav1.ObjectMeta{
+		Name:      "test-topic",
+		Namespace: "test-namespace",
+	}
+	topic.Spec.Partitions = -2
+	topic.Spec.ReplicationFactor = 1
+	out, _ := json.Marshal(topic)
+	return out
+}
+
+func newRawTopicWithInvalidReplicationFactor() []byte {
+	topic := &v1alpha1.KafkaTopic{}
+	topic.ObjectMeta = metav1.ObjectMeta{
+		Name:      "test-topic",
+		Namespace: "test-namespace",
+	}
+	topic.Spec.Partitions = 1
+	topic.Spec.ReplicationFactor = -2
 	out, _ := json.Marshal(topic)
 	return out
 }
@@ -90,9 +116,25 @@ func TestValidate(t *testing.T) {
 		t.Error("Expected bad request, got:", res.Result.Reason)
 	}
 
+	req.Request.Object.Raw = newRawTopicWithInvalidPartitions()
+
+	if res = server.validate(req); res.Allowed {
+		t.Error("Expected not allowed, got allowed")
+	} else if res.Result.Reason != metav1.StatusReasonInvalid {
+		t.Error("Expected invalid due to invalid partitions, got:", res.Result.Reason)
+	}
+
+	req.Request.Object.Raw = newRawTopicWithInvalidReplicationFactor()
+
+	if res = server.validate(req); res.Allowed {
+		t.Error("Expected not allowed, got allowed")
+	} else if res.Result.Reason != metav1.StatusReasonInvalid {
+		t.Error("Expected invalid due to invalid replication factor, got:", res.Result.Reason)
+	}
+
 	req.Request.Object.Raw = newRawTopic()
 
-	if res := server.validate(req); res.Allowed {
+	if res = server.validate(req); res.Allowed {
 		t.Error("Expected not allowed, got allowed")
 	} else if res.Result.Reason != metav1.StatusReasonNotFound {
 		t.Error("Expected not found for no cluster, got:", res.Result.Reason)
