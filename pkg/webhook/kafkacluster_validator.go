@@ -37,7 +37,7 @@ func (s *webhookServer) validateKafkaCluster(kafkaClusterNew *banzaicloudv1beta1
 			return nil
 		}
 		log.Error(err, "couldn't get KafkaCluster custom resource")
-		return notAllowed("API failure while retrieving KafkaCluster CR, please try again", metav1.StatusReasonServiceUnavailable)
+		return notAllowed("API failure while retrieving KafkaCluster CR, please try again", metav1.StatusReasonInternalError)
 	}
 
 	res := checkBrokerStorageRemoval(&kafkaClusterSpecOld.Spec, &kafkaClusterNew.Spec)
@@ -51,7 +51,7 @@ func (s *webhookServer) validateKafkaCluster(kafkaClusterNew *banzaicloudv1beta1
 	}
 }
 
-// checkBrokerStorageRemoval checking is there any broker storage which has been removed. If yes, admission will be refused
+// checkBrokerStorageRemoval checks if there is any broker storage which has been removed. If yes, admission will be rejected
 func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaicloudv1beta1.KafkaClusterSpec) *admissionv1.AdmissionResponse {
 	for _, brokerOld := range kafkaClusterSpecOld.Brokers {
 		for _, brokerNew := range kafkaClusterSpecNew.Brokers {
@@ -69,7 +69,7 @@ func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaic
 					}
 					if !isStorageFound {
 						log.Info(fmt.Sprintf("Not allowed to remove broker storage with mountPath: %s from brokerID: %v", storageConfigOld.MountPath, brokerOld.Id))
-						return notAllowed(fmt.Sprintf("Removing storage from a runnng broker is not supported! (mounthPath: %s, brokerID: %v)", storageConfigOld.MountPath, brokerOld.Id), metav1.StatusReasonInvalid)
+						return notAllowed(fmt.Sprintf("Removing storage from a runnng broker is not supported! (mountPath: %s, brokerID: %v)", storageConfigOld.MountPath, brokerOld.Id), metav1.StatusReasonInvalid)
 					}
 				}
 			}

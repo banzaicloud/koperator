@@ -112,7 +112,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, "setting broker.id in broker configuration resulted an error")
 	}
 
-	// This logic prevents the removal of the mounthPath from the broker configmap
+	// This logic prevents the removal of the mountPath from the broker configmap
 	brokerConfigMapName := fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id)
 	var brokerConfigMapOld v1.ConfigMap
 	err = r.Client.Get(context.Background(), client.ObjectKey{Name: brokerConfigMapName, Namespace: r.KafkaCluster.GetNamespace()}, &brokerConfigMapOld)
@@ -120,16 +120,16 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, "getting broker configmap from the Kubernetes API server resulted an error")
 	}
 
-	mounthPathsOld := getMountPathsFromBrokerConfigMap(&brokerConfigMapOld)
-	mounthPathsNew := generateStorageConfig(bConfig.StorageConfigs)
-	mounthPathsMerged, isMounthPathRemoved := mergeMounthPaths(mounthPathsOld, mounthPathsNew)
+	mountPathsOld := getMountPathsFromBrokerConfigMap(&brokerConfigMapOld)
+	mountPathsNew := generateStorageConfig(bConfig.StorageConfigs)
+	mountPathsMerged, isMountPathRemoved := mergeMountPaths(mountPathsOld, mountPathsNew)
 
-	if isMounthPathRemoved {
+	if isMountPathRemoved {
 		log.Error(errors.New("removing storage from a running broker is not supported"), "", "brokerID", id)
 	}
 
-	if len(mounthPathsMerged) != 0 {
-		if err := config.Set(brokerLogDirPropertyName, strings.Join(mounthPathsMerged, ",")); err != nil {
+	if len(mountPathsMerged) != 0 {
+		if err := config.Set(brokerLogDirPropertyName, strings.Join(mountPathsMerged, ",")); err != nil {
 			log.Error(err, "setting log.dirs in broker configuration resulted an error")
 		}
 	}
@@ -144,34 +144,34 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	return config
 }
 
-// mergeMounthPaths is merges the new mounthPaths with the old.
-// It returns the merged []string and a bool which true or false depend on mounthPathsNew contains or not all of the elements of the mounthPathsOld
-func mergeMounthPaths(mounthPathsOld, mounthPathsNew []string) ([]string, bool) {
-	var mounthPathsMerged []string
-	mounthPathsMerged = append(mounthPathsMerged, mounthPathsOld...)
-	mounthPathsOldLen := len(mounthPathsOld)
-	// Merging the new mounthPaths with the old. If any of them is removed we can check the difference in the mounthPathsOldLen
-	for i := range mounthPathsNew {
+// mergeMountPaths is merges the new mountPaths with the old.
+// It returns the merged []string and a bool which true or false depend on mountPathsNew contains or not all of the elements of the mountPathsOld
+func mergeMountPaths(mountPathsOld, mountPathsNew []string) ([]string, bool) {
+	var mountPathsMerged []string
+	mountPathsMerged = append(mountPathsMerged, mountPathsOld...)
+	mountPathsOldLen := len(mountPathsOld)
+	// Merging the new mountPaths with the old. If any of them is removed we can check the difference in the mountPathsOldLen
+	for i := range mountPathsNew {
 		found := false
-		for k := range mounthPathsOld {
-			if mounthPathsOld[k] == mounthPathsNew[i] {
+		for k := range mountPathsOld {
+			if mountPathsOld[k] == mountPathsNew[i] {
 				found = true
-				mounthPathsOldLen--
+				mountPathsOldLen--
 				break
 			}
 		}
-		// if this is a new mounthPath then add it to te current
+		// if this is a new mountPath then add it to te current
 		if !found {
-			mounthPathsMerged = append(mounthPathsMerged, mounthPathsNew[i])
+			mountPathsMerged = append(mountPathsMerged, mountPathsNew[i])
 		}
 	}
-	// If any of them is removed we can check the difference in the mounthPathsOldLen
-	isMounthPathRemoved := false
-	if mounthPathsOldLen > 0 {
-		isMounthPathRemoved = true
+	// If any of them is removed we can check the difference in the mountPathsOldLen
+	isMountPathRemoved := false
+	if mountPathsOldLen > 0 {
+		isMountPathRemoved = true
 	}
 
-	return mounthPathsMerged, isMounthPathRemoved
+	return mountPathsMerged, isMountPathRemoved
 }
 
 func generateSuperUsers(users []string) (suStrings []string) {
@@ -231,6 +231,9 @@ func appendListenerConfigs(advertisedListenerConfig []string, id int32,
 }
 
 func getMountPathsFromBrokerConfigMap(configMap *v1.ConfigMap) []string {
+	if configMap == nil {
+		return nil
+	}
 	brokerConfig := configMap.Data[kafkautils.ConfigPropertyName]
 	brokerConfigsLines := strings.Split(brokerConfig, "\n")
 	var mountPaths string
