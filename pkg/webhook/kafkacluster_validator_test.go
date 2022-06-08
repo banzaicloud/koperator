@@ -20,6 +20,7 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
+//nolint: funlen
 func TestCheckBrokerStorageRemoval(t *testing.T) {
 	testCases := []struct {
 		testName            string
@@ -28,7 +29,7 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 		isValid             bool
 	}{
 		{
-			testName: "1",
+			testName: "there is no storage remove",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 					"default": {
@@ -66,7 +67,98 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			isValid: true,
 		},
 		{
-			testName: "2",
+			testName: "there is no storage remove but there is broker remove",
+			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
+				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+					"default": {
+						StorageConfigs: []v1beta1.StorageConfig{
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
+						},
+					},
+				},
+				Brokers: []v1beta1.Broker{
+					{
+						Id:                1,
+						BrokerConfigGroup: "default",
+					},
+				},
+			},
+			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
+				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+					"default": {
+						StorageConfigs: []v1beta1.StorageConfig{
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
+						},
+					},
+				},
+				Brokers: []v1beta1.Broker{
+					{
+						Id:                1,
+						BrokerConfigGroup: "default",
+					},
+					{
+						Id:                2,
+						BrokerConfigGroup: "default",
+					},
+				},
+			},
+			isValid: true,
+		},
+		{
+			testName: "when there is storage remove but there is broker remove also",
+			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
+				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+					"default": {
+						StorageConfigs: []v1beta1.StorageConfig{
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
+						},
+					},
+				},
+				Brokers: []v1beta1.Broker{
+					{
+						Id:                1,
+						BrokerConfigGroup: "default",
+					},
+				},
+			},
+			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
+				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+					"default": {
+						StorageConfigs: []v1beta1.StorageConfig{
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
+						},
+					},
+				},
+				Brokers: []v1beta1.Broker{
+					{
+						Id:                1,
+						BrokerConfigGroup: "default",
+					},
+					{
+						Id:                2,
+						BrokerConfigGroup: "default",
+						BrokerConfig: &v1beta1.BrokerConfig{
+							StorageConfigs: []v1beta1.StorageConfig{
+								{MountPath: "logs4"},
+								{MountPath: "logs5"},
+								{MountPath: "logs6"},
+							},
+						},
+					},
+				},
+			},
+			isValid: true,
+		},
+		{
+			testName: "when there is storage remove from another brokerConfigBroup",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 					"default": {
@@ -111,7 +203,7 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			isValid: false,
 		},
 		{
-			testName: "3",
+			testName: "when there is storage remove",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 					"default": {
@@ -149,7 +241,7 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			isValid: false,
 		},
 		{
-			testName: "4",
+			testName: "when added a new one",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 					"default": {
@@ -187,7 +279,7 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			isValid: true,
 		},
 		{
-			testName: "5",
+			testName: "when only sequence has changed",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 					"default": {
@@ -225,7 +317,7 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			isValid: true,
 		},
 		{
-			testName: "6",
+			testName: "when there is perBroker storageconfigs and there is no storage remove",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 					"default": {
@@ -277,7 +369,7 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			isValid: true,
 		},
 		{
-			testName: "7",
+			testName: "when there is perBroker config and added new and removed old",
 			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
 				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 					"default": {
@@ -332,9 +424,9 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 
 	for _, testCase := range testCases {
 		res := checkBrokerStorageRemoval(&testCase.kafkaClusterSpecOld, &testCase.kafkaClusterSpecNew)
-		if res != nil && testCase.isValid {
+		if !res.Allowed && testCase.isValid {
 			t.Errorf("Message: %s, testName: %s", res.Result.Message, testCase.testName)
-		} else if res == nil && !testCase.isValid {
+		} else if res.Allowed && !testCase.isValid {
 			t.Errorf("there should be storage removal, testName: %s", testCase.testName)
 		}
 	}

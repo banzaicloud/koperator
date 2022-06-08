@@ -40,15 +40,7 @@ func (s *webhookServer) validateKafkaCluster(kafkaClusterNew *banzaicloudv1beta1
 		return notAllowed("API failure while retrieving KafkaCluster CR, please try again", metav1.StatusReasonInternalError)
 	}
 
-	res := checkBrokerStorageRemoval(&kafkaClusterSpecOld.Spec, &kafkaClusterNew.Spec)
-	if res != nil {
-		return res
-	}
-
-	// everything looks a-okay
-	return &admissionv1.AdmissionResponse{
-		Allowed: true,
-	}
+	return checkBrokerStorageRemoval(&kafkaClusterSpecOld.Spec, &kafkaClusterNew.Spec)
 }
 
 // checkBrokerStorageRemoval checks if there is any broker storage which has been removed. If yes, admission will be rejected
@@ -75,5 +67,7 @@ func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaic
 			}
 		}
 	}
-	return nil
+	return &admissionv1.AdmissionResponse{
+		Allowed: true,
+	}
 }
