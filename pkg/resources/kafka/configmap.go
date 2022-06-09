@@ -125,7 +125,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	mountPathsMerged, isMountPathRemoved := mergeMountPaths(mountPathsOld, mountPathsNew)
 
 	if isMountPathRemoved {
-		log.Error(errors.New("removing storage from a running broker is not supported"), "", "brokerID", id)
+		log.Error(errors.New("removing storage from a running broker is not supported"), "", "brokerID", id, "old mountPaths", mountPathsOld, "new mountPaths", mountPathsNew)
 	}
 
 	if len(mountPathsMerged) != 0 {
@@ -160,7 +160,7 @@ func mergeMountPaths(mountPathsOld, mountPathsNew []string) ([]string, bool) {
 				break
 			}
 		}
-		// if this is a new mountPath then add it to te current
+		// if this is a new mountPath then add it to the current
 		if !found {
 			mountPathsMerged = append(mountPathsMerged, mountPathsNew[i])
 		}
@@ -243,6 +243,11 @@ func getMountPathsFromBrokerConfigMap(configMap *v1.ConfigMap) []string {
 			mountPaths = keyVal[1]
 		}
 	}
+
+	if mountPaths == "" {
+		return nil
+	}
+
 	return strings.Split(mountPaths, ",")
 }
 

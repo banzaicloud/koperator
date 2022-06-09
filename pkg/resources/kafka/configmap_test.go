@@ -38,7 +38,7 @@ func TestGetMountPathsFromBrokerConfigMap(t *testing.T) {
 		expectedLogDirs []string
 	}{
 		{
-			testName: "1",
+			testName: "simple case",
 			brokerConfigMap: v1.ConfigMap{
 				Data: map[string]string{kafkautils.ConfigPropertyName: `inter.broker.listener.name=INTERNAL\nlistener.security.protocol.map=INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
 listeners=INTERNAL://:29092,CONTROLLER://:29093
@@ -49,11 +49,75 @@ zookeeper.connect=zookeeper-server-client.zookeeper:2181/
 			},
 			expectedLogDirs: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
 		},
+		{
+			testName: "no old configs",
+			brokerConfigMap: v1.ConfigMap{
+				Data: map[string]string{},
+			},
+			expectedLogDirs: []string{},
+		},
 	}
 	for _, test := range tests {
 		logDirs := getMountPathsFromBrokerConfigMap(&test.brokerConfigMap)
-		if !reflect.DeepEqual(logDirs, test.expectedLogDirs) {
-			t.Errorf("expected: %s, got: %s", test.expectedLogDirs, logDirs)
+		if len(logDirs) != 0 && len(test.expectedLogDirs) != 0 {
+			if !reflect.DeepEqual(logDirs, test.expectedLogDirs) {
+				t.Errorf("expected: %s, got: %s", test.expectedLogDirs, logDirs)
+			}
+		}
+	}
+}
+
+func TestMergeMountPaths(t *testing.T) {
+	tests := []struct {
+		testName                string
+		mountPathNew            []string
+		mountPathOld            []string
+		expectedMergedMountPath []string
+		expectedRemoved         bool
+	}{
+		{
+			testName:                "no old mountPath",
+			mountPathNew:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			mountPathOld:            []string{},
+			expectedMergedMountPath: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedRemoved:         false,
+		},
+		{
+			testName:                "same",
+			mountPathNew:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			mountPathOld:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedMergedMountPath: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedRemoved:         false,
+		},
+		{
+			testName:                "changed order",
+			mountPathNew:            []string{"/kafka-logs/kafka", "/kafka-logs3/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			mountPathOld:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedMergedMountPath: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedRemoved:         false,
+		},
+		{
+			testName:                "removed one",
+			mountPathNew:            []string{"/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			mountPathOld:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedMergedMountPath: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedRemoved:         true,
+		},
+		{
+			testName:                "removed all",
+			mountPathNew:            []string{},
+			mountPathOld:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedMergedMountPath: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedRemoved:         true,
+		},
+	}
+	for _, test := range tests {
+		mergedMountPaths, isRemoved := mergeMountPaths(test.mountPathOld, test.mountPathNew)
+		if !reflect.DeepEqual(mergedMountPaths, test.expectedMergedMountPath) {
+			t.Errorf("expected: %s, got: %s", test.expectedMergedMountPath, mergedMountPaths)
+		}
+		if isRemoved != test.expectedRemoved {
+			t.Errorf("expectedRemoved: %v, got: %v", test.expectedRemoved, isRemoved)
 		}
 	}
 }
