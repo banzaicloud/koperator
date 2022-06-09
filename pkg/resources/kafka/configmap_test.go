@@ -25,10 +25,11 @@ import (
 	"github.com/banzaicloud/koperator/pkg/util"
 	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 
-	properties "github.com/banzaicloud/koperator/properties/pkg"
-
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/resources"
+	mocks "github.com/banzaicloud/koperator/pkg/resources/kafka/mocks"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestGetMountPathsFromBrokerConfigMap(t *testing.T) {
@@ -469,8 +470,11 @@ zookeeper.connect=example.zk:2181/`,
 		test := test
 
 		t.Run(test.testName, func(t *testing.T) {
+			mockClient := new(mocks.Client)
+			mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			r := Reconciler{
 				Reconciler: resources.Reconciler{
+					Client: mockClient,
 					KafkaCluster: &v1beta1.KafkaCluster{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "kafka",
