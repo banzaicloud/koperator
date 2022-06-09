@@ -25,11 +25,12 @@ import (
 	"github.com/banzaicloud/koperator/pkg/util"
 	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/resources"
 	mocks "github.com/banzaicloud/koperator/pkg/resources/kafka/mocks"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestGetMountPathsFromBrokerConfigMap(t *testing.T) {
