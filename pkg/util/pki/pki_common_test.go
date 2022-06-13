@@ -175,3 +175,39 @@ func TestControllerUserForCluster(t *testing.T) {
 		t.Errorf("Expected %+v\nGot %+v", expected, user)
 	}
 }
+
+func TestTruncatedCommonName(t *testing.T) {
+	testCases := []struct {
+		testName       string
+		cnName         string
+		cnNameLenLimit int
+		expected       string
+	}{
+		{
+			testName:       "CN name with length exceeded limitation",
+			cnName:         "kafka-test-controller-exceeded-length.test-namespace.mgt.cluster.local",
+			cnNameLenLimit: 64,
+			expected:       "kafka-test-controller-exceeded-length.test-namespace.mgt.cluster",
+		},
+		{
+			testName:       "CN name with length within limitation",
+			cnName:         "kafka-test-controller.test-namespace.mgt.cluster.local",
+			cnNameLenLimit: 64,
+			expected:       "kafka-test-controller.test-namespace.mgt.cluster.local",
+		},
+	}
+
+	t.Parallel()
+
+	for _, test := range testCases {
+		test := test
+
+		t.Run(test.testName, func(t *testing.T) {
+			get := TruncatedCommonName(test.cnName, test.cnNameLenLimit)
+			if get != test.expected {
+				t.Errorf("Expected CN name after truncation:%s, got:%s", test.expected, get)
+			}
+		})
+	}
+
+}

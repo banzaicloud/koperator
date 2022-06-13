@@ -215,9 +215,9 @@ func sortAndDedupe(hosts []string) []string {
 func ControllerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser {
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf(BrokerControllerFQDNTemplate,
-				fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()),
-			LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster,
+			TruncatedCommonName(fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()), 64),
+			LabelsForKafkaPKI(cluster.Name, cluster.Namespace),
+			cluster,
 		),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerControllerTemplate, cluster.Name),
@@ -242,4 +242,13 @@ func EnsureControllerReference(ctx context.Context, user *v1alpha1.KafkaUser,
 		}
 	}
 	return nil
+}
+
+// TruncatedCommonName ensures that the passed-in CN name doesn't exceed the specified number of characters
+func TruncatedCommonName(name string, maxLen int) string{
+	n := []rune(name)
+	if len(n) > maxLen {
+		return string(n[:maxLen])
+	}
+	return name
 }
