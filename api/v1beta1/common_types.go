@@ -14,7 +14,9 @@
 
 package v1beta1
 
-import "strings"
+import (
+	"strings"
+)
 
 // RackAwarenessState stores info about rack awareness status
 type RackAwarenessState string
@@ -197,6 +199,8 @@ type BrokerState struct {
 	Version string `json:"version,omitempty"`
 	// Image specifies the current docker image of the broker
 	Image string `json:"image,omitempty"`
+	// Compressed data from broker configuration to restore broker pod in specific cases
+	ConfigurationBackup string `json:"configurationBackup,omitempty"`
 }
 
 const (

@@ -607,3 +607,77 @@ func TestIsIngressConfigInUse(t *testing.T) {
 		}
 	}
 }
+
+func TestConfigurationBackup(t *testing.T) {
+	testCases := []struct {
+		testName string
+		broker   v1beta1.Broker
+	}{
+		{
+			testName: "complicated case",
+			broker: v1beta1.Broker{
+				Id:                0,
+				BrokerConfigGroup: "default",
+				ReadOnlyConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.kubernetes.mode=true`,
+				BrokerConfig: &v1beta1.BrokerConfig{
+					Image:                "",
+					MetricsReporterImage: "",
+					Config: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.kubernetes.mode=true`,
+					BrokerLabels: map[string]string{"apple": "peach"},
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									{
+										MatchExpressions: nil,
+										MatchFields: []corev1.NodeSelectorRequirement{
+											{
+												Key:      "fruit",
+												Operator: "in",
+												Values:   []string{"apple"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					PodSecurityContext:   &corev1.PodSecurityContext{},
+					SecurityContext:      &corev1.SecurityContext{},
+					BrokerIngressMapping: []string{"apple"},
+					InitContainers: []corev1.Container{
+						{
+							Name:  "test-initcontainer",
+							Image: "busybox:latest",
+						},
+						{
+							Name:  "a-test-initcontainer",
+							Image: "test/image:latest",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range testCases {
+		config, err := GzipAndBase64BrokerConfiguration(&test.broker)
+		if err != nil {
+			t.Error(err)
+		}
+		//	t.Logf("len un: %v, len zip: %v. data: %v", leng, len(brokerState.ConfigurationBackup), brokerState.ConfigurationBackup)
+		broker, err := GetBrokerFromBrokerConfigurationBackup(config)
+		if err != nil {
+			t.Error(err)
+		}
+		if !reflect.DeepEqual(test.broker.BrokerConfig, broker.BrokerConfig) {
+			t.Errorf("Expected: %v  Got: %v", test.broker.BrokerConfig.InitContainers, broker.BrokerConfig.InitContainers)
+		}
+	}
+}

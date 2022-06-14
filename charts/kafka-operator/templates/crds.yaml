@@ -19132,6 +19132,10 @@ spec:
                 additionalProperties:
                   description: BrokerState holds information about broker state
                   properties:
+                    configurationBackup:
+                      description: Compressed data from broker configuration to restore
+                        broker pod in specific cases
+                      type: string
                     configurationState:
                       description: ConfigurationState holds info about the config
                       type: string

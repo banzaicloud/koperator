@@ -15,10 +15,15 @@
 package util
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"reflect"
 	"sort"
@@ -450,4 +455,41 @@ func ObjectManagedByClusterRegistry(object metav1.Object) bool {
 	annotations := object.GetAnnotations()
 	_, ok := annotations[clusterregv1alpha1.OwnershipAnnotation]
 	return ok
+}
+
+func GzipAndBase64BrokerConfiguration(broker *v1beta1.Broker) (string, error) {
+	configJSON, err := json.Marshal(broker)
+	if err != nil {
+		return "", err
+	}
+	var buff bytes.Buffer
+	gz := gzip.NewWriter(&buff)
+	if _, err := gz.Write(configJSON); err != nil {
+		return "", err
+	}
+	gz.Close()
+	return base64.StdEncoding.EncodeToString(buff.Bytes()), nil
+}
+
+func GetBrokerFromBrokerConfigurationBackup(config string) (v1beta1.Broker, error) {
+	configGzip, err := base64.StdEncoding.DecodeString(config)
+	if err != nil {
+		return v1beta1.Broker{}, err
+	}
+	reader := bytes.NewBuffer(configGzip)
+	gzipReader, err := gzip.NewReader(reader)
+	if err != nil {
+		return v1beta1.Broker{}, err
+	}
+	configJSON, err := ioutil.ReadAll(gzipReader)
+	if err != nil {
+		return v1beta1.Broker{}, err
+	}
+	gzipReader.Close()
+	broker := v1beta1.Broker{}
+	if err := json.Unmarshal(configJSON, &broker); err != nil {
+		return v1beta1.Broker{}, err
+	}
+
+	return broker, nil
 }
