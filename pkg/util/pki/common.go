@@ -23,6 +23,7 @@ import (
 
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
+	"github.com/banzaicloud/koperator/pkg/util"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -217,7 +218,7 @@ func sortAndDedupe(hosts []string) []string {
 func ControllerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser {
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(
-			TruncatedCommonName(fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()), MaxCertManagerCNLen),
+			util.TruncateStringByLen(fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()), MaxCertManagerCNLen),
 			LabelsForKafkaPKI(cluster.Name, cluster.Namespace),
 			cluster,
 		),
@@ -244,13 +245,4 @@ func EnsureControllerReference(ctx context.Context, user *v1alpha1.KafkaUser,
 		}
 	}
 	return nil
-}
-
-// TruncatedCommonName ensures that the passed-in common name doesn't exceed the specified number of characters
-func TruncatedCommonName(name string, maxLen int) string {
-	n := []rune(name)
-	if len(n) > maxLen {
-		return string(n[:maxLen])
-	}
-	return name
 }

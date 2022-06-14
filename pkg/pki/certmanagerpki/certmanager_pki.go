@@ -28,6 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/banzaicloud/koperator/pkg/util"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
@@ -219,7 +221,7 @@ func caCertForCluster(cluster *v1beta1.KafkaCluster) *certv1.Certificate {
 		},
 		Spec: certv1.CertificateSpec{
 			SecretName: fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
-			CommonName: pkicommon.TruncatedCommonName(fmt.Sprintf(pkicommon.CAFQDNTemplate, cluster.Name, cluster.Namespace), pkicommon.MaxCertManagerCNLen),
+			CommonName: util.TruncateStringByLen(fmt.Sprintf(pkicommon.CAFQDNTemplate, cluster.Name, cluster.Namespace), pkicommon.MaxCertManagerCNLen),
 			IsCA:       true,
 			IssuerRef: certmeta.ObjectReference{
 				Name: fmt.Sprintf(pkicommon.BrokerSelfSignerTemplate, cluster.Name),
