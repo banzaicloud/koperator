@@ -201,7 +201,13 @@ spec:
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
+                  apiVersion: v1
                   fieldPath: metadata.namespace
+            - name: SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.serviceAccountName
           {{- if .Values.additionalEnv }}
           {{ toYaml .Values.additionalEnv | nindent 12 }}
           {{- end }}

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"reflect"
 
 	admissionv1 "k8s.io/api/admission/v1"
@@ -57,7 +58,8 @@ func (s *webhookServer) validate(ar *admissionv1.AdmissionReview) *admissionv1.A
 		return s.validateKafkaTopic(&topic)
 	case kafkaCluster:
 		// when the operator modifies the resource we dont do any validation
-		if req.UserInfo.Username == "system:serviceaccount:kafka:kafka-operator" {
+		operatorUsername := fmt.Sprintf("system:serviceaccount:%v:%v", os.Getenv("POD_NAMESPACE"), os.Getenv("SERVICE_ACCOUNT"))
+		if req.UserInfo.Username == operatorUsername {
 			return &admissionv1.AdmissionResponse{
 				Allowed: true,
 			}

@@ -120,7 +120,10 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, "getting broker configmap from the Kubernetes API server resulted an error")
 	}
 
-	mountPathsOld := getMountPathsFromBrokerConfigMap(&brokerConfigMapOld)
+	mountPathsOld, err := getMountPathsFromBrokerConfigMap(&brokerConfigMapOld)
+	if err != nil {
+		log.Error(err, "could not get mounthPaths from broker configmap", "brokerID", id)
+	}
 	mountPathsNew := generateStorageConfig(bConfig.StorageConfigs)
 	mountPathsMerged, isMountPathRemoved := mergeMountPaths(mountPathsOld, mountPathsNew)
 
@@ -230,25 +233,21 @@ func appendListenerConfigs(advertisedListenerConfig []string, id int32,
 	return advertisedListenerConfig
 }
 
-func getMountPathsFromBrokerConfigMap(configMap *v1.ConfigMap) []string {
+func getMountPathsFromBrokerConfigMap(configMap *v1.ConfigMap) ([]string, error) {
 	if configMap == nil {
-		return nil
+		return nil, nil
 	}
 	brokerConfig := configMap.Data[kafkautils.ConfigPropertyName]
-	brokerConfigsLines := strings.Split(brokerConfig, "\n")
-	var mountPaths string
-	for i := range brokerConfigsLines {
-		keyVal := strings.Split(brokerConfigsLines[i], "=")
-		if len(keyVal) == 2 && keyVal[0] == brokerLogDirPropertyName {
-			mountPaths = keyVal[1]
-		}
+	brokerConfigProperties, err := properties.NewFromString(brokerConfig)
+	if err != nil {
+		return nil, err
+	}
+	brokerLogDirProperty, found := brokerConfigProperties.Get(brokerLogDirPropertyName)
+	if !found || brokerLogDirProperty.Value() == "" {
+		return nil, nil
 	}
 
-	if mountPaths == "" {
-		return nil
-	}
-
-	return strings.Split(mountPaths, ",")
+	return strings.Split(brokerLogDirProperty.Value(), ","), nil
 }
 
 func generateStorageConfig(sConfig []v1beta1.StorageConfig) []string {

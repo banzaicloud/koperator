@@ -60,7 +60,10 @@ zookeeper.connect=zookeeper-server-client.zookeeper:2181/
 		},
 	}
 	for _, test := range tests {
-		logDirs := getMountPathsFromBrokerConfigMap(&test.brokerConfigMap)
+		logDirs, err := getMountPathsFromBrokerConfigMap(&test.brokerConfigMap)
+		if err != nil {
+			t.Errorf("err should be nil, got: %v", err)
+		}
 		if len(logDirs) != 0 && len(test.expectedLogDirs) != 0 {
 			if !reflect.DeepEqual(logDirs, test.expectedLogDirs) {
 				t.Errorf("expected: %s, got: %s", test.expectedLogDirs, logDirs)
