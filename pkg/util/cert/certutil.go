@@ -178,12 +178,12 @@ func GenerateJKSFromByte(certByte []byte, privateKey []byte, caCert []byte) (out
 func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byte, err error) {
 	pKeyRaw, err := DecodePrivateKeyBytes(privateKey)
 	if err != nil {
-		return
+		return nil, nil, err
 	}
 
 	pKeyPKCS8, err := x509.MarshalPKCS8PrivateKey(pKeyRaw)
 	if err != nil {
-		return
+		return nil, nil, err
 	}
 
 	certCABundle := make([]keystore.Certificate, 0, len(certs))
