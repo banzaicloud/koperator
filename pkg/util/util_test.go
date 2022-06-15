@@ -607,38 +607,3 @@ func TestIsIngressConfigInUse(t *testing.T) {
 		}
 	}
 }
-
-func TestTruncatedCommonName(t *testing.T) {
-	testCases := []struct {
-		testName           string
-		commonName         string
-		commonNameLenLimit int
-		expected           string
-	}{
-		{
-			testName:           "Common name with length exceeded limitation",
-			commonName:         "kafka-test-controller-exceeded-length.test-namespace.mgt.cluster.local",
-			commonNameLenLimit: 64,
-			expected:           "kafka-test-controller-exceeded-length.test-namespace.mgt.cluster",
-		},
-		{
-			testName:           "Common name with length within limitation",
-			commonName:         "kafka-test-controller.test-namespace.mgt.cluster.local",
-			commonNameLenLimit: 64,
-			expected:           "kafka-test-controller.test-namespace.mgt.cluster.local",
-		},
-	}
-
-	t.Parallel()
-
-	for _, test := range testCases {
-		test := test
-
-		t.Run(test.testName, func(t *testing.T) {
-			get := TruncateStringByLen(test.commonName, test.commonNameLenLimit)
-			if get != test.expected {
-				t.Errorf("Expected common name after truncation:%s, got:%s", test.expected, get)
-			}
-		})
-	}
-}

@@ -451,12 +451,3 @@ func ObjectManagedByClusterRegistry(object metav1.Object) bool {
 	_, ok := annotations[clusterregv1alpha1.OwnershipAnnotation]
 	return ok
 }
-
-// TruncatedCommonName ensures that the passed-in common name doesn't exceed the specified number of characters
-func TruncateStringByLen(name string, l int) string {
-	n := []rune(name)
-	if len(n) > l {
-		return string(n[:l])
-	}
-	return name
-}
