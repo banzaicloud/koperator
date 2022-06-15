@@ -77,6 +77,8 @@ func init() {
 
 func main() {
 	var (
+		podNamespace                      string
+		podServiceAccount                 string
 		namespaces                        string
 		metricsAddr                       string
 		enableLeaderElection              bool
@@ -103,6 +105,9 @@ func main() {
 	flag.BoolVar(&certSigningDisabled, "disable-cert-signing-support", false, "Disable native certificate signing integration")
 	flag.IntVar(&maxKafkaTopicConcurrentReconciles, "max-kafka-topic-concurrent-reconciles", 10, "Define max amount of concurrent KafkaTopic reconciles")
 	flag.Parse()
+
+	podNamespace = os.Getenv("POD_NAMESPACE")
+	podServiceAccount = os.Getenv("SERVICE_ACCOUNT")
 
 	ctrl.SetLogger(util.CreateLogger(verboseLogging, developmentLogging))
 
@@ -192,7 +197,7 @@ func main() {
 	}
 
 	if !webhookDisabled {
-		webhook.SetupServerHandlers(mgr, webhookCertDir)
+		webhook.SetupServerHandlers(mgr, webhookCertDir, podNamespace, podServiceAccount)
 	}
 
 	// +kubebuilder:scaffold:builder

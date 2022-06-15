@@ -98,14 +98,14 @@ func TestMergeMountPaths(t *testing.T) {
 			testName:                "changed order",
 			mountPathNew:            []string{"/kafka-logs/kafka", "/kafka-logs3/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
 			mountPathOld:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
-			expectedMergedMountPath: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedMergedMountPath: []string{"/kafka-logs/kafka", "/kafka-logs3/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
 			expectedRemoved:         false,
 		},
 		{
 			testName:                "removed one",
 			mountPathNew:            []string{"/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
 			mountPathOld:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
-			expectedMergedMountPath: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedMergedMountPath: []string{"/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka", "/kafka-logs3/kafka"},
 			expectedRemoved:         true,
 		},
 		{
@@ -119,10 +119,10 @@ func TestMergeMountPaths(t *testing.T) {
 	for _, test := range tests {
 		mergedMountPaths, isRemoved := mergeMountPaths(test.mountPathOld, test.mountPathNew)
 		if !reflect.DeepEqual(mergedMountPaths, test.expectedMergedMountPath) {
-			t.Errorf("expected: %s, got: %s", test.expectedMergedMountPath, mergedMountPaths)
+			t.Errorf("testName: %s, expected: %s, got: %s", test.testName, test.expectedMergedMountPath, mergedMountPaths)
 		}
 		if isRemoved != test.expectedRemoved {
-			t.Errorf("expectedRemoved: %v, got: %v", test.expectedRemoved, isRemoved)
+			t.Errorf("testName: %s, expectedRemoved: %v, got: %v", test.testName, test.expectedRemoved, isRemoved)
 		}
 	}
 }
@@ -475,7 +475,7 @@ zookeeper.connect=example.zk:2181/`,
 
 		t.Run(test.testName, func(t *testing.T) {
 			mockClient := new(mocks.Client)
-			mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+			mockClient.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1.ConfigMap")).Return(nil)
 			r := Reconciler{
 				Reconciler: resources.Reconciler{
 					Client: mockClient,

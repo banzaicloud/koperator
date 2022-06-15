@@ -151,27 +151,22 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 // It returns the merged []string and a bool which true or false depend on mountPathsNew contains or not all of the elements of the mountPathsOld
 func mergeMountPaths(mountPathsOld, mountPathsNew []string) ([]string, bool) {
 	var mountPathsMerged []string
-	mountPathsMerged = append(mountPathsMerged, mountPathsOld...)
-	mountPathsOldLen := len(mountPathsOld)
+	mountPathsMerged = append(mountPathsMerged, mountPathsNew...)
+	isMountPathRemoved := false
 	// Merging the new mountPaths with the old. If any of them is removed we can check the difference in the mountPathsOldLen
-	for i := range mountPathsNew {
+	for i := range mountPathsOld {
 		found := false
-		for k := range mountPathsOld {
-			if mountPathsOld[k] == mountPathsNew[i] {
+		for k := range mountPathsNew {
+			if mountPathsOld[i] == mountPathsNew[k] {
 				found = true
-				mountPathsOldLen--
 				break
 			}
 		}
 		// if this is a new mountPath then add it to the current
 		if !found {
-			mountPathsMerged = append(mountPathsMerged, mountPathsNew[i])
+			mountPathsMerged = append(mountPathsMerged, mountPathsOld[i])
+			isMountPathRemoved = true
 		}
-	}
-	// If any of them is removed we can check the difference in the mountPathsOldLen
-	isMountPathRemoved := false
-	if mountPathsOldLen > 0 {
-		isMountPathRemoved = true
 	}
 
 	return mountPathsMerged, isMountPathRemoved
