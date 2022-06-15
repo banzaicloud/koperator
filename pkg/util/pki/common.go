@@ -187,7 +187,7 @@ func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, extListenerStatuses map
 	}
 	additionalHosts = sortAndDedupe(additionalHosts)
 	return &v1alpha1.KafkaUser{
-		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster), LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster),
+		ObjectMeta: templates.ObjectMeta(EnsureValidCommonNameLen(GetCommonName(cluster)), LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerServerCertTemplate, cluster.Name),
 			DNSNames:   append(GetInternalDNSNames(cluster), additionalHosts...),
