@@ -57,14 +57,14 @@ func newMockServerWithClients(c client.Client, kafkaClientProvider func(client c
 }
 
 func TestNewServer(t *testing.T) {
-	server := newWebHookServer(fake.NewClientBuilder().Build(), scheme.Scheme)
+	server := newWebHookServer(fake.NewClientBuilder().Build(), scheme.Scheme, "", "")
 	if reflect.ValueOf(server.newKafkaFromCluster).Pointer() != reflect.ValueOf(kafkaclient.NewFromCluster).Pointer() {
 		t.Error("Expected newKafkaFromCluster ptr -> kafkaclient.NewFromCluster")
 	}
 }
 
 func TestNewServerMux(t *testing.T) {
-	mux := newWebhookServerMux(fake.NewClientBuilder().Build(), scheme.Scheme)
+	mux := newWebhookServerMux(fake.NewClientBuilder().Build(), scheme.Scheme, "", "")
 	var buf bytes.Buffer
 	req, _ := http.NewRequest("POST", "/validate", &buf)
 	if _, pattern := mux.Handler(req); pattern == "" {

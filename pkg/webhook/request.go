@@ -28,21 +28,21 @@ import (
 	"github.com/banzaicloud/koperator/pkg/util"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 var (
-	kafkaTopic = reflect.TypeOf(v1alpha1.KafkaTopic{}).Name()
+	kafkaTopic   = reflect.TypeOf(v1alpha1.KafkaTopic{}).Name()
+	kafkaCluster = reflect.TypeOf(v1beta1.KafkaCluster{}).Name()
 )
 
 func (s *webhookServer) validate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	req := ar.Request
-
 	l := log.WithValues("kind", req.Kind, "namespace", req.Namespace, "name", req.Name, "uid", req.UID,
 		"operation", req.Operation, "user info", req.UserInfo)
-	l.Info("AdmissionReview")
-
 	switch req.Kind.Kind {
 	case kafkaTopic:
+		l.Info("AdmissionReview")
 		var topic v1alpha1.KafkaTopic
 		if err := json.Unmarshal(req.Object.Raw, &topic); err != nil {
 			l.Error(err, "Could not unmarshal raw object")
@@ -55,8 +55,30 @@ func (s *webhookServer) validate(ar *admissionv1.AdmissionReview) *admissionv1.A
 			}
 		}
 		return s.validateKafkaTopic(&topic)
+	case kafkaCluster:
+		// when the operator modifies the resource we dont do any validation
+		operatorUsername := fmt.Sprintf("system:serviceaccount:%v:%v", s.podNamespace, s.podServiceAccount)
+		if req.UserInfo.Username == operatorUsername {
+			return &admissionv1.AdmissionResponse{
+				Allowed: true,
+			}
+		}
+		l.Info("AdmissionReview")
+		var kafkaCluster v1beta1.KafkaCluster
+		if err := json.Unmarshal(req.Object.Raw, &kafkaCluster); err != nil {
+			l.Error(err, "Could not unmarshal raw object")
+			return notAllowed(err.Error(), metav1.StatusReasonBadRequest)
+		}
+		if ok := util.ObjectManagedByClusterRegistry(kafkaCluster.GetObjectMeta()); ok {
+			l.Info("Skip validation as the resource is managed by Cluster Registry")
+			return &admissionv1.AdmissionResponse{
+				Allowed: true,
+			}
+		}
+		return s.validateKafkaCluster(&kafkaCluster)
 
 	default:
+		l.Info("AdmissionReview")
 		return notAllowed(fmt.Sprintf("Unexpected resource kind: %s", req.Kind.Kind), metav1.StatusReasonBadRequest)
 	}
 }

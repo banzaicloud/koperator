@@ -15,6 +15,7 @@
 package kafka
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -22,12 +23,109 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/banzaicloud/koperator/pkg/util"
+	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 
-	properties "github.com/banzaicloud/koperator/properties/pkg"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/resources"
+	mocks "github.com/banzaicloud/koperator/pkg/resources/kafka/mocks"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
+
+func TestGetMountPathsFromBrokerConfigMap(t *testing.T) {
+	tests := []struct {
+		testName        string
+		brokerConfigMap v1.ConfigMap
+		expectedLogDirs []string
+	}{
+		{
+			testName: "simple case",
+			brokerConfigMap: v1.ConfigMap{
+				Data: map[string]string{kafkautils.ConfigPropertyName: `inter.broker.listener.name=INTERNAL\nlistener.security.protocol.map=INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+listeners=INTERNAL://:29092,CONTROLLER://:29093
+log.dirs=/kafka-logs3/kafka,/kafka-logs/kafka,/kafka-logs2/kafka,/kafka-logs4/kafka
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter\noffsets.topic.replication.factor=2
+zookeeper.connect=zookeeper-server-client.zookeeper:2181/
+`},
+			},
+			expectedLogDirs: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+		},
+		{
+			testName: "no old configs",
+			brokerConfigMap: v1.ConfigMap{
+				Data: map[string]string{},
+			},
+			expectedLogDirs: []string{},
+		},
+	}
+	for _, test := range tests {
+		logDirs, err := getMountPathsFromBrokerConfigMap(&test.brokerConfigMap)
+		if err != nil {
+			t.Errorf("err should be nil, got: %v", err)
+		}
+		if len(logDirs) != 0 && len(test.expectedLogDirs) != 0 {
+			if !reflect.DeepEqual(logDirs, test.expectedLogDirs) {
+				t.Errorf("expected: %s, got: %s", test.expectedLogDirs, logDirs)
+			}
+		}
+	}
+}
+
+func TestMergeMountPaths(t *testing.T) {
+	tests := []struct {
+		testName                string
+		mountPathNew            []string
+		mountPathOld            []string
+		expectedMergedMountPath []string
+		expectedRemoved         bool
+	}{
+		{
+			testName:                "no old mountPath",
+			mountPathNew:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			mountPathOld:            []string{},
+			expectedMergedMountPath: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedRemoved:         false,
+		},
+		{
+			testName:                "same",
+			mountPathNew:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			mountPathOld:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedMergedMountPath: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedRemoved:         false,
+		},
+		{
+			testName:                "changed order",
+			mountPathNew:            []string{"/kafka-logs/kafka", "/kafka-logs3/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			mountPathOld:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedMergedMountPath: []string{"/kafka-logs/kafka", "/kafka-logs3/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedRemoved:         false,
+		},
+		{
+			testName:                "removed one",
+			mountPathNew:            []string{"/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			mountPathOld:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedMergedMountPath: []string{"/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka", "/kafka-logs3/kafka"},
+			expectedRemoved:         true,
+		},
+		{
+			testName:                "removed all",
+			mountPathNew:            []string{},
+			mountPathOld:            []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedMergedMountPath: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},
+			expectedRemoved:         true,
+		},
+	}
+	for _, test := range tests {
+		mergedMountPaths, isRemoved := mergeMountPaths(test.mountPathOld, test.mountPathNew)
+		if !reflect.DeepEqual(mergedMountPaths, test.expectedMergedMountPath) {
+			t.Errorf("testName: %s, expected: %s, got: %s", test.testName, test.expectedMergedMountPath, mergedMountPaths)
+		}
+		if isRemoved != test.expectedRemoved {
+			t.Errorf("testName: %s, expectedRemoved: %v, got: %v", test.testName, test.expectedRemoved, isRemoved)
+		}
+	}
+}
 
 func TestGenerateBrokerConfig(t *testing.T) { //nolint funlen
 	tests := []struct {
@@ -376,8 +474,11 @@ zookeeper.connect=example.zk:2181/`,
 		test := test
 
 		t.Run(test.testName, func(t *testing.T) {
+			mockClient := new(mocks.Client)
+			mockClient.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1.ConfigMap")).Return(nil)
 			r := Reconciler{
 				Reconciler: resources.Reconciler{
+					Client: mockClient,
 					KafkaCluster: &v1beta1.KafkaCluster{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "kafka",

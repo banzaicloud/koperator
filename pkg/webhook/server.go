@@ -32,34 +32,38 @@ var (
 )
 
 type webhookServer struct {
-	client       client.Client
-	scheme       *runtime.Scheme
-	deserializer runtime.Decoder
+	client            client.Client
+	scheme            *runtime.Scheme
+	deserializer      runtime.Decoder
+	podNamespace      string
+	podServiceAccount string
 
 	// For mocking - use kafkaclient.NewMockFromCluster
 	newKafkaFromCluster func(client.Client, *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error)
 }
 
-func newWebHookServer(client client.Client, scheme *runtime.Scheme) *webhookServer {
+func newWebHookServer(client client.Client, scheme *runtime.Scheme, podNamespace, podServiceAccount string) *webhookServer {
 	return &webhookServer{
 		client:              client,
 		scheme:              scheme,
 		deserializer:        serializer.NewCodecFactory(scheme).UniversalDeserializer(),
+		podNamespace:        podNamespace,
+		podServiceAccount:   podServiceAccount,
 		newKafkaFromCluster: kafkaclient.NewFromCluster,
 	}
 }
 
-func newWebhookServerMux(client client.Client, scheme *runtime.Scheme) *http.ServeMux {
+func newWebhookServerMux(client client.Client, scheme *runtime.Scheme, podNamespace, podServiceAccount string) *http.ServeMux {
 	mux := http.NewServeMux()
-	webhookServer := newWebHookServer(client, scheme)
+	webhookServer := newWebHookServer(client, scheme, podNamespace, podServiceAccount)
 	mux.HandleFunc("/validate", webhookServer.serve)
 	return mux
 }
 
 // SetupServerHandlers sets up a webhook with the manager
-func SetupServerHandlers(mgr ctrl.Manager, certDir string) {
+func SetupServerHandlers(mgr ctrl.Manager, certDir, podNamespace, podServiceAccount string) {
 	server := mgr.GetWebhookServer()
 	server.CertDir = certDir
-	mux := newWebhookServerMux(mgr.GetClient(), mgr.GetScheme())
+	mux := newWebhookServerMux(mgr.GetClient(), mgr.GetScheme(), podNamespace, podServiceAccount)
 	server.Register("/validate", mux)
 }

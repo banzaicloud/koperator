@@ -51,6 +51,26 @@ webhooks:
     resources:
     - kafkatopics
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ $caCrt }}
+    service:
+      name: "{{ include "kafka-operator.fullname" . }}-operator"
+      namespace: {{ .Release.Namespace }}
+      path: /validate
+  failurePolicy: Fail
+  name: kafkaclusters.kafka.banzaicloud.io
+  rules:
+  - apiGroups:
+    - kafka.banzaicloud.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - UPDATE
+    resources:
+    - kafkaclusters
+  sideEffects: None
 ---
 apiVersion: v1
 kind: Secret
@@ -181,7 +201,13 @@ spec:
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
+                  apiVersion: v1
                   fieldPath: metadata.namespace
+            - name: SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.serviceAccountName
           {{- if .Values.additionalEnv }}
           {{ toYaml .Values.additionalEnv | nindent 12 }}
           {{- end }}
