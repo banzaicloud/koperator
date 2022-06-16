@@ -76,8 +76,10 @@ const (
 	MetricsHealthCheck = "/-/healthy"
 	MetricsPort        = 9020
 
+	// missingBrokerDownScaleRunningPriority the priority used  for missing brokers where there is an incompleted downscale operation
+	missingBrokerDownScaleRunningPriority brokerReconcilePriority = iota
 	// newBrokerReconcilePriority the priority used  for brokers that were just added to the cluster used to define its priority in the reconciliation order
-	newBrokerReconcilePriority brokerReconcilePriority = iota
+	newBrokerReconcilePriority
 	// missingBrokerReconcilePriority the priority used for missing brokers used to define its priority in the reconciliation order
 	missingBrokerReconcilePriority
 	// nonControllerBrokerReconcilePriority the priority used for running non-controller brokers used to define its priority in the reconciliation order
@@ -416,8 +418,7 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 				for _, brokerID := range brokersToUpdateInStatus {
 					if brokerState, ok := r.KafkaCluster.Status.BrokersState[brokerID]; ok {
 						ccState := brokerState.GracefulActionState.CruiseControlState
-						if ccState != v1beta1.GracefulDownscaleRunning && ccState != v1beta1.GracefulDownscaleRequired &&
-							(ccState == v1beta1.GracefulUpscaleSucceeded || ccState == v1beta1.GracefulUpscaleRequired) {
+						if ccState == v1beta1.GracefulUpscaleSucceeded || ccState == v1beta1.GracefulUpscaleRequired {
 							brokersPendingGracefulDownscale = append(brokersPendingGracefulDownscale, brokerID)
 						}
 					}
@@ -1230,20 +1231,26 @@ func reorderBrokers(brokerPods corev1.PodList, desiredBrokers []v1beta1.Broker, 
 	}
 
 	brokersReconcilePriority := make(map[string]brokerReconcilePriority, len(desiredBrokers))
-
+	missingBrokerDownScaleRunning := make(map[string]struct{})
 	// logic for handle that case when a broker pod is removed before downscale operation completed
 	for id, brokerState := range brokersState {
 		_, running := runningBrokers[id]
 		_, pvcPresent := presentPersistentVolumeClaims[id]
-		if !running && pvcPresent &&
-			brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRequired || brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
-			unfinishedBroker, err := util.GetBrokerFromBrokerConfigurationBackup(brokerState.ConfigurationBackup)
-			if err != nil {
-				log.Error(err, "unable to restore broker configuration from configuration backup", "brokerID", id)
-				continue
+		ccState := brokerState.GracefulActionState.CruiseControlState
+		if !running && ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning {
+			log.Info("missing broker found with incompleted downscale operation", "brokerID", id)
+			if pvcPresent {
+				unfinishedBroker, err := util.GetBrokerFromBrokerConfigurationBackup(brokerState.ConfigurationBackup)
+				if err != nil {
+					log.Error(err, "unable to restore broker configuration from configuration backup", "brokerID", id)
+					continue
+				}
+				log.Info("re-creating broker pod to continue downscale operation", "brokerID", id)
+				missingBrokerDownScaleRunning[id] = struct{}{}
+				desiredBrokers = append(desiredBrokers, unfinishedBroker)
+			} else {
+				log.Info("pvc is missing, unable to reconstruct missing broker pod", "brokerID", id)
 			}
-			log.Info("missing broker found. trying to restore broker pod to continue downscale operation", "brokerID", id)
-			desiredBrokers = append(desiredBrokers, unfinishedBroker)
 		}
 	}
 
@@ -1251,7 +1258,9 @@ func reorderBrokers(brokerPods corev1.PodList, desiredBrokers []v1beta1.Broker, 
 		brokerID := fmt.Sprintf("%d", b.Id)
 		brokersReconcilePriority[brokerID] = nonControllerBrokerReconcilePriority
 
-		if _, ok := brokersState[brokerID]; !ok {
+		if _, ok := missingBrokerDownScaleRunning[brokerID]; ok {
+			brokersReconcilePriority[brokerID] = missingBrokerDownScaleRunningPriority
+		} else if _, ok := brokersState[brokerID]; !ok {
 			brokersReconcilePriority[brokerID] = newBrokerReconcilePriority
 		} else if _, ok := runningBrokers[brokerID]; !ok {
 			brokersReconcilePriority[brokerID] = missingBrokerReconcilePriority
