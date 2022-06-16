@@ -16,18 +16,19 @@ package pki
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"fmt"
 	"sort"
 	"strings"
 
-	"github.com/banzaicloud/koperator/pkg/errorfactory"
-	"github.com/banzaicloud/koperator/pkg/k8sutil"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/k8sutil"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
@@ -57,6 +58,8 @@ const (
 	// KafkaUserAnnotationName used in case of PKIbackend is k8s-csr to find the appropriate kafkauser in case of
 	// signing request event
 	KafkaUserAnnotationName = "banzaicloud.io/owner"
+	// MaxCNLen specifies the number of chars that the longest common name can have
+	MaxCNLen = 64
 )
 
 // Manager is the main interface for objects performing PKI operations
@@ -184,7 +187,7 @@ func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, extListenerStatuses map
 	}
 	additionalHosts = sortAndDedupe(additionalHosts)
 	return &v1alpha1.KafkaUser{
-		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster), LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster),
+		ObjectMeta: templates.ObjectMeta(EnsureValidCommonNameLen(GetCommonName(cluster)), LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerServerCertTemplate, cluster.Name),
 			DNSNames:   append(GetInternalDNSNames(cluster), additionalHosts...),
@@ -215,9 +218,9 @@ func sortAndDedupe(hosts []string) []string {
 func ControllerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser {
 	return &v1alpha1.KafkaUser{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf(BrokerControllerFQDNTemplate,
-				fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()),
-			LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster,
+			EnsureValidCommonNameLen(fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain())),
+			LabelsForKafkaPKI(cluster.Name, cluster.Namespace),
+			cluster,
 		),
 		Spec: v1alpha1.KafkaUserSpec{
 			SecretName: fmt.Sprintf(BrokerControllerTemplate, cluster.Name),
@@ -242,4 +245,15 @@ func EnsureControllerReference(ctx context.Context, user *v1alpha1.KafkaUser,
 		}
 	}
 	return nil
+}
+
+// EnsureValidCommonNameLen ensures that the passed-in common name doesn't exceed the longest supported length
+func EnsureValidCommonNameLen(s string) string {
+	if len(s) > MaxCNLen {
+		first := sha256.New()
+		first.Write([]byte(s))
+		// encode the hash to make sure it only consists of lower case alphanumeric characters to enforce RFC 1123
+		return fmt.Sprintf("%x", first.Sum(nil))
+	}
+	return s
 }

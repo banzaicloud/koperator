@@ -175,3 +175,42 @@ func TestControllerUserForCluster(t *testing.T) {
 		t.Errorf("Expected %+v\nGot %+v", expected, user)
 	}
 }
+
+func TestTruncatedCommonName(t *testing.T) {
+	testCases := []struct {
+		testName             string
+		commonName           string
+		expectedHashedString string
+		expectedLen          int
+	}{
+		{
+			testName:    "Common name with length exceeded limitation",
+			commonName:  "kafka-test-controller-exceeded-length.test-namespace.mgt.cluster.local",
+			expectedLen: MaxCNLen,
+		},
+		{
+			testName:             "Common name with length within limitation",
+			commonName:           "kafka-test-controller.test-namespace.mgt.cluster.local",
+			expectedHashedString: "kafka-test-controller.test-namespace.mgt.cluster.local",
+		},
+	}
+
+	t.Parallel()
+
+	for _, test := range testCases {
+		test := test
+		t.Run(test.testName, func(t *testing.T) {
+			get := EnsureValidCommonNameLen(test.commonName)
+
+			if test.expectedHashedString == "" {
+				if len(get) != test.expectedLen {
+					t.Errorf("Common name with exceeded lenghth after hashing doesnt match expected length, got:%d, expected:%d", len(get), test.expectedLen)
+				}
+			} else {
+				if get != test.expectedHashedString {
+					t.Errorf("Common name with valid length shouldn't be changed, got:%s, expected:%s", get, test.expectedHashedString)
+				}
+			}
+		})
+	}
+}
