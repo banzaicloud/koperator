@@ -458,6 +458,9 @@ func ObjectManagedByClusterRegistry(object metav1.Object) bool {
 }
 
 func GzipAndBase64BrokerConfiguration(broker *v1beta1.Broker) (string, error) {
+	if broker == nil {
+		return "", nil
+	}
 	configJSON, err := json.Marshal(broker)
 	if err != nil {
 		return "", err
@@ -472,6 +475,9 @@ func GzipAndBase64BrokerConfiguration(broker *v1beta1.Broker) (string, error) {
 }
 
 func GetBrokerFromBrokerConfigurationBackup(config string) (v1beta1.Broker, error) {
+	if config == "" {
+		return v1beta1.Broker{}, errors.New("broker configurationBackup is empty")
+	}
 	configGzip, err := base64.StdEncoding.DecodeString(config)
 	if err != nil {
 		return v1beta1.Broker{}, err

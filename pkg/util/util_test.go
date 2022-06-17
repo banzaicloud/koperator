@@ -614,7 +614,11 @@ func TestConfigurationBackup(t *testing.T) {
 		broker   v1beta1.Broker
 	}{
 		{
-			testName: "complicated case",
+			testName: "empty broker",
+			broker:   v1beta1.Broker{},
+		},
+		{
+			testName: "detailed broker",
 			broker: v1beta1.Broker{
 				Id:                0,
 				BrokerConfigGroup: "default",
