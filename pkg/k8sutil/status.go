@@ -46,34 +46,21 @@ func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 
 // UpdateBrokerConfigurationBackup updates the broker status with a backup from kafka broker configurations
 func UpdateBrokerConfigurationBackup(c client.Client, cluster *banzaicloudv1beta1.KafkaCluster) error {
-	err := generateBrokerConfigurationBackups(cluster)
-	if err != nil {
+	if err := generateBrokerConfigurationBackups(cluster); err != nil {
 		return err
 	}
-	err = c.Status().Update(context.Background(), cluster)
-	if apierrors.IsNotFound(err) {
-		err = c.Update(context.Background(), cluster)
-	}
-	if err != nil {
+	ctx := context.Background()
+	if err := c.Status().Update(ctx, cluster); err != nil {
 		if !apierrors.IsConflict(err) {
 			return errors.WrapIff(err, "could not update Kafka broker(s) configuration backup state")
 		}
-		err := c.Get(context.TODO(), types.NamespacedName{
-			Namespace: cluster.Namespace,
-			Name:      cluster.Name,
-		}, cluster)
-		if err != nil {
+		if err := c.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, cluster); err != nil {
 			return errors.WrapIf(err, "could not get config for updating status")
 		}
-		err = generateBrokerConfigurationBackups(cluster)
-		if err != nil {
+		if err = generateBrokerConfigurationBackups(cluster); err != nil {
 			return err
 		}
-		err = c.Status().Update(context.Background(), cluster)
-		if apierrors.IsNotFound(err) {
-			err = c.Update(context.Background(), cluster)
-		}
-		if err != nil {
+		if err = c.Status().Update(ctx, cluster); err != nil {
 			return errors.WrapIff(err, "could not update Kafka broker(s) configuration backup state")
 		}
 	}
