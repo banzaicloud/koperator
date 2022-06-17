@@ -44,6 +44,7 @@ func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 	return m.GetDeletionTimestamp() != nil
 }
 
+// UpdateBrokerConfigurationBackup updates the broker status with a backup from kafka broker configurations
 func UpdateBrokerConfigurationBackup(c client.Client, cluster *banzaicloudv1beta1.KafkaCluster) error {
 	err := generateBrokerConfigurationBackups(cluster)
 	if err != nil {
@@ -77,7 +78,6 @@ func UpdateBrokerConfigurationBackup(c client.Client, cluster *banzaicloudv1beta
 		}
 	}
 	return nil
-
 }
 
 func generateBrokerConfigurationBackups(cluster *banzaicloudv1beta1.KafkaCluster) error {

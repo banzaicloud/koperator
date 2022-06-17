@@ -21,6 +21,7 @@ import (
 
 	"errors"
 
+	"github.com/go-logr/logr"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -309,6 +310,7 @@ func TestReorderBrokers(t *testing.T) {
 	testCases := []struct {
 		testName                 string
 		brokerPods               corev1.PodList
+		brokersPVC               corev1.PersistentVolumeClaimList
 		desiredBrokers           []v1beta1.Broker
 		brokersState             map[string]v1beta1.BrokerState
 		controllerBrokerID       int32
@@ -438,6 +440,90 @@ func TestReorderBrokers(t *testing.T) {
 				{Id: 1}, // controller broker should be last
 			},
 		},
+		{
+			testName: "some missing broker pods, newly added brokers, and missing bokers with pvc and incompleted downscale operation",
+			brokerPods: corev1.PodList{
+				Items: []corev1.Pod{
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+				},
+			},
+			brokersPVC: corev1.PersistentVolumeClaimList{
+				TypeMeta: metav1.TypeMeta{},
+				ListMeta: metav1.ListMeta{},
+				Items: []corev1.PersistentVolumeClaim{
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "5"}}},
+				},
+			},
+			desiredBrokers: []v1beta1.Broker{
+				{Id: 0},
+				{Id: 1},
+				{Id: 2},
+				{Id: 3},
+				{Id: 4},
+				{Id: 6}, // Kafka cluster upscaled by adding broker 6 to it
+			},
+			brokersState: map[string]v1beta1.BrokerState{
+				"0": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"1": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"2": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"3": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"4": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"5": {
+					ConfigurationState:  v1beta1.ConfigInSync,
+					GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
+					ConfigurationBackup: "H4sIAAxcrGIAA6tWykxRsjKt5QIAiMWU3gkAAAA=",
+				}},
+			controllerBrokerID: 1,
+			expectedReorderedBrokers: []v1beta1.Broker{
+				{Id: 5}, // broker pod 5 missing and there is incompleted downscale operation thus should have highest prio
+				{Id: 6}, // broker 6 is newly added thus should have higher prio
+				{Id: 3}, // broker pod 3 missing thus should have higher prio
+				{Id: 4}, // broker pod 4 missing thus should have higher prio
+				{Id: 0},
+				{Id: 2},
+				{Id: 1}, // controller broker should be last
+			},
+		},
+		{
+			testName: "some missing broker pods, newly added brokers, and missing bokers without pvc and incompleted downscale operation",
+			brokerPods: corev1.PodList{
+				Items: []corev1.Pod{
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+				},
+			},
+			desiredBrokers: []v1beta1.Broker{
+				{Id: 0},
+				{Id: 1},
+				{Id: 2},
+				{Id: 3},
+				{Id: 4},
+				{Id: 6}, // Kafka cluster upscaled by adding broker 6 to it
+			},
+			brokersState: map[string]v1beta1.BrokerState{
+				"0": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"1": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"2": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"3": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"4": {ConfigurationState: v1beta1.ConfigOutOfSync},
+				"5": {
+					ConfigurationState:  v1beta1.ConfigInSync,
+					GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
+					ConfigurationBackup: "H4sIAAxcrGIAA6tWykxRsjKt5QIAiMWU3gkAAAA=",
+				}},
+			controllerBrokerID: 1,
+			expectedReorderedBrokers: []v1beta1.Broker{
+				{Id: 6}, // broker 6 is newly added thus should have higher prio
+				{Id: 3}, // broker pod 3 missing thus should have higher prio
+				{Id: 4}, // broker pod 4 missing thus should have higher prio
+				{Id: 0},
+				{Id: 2},
+				{Id: 1}, // controller broker should be last
+			},
+		},
 	}
 
 	t.Parallel()
@@ -447,7 +533,7 @@ func TestReorderBrokers(t *testing.T) {
 
 		t.Run(test.testName, func(t *testing.T) {
 			g := gomega.NewWithT(t)
-			reorderedBrokers := reorderBrokers(test.brokerPods, test.desiredBrokers, test.brokersState, test.controllerBrokerID)
+			reorderedBrokers := reorderBrokers(test.brokerPods, test.desiredBrokers, test.brokersState, test.brokersPVC, test.controllerBrokerID, logr.Discard())
 
 			g.Expect(reorderedBrokers).To(gomega.Equal(test.expectedReorderedBrokers))
 		})

@@ -711,8 +711,9 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 		}
 
 		if val, hasBrokerState := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; hasBrokerState {
-			incompletedDownscale := val.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRequired || val.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning
-			if val.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleSucceeded && !incompletedDownscale {
+			ccState := val.GracefulActionState.CruiseControlState
+			incompletedDownscale := ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning
+			if ccState != v1beta1.GracefulUpscaleSucceeded && !incompletedDownscale {
 				gracefulActionState := v1beta1.GracefulActionState{ErrorMessage: "CruiseControl not yet ready", CruiseControlState: v1beta1.GracefulUpscaleSucceeded}
 
 				if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {

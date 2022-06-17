@@ -623,13 +623,13 @@ broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
 cruise.control.metrics.reporter.kubernetes.mode=true`,
 				BrokerConfig: &v1beta1.BrokerConfig{
-					Image:                "",
-					MetricsReporterImage: "",
+					Image:                "Image",
+					MetricsReporterImage: "MetricsReporterImage",
 					Config: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
 broker.id=0
 cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
 cruise.control.metrics.reporter.kubernetes.mode=true`,
-					BrokerLabels: map[string]string{"apple": "peach"},
+					BrokerLabels: map[string]string{"apple": "tree"},
 					Affinity: &corev1.Affinity{
 						NodeAffinity: &corev1.NodeAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
@@ -638,9 +638,9 @@ cruise.control.metrics.reporter.kubernetes.mode=true`,
 										MatchExpressions: nil,
 										MatchFields: []corev1.NodeSelectorRequirement{
 											{
-												Key:      "fruit",
+												Key:      "apple",
 												Operator: "in",
-												Values:   []string{"apple"},
+												Values:   []string{"fruit"},
 											},
 										},
 									},
@@ -669,15 +669,16 @@ cruise.control.metrics.reporter.kubernetes.mode=true`,
 	for _, test := range testCases {
 		config, err := GzipAndBase64BrokerConfiguration(&test.broker)
 		if err != nil {
-			t.Error(err)
+			t.Errorf("error should be nil, got: %v", err)
 		}
-		//	t.Logf("len un: %v, len zip: %v. data: %v", leng, len(brokerState.ConfigurationBackup), brokerState.ConfigurationBackup)
+
 		broker, err := GetBrokerFromBrokerConfigurationBackup(config)
 		if err != nil {
-			t.Error(err)
+			t.Errorf("error should be nil, got: %v", err)
 		}
-		if !reflect.DeepEqual(test.broker.BrokerConfig, broker.BrokerConfig) {
-			t.Errorf("Expected: %v  Got: %v", test.broker.BrokerConfig.InitContainers, broker.BrokerConfig.InitContainers)
+
+		if !reflect.DeepEqual(test.broker, broker) {
+			t.Errorf("Expected: %v  Got: %v", test.broker, broker)
 		}
 	}
 }
