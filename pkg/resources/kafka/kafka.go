@@ -76,7 +76,7 @@ const (
 	MetricsHealthCheck = "/-/healthy"
 	MetricsPort        = 9020
 
-	// missingBrokerDownScaleRunningPriority the priority used  for missing brokers where there is an incompleted downscale operation
+	// missingBrokerDownScaleRunningPriority the priority is used  for missing brokers where there is an incomplete downscale operation
 	missingBrokerDownScaleRunningPriority brokerReconcilePriority = iota
 	// newBrokerReconcilePriority the priority used  for brokers that were just added to the cluster used to define its priority in the reconciliation order
 	newBrokerReconcilePriority
@@ -712,8 +712,8 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 
 		if val, hasBrokerState := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; hasBrokerState {
 			ccState := val.GracefulActionState.CruiseControlState
-			incompletedDownscale := ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning
-			if ccState != v1beta1.GracefulUpscaleSucceeded && !incompletedDownscale {
+			incompleteDownscale := ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning
+			if ccState != v1beta1.GracefulUpscaleSucceeded && !incompleteDownscale {
 				gracefulActionState := v1beta1.GracefulActionState{ErrorMessage: "CruiseControl not yet ready", CruiseControlState: v1beta1.GracefulUpscaleSucceeded}
 
 				if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
@@ -1233,13 +1233,13 @@ func reorderBrokers(brokerPods corev1.PodList, desiredBrokers []v1beta1.Broker, 
 
 	brokersReconcilePriority := make(map[string]brokerReconcilePriority, len(desiredBrokers))
 	missingBrokerDownScaleRunning := make(map[string]struct{})
-	// logic for handle that case when a broker pod is removed before downscale operation completed
+	// logic for handling that case when a broker pod is removed before downscale operation completed
 	for id, brokerState := range brokersState {
 		_, running := runningBrokers[id]
 		_, pvcPresent := presentPersistentVolumeClaims[id]
 		ccState := brokerState.GracefulActionState.CruiseControlState
 		if !running && ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning {
-			log.Info("missing broker found with incompleted downscale operation", "brokerID", id)
+			log.Info("missing broker found with incomplete downscale operation", "brokerID", id)
 			if pvcPresent {
 				unfinishedBroker, err := util.GetBrokerFromBrokerConfigurationBackup(brokerState.ConfigurationBackup)
 				if err != nil {

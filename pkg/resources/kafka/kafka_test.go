@@ -441,7 +441,7 @@ func TestReorderBrokers(t *testing.T) {
 			},
 		},
 		{
-			testName: "some missing broker pods, newly added brokers, and missing bokers with pvc and incompleted downscale operation",
+			testName: "some missing broker pods, newly added brokers, and missing bokers with pvc and incomplete downscale operation",
 			brokerPods: corev1.PodList{
 				Items: []corev1.Pod{
 					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
@@ -477,7 +477,7 @@ func TestReorderBrokers(t *testing.T) {
 				}},
 			controllerBrokerID: 1,
 			expectedReorderedBrokers: []v1beta1.Broker{
-				{Id: 5}, // broker pod 5 missing and there is incompleted downscale operation thus should have highest prio
+				{Id: 5}, // broker pod 5 missing and there is incomplete downscale operation thus should have highest prio
 				{Id: 6}, // broker 6 is newly added thus should have higher prio
 				{Id: 3}, // broker pod 3 missing thus should have higher prio
 				{Id: 4}, // broker pod 4 missing thus should have higher prio
@@ -487,7 +487,7 @@ func TestReorderBrokers(t *testing.T) {
 			},
 		},
 		{
-			testName: "some missing broker pods, newly added brokers, and missing bokers without pvc and incompleted downscale operation",
+			testName: "some missing broker pods, newly added brokers, and missing bokers without pvc and incomplete downscale operation",
 			brokerPods: corev1.PodList{
 				Items: []corev1.Pod{
 					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
