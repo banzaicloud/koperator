@@ -17,7 +17,13 @@ spec:
     cruise.control.metrics.topic.num.partitions=1
     cruise.control.metrics.topic.replication.factor=2
     sasl.enabled.mechanisms=OAUTHBEARER
-    listener.name.external.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required unsecuredLoginStringClaim_sub="admin";
+    # OAuth issuer token endpoint URL
+    sasl.oauthbearer.token.endpoint.url=https://myidp.example.com/oauth2/default/v1/token
+    # OAuth issuer's JWK Set endpoint URL from which to retrieve the set of JWKs managed by the provider; this can be a file://-based URL that points to a broker file system-accessible file-based copy of the JWKS data.
+    sasl.oauthbearer.jwks.endpoint.url=https://myidp.example.com/oauth2/default/v1/keys
+    listener.name.external.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+      clientSecret="<client-secret>" \
+      clientId="oauth-client-id";
   brokerConfigGroups:
     default:
       # podSecurityContext:
