@@ -267,7 +267,7 @@ func TestGetBrokerIdsFromStatusAndSpec(t *testing.T) {
 func TestGetIngressConfigs(t *testing.T) {
 	defaultKafkaClusterWithEnvoy := &v1beta1.KafkaClusterSpec{
 		EnvoyConfig: v1beta1.EnvoyConfig{
-			Image: "envoyproxy/envoy:v1.18.3",
+			Image: "envoyproxy/envoy:v1.22.2",
 			Resources: &corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
 					"cpu":    resource.MustParse("100m"),
@@ -359,7 +359,7 @@ func TestGetIngressConfigs(t *testing.T) {
 						},
 						"az2": {
 							EnvoyConfig: &v1beta1.EnvoyConfig{
-								Image:       "envoyproxy/envoy:v1.18.3",
+								Image:       "envoyproxy/envoy:v1.22.2",
 								Annotations: map[string]string{"az2": "region"},
 							},
 						},
@@ -372,7 +372,7 @@ func TestGetIngressConfigs(t *testing.T) {
 						HostnameOverride: "foo.bar",
 					},
 					EnvoyConfig: &v1beta1.EnvoyConfig{
-						Image: "envoyproxy/envoy:v1.18.3",
+						Image: "envoyproxy/envoy:v1.22.2",
 						Resources: &corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"cpu":    resource.MustParse("100m"),
@@ -390,7 +390,7 @@ func TestGetIngressConfigs(t *testing.T) {
 				},
 				"az2": {
 					EnvoyConfig: &v1beta1.EnvoyConfig{
-						Image: "envoyproxy/envoy:v1.18.3",
+						Image: "envoyproxy/envoy:v1.22.2",
 						Resources: &corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"cpu":    resource.MustParse("100m"),
