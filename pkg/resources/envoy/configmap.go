@@ -32,6 +32,7 @@ import (
 	envoyhcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoytcpproxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoytypesmatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoytypes "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/ghodss/yaml"
@@ -102,8 +103,13 @@ func generateEnvoyHealthCheckListener(ingressConfig v1beta1.IngressConfig, log l
 		Headers: []*envoyroute.HeaderMatcher{
 			{
 				Name: ":path",
-				HeaderMatchSpecifier: &envoyroute.HeaderMatcher_ExactMatch{
-					ExactMatch: envoyutils.HealthCheckPath,
+				HeaderMatchSpecifier: &envoyroute.HeaderMatcher_StringMatch{
+					StringMatch: &envoytypesmatcher.StringMatcher{
+						IgnoreCase: true,
+						MatchPattern: &envoytypesmatcher.StringMatcher_Exact{
+							Exact: envoyutils.HealthCheckPath,
+						},
+					},
 				},
 			},
 		},
