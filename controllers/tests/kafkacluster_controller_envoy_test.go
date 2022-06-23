@@ -349,8 +349,10 @@ staticResources:
                 all-brokers:
                   value: 1
               headers:
-              - exactMatch: /healthcheck
-                name: :path
+              - name: :path
+                stringMatch:
+                  exact: /healthcheck
+                  ignoreCase: true
               passThroughMode: false
           - name: envoy.filters.http.router
             typedConfig:
@@ -683,8 +685,10 @@ staticResources:
                 all-brokers:
                   value: 1
               headers:
-              - exactMatch: /healthcheck
-                name: :path
+              - name: :path
+                stringMatch:
+                  exact: /healthcheck
+                  ignoreCase: true
               passThroughMode: false
           - name: envoy.filters.http.router
             typedConfig:
@@ -736,13 +740,13 @@ func expectEnvoyWithConfigAz1Tls(kafkaCluster *v1beta1.KafkaCluster) {
 
 	Expect(loadBalancer.Spec.Ports[1].Name).To(Equal("tcp-health"))
 	Expect(loadBalancer.Spec.Ports[1].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[1].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
-	Expect(loadBalancer.Spec.Ports[1].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+	Expect(loadBalancer.Spec.Ports[1].Port).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort()))
+	Expect(loadBalancer.Spec.Ports[1].TargetPort.IntVal).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort()))
 
 	Expect(loadBalancer.Spec.Ports[2].Name).To(Equal("tcp-admin"))
 	Expect(loadBalancer.Spec.Ports[2].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
-	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort()))
+	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort()))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-az1-%s", kafkaCluster.Name)
@@ -761,12 +765,12 @@ func expectEnvoyWithConfigAz1Tls(kafkaCluster *v1beta1.KafkaCluster) {
 		},
 		corev1.ContainerPort{
 			Name:          "tcp-admin",
-			ContainerPort: v1beta1.DefaultEnvoyAdminPort,
+			ContainerPort: kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort(),
 			Protocol:      corev1.ProtocolTCP,
 		},
 		corev1.ContainerPort{
 			Name:          "tcp-health",
-			ContainerPort: v1beta1.DefaultEnvoyHealthCheckPort,
+			ContainerPort: kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort(),
 			Protocol:      corev1.ProtocolTCP,
 		},
 	))
@@ -950,10 +954,14 @@ staticResources:
                 all-brokers:
                   value: 1
               headers:
-              - exactMatch: /healthcheck
-                name: :path
+              - name: :path
+                stringMatch:
+                  exact: /healthcheck
+                  ignoreCase: true
               passThroughMode: false
           - name: envoy.filters.http.router
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
           routeConfig:
             name: local
             virtualHosts:
@@ -1266,8 +1274,10 @@ staticResources:
                 all-brokers:
                   value: 1
               headers:
-              - exactMatch: /healthcheck
-                name: :path
+              - name: :path
+                stringMatch:
+                  exact: /healthcheck
+                  ignoreCase: true
               passThroughMode: false
           - name: envoy.filters.http.router
             typedConfig:
@@ -1319,13 +1329,13 @@ func expectEnvoyWithConfigAz2Tls(kafkaCluster *v1beta1.KafkaCluster) {
 
 	Expect(loadBalancer.Spec.Ports[1].Name).To(Equal("tcp-health"))
 	Expect(loadBalancer.Spec.Ports[1].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[1].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
-	Expect(loadBalancer.Spec.Ports[1].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+	Expect(loadBalancer.Spec.Ports[1].Port).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort()))
+	Expect(loadBalancer.Spec.Ports[1].TargetPort.IntVal).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort()))
 
 	Expect(loadBalancer.Spec.Ports[2].Name).To(Equal("tcp-admin"))
 	Expect(loadBalancer.Spec.Ports[2].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
-	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort()))
+	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort()))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-az2-%s", kafkaCluster.Name)
@@ -1344,12 +1354,12 @@ func expectEnvoyWithConfigAz2Tls(kafkaCluster *v1beta1.KafkaCluster) {
 		},
 		corev1.ContainerPort{
 			Name:          "tcp-admin",
-			ContainerPort: v1beta1.DefaultEnvoyAdminPort,
+			ContainerPort: kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort(),
 			Protocol:      corev1.ProtocolTCP,
 		},
 		corev1.ContainerPort{
 			Name:          "tcp-health",
-			ContainerPort: v1beta1.DefaultEnvoyHealthCheckPort,
+			ContainerPort: kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort(),
 			Protocol:      corev1.ProtocolTCP,
 		},
 	))
@@ -1586,10 +1596,14 @@ staticResources:
                 all-brokers:
                   value: 1
               headers:
-              - exactMatch: /healthcheck
-                name: :path
+              - name: :path
+                stringMatch:
+                  exact: /healthcheck
+                  ignoreCase: true
               passThroughMode: false
           - name: envoy.filters.http.router
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
           routeConfig:
             name: local
             virtualHosts:
