@@ -873,7 +873,7 @@ func (eConfig *EnvoyConfig) GetEnvoyImage() string {
 		return eConfig.Image
 	}
 
-	return "envoyproxy/envoy:v1.18.3"
+	return "envoyproxy/envoy:v1.22.2"
 }
 
 // GetEnvoyAdminPort returns the envoy admin port

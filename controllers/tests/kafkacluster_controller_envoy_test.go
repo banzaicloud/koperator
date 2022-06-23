@@ -277,6 +277,8 @@ staticResources:
                 name: :path
               passThroughMode: false
           - name: envoy.filters.http.router
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
           routeConfig:
             name: local
             virtualHosts:
@@ -314,7 +316,7 @@ func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate
 	Expect(templateSpec.Containers).To(HaveLen(1))
 	container := templateSpec.Containers[0]
 	Expect(container.Name).To(Equal("envoy"))
-	Expect(container.Image).To(Equal("envoyproxy/envoy:v1.18.3"))
+	Expect(container.Image).To(Equal("envoyproxy/envoy:v1.22.2"))
 	Expect(container.Ports).To(ConsistOf(
 		corev1.ContainerPort{
 			Name:          "broker-0",
@@ -558,6 +560,8 @@ staticResources:
                 name: :path
               passThroughMode: false
           - name: envoy.filters.http.router
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
           routeConfig:
             name: local
             virtualHosts:
@@ -804,6 +808,8 @@ staticResources:
                 name: :path
               passThroughMode: false
           - name: envoy.filters.http.router
+            typedConfig:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
           routeConfig:
             name: local
             virtualHosts:
