@@ -453,7 +453,11 @@ func TestReorderBrokers(t *testing.T) {
 				TypeMeta: metav1.TypeMeta{},
 				ListMeta: metav1.ListMeta{},
 				Items: []corev1.PersistentVolumeClaim{
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "5"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "5"}},
+						Status: corev1.PersistentVolumeClaimStatus{
+							Phase: corev1.ClaimBound,
+						},
+					},
 				},
 			},
 			desiredBrokers: []v1beta1.Broker{
@@ -533,7 +537,21 @@ func TestReorderBrokers(t *testing.T) {
 
 		t.Run(test.testName, func(t *testing.T) {
 			g := gomega.NewWithT(t)
-			reorderedBrokers := reorderBrokers(test.brokerPods, test.desiredBrokers, test.brokersState, test.brokersPVC, test.controllerBrokerID, logr.Discard())
+
+			runningBrokers := make(map[string]struct{})
+			for _, b := range test.brokerPods.Items {
+				brokerID := b.GetLabels()["brokerId"]
+				runningBrokers[brokerID] = struct{}{}
+			}
+			boundPersistentVolumeClaims := make(map[string]struct{})
+			for _, pvc := range test.brokersPVC.Items {
+				brokerID := pvc.GetLabels()["brokerId"]
+				if pvc.Status.Phase == corev1.ClaimBound {
+					boundPersistentVolumeClaims[brokerID] = struct{}{}
+				}
+			}
+
+			reorderedBrokers := reorderBrokers(runningBrokers, boundPersistentVolumeClaims, test.desiredBrokers, test.brokersState, test.controllerBrokerID, logr.Discard())
 
 			g.Expect(reorderedBrokers).To(gomega.Equal(test.expectedReorderedBrokers))
 		})

@@ -145,6 +145,7 @@ func getLoadBalancerIP(foundLBService *corev1.Service) (string, error) {
 
 // Reconcile implements the reconcile logic for Kafka
 //gocyclo:ignore
+//nolint:funlen
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName, "clusterName", r.KafkaCluster.Name, "clusterNamespace", r.KafkaCluster.Namespace)
 
@@ -244,6 +245,12 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errors.WrapIf(err, "failed to list broker pods that belong to Kafka cluster")
 	}
 
+	runningBrokers := make(map[string]struct{})
+	for _, b := range brokerPods.Items {
+		brokerID := b.GetLabels()["brokerId"]
+		runningBrokers[brokerID] = struct{}{}
+	}
+
 	controllerID, err := r.determineControllerId()
 	if err != nil {
 		log.Error(err, "could not find controller broker")
@@ -255,7 +262,15 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errors.WrapIf(err, "failed to list broker pvcs that belong to Kafka cluster")
 	}
 
-	reorderedBrokers := reorderBrokers(brokerPods, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, pvcList, controllerID, log)
+	boundPersistentVolumeClaims := make(map[string]struct{})
+	for _, pvc := range pvcList.Items {
+		brokerID := pvc.GetLabels()["brokerId"]
+		if pvc.Status.Phase == corev1.ClaimBound {
+			boundPersistentVolumeClaims[brokerID] = struct{}{}
+		}
+	}
+
+	reorderedBrokers := reorderBrokers(runningBrokers, boundPersistentVolumeClaims, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID, log)
 	allBrokerDynamicConfigSucceeded := true
 	for _, broker := range reorderedBrokers {
 		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
@@ -712,8 +727,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 
 		if val, hasBrokerState := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; hasBrokerState {
 			ccState := val.GracefulActionState.CruiseControlState
-			incompleteDownscale := ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning
-			if ccState != v1beta1.GracefulUpscaleSucceeded && !incompleteDownscale {
+			if ccState != v1beta1.GracefulUpscaleSucceeded && !ccState.IsDownscale() {
 				gracefulActionState := v1beta1.GracefulActionState{ErrorMessage: "CruiseControl not yet ready", CruiseControlState: v1beta1.GracefulUpscaleSucceeded}
 
 				if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
@@ -1218,25 +1232,13 @@ func getServiceFromExternalListener(client client.Client, cluster *v1beta1.Kafka
 // - prioritize upscale in order to allow upscaling the cluster even when there is a stuck RU
 // - prioritize missing broker pods to be able for escaping from offline partitions, not all replicas in sync which
 //		could stall RU flow
-func reorderBrokers(brokerPods corev1.PodList, desiredBrokers []v1beta1.Broker, brokersState map[string]v1beta1.BrokerState, pvcList corev1.PersistentVolumeClaimList, controllerBrokerID int32, log logr.Logger) []v1beta1.Broker {
-	runningBrokers := make(map[string]struct{})
-	for _, b := range brokerPods.Items {
-		brokerID := b.GetLabels()["brokerId"]
-		runningBrokers[brokerID] = struct{}{}
-	}
-
-	presentPersistentVolumeClaims := make(map[string]struct{})
-	for _, pvc := range pvcList.Items {
-		brokerID := pvc.GetLabels()["brokerId"]
-		presentPersistentVolumeClaims[brokerID] = struct{}{}
-	}
-
+func reorderBrokers(runningBrokers, boundPersistentVolumeClaims map[string]struct{}, desiredBrokers []v1beta1.Broker, brokersState map[string]v1beta1.BrokerState, controllerBrokerID int32, log logr.Logger) []v1beta1.Broker {
 	brokersReconcilePriority := make(map[string]brokerReconcilePriority, len(desiredBrokers))
 	missingBrokerDownScaleRunning := make(map[string]struct{})
 	// logic for handling that case when a broker pod is removed before downscale operation completed
 	for id, brokerState := range brokersState {
 		_, running := runningBrokers[id]
-		_, pvcPresent := presentPersistentVolumeClaims[id]
+		_, pvcPresent := boundPersistentVolumeClaims[id]
 		ccState := brokerState.GracefulActionState.CruiseControlState
 		if !running && ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning {
 			log.Info("missing broker found with incomplete downscale operation", "brokerID", id)
