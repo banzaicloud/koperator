@@ -1240,7 +1240,7 @@ func reorderBrokers(runningBrokers, boundPersistentVolumeClaims map[string]struc
 		_, running := runningBrokers[id]
 		_, pvcPresent := boundPersistentVolumeClaims[id]
 		ccState := brokerState.GracefulActionState.CruiseControlState
-		if !running && ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning {
+		if !running && (ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning) {
 			log.Info("missing broker found with incomplete downscale operation", "brokerID", id)
 			if pvcPresent {
 				unfinishedBroker, err := util.GetBrokerFromBrokerConfigurationBackup(brokerState.ConfigurationBackup)
