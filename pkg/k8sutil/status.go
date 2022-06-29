@@ -23,6 +23,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
 
+	"github.com/lestrrat-go/backoff/v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -46,21 +47,16 @@ func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 
 // UpdateBrokerConfigurationBackup updates the broker status with a backup from kafka broker configurations
 func UpdateBrokerConfigurationBackup(c client.Client, cluster *banzaicloudv1beta1.KafkaCluster) error {
-	needsUpdate, err := generateBrokerConfigurationBackups(cluster)
-	if err != nil {
-		return err
-	}
-	if !needsUpdate {
-		return nil
-	}
-	ctx := context.Background()
-	if err := c.Status().Update(ctx, cluster); err != nil {
-		if !apierrors.IsConflict(err) {
-			return errors.WrapIff(err, "could not update Kafka broker(s) configuration backup state")
-		}
-		if err := c.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, cluster); err != nil {
-			return errors.WrapIf(err, "could not get config for updating status")
-		}
+	p := backoff.Constant(
+		backoff.WithInterval(time.Millisecond*100),
+		backoff.WithMaxRetries(3),
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	b := p.Start(ctx)
+	var errAPI error
+	for backoff.Continue(b) {
 		needsUpdate, err := generateBrokerConfigurationBackups(cluster)
 		if err != nil {
 			return err
@@ -68,11 +64,19 @@ func UpdateBrokerConfigurationBackup(c client.Client, cluster *banzaicloudv1beta
 		if !needsUpdate {
 			return nil
 		}
-		if err = c.Status().Update(ctx, cluster); err != nil {
-			return errors.WrapIff(err, "could not update Kafka broker(s) configuration backup state")
+		errAPI = c.Status().Update(ctx, cluster)
+		if err != nil {
+			if apierrors.IsConflict(errAPI) {
+				if err := c.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, cluster); err != nil {
+					return errors.WrapIf(err, "could not get config for updating status")
+				}
+			}
+		} else {
+			return nil
 		}
 	}
-	return nil
+
+	return errAPI
 }
 
 func generateBrokerConfigurationBackups(cluster *banzaicloudv1beta1.KafkaCluster) (bool, error) {

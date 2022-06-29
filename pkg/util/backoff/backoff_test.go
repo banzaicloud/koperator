@@ -15,59 +15,69 @@
 package backoff
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
-	"github.com/lestrrat-go/backoff"
+	"github.com/lestrrat-go/backoff/v2"
 )
 
-func TestRetry(t *testing.T) {
-	count := 0
-	config := &ConstantBackoffConfig{
-		Delay:          time.Duration(1) * time.Second,
-		MaxElapsedTime: time.Duration(10) * time.Second,
-		MaxRetries:     3,
-	}
-	policy := NewConstantBackoffPolicy(config)
+type MyError struct {
+	error
+	number int
+}
 
-	err := Retry(func() error {
-		count++
-		return errors.New("err")
-	}, policy)
-	if err == nil {
-		t.Error("Expected error, got nil")
-	}
-
-	if count != 4 {
-		t.Error("Expected function to run 4 times, got:", count)
-	}
-
-	count = 0
-	err = Retry(func() error {
-		count++
-		return nil
-	}, policy)
-
-	if err != nil {
-		t.Error("Expected nil, got error")
+func TestExponentialBackOff(t *testing.T) {
+	p := backoff.Constant(
+		backoff.WithInterval(time.Millisecond*10),
+		backoff.WithMaxRetries(2),
+	)
+	flakyFunc := func(a int) (int, error) {
+		switch {
+		case a%3 == 0:
+			return 3, errors.New("error 3")
+		case a%4 == 0:
+			return 4, nil
+		case a%5 == 0:
+			return 5, MyError{number: 5}
+		}
+		return 0, errors.New(`invalid`)
 	}
 
-	if count != 1 {
-		t.Error("Expected function to run once, got:", count)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	startNum := 3
+	retryFunc := func() int {
+		b := p.Start(ctx)
+		var err error
+		var x int
+		for backoff.Continue(b) {
+			x, err = flakyFunc(startNum)
+			switch startNum {
+			case 3:
+				if x != 3 || err.Error() != "error 3" {
+					t.Errorf("backOff error 3")
+				}
+			case 4:
+				if x != 4 || err != nil {
+					t.Errorf("backOff error 4")
+				}
+			case 5:
+				if x != 5 || !errors.Is(err, MyError{number: 5}) {
+					t.Errorf("backOff error 5")
+				}
+			default:
+				t.Errorf("more retry then maxRetry")
+			}
+			startNum++
+		}
+		return startNum
 	}
 
-	count = 0
-	err = Retry(func() error {
-		count++
-		return MarkErrorPermanent(errors.New("permanent"))
-	}, policy)
-	switch {
-	case err == nil:
-		t.Error("Expected permanent error, got nil")
-	case !backoff.IsPermanentError(err):
-		t.Error("Expected true for is permanent error, got false")
-	case count != 1:
-		t.Error("Expected function to only try once, got:", count)
+	if ret := retryFunc(); ret != 6 {
+		t.Errorf("not enough iteration")
 	}
+
 }
