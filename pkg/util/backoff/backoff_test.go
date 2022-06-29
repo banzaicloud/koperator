@@ -76,8 +76,7 @@ func TestExponentialBackOff(t *testing.T) {
 		return startNum
 	}
 
-	if ret := retryFunc(); ret != 6 {
-		t.Errorf("not enough iteration")
+	if ret := retryFunc(); ret < 6 {
+		t.Errorf("not enough iteration (%d) expected: 3", ret-3)
 	}
-
 }
