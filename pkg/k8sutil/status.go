@@ -65,7 +65,7 @@ func UpdateBrokerConfigurationBackup(c client.Client, cluster *banzaicloudv1beta
 			return nil
 		}
 		errAPI = c.Status().Update(ctx, cluster)
-		if err != nil {
+		if errAPI != nil {
 			if apierrors.IsConflict(errAPI) {
 				if err := c.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, cluster); err != nil {
 					return errors.WrapIf(err, "could not get config for updating status")
