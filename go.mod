@@ -17,7 +17,7 @@ require (
 	github.com/go-logr/logr v1.2.2
 	github.com/imdario/mergo v0.3.12
 	github.com/jetstack/cert-manager v1.6.1
-	github.com/lestrrat-go/backoff v1.0.1
+	github.com/lestrrat-go/backoff/v2 v2.0.8
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	github.com/pavel-v-chernykh/keystore-go/v4 v4.2.0
@@ -69,6 +69,7 @@ require (
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.14.4 // indirect
+	github.com/lestrrat-go/option v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
