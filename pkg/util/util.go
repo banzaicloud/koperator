@@ -508,14 +508,14 @@ var DefaultBackOffForConflict wait.Backoff = wait.Backoff{
 	Steps:    6,
 }
 
-func RetryOnConflict(backoff wait.Backoff, fn func() error) error {
+func RetryOnError(backoff wait.Backoff, updateFn func() error, isRetryableError func(error) bool) error {
 	var lastConflictErr error
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		err := fn()
+		err := updateFn()
 		switch {
 		case err == nil:
 			return true, nil
-		case apierrors.IsConflict(err):
+		case isRetryableError(err):
 			lastConflictErr = err
 			return false, nil
 		default:
@@ -526,4 +526,8 @@ func RetryOnConflict(backoff wait.Backoff, fn func() error) error {
 		err = lastConflictErr
 	}
 	return err
+}
+
+func RetryOnConflict(backoff wait.Backoff, updateFn func() error) error {
+	return RetryOnError(backoff, updateFn, apierrors.IsConflict)
 }
