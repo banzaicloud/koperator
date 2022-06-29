@@ -33,12 +33,6 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/Shopify/sarama"
-	"github.com/banzaicloud/koperator/api/v1alpha1"
-	"github.com/banzaicloud/koperator/api/v1beta1"
-	"github.com/banzaicloud/koperator/pkg/errorfactory"
-	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
-	"github.com/banzaicloud/koperator/pkg/util/istioingress"
-	properties "github.com/banzaicloud/koperator/properties/pkg"
 	clusterregv1alpha1 "github.com/cisco-open/cluster-registry-controller/api/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/imdario/mergo"
@@ -53,6 +47,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientCtrl "sigs.k8s.io/controller-runtime/pkg/client"
 	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
+	"github.com/banzaicloud/koperator/pkg/util/istioingress"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
 const (
