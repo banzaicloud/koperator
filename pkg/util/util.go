@@ -33,6 +33,13 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/Shopify/sarama"
+	"github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
+	"github.com/banzaicloud/koperator/pkg/util/istioingress"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
+	clusterregv1alpha1 "github.com/cisco-open/cluster-registry-controller/api/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/imdario/mergo"
 	"go.uber.org/zap"
@@ -43,17 +50,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientCtrl "sigs.k8s.io/controller-runtime/pkg/client"
 	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	"github.com/banzaicloud/koperator/api/v1alpha1"
-	"github.com/banzaicloud/koperator/api/v1beta1"
-	"github.com/banzaicloud/koperator/pkg/errorfactory"
-	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
-	"github.com/banzaicloud/koperator/pkg/util/istioingress"
-	properties "github.com/banzaicloud/koperator/properties/pkg"
-
-	clusterregv1alpha1 "github.com/cisco-open/cluster-registry-controller/api/v1alpha1"
 )
 
 const (
@@ -498,4 +497,32 @@ func GetBrokerFromBrokerConfigurationBackup(config string) (v1beta1.Broker, erro
 	}
 
 	return broker, nil
+}
+
+// start with 20 ms, multiply by 2.5 each step, 6 steps = ~3 seconds
+var DefaultBackOffForConflict wait.Backoff = wait.Backoff{
+	Duration: 20 * time.Millisecond,
+	Jitter:   0,
+	Factor:   2.5,
+	Steps:    6,
+}
+
+func RetryOnConflict(backoff wait.Backoff, fn func() error) error {
+	var lastConflictErr error
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		err := fn()
+		switch {
+		case err == nil:
+			return true, nil
+		case apierrors.IsConflict(err):
+			lastConflictErr = err
+			return false, nil
+		default:
+			return false, err
+		}
+	})
+	if err == wait.ErrWaitTimeout {
+		err = lastConflictErr
+	}
+	return err
 }

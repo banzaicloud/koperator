@@ -23,7 +23,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
 
-	"github.com/lestrrat-go/backoff/v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,16 +46,8 @@ func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 
 // UpdateBrokerConfigurationBackup updates the broker status with a backup from kafka broker configurations
 func UpdateBrokerConfigurationBackup(c client.Client, cluster *banzaicloudv1beta1.KafkaCluster) error {
-	p := backoff.Constant(
-		backoff.WithInterval(time.Millisecond*100),
-		backoff.WithMaxRetries(3),
-	)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	b := p.Start(ctx)
-	var errAPI error
-	for backoff.Continue(b) {
+	ctx := context.Background()
+	updateFn := func() error {
 		needsUpdate, err := generateBrokerConfigurationBackups(cluster)
 		if err != nil {
 			return err
@@ -64,19 +55,19 @@ func UpdateBrokerConfigurationBackup(c client.Client, cluster *banzaicloudv1beta
 		if !needsUpdate {
 			return nil
 		}
-		errAPI = c.Status().Update(ctx, cluster)
-		if errAPI != nil {
-			if apierrors.IsConflict(errAPI) {
-				if err := c.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, cluster); err != nil {
-					return errors.WrapIf(err, "could not get config for updating status")
-				}
-			}
-		} else {
+		err = c.Status().Update(ctx, cluster)
+		if err == nil {
 			return nil
 		}
+		if apierrors.IsConflict(err) {
+			if errGet := c.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, cluster); err != nil {
+				return errors.WrapIf(errGet, "could not get config for updating status")
+			}
+		}
+		return err
 	}
 
-	return errAPI
+	return util.RetryOnConflict(util.DefaultBackOffForConflict, updateFn)
 }
 
 func generateBrokerConfigurationBackups(cluster *banzaicloudv1beta1.KafkaCluster) (bool, error) {
