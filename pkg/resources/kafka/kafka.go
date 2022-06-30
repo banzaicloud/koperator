@@ -1229,6 +1229,7 @@ func getServiceFromExternalListener(client client.Client, cluster *v1beta1.Kafka
 
 // reorderBrokers returns the KafkaCluster brokers list reordered for reconciliation such that:
 // - the controller broker is reconciled last
+// - prioritize missing broker pods where downscale operation has not been finished yet to give bigger chance to be scheduled and downscale operation to be continued
 // - prioritize upscale in order to allow upscaling the cluster even when there is a stuck RU
 // - prioritize missing broker pods to be able for escaping from offline partitions, not all replicas in sync which
 //		could stall RU flow
