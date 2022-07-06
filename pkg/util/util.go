@@ -15,10 +15,15 @@
 package util
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"reflect"
 	"sort"
@@ -28,6 +33,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/Shopify/sarama"
+	clusterregv1alpha1 "github.com/cisco-open/cluster-registry-controller/api/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/imdario/mergo"
 	"go.uber.org/zap"
@@ -38,6 +44,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientCtrl "sigs.k8s.io/controller-runtime/pkg/client"
 	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -47,8 +54,6 @@ import (
 	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
 	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
-
-	clusterregv1alpha1 "github.com/cisco-open/cluster-registry-controller/api/v1alpha1"
 )
 
 const (
@@ -450,4 +455,79 @@ func ObjectManagedByClusterRegistry(object metav1.Object) bool {
 	annotations := object.GetAnnotations()
 	_, ok := annotations[clusterregv1alpha1.OwnershipAnnotation]
 	return ok
+}
+
+func GzipAndBase64BrokerConfiguration(broker *v1beta1.Broker) (string, error) {
+	if broker == nil {
+		return "", nil
+	}
+	configJSON, err := json.Marshal(broker)
+	if err != nil {
+		return "", err
+	}
+	var buff bytes.Buffer
+	gz := gzip.NewWriter(&buff)
+	if _, err := gz.Write(configJSON); err != nil {
+		return "", err
+	}
+	gz.Close()
+	return base64.StdEncoding.EncodeToString(buff.Bytes()), nil
+}
+
+func GetBrokerFromBrokerConfigurationBackup(config string) (v1beta1.Broker, error) {
+	if config == "" {
+		return v1beta1.Broker{}, errors.New("broker configurationBackup is empty")
+	}
+	configGzip, err := base64.StdEncoding.DecodeString(config)
+	if err != nil {
+		return v1beta1.Broker{}, err
+	}
+	reader := bytes.NewBuffer(configGzip)
+	gzipReader, err := gzip.NewReader(reader)
+	if err != nil {
+		return v1beta1.Broker{}, err
+	}
+	configJSON, err := ioutil.ReadAll(gzipReader)
+	if err != nil {
+		return v1beta1.Broker{}, err
+	}
+	gzipReader.Close()
+	broker := v1beta1.Broker{}
+	if err := json.Unmarshal(configJSON, &broker); err != nil {
+		return v1beta1.Broker{}, err
+	}
+
+	return broker, nil
+}
+
+// start with 20 ms, multiply by 2.5 each step, 6 steps = ~3 seconds
+var DefaultBackOffForConflict wait.Backoff = wait.Backoff{
+	Duration: 20 * time.Millisecond,
+	Jitter:   0,
+	Factor:   2.5,
+	Steps:    6,
+}
+
+func RetryOnError(backoff wait.Backoff, fn func() error, isRetryableError func(error) bool) error {
+	var lastErr error
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		err := fn()
+		switch {
+		case err == nil:
+			return true, nil
+		case isRetryableError(err):
+			lastErr = err
+			return false, nil
+		default:
+			return false, err
+		}
+	})
+	if err == wait.ErrWaitTimeout {
+		err = lastErr
+	}
+	return err
+}
+
+func RetryOnConflict(backoff wait.Backoff, fn func() error) error {
+	return RetryOnError(backoff, fn, apierrors.IsConflict)
 }

@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/util"
 	clientutil "github.com/banzaicloud/koperator/pkg/util/client"
 )
 
@@ -41,6 +42,53 @@ func IsAlreadyOwnedError(err error) bool {
 // IsMarkedForDeletion determines if the object is marked for deletion
 func IsMarkedForDeletion(m metav1.ObjectMeta) bool {
 	return m.GetDeletionTimestamp() != nil
+}
+
+// UpdateBrokerConfigurationBackup updates the broker status with a backup from kafka broker configurations
+func UpdateBrokerConfigurationBackup(c client.Client, cluster *banzaicloudv1beta1.KafkaCluster) error {
+	ctx := context.Background()
+	updateFn := func() error {
+		needsUpdate, err := generateBrokerConfigurationBackups(cluster)
+		if err != nil {
+			return err
+		}
+		if !needsUpdate {
+			return nil
+		}
+		err = c.Status().Update(ctx, cluster)
+		if err == nil {
+			return nil
+		}
+		if apierrors.IsConflict(err) {
+			if errGet := c.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, cluster); err != nil {
+				return errors.WrapIf(errGet, "could not get config for updating status")
+			}
+		}
+		return err
+	}
+
+	return util.RetryOnConflict(util.DefaultBackOffForConflict, updateFn)
+}
+
+func generateBrokerConfigurationBackups(cluster *banzaicloudv1beta1.KafkaCluster) (bool, error) {
+	needsUpdate := false
+	if cluster.Status.BrokersState == nil {
+		cluster.Status.BrokersState = make(map[string]banzaicloudv1beta1.BrokerState)
+	}
+
+	for _, broker := range cluster.Spec.Brokers {
+		brokerState := cluster.Status.BrokersState[fmt.Sprint(broker.Id)]
+		configurationBackup, err := util.GzipAndBase64BrokerConfiguration(&broker)
+		if err != nil {
+			return false, errors.WrapIfWithDetails(err, "could not generate broker configuration backup", "brokerId", broker.Id)
+		}
+		if !needsUpdate && configurationBackup != brokerState.ConfigurationBackup {
+			needsUpdate = true
+		}
+		brokerState.ConfigurationBackup = configurationBackup
+		cluster.Status.BrokersState[fmt.Sprint(broker.Id)] = brokerState
+	}
+	return needsUpdate, nil
 }
 
 // UpdateBrokerStatus updates the broker status with rack and configuration infos

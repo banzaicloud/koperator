@@ -76,8 +76,10 @@ const (
 	MetricsHealthCheck = "/-/healthy"
 	MetricsPort        = 9020
 
+	// missingBrokerDownScaleRunningPriority the priority is used  for missing brokers where there is an incomplete downscale operation
+	missingBrokerDownScaleRunningPriority brokerReconcilePriority = iota
 	// newBrokerReconcilePriority the priority used  for brokers that were just added to the cluster used to define its priority in the reconciliation order
-	newBrokerReconcilePriority brokerReconcilePriority = iota
+	newBrokerReconcilePriority
 	// missingBrokerReconcilePriority the priority used for missing brokers used to define its priority in the reconciliation order
 	missingBrokerReconcilePriority
 	// nonControllerBrokerReconcilePriority the priority used for running non-controller brokers used to define its priority in the reconciliation order
@@ -143,10 +145,16 @@ func getLoadBalancerIP(foundLBService *corev1.Service) (string, error) {
 
 // Reconcile implements the reconcile logic for Kafka
 //gocyclo:ignore
+//nolint:funlen
 func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName, "clusterName", r.KafkaCluster.Name, "clusterNamespace", r.KafkaCluster.Namespace)
 
 	log.V(1).Info("Reconciling")
+
+	ctx := context.Background()
+	if err := k8sutil.UpdateBrokerConfigurationBackup(r.Client, r.KafkaCluster); err != nil {
+		log.Error(err, "failed to update broker configuration backup")
+	}
 
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
 		// reconcile headless service
@@ -187,7 +195,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return errors.WrapIf(err, "could not update status for external listeners")
 	}
 	intListenerStatuses, controllerIntListenerStatuses := k8sutil.CreateInternalListenerStatuses(r.KafkaCluster)
-	err = k8sutil.UpdateListenerStatuses(context.Background(), r.Client, r.KafkaCluster, intListenerStatuses, extListenerStatuses)
+	err = k8sutil.UpdateListenerStatuses(ctx, r.Client, r.KafkaCluster, intListenerStatuses, extListenerStatuses)
 	if err != nil {
 		return errors.WrapIf(err, "failed to update listener statuses")
 	}
@@ -195,7 +203,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	// Setup the PKI if using SSL
 	if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil {
 		// reconcile the PKI
-		if err := pki.GetPKIManager(r.Client, r.KafkaCluster, v1beta1.PKIBackendProvided).ReconcilePKI(context.TODO(), extListenerStatuses); err != nil {
+		if err := pki.GetPKIManager(r.Client, r.KafkaCluster, v1beta1.PKIBackendProvided).ReconcilePKI(ctx, extListenerStatuses); err != nil {
 			return err
 		}
 	}
@@ -232,9 +240,15 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	var brokerPods corev1.PodList
 	matchingLabels := client.MatchingLabels(apiutil.LabelsForKafka(r.KafkaCluster.Name))
-	err = r.Client.List(context.TODO(), &brokerPods, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
+	err = r.Client.List(ctx, &brokerPods, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
 	if err != nil {
 		return errors.WrapIf(err, "failed to list broker pods that belong to Kafka cluster")
+	}
+
+	runningBrokers := make(map[string]struct{})
+	for _, b := range brokerPods.Items {
+		brokerID := b.GetLabels()["brokerId"]
+		runningBrokers[brokerID] = struct{}{}
 	}
 
 	controllerID, err := r.determineControllerId()
@@ -242,7 +256,21 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		log.Error(err, "could not find controller broker")
 	}
 
-	reorderedBrokers := reorderBrokers(brokerPods, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID)
+	var pvcList corev1.PersistentVolumeClaimList
+	err = r.Client.List(ctx, &pvcList, client.ListOption(client.InNamespace(r.KafkaCluster.Namespace)), client.ListOption(matchingLabels))
+	if err != nil {
+		return errors.WrapIf(err, "failed to list broker pvcs that belong to Kafka cluster")
+	}
+
+	boundPersistentVolumeClaims := make(map[string]struct{})
+	for _, pvc := range pvcList.Items {
+		brokerID := pvc.GetLabels()["brokerId"]
+		if pvc.Status.Phase == corev1.ClaimBound {
+			boundPersistentVolumeClaims[brokerID] = struct{}{}
+		}
+	}
+
+	reorderedBrokers := reorderBrokers(runningBrokers, boundPersistentVolumeClaims, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID, log)
 	allBrokerDynamicConfigSucceeded := true
 	for _, broker := range reorderedBrokers {
 		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
@@ -405,8 +433,7 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 				for _, brokerID := range brokersToUpdateInStatus {
 					if brokerState, ok := r.KafkaCluster.Status.BrokersState[brokerID]; ok {
 						ccState := brokerState.GracefulActionState.CruiseControlState
-						if ccState != v1beta1.GracefulDownscaleRunning &&
-							(ccState == v1beta1.GracefulUpscaleSucceeded || ccState == v1beta1.GracefulUpscaleRequired) {
+						if ccState == v1beta1.GracefulUpscaleSucceeded || ccState == v1beta1.GracefulUpscaleRequired {
 							brokersPendingGracefulDownscale = append(brokersPendingGracefulDownscale, brokerID)
 						}
 					}
@@ -434,8 +461,7 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 
 			if brokerState, ok := r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]]; ok &&
 				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded &&
-				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleRequired &&
-				broker.Status.Phase != corev1.PodPending {
+				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleRequired {
 				if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
 					log.Info("cc task is still running for broker", "brokerId", broker.Labels["brokerId"], "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
 				}
@@ -699,15 +725,18 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 			return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating per broker config status for resource failed", "kind", desiredType)
 		}
 
-		if val, ok := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; ok && val.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleSucceeded {
-			gracefulActionState := v1beta1.GracefulActionState{ErrorMessage: "CruiseControl not yet ready", CruiseControlState: v1beta1.GracefulUpscaleSucceeded}
+		if val, hasBrokerState := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; hasBrokerState {
+			ccState := val.GracefulActionState.CruiseControlState
+			if ccState != v1beta1.GracefulUpscaleSucceeded && !ccState.IsDownscale() {
+				gracefulActionState := v1beta1.GracefulActionState{ErrorMessage: "CruiseControl not yet ready", CruiseControlState: v1beta1.GracefulUpscaleSucceeded}
 
-			if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
-				gracefulActionState = v1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: v1beta1.GracefulUpscaleRequired}
-			}
-			statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, gracefulActionState, log)
-			if statusErr != nil {
-				return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "could not update broker graceful action state")
+				if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
+					gracefulActionState = v1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: v1beta1.GracefulUpscaleRequired}
+				}
+				statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, gracefulActionState, log)
+				if statusErr != nil {
+					return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "could not update broker graceful action state")
+				}
 			}
 		}
 		log.Info("resource created")
@@ -1200,23 +1229,42 @@ func getServiceFromExternalListener(client client.Client, cluster *v1beta1.Kafka
 
 // reorderBrokers returns the KafkaCluster brokers list reordered for reconciliation such that:
 // - the controller broker is reconciled last
+// - prioritize missing broker pods where downscale operation has not been finished yet to give bigger chance to be scheduled and downscale operation to be continued
 // - prioritize upscale in order to allow upscaling the cluster even when there is a stuck RU
 // - prioritize missing broker pods to be able for escaping from offline partitions, not all replicas in sync which
 //		could stall RU flow
-func reorderBrokers(brokerPods corev1.PodList, desiredBrokers []v1beta1.Broker, brokersState map[string]v1beta1.BrokerState, controllerBrokerID int32) []v1beta1.Broker {
-	runningBrokers := make(map[string]struct{})
-	for _, b := range brokerPods.Items {
-		brokerID := b.GetLabels()["brokerId"]
-		runningBrokers[brokerID] = struct{}{}
-	}
-
+func reorderBrokers(runningBrokers, boundPersistentVolumeClaims map[string]struct{}, desiredBrokers []v1beta1.Broker, brokersState map[string]v1beta1.BrokerState, controllerBrokerID int32, log logr.Logger) []v1beta1.Broker {
 	brokersReconcilePriority := make(map[string]brokerReconcilePriority, len(desiredBrokers))
+	missingBrokerDownScaleRunning := make(map[string]struct{})
+	// logic for handling that case when a broker pod is removed before downscale operation completed
+	for id, brokerState := range brokersState {
+		_, running := runningBrokers[id]
+		_, pvcPresent := boundPersistentVolumeClaims[id]
+		ccState := brokerState.GracefulActionState.CruiseControlState
+		if !running && (ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning) {
+			log.Info("missing broker found with incomplete downscale operation", "brokerID", id)
+			if pvcPresent {
+				unfinishedBroker, err := util.GetBrokerFromBrokerConfigurationBackup(brokerState.ConfigurationBackup)
+				if err != nil {
+					log.Error(err, "unable to restore broker configuration from configuration backup", "brokerID", id)
+					continue
+				}
+				log.Info("re-creating broker pod to continue downscale operation", "brokerID", id)
+				missingBrokerDownScaleRunning[id] = struct{}{}
+				desiredBrokers = append(desiredBrokers, unfinishedBroker)
+			} else {
+				log.Info("pvc is missing, unable to reconstruct missing broker pod", "brokerID", id)
+			}
+		}
+	}
 
 	for _, b := range desiredBrokers {
 		brokerID := fmt.Sprintf("%d", b.Id)
 		brokersReconcilePriority[brokerID] = nonControllerBrokerReconcilePriority
 
-		if _, ok := brokersState[brokerID]; !ok {
+		if _, ok := missingBrokerDownScaleRunning[brokerID]; ok {
+			brokersReconcilePriority[brokerID] = missingBrokerDownScaleRunningPriority
+		} else if _, ok := brokersState[brokerID]; !ok {
 			brokersReconcilePriority[brokerID] = newBrokerReconcilePriority
 		} else if _, ok := runningBrokers[brokerID]; !ok {
 			brokersReconcilePriority[brokerID] = missingBrokerReconcilePriority

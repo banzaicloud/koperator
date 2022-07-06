@@ -607,3 +607,82 @@ func TestIsIngressConfigInUse(t *testing.T) {
 		}
 	}
 }
+
+func TestConfigurationBackup(t *testing.T) {
+	testCases := []struct {
+		testName string
+		broker   v1beta1.Broker
+	}{
+		{
+			testName: "empty broker",
+			broker:   v1beta1.Broker{},
+		},
+		{
+			testName: "detailed broker",
+			broker: v1beta1.Broker{
+				Id:                0,
+				BrokerConfigGroup: "default",
+				ReadOnlyConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.kubernetes.mode=true`,
+				BrokerConfig: &v1beta1.BrokerConfig{
+					Image:                "Image",
+					MetricsReporterImage: "MetricsReporterImage",
+					Config: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
+broker.id=0
+cruise.control.metrics.reporter.bootstrap.servers=kafka-all-broker.kafka.svc.cluster.local:9092
+cruise.control.metrics.reporter.kubernetes.mode=true`,
+					BrokerLabels: map[string]string{"apple": "tree"},
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									{
+										MatchExpressions: nil,
+										MatchFields: []corev1.NodeSelectorRequirement{
+											{
+												Key:      "apple",
+												Operator: "in",
+												Values:   []string{"fruit"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					PodSecurityContext:   &corev1.PodSecurityContext{},
+					SecurityContext:      &corev1.SecurityContext{},
+					BrokerIngressMapping: []string{"apple"},
+					InitContainers: []corev1.Container{
+						{
+							Name:  "test-initcontainer",
+							Image: "busybox:latest",
+						},
+						{
+							Name:  "a-test-initcontainer",
+							Image: "test/image:latest",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range testCases {
+		config, err := GzipAndBase64BrokerConfiguration(&test.broker)
+		if err != nil {
+			t.Errorf("error should be nil, got: %v", err)
+		}
+
+		broker, err := GetBrokerFromBrokerConfigurationBackup(config)
+		if err != nil {
+			t.Errorf("error should be nil, got: %v", err)
+		}
+
+		if !reflect.DeepEqual(test.broker, broker) {
+			t.Errorf("Expected: %v  Got: %v", test.broker, broker)
+		}
+	}
+}
