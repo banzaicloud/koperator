@@ -224,8 +224,11 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		var brokerVolumes []*corev1.PersistentVolumeClaim
 		for index, storage := range brokerConfig.StorageConfigs {
-			o := r.pvc(broker.Id, index, storage, log)
-			brokerVolumes = append(brokerVolumes, o.(*corev1.PersistentVolumeClaim))
+			o, err := r.pvc(broker.Id, index, storage)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "failed to generate resource", "resources", "PersistentVolumeClaim")
+			}
+			brokerVolumes = append(brokerVolumes, o)
 		}
 		if len(brokerVolumes) > 0 {
 			brokersVolumes[strconv.Itoa(int(broker.Id))] = brokerVolumes
