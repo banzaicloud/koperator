@@ -37,7 +37,7 @@ webhooks:
     service:
       name: "{{ include "kafka-operator.fullname" . }}-operator"
       namespace: {{ .Release.Namespace }}
-      path: /validate
+      path: /validate-kafka.banzaicloud-io-v1alpha1-kafkatopic
   failurePolicy: Fail
   name: kafkatopics.kafka.banzaicloud.io
   rules:
@@ -58,7 +58,7 @@ webhooks:
     service:
       name: "{{ include "kafka-operator.fullname" . }}-operator"
       namespace: {{ .Release.Namespace }}
-      path: /validate
+      path: /validate-kafka-banzaicloud-io-v1beta1-kafkacluster
   failurePolicy: Fail
   name: kafkaclusters.kafka.banzaicloud.io
   rules:

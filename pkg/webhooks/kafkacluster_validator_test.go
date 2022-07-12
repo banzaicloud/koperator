@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webhook
+package webhooks
 
 import (
 	"testing"
@@ -424,9 +424,9 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 
 	for _, testCase := range testCases {
 		res := checkBrokerStorageRemoval(&testCase.kafkaClusterSpecOld, &testCase.kafkaClusterSpecNew)
-		if !res.Allowed && testCase.isValid {
-			t.Errorf("Message: %s, testName: %s", res.Result.Message, testCase.testName)
-		} else if res.Allowed && !testCase.isValid {
+		if res != nil && testCase.isValid {
+			t.Errorf("Message: %s, testName: %s", res.Error(), testCase.testName)
+		} else if res == nil && !testCase.isValid {
 			t.Errorf("there should be storage removal, testName: %s", testCase.testName)
 		}
 	}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webhook
+package webhooks
 
 import (
 	"strings"
@@ -23,14 +23,14 @@ import (
 // TODO (tinyzimmer): This may be better suited for the errorfactory package
 
 func IsAdmissionCantConnect(err error) bool {
-	if apierrors.IsServiceUnavailable(err) && strings.Contains(err.Error(), cantConnectErrorMsg) {
+	if apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectErrorMsg) {
 		return true
 	}
 	return false
 }
 
 func IsInvalidReplicationFactor(err error) bool {
-	if apierrors.IsBadRequest(err) && strings.Contains(err.Error(), invalidReplicationFactorErrMsg) {
+	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), invalidReplicationFactorErrMsg) {
 		return true
 	}
 	return false

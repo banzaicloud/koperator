@@ -53,7 +53,7 @@ import (
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/util"
-	"github.com/banzaicloud/koperator/pkg/webhook"
+	"github.com/banzaicloud/koperator/pkg/webhooks"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -77,8 +77,6 @@ func init() {
 
 func main() {
 	var (
-		podNamespace                      string
-		podServiceAccount                 string
 		namespaces                        string
 		metricsAddr                       string
 		enableLeaderElection              bool
@@ -105,10 +103,6 @@ func main() {
 	flag.BoolVar(&certSigningDisabled, "disable-cert-signing-support", false, "Disable native certificate signing integration")
 	flag.IntVar(&maxKafkaTopicConcurrentReconciles, "max-kafka-topic-concurrent-reconciles", 10, "Define max amount of concurrent KafkaTopic reconciles")
 	flag.Parse()
-
-	podNamespace = os.Getenv("POD_NAMESPACE")
-	podServiceAccount = os.Getenv("SERVICE_ACCOUNT")
-
 	ctrl.SetLogger(util.CreateLogger(verboseLogging, developmentLogging))
 
 	// adding indexers to KafkaTopics so that the KafkaTopic admission webhooks could work
@@ -136,6 +130,7 @@ func main() {
 		LeaderElectionID:   "controller-leader-election-helper",
 		NewCache:           managerWatchCacheBuilder,
 		Port:               webhookServerPort,
+		CertDir:            webhookCertDir,
 	})
 
 	if err != nil {
@@ -197,7 +192,23 @@ func main() {
 	}
 
 	if !webhookDisabled {
-		webhook.SetupServerHandlers(mgr, webhookCertDir, podNamespace, podServiceAccount)
+		err = ctrl.NewWebhookManagedBy(mgr).For(&banzaicloudv1beta1.KafkaCluster{}).
+			WithValidator(webhooks.KafkaClusterValidator{}).
+			Complete()
+		if err != nil {
+			setupLog.Error(err, "unable to create validating webhook", "Kind", "KafkaCluster")
+			os.Exit(1)
+		}
+		err = ctrl.NewWebhookManagedBy(mgr).For(&banzaicloudv1alpha1.KafkaTopic{}).
+			WithValidator(webhooks.KafkaTopicValidator{
+				Client:              mgr.GetClient(),
+				NewKafkaFromCluster: kafkaclient.NewFromCluster,
+			}).
+			Complete()
+		if err != nil {
+			setupLog.Error(err, "unable to create validating webhook", "Kind", "KafkaTopic")
+			os.Exit(1)
+		}
 	}
 
 	// +kubebuilder:scaffold:builder
