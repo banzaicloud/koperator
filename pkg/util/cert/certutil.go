@@ -31,7 +31,7 @@ import (
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 
-	"github.com/pavel-v-chernykh/keystore-go/v4"
+	"github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 )
 
