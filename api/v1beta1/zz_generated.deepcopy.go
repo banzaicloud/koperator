@@ -21,7 +21,7 @@ package v1beta1
 
 import (
 	networkingv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
-	metav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	metav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )

@@ -51,7 +51,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	cmv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 
 	istioclientv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 	banzaiistiov1alpha1 "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"

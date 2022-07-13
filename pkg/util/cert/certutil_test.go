@@ -26,7 +26,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pavel-v-chernykh/keystore-go/v4"
+	"github.com/pavlo-v-chernykh/keystore-go/v4"
 
 	corev1 "k8s.io/api/core/v1"
 

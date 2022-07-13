@@ -20,7 +20,7 @@
 package v1alpha1
 
 import (
-	"github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
