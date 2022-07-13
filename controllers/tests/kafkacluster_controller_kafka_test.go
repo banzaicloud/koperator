@@ -170,7 +170,7 @@ cruise.control.metrics.reporter.kubernetes.mode=true
 inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:PLAINTEXT
 listeners=INTERNAL://:29092,CONTROLLER://:29093,TEST://:9094
-log.dirs=/kafka-logs/kafka
+log.dirs=/kafka-logs/kafka,/ephemeral-dir1/kafka
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 zookeeper.connect=/
 `, randomGenTestNumber, broker.Id, randomGenTestNumber, randomGenTestNumber, broker.Id, randomGenTestNumber, 19090+broker.Id, broker.Id)))
@@ -287,7 +287,7 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 			Value: "/opt/kafka/libs/extensions/*:/test/class/path",
 		},
 	))
-	Expect(container.VolumeMounts).To(HaveLen(8))
+	Expect(container.VolumeMounts).To(HaveLen(9))
 	Expect(container.VolumeMounts[0]).To(Equal(corev1.VolumeMount{
 		Name:      "a-test-volume",
 		MountPath: "/a/test/path",
@@ -312,18 +312,22 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 		Name:      "kafka-data-0",
 		MountPath: "/kafka-logs",
 	}))
-
 	Expect(container.VolumeMounts[6]).To(Equal(corev1.VolumeMount{
+		Name:      "kafka-data-1",
+		MountPath: "/ephemeral-dir1",
+	}))
+
+	Expect(container.VolumeMounts[7]).To(Equal(corev1.VolumeMount{
 		Name:      fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, kafkaCluster.Name),
 		MountPath: "/etc/jmx-exporter/",
 	}))
-	Expect(container.VolumeMounts[7]).To(Equal(corev1.VolumeMount{
+	Expect(container.VolumeMounts[8]).To(Equal(corev1.VolumeMount{
 		Name:      "test-volume",
 		MountPath: "/test/path",
 	}))
 
 	// test exact order, because if the slice reorders, it triggers another reconcile cycle
-	Expect(pod.Spec.Volumes).To(HaveLen(8))
+	Expect(pod.Spec.Volumes).To(HaveLen(9))
 	Expect(pod.Spec.Volumes[0]).To(Equal(
 		corev1.Volume{
 			Name: "a-test-volume",
@@ -368,6 +372,16 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 			Equal("kafka-data-0")))
 	Expect(pod.Spec.Volumes[6]).To(Equal(
 		corev1.Volume{
+			Name: "kafka-data-1",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					SizeLimit: util.QuantityPointer(resource.MustParse("100Mi")),
+				},
+			},
+		}),
+	)
+	Expect(pod.Spec.Volumes[7]).To(Equal(
+		corev1.Volume{
 			Name: fmt.Sprintf(kafkamonitoring.BrokerJmxTemplate, kafkaCluster.Name),
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -376,7 +390,7 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 				},
 			},
 		}))
-	Expect(pod.Spec.Volumes[7]).To(Equal(
+	Expect(pod.Spec.Volumes[8]).To(Equal(
 		corev1.Volume{
 			Name: "test-volume",
 			VolumeSource: corev1.VolumeSource{

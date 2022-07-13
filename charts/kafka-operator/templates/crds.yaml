@@ -4077,12 +4077,45 @@ spec:
                       items:
                         description: StorageConfig defines the broker storage configuration
                         properties:
+                          emptyDir:
+                            description: If set https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+                              is used as storage for Kafka broker log dirs. The use
+                              of empty dir as Kafka broker storage is useful in development
+                              environments where data loss is not a concern as data
+                              stored on emptydir backed storage is lost at pod restarts.
+                              Either `pvcSpec` or `emptyDir` has to be set. When both
+                              `pvcSpec` and `emptyDir` fields are set the `pvcSpec`
+                              is used by default.
+                            properties:
+                              medium:
+                                description: 'What type of storage medium should back
+                                  this directory. The default is "" which means to
+                                  use the node''s default medium. Must be an empty
+                                  string (default) or Memory. More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir'
+                                type: string
+                              sizeLimit:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: 'Total amount of local storage required
+                                  for this EmptyDir volume. The size limit is also
+                                  applicable for memory medium. The maximum usage
+                                  on memory medium EmptyDir would be the minimum value
+                                  between the SizeLimit specified here and the sum
+                                  of memory limits of all containers in a pod. The
+                                  default is nil which means that the limit is undefined.
+                                  More info: http://kubernetes.io/docs/user-guide/volumes#emptydir'
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                            type: object
                           mountPath:
                             type: string
                           pvcSpec:
-                            description: PersistentVolumeClaimSpec describes the common
-                              attributes of storage devices and allows a Source for
-                              provider-specific attributes
+                            description: If set https://kubernetes.io/docs/concepts/storage/volumes/#persistentvolumeclaim
+                              is used as storage for Kafka broker log dirs. Either
+                              `pvcSpec` or `emptyDir` has to be set. When both `pvcSpec`
+                              and `emptyDir` fields are set the `pvcSpec` is used
+                              by default.
                             properties:
                               accessModes:
                                 description: 'AccessModes contains the desired access
@@ -4260,7 +4293,6 @@ spec:
                             type: object
                         required:
                         - mountPath
-                        - pvcSpec
                         type: object
                       type: array
                     terminationGracePeriodSeconds:
@@ -10098,12 +10130,46 @@ spec:
                             description: StorageConfig defines the broker storage
                               configuration
                             properties:
+                              emptyDir:
+                                description: If set https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+                                  is used as storage for Kafka broker log dirs. The
+                                  use of empty dir as Kafka broker storage is useful
+                                  in development environments where data loss is not
+                                  a concern as data stored on emptydir backed storage
+                                  is lost at pod restarts. Either `pvcSpec` or `emptyDir`
+                                  has to be set. When both `pvcSpec` and `emptyDir`
+                                  fields are set the `pvcSpec` is used by default.
+                                properties:
+                                  medium:
+                                    description: 'What type of storage medium should
+                                      back this directory. The default is "" which
+                                      means to use the node''s default medium. Must
+                                      be an empty string (default) or Memory. More
+                                      info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir'
+                                    type: string
+                                  sizeLimit:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: 'Total amount of local storage required
+                                      for this EmptyDir volume. The size limit is
+                                      also applicable for memory medium. The maximum
+                                      usage on memory medium EmptyDir would be the
+                                      minimum value between the SizeLimit specified
+                                      here and the sum of memory limits of all containers
+                                      in a pod. The default is nil which means that
+                                      the limit is undefined. More info: http://kubernetes.io/docs/user-guide/volumes#emptydir'
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                type: object
                               mountPath:
                                 type: string
                               pvcSpec:
-                                description: PersistentVolumeClaimSpec describes the
-                                  common attributes of storage devices and allows
-                                  a Source for provider-specific attributes
+                                description: If set https://kubernetes.io/docs/concepts/storage/volumes/#persistentvolumeclaim
+                                  is used as storage for Kafka broker log dirs. Either
+                                  `pvcSpec` or `emptyDir` has to be set. When both
+                                  `pvcSpec` and `emptyDir` fields are set the `pvcSpec`
+                                  is used by default.
                                 properties:
                                   accessModes:
                                     description: 'AccessModes contains the desired
@@ -10291,7 +10357,6 @@ spec:
                                 type: object
                             required:
                             - mountPath
-                            - pvcSpec
                             type: object
                           type: array
                         terminationGracePeriodSeconds:
