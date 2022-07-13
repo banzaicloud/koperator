@@ -66,8 +66,9 @@ func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) 
 	}
 	fieldErrs, err := s.validateKafkaTopic(ctx, kafkaTopic)
 	if err != nil {
-		log.Error(err, "Could not validate kafkaTopic")
-		return apiErrors.NewInternalError(err)
+		errMsg := fmt.Sprintf("Error during validating kafkaTopic %s", kafkaTopic.Name)
+		log.Error(err, errMsg)
+		return apiErrors.NewInternalError(errors.WithMessage(err, errMsg))
 	}
 	if len(fieldErrs) == 0 {
 		return nil
