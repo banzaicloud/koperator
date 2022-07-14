@@ -21,7 +21,6 @@ import (
 )
 
 const (
-	unableToRecognizeMsg              = "requested object for validation could not be recognized"
 	cantConnectErrorMsg               = "failed to connect to kafka cluster"
 	cantConnectAPIServerMsg           = "failed to connect to Kubernetes API server"
 	invalidReplicationFactorErrMsg    = "replication factor is larger than the number of nodes in the kafka cluster"

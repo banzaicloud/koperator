@@ -26,21 +26,16 @@ import (
 	"github.com/go-logr/logr"
 )
 
+// +kubebuilder:webhook:verbs=update,path=/validate-kafka-banzaicloud-io-v1beta1-kafkacluster,mutating=false,failurePolicy=fail,groups=kafka.banzaicloud.io,resources=kafkaclusters,versions=v1beta1,name=kafkaclusters.kafka.banzaicloud.io,sideEffects=None,admissionReviewVersions=v1
+
 type KafkaClusterValidator struct {
 	Log logr.Logger
 }
 
 func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
 	var allErrs field.ErrorList
-	kafkaClusterOld, ok := oldObj.(*banzaicloudv1beta1.KafkaCluster)
-	if !ok {
-		s.Log.Info(unableToRecognizeMsg)
-		return apiErrors.NewBadRequest(unableToRecognizeMsg)
-	}
-	kafkaClusterNew, ok := newObj.(*banzaicloudv1beta1.KafkaCluster)
-	if !ok {
-		return apiErrors.NewBadRequest(unableToRecognizeMsg)
-	}
+	kafkaClusterOld := oldObj.(*banzaicloudv1beta1.KafkaCluster)
+	kafkaClusterNew := newObj.(*banzaicloudv1beta1.KafkaCluster)
 	log := s.Log.WithValues("name", kafkaClusterNew.GetName(), "namespace", kafkaClusterNew.GetNamespace())
 	fieldErr := checkBrokerStorageRemoval(&kafkaClusterOld.Spec, &kafkaClusterNew.Spec)
 	if fieldErr != nil {

@@ -35,6 +35,8 @@ import (
 	"github.com/banzaicloud/koperator/pkg/util"
 )
 
+// +kubebuilder:webhook:verbs=create;update,path=/validate-kafka.banzaicloud-io-v1alpha1-kafkatopic,mutating=false,failurePolicy=fail,groups=kafka.banzaicloud.io,resources=kafkatopics,versions=v1alpha1,name=kafkatopics.kafka.banzaicloud.io,sideEffects=None,admissionReviewVersions=v1
+
 type KafkaTopicValidator struct {
 	Client              client.Client
 	NewKafkaFromCluster func(client.Client, *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error)
@@ -54,11 +56,7 @@ func (s KafkaTopicValidator) ValidateDelete(ctx context.Context, obj runtime.Obj
 }
 
 func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) error {
-	kafkaTopic, ok := obj.(*banzaicloudv1alpha1.KafkaTopic)
-	if !ok {
-		s.Log.Info(unableToRecognizeMsg)
-		return apiErrors.NewBadRequest(unableToRecognizeMsg)
-	}
+	kafkaTopic := obj.(*banzaicloudv1alpha1.KafkaTopic)
 	log := s.Log.WithValues("name", kafkaTopic.GetName(), "namespace", kafkaTopic.GetNamespace())
 	fieldErrs, err := s.validateKafkaTopic(ctx, kafkaTopic, log)
 	if err != nil {

@@ -49,7 +49,7 @@ type KafkaTopicStatus struct {
 // KafkaTopic is the Schema for the kafkatopics API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:webhook:verbs=create;update,path=/validate-kafka.banzaicloud-io-v1alpha1-kafkatopic,mutating=false,failurePolicy=fail,groups=kafka.banzaicloud.io,resources=kafkatopics,versions=v1alpha1,name=kafkatopics.kafka.banzaicloud.io,sideEffects=None,admissionReviewVersions=v1
+
 type KafkaTopic struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
