@@ -1,4 +1,4 @@
-// Copyright © 2019 Banzai Cloud
+// Copyright © 2022 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import (
 type KafkaTopicValidator struct {
 	Client              client.Client
 	NewKafkaFromCluster func(client.Client, *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error)
+	Log                 logr.Logger
 }
 
 func (s KafkaTopicValidator) ValidateCreate(ctx context.Context, obj runtime.Object) error {
@@ -53,13 +54,12 @@ func (s KafkaTopicValidator) ValidateDelete(ctx context.Context, obj runtime.Obj
 }
 
 func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) error {
-	log = log.WithValues("KafkaTopic")
 	kafkaTopic, ok := obj.(*banzaicloudv1alpha1.KafkaTopic)
 	if !ok {
-		log.Info(unableToRecognizeMsg)
+		s.Log.Info(unableToRecognizeMsg)
 		return apiErrors.NewBadRequest(unableToRecognizeMsg)
 	}
-	log = log.WithValues("name", kafkaTopic.GetName(), "namespace", kafkaTopic.GetNamespace())
+	log := s.Log.WithValues("name", kafkaTopic.GetName(), "namespace", kafkaTopic.GetNamespace())
 	fieldErrs, err := s.validateKafkaTopic(ctx, kafkaTopic, log)
 	if err != nil {
 		errMsg := fmt.Sprintf("error during validating kafkaTopic %s", kafkaTopic.Name)

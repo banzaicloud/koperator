@@ -11,17 +11,16 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate
+      path: /validate-kafka-banzaicloud-io-v1beta1-kafkacluster
   failurePolicy: Fail
-  name: kafkatopics.kafka.banzaicloud.io
+  name: kafkaclusters.kafka.banzaicloud.io
   rules:
   - apiGroups:
     - kafka.banzaicloud.io
     apiVersions:
-    - v1alpha1
+    - v1beta1
     operations:
-    - CREATE
     - UPDATE
     resources:
-    - kafkatopics
+    - kafkaclusters
   sideEffects: None

@@ -1,4 +1,4 @@
-// Copyright © 2019 Banzai Cloud
+// Copyright © 2022 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,31 +21,27 @@ import (
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
-)
-
-var (
-	log = logf.Log.WithName("webhooks")
+	"github.com/go-logr/logr"
 )
 
 type KafkaClusterValidator struct {
+	Log logr.Logger
 }
 
 func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
-	log := log.WithValues("KafkaCluster")
 	var allErrs field.ErrorList
 	kafkaClusterOld, ok := oldObj.(*banzaicloudv1beta1.KafkaCluster)
 	if !ok {
-		log.Info(unableToRecognizeMsg)
+		s.Log.Info(unableToRecognizeMsg)
 		return apiErrors.NewBadRequest(unableToRecognizeMsg)
 	}
 	kafkaClusterNew, ok := newObj.(*banzaicloudv1beta1.KafkaCluster)
 	if !ok {
 		return apiErrors.NewBadRequest(unableToRecognizeMsg)
 	}
-	log = log.WithValues("name", kafkaClusterNew.GetName(), "namespace", kafkaClusterNew.GetNamespace())
+	log := s.Log.WithValues("name", kafkaClusterNew.GetName(), "namespace", kafkaClusterNew.GetNamespace())
 	fieldErr := checkBrokerStorageRemoval(&kafkaClusterOld.Spec, &kafkaClusterNew.Spec)
 	if fieldErr != nil {
 		allErrs = append(allErrs, fieldErr)
