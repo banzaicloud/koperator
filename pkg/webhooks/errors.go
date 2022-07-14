@@ -20,7 +20,15 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-// TODO (tinyzimmer): This may be better suited for the errorfactory package
+const (
+	unableToRecognizeMsg              = "requested object for validation could not be recognized"
+	cantConnectErrorMsg               = "failed to connect to kafka cluster"
+	cantConnectAPIServerMsg           = "failed to connect to Kubernetes API server"
+	invalidReplicationFactorErrMsg    = "replication factor is larger than the number of nodes in the kafka cluster"
+	outOfRangeReplicationFactorErrMsg = "replication factor must be larger than 0 (or set it to be -1 to use the broker's default)"
+	outOfRangePartitionsErrMsg        = "number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)"
+	rejectingFieldsMsg                = "rejecting because invalid field(s): %s"
+)
 
 func IsAdmissionCantConnect(err error) bool {
 	if apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectErrorMsg) {

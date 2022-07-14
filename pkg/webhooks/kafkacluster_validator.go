@@ -34,16 +34,18 @@ type KafkaClusterValidator struct {
 }
 
 func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+	log := log.WithValues("KafkaCluster")
 	var allErrs field.ErrorList
 	kafkaClusterOld, ok := oldObj.(*banzaicloudv1beta1.KafkaCluster)
 	if !ok {
-		return apiErrors.NewBadRequest("Requested object for validation could not be recognized")
+		log.Info(unableToRecognizeMsg)
+		return apiErrors.NewBadRequest(unableToRecognizeMsg)
 	}
 	kafkaClusterNew, ok := newObj.(*banzaicloudv1beta1.KafkaCluster)
 	if !ok {
-		return apiErrors.NewBadRequest("Requested object for validation could not be recognized")
+		return apiErrors.NewBadRequest(unableToRecognizeMsg)
 	}
-	//logV = log.WithValues("name",kafkaClusterNew.GetName(),"namespace")
+	log = log.WithValues("name", kafkaClusterNew.GetName(), "namespace", kafkaClusterNew.GetNamespace())
 	fieldErr := checkBrokerStorageRemoval(&kafkaClusterOld.Spec, &kafkaClusterNew.Spec)
 	if fieldErr != nil {
 		allErrs = append(allErrs, fieldErr)
@@ -51,7 +53,7 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	if len(allErrs) == 0 {
 		return nil
 	}
-	log.Info(fmt.Sprintf("Rejecting kafkaCluster because invalid field(s): %s", allErrs.ToAggregate().Error()))
+	log.Info(fmt.Sprintf(rejectingFieldsMsg, allErrs.ToAggregate().Error()))
 	return apiErrors.NewInvalid(
 		kafkaClusterNew.GroupVersionKind().GroupKind(),
 		kafkaClusterNew.Name, allErrs)

@@ -27,60 +27,54 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
-	"github.com/banzaicloud/koperator/api/v1beta1"
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/util"
-)
-
-const (
-	cantConnectErrorMsg               = "failed to connect to kafka cluster"
-	cantConnectAPIServerMsg           = "failed to connect to Kubernetes API server"
-	invalidReplicationFactorErrMsg    = "replication factor is larger than the number of nodes in the kafka cluster"
-	outOfRangeReplicationFactorErrMsg = "replication factor must be larger than 0 (or set it to be -1 to use the broker's default)"
-	outOfRangePartitionsErrMsg        = "number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)"
+	"github.com/go-logr/logr"
 )
 
 type KafkaTopicValidator struct {
 	Client              client.Client
-	NewKafkaFromCluster func(client.Client, *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error)
+	NewKafkaFromCluster func(client.Client, *banzaicloudv1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error)
 }
 
 func (s KafkaTopicValidator) ValidateCreate(ctx context.Context, obj runtime.Object) error {
 	return s.validate(ctx, obj)
 }
 
+func (s KafkaTopicValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+	return s.validate(ctx, newObj)
+}
+
 func (s KafkaTopicValidator) ValidateDelete(ctx context.Context, obj runtime.Object) error {
 	return nil
 }
 
-func (s KafkaTopicValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
-	return s.validate(ctx, newObj)
-}
 func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) error {
-	log.Info("Validating webhook kafkaTopic")
+	log = log.WithValues("KafkaTopic")
 	kafkaTopic, ok := obj.(*banzaicloudv1alpha1.KafkaTopic)
 	if !ok {
-		return apiErrors.NewBadRequest("Requested object for validation could not be recognized")
+		log.Info(unableToRecognizeMsg)
+		return apiErrors.NewBadRequest(unableToRecognizeMsg)
 	}
-	fieldErrs, err := s.validateKafkaTopic(ctx, kafkaTopic)
+	log = log.WithValues("name", kafkaTopic.GetName(), "namespace", kafkaTopic.GetNamespace())
+	fieldErrs, err := s.validateKafkaTopic(ctx, kafkaTopic, log)
 	if err != nil {
-		errMsg := fmt.Sprintf("Error during validating kafkaTopic %s", kafkaTopic.Name)
+		errMsg := fmt.Sprintf("error during validating kafkaTopic %s", kafkaTopic.Name)
 		log.Error(err, errMsg)
 		return apiErrors.NewInternalError(errors.WithMessage(err, errMsg))
 	}
 	if len(fieldErrs) == 0 {
 		return nil
 	}
-	log.Info(fmt.Sprintf("Rejecting kafkaTopic because invalid field(s): %s", fieldErrs.ToAggregate().Error()))
+	log.Info(fmt.Sprintf(rejectingFieldsMsg, fieldErrs.ToAggregate().Error()))
 	return apiErrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 }
 
-func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *banzaicloudv1alpha1.KafkaTopic) (field.ErrorList, error) {
-	//log.Info(fmt.Sprintf("Doing pre-admission validation of kafka topic %s", topic.Spec.Name))
+func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *banzaicloudv1alpha1.KafkaTopic, log logr.Logger) (field.ErrorList, error) {
 	var allErrs field.ErrorList
 	var logMsg string
 	// First check if the kafkatopic is valid
@@ -115,8 +109,7 @@ func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *ban
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("clusterRef").Child("name"), clusterName, logMsg))
 	}
 	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
-		// Let this through, it's a delete topic request from a parent cluster being
-		// deleted
+		// Let this through, it's a delete topic request from a parent cluster being deleted
 		log.Info("Cluster is going down for deletion, assuming a delete topic request")
 		return nil, nil
 	}
