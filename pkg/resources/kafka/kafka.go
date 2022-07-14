@@ -962,15 +962,17 @@ func (r *Reconciler) reconcileKafkaPvc(ctx context.Context, log logr.Logger, bro
 		)
 
 		log = log.WithValues("kind", desiredType)
-		log.V(1).Info("searching with label because name is empty")
-		err := r.Client.List(ctx, pvcList,
-			client.InNamespace(r.KafkaCluster.GetNamespace()), matchingLabels)
-		if err != nil {
-			return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
-		}
 
 		for _, desiredPvc := range desiredPvcs {
 			currentPvc := desiredPvc.DeepCopy()
+			log.V(1).Info("searching with label because name is empty")
+
+			err := r.Client.List(ctx, pvcList,
+				client.InNamespace(r.KafkaCluster.GetNamespace()), matchingLabels)
+			if err != nil {
+				return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
+			}
+
 			mountPath := currentPvc.Annotations["mountPath"]
 			// Creating the first PersistentVolume For Pod
 			if len(pvcList.Items) == 0 {

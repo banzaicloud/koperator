@@ -90,6 +90,10 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 									},
 								},
 							},
+							// emptyDir should be ignored as pvcSpec has prio
+							EmptyDir: &corev1.EmptyDirVolumeSource{
+								SizeLimit: util.QuantityPointer(resource.MustParse("20Mi")),
+							},
 						},
 						{
 							MountPath: "/ephemeral-dir1",

@@ -365,7 +365,8 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim, stora
 	// emptyDir volume mounts
 	var emptyDirs []v1beta1.StorageConfig
 	for i := range storageConfigs {
-		if storageConfigs[i].EmptyDir != nil {
+		if storageConfigs[i].PvcSpec == nil && storageConfigs[i].EmptyDir != nil {
+			// pvcSpec has priority over emptyDir and pvcs are handled already above
 			emptyDirs = append(emptyDirs, storageConfigs[i])
 		}
 	}
