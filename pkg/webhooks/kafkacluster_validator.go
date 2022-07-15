@@ -22,8 +22,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/go-logr/logr"
+
+	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 // +kubebuilder:webhook:verbs=update,path=/validate-kafka-banzaicloud-io-v1beta1-kafkacluster,mutating=false,failurePolicy=fail,groups=kafka.banzaicloud.io,resources=kafkaclusters,versions=v1beta1,name=kafkaclusters.kafka.banzaicloud.io,sideEffects=None,admissionReviewVersions=v1
@@ -44,7 +45,7 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	if len(allErrs) == 0 {
 		return nil
 	}
-	log.Info(fmt.Sprintf(rejectingFieldsMsg, allErrs.ToAggregate().Error()))
+	log.Info("rejected", "invalid field(s)", allErrs.ToAggregate().Error())
 	return apiErrors.NewInvalid(
 		kafkaClusterNew.GroupVersionKind().GroupKind(),
 		kafkaClusterNew.Name, allErrs)

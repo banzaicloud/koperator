@@ -67,7 +67,7 @@ func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) 
 	if len(fieldErrs) == 0 {
 		return nil
 	}
-	log.Info(fmt.Sprintf(rejectingFieldsMsg, fieldErrs.ToAggregate().Error()))
+	log.Info("rejected", "invalid field(s)", fieldErrs.ToAggregate().Error())
 	return apiErrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
@@ -221,7 +221,7 @@ func (s *KafkaTopicValidator) checkExistingKafkaTopicCRs(ctx context.Context,
 		}
 	}
 	if foundKafkaTopic != nil {
-		logMsg := fmt.Sprintf("kafkaTopic CR '%s' in namesapce '%s' is already referencing Kafka topic '%s'",
+		logMsg := fmt.Sprintf("kafkaTopic CR '%s' in namesapce '%s' is already referencing to Kafka topic '%s'",
 			foundKafkaTopic.Name, foundKafkaTopic.Namespace, foundKafkaTopic.Spec.Name)
 		return field.Invalid(field.NewPath("spec").Child("name"), foundKafkaTopic.Spec.Name, logMsg), nil
 	}

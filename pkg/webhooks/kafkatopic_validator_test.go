@@ -26,11 +26,12 @@ import (
 
 	//nolint:staticcheck
 
+	"github.com/go-logr/logr"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
-	"github.com/go-logr/logr"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func newMockCluster() *v1beta1.KafkaCluster {
@@ -61,9 +62,8 @@ func newMockTopic() *v1alpha1.KafkaTopic {
 
 func newMockClients(cluster *v1beta1.KafkaCluster) (runtimeClient.WithWatch, kafkaclient.KafkaClient, func(client runtimeClient.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error)) {
 	scheme := runtime.NewScheme()
-
-	v1beta1.AddToScheme(scheme)
-	v1alpha1.AddToScheme(scheme)
+	_ = v1beta1.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 	kafkaClient, _, _ := kafkaclient.NewMockFromCluster(client, cluster)
 	returnMockedKafkaClient := func(client runtimeClient.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error) {

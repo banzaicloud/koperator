@@ -26,7 +26,6 @@ const (
 	invalidReplicationFactorErrMsg    = "replication factor is larger than the number of nodes in the kafka cluster"
 	outOfRangeReplicationFactorErrMsg = "replication factor must be larger than 0 (or set it to be -1 to use the broker's default)"
 	outOfRangePartitionsErrMsg        = "number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)"
-	rejectingFieldsMsg                = "rejecting because invalid field(s): %s"
 )
 
 func IsAdmissionCantConnect(err error) bool {
