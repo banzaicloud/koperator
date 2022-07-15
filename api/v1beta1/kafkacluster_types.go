@@ -280,8 +280,13 @@ type EnvoyConfig struct {
 	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
 	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 	// Annotations defines the annotations placed on the envoy ingress controller deployment
-	Annotations              map[string]string `json:"annotations,omitempty"`
-	LoadBalancerSourceRanges []string          `json:"loadBalancerSourceRanges,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// If specified and supported by the platform, traffic through the
+	// cloud-provider load-balancer will be restricted to the specified client
+	// IPs. This field will be ignored if the
+	// cloud-provider does not support the feature."
+	// More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/
+	LoadBalancerSourceRanges []string `json:"loadBalancerSourceRanges,omitempty"`
 	// LoadBalancerIP can be used to specify an exact IP for the LoadBalancer service
 	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
 	// Envoy admin port
@@ -318,6 +323,13 @@ type IstioIngressConfig struct {
 	VirtualServiceAnnotations map[string]string   `json:"virtualServiceAnnotations,omitempty"`
 	// Envs allows to add additional env vars to the istio meshgateway resource
 	Envs []corev1.EnvVar `json:"envs,omitempty"`
+	// If specified and supported by the platform, traffic through the
+	// cloud-provider load-balancer will be restricted to the specified client
+	// IPs. This field will be ignored if the
+	// cloud-provider does not support the feature."
+	// More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/
+	// +optional
+	LoadBalancerSourceRanges []string `json:"loadBalancerSourceRanges,omitempty"`
 }
 
 func (iIConfig *IstioIngressConfig) GetAnnotations() map[string]string {
@@ -327,6 +339,11 @@ func (iIConfig *IstioIngressConfig) GetAnnotations() map[string]string {
 // GetVirtualServiceAnnotations returns a copy of the VirtualServiceAnnotations field
 func (iIConfig *IstioIngressConfig) GetVirtualServiceAnnotations() map[string]string {
 	return util.CloneMap(iIConfig.VirtualServiceAnnotations)
+}
+
+// GetLoadBalancerSourceRanges returns LoadBalancerSourceRanges to use for Istio Meshagetway generated LoadBalancer
+func (iIConfig *IstioIngressConfig) GetLoadBalancerSourceRanges() []string {
+	return iIConfig.LoadBalancerSourceRanges
 }
 
 // MonitoringConfig defines the config for monitoring Kafka and Cruise Control

@@ -22,28 +22,35 @@ spec:
     labels:
       - "failure-domain.beta.kubernetes.io/region"
       - "failure-domain.beta.kubernetes.io/zone"
+
   # oneBrokerPerNode if set to true every broker is started on a new node, if there is not enough node to do that
   # it will stay in pending state. If set to false the operator also tries to schedule the brokers to a unique node
   # but if the node number is insufficient the brokers will be scheduled to a node where a broker is already running.
   oneBrokerPerNode: false
+
   # Specify the Kafka Broker related settings
   # clusterImage can specify the whole kafkacluster image in one place
   #clusterImage: "ghcr.io/banzaicloud/kafka:2.13-3.1.0
-  # readOnlyConfig specifies the read-only type kafka config cluster wide, all these will be merged with broker specified
-  # readOnly configurations, so it can be overwritten per broker.
+
   #clusterWideConfig specifies the cluster-wide kafka config cluster wide, all these can be overridden per-broker
   #clusterWideConfig: |
   #  background.threads=10
+
+  # readOnlyConfig specifies the read-only type kafka config cluster wide, all these will be merged with broker specified
+  # readOnly configurations, so it can be overwritten per broker.
   #readOnlyConfig: |
   #  auto.create.topics.enable=false
-  # brokerConfigGroups specifies multiple broker configs with unique name
+
   #rollingUpgradeConfig specifies the rolling upgrade config for the cluster
   #rollingUpgradeConfig:
-  #failureThreshold controls how many failures the cluster can tolerate during a rolling upgrade. Once the number of
+
+  # failureThreshold controls how many failures the cluster can tolerate during a rolling upgrade. Once the number of
   # failures reaches this threshold a rolling upgrade flow stops. The number of failures is computed as the sum of
   #	distinct broker replicas with either offline replicas or out of sync replicas and the number of alerts triggered by
   #	alerts with 'rollingupgrade'
   #  failureThreshold: 1
+
+  # brokerConfigGroups specifies multiple broker configs with unique name
   brokerConfigGroups:
     # Specify desired group name (eg., 'default_group')
     default_group:
@@ -204,9 +211,11 @@ spec:
               # In case of external listeners using NodePort access method the broker instead of node public IP (see "brokerConfig.nodePortExternalIP")
               # is advertised on the address having the following format: <kafka-cluster-name>-<broker-id>.<namespace><value-specified-in-hostnameOverride-field>
               # hostnameOverride:
+
               # ServiceAnnotations defines annotations which will
               # be placed to the service or services created for the external listener
               # serviceAnnotations:
+
               # externalTrafficPolicy denotes if this Service desires to route external
               # traffic to node-local or cluster-wide endpoints. "Local" preserves the
               # client source IP and avoids a second hop for LoadBalancer and Nodeport
@@ -214,10 +223,12 @@ spec:
               # "Cluster" obscures the client source IP and may cause a second hop to
               # another node, but should have good overall load-spreading.
               # externalTrafficPolicy:
+
               # Service Type string describes ingress methods for a service
               # Only "NodePort" and "LoadBalancer" is supported.
               # Default value is LoadBalancer
               # serviceType:
+
               # envoyConfig defines the envoy specific config used for ingress-az1 external listener
               envoyConfig:
                 #  replicas describes how many pods will be used for the created envoy proxy
@@ -241,14 +252,18 @@ spec:
                 # nodeSelector:
                 # tolerations can be specified, which set the pod's tolerations
                 # tolerations:
-                # annotations can be used to place annotation to the envoy created loadbalancer
+                # annotations defines the annotations placed on the envoy ingress controller deployment
                  annotations:
                    az1
-                # loadBalancerSourceRanges refers to the k8s resource used in loadbalancer type services
+                # If specified and supported by the platform, traffic through the
+                # cloud-provider load-balancer will be restricted to the specified client
+                # IPs. This field will be ignored if the
+                # cloud-provider does not support the feature."
+                # More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/
                 # loadBalancerSourceRanges:
             ingress-az1-istio:
               istioIngressConfig:
-                # annotations can be used to place annotation to the envoy created loadbalancer
+                # annotations can be used to place annotations on the istio ingress controller deployment
                 annotations:
                   istio-az1
                 # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
@@ -262,14 +277,27 @@ spec:
                 #    cpu: "200m"
                 #  replicas describes how many pods will be used for the created envoy proxy
                 #  replicas: 1
+
                 # nodeSelector can be specified, which set the pod to fit on a node
                 # nodeSelector:
+
                 # tolerations can be specified, which set the pod's tolerations
                 # tolerations:
+
                 # allows to set the created gateway configuration
                 # gatewayConfig:
+
                 # annotations will be placed on the created virtual service
                 # virtualServiceAnnotations:
+
+                # annotations defines the annotations placed on the envoy ingress controller deployment
+                # annotations:
+
+                # If specified and supported by the platform, this will restrict traffic through the cloud-provider
+                # load-balancer will be restricted to the specified client IPs. This field will be ignored if the
+                # cloud-provider does not support the feature."
+                # More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/
+                # loadBalancerSourceRanges:
     # internalListeners specifies settings required to access kafka externally
     internalListeners:
       # type defines the used security type ssl, plaintext, sasl_plaintext, sasl_ssl
@@ -324,10 +352,15 @@ spec:
   #nodeSelector:
   # tolerations can be specified, which set the pod's tolerations
   #tolerations:
-  # annotations can be used to place annotation to the envoy created loadbalancer
+  # annotations defines the annotations placed on the envoy ingress controller deployment
   #annotations:
-  # loadBalancerSourceRanges refers to the k8s resource used in loadbalancer type services
-  #loadBalancerSourceRanges:
+
+  # If specified and supported by the platform, this will restrict traffic through the cloud-provider
+  # load-balancer will be restricted to the specified client IPs. This field will be ignored if the
+  # cloud-provider does not support the feature."
+  # More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/
+  # loadBalancerSourceRanges:
+
   # cruiseControlConfig describes the cruise control related configuration
   cruiseControlConfig:
     # image describes the CC docker image
