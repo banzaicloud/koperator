@@ -32,7 +32,7 @@ import (
 )
 
 func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
-	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
+	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName, istioRevision string) runtime.Object {
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, externalListenerConfig.Name)
 
 	var meshgatewayName string
@@ -46,11 +46,11 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 	mgateway := &istioOperatorApi.IstioMeshGateway{
 		ObjectMeta: templates.ObjectMeta(
 			meshgatewayName,
-			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName), r.KafkaCluster),
+			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName, istioRevision), r.KafkaCluster),
 		Spec: &istioOperatorApi.IstioMeshGatewaySpec{
 			Deployment: &istioOperatorApi.BaseKubernetesResourceConfig{
 				Metadata: &istioOperatorApi.K8SObjectMeta{
-					Labels:      labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName),
+					Labels:      labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName, istioRevision),
 					Annotations: ingressConfig.IstioIngressConfig.GetAnnotations(),
 				},
 				Env:          ingressConfig.IstioIngressConfig.Envs,

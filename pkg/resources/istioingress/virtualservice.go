@@ -29,7 +29,7 @@ import (
 )
 
 func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
-	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
+	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName, istioRevision string) runtime.Object {
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, externalListenerConfig.Name)
 
 	var gatewayName, virtualSName string
@@ -56,7 +56,7 @@ func (r *Reconciler) virtualService(log logr.Logger, externalListenerConfig v1be
 	return &istioclientv1beta1.VirtualService{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			virtualSName,
-			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName),
+			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName, istioRevision),
 			ingressConfig.IstioIngressConfig.GetVirtualServiceAnnotations(),
 			r.KafkaCluster),
 		Spec: vServiceSpec,

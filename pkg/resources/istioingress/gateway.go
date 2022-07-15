@@ -29,7 +29,7 @@ import (
 )
 
 func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.ExternalListenerConfig,
-	ingressConf v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
+	ingressConf v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName, istioRevision string) runtime.Object {
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, externalListenerConfig.Name)
 
 	var gatewayName string
@@ -40,9 +40,9 @@ func (r *Reconciler) gateway(log logr.Logger, externalListenerConfig v1beta1.Ext
 	}
 	return &istioclientv1beta1.Gateway{
 		ObjectMeta: templates.ObjectMeta(gatewayName,
-			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName), r.KafkaCluster),
+			labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName, istioRevision), r.KafkaCluster),
 		Spec: istioclientv1beta1.GatewaySpec{
-			Selector: labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName),
+			Selector: labelsForIstioIngress(r.KafkaCluster.Name, eListenerLabelName, istioRevision),
 			Servers: generateServers(r.KafkaCluster, externalListenerConfig, log, ingressConf,
 				ingressConfigName, defaultIngressConfigName),
 		},
