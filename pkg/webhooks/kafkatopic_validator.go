@@ -106,6 +106,8 @@ func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *ban
 		}
 		logMsg = fmt.Sprintf("kafkaCluster '%s' in the namespace '%s' does not exist", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace)
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("clusterRef").Child("name"), clusterName, logMsg))
+		// retrun is needed here because later this cluster is used for further checks but it is nil
+		return allErrs, nil
 	}
 	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
 		// Let this through, it's a delete topic request from a parent cluster being deleted
