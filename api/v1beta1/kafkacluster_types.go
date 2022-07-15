@@ -281,7 +281,7 @@ type EnvoyConfig struct {
 	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 	// Annotations defines the annotations placed on the envoy ingress controller deployment
 	Annotations map[string]string `json:"annotations,omitempty"`
-	// If specified and supported by the platform, traffic through the 
+	// If specified and supported by the platform, traffic through the
 	// cloud-provider load-balancer will be restricted to the specified client
 	// IPs. This field will be ignored if the
 	// cloud-provider does not support the feature."
@@ -323,7 +323,7 @@ type IstioIngressConfig struct {
 	VirtualServiceAnnotations map[string]string   `json:"virtualServiceAnnotations,omitempty"`
 	// Envs allows to add additional env vars to the istio meshgateway resource
 	Envs []corev1.EnvVar `json:"envs,omitempty"`
-	// If specified and supported by the platform, traffic through the 
+	// If specified and supported by the platform, traffic through the
 	// cloud-provider load-balancer will be restricted to the specified client
 	// IPs. This field will be ignored if the
 	// cloud-provider does not support the feature."
