@@ -16428,11 +16428,10 @@ spec:
                       for the LoadBalancer service
                     type: string
                   loadBalancerSourceRanges:
-                    description: 'If specified and supported by the platform, this
-                      will restrict traffic through the cloud-provider load-balancer
-                      will be restricted to the specified client IPs. This field will
-                      be ignored if the cloud-provider does not support the feature."
-                      More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
+                    description: 'If specified and supported by the platform, traffic
+                      through the cloud-provider load-balancer will be restricted
+                      to the specified client IPs. This field will be ignored if the
+                      cloud-provider does not support the feature." More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
                     items:
                       type: string
                     type: array
@@ -16991,11 +16990,10 @@ spec:
                         type: array
                     type: object
                   loadBalancerSourceRanges:
-                    description: 'If specified and supported by the platform, this
-                      will restrict traffic through the cloud-provider load-balancer
-                      will be restricted to the specified client IPs. This field will
-                      be ignored if the cloud-provider does not support the feature."
-                      More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
+                    description: 'If specified and supported by the platform, traffic
+                      through the cloud-provider load-balancer will be restricted
+                      to the specified client IPs. This field will be ignored if the
+                      cloud-provider does not support the feature." More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
                     items:
                       type: string
                     type: array
@@ -18415,12 +18413,11 @@ spec:
                                         type: string
                                       loadBalancerSourceRanges:
                                         description: 'If specified and supported by
-                                          the platform, this will restrict traffic
-                                          through the cloud-provider load-balancer
-                                          will be restricted to the specified client
-                                          IPs. This field will be ignored if the cloud-provider
-                                          does not support the feature." More info:
-                                          https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
+                                          the platform, traffic through the cloud-provider
+                                          load-balancer will be restricted to the
+                                          specified client IPs. This field will be
+                                          ignored if the cloud-provider does not support
+                                          the feature." More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
                                         items:
                                           type: string
                                         type: array
@@ -18983,12 +18980,11 @@ spec:
                                         type: object
                                       loadBalancerSourceRanges:
                                         description: 'If specified and supported by
-                                          the platform, this will restrict traffic
-                                          through the cloud-provider load-balancer
-                                          will be restricted to the specified client
-                                          IPs. This field will be ignored if the cloud-provider
-                                          does not support the feature." More info:
-                                          https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
+                                          the platform, traffic through the cloud-provider
+                                          load-balancer will be restricted to the
+                                          specified client IPs. This field will be
+                                          ignored if the cloud-provider does not support
+                                          the feature." More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
                                         items:
                                           type: string
                                         type: array
