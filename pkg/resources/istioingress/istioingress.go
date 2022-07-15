@@ -15,7 +15,11 @@
 package istioingress
 
 import (
+	"strings"
+
 	"emperror.dev/errors"
+
+	istioOperatorApi "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
@@ -39,8 +43,12 @@ const (
 
 // labelsForIstioIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
-func labelsForIstioIngress(crName, eLName string) map[string]string {
-	return map[string]string{"app": "istioingress", "eListenerName": eLName, "kafka_cr": crName}
+func labelsForIstioIngress(crName, eLName, istioRevision string) map[string]string {
+	labels := map[string]string{"app": "istioingress", "eListenerName": eLName, "kafka_cr": crName}
+	if istioRevision != "" {
+		labels["istio.io/rev"] = istioRevision
+	}
+	return labels
 }
 
 // Reconciler implements the Component Reconciler
@@ -69,6 +77,11 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					log.Error(errors.NewPlain("reference to Istio Control Plane is missing"), "skip external listener reconciliation", "external listener", eListener.Name)
 					continue
 				}
+
+				istioRevision := istioOperatorApi.NamespacedRevision(
+					strings.ReplaceAll(r.KafkaCluster.Spec.IstioControlPlane.Name, ".", "-"),
+					r.KafkaCluster.Spec.IstioControlPlane.Namespace)
+
 				ingressConfigs, defaultControllerName, err := util.GetIngressConfigs(r.KafkaCluster.Spec, eListener)
 				if err != nil {
 					return err
@@ -77,12 +90,12 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					if !util.IsIngressConfigInUse(name, defaultControllerName, r.KafkaCluster, log) {
 						continue
 					}
-					for _, res := range []resources.ResourceWithLogAndExternalListenerSpecificInfos{
+					for _, res := range []resources.ResourceWithLogAndExternalListenerSpecificInfosAndIstioRevision{
 						r.meshgateway,
 						r.gateway,
 						r.virtualService,
 					} {
-						o := res(log, eListener, ingressConfig, name, defaultControllerName)
+						o := res(log, eListener, ingressConfig, name, defaultControllerName, istioRevision)
 						err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 						if err != nil {
 							return err
