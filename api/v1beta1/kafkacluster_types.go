@@ -323,8 +323,9 @@ type IstioIngressConfig struct {
 	VirtualServiceAnnotations map[string]string   `json:"virtualServiceAnnotations,omitempty"`
 	// Envs allows to add additional env vars to the istio meshgateway resource
 	Envs []corev1.EnvVar `json:"envs,omitempty"`
-	// If specified and supported by the platform, this will restrict traffic through the cloud-provider
-	// load-balancer will be restricted to the specified client IPs. This field will be ignored if the
+	// If specified and supported by the platform, traffic through the 
+	// cloud-provider load-balancer will be restricted to the specified client
+	// IPs. This field will be ignored if the
 	// cloud-provider does not support the feature."
 	// More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/
 	// +optional
