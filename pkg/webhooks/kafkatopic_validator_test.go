@@ -87,6 +87,7 @@ func TestValidateTopic(t *testing.T) {
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
+
 	// Test kafka topic with invalid partitions, and replicas, and not found cluster
 	if len(fieldErrorList) != 3 {
 		t.Errorf("there should be 3 invalid field, got %d", len(fieldErrorList))
