@@ -80,7 +80,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 		}
 	}
 
-	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs)
+	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs, brokerConfig.StorageConfigs)
 
 	// TODO remove this bash envoy sidecar checker script once sidecar precedence becomes available to Kubernetes(baluchicken)
 	command := []string{"bash", "-c", envoySidecarScript}
@@ -342,9 +342,13 @@ func generatePodAntiAffinity(clusterName string, hardRuleEnabled bool) *corev1.P
 	return &podAntiAffinity
 }
 
-func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volume []corev1.Volume, volumeMount []corev1.VolumeMount) {
+func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim, storageConfigs []v1beta1.StorageConfig) ([]corev1.Volume, []corev1.VolumeMount) {
+	var volumes []corev1.Volume
+	var volumeMounts []corev1.VolumeMount
+
+	// PVC volume mount (pvcs are already sorted by pvc name in 'getCreatedPvcForBroker' function
 	for i, pvc := range pvcs {
-		volume = append(volume, corev1.Volume{
+		volumes = append(volumes, corev1.Volume{
 			Name: fmt.Sprintf(kafkaDataVolumeMount+"-%d", i),
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
@@ -352,12 +356,40 @@ func generateDataVolumeAndVolumeMount(pvcs []corev1.PersistentVolumeClaim) (volu
 				},
 			},
 		})
-		volumeMount = append(volumeMount, corev1.VolumeMount{
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      fmt.Sprintf(kafkaDataVolumeMount+"-%d", i),
 			MountPath: pvc.Annotations["mountPath"],
 		})
 	}
-	return
+
+	// emptyDir volume mounts
+	var emptyDirs []v1beta1.StorageConfig
+	for i := range storageConfigs {
+		if storageConfigs[i].PvcSpec == nil && storageConfigs[i].EmptyDir != nil {
+			// pvcSpec has priority over emptyDir and pvcs are handled already above
+			emptyDirs = append(emptyDirs, storageConfigs[i])
+		}
+	}
+	sort.Slice(emptyDirs, func(i, j int) bool {
+		return emptyDirs[i].MountPath < emptyDirs[j].MountPath
+	})
+
+	offset := len(volumes)
+	for i := range emptyDirs {
+		j := i + offset
+		volumes = append(volumes, corev1.Volume{
+			Name: fmt.Sprintf(kafkaDataVolumeMount+"-%d", j),
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: emptyDirs[i].EmptyDir,
+			},
+		})
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      fmt.Sprintf(kafkaDataVolumeMount+"-%d", j),
+			MountPath: emptyDirs[i].MountPath,
+		})
+	}
+
+	return volumes, volumeMounts
 }
 
 func generateVolumeForListenersCertsFromCommonSpec(commonSpec v1beta1.CommonListenerSpec, clusterName string) corev1.Volume {

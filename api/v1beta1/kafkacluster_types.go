@@ -339,8 +339,23 @@ type MonitoringConfig struct {
 
 // StorageConfig defines the broker storage configuration
 type StorageConfig struct {
-	MountPath string                            `json:"mountPath"`
-	PvcSpec   *corev1.PersistentVolumeClaimSpec `json:"pvcSpec"`
+	MountPath string `json:"mountPath"`
+
+	// If set https://kubernetes.io/docs/concepts/storage/volumes/#persistentvolumeclaim is used
+	// as storage for Kafka broker log dirs. Either `pvcSpec` or `emptyDir` has to be set.
+	// When both `pvcSpec` and `emptyDir` fields are set
+	// the `pvcSpec` is used by default.
+	// +optional
+	PvcSpec *corev1.PersistentVolumeClaimSpec `json:"pvcSpec,omitempty"`
+
+	// If set https://kubernetes.io/docs/concepts/storage/volumes#emptydir is used
+	// as storage for Kafka broker log dirs. The use of empty dir as Kafka broker storage is useful in development
+	// environments where data loss is not a concern as data stored on emptydir backed storage is lost at pod restarts.
+	// Either `pvcSpec` or `emptyDir` has to be set.
+	// When both `pvcSpec` and `emptyDir` fields are set
+	// the `pvcSpec` is used by default.
+	// +optional
+	EmptyDir *corev1.EmptyDirVolumeSource `json:"emptyDir,omitempty"`
 }
 
 // ListenersConfig defines the Kafka listener types

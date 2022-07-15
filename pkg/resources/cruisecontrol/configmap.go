@@ -348,7 +348,12 @@ func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 }
 
 func parseMountPathWithSize(storage v1beta1.StorageConfig) int64 {
-	q := util.QuantityPointer(storage.PvcSpec.Resources.Requests["storage"])
+	var q *resource.Quantity
+	if storage.PvcSpec != nil {
+		q = util.QuantityPointer(storage.PvcSpec.Resources.Requests["storage"])
+	} else if storage.EmptyDir != nil {
+		q = storage.EmptyDir.SizeLimit
+	}
 
 	var tmpDec = inf.NewDec(0, 0)
 	tmpDec.Round(q.AsDec(), -1*inf.Scale(resource.Mega), inf.RoundDown)

@@ -18,6 +18,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/banzaicloud/koperator/pkg/util"
+
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -88,6 +90,16 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 									},
 								},
 							},
+							// emptyDir should be ignored as pvcSpec has prio
+							EmptyDir: &corev1.EmptyDirVolumeSource{
+								SizeLimit: util.QuantityPointer(resource.MustParse("20Mi")),
+							},
+						},
+						{
+							MountPath: "/ephemeral-dir1",
+							EmptyDir: &corev1.EmptyDirVolumeSource{
+								SizeLimit: util.QuantityPointer(resource.MustParse("100Mi")),
+							},
 						},
 					},
 				},
@@ -111,7 +123,8 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 			MonitoringConfig: v1beta1.MonitoringConfig{
 				CCJMXExporterConfig: "custom_property: custom_value",
 			},
-			ReadOnlyConfig: "cruise.control.metrics.topic.auto.create=true",
+			ReadOnlyConfig:       "cruise.control.metrics.topic.auto.create=true",
+			RollingUpgradeConfig: v1beta1.RollingUpgradeConfig{FailureThreshold: 1},
 		},
 	}
 }

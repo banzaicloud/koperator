@@ -122,6 +122,7 @@ zookeeper.connect=/
             "brokerId": "0",
             "capacity": {
                 "DISK": {
+                    "/ephemeral-dir1/kafka": "104",
                     "/kafka-logs/kafka": "10737"
                 },
                 "CPU": "150",
@@ -134,6 +135,7 @@ zookeeper.connect=/
             "brokerId": "1",
             "capacity": {
                 "DISK": {
+                    "/ephemeral-dir1/kafka": "104",
                     "/kafka-logs/kafka": "10737"
                 },
                 "CPU": "150",
@@ -146,6 +148,7 @@ zookeeper.connect=/
             "brokerId": "2",
             "capacity": {
                 "DISK": {
+                    "/ephemeral-dir1/kafka": "104",
                     "/kafka-logs/kafka": "10737"
                 },
                 "CPU": "150",

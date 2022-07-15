@@ -105,7 +105,12 @@ func New(client client.Client, directClient client.Reader, cluster *v1beta1.Kafk
 		kafkaClientProvider: kafkaClientProvider,
 	}
 }
-func getCreatedPvcForBroker(c client.Client, brokerID int32, namespace, crName string) ([]corev1.PersistentVolumeClaim, error) {
+func getCreatedPvcForBroker(
+	ctx context.Context,
+	c client.Reader,
+	brokerID int32,
+	storageConfigs []v1beta1.StorageConfig,
+	namespace, crName string) ([]corev1.PersistentVolumeClaim, error) {
 	foundPvcList := &corev1.PersistentVolumeClaimList{}
 	matchingLabels := client.MatchingLabels(
 		apiutil.MergeLabels(
@@ -113,12 +118,31 @@ func getCreatedPvcForBroker(c client.Client, brokerID int32, namespace, crName s
 			map[string]string{"brokerId": fmt.Sprintf("%d", brokerID)},
 		),
 	)
-	err := c.List(context.TODO(), foundPvcList, client.ListOption(client.InNamespace(namespace)), client.ListOption(matchingLabels))
+	err := c.List(ctx, foundPvcList, client.ListOption(client.InNamespace(namespace)), client.ListOption(matchingLabels))
 	if err != nil {
 		return nil, err
 	}
-	if len(foundPvcList.Items) == 0 {
-		return nil, fmt.Errorf("no persistentvolume found for broker %d", brokerID)
+
+	var missing []string
+	for i := range storageConfigs {
+		if storageConfigs[i].PvcSpec == nil {
+			continue
+		}
+
+		found := false
+		for j := range foundPvcList.Items {
+			if storageConfigs[i].MountPath == foundPvcList.Items[j].GetAnnotations()["mountPath"] {
+				found = true
+				break
+			}
+		}
+		if !found {
+			missing = append(missing, storageConfigs[i].MountPath)
+		}
+	}
+	if len(missing) > 0 {
+		return nil, errors.NewWithDetails("broker mount paths missing persistent volume claim",
+			"brokerId", brokerID, "mount paths", missing)
 	}
 	sort.Slice(foundPvcList.Items, func(i, j int) bool {
 		return foundPvcList.Items[i].Name < foundPvcList.Items[j].Name
@@ -224,15 +248,26 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		var brokerVolumes []*corev1.PersistentVolumeClaim
 		for index, storage := range brokerConfig.StorageConfigs {
-			o := r.pvc(broker.Id, index, storage, log)
-			brokerVolumes = append(brokerVolumes, o.(*corev1.PersistentVolumeClaim))
+			if storage.PvcSpec == nil && storage.EmptyDir == nil {
+				return errors.WrapIfWithDetails(err,
+					"invalid storage config, either 'pvcSpec' or 'emptyDir` has to be set",
+					"brokerId", broker.Id, "mountPath", storage.MountPath)
+			}
+			if storage.PvcSpec == nil {
+				continue
+			}
+			o, err := r.pvc(broker.Id, index, storage)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "failed to generate resource", "resources", "PersistentVolumeClaim")
+			}
+			brokerVolumes = append(brokerVolumes, o)
 		}
 		if len(brokerVolumes) > 0 {
 			brokersVolumes[strconv.Itoa(int(broker.Id))] = brokerVolumes
 		}
 	}
 	if len(brokersVolumes) > 0 {
-		err := r.reconcileKafkaPvc(log, brokersVolumes)
+		err := r.reconcileKafkaPvc(ctx, log, brokersVolumes)
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resources", "PersistentVolumeClaim")
 		}
@@ -295,7 +330,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		}
 
-		pvcs, err := getCreatedPvcForBroker(r.Client, broker.Id, r.KafkaCluster.Namespace, r.KafkaCluster.Name)
+		pvcs, err := getCreatedPvcForBroker(ctx, r.Client, broker.Id, brokerConfig.StorageConfigs, r.KafkaCluster.Namespace, r.KafkaCluster.Name)
 		if err != nil {
 			return errors.WrapIfWithDetails(err, "failed to list PVC's")
 		}
@@ -909,11 +944,12 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 	return nil
 }
 
-func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[string][]*corev1.PersistentVolumeClaim) error {
+func (r *Reconciler) reconcileKafkaPvc(ctx context.Context, log logr.Logger, brokersDesiredPvcs map[string][]*corev1.PersistentVolumeClaim) error {
 	brokersVolumesState := make(map[string]map[string]v1beta1.VolumeState)
 	var brokerIds []string
 
 	for brokerId, desiredPvcs := range brokersDesiredPvcs {
+		desiredType := reflect.TypeOf(&corev1.PersistentVolumeClaim{})
 		brokerVolumesState := make(map[string]v1beta1.VolumeState)
 
 		pvcList := &corev1.PersistentVolumeClaimList{}
@@ -925,15 +961,15 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 			),
 		)
 
+		log = log.WithValues("kind", desiredType)
+
 		for _, desiredPvc := range desiredPvcs {
 			currentPvc := desiredPvc.DeepCopy()
-			desiredType := reflect.TypeOf(desiredPvc)
-			log = log.WithValues("kind", desiredType)
 			log.V(1).Info("searching with label because name is empty")
 
-			err := r.Client.List(context.TODO(), pvcList,
-				client.InNamespace(currentPvc.Namespace), matchingLabels)
-			if err != nil && len(pvcList.Items) == 0 {
+			err := r.Client.List(ctx, pvcList,
+				client.InNamespace(r.KafkaCluster.GetNamespace()), matchingLabels)
+			if err != nil {
 				return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
 			}
 
@@ -943,7 +979,7 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 				if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
 					return errors.WrapIf(err, "could not apply last state to annotation")
 				}
-				if err := r.Client.Create(context.TODO(), desiredPvc); err != nil {
+				if err := r.Client.Create(ctx, desiredPvc); err != nil {
 					return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 				}
 				log.Info("resource created")
@@ -970,7 +1006,7 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 				if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredPvc); err != nil {
 					return errors.WrapIf(err, "could not apply last state to annotation")
 				}
-				if err := r.Client.Create(context.TODO(), desiredPvc); err != nil {
+				if err := r.Client.Create(ctx, desiredPvc); err != nil {
 					return errorfactory.New(errorfactory.APIFailure{}, err, "creating resource failed", "kind", desiredType)
 				}
 				continue
@@ -992,7 +1028,7 @@ func (r *Reconciler) reconcileKafkaPvc(log logr.Logger, brokersDesiredPvcs map[s
 					desiredPvc.Spec.Resources.Requests = resReq
 					desiredPvc.Labels = labels
 
-					if err := r.Client.Update(context.TODO(), desiredPvc); err != nil {
+					if err := r.Client.Update(ctx, desiredPvc); err != nil {
 						return errorfactory.New(errorfactory.APIFailure{}, err, "updating resource failed", "kind", desiredType)
 					}
 					log.Info("resource updated")

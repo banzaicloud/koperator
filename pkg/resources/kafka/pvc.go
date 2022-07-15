@@ -15,18 +15,53 @@
 package kafka
 
 import (
+	"bytes"
 	"fmt"
+	"text/template"
 
-	"github.com/go-logr/logr"
+	"github.com/ghodss/yaml"
+
+	"emperror.dev/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
+
+	"github.com/Masterminds/sprig/v3"
 )
 
-func (r *Reconciler) pvc(brokerId int32, storageIndex int, storage v1beta1.StorageConfig, _ logr.Logger) runtime.Object {
+func (r *Reconciler) pvc(brokerId int32, storageIndex int, storage v1beta1.StorageConfig) (*corev1.PersistentVolumeClaim, error) {
+	errCtx := []interface{}{"brokerId", brokerId, "mountPath", storage.MountPath}
+
+	pvcSpecYaml, err := yaml.Marshal(storage.PvcSpec)
+	if err != nil {
+		return nil, errors.WrapIfWithDetails(err, "couldn't unmarshal Pvc spec", errCtx...)
+	}
+
+	tpl, err := template.New("PvcSpec").Funcs(sprig.TxtFuncMap()).Parse(string(pvcSpecYaml))
+	if err != nil {
+		return nil, errors.WrapIfWithDetails(err, "couldn't parse Pvc spec", errCtx...)
+	}
+	var buf bytes.Buffer
+	tplValues := struct {
+		BrokerId  int32
+		MountPath string
+	}{
+		BrokerId:  brokerId,
+		MountPath: storage.MountPath,
+	}
+	err = tpl.Execute(&buf, tplValues)
+	if err != nil {
+		return nil, errors.WrapIfWithDetails(err, "couldn't apply data to Pvc spec template from storage config", errCtx...)
+	}
+
+	var pvcSpec corev1.PersistentVolumeClaimSpec
+	err = yaml.Unmarshal(buf.Bytes(), &pvcSpec)
+	if err != nil {
+		return nil, errors.WrapIfWithDetails(err, "couldn't unmarshal Pvc spec", errCtx...)
+	}
+
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
 			fmt.Sprintf(brokerStorageTemplate, r.KafkaCluster.Name, brokerId, storageIndex),
@@ -35,6 +70,6 @@ func (r *Reconciler) pvc(brokerId int32, storageIndex int, storage v1beta1.Stora
 				map[string]string{"brokerId": fmt.Sprintf("%d", brokerId)},
 			),
 			map[string]string{"mountPath": storage.MountPath}, r.KafkaCluster),
-		Spec: *storage.PvcSpec,
-	}
+		Spec: pvcSpec,
+	}, nil
 }

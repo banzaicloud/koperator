@@ -102,6 +102,20 @@ func (m *mockClusterAdmin) ListTopics() (map[string]sarama.TopicDetail, error) {
 	return shallowCopy(m.mockTopics), nil
 }
 
+func (m *mockClusterAdmin) Topics() ([]string, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	if m.failOps {
+		return nil, errors.New("bad list topics")
+	}
+	topics := make([]string, 0, len(m.mockTopics))
+	for topicName := range m.mockTopics {
+		topics = append(topics, topicName)
+	}
+	return topics, nil
+}
+
 func (m *mockClusterAdmin) DescribeTopics(topics []string) ([]*sarama.TopicMetadata, error) {
 	if m.failOps {
 		return []*sarama.TopicMetadata{}, errors.New("bad describe topics")

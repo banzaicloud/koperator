@@ -56,6 +56,9 @@ spec:
             resources:
               requests:
                 storage: 10Gi
+        #- mountPath: "/ephemeral-dir1"
+        #  emptyDir:
+        #    sizeLimit: 100Mi
       # Add custom labels to broker pods within the config group
       # brokerLabels:
       #   kafka_broker_group: "default_group"
