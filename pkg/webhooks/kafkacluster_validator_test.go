@@ -420,10 +420,65 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			},
 			isValid: false,
 		},
+		{
+			testName: "when there is no such brokerConfigGroup",
+			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
+				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+					"default": {
+						StorageConfigs: []v1beta1.StorageConfig{
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
+						},
+					},
+				},
+				Brokers: []v1beta1.Broker{
+					{
+						Id:                1,
+						BrokerConfigGroup: "notExists",
+						BrokerConfig: &v1beta1.BrokerConfig{
+							StorageConfigs: []v1beta1.StorageConfig{
+								{MountPath: "logs4"},
+								{MountPath: "logs5"},
+								{MountPath: "logs6"},
+							},
+						},
+					},
+				},
+			},
+			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
+				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+					"default": {
+						StorageConfigs: []v1beta1.StorageConfig{
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
+						},
+					},
+				},
+				Brokers: []v1beta1.Broker{
+					{
+						Id:                1,
+						BrokerConfigGroup: "default",
+						BrokerConfig: &v1beta1.BrokerConfig{
+							StorageConfigs: []v1beta1.StorageConfig{
+								{MountPath: "logs4"},
+								{MountPath: "logs5"},
+								{MountPath: "logs8"},
+							},
+						},
+					},
+				},
+			},
+			isValid: false,
+		},
 	}
 
 	for _, testCase := range testCases {
-		res := checkBrokerStorageRemoval(&testCase.kafkaClusterSpecOld, &testCase.kafkaClusterSpecNew)
+		res, err := checkBrokerStorageRemoval(&testCase.kafkaClusterSpecOld, &testCase.kafkaClusterSpecNew)
+		if err != nil {
+			t.Errorf("err should be nil, got %s", err)
+		}
 		if res != nil && testCase.isValid {
 			t.Errorf("Message: %s, testName: %s", res.Error(), testCase.testName)
 		} else if res == nil && !testCase.isValid {

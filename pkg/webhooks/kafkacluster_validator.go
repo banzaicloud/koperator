@@ -16,8 +16,9 @@ package webhooks
 
 import (
 	"context"
-	"fmt"
 
+	"emperror.dev/errors"
+	"golang.org/x/exp/slices"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -38,7 +39,11 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	kafkaClusterOld := oldObj.(*banzaicloudv1beta1.KafkaCluster)
 	kafkaClusterNew := newObj.(*banzaicloudv1beta1.KafkaCluster)
 	log := s.Log.WithValues("name", kafkaClusterNew.GetName(), "namespace", kafkaClusterNew.GetNamespace())
-	fieldErr := checkBrokerStorageRemoval(&kafkaClusterOld.Spec, &kafkaClusterNew.Spec)
+	fieldErr, err := checkBrokerStorageRemoval(&kafkaClusterOld.Spec, &kafkaClusterNew.Spec)
+	if err != nil {
+		log.Error(err, errorDuringValidationMsg)
+		return apiErrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
+	}
 	if fieldErr != nil {
 		allErrs = append(allErrs, fieldErr)
 	}
@@ -60,14 +65,24 @@ func (s KafkaClusterValidator) ValidateDelete(ctx context.Context, obj runtime.O
 }
 
 // checkBrokerStorageRemoval checks if there is any broker storage which has been removed. If yes, admission will be rejected
-func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaicloudv1beta1.KafkaClusterSpec) *field.Error {
+func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaicloudv1beta1.KafkaClusterSpec) (*field.Error, error) {
 	for j := range kafkaClusterSpecOld.Brokers {
 		brokerOld := &kafkaClusterSpecOld.Brokers[j]
 		for k := range kafkaClusterSpecNew.Brokers {
 			brokerNew := &kafkaClusterSpecNew.Brokers[k]
 			if brokerOld.Id == brokerNew.Id {
-				brokerConfigsOld, _ := brokerOld.GetBrokerConfig(*kafkaClusterSpecOld)
-				brokerConfigsNew, _ := brokerNew.GetBrokerConfig(*kafkaClusterSpecNew)
+				brokerConfigsOld, err := brokerOld.GetBrokerConfig(*kafkaClusterSpecOld)
+				if err != nil {
+					return nil, err
+				}
+				// checking broukerConfigGroup existence
+				if _, exists := kafkaClusterSpecNew.BrokerConfigGroups[brokerNew.BrokerConfigGroup]; !exists {
+					return field.Invalid(field.NewPath("spec").Child("brokers").Index(int(brokerNew.Id)).Child("brokerConfigGroup"), brokerNew.BrokerConfigGroup, removingStorageMsg+", provided brokerConfigGroup not found"), nil
+				}
+				brokerConfigsNew, err := brokerNew.GetBrokerConfig(*kafkaClusterSpecNew)
+				if err != nil {
+					return nil, err
+				}
 				for e := range brokerConfigsOld.StorageConfigs {
 					storageConfigOld := &brokerConfigsOld.StorageConfigs[e]
 					isStorageFound := false
@@ -80,11 +95,38 @@ func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaic
 						}
 					}
 					if !isStorageFound {
-						logMsg := fmt.Sprintf("Removing storage from a broker is not supported! (mountPath: %s, brokerID: %v)", storageConfigOld.MountPath, brokerOld.Id)
-						return field.Invalid(field.NewPath("spec").Child("brokers").Index(k).Child("storageConfig").Index(e), storageConfigOld.MountPath, logMsg)
+						invalidField := getMounthPathFieldError(storageConfigOld.MountPath, kafkaClusterSpecOld, int32(k))
+						if invalidField != nil {
+							return invalidField, nil
+						}
+						return field.Invalid(field.NewPath("spec").Child("brokers").Index(k).Child("storageConfig").Index(e), storageConfigOld.MountPath, removingStorageMsg+", location not found"), nil
 					}
 				}
 			}
+		}
+	}
+	return nil, nil
+}
+func getMounthPathFieldError(mounthPath string, kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec, brokerId int32) *field.Error {
+	if brokerId < 0 || int(brokerId) >= len(kafkaClusterSpec.Brokers) {
+		return nil
+	}
+
+	brokerConfigGroup := kafkaClusterSpec.Brokers[brokerId].BrokerConfigGroup
+	brokerConfigs, ok := kafkaClusterSpec.BrokerConfigGroups[brokerConfigGroup]
+	if !ok {
+		return field.Invalid(field.NewPath("spec").Child("brokers").Index(int(brokerId)).Child("brokerConfigGroup"), brokerConfigGroup, removingStorageMsg+", provided brokerConfigGroup not found")
+	}
+	idx := slices.IndexFunc(brokerConfigs.StorageConfigs, func(c banzaicloudv1beta1.StorageConfig) bool { return c.MountPath == mounthPath })
+	if idx != -1 {
+		return field.Invalid(field.NewPath("spec").Child("brokerConfigGroups").Key(brokerConfigGroup).Child("storageConfig").Index(idx), mounthPath, removingStorageMsg)
+	}
+
+	perBrokerConfigs := kafkaClusterSpec.Brokers[brokerId].BrokerConfig
+	if perBrokerConfigs != nil {
+		idx := slices.IndexFunc(perBrokerConfigs.StorageConfigs, func(c banzaicloudv1beta1.StorageConfig) bool { return c.MountPath == mounthPath })
+		if idx != -1 {
+			return field.Invalid(field.NewPath("spec").Child("brokers").Index(int(brokerId)).Child("storageConfig").Index(idx), mounthPath, removingStorageMsg)
 		}
 	}
 	return nil

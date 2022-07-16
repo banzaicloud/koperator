@@ -60,9 +60,8 @@ func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) 
 	log := s.Log.WithValues("name", kafkaTopic.GetName(), "namespace", kafkaTopic.GetNamespace())
 	fieldErrs, err := s.validateKafkaTopic(ctx, kafkaTopic, log)
 	if err != nil {
-		errMsg := fmt.Sprintf("error during validating kafkaTopic %s", kafkaTopic.Name)
-		log.Error(err, errMsg)
-		return apiErrors.NewInternalError(errors.WithMessage(err, errMsg))
+		log.Error(err, errorDuringValidationMsg)
+		return apiErrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
 	}
 	if len(fieldErrs) == 0 {
 		return nil
