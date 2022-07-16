@@ -477,7 +477,7 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 	for _, testCase := range testCases {
 		res, err := checkBrokerStorageRemoval(&testCase.kafkaClusterSpecOld, &testCase.kafkaClusterSpecNew)
 		if err != nil {
-			t.Errorf("err should be nil, got %s", err)
+			t.Errorf("testName: %s, err should be nil, got %s", testCase.testName, err)
 		}
 		if res != nil && testCase.isValid {
 			t.Errorf("Message: %s, testName: %s", res.Error(), testCase.testName)
