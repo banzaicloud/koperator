@@ -16,6 +16,7 @@ package webhooks
 
 import (
 	"context"
+	"fmt"
 
 	"emperror.dev/errors"
 	"golang.org/x/exp/slices"
@@ -98,9 +99,9 @@ func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaic
 					if !isStorageFound {
 						fromConfigGroup := getMissingMounthPathLocation(storageConfigOld.MountPath, kafkaClusterSpecOld, int32(k))
 						if fromConfigGroup != nil && *fromConfigGroup {
-							return field.Invalid(field.NewPath("spec").Child("brokers").Index(k).Child("brokerConfigGroup"), brokerNew.BrokerConfigGroup, removingStorageMsg), nil
+							return field.Invalid(field.NewPath("spec").Child("brokers").Index(k).Child("brokerConfigGroup"), brokerNew.BrokerConfigGroup, fmt.Sprintf("%s, missing storageConfig mounthPath: %s", removingStorageMsg, storageConfigOld.MountPath)), nil
 						}
-						return field.Invalid(field.NewPath("spec").Child("brokers").Index(k).Child("storageConfig").Index(e), storageConfigOld.MountPath, removingStorageMsg+", location not found"), nil
+						return field.NotFound(field.NewPath("spec").Child("brokers").Index(k).Child("storageConfig").Index(e), storageConfigOld.MountPath+"\", "+removingStorageMsg), nil
 					}
 				}
 			}
