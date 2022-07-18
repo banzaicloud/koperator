@@ -19545,6 +19545,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: KafkaTopic is the Schema for the kafkatopics API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

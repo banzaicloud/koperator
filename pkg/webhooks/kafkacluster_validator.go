@@ -78,8 +78,10 @@ func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaic
 					return nil, err
 				}
 				// checking broukerConfigGroup existence
-				if _, exists := kafkaClusterSpecNew.BrokerConfigGroups[brokerNew.BrokerConfigGroup]; !exists {
-					return field.Invalid(field.NewPath("spec").Child("brokers").Index(int(brokerNew.Id)).Child("brokerConfigGroup"), brokerNew.BrokerConfigGroup, removingStorageMsg+", provided brokerConfigGroup not found"), nil
+				if brokerNew.BrokerConfigGroup != "" {
+					if _, exists := kafkaClusterSpecNew.BrokerConfigGroups[brokerNew.BrokerConfigGroup]; !exists {
+						return field.Invalid(field.NewPath("spec").Child("brokers").Index(int(brokerNew.Id)).Child("brokerConfigGroup"), brokerNew.BrokerConfigGroup, removingStorageMsg+", provided brokerConfigGroup not found"), nil
+					}
 				}
 				brokerConfigsNew, err := brokerNew.GetBrokerConfig(*kafkaClusterSpecNew)
 				if err != nil {
