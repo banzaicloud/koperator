@@ -147,13 +147,13 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 	broker, closeClient, err := s.NewKafkaFromCluster(s.Client, cluster)
 	if err != nil {
 		// Log as info to not cause stack traces when making CC topic
-		return nil, errors.WrapIf(err, fmt.Sprintf("%s: %s", cantConnectErrorMsg, topic.Spec.ClusterRef.Name))
+		return nil, errors.WrapIff(err, fmt.Sprintf("%s: %s", cantConnectErrorMsg, topic.Spec.ClusterRef.Name))
 	}
 	defer closeClient()
 
 	existing, err := broker.GetTopic(topic.Spec.Name)
 	if err != nil {
-		return nil, errors.WrapIf(err, fmt.Sprintf("failed to list topics for kafka cluster: %s", topic.Spec.ClusterRef.Name))
+		return nil, errors.WrapIff(err, fmt.Sprintf("failed to list topics for kafka cluster: %s", topic.Spec.ClusterRef.Name))
 	}
 
 	// The topic exists
@@ -166,7 +166,7 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 				logMsg := fmt.Sprintf("topic already exists on kafka cluster '%s'", topic.Spec.ClusterRef.Name)
 				return field.Invalid(field.NewPath("spec").Child("name"), topic.Spec.Name, logMsg), nil
 			}
-			return nil, errors.WrapIf(err, cantConnectAPIServerMsg)
+			return nil, errors.WrapIff(err, cantConnectAPIServerMsg)
 		}
 
 		// make sure the user isn't trying to decrease partition count
