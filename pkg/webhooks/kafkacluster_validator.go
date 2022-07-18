@@ -103,7 +103,7 @@ func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaic
 						if fromConfigGroup != nil && *fromConfigGroup {
 							return field.Invalid(field.NewPath("spec").Child("brokers").Index(k).Child("brokerConfigGroup"), brokerNew.BrokerConfigGroup, fmt.Sprintf("%s, missing storageConfig mounthPath: %s", removingStorageMsg, storageConfigOld.MountPath)), nil
 						}
-						return field.NotFound(field.NewPath("spec").Child("brokers").Index(k).Child("storageConfig").Index(e), storageConfigOld.MountPath+"\", "+removingStorageMsg), nil
+						return field.NotFound(field.NewPath("spec").Child("brokers").Index(k).Child("storageConfig").Index(e), storageConfigOld.MountPath+", "+removingStorageMsg), nil
 					}
 				}
 			}
