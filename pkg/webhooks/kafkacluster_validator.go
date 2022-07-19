@@ -30,8 +30,6 @@ import (
 	"github.com/banzaicloud/koperator/pkg/util"
 )
 
-// +kubebuilder:webhook:verbs=update,path=/validate-kafka-banzaicloud-io-v1beta1-kafkacluster,mutating=false,failurePolicy=fail,groups=kafka.banzaicloud.io,resources=kafkaclusters,versions=v1beta1,name=kafkaclusters.kafka.banzaicloud.io,sideEffects=None,admissionReviewVersions=v1
-
 type KafkaClusterValidator struct {
 	Log logr.Logger
 }

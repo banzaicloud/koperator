@@ -565,6 +565,7 @@ type ListenerStatus struct {
 // +kubebuilder:printcolumn:JSONPath=".status.rollingUpgradeStatus.lastSuccess",name="Last successful upgrade",type="string"
 // +kubebuilder:printcolumn:JSONPath=".status.rollingUpgradeStatus.errorCount",name="Upgrade error count",type="string"
 // +kubebuilder:printcolumn:JSONPath=".metadata.creationTimestamp",name="Age",type="date"
+// +kubebuilder:webhook:verbs=update,path=/validate-kafka-banzaicloud-io-v1beta1-kafkacluster,mutating=false,failurePolicy=fail,groups=kafka.banzaicloud.io,resources=kafkaclusters,versions=v1beta1,name=kafkaclusters.kafka.banzaicloud.io,sideEffects=None,admissionReviewVersions=v1
 
 // KafkaCluster is the Schema for the kafkaclusters API
 type KafkaCluster struct {

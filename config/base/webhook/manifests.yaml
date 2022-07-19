@@ -11,7 +11,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-kafka.banzaicloud-io-v1alpha1-kafkatopic
+      path: /validate-kafka-banzaicloud-io-v1alpha1-kafkatopic
   failurePolicy: Fail
   name: kafkatopics.kafka.banzaicloud.io
   rules:
