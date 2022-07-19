@@ -1,4 +1,4 @@
-// Copyright © 2019 Banzai Cloud
+// Copyright © 2022 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webhook
+package webhooks
 
 import (
 	"testing"
@@ -420,13 +420,68 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 			},
 			isValid: false,
 		},
+		{
+			testName: "when there is no such brokerConfigGroup",
+			kafkaClusterSpecNew: v1beta1.KafkaClusterSpec{
+				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+					"default": {
+						StorageConfigs: []v1beta1.StorageConfig{
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
+						},
+					},
+				},
+				Brokers: []v1beta1.Broker{
+					{
+						Id:                1,
+						BrokerConfigGroup: "notExists",
+						BrokerConfig: &v1beta1.BrokerConfig{
+							StorageConfigs: []v1beta1.StorageConfig{
+								{MountPath: "logs4"},
+								{MountPath: "logs5"},
+								{MountPath: "logs6"},
+							},
+						},
+					},
+				},
+			},
+			kafkaClusterSpecOld: v1beta1.KafkaClusterSpec{
+				BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
+					"default": {
+						StorageConfigs: []v1beta1.StorageConfig{
+							{MountPath: "logs1"},
+							{MountPath: "logs2"},
+							{MountPath: "logs3"},
+						},
+					},
+				},
+				Brokers: []v1beta1.Broker{
+					{
+						Id:                1,
+						BrokerConfigGroup: "default",
+						BrokerConfig: &v1beta1.BrokerConfig{
+							StorageConfigs: []v1beta1.StorageConfig{
+								{MountPath: "logs4"},
+								{MountPath: "logs5"},
+								{MountPath: "logs8"},
+							},
+						},
+					},
+				},
+			},
+			isValid: false,
+		},
 	}
 
 	for _, testCase := range testCases {
-		res := checkBrokerStorageRemoval(&testCase.kafkaClusterSpecOld, &testCase.kafkaClusterSpecNew)
-		if !res.Allowed && testCase.isValid {
-			t.Errorf("Message: %s, testName: %s", res.Result.Message, testCase.testName)
-		} else if res.Allowed && !testCase.isValid {
+		res, err := checkBrokerStorageRemoval(&testCase.kafkaClusterSpecOld, &testCase.kafkaClusterSpecNew)
+		if err != nil {
+			t.Errorf("testName: %s, err should be nil, got %s", testCase.testName, err)
+		}
+		if res != nil && testCase.isValid {
+			t.Errorf("Message: %s, testName: %s", res.Error(), testCase.testName)
+		} else if res == nil && !testCase.isValid {
 			t.Errorf("there should be storage removal, testName: %s", testCase.testName)
 		}
 	}

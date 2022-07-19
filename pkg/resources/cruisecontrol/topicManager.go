@@ -28,7 +28,7 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
-	"github.com/banzaicloud/koperator/pkg/webhook"
+	"github.com/banzaicloud/koperator/pkg/webhooks"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
@@ -95,11 +95,11 @@ func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log lo
 			// Attempt to create the topic
 			if err := client.Create(context.TODO(), topic); err != nil {
 				// If webhook was unable to connect to kafka - return not ready
-				if webhook.IsAdmissionCantConnect(err) {
+				if webhooks.IsAdmissionCantConnect(err) {
 					return errorfactory.New(errorfactory.ResourceNotReady{}, err, "topic admission failed to connect to kafka cluster")
 				}
 				// If less than the required brokers are available - return not ready
-				if webhook.IsInvalidReplicationFactor(err) {
+				if webhooks.IsInvalidReplicationFactor(err) {
 					return errorfactory.New(errorfactory.ResourceNotReady{}, err, fmt.Sprintf("not enough brokers available (at least %d needed) for CC topic", topic.Spec.ReplicationFactor))
 				}
 				return errorfactory.New(errorfactory.APIFailure{}, err, "could not create cruise control topic")
