@@ -20,7 +20,7 @@ GOPROXY=https://proxy.golang.org
 CONTROLLER_GEN_VERSION = v0.9.2
 CONTROLLER_GEN = $(PWD)/bin/controller-gen
 
-ENVTEST_K8S_VERSION = 1.23.1
+ENVTEST_K8S_VERSION = 1.24.2
 
 KUSTOMIZE_BASE = config/overlays/specific-manager-version
 
