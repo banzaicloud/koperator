@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
+
 	"github.com/banzaicloud/koperator/api/v1beta1"
 
 	"k8s.io/apimachinery/pkg/labels"

@@ -17,8 +17,9 @@ package currentalert
 import (
 	"testing"
 
-	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/prometheus/common/model"
+
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 func TestDownScaleValidator_validateAlert(t *testing.T) {
