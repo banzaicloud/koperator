@@ -12257,10 +12257,11 @@ spec:
                   reporter to communicate on SSL with that internal listener which
                   is used for interbroker communication. The client certificate must
                   share the same chain of trust as the server certificate used by
-                  the corresponding internal listener. The secret must contains the
+                  the corresponding internal listener. The secret must contain the
                   keystore, truststore jks files and the password for them in base64
-                  encoded format under the keystore.jks, truststore.jks, password
-                  data fields.
+                  encoded format and the tls certificate, tls private key, CA certificate
+                  in PEM and base64 encoded format under the keystore.jks, truststore.jks,
+                  password, tls.crt, tls.key, and ca.crt data fields.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -19296,7 +19297,8 @@ spec:
                             secret that contains the server certificate for the listener
                             to be used for SSL communication. The secret must contain
                             the keystore, truststore jks files and the password for
-                            them in base64 encoded format under the keystore.jks,
+                            them in base64 encoded format and the tls certificate
+                            in PEM and base64 encoded format under the keystore.jks,
                             truststore.jks, password data fields. If this field is
                             omitted koperator will auto-create a self-signed server
                             certificate using the configuration provided in 'sslSecrets'
@@ -19362,7 +19364,8 @@ spec:
                             secret that contains the server certificate for the listener
                             to be used for SSL communication. The secret must contain
                             the keystore, truststore jks files and the password for
-                            them in base64 encoded format under the keystore.jks,
+                            them in base64 encoded format and the tls certificate
+                            in PEM and base64 encoded format under the keystore.jks,
                             truststore.jks, password data fields. If this field is
                             omitted koperator will auto-create a self-signed server
                             certificate using the configuration provided in 'sslSecrets'
