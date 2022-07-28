@@ -92,7 +92,7 @@ type KafkaClusterSpec struct {
 	// to communicate on SSL with that internal listener which is used for interbroker communication.
 	// The client certificate must share the same chain of trust as the server certificate used by the corresponding internal listener.
 	// The secret must contain the keystore, truststore jks files and the password for them in base64 encoded format and
-	// the tls certificate, tls private key, CA certificate in PEM and base64 encoded format
+	// the tls certificate, tls private key, CA certificate in PEM format with base64 encoded
 	// under the keystore.jks, truststore.jks, password, tls.crt, tls.key, and ca.crt data fields.
 	ClientSSLCertSecret *corev1.LocalObjectReference `json:"clientSSLCertSecret,omitempty"`
 }
@@ -511,8 +511,9 @@ type CommonListenerSpec struct {
 	// +kubebuilder:validation:Enum=ssl;plaintext;sasl_ssl;sasl_plaintext
 	Type SecurityProtocol `json:"type"`
 	// ServerSSLCertSecret is a reference to the Kubernetes secret that contains the server certificate for the listener to be used for SSL communication.
-	// The secret must contain the keystore, truststore jks files and the password for them in base64 encoded format and the tls certificate in PEM and base64 encoded format
-	// under the keystore.jks, truststore.jks, password data fields.
+	// The secret must contain the keystore, truststore jks files and the password for them in base64 encoded format under the keystore.jks, truststore.jks, password data fields.
+	// When the listener is used for inner broker or controller communication the tls certificate is
+	// also needed in PEM format with base64 encoding under the tls.crt data field.
 	// If this field is omitted koperator will auto-create a self-signed server certificate using the configuration provided in 'sslSecrets' field.
 	ServerSSLCertSecret *corev1.LocalObjectReference `json:"serverSSLCertSecret,omitempty"`
 	// SSLClientAuth specifies whether client authentication is required, requested, or not required.
