@@ -16,6 +16,7 @@ package currentalert
 
 import (
 	emperror "emperror.dev/errors"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 type upScaleValidator struct {
@@ -29,7 +30,7 @@ func newUpScaleValidator(curerentAlert *currentAlertStruct) upScaleValidator {
 }
 
 func (a upScaleValidator) validateAlert() error {
-	if !checkLabelExists(a.Alert.Labels, "kafka_cr") {
+	if !checkLabelExists(a.Alert.Labels, v1beta1.KafkaCRLabelKey) {
 		return emperror.New("kafka_cr label doesn't exist")
 	}
 	if a.Alert.Annotations["command"] != UpScaleCommand {

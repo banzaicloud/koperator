@@ -47,14 +47,14 @@ func (r *Reconciler) service(id int32, _ *v1beta1.BrokerConfig) runtime.Object {
 		ObjectMeta: templates.ObjectMetaWithAnnotations(fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id),
 			apiutil.MergeLabels(
 				apiutil.LabelsForKafka(r.KafkaCluster.Name),
-				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
+				map[string]string{v1beta1.BrokerIdLabelKey: fmt.Sprintf("%d", id)},
 			),
 			r.KafkaCluster.Spec.ListenersConfig.GetServiceAnnotations(),
 			r.KafkaCluster),
 		Spec: corev1.ServiceSpec{
 			Type:            corev1.ServiceTypeClusterIP,
 			SessionAffinity: corev1.ServiceAffinityNone,
-			Selector:        apiutil.MergeLabels(apiutil.LabelsForKafka(r.KafkaCluster.Name), map[string]string{"brokerId": fmt.Sprintf("%d", id)}),
+			Selector:        apiutil.MergeLabels(apiutil.LabelsForKafka(r.KafkaCluster.Name), map[string]string{v1beta1.BrokerIdLabelKey: fmt.Sprintf("%d", id)}),
 			Ports:           usedPorts,
 		},
 	}

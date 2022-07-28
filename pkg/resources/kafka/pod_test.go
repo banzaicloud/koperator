@@ -33,7 +33,7 @@ func TestGetAffinity(t *testing.T) {
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 				{
 					LabelSelector: &metav1.LabelSelector{
-						MatchLabels:      map[string]string{"app": "kafka", "kafka_cr": "name"},
+						MatchLabels:      map[string]string{v1beta1.AppLabelKey: "kafka", v1beta1.KafkaCRLabelKey: "name"},
 						MatchExpressions: nil,
 					},
 					Namespaces:  nil,

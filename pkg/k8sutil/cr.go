@@ -54,7 +54,7 @@ func rackAwarenessLabelsToReadonlyConfig(pod *corev1.Pod, cr *v1beta1.KafkaClust
 	brokerConfigs := []v1beta1.Broker{}
 	var readOnlyConfig string
 	var rackAwaranessState string
-	brokerID := pod.Labels["brokerId"]
+	brokerID := pod.Labels[v1beta1.BrokerIdLabelKey]
 	//nolint:gocritic
 	for _, broker := range cr.Spec.Brokers {
 		if strconv.Itoa(int(broker.Id)) == brokerID {

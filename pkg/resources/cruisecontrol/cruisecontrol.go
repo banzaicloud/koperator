@@ -57,8 +57,8 @@ type Reconciler struct {
 
 func ccLabelSelector(kafkaCluster string) map[string]string {
 	return map[string]string{
-		"app":      "cruisecontrol",
-		"kafka_cr": kafkaCluster,
+		v1beta1.AppLabelKey:     "cruisecontrol",
+		v1beta1.KafkaCRLabelKey: kafkaCluster,
 	}
 }
 

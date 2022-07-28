@@ -41,9 +41,9 @@ func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1
 			}, &configMap)
 		}).Should(Succeed())
 
-		Expect(configMap.Labels).To(HaveKeyWithValue("app", "kafka"))
-		Expect(configMap.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
-		Expect(configMap.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+		Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
+		Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
+		Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.BrokerIdLabelKey, strconv.Itoa(int(broker.Id))))
 
 		brokerConfig, err := properties.NewFromString(configMap.Data["broker-config"])
 		Expect(err).NotTo(HaveOccurred())
@@ -66,9 +66,9 @@ func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1
 			}, &service)
 		}).Should(Succeed())
 
-		Expect(service.Labels).To(HaveKeyWithValue("app", "kafka"))
-		Expect(service.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
-		Expect(service.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+		Expect(service.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
+		Expect(service.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
+		Expect(service.Labels).To(HaveKeyWithValue(v1beta1.BrokerIdLabelKey, strconv.Itoa(int(broker.Id))))
 
 		Expect(service.Spec.Ports).To(ConsistOf(
 			corev1.ServicePort{

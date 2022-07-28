@@ -67,9 +67,9 @@ func Test_resizePvc(t *testing.T) {
 					Name:      "testPvc",
 					Namespace: "kafka",
 					Labels: map[string]string{
-						"app":      "kafka",
-						"brokerId": "0",
-						"kafka_cr": "test-cluster",
+						v1beta1.AppLabelKey:      "kafka",
+						v1beta1.BrokerIdLabelKey: "0",
+						v1beta1.KafkaCRLabelKey:  "test-cluster",
 					},
 					Annotations: map[string]string{
 						"mountPath":                          "/kafka-logs",
@@ -135,9 +135,9 @@ func Test_resizePvc(t *testing.T) {
 					Name:      "testPvc",
 					Namespace: "kafka",
 					Labels: map[string]string{
-						"app":      "kafka",
-						"brokerId": "0",
-						"kafka_cr": "test-cluster",
+						v1beta1.AppLabelKey:      "kafka",
+						v1beta1.BrokerIdLabelKey: "0",
+						v1beta1.KafkaCRLabelKey:  "test-cluster",
 					},
 					Annotations: map[string]string{
 						"mountPath":                          "/kafka-logs",
@@ -268,7 +268,7 @@ func Test_addPvc(t *testing.T) {
 			alertList: []model.Alert{
 				{
 					Labels: model.LabelSet{
-						"kafka_cr":              "kafka",
+						v1beta1.KafkaCRLabelKey: "kafka",
 						"namespace":             "kafka",
 						"persistentvolumeclaim": "testPvc",
 						"node":                  "test-node",
@@ -287,9 +287,9 @@ func Test_addPvc(t *testing.T) {
 							Name:      "testPvc",
 							Namespace: "kafka",
 							Labels: map[string]string{
-								"app":      "kafka",
-								"brokerId": "0",
-								"kafka_cr": "kafka",
+								v1beta1.AppLabelKey:      "kafka",
+								v1beta1.BrokerIdLabelKey: "0",
+								v1beta1.KafkaCRLabelKey:  "kafka",
 							},
 							Annotations: map[string]string{
 								"mountPath":                          "/kafka-logs",
@@ -308,7 +308,7 @@ func Test_addPvc(t *testing.T) {
 			alertList: []model.Alert{
 				{
 					Labels: model.LabelSet{
-						"kafka_cr":              "kafka",
+						v1beta1.KafkaCRLabelKey: "kafka",
 						"namespace":             "kafka",
 						"persistentvolumeclaim": "testPvc1",
 						"node":                  "test-node",
@@ -321,7 +321,7 @@ func Test_addPvc(t *testing.T) {
 				},
 				{
 					Labels: model.LabelSet{
-						"kafka_cr":              "kafka",
+						v1beta1.KafkaCRLabelKey: "kafka",
 						"namespace":             "kafka",
 						"persistentvolumeclaim": "testPvc2",
 						"node":                  "test-node",
@@ -340,9 +340,9 @@ func Test_addPvc(t *testing.T) {
 							Name:      "testPvc1",
 							Namespace: "kafka",
 							Labels: map[string]string{
-								"app":      "kafka",
-								"brokerId": "0",
-								"kafka_cr": "kafka",
+								v1beta1.AppLabelKey:      "kafka",
+								v1beta1.BrokerIdLabelKey: "0",
+								v1beta1.KafkaCRLabelKey:  "kafka",
 							},
 							Annotations: map[string]string{
 								"mountPath":                          "/kafka-logs",
@@ -361,9 +361,9 @@ func Test_addPvc(t *testing.T) {
 							Name:      "testPvc2",
 							Namespace: "kafka",
 							Labels: map[string]string{
-								"app":      "kafka",
-								"brokerId": "0",
-								"kafka_cr": "kafka",
+								v1beta1.AppLabelKey:      "kafka",
+								v1beta1.BrokerIdLabelKey: "0",
+								v1beta1.KafkaCRLabelKey:  "kafka",
 							},
 							Annotations: map[string]string{
 								"mountPath":                          "/kafka-logs",
@@ -482,10 +482,10 @@ func Test_upScale(t *testing.T) {
 			},
 			alert: model.Alert{
 				Labels: model.LabelSet{
-					"kafka_cr":   "test-cluster",
-					"namespace":  "test-namespace",
-					"severity":   "critical",
-					"alertGroup": "test",
+					v1beta1.KafkaCRLabelKey: "test-cluster",
+					"namespace":             "test-namespace",
+					"severity":              "critical",
+					"alertGroup":            "test",
 				},
 				Annotations: map[model.LabelName]model.LabelValue{
 					"command":           "upScale",
@@ -523,10 +523,10 @@ func Test_upScale(t *testing.T) {
 			},
 			alert: model.Alert{
 				Labels: model.LabelSet{
-					"kafka_cr":   "test-cluster",
-					"namespace":  "test-namespace",
-					"severity":   "critical",
-					"alertGroup": "test",
+					v1beta1.KafkaCRLabelKey: "test-cluster",
+					"namespace":             "test-namespace",
+					"severity":              "critical",
+					"alertGroup":            "test",
 				},
 				Annotations: map[model.LabelName]model.LabelValue{
 					"command":           "upScale",
@@ -637,11 +637,11 @@ func Test_downScale(t *testing.T) {
 			// Remove broker with id 1 using alert
 			alert: model.Alert{
 				Labels: model.LabelSet{
-					"kafka_cr":   "test-cluster",
-					"namespace":  "test-namespace",
-					"severity":   "critical",
-					"alertGroup": "test",
-					"brokerId":   "1",
+					v1beta1.KafkaCRLabelKey:  "test-cluster",
+					"namespace":              "test-namespace",
+					"severity":               "critical",
+					"alertGroup":             "test",
+					v1beta1.BrokerIdLabelKey: "1",
 				},
 				Annotations: map[model.LabelName]model.LabelValue{
 					"command":           "downscale",

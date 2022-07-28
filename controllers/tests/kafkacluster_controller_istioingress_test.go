@@ -47,9 +47,9 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 	)
 
 	ExpectIstioIngressLabels := func(labels map[string]string, eListenerName, crName string) {
-		Expect(labels).To(HaveKeyWithValue("app", "istioingress"))
+		Expect(labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "istioingress"))
 		Expect(labels).To(HaveKeyWithValue("eListenerName", eListenerName))
-		Expect(labels).To(HaveKeyWithValue("kafka_cr", crName))
+		Expect(labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, crName))
 	}
 
 	BeforeEach(func() {
@@ -397,9 +397,9 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 	)
 
 	ExpectIstioIngressLabels := func(labels map[string]string, eListenerName, crName string) {
-		Expect(labels).To(HaveKeyWithValue("app", "istioingress"))
+		Expect(labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "istioingress"))
 		Expect(labels).To(HaveKeyWithValue("eListenerName", eListenerName))
-		Expect(labels).To(HaveKeyWithValue("kafka_cr", crName))
+		Expect(labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, crName))
 	}
 
 	BeforeEach(func() {

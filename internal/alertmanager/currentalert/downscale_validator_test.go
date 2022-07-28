@@ -17,6 +17,7 @@ package currentalert
 import (
 	"testing"
 
+	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/prometheus/common/model"
 )
 
@@ -34,7 +35,7 @@ func TestDownScaleValidator_validateAlert(t *testing.T) {
 			fields: fields{
 				Alert: &currentAlertStruct{
 					Labels: model.LabelSet{
-						"kafka_cr": "kafka",
+						v1beta1.KafkaCRLabelKey: "kafka",
 					},
 					Annotations: model.LabelSet{
 						"command": DownScaleCommand,
@@ -61,7 +62,7 @@ func TestDownScaleValidator_validateAlert(t *testing.T) {
 			fields: fields{
 				Alert: &currentAlertStruct{
 					Labels: model.LabelSet{
-						"kafka_cr": "kafka",
+						v1beta1.KafkaCRLabelKey: "kafka",
 					},
 					Annotations: model.LabelSet{
 						"command": "fake-command",

@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -91,7 +92,7 @@ func (r *Reconciler) deleteNonHeadlessServices() error {
 	}
 
 	// add "has label 'brokerId' to matching labels selector expression
-	req, err := labels.NewRequirement("brokerId", selection.Exists, nil)
+	req, err := labels.NewRequirement(v1beta1.BrokerIdLabelKey, selection.Exists, nil)
 	if err != nil {
 		return err
 	}

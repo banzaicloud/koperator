@@ -56,7 +56,7 @@ func expectCruiseControlTopic(kafkaCluster *v1beta1.KafkaCluster) {
 	}).Should(Succeed())
 
 	Expect(topic).NotTo(BeNil())
-	Expect(topic.Labels).To(HaveKeyWithValue("app", "kafka"))
+	Expect(topic.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
 	Expect(topic.Labels).To(HaveKeyWithValue("clusterName", kafkaCluster.Name))
 	Expect(topic.Labels).To(HaveKeyWithValue("clusterNamespace", kafkaCluster.Namespace))
 
@@ -80,8 +80,8 @@ func expectCruiseControlService(kafkaCluster *v1beta1.KafkaCluster) {
 		}, service)
 	}).Should(Succeed())
 
-	Expect(service.Labels).To(HaveKeyWithValue("app", "cruisecontrol"))
-	Expect(service.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(service.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "cruisecontrol"))
+	Expect(service.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 	Expect(service.Spec.Ports).To(ConsistOf(
 		corev1.ServicePort{
 			Name:       "cc",
@@ -96,8 +96,8 @@ func expectCruiseControlService(kafkaCluster *v1beta1.KafkaCluster) {
 			TargetPort: intstr.FromInt(9020),
 		},
 	))
-	Expect(service.Spec.Selector).To(HaveKeyWithValue("kafka_cr", "kafkacluster-1"))
-	Expect(service.Spec.Selector).To(HaveKeyWithValue("app", "cruisecontrol"))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, "kafkacluster-1"))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.AppLabelKey, "cruisecontrol"))
 }
 
 func expectCruiseControlConfigMap(kafkaCluster *v1beta1.KafkaCluster) {
@@ -109,8 +109,8 @@ func expectCruiseControlConfigMap(kafkaCluster *v1beta1.KafkaCluster) {
 		}, configMap)
 	}).Should(Succeed())
 
-	Expect(configMap.Labels).To(HaveKeyWithValue("app", "cruisecontrol"))
-	Expect(configMap.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "cruisecontrol"))
+	Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 
 	Expect(configMap.Data).To(HaveKeyWithValue("cruisecontrol.properties", fmt.Sprintf(`bootstrap.servers=%s-all-broker.%s.%s:29092
 some.config=value
@@ -233,12 +233,12 @@ func expectCruiseControlDeployment(kafkaCluster *v1beta1.KafkaCluster) {
 		}, deployment)
 	}).Should(Succeed())
 
-	Expect(deployment.Labels).To(HaveKeyWithValue("app", "cruisecontrol"))
-	Expect(deployment.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(deployment.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "cruisecontrol"))
+	Expect(deployment.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 
 	Expect(deployment.Spec.Selector).NotTo(BeNil())
-	Expect(deployment.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app", "cruisecontrol"))
-	Expect(deployment.Spec.Selector.MatchLabels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(deployment.Spec.Selector.MatchLabels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "cruisecontrol"))
+	Expect(deployment.Spec.Selector.MatchLabels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 
 	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlCapacity.json"))
 	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlClusterConfig.json"))
