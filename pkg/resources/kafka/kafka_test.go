@@ -320,9 +320,9 @@ func TestReorderBrokers(t *testing.T) {
 			testName: "all broker pods are up an running with no controller broker",
 			brokerPods: corev1.PodList{
 				Items: []corev1.Pod{
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "2"}}},
 				},
 			},
 			desiredBrokers: []v1beta1.Broker{
@@ -346,9 +346,9 @@ func TestReorderBrokers(t *testing.T) {
 			testName: "all broker pods are up an running with controller broker",
 			brokerPods: corev1.PodList{
 				Items: []corev1.Pod{
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "2"}}},
 				},
 			},
 			desiredBrokers: []v1beta1.Broker{
@@ -372,9 +372,9 @@ func TestReorderBrokers(t *testing.T) {
 			testName: "some missing broker pods",
 			brokerPods: corev1.PodList{
 				Items: []corev1.Pod{
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "2"}}},
 				},
 			},
 			desiredBrokers: []v1beta1.Broker{
@@ -407,9 +407,9 @@ func TestReorderBrokers(t *testing.T) {
 			testName: "some missing broker pods and newly added brokers",
 			brokerPods: corev1.PodList{
 				Items: []corev1.Pod{
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "2"}}},
 				},
 			},
 			desiredBrokers: []v1beta1.Broker{
@@ -444,16 +444,16 @@ func TestReorderBrokers(t *testing.T) {
 			testName: "some missing broker pods, newly added brokers, and missing bokers with pvc and incomplete downscale operation",
 			brokerPods: corev1.PodList{
 				Items: []corev1.Pod{
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "2"}}},
 				},
 			},
 			brokersPVC: corev1.PersistentVolumeClaimList{
 				TypeMeta: metav1.TypeMeta{},
 				ListMeta: metav1.ListMeta{},
 				Items: []corev1.PersistentVolumeClaim{
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "5"}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "5"}},
 						Status: corev1.PersistentVolumeClaimStatus{
 							Phase: corev1.ClaimBound,
 						},
@@ -494,9 +494,9 @@ func TestReorderBrokers(t *testing.T) {
 			testName: "some missing broker pods, newly added brokers, and missing bokers without pvc and incomplete downscale operation",
 			brokerPods: corev1.PodList{
 				Items: []corev1.Pod{
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "0"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "1"}}},
-					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"brokerId": "2"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "0"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "1"}}},
+					{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{v1beta1.BrokerIdLabelKey: "2"}}},
 				},
 			},
 			desiredBrokers: []v1beta1.Broker{
@@ -540,12 +540,12 @@ func TestReorderBrokers(t *testing.T) {
 
 			runningBrokers := make(map[string]struct{})
 			for _, b := range test.brokerPods.Items {
-				brokerID := b.GetLabels()["brokerId"]
+				brokerID := b.GetLabels()[v1beta1.BrokerIdLabelKey]
 				runningBrokers[brokerID] = struct{}{}
 			}
 			boundPersistentVolumeClaims := make(map[string]struct{})
 			for _, pvc := range test.brokersPVC.Items {
-				brokerID := pvc.GetLabels()["brokerId"]
+				brokerID := pvc.GetLabels()[v1beta1.BrokerIdLabelKey]
 				if pvc.Status.Phase == corev1.ClaimBound {
 					boundPersistentVolumeClaims[brokerID] = struct{}{}
 				}

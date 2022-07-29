@@ -374,7 +374,7 @@ func expectKafkaMonitoring(kafkaCluster *v1beta1.KafkaCluster) {
 		return err
 	}).Should(Succeed())
 
-	Expect(configMap.Labels).To(And(HaveKeyWithValue("app", "kafka-jmx"), HaveKeyWithValue("kafka_cr", kafkaCluster.Name)))
+	Expect(configMap.Labels).To(And(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka-jmx"), HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name)))
 	Expect(configMap.Data).To(HaveKeyWithValue("config.yaml", Not(BeEmpty())))
 }
 
@@ -387,6 +387,6 @@ func expectCruiseControlMonitoring(kafkaCluster *v1beta1.KafkaCluster) {
 		return err
 	}).Should(Succeed())
 
-	Expect(configMap.Labels).To(And(HaveKeyWithValue("app", "cruisecontrol-jmx"), HaveKeyWithValue("kafka_cr", kafkaCluster.Name)))
+	Expect(configMap.Labels).To(And(HaveKeyWithValue(v1beta1.AppLabelKey, "cruisecontrol-jmx"), HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name)))
 	Expect(configMap.Data).To(HaveKeyWithValue("config.yaml", kafkaCluster.Spec.MonitoringConfig.CCJMXExporterConfig))
 }

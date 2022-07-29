@@ -53,9 +53,9 @@ func newCruiseControlTopic(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaTopic {
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(cruiseControlTopicFormat, cluster.Name),
 			map[string]string{
-				"app":              "kafka",
-				"clusterName":      cluster.Name,
-				"clusterNamespace": cluster.Namespace,
+				v1beta1.AppLabelKey: "kafka",
+				"clusterName":       cluster.Name,
+				"clusterNamespace":  cluster.Namespace,
 			},
 			cluster,
 		),

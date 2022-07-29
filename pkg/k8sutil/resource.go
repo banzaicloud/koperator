@@ -127,15 +127,15 @@ func Reconcile(log logr.Logger, client runtimeClient.Client, desired runtime.Obj
 			}
 			if _, ok := desired.(*corev1.ConfigMap); ok {
 				// Only update status when configmap belongs to broker
-				if id, ok := desired.(*corev1.ConfigMap).Labels["brokerId"]; ok {
+				if id, ok := desired.(*corev1.ConfigMap).Labels[v1beta1.BrokerIdLabelKey]; ok {
 					currentConfigs, err := properties.NewFromString(current.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
 					if err != nil {
-						return errors.WrapWithDetails(err, "could not parse the current configuration for broker", "brokerId", id)
+						return errors.WrapWithDetails(err, "could not parse the current configuration for broker", v1beta1.BrokerIdLabelKey, id)
 					}
 
 					desiredConfigs, err := properties.NewFromString(desired.(*corev1.ConfigMap).Data[kafka.ConfigPropertyName])
 					if err != nil {
-						return errors.WrapWithDetails(err, "could not parse the current configuration for broker", "brokerId", id)
+						return errors.WrapWithDetails(err, "could not parse the current configuration for broker", v1beta1.BrokerIdLabelKey, id)
 					}
 
 					// Check if there is drift in the configuration and return in case there is none

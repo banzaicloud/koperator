@@ -63,9 +63,9 @@ func TestReconciler_pvc(t *testing.T) {
 					Name:         "",
 					GenerateName: fmt.Sprintf("%s-2-storage-1-", kafkaCluster.GetName()),
 					Labels: map[string]string{
-						"app":      "kafka",
-						"kafka_cr": kafkaCluster.GetName(),
-						"brokerId": "2",
+						v1beta1.AppLabelKey:      "kafka",
+						v1beta1.KafkaCRLabelKey:  kafkaCluster.GetName(),
+						v1beta1.BrokerIdLabelKey: "2",
 					},
 					Annotations: map[string]string{
 						"mountPath": "/kafka-logs-1",
@@ -85,8 +85,8 @@ func TestReconciler_pvc(t *testing.T) {
 				PvcSpec: &corev1.PersistentVolumeClaimSpec{
 					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							"label1":   "value1",
-							"brokerId": "{{ .BrokerId }}",
+							"label1":                 "value1",
+							v1beta1.BrokerIdLabelKey: "{{ .BrokerId }}",
 							// strip '/' from mount path as label selector values
 							// has to start with an alphanumeric character': https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
 							"mountPath": "{{ trimPrefix \"/\" .MountPath }}",
@@ -100,9 +100,9 @@ func TestReconciler_pvc(t *testing.T) {
 					Name:         "",
 					GenerateName: fmt.Sprintf("%s-2-storage-1-", kafkaCluster.GetName()),
 					Labels: map[string]string{
-						"app":      "kafka",
-						"kafka_cr": kafkaCluster.GetName(),
-						"brokerId": "2",
+						v1beta1.AppLabelKey:      "kafka",
+						v1beta1.KafkaCRLabelKey:  kafkaCluster.GetName(),
+						v1beta1.BrokerIdLabelKey: "2",
 					},
 					Annotations: map[string]string{
 						"mountPath": "/kafka-logs-1",
@@ -111,9 +111,9 @@ func TestReconciler_pvc(t *testing.T) {
 				Spec: corev1.PersistentVolumeClaimSpec{
 					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							"label1":    "value1",
-							"brokerId":  "2",
-							"mountPath": "kafka-logs-1",
+							"label1":                 "value1",
+							v1beta1.BrokerIdLabelKey: "2",
+							"mountPath":              "kafka-logs-1",
 						},
 					},
 				},
@@ -126,9 +126,9 @@ func TestReconciler_pvc(t *testing.T) {
 				PvcSpec: &corev1.PersistentVolumeClaimSpec{
 					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							"label1":    "value1",
-							"brokerId":  "{{ .BrokerId }}",
-							"mountPath": "{{ trimPrefix \"/\" .MountPath | sha1sum }}",
+							"label1":                 "value1",
+							v1beta1.BrokerIdLabelKey: "{{ .BrokerId }}",
+							"mountPath":              "{{ trimPrefix \"/\" .MountPath | sha1sum }}",
 						},
 					},
 				},
@@ -139,9 +139,9 @@ func TestReconciler_pvc(t *testing.T) {
 					Name:         "",
 					GenerateName: fmt.Sprintf("%s-2-storage-1-", kafkaCluster.GetName()),
 					Labels: map[string]string{
-						"app":      "kafka",
-						"kafka_cr": kafkaCluster.GetName(),
-						"brokerId": "2",
+						v1beta1.AppLabelKey:      "kafka",
+						v1beta1.KafkaCRLabelKey:  kafkaCluster.GetName(),
+						v1beta1.BrokerIdLabelKey: "2",
 					},
 					Annotations: map[string]string{
 						"mountPath": "/mountpath/that/exceeds63characters/kafka-logs-123456789123456789",
@@ -150,9 +150,9 @@ func TestReconciler_pvc(t *testing.T) {
 				Spec: corev1.PersistentVolumeClaimSpec{
 					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							"label1":    "value1",
-							"brokerId":  "2",
-							"mountPath": "4efe1a6cf77dced13b2906585c33b0e1f615d90e",
+							"label1":                 "value1",
+							v1beta1.BrokerIdLabelKey: "2",
+							"mountPath":              "4efe1a6cf77dced13b2906585c33b0e1f615d90e",
 						},
 					},
 				},
@@ -172,9 +172,9 @@ func TestReconciler_pvc(t *testing.T) {
 					Name:         "",
 					GenerateName: fmt.Sprintf("%s-2-storage-1-", kafkaCluster.GetName()),
 					Labels: map[string]string{
-						"app":      "kafka",
-						"kafka_cr": kafkaCluster.GetName(),
-						"brokerId": "2",
+						v1beta1.AppLabelKey:      "kafka",
+						v1beta1.KafkaCRLabelKey:  kafkaCluster.GetName(),
+						v1beta1.BrokerIdLabelKey: "2",
 					},
 					Annotations: map[string]string{
 						"mountPath": "/kafka-logs-1",

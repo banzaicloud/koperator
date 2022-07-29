@@ -115,7 +115,7 @@ func getCreatedPvcForBroker(
 	matchingLabels := client.MatchingLabels(
 		apiutil.MergeLabels(
 			apiutil.LabelsForKafka(crName),
-			map[string]string{"brokerId": fmt.Sprintf("%d", brokerID)},
+			map[string]string{v1beta1.BrokerIdLabelKey: fmt.Sprintf("%d", brokerID)},
 		),
 	)
 	err := c.List(ctx, foundPvcList, client.ListOption(client.InNamespace(namespace)), client.ListOption(matchingLabels))
@@ -142,7 +142,7 @@ func getCreatedPvcForBroker(
 	}
 	if len(missing) > 0 {
 		return nil, errors.NewWithDetails("broker mount paths missing persistent volume claim",
-			"brokerId", brokerID, "mount paths", missing)
+			v1beta1.BrokerIdLabelKey, brokerID, "mount paths", missing)
 	}
 	sort.Slice(foundPvcList.Items, func(i, j int) bool {
 		return foundPvcList.Items[i].Name < foundPvcList.Items[j].Name
@@ -251,7 +251,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			if storage.PvcSpec == nil && storage.EmptyDir == nil {
 				return errors.WrapIfWithDetails(err,
 					"invalid storage config, either 'pvcSpec' or 'emptyDir` has to be set",
-					"brokerId", broker.Id, "mountPath", storage.MountPath)
+					v1beta1.BrokerIdLabelKey, broker.Id, "mountPath", storage.MountPath)
 			}
 			if storage.PvcSpec == nil {
 				continue
@@ -282,7 +282,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	runningBrokers := make(map[string]struct{})
 	for _, b := range brokerPods.Items {
-		brokerID := b.GetLabels()["brokerId"]
+		brokerID := b.GetLabels()[v1beta1.BrokerIdLabelKey]
 		runningBrokers[brokerID] = struct{}{}
 	}
 
@@ -299,7 +299,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	boundPersistentVolumeClaims := make(map[string]struct{})
 	for _, pvc := range pvcList.Items {
-		brokerID := pvc.GetLabels()["brokerId"]
+		brokerID := pvc.GetLabels()[v1beta1.BrokerIdLabelKey]
 		if pvc.Status.Phase == corev1.ClaimBound {
 			boundPersistentVolumeClaims[brokerID] = struct{}{}
 		}
@@ -355,7 +355,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		// but the loop exits too soon because dynamic configs can not be set.
 		err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, configMap, log)
 		if err != nil {
-			log.Error(err, "setting dynamic configs has failed", "brokerID", broker.Id)
+			log.Error(err, "setting dynamic configs has failed", v1beta1.BrokerIdLabelKey, broker.Id)
 			allBrokerDynamicConfigSucceeded = false
 		}
 	}
@@ -420,7 +420,7 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 	podsDeletedFromSpec := make([]corev1.Pod, 0, len(podList.Items))
 	brokerIDsDeletedFromSpec := make(map[string]bool)
 	for _, pod := range podList.Items {
-		id, ok := pod.Labels["brokerId"]
+		id, ok := pod.Labels[v1beta1.BrokerIdLabelKey]
 		if !ok {
 			continue
 		}
@@ -490,47 +490,47 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 		for _, broker := range podsDeletedFromSpec {
 			broker := broker
 			if broker.ObjectMeta.DeletionTimestamp != nil {
-				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
+				log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels[v1beta1.BrokerIdLabelKey]))
 				continue
 			}
 
-			if brokerState, ok := r.KafkaCluster.Status.BrokersState[broker.Labels["brokerId"]]; ok &&
+			if brokerState, ok := r.KafkaCluster.Status.BrokersState[broker.Labels[v1beta1.BrokerIdLabelKey]]; ok &&
 				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded &&
 				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleRequired {
 				if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
-					log.Info("cc task is still running for broker", "brokerId", broker.Labels["brokerId"], "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
+					log.Info("cc task is still running for broker", v1beta1.BrokerIdLabelKey, broker.Labels[v1beta1.BrokerIdLabelKey], "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
 				}
 				continue
 			}
 
 			err = r.Client.Delete(context.TODO(), &broker)
 			if err != nil {
-				return errors.WrapIfWithDetails(err, "could not delete broker", "id", broker.Labels["brokerId"])
+				return errors.WrapIfWithDetails(err, "could not delete broker", "id", broker.Labels[v1beta1.BrokerIdLabelKey])
 			}
-			log.Info("broker pod deleted", "brokerId", broker.Labels["brokerId"], "pod", broker.GetName())
-			configMapName := fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels["brokerId"])
+			log.Info("broker pod deleted", v1beta1.BrokerIdLabelKey, broker.Labels[v1beta1.BrokerIdLabelKey], "pod", broker.GetName())
+			configMapName := fmt.Sprintf(brokerConfigTemplate+"-%s", r.KafkaCluster.Name, broker.Labels[v1beta1.BrokerIdLabelKey])
 			err = r.Client.Delete(context.TODO(), &corev1.ConfigMap{ObjectMeta: templates.ObjectMeta(configMapName, apiutil.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 			if err != nil {
 				if apierrors.IsNotFound(err) {
 					// can happen when broker was not fully initialized and now is deleted
-					log.Info(fmt.Sprintf("ConfigMap for Broker %s not found. Continue", broker.Labels["brokerId"]))
+					log.Info(fmt.Sprintf("ConfigMap for Broker %s not found. Continue", broker.Labels[v1beta1.BrokerIdLabelKey]))
 				} else {
-					return errors.WrapIfWithDetails(err, "could not delete configmap for broker", "id", broker.Labels["brokerId"])
+					return errors.WrapIfWithDetails(err, "could not delete configmap for broker", "id", broker.Labels[v1beta1.BrokerIdLabelKey])
 				}
 			} else {
-				log.V(1).Info("configMap for broker deleted", "configMap name", configMapName, "brokerId", broker.Labels["brokerId"])
+				log.V(1).Info("configMap for broker deleted", "configMap name", configMapName, v1beta1.BrokerIdLabelKey, broker.Labels[v1beta1.BrokerIdLabelKey])
 			}
 			if !r.KafkaCluster.Spec.HeadlessServiceEnabled {
-				serviceName := fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels["brokerId"])
+				serviceName := fmt.Sprintf("%s-%s", r.KafkaCluster.Name, broker.Labels[v1beta1.BrokerIdLabelKey])
 				err = r.Client.Delete(context.TODO(), &corev1.Service{ObjectMeta: templates.ObjectMeta(serviceName, apiutil.LabelsForKafka(r.KafkaCluster.Name), r.KafkaCluster)})
 				if err != nil {
 					if apierrors.IsNotFound(err) {
 						// can happen when broker was not fully initialized and now is deleted
-						log.Info(fmt.Sprintf("Service for Broker %s not found. Continue", broker.Labels["brokerId"]))
+						log.Info(fmt.Sprintf("Service for Broker %s not found. Continue", broker.Labels[v1beta1.BrokerIdLabelKey]))
 					}
-					return errors.WrapIfWithDetails(err, "could not delete service for broker", "id", broker.Labels["brokerId"])
+					return errors.WrapIfWithDetails(err, "could not delete service for broker", "id", broker.Labels[v1beta1.BrokerIdLabelKey])
 				}
-				log.V(1).Info("service for broker deleted", "service name", serviceName, "brokerId", broker.Labels["brokerId"])
+				log.V(1).Info("service for broker deleted", "service name", serviceName, v1beta1.BrokerIdLabelKey, broker.Labels[v1beta1.BrokerIdLabelKey])
 			}
 			for _, volume := range broker.Spec.Volumes {
 				if strings.HasPrefix(volume.Name, kafkaDataVolumeMount) {
@@ -541,16 +541,16 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 					if err != nil {
 						if apierrors.IsNotFound(err) {
 							// can happen when broker was not fully initialized and now is deleted
-							log.Info(fmt.Sprintf("PVC for Broker %s not found. Continue", broker.Labels["brokerId"]))
+							log.Info(fmt.Sprintf("PVC for Broker %s not found. Continue", broker.Labels[v1beta1.BrokerIdLabelKey]))
 						}
-						return errors.WrapIfWithDetails(err, "could not delete pvc for broker", "id", broker.Labels["brokerId"])
+						return errors.WrapIfWithDetails(err, "could not delete pvc for broker", "id", broker.Labels[v1beta1.BrokerIdLabelKey])
 					}
-					log.V(1).Info("pvc for broker deleted", "pvc name", volume.PersistentVolumeClaim.ClaimName, "brokerId", broker.Labels["brokerId"])
+					log.V(1).Info("pvc for broker deleted", "pvc name", volume.PersistentVolumeClaim.ClaimName, v1beta1.BrokerIdLabelKey, broker.Labels[v1beta1.BrokerIdLabelKey])
 				}
 			}
-			err = k8sutil.DeleteStatus(r.Client, broker.Labels["brokerId"], r.KafkaCluster, log)
+			err = k8sutil.DeleteStatus(r.Client, broker.Labels[v1beta1.BrokerIdLabelKey], r.KafkaCluster, log)
 			if err != nil {
-				return errors.WrapIfWithDetails(err, "could not delete status for broker", "id", broker.Labels["brokerId"])
+				return errors.WrapIfWithDetails(err, "could not delete status for broker", "id", broker.Labels[v1beta1.BrokerIdLabelKey])
 			}
 		}
 	}
@@ -562,7 +562,7 @@ func arePodsAlreadyDeleted(pods []corev1.Pod, log logr.Logger) bool {
 		if broker.ObjectMeta.DeletionTimestamp == nil {
 			return false
 		}
-		log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels["brokerId"]))
+		log.Info(fmt.Sprintf("Broker %s is already on terminating state", broker.Labels[v1beta1.BrokerIdLabelKey]))
 	}
 	return true
 }
@@ -709,14 +709,14 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 	desiredType := reflect.TypeOf(desiredPod)
 
 	log = log.WithValues("kind", desiredType)
-	log.V(1).Info("searching with label because name is empty", "brokerId", desiredPod.Labels["brokerId"])
+	log.V(1).Info("searching with label because name is empty", v1beta1.BrokerIdLabelKey, desiredPod.Labels[v1beta1.BrokerIdLabelKey])
 
 	podList := &corev1.PodList{}
 
 	matchingLabels := client.MatchingLabels(
 		apiutil.MergeLabels(
 			apiutil.LabelsForKafka(r.KafkaCluster.Name),
-			map[string]string{"brokerId": desiredPod.Labels["brokerId"]},
+			map[string]string{v1beta1.BrokerIdLabelKey: desiredPod.Labels[v1beta1.BrokerIdLabelKey]},
 		),
 	)
 	err := r.Client.List(context.TODO(), podList, client.InNamespace(currentPod.Namespace), matchingLabels)
@@ -743,24 +743,24 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 				}
 			}
 		}
-		statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]},
+		statusErr := k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels[v1beta1.BrokerIdLabelKey]},
 			r.KafkaCluster, externalConfigNames, log)
 		if statusErr != nil {
 			return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating status for resource failed", "kind", desiredType)
 		}
 		// Update status to Config InSync because broker is configured to go
-		statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.ConfigInSync, log)
+		statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels[v1beta1.BrokerIdLabelKey]}, r.KafkaCluster, v1beta1.ConfigInSync, log)
 		if statusErr != nil {
 			return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating status for resource failed", "kind", desiredType)
 		}
 		// Update status to per-broker Config InSync because broker is configured to go
 		log.V(1).Info("setting per broker config status to in sync")
-		statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, v1beta1.PerBrokerConfigInSync, log)
+		statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels[v1beta1.BrokerIdLabelKey]}, r.KafkaCluster, v1beta1.PerBrokerConfigInSync, log)
 		if statusErr != nil {
 			return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "updating per broker config status for resource failed", "kind", desiredType)
 		}
 
-		if val, hasBrokerState := r.KafkaCluster.Status.BrokersState[desiredPod.Labels["brokerId"]]; hasBrokerState {
+		if val, hasBrokerState := r.KafkaCluster.Status.BrokersState[desiredPod.Labels[v1beta1.BrokerIdLabelKey]]; hasBrokerState {
 			ccState := val.GracefulActionState.CruiseControlState
 			if ccState != v1beta1.GracefulUpscaleSucceeded && !ccState.IsDownscale() {
 				gracefulActionState := v1beta1.GracefulActionState{ErrorMessage: "CruiseControl not yet ready", CruiseControlState: v1beta1.GracefulUpscaleSucceeded}
@@ -768,7 +768,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 				if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
 					gracefulActionState = v1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: v1beta1.GracefulUpscaleRequired}
 				}
-				statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels["brokerId"]}, r.KafkaCluster, gracefulActionState, log)
+				statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels[v1beta1.BrokerIdLabelKey]}, r.KafkaCluster, gracefulActionState, log)
 				if statusErr != nil {
 					return errorfactory.New(errorfactory.StatusUpdateError{}, statusErr, "could not update broker graceful action state")
 				}
@@ -778,7 +778,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 		return nil
 	case len(podList.Items) == 1:
 		currentPod = podList.Items[0].DeepCopy()
-		brokerId := currentPod.Labels["brokerId"]
+		brokerId := currentPod.Labels[v1beta1.BrokerIdLabelKey]
 		if _, ok := r.KafkaCluster.Status.BrokersState[brokerId]; ok {
 			if currentPod.Spec.NodeName == "" {
 				log.Info(fmt.Sprintf("pod for brokerId %s does not scheduled to node yet", brokerId))
@@ -845,7 +845,7 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 		log.Error(err, "could not match objects", "kind", desiredType)
 	case patchResult.IsEmpty():
 		if !k8sutil.IsPodContainsTerminatedContainer(currentPod) &&
-			r.KafkaCluster.Status.BrokersState[currentPod.Labels["brokerId"]].ConfigurationState == v1beta1.ConfigInSync &&
+			r.KafkaCluster.Status.BrokersState[currentPod.Labels[v1beta1.BrokerIdLabelKey]].ConfigurationState == v1beta1.ConfigInSync &&
 			!k8sutil.IsPodContainsEvictedContainer(currentPod) &&
 			!k8sutil.IsPodContainsShutdownContainer(currentPod) {
 			log.V(1).Info("resource is in sync")
@@ -935,12 +935,12 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 	if k8sutil.IsPodContainsTerminatedContainer(currentPod) {
 		for _, containerState := range currentPod.Status.ContainerStatuses {
 			if containerState.State.Terminated != nil {
-				log.Info("terminated container for broker pod", "pod", currentPod.GetName(), "brokerId", currentPod.Labels["brokerId"],
+				log.Info("terminated container for broker pod", "pod", currentPod.GetName(), v1beta1.BrokerIdLabelKey, currentPod.Labels[v1beta1.BrokerIdLabelKey],
 					"containerName", containerState.Name, "exitCode", containerState.State.Terminated.ExitCode, "reason", containerState.State.Terminated.Reason)
 			}
 		}
 	}
-	log.Info("broker pod deleted", "pod", currentPod.GetName(), "brokerId", currentPod.Labels["brokerId"])
+	log.Info("broker pod deleted", "pod", currentPod.GetName(), v1beta1.BrokerIdLabelKey, currentPod.Labels[v1beta1.BrokerIdLabelKey])
 	return nil
 }
 
@@ -957,7 +957,7 @@ func (r *Reconciler) reconcileKafkaPvc(ctx context.Context, log logr.Logger, bro
 		matchingLabels := client.MatchingLabels(
 			apiutil.MergeLabels(
 				apiutil.LabelsForKafka(r.KafkaCluster.Name),
-				map[string]string{"brokerId": brokerId},
+				map[string]string{v1beta1.BrokerIdLabelKey: brokerId},
 			),
 		)
 
@@ -1194,7 +1194,7 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 
 func (r *Reconciler) getK8sAssignedNodeport(log logr.Logger, eListenerName string, brokerId int32) (int32, error) {
 	log.Info("determining automatically assigned nodeport",
-		"brokerId", brokerId, "listenerName", eListenerName)
+		v1beta1.BrokerIdLabelKey, brokerId, "listenerName", eListenerName)
 	nodePortSvc := &corev1.Service{}
 	err := r.Client.Get(context.Background(),
 		types.NamespacedName{Name: fmt.Sprintf(kafka.NodePortServiceTemplate,
@@ -1202,10 +1202,10 @@ func (r *Reconciler) getK8sAssignedNodeport(log logr.Logger, eListenerName strin
 			Namespace: r.KafkaCluster.GetNamespace()}, nodePortSvc)
 	if err != nil {
 		return 0, errors.WrapWithDetails(err, "could not get nodeport service",
-			"brokerId", brokerId, "listenerName", eListenerName)
+			v1beta1.BrokerIdLabelKey, brokerId, "listenerName", eListenerName)
 	}
 	log.V(1).Info("nodeport service successfully found",
-		"brokerId", brokerId, "listenerName", eListenerName)
+		v1beta1.BrokerIdLabelKey, brokerId, "listenerName", eListenerName)
 
 	var nodePort int32
 	for _, port := range nodePortSvc.Spec.Ports {
@@ -1278,18 +1278,18 @@ func reorderBrokers(runningBrokers, boundPersistentVolumeClaims map[string]struc
 		_, pvcPresent := boundPersistentVolumeClaims[id]
 		ccState := brokerState.GracefulActionState.CruiseControlState
 		if !running && (ccState == v1beta1.GracefulDownscaleRequired || ccState == v1beta1.GracefulDownscaleRunning) {
-			log.Info("missing broker found with incomplete downscale operation", "brokerID", id)
+			log.Info("missing broker found with incomplete downscale operation", v1beta1.BrokerIdLabelKey, id)
 			if pvcPresent {
 				unfinishedBroker, err := util.GetBrokerFromBrokerConfigurationBackup(brokerState.ConfigurationBackup)
 				if err != nil {
-					log.Error(err, "unable to restore broker configuration from configuration backup", "brokerID", id)
+					log.Error(err, "unable to restore broker configuration from configuration backup", v1beta1.BrokerIdLabelKey, id)
 					continue
 				}
-				log.Info("re-creating broker pod to continue downscale operation", "brokerID", id)
+				log.Info("re-creating broker pod to continue downscale operation", v1beta1.BrokerIdLabelKey, id)
 				missingBrokerDownScaleRunning[id] = struct{}{}
 				desiredBrokers = append(desiredBrokers, unfinishedBroker)
 			} else {
-				log.Info("pvc is missing, unable to reconstruct missing broker pod", "brokerID", id)
+				log.Info("pvc is missing, unable to reconstruct missing broker pod", v1beta1.BrokerIdLabelKey, id)
 			}
 		}
 	}

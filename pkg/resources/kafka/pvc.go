@@ -32,7 +32,7 @@ import (
 )
 
 func (r *Reconciler) pvc(brokerId int32, storageIndex int, storage v1beta1.StorageConfig) (*corev1.PersistentVolumeClaim, error) {
-	errCtx := []interface{}{"brokerId", brokerId, "mountPath", storage.MountPath}
+	errCtx := []interface{}{v1beta1.BrokerIdLabelKey, brokerId, "mountPath", storage.MountPath}
 
 	pvcSpecYaml, err := yaml.Marshal(storage.PvcSpec)
 	if err != nil {
@@ -67,7 +67,7 @@ func (r *Reconciler) pvc(brokerId int32, storageIndex int, storage v1beta1.Stora
 			fmt.Sprintf(brokerStorageTemplate, r.KafkaCluster.Name, brokerId, storageIndex),
 			apiutil.MergeLabels(
 				apiutil.LabelsForKafka(r.KafkaCluster.Name),
-				map[string]string{"brokerId": fmt.Sprintf("%d", brokerId)},
+				map[string]string{v1beta1.BrokerIdLabelKey: fmt.Sprintf("%d", brokerId)},
 			),
 			map[string]string{"mountPath": storage.MountPath}, r.KafkaCluster),
 		Spec: pvcSpec,

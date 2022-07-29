@@ -80,7 +80,7 @@ func generateBrokerConfigurationBackups(cluster *banzaicloudv1beta1.KafkaCluster
 		brokerState := cluster.Status.BrokersState[fmt.Sprint(broker.Id)]
 		configurationBackup, err := util.GzipAndBase64BrokerConfiguration(&broker)
 		if err != nil {
-			return false, errors.WrapIfWithDetails(err, "could not generate broker configuration backup", "brokerId", broker.Id)
+			return false, errors.WrapIfWithDetails(err, "could not generate broker configuration backup", banzaicloudv1beta1.BrokerIdLabelKey, broker.Id)
 		}
 		if !needsUpdate && configurationBackup != brokerState.ConfigurationBackup {
 			needsUpdate = true

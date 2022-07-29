@@ -29,9 +29,9 @@ import (
 )
 
 func expectEnvoyIngressLabels(labels map[string]string, eListenerName, crName string) {
-	Expect(labels).To(HaveKeyWithValue("app", "envoyingress"))
+	Expect(labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "envoyingress"))
 	Expect(labels).To(HaveKeyWithValue("eListenerName", eListenerName))
-	Expect(labels).To(HaveKeyWithValue("kafka_cr", crName))
+	Expect(labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, crName))
 }
 
 func expectEnvoyIngressAnnotations(annotations map[string]string) {
@@ -49,9 +49,9 @@ func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerTempla
 	expectEnvoyIngressLabels(loadBalancer.Labels, eListenerTemplate, kafkaCluster.Name)
 	Expect(loadBalancer.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 	Expect(loadBalancer.Spec.Selector).To(Equal(map[string]string{
-		"app":           "envoyingress",
-		"eListenerName": eListenerTemplate,
-		"kafka_cr":      kafkaCluster.Name,
+		v1beta1.AppLabelKey:     "envoyingress",
+		"eListenerName":         eListenerTemplate,
+		v1beta1.KafkaCRLabelKey: kafkaCluster.Name,
 	}))
 	Expect(loadBalancer.Spec.Ports).To(HaveLen(6))
 	for i, port := range loadBalancer.Spec.Ports {

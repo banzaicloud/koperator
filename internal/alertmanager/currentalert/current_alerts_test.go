@@ -180,10 +180,10 @@ func TestGetCurrentAlerts(t *testing.T) {
 		FingerPrint: model.Fingerprint(1111),
 		Status:      model.AlertStatus(firingAlertStatus),
 		Labels: model.LabelSet{
-			"alertname": "PodAlert",
-			"test":      "test",
-			"kafka_cr":  "kafka",
-			"namespace": "kafka",
+			"alertname":             "PodAlert",
+			"test":                  "test",
+			v1beta1.KafkaCRLabelKey: "kafka",
+			"namespace":             "kafka",
 		},
 		Annotations: map[model.LabelName]model.LabelValue{
 			"command": "testing",

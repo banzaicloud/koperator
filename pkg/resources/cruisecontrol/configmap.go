@@ -159,7 +159,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 			if !ok {
 				continue
 			}
-			brokerId, ok, err := unstructured.NestedString(brokerCapacityMap, "brokerId")
+			brokerId, ok, err := unstructured.NestedString(brokerCapacityMap, v1beta1.BrokerIdLabelKey)
 			if err != nil {
 				return "", errors.WrapIfWithDetails(err,
 					"could retrieve broker Id from broker capacity configuration",
@@ -227,7 +227,7 @@ func appendGeneratedBrokerCapacities(kafkaCluster *v1beta1.KafkaCluster, log log
 				brokerFoundInSpec = true
 				brokerDisks, err := generateBrokerDisks(broker, kafkaCluster.Spec, log)
 				if err != nil {
-					return nil, errors.WrapIfWithDetails(err, "could not generate broker disks config for broker", "brokerID", broker.Id)
+					return nil, errors.WrapIfWithDetails(err, "could not generate broker disks config for broker", v1beta1.BrokerIdLabelKey, broker.Id)
 				}
 				brokerCapacity = BrokerCapacity{
 					BrokerID: strconv.Itoa(int(broker.Id)),
@@ -333,7 +333,7 @@ func generateBrokerDisks(brokerState v1beta1.Broker, kafkaClusterSpec v1beta1.Ka
 	logDirs := make(map[string]string, len(storageConfigs))
 	for path, conf := range storageConfigs {
 		size := parseMountPathWithSize(conf)
-		log.V(1).Info(fmt.Sprintf("broker log.dir %s size in MB: %d", path, size), "brokerId", brokerState.Id)
+		log.V(1).Info(fmt.Sprintf("broker log.dir %s size in MB: %d", path, size), v1beta1.BrokerIdLabelKey, brokerState.Id)
 
 		if size < MinLogDirSizeInMB {
 			return nil, errors.Errorf("broker log.dir %s size is %dMB which is less than the minimum %dMB",

@@ -59,13 +59,13 @@ func expectKafkaAllBrokerService(kafkaCluster *v1beta1.KafkaCluster) {
 		}, service)
 	}).Should(Succeed())
 
-	Expect(service.Labels).To(HaveKeyWithValue("app", "kafka"))
-	Expect(service.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(service.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
+	Expect(service.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 
 	Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 	Expect(service.Spec.SessionAffinity).To(Equal(corev1.ServiceAffinityNone))
-	Expect(service.Spec.Selector).To(HaveKeyWithValue("app", "kafka"))
-	Expect(service.Spec.Selector).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 	Expect(service.Spec.Ports).To(ConsistOf(
 		corev1.ServicePort{
 			Name:       "tcp-internal",
@@ -116,12 +116,12 @@ func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster) {
 	}).Should(Succeed())
 
 	// make assertions
-	Expect(pdb.Labels).To(HaveKeyWithValue("app", "kafka"))
-	Expect(pdb.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(pdb.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
+	Expect(pdb.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 	Expect(pdb.Spec.MinAvailable).To(Equal(util.IntstrPointer(3)))
 	Expect(pdb.Spec.Selector).NotTo(BeNil())
-	Expect(pdb.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app", "kafka"))
-	Expect(pdb.Spec.Selector.MatchLabels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+	Expect(pdb.Spec.Selector.MatchLabels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
+	Expect(pdb.Spec.Selector.MatchLabels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 }
 
 func expectKafkaPVC(kafkaCluster *v1beta1.KafkaCluster) {
@@ -130,15 +130,15 @@ func expectKafkaPVC(kafkaCluster *v1beta1.KafkaCluster) {
 	Eventually(func() error {
 		return k8sClient.List(context.Background(), &pvcs,
 			client.ListOption(client.InNamespace(kafkaCluster.Namespace)),
-			client.ListOption(client.MatchingLabels(map[string]string{"app": "kafka", "kafka_cr": kafkaCluster.Name})))
+			client.ListOption(client.MatchingLabels(map[string]string{v1beta1.AppLabelKey: "kafka", v1beta1.KafkaCRLabelKey: kafkaCluster.Name})))
 	}).Should(Succeed())
 
 	Expect(pvcs.Items).To(HaveLen(3))
 	for i, pvc := range pvcs.Items {
 		Expect(pvc.GenerateName).To(Equal(fmt.Sprintf("%s-%d-storage-0-", kafkaCluster.Name, i)))
-		Expect(pvc.Labels).To(HaveKeyWithValue("app", "kafka"))
-		Expect(pvc.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(i)))
-		Expect(pvc.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
+		Expect(pvc.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
+		Expect(pvc.Labels).To(HaveKeyWithValue(v1beta1.BrokerIdLabelKey, strconv.Itoa(i)))
+		Expect(pvc.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 		Expect(pvc.Annotations).To(HaveKeyWithValue("mountPath", "/kafka-logs"))
 		Expect(pvc.Spec.AccessModes).To(ConsistOf(corev1.ReadWriteOnce))
 		Expect(pvc.Spec.Resources).To(Equal(corev1.ResourceRequirements{
@@ -158,9 +158,9 @@ func expectKafkaBrokerConfigmap(kafkaCluster *v1beta1.KafkaCluster, broker v1bet
 		}, &configMap)
 	}).Should(Succeed())
 
-	Expect(configMap.Labels).To(HaveKeyWithValue("app", "kafka"))
-	Expect(configMap.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
-	Expect(configMap.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+	Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
+	Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
+	Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.BrokerIdLabelKey, strconv.Itoa(int(broker.Id))))
 
 	Expect(configMap.Data).To(HaveKeyWithValue("broker-config", fmt.Sprintf(`advertised.listeners=CONTROLLER://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29092,TEST://test.host.com:%d
 broker.id=%d
@@ -187,9 +187,9 @@ func expectKafkaBrokerService(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1
 		}, &service)
 	}).Should(Succeed())
 
-	Expect(service.Labels).To(HaveKeyWithValue("app", "kafka"))
-	Expect(service.Labels).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
-	Expect(service.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+	Expect(service.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
+	Expect(service.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
+	Expect(service.Labels).To(HaveKeyWithValue(v1beta1.BrokerIdLabelKey, strconv.Itoa(int(broker.Id))))
 
 	Expect(service.Spec.Ports).To(ConsistOf(
 		corev1.ServicePort{
@@ -217,9 +217,9 @@ func expectKafkaBrokerService(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1
 			TargetPort: intstr.FromInt(9020),
 		}))
 
-	Expect(service.Spec.Selector).To(HaveKeyWithValue("app", "kafka"))
-	Expect(service.Spec.Selector).To(HaveKeyWithValue("kafka_cr", kafkaCluster.Name))
-	Expect(service.Spec.Selector).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.AppLabelKey, "kafka"))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.BrokerIdLabelKey, strconv.Itoa(int(broker.Id))))
 	Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 }
 
@@ -228,14 +228,14 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	Eventually(func() ([]corev1.Pod, error) {
 		err := k8sClient.List(context.Background(), &podList,
 			client.ListOption(client.InNamespace(kafkaCluster.Namespace)),
-			client.ListOption(client.MatchingLabels(map[string]string{"app": "kafka", "kafka_cr": kafkaCluster.Name, "brokerId": strconv.Itoa(int(broker.Id))})))
+			client.ListOption(client.MatchingLabels(map[string]string{v1beta1.AppLabelKey: "kafka", v1beta1.KafkaCRLabelKey: kafkaCluster.Name, v1beta1.BrokerIdLabelKey: strconv.Itoa(int(broker.Id))})))
 		return podList.Items, err
 	}).Should(HaveLen(1))
 
 	pod := podList.Items[0]
 
 	Expect(pod.GenerateName).To(Equal(fmt.Sprintf("%s-%d-", kafkaCluster.Name, broker.Id)))
-	Expect(pod.Labels).To(HaveKeyWithValue("brokerId", strconv.Itoa(int(broker.Id))))
+	Expect(pod.Labels).To(HaveKeyWithValue(v1beta1.BrokerIdLabelKey, strconv.Itoa(int(broker.Id))))
 	getContainerName := func(c corev1.Container) string { return c.Name }
 	// test exact order, because if the slice reorders, it triggers another reconcile cycle
 	Expect(pod.Spec.InitContainers).To(HaveLen(4))

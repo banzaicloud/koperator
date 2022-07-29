@@ -62,7 +62,7 @@ func GetCommandList() []string {
 }
 func (e *examiner) getKafkaCr() (*v1beta1.KafkaCluster, error) {
 	var cr *v1beta1.KafkaCluster
-	if kafkaCr, ok := e.Alert.Labels["kafka_cr"]; ok {
+	if kafkaCr, ok := e.Alert.Labels[v1beta1.KafkaCRLabelKey]; ok {
 		var err error
 		cr, err = k8sutil.GetCr(string(kafkaCr), string(e.Alert.Labels["namespace"]), e.Client)
 		if err != nil {
@@ -74,7 +74,7 @@ func (e *examiner) getKafkaCr() (*v1beta1.KafkaCluster, error) {
 		if err != nil {
 			return nil, err
 		}
-		if kafkaCr, ok := pvc.GetLabels()["kafka_cr"]; ok {
+		if kafkaCr, ok := pvc.GetLabels()[v1beta1.KafkaCRLabelKey]; ok {
 			cr, err = k8sutil.GetCr(kafkaCr, string(e.Alert.Labels["namespace"]), e.Client)
 			if err != nil {
 				return nil, err
@@ -228,12 +228,12 @@ func addPvc(log logr.Logger, alertLabels model.LabelSet, alertAnnotations model.
 			},
 		}}
 
-	err = k8sutil.AddPvToSpecificBroker(pvc.Labels["brokerId"], pvc.Labels["kafka_cr"], string(alertLabels["namespace"]), &storageConfig, client)
+	err = k8sutil.AddPvToSpecificBroker(pvc.Labels[v1beta1.BrokerIdLabelKey], pvc.Labels[v1beta1.KafkaCRLabelKey], string(alertLabels["namespace"]), &storageConfig, client)
 	if err != nil {
 		return err
 	}
 
-	log.Info(fmt.Sprintf("PV successfully added to broker %s with the following storage configuration: %+v", pvc.Labels["brokerId"], &storageConfig))
+	log.Info(fmt.Sprintf("PV successfully added to broker %s with the following storage configuration: %+v", pvc.Labels[v1beta1.BrokerIdLabelKey], &storageConfig))
 
 	return nil
 }
@@ -244,7 +244,7 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 		return err
 	}
 
-	cr, err := k8sutil.GetCr(pvc.Labels["kafka_cr"], string(labels["namespace"]), client)
+	cr, err := k8sutil.GetCr(pvc.Labels[v1beta1.KafkaCRLabelKey], string(labels["namespace"]), client)
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 	}
 
 	for i, broker := range cr.Spec.Brokers {
-		if strconv.Itoa(int(broker.Id)) == pvc.Labels["brokerId"] {
+		if strconv.Itoa(int(broker.Id)) == pvc.Labels[v1beta1.BrokerIdLabelKey] {
 			brokerConfig, err := broker.GetBrokerConfig(cr.Spec)
 			if err != nil {
 				return errors.WrapIf(err, "failed to determine broker config")
@@ -288,13 +288,13 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 		return err
 	}
 
-	log.Info("successfully resized broker pvc", "mount path", pvc.Annotations["mountPath"], "broker id", pvc.Labels["brokerId"])
+	log.Info("successfully resized broker pvc", "mount path", pvc.Annotations["mountPath"], "broker id", pvc.Labels[v1beta1.BrokerIdLabelKey])
 
 	return nil
 }
 
 func downScale(log logr.Logger, labels model.LabelSet, client client.Client) error {
-	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]), string(labels["namespace"]), client)
+	cr, err := k8sutil.GetCr(string(labels[v1beta1.KafkaCRLabelKey]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
 	}
@@ -311,7 +311,7 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 	}
 
 	var brokerID string
-	if broker, ok := labels["brokerId"]; ok {
+	if broker, ok := labels[v1beta1.BrokerIdLabelKey]; ok {
 		brokerID = string(broker)
 	} else {
 		cruiseControlURL := scale.CruiseControlURLFromKafkaCluster(cr)
@@ -327,7 +327,7 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 		}
 	}
 
-	err = k8sutil.RemoveBrokerFromCr(brokerID, string(labels["kafka_cr"]), string(labels["namespace"]), client)
+	err = k8sutil.RemoveBrokerFromCr(brokerID, string(labels[v1beta1.KafkaCRLabelKey]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
 	}
@@ -335,7 +335,7 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 }
 
 func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet, client client.Client) error {
-	cr, err := k8sutil.GetCr(string(labels["kafka_cr"]), string(labels["namespace"]), client)
+	cr, err := k8sutil.GetCr(string(labels[v1beta1.KafkaCRLabelKey]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
 	}
@@ -406,7 +406,7 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 		}
 	}
 
-	err = k8sutil.AddNewBrokerToCr(broker, string(labels["kafka_cr"]), string(labels["namespace"]), client)
+	err = k8sutil.AddNewBrokerToCr(broker, string(labels[v1beta1.KafkaCRLabelKey]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
 	}
@@ -426,7 +426,7 @@ func getPvc(name, namespace string, client client.Client) (*corev1.PersistentVol
 }
 
 func pendingOrRunningCCTaskExists(pvcLabels map[string]string, namespace string, client client.Client, log logr.Logger) (bool, error) {
-	kafkaCluster, err := k8sutil.GetCr(pvcLabels["kafka_cr"], namespace, client)
+	kafkaCluster, err := k8sutil.GetCr(pvcLabels[v1beta1.KafkaCRLabelKey], namespace, client)
 	if err != nil {
 		return false, err
 	}
@@ -449,7 +449,7 @@ func unboundPvcOnNodeExists(c client.Client, pvc *corev1.PersistentVolumeClaim, 
 	kafkaPvcList := &corev1.PersistentVolumeClaimList{}
 
 	err := c.List(context.TODO(), kafkaPvcList, client.ListOption(client.InNamespace(pvc.Namespace)),
-		client.ListOption(client.MatchingLabels(map[string]string{"app": "kafka", "kafka_cr": pvc.Labels["kafka_cr"]})))
+		client.ListOption(client.MatchingLabels(map[string]string{v1beta1.AppLabelKey: "kafka", v1beta1.KafkaCRLabelKey: pvc.Labels[v1beta1.KafkaCRLabelKey]})))
 	if err != nil {
 		return false, err
 	}

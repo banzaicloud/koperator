@@ -62,5 +62,5 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 }
 
 func labelsForJmx(name string) map[string]string {
-	return map[string]string{"app": "kafka-jmx", "kafka_cr": name}
+	return map[string]string{v1beta1.AppLabelKey: "kafka-jmx", v1beta1.KafkaCRLabelKey: name}
 }
