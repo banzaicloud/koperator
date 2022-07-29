@@ -42,7 +42,7 @@ func Test_rackAwarenessLabelsToReadonlyConfig(t *testing.T) {
 				pod: &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"brokerId": "0",
+							v1beta1.BrokerIdLabelKey: "0",
 						},
 					},
 				},
@@ -72,7 +72,7 @@ func Test_rackAwarenessLabelsToReadonlyConfig(t *testing.T) {
 				pod: &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"brokerId": "0",
+							v1beta1.BrokerIdLabelKey: "0",
 						},
 					},
 				},
@@ -103,7 +103,7 @@ func Test_rackAwarenessLabelsToReadonlyConfig(t *testing.T) {
 				pod: &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"brokerId": "0",
+							v1beta1.BrokerIdLabelKey: "0",
 						},
 					},
 				},
@@ -139,7 +139,7 @@ func Test_rackAwarenessLabelsToReadonlyConfig(t *testing.T) {
 				pod: &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"brokerId": "0",
+							v1beta1.BrokerIdLabelKey: "0",
 						},
 					},
 				},
@@ -176,7 +176,7 @@ func Test_rackAwarenessLabelsToReadonlyConfig(t *testing.T) {
 				pod: &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"brokerId": "0",
+							v1beta1.BrokerIdLabelKey: "0",
 						},
 					},
 				},

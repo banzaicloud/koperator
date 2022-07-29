@@ -44,7 +44,7 @@ func TestGetBrokerConfigAffinityMergeBrokerNodeAffinityWithGroupsAntiAffinity(t 
 		PodAntiAffinity: &corev1.PodAntiAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 				{
-					LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_broker"}},
+					LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{AppLabelKey: "kafka", KafkaCRLabelKey: "kafka_broker"}},
 					Namespaces:    nil,
 					TopologyKey:   "kubernetes.io/hostname",
 				},
@@ -87,7 +87,7 @@ func TestGetBrokerConfigAffinityMergeBrokerNodeAffinityWithGroupsAntiAffinity(t 
 					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 						{
 							LabelSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_broker"},
+								MatchLabels: map[string]string{AppLabelKey: "kafka", KafkaCRLabelKey: "kafka_broker"},
 							},
 							TopologyKey: "kubernetes.io/hostname",
 						},
@@ -122,7 +122,7 @@ func TestGetBrokerConfigAffinityMergeEmptyBrokerConfigWithDefaultConfig(t *testi
 		PodAntiAffinity: &corev1.PodAntiAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 				{
-					LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_config_group"}},
+					LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{AppLabelKey: "kafka", KafkaCRLabelKey: "kafka_config_group"}},
 					Namespaces:    nil,
 					TopologyKey:   "kubernetes.io/hostname",
 				},
@@ -139,7 +139,7 @@ func TestGetBrokerConfigAffinityMergeEmptyBrokerConfigWithDefaultConfig(t *testi
 						RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 							{
 								LabelSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_config_group"},
+									MatchLabels: map[string]string{AppLabelKey: "kafka", KafkaCRLabelKey: "kafka_config_group"},
 								},
 								TopologyKey: "kubernetes.io/hostname",
 							},
@@ -188,7 +188,7 @@ func TestGetBrokerConfigAffinityMergeEqualPodAntiAffinity(t *testing.T) {
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 				{
 					LabelSelector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_broker"},
+						MatchLabels: map[string]string{AppLabelKey: "kafka", KafkaCRLabelKey: "kafka_broker"},
 					},
 					TopologyKey: "kubernetes.io/hostname",
 				},
@@ -206,7 +206,7 @@ func TestGetBrokerConfigAffinityMergeEqualPodAntiAffinity(t *testing.T) {
 					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 						{
 							LabelSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_broker"},
+								MatchLabels: map[string]string{AppLabelKey: "kafka", KafkaCRLabelKey: "kafka_broker"},
 							},
 							TopologyKey: "kubernetes.io/hostname",
 						},
@@ -224,7 +224,7 @@ func TestGetBrokerConfigAffinityMergeEqualPodAntiAffinity(t *testing.T) {
 						RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 							{
 								LabelSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_config_group"},
+									MatchLabels: map[string]string{AppLabelKey: "kafka", KafkaCRLabelKey: "kafka_config_group"},
 								},
 								TopologyKey: "kubernetes.io/hostname",
 							},
@@ -437,17 +437,17 @@ func TestGetBrokerLabels(t *testing.T) {
 	)
 
 	expected := map[string]string{
-		"app":            expectedDefaultLabelApp,
-		"brokerId":       strconv.Itoa(expectedBrokerId),
-		"kafka_cr":       expectedKafkaCRName,
+		AppLabelKey:      expectedDefaultLabelApp,
+		BrokerIdLabelKey: strconv.Itoa(expectedBrokerId),
+		KafkaCRLabelKey:  expectedKafkaCRName,
 		"test_label_key": "test_label_value",
 	}
 
 	brokerConfig := &BrokerConfig{
 		BrokerLabels: map[string]string{
-			"app":            "test_app",
-			"brokerId":       "test_id",
-			"kafka_cr":       "test_cr_name",
+			AppLabelKey:      "test_app",
+			BrokerIdLabelKey: "test_id",
+			KafkaCRLabelKey:  "test_cr_name",
 			"test_label_key": "test_label_value",
 		},
 	}

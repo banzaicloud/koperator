@@ -44,7 +44,7 @@ const (
 // labelsForIstioIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
 func labelsForIstioIngress(crName, eLName, istioRevision string) map[string]string {
-	labels := map[string]string{"app": "istioingress", "eListenerName": eLName, "kafka_cr": crName}
+	labels := map[string]string{v1beta1.AppLabelKey: "istioingress", "eListenerName": eLName, v1beta1.KafkaCRLabelKey: crName}
 	if istioRevision != "" {
 		labels["istio.io/rev"] = istioRevision
 	}

@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/prometheus/common/model"
+
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 func TestUpScaleValidator_validateAlert(t *testing.T) {
@@ -34,7 +36,7 @@ func TestUpScaleValidator_validateAlert(t *testing.T) {
 			fields: fields{
 				Alert: &currentAlertStruct{
 					Labels: model.LabelSet{
-						"kafka_cr": "kafka",
+						v1beta1.KafkaCRLabelKey: "kafka",
 					},
 					Annotations: model.LabelSet{
 						"command": UpScaleCommand,
@@ -61,7 +63,7 @@ func TestUpScaleValidator_validateAlert(t *testing.T) {
 			fields: fields{
 				Alert: &currentAlertStruct{
 					Labels: model.LabelSet{
-						"kafka_cr": "kafka",
+						v1beta1.KafkaCRLabelKey: "kafka",
 					},
 					Annotations: model.LabelSet{
 						"command": "fake-command",

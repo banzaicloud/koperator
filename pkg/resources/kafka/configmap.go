@@ -122,13 +122,13 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 
 	mountPathsOld, err := getMountPathsFromBrokerConfigMap(&brokerConfigMapOld)
 	if err != nil {
-		log.Error(err, "could not get mounthPaths from broker configmap", "brokerID", id)
+		log.Error(err, "could not get mounthPaths from broker configmap", v1beta1.BrokerIdLabelKey, id)
 	}
 	mountPathsNew := generateStorageConfig(bConfig.StorageConfigs)
 	mountPathsMerged, isMountPathRemoved := mergeMountPaths(mountPathsOld, mountPathsNew)
 
 	if isMountPathRemoved {
-		log.Error(errors.New("removed storage is found in the KafkaCluster CR"), "removing storage from broker is not supported", "brokerID", id, "mountPaths", mountPathsOld, "mountPaths in kafkaCluster CR ", mountPathsNew)
+		log.Error(errors.New("removed storage is found in the KafkaCluster CR"), "removing storage from broker is not supported", v1beta1.BrokerIdLabelKey, id, "mountPaths", mountPathsOld, "mountPaths in kafkaCluster CR ", mountPathsNew)
 	}
 
 	if len(mountPathsMerged) != 0 {
@@ -188,7 +188,7 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, ext
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
 			apiutil.MergeLabels(
 				apiutil.LabelsForKafka(r.KafkaCluster.Name),
-				map[string]string{"brokerId": fmt.Sprintf("%d", id)},
+				map[string]string{v1beta1.BrokerIdLabelKey: fmt.Sprintf("%d", id)},
 			),
 			r.KafkaCluster,
 		),

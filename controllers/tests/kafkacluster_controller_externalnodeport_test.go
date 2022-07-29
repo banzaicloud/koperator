@@ -154,16 +154,16 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 			}).Should(Succeed())
 
 			Expect(svc.Labels).To(Equal(map[string]string{
-				"app":      "kafka",
-				"brokerId": "0",
-				"kafka_cr": kafkaCluster.Name,
+				v1beta1.AppLabelKey:      "kafka",
+				v1beta1.BrokerIdLabelKey: "0",
+				v1beta1.KafkaCRLabelKey:  kafkaCluster.Name,
 			}))
 
 			Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
 			Expect(svc.Spec.Selector).To(Equal(map[string]string{
-				"app":      "kafka",
-				"brokerId": "0",
-				"kafka_cr": kafkaCluster.Name,
+				v1beta1.AppLabelKey:      "kafka",
+				v1beta1.BrokerIdLabelKey: "0",
+				v1beta1.KafkaCRLabelKey:  kafkaCluster.Name,
 			}))
 
 			Expect(svc.Spec.Ports).To(HaveLen(1))

@@ -173,7 +173,7 @@ func clusterDNSNames(cluster *v1beta1.KafkaCluster) []string {
 
 // LabelsForKafkaPKI returns kubernetes labels for a PKI object
 func LabelsForKafkaPKI(name, namespace string) map[string]string {
-	return map[string]string{"app": "kafka", "kafka_issuer": fmt.Sprintf(BrokerClusterIssuerTemplate, namespace, name)}
+	return map[string]string{v1beta1.AppLabelKey: "kafka", "kafka_issuer": fmt.Sprintf(BrokerClusterIssuerTemplate, namespace, name)}
 }
 
 // BrokerUserForCluster returns a KafkaUser CR for the broker certificates in a KafkaCluster

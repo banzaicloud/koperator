@@ -47,6 +47,13 @@ const (
 	DefaultEnvoyAdminPort = 8081
 	// DefaultBrokerTerminationGracePeriod default kafka pod termination grace period
 	DefaultBrokerTerminationGracePeriod = 120
+
+	// AppLabelKey is used to represent the reserved operator label, "app"
+	AppLabelKey = "app"
+	// KafkaCRLabelKey is used to represent the reserved operator label, "kafka_cr"
+	KafkaCRLabelKey = "kafka_cr"
+	// BrokerIdLabelKey is used to represent the reserved operator label, "brokerId"
+	BrokerIdLabelKey = "brokerId"
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
@@ -801,7 +808,7 @@ func (bConfig *BrokerConfig) GetBrokerLabels(kafkaClusterName string, brokerId i
 	return util.MergeLabels(
 		bConfig.BrokerLabels,
 		util.LabelsForKafka(kafkaClusterName),
-		map[string]string{"brokerId": fmt.Sprintf("%d", brokerId)},
+		map[string]string{BrokerIdLabelKey: fmt.Sprintf("%d", brokerId)},
 	)
 }
 

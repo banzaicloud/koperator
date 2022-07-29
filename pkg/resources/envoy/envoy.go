@@ -30,7 +30,7 @@ import (
 // labelsForEnvoyIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
 func labelsForEnvoyIngress(crName, eLName string) map[string]string {
-	return map[string]string{"app": "envoyingress", "eListenerName": eLName, "kafka_cr": crName}
+	return map[string]string{v1beta1.AppLabelKey: "envoyingress", "eListenerName": eLName, v1beta1.KafkaCRLabelKey: crName}
 }
 
 // Reconciler implements the Component Reconciler

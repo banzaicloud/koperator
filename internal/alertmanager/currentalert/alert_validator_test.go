@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/prometheus/common/model"
+
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 func TestAlertValidators_ValidateAlert(t *testing.T) {
@@ -79,7 +81,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 				downScaleValidator{
 					Alert: &currentAlertStruct{
 						Labels: model.LabelSet{
-							"kafka_cr": "kafka",
+							v1beta1.KafkaCRLabelKey: "kafka",
 						},
 						Annotations: model.LabelSet{
 							"command": DownScaleCommand,
@@ -110,7 +112,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 				downScaleValidator{
 					Alert: &currentAlertStruct{
 						Labels: model.LabelSet{
-							"kafka_cr": "kafka",
+							v1beta1.KafkaCRLabelKey: "kafka",
 						},
 						Annotations: model.LabelSet{
 							"command": "fake-command",
@@ -126,7 +128,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 				upScaleValidator{
 					Alert: &currentAlertStruct{
 						Labels: model.LabelSet{
-							"kafka_cr": "kafka",
+							v1beta1.KafkaCRLabelKey: "kafka",
 						},
 						Annotations: model.LabelSet{
 							"command": UpScaleCommand,
@@ -157,7 +159,7 @@ func TestAlertValidators_ValidateAlert(t *testing.T) {
 				upScaleValidator{
 					Alert: &currentAlertStruct{
 						Labels: model.LabelSet{
-							"kafka_cr": "kafka",
+							v1beta1.KafkaCRLabelKey: "kafka",
 						},
 						Annotations: model.LabelSet{
 							"command": "fake-command",
