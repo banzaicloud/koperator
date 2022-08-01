@@ -240,7 +240,7 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 		}
 		kafkaUser, err = user.DN()
 		if err != nil {
-			reqLogger.Error(err, "Could not get Distinguished Name from the generated TLS certificate")
+			reqLogger.Error(err, "could not get Distinguished Name from the generated TLS certificate")
 			return ctrl.Result{
 				Requeue: false,
 			}, err
