@@ -132,9 +132,7 @@ func DecodeCertificate(raw []byte) (cert *x509.Certificate, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(certs) != 1 {
-		return nil, errors.New("only one certificate should be present, more found")
-	}
+
 	return certs[0].Certificate, nil
 }
 
