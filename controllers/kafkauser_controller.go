@@ -238,7 +238,13 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 				return requeueWithError(reqLogger, "failed to reconcile user secret", err)
 			}
 		}
-		kafkaUser = user.DN()
+		kafkaUser, err = user.GetDistinguishedName()
+		if err != nil {
+			reqLogger.Error(err, "could not get Distinguished Name from the generated TLS certificate", "cert", string(user.Certificate))
+			return ctrl.Result{
+				Requeue: false,
+			}, err
+		}
 		// check if marked for deletion and remove created certs
 		if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
 			reqLogger.Info("Kafka user is marked for deletion, revoking certificates")

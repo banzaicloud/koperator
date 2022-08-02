@@ -93,11 +93,14 @@ type UserCertificate struct {
 	Password    []byte
 }
 
-// DN returns the Distinguished Name of a TLS certificate
-func (u *UserCertificate) DN() string {
+//  GetDistinguishedName returns the Distinguished Name of a TLS certificate
+func (u *UserCertificate) GetDistinguishedName() (string, error) {
 	// cert has already been validated so we can assume no error
-	cert, _ := certutil.DecodeCertificate(u.Certificate)
-	return cert.Subject.String()
+	cert, err := certutil.DecodeCertificate(u.Certificate)
+	if err != nil {
+		return "", err
+	}
+	return cert.Subject.String(), nil
 }
 
 // GetInternalDNSNames returns all potential DNS names for a kafka cluster - including brokers
