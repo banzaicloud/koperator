@@ -93,8 +93,8 @@ type UserCertificate struct {
 	Password    []byte
 }
 
-// DN returns the Distinguished Name of a TLS certificate
-func (u *UserCertificate) DN() (string, error) {
+//  GetDistinguishedName returns the Distinguished Name of a TLS certificate
+func (u *UserCertificate) GetDistinguishedName() (string, error) {
 	// cert has already been validated so we can assume no error
 	cert, err := certutil.DecodeCertificate(u.Certificate)
 	if err != nil {

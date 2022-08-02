@@ -42,7 +42,7 @@ func TestDN(t *testing.T) {
 	userCert := &UserCertificate{
 		Certificate: cert,
 	}
-	dn, err := userCert.DN()
+	dn, err := userCert.GetDistinguishedName()
 	if err != nil {
 		t.Errorf("error should be nil, got: %s", err)
 	}
