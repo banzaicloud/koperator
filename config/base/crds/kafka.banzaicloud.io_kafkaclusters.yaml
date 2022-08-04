@@ -3888,6 +3888,13 @@ spec:
                               type: string
                           type: object
                       type: object
+                    priorityClassName:
+                      description: PriorityClassName specifies the priority class
+                        name for a broker pod(s). If specified, the PriorityClass
+                        resource with this PriorityClassName must be created beforehand.
+                        If not specified, the broker pods' priority is default to
+                        zero.
+                      type: string
                     resourceRequirements:
                       description: ResourceRequirements describes the compute resource
                         requirements.
@@ -10013,6 +10020,13 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        priorityClassName:
+                          description: PriorityClassName specifies the priority class
+                            name for a broker pod(s). If specified, the PriorityClass
+                            resource with this PriorityClassName must be created beforehand.
+                            If not specified, the broker pods' priority is default
+                            to zero.
+                          type: string
                         resourceRequirements:
                           description: ResourceRequirements describes the compute
                             resource requirements.
@@ -13746,6 +13760,12 @@ spec:
                             type: string
                         type: object
                     type: object
+                  priorityClassName:
+                    description: PriorityClassName specifies the priority class name
+                      for the CruiseControl pod. If specified, the PriorityClass resource
+                      with this PriorityClassName must be created beforehand. If not
+                      specified, the CruiseControl pod's priority is default to zero.
+                    type: string
                   resourceRequirements:
                     description: ResourceRequirements describes the compute resource
                       requirements.
@@ -16567,7 +16587,7 @@ spec:
                     description: 'If specified and supported by the platform, traffic
                       through the cloud-provider load-balancer will be restricted
                       to the specified client IPs. This field will be ignored if the
-                      cloud-provider does not support the feature." More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
+                      cloud-provider does not support the feature. More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
                     items:
                       type: string
                     type: array
@@ -16577,6 +16597,12 @@ spec:
                     description: NodeSelector is the node selector expression for
                       envoy pods
                     type: object
+                  priorityClassName:
+                    description: PriorityClassName specifies the priority class name
+                      for the Envoy pod(s) If specified, the PriorityClass resource
+                      with this PriorityClassName must be created beforehand If not
+                      specified, the Envoy pods' priority is default to zero
+                    type: string
                   replicas:
                     format: int32
                     minimum: 1
@@ -18574,7 +18600,7 @@ spec:
                                           load-balancer will be restricted to the
                                           specified client IPs. This field will be
                                           ignored if the cloud-provider does not support
-                                          the feature." More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
+                                          the feature. More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
                                         items:
                                           type: string
                                         type: array
@@ -18584,6 +18610,14 @@ spec:
                                         description: NodeSelector is the node selector
                                           expression for envoy pods
                                         type: object
+                                      priorityClassName:
+                                        description: PriorityClassName specifies the
+                                          priority class name for the Envoy pod(s)
+                                          If specified, the PriorityClass resource
+                                          with this PriorityClassName must be created
+                                          beforehand If not specified, the Envoy pods'
+                                          priority is default to zero
+                                        type: string
                                       replicas:
                                         format: int32
                                         minimum: 1
