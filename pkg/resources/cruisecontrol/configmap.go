@@ -42,7 +42,7 @@ import (
 
 const MinLogDirSizeInMB = int64(1)
 
-func (r *Reconciler) configMap(clientPass, capacityConfig string, log logr.Logger) runtime.Object {
+func (r *Reconciler) configMap(clientPass string, capacityConfig string, log logr.Logger) runtime.Object {
 	ccConfig := properties.NewProperties()
 
 	// Add base Cruise Control configuration
@@ -94,21 +94,29 @@ func generateSSLConfig(k v1beta1.KafkaClusterSpec, clientPass string, log logr.L
 	sslConf := properties.NewProperties()
 
 	if k.IsClientSSLSecretPresent() && util.IsSSLEnabledForInternalCommunication(k.ListenersConfig.InternalListeners) {
-		if err := sslConf.Set("security.protocol", "SSL"); err != nil {
-			log.Error(err, "settings security.protocol in Cruise Control configuration failed")
+		keyStoreType := "JKS"
+		keyStoreLoc := keystoreVolumePath + "/" + v1alpha1.TLSJKSKeyStore
+		trustStoreType := "JKS"
+		trustStoreLoc := keystoreVolumePath + "/" + v1alpha1.TLSJKSTrustStore
+
+		config := properties.NewProperties()
+
+		sslConfig := map[string]string{
+			"security.protocol":       "SSL",
+			"ssl.truststore.type":     trustStoreType,
+			"ssl.keystore.type":       keyStoreType,
+			"ssl.truststore.location": trustStoreLoc,
+			"ssl.keystore.location":   keyStoreLoc,
+			"ssl.keystore.password":   clientPass,
+			"ssl.truststore.password": clientPass,
 		}
-		if err := sslConf.Set("ssl.truststore.location", keystoreVolumePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
-			log.Error(err, "settings ssl.truststore.location in Cruise Control configuration failed")
+
+		for k, v := range sslConfig {
+			if err := config.Set(k, v); err != nil {
+				log.Error(err, fmt.Sprintf("setting %s parameter in cruise control configuration resulted an error", k))
+			}
 		}
-		if err := sslConf.Set("ssl.keystore.location", keystoreVolumePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
-			log.Error(err, "settings ssl.keystore.location in Cruise Control configuration failed")
-		}
-		if err := sslConf.Set("ssl.keystore.password", clientPass); err != nil {
-			log.Error(err, "settings ssl.keystore.password in Cruise Control configuration failed")
-		}
-		if err := sslConf.Set("ssl.truststore.password", clientPass); err != nil {
-			log.Error(err, "settings ssl.truststore.password in Cruise Control configuration failed")
-		}
+
 	}
 	return sslConf
 }

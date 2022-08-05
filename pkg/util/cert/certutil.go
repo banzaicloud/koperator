@@ -22,15 +22,14 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	mathrand "math/rand"
 	"strings"
 	"time"
 
+	"emperror.dev/errors"
 	"github.com/banzaicloud/koperator/api/v1alpha1"
-
 	"github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 )
