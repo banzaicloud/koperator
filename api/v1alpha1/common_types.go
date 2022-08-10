@@ -38,11 +38,13 @@ type ClusterReference struct {
 type CruiseControlTaskOperation string
 
 const (
+	// OperationStopExecution means a Cruise Control stop_proposal_execution operation
+	OperationStopExecution CruiseControlTaskOperation = "stop_proposal_execution"
 	// OperationAddBroker means a Cruise Control add_broker operation
 	OperationAddBroker CruiseControlTaskOperation = "add_broker"
 	// OperationRemoveBroker means a Cruise Control remove_broker operation
 	OperationRemoveBroker CruiseControlTaskOperation = "remove_broker"
-	// OperationRebalance means a Cruise Control rebalance operation
+	// OperationRebalanceDisk means a Cruise Control rebalance operation
 	OperationRebalance CruiseControlTaskOperation = "rebalance"
 	// KafkaAccessTypeRead states that a user wants consume access to a topic
 	KafkaAccessTypeRead KafkaAccessType = "read"

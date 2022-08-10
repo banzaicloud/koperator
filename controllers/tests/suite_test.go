@@ -59,7 +59,6 @@ import (
 	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/controllers"
-	"github.com/banzaicloud/koperator/pkg/jmxextractor"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/scale"
 	// +kubebuilder:scaffold:imports
@@ -72,6 +71,7 @@ var k8sClient client.Client
 var csrClient *csrclient.CertificatesV1Client
 var testEnv *envtest.Environment
 var mockKafkaClients map[types.NamespacedName]kafkaclient.KafkaClient
+var cruiseControlOperationReconciler controllers.CruiseControlOperationReconciler
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -131,8 +131,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(mgr).ToNot(BeNil())
 
-	scale.MockNewCruiseControlScaler()
-	jmxextractor.NewMockJMXExtractor()
+	// scale.MockNewCruiseControlScaler()
+	// jmxextractor.NewMockJMXExtractor()
 
 	mockKafkaClients = make(map[types.NamespacedName]kafkaclient.KafkaClient)
 
@@ -177,6 +177,33 @@ var _ = BeforeSuite(func() {
 	err = controllers.SetupCruiseControlWithManager(mgr).Complete(&kafkaClusterCCReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
+	// mockCtrl := gomock.NewController(GinkgoT())
+	// scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
+	// scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
+
+	// userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
+	// 	TaskID:    "12345",
+	// 	StartedAt: "2022-02-13T15:04:05Z",
+	// 	State:     banzaicloudv1beta1.CruiseControlTaskCompleted,
+	// })}
+	// scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
+	// scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
+	// 	ExecutorReady: true,
+	// }).AnyTimes()
+	// scaleMock.EXPECT().AddBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
+	// 	TaskID:    "12345",
+	// 	StartedAt: "2022-02-13T15:04:05Z",
+	// 	State:     banzaicloudv1beta1.CruiseControlTaskActive,
+	// }), nil).AnyTimes()
+	cruiseControlOperationReconciler = controllers.CruiseControlOperationReconciler{
+		Client:       mgr.GetClient(),
+		DirectClient: mgr.GetAPIReader(),
+		Scheme:       mgr.GetScheme(),
+	}
+
+	err = controllers.SetupCruiseControlOperationWithManager(mgr).Complete(&cruiseControlOperationReconciler)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:builder
 
 	go func() {
@@ -209,3 +236,7 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
+
+func scaleResultPointer(res scale.Result) *scale.Result {
+	return &res
+}

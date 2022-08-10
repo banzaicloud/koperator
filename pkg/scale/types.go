@@ -14,7 +14,10 @@
 
 package scale
 
-import "github.com/banzaicloud/koperator/api/v1beta1"
+import (
+	"github.com/banzaicloud/go-cruise-control/pkg/types"
+	"github.com/banzaicloud/koperator/api/v1beta1"
+)
 
 type CruiseControlScaler interface {
 	IsReady() bool
@@ -22,6 +25,9 @@ type CruiseControlScaler interface {
 	GetUserTasks(taskIDs ...string) ([]*Result, error)
 	IsUp() bool
 	AddBrokers(brokerIDs ...string) (*Result, error)
+	AddBrokersWithParams(params map[string]string) (*Result, error)
+	RemoveBrokersWithParams(params map[string]string) (*Result, error)
+	RebalanceWithParams(params map[string]string) (*Result, error)
 	RemoveBrokers(brokerIDs ...string) (*Result, error)
 	RebalanceDisks(brokerIDs ...string) (*Result, error)
 	BrokersWithState(states ...KafkaBrokerState) ([]string, error)
@@ -33,6 +39,7 @@ type CruiseControlScaler interface {
 type Result struct {
 	TaskID    string
 	StartedAt string
+	Result    *types.OptimizationResult
 	State     v1beta1.CruiseControlUserTaskState
 	Err       string
 }

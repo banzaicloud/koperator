@@ -43,6 +43,7 @@ var newKafkaFromCluster = kafkaclient.NewFromCluster
 
 func requeueAfter(sec int) (ctrl.Result, error) {
 	return ctrl.Result{
+		Requeue:      true,
 		RequeueAfter: time.Duration(sec) * time.Second,
 	}, nil
 }
@@ -53,7 +54,20 @@ func requeueAfter(sec int) (ctrl.Result, error) {
 func requeueWithError(logger logr.Logger, msg string, err error) (ctrl.Result, error) {
 	// Info log the error message and then let the reconciler dump the stacktrace
 	logger.Info(msg)
-	return ctrl.Result{}, err
+	return ctrl.Result{
+		Requeue: true,
+	}, err
+}
+
+// reconciledWithError is a convenience wrapper around logging an error message
+// separate from the stacktrace and then passing the error through to the controller
+// manager. In this case there will be no requeue.
+func reconciledWithError(logger logr.Logger, msg string, err error) (ctrl.Result, error) {
+	// Info log the error message and then let the reconciler dump the stacktrace
+	logger.Info(msg)
+	return ctrl.Result{
+		Requeue: false,
+	}, err
 }
 
 // reconciled returns an empty result with nil error to signal a successful reconcile

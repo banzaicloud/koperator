@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
 
@@ -30,7 +31,25 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
-var newCruiseControlScaler = createNewDefaultCruiseControlScaler
+var (
+	newCruiseControlScaler                       = createNewDefaultCruiseControlScaler
+	addBrokerSupportedParams map[string]struct{} = map[string]struct{}{
+		"brokerid":                         {},
+		"exclude_recently_demoted_brokers": {},
+		"exclude_recently_removed_brokers": {},
+	}
+	removeBrokerSupportedParams map[string]struct{} = map[string]struct{}{
+		"brokerid":                         {},
+		"exclude_recently_demoted_brokers": {},
+		"exclude_recently_removed_brokers": {},
+	}
+	rebalanceSupportedParams map[string]struct{} = map[string]struct{}{
+		"destination_broker_ids":           {},
+		"rebalance_disk":                   {},
+		"exclude_recently_demoted_brokers": {},
+		"exclude_recently_removed_brokers": {},
+	}
+)
 
 func NewCruiseControlScaler(ctx context.Context, serverURL string) (CruiseControlScaler, error) {
 	return newCruiseControlScaler(ctx, serverURL)
@@ -136,6 +155,120 @@ func (cc *cruiseControlScaler) GetUserTasks(taskIDs ...string) ([]*Result, error
 	return results, nil
 }
 
+// parseBrokerIDtoSlice parse brokerIDs to int slice
+func parseBrokerIDtoSlice(brokerid string) ([]int32, error) {
+	var ret []int32
+	splittedBrokerIDs := strings.Split(brokerid, ",")
+	for _, brokerID := range splittedBrokerIDs {
+		brokerIDint, err := strconv.ParseInt(brokerID, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, int32(brokerIDint))
+	}
+	return ret, nil
+}
+
+func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*Result, error) {
+	addBrokerReq := &api.AddBrokerRequest{
+		AllowCapacityEstimation: true,
+		DataFrom:                types.ProposalDataSourceValidWindows,
+		UseReadyDefaultGoals:    true,
+	}
+	for param, pvalue := range params {
+		if _, ok := addBrokerSupportedParams[param]; ok {
+			switch param {
+			case "brokerid":
+				ret, err := parseBrokerIDtoSlice(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				addBrokerReq.BrokerIDs = ret
+			case "exclude_recently_demoted_brokers":
+				ret, err := strconv.ParseBool(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				addBrokerReq.ExcludeRecentlyDemotedBrokers = ret
+			case "exclude_recently_removed_brokers":
+				ret, err := strconv.ParseBool(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				addBrokerReq.ExcludeRecentlyRemovedBrokers = ret
+			}
+		}
+	}
+
+	addBrokerResp, err := cc.client.AddBroker(addBrokerReq)
+	if err != nil {
+		return &Result{
+			TaskID:    addBrokerResp.TaskID,
+			StartedAt: addBrokerResp.Date,
+			State:     v1beta1.CruiseControlTaskCompletedWithError,
+			Err:       fmt.Sprintf("%v", err),
+		}, err
+	}
+
+	return &Result{
+		TaskID:    addBrokerResp.TaskID,
+		StartedAt: addBrokerResp.Date,
+		Result:    addBrokerResp.Result,
+		State:     v1beta1.CruiseControlTaskActive,
+	}, nil
+}
+
+func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string) (*Result, error) {
+	rmBrokerReq := &api.RemoveBrokerRequest{
+		AllowCapacityEstimation: true,
+		DataFrom:                types.ProposalDataSourceValidWindows,
+		UseReadyDefaultGoals:    true,
+	}
+	for param, pvalue := range params {
+		if _, ok := removeBrokerSupportedParams[param]; ok {
+			switch param {
+			case "brokerid":
+				ret, err := parseBrokerIDtoSlice(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				rmBrokerReq.BrokerIDs = ret
+			case "exclude_recently_demoted_brokers":
+				ret, err := strconv.ParseBool(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				rmBrokerReq.ExcludeRecentlyDemotedBrokers = ret
+			case "exclude_recently_removed_brokers":
+				ret, err := strconv.ParseBool(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				rmBrokerReq.ExcludeRecentlyRemovedBrokers = ret
+			}
+		}
+	}
+
+	rmBrokerResp, err := cc.client.RemoveBroker(rmBrokerReq)
+
+	if err != nil {
+		return &Result{
+			TaskID:    rmBrokerResp.TaskID,
+			StartedAt: rmBrokerResp.Date,
+			State:     v1beta1.CruiseControlTaskCompletedWithError,
+			Err:       fmt.Sprintf("%v", err),
+		}, err
+	}
+
+	return &Result{
+		TaskID:    rmBrokerResp.TaskID,
+		StartedAt: rmBrokerResp.Date,
+		Result:    rmBrokerResp.Result,
+		State:     v1beta1.CruiseControlTaskActive,
+	}, nil
+
+}
+
 // AddBrokers requests Cruise Control to add the list of provided brokers to the Kafka cluster
 // by reassigning partition replicas to them.
 // Request returns an error if not all brokers are available in Cruise Control.
@@ -237,6 +370,7 @@ func (cc *cruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*Result, erro
 		UseReadyDefaultGoals:    true,
 	}
 	rmBrokerResp, err := cc.client.RemoveBroker(rmBrokerReq)
+
 	if err != nil {
 		return &Result{
 			TaskID:    rmBrokerResp.TaskID,
@@ -249,6 +383,63 @@ func (cc *cruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*Result, erro
 	return &Result{
 		TaskID:    rmBrokerResp.TaskID,
 		StartedAt: rmBrokerResp.Date,
+		State:     v1beta1.CruiseControlTaskActive,
+	}, nil
+}
+
+func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*Result, error) {
+	rebalanceReq := &api.RebalanceRequest{
+		AllowCapacityEstimation:       true,
+		DataFrom:                      types.ProposalDataSourceValidWindows,
+		UseReadyDefaultGoals:          true,
+		ExcludeRecentlyRemovedBrokers: true,
+	}
+
+	for param, pvalue := range params {
+		if _, ok := rebalanceSupportedParams[param]; ok {
+			switch param {
+			case "destination_broker_ids":
+				ret, err := parseBrokerIDtoSlice(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				rebalanceReq.DestinationBrokerIDs = ret
+			case "rebalance_disk":
+				ret, err := strconv.ParseBool(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				rebalanceReq.RebalanceDisk = ret
+			case "exclude_recently_demoted_brokers":
+				ret, err := strconv.ParseBool(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				rebalanceReq.ExcludeRecentlyDemotedBrokers = ret
+			case "exclude_recently_removed_brokers":
+				ret, err := strconv.ParseBool(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				rebalanceReq.ExcludeRecentlyRemovedBrokers = ret
+			}
+		}
+	}
+
+	rebalanceResp, err := cc.client.Rebalance(rebalanceReq)
+	if err != nil {
+		return &Result{
+			TaskID:    rebalanceResp.TaskID,
+			StartedAt: rebalanceResp.Date,
+			State:     v1beta1.CruiseControlTaskCompletedWithError,
+			Err:       fmt.Sprintf("%v", err),
+		}, err
+	}
+
+	return &Result{
+		TaskID:    rebalanceResp.TaskID,
+		StartedAt: rebalanceResp.Date,
+		Result:    rebalanceResp.Result,
 		State:     v1beta1.CruiseControlTaskActive,
 	}, nil
 }

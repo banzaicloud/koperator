@@ -246,6 +246,8 @@ const (
 	CruiseControlTaskCompleted CruiseControlUserTaskState = "Completed"
 	// CruiseControlTaskCompletedWithError states the CC task completed with error
 	CruiseControlTaskCompletedWithError CruiseControlUserTaskState = "CompletedWithError"
+	// // CruiseControlTaskUnavailable states the CC task missing
+	// CruiseControlTaskUnavailable CruiseControlUserTaskState = "Unavailable"
 	// KafkaClusterReconciling states that the cluster is still in reconciling stage
 	KafkaClusterReconciling ClusterState = "ClusterReconciling"
 	// KafkaClusterRollingUpgrading states that the cluster is rolling upgrading

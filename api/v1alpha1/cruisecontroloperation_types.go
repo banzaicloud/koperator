@@ -15,6 +15,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
@@ -92,4 +94,80 @@ type CruiseControlTask struct {
 
 func init() {
 	SchemeBuilder.Register(&CruiseControlOperation{}, &CruiseControlOperationList{})
+}
+
+// func (o *CruiseControlOperation) IsCurrentTaskEqual(other *CruiseControlTask) bool {
+// 	if o.GetCurrentTask() == nil && other == nil {
+// 		return true
+// 	}
+// 	if o.GetCurrentTask() != nil && other != nil {
+// 		if o.GetCurrentTask().ID == other.ID &&
+// 		o.GetCurrentTask().Started != nil && o.GetCurrentTask().Started.Equal(){
+// 			return true
+// 		}
+// 	}
+
+// 	return false
+// }
+
+func (o *CruiseControlOperation) GetCurrentTask() *CruiseControlTask {
+	return o.Status.CurrentTask
+}
+
+func (o *CruiseControlOperation) GetClusterRef() string {
+	return o.GetLabels()[v1beta1.KafkaCRLabelKey]
+}
+
+func (o *CruiseControlOperation) GetCurrentTaskState() v1beta1.CruiseControlUserTaskState {
+	if o.GetCurrentTask() != nil {
+		return o.Status.CurrentTask.State
+	}
+	return ""
+}
+
+func (o *CruiseControlOperation) GetCurrentTaskID() string {
+	if o.GetCurrentTask() != nil {
+		return o.Status.CurrentTask.ID
+	}
+	return ""
+}
+
+func (o *CruiseControlOperation) GetCurrentTaskOp() CruiseControlTaskOperation {
+	if o.GetCurrentTask() != nil {
+		return o.Status.CurrentTask.Operation
+	}
+	return ""
+}
+
+func (o *CruiseControlOperation) IsWaitingForFirstExecution() bool {
+	if (o.GetLabels()["pause"] != "true" && o.Spec.ErrorPolicy != ErrorPolicyIgnore) &&
+		o.GetCurrentTaskState() == "" && o.GetCurrentTaskID() == "" {
+		return true
+	}
+	return false
+}
+
+func (o *CruiseControlOperation) IsWaitingForRetryExecution() bool {
+	if (o.GetLabels()["pause"] != "true" && o.Spec.ErrorPolicy != ErrorPolicyIgnore) &&
+		o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError && o.GetCurrentTaskID() != "" {
+		return true
+	}
+	return false
+}
+
+func (o *CruiseControlOperation) IsReadyForRetryExecution() bool {
+	return o.IsWaitingForRetryExecution() && o.GetCurrentTask().Finished != nil && o.GetCurrentTask().Finished.Add(time.Second*DefaultRetryBackOffDurationSec).After(time.Now())
+}
+
+func (o *CruiseControlOperation) IsCurrentTaskRunning() bool {
+	return o.GetCurrentTaskState() == v1beta1.CruiseControlTaskInExecution && o.GetCurrentTask().Finished == nil
+}
+
+func (o *CruiseControlOperation) IsCurrentTaskFinished() bool {
+	return o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompleted || o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError
+}
+
+func (o *CruiseControlOperation) IsCurrentTaskOperationValid() bool {
+	return o.GetCurrentTask() != nil && (o.GetCurrentTask().Operation == OperationAddBroker ||
+		o.GetCurrentTask().Operation == OperationRebalance || o.GetCurrentTask().Operation == OperationRemoveBroker)
 }
