@@ -42,7 +42,7 @@ import (
 
 const MinLogDirSizeInMB = int64(1)
 
-func (r *Reconciler) configMap(clientPass string, jksFormatCert bool, capacityConfig string, log logr.Logger) runtime.Object {
+func (r *Reconciler) configMap(clientPass string, capacityConfig string, log logr.Logger) runtime.Object {
 	ccConfig := properties.NewProperties()
 
 	// Add base Cruise Control configuration
@@ -67,7 +67,7 @@ func (r *Reconciler) configMap(clientPass string, jksFormatCert bool, capacityCo
 	}
 
 	// Add SSL configuration
-	sslConf := generateSSLConfig(r.KafkaCluster.Spec, clientPass, jksFormatCert, log)
+	sslConf := generateSSLConfig(r.KafkaCluster.Spec, clientPass, log)
 	if sslConf.Len() != 0 {
 		ccConfig.Merge(sslConf)
 	}
@@ -90,32 +90,20 @@ func (r *Reconciler) configMap(clientPass string, jksFormatCert bool, capacityCo
 	return configMap
 }
 
-func generateSSLConfig(k v1beta1.KafkaClusterSpec, clientPass string, jksFormatCert bool, log logr.Logger) *properties.Properties {
+func generateSSLConfig(k v1beta1.KafkaClusterSpec, clientPass string, log logr.Logger) *properties.Properties {
 	config := properties.NewProperties()
 	if k.IsClientSSLSecretPresent() && util.IsSSLEnabledForInternalCommunication(k.ListenersConfig.InternalListeners) {
-		keyStoreType := "JKS"
 		keyStoreLoc := keystoreVolumePath + "/" + v1alpha1.TLSJKSKeyStore
-		trustStoreType := "JKS"
 		trustStoreLoc := keystoreVolumePath + "/" + v1alpha1.TLSJKSTrustStore
-		if !jksFormatCert {
-			keyStoreType = "PEM"
-			trustStoreType = "PEM"
-			trustStoreLoc = keystoreVolumePath + "/" + v1alpha1.TLSPEMTrustStore
-			keyStoreLoc = keystoreVolumePath + "/" + v1alpha1.TLSPEMKeyStore
-		}
 
 		sslConfig := map[string]string{
 			"security.protocol":       "SSL",
-			"ssl.truststore.type":     trustStoreType,
-			"ssl.keystore.type":       keyStoreType,
+			"ssl.truststore.type":     "JKS",
+			"ssl.keystore.type":       "JKS",
 			"ssl.truststore.location": trustStoreLoc,
 			"ssl.keystore.location":   keyStoreLoc,
-		}
-		if jksFormatCert {
-			sslConfig["ssl.keystore.password"] = clientPass
-			sslConfig["ssl.truststore.password"] = clientPass
-		} else {
-			sslConfig["ssl.key.password"] = ""
+			"ssl.keystore.password":   clientPass,
+			"ssl.truststore.password": clientPass,
 		}
 
 		for k, v := range sslConfig {
@@ -123,7 +111,6 @@ func generateSSLConfig(k v1beta1.KafkaClusterSpec, clientPass string, jksFormatC
 				log.Error(err, fmt.Sprintf("setting %s parameter in cruise control configuration resulted an error", k))
 			}
 		}
-
 	}
 	return config
 }

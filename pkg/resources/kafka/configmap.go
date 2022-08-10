@@ -42,11 +42,11 @@ const brokerLogDirPropertyName = "log.dirs"
 
 func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32,
 	extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
-	serverPasses map[string]string, clientPass string, superUsers []string, serverJKSFormatCert map[string]bool, clientJKSFormatCert bool, log logr.Logger) *properties.Properties {
+	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) *properties.Properties {
 	config := properties.NewProperties()
 
 	// Add listener configuration
-	listenerConf := generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, serverPasses, serverJKSFormatCert, log)
+	listenerConf := generateListenerSpecificConfig(&r.KafkaCluster.Spec.ListenersConfig, serverPasses, log)
 	config.Merge(listenerConf)
 
 	// Add listener configuration
@@ -75,38 +75,21 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		if !r.KafkaCluster.Spec.IsClientSSLSecretPresent() {
 			log.Error(errors.New("cruise control metrics reporter needs ssl but client certificate hasn't specified"), "")
 		}
-		keyStoreType := "JKS"
 		keyStoreLoc := clientKeystorePath + "/" + v1alpha1.TLSJKSKeyStore
-		trustStoreType := "JKS"
 		trustStoreLoc := clientKeystorePath + "/" + v1alpha1.TLSJKSTrustStore
-		if !clientJKSFormatCert {
-			keyStoreType = "PEM"
-			trustStoreType = "PEM"
-			trustStoreLoc = clientKeystorePath + "/" + v1alpha1.TLSPEMTrustStore
-			keyStoreLoc = clientKeystorePath + "/" + v1alpha1.TLSPEMKeyStore
-		}
 
 		sslConfig := map[string]string{
 			"security.protocol":       "SSL",
-			"ssl.truststore.type":     trustStoreType,
-			"ssl.keystore.type":       keyStoreType,
 			"ssl.truststore.location": trustStoreLoc,
 			"ssl.keystore.location":   keyStoreLoc,
-		}
-		if clientJKSFormatCert {
-			sslConfig["ssl.keystore.password"] = clientPass
-			sslConfig["ssl.truststore.password"] = clientPass
-		} else {
-			sslConfig["ssl.key.password"] = ""
+			"ssl.keystore.password":   clientPass,
+			"ssl.truststore.password": clientPass,
 		}
 
 		for k, v := range sslConfig {
 			if err := config.Set(fmt.Sprintf("cruise.control.metrics.reporter.%s", k), v); err != nil {
 				log.Error(err, fmt.Sprintf("setting cruise.control.metrics.reporter.%s parameter in broker configuration resulted an error", k))
 			}
-		}
-		if err := config.Set("cruise.control.metrics.reporter.security.protocol", "SSL"); err != nil {
-			log.Error(err, "setting cruise.control.metrics.reporter.security.protocol in broker configuration resulted an error")
 		}
 	}
 
@@ -200,12 +183,10 @@ func generateSuperUsers(users []string) (suStrings []string) {
 
 func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
 	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList, log logr.Logger) (*corev1.ConfigMap, error) {
-
 	// We need to grab names for servers and client in case user is enabling ACLs
 	// That way we can continue to manage topics and users
 	// We also need to greb server PEM format certificates when JKS is not available
-
-	clientPass, serverPasses, superUsers, serverJKSFormatCert, clientKSFormatCert, err := r.getPasswordKeysSuperUsersAndFormat()
+	clientPass, serverPasses, superUsers, err := r.getPasswordKeysAndSuperUsers()
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +201,7 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, ext
 			r.KafkaCluster,
 		),
 		Data: map[string]string{kafkautils.ConfigPropertyName: r.generateBrokerConfig(id, brokerConfig, extListenerStatuses,
-			intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, serverJKSFormatCert, clientKSFormatCert, log)},
+			intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)},
 	}
 	if brokerConfig.Log4jConfig != "" {
 		brokerConf.Data["log4j.properties"] = brokerConfig.Log4jConfig
@@ -292,7 +273,7 @@ func generateControlPlaneListener(iListeners []v1beta1.InternalListenerConfig) s
 	return controlPlaneListener
 }
 
-func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map[string]string, jksFormatCert map[string]bool, log logr.Logger) *properties.Properties {
+func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map[string]string, log logr.Logger) *properties.Properties {
 	var (
 		interBrokerListenerName   string
 		securityProtocolMapConfig []string
@@ -315,7 +296,7 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
 		// Add internal listeners SSL configuration
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
-			generateListenerSSLConfig(config, iListener.Name, iListener.SSLClientAuth, serverPasses[iListener.Name], jksFormatCert[iListener.Name], log)
+			generateListenerSSLConfig(config, iListener.Name, iListener.SSLClientAuth, serverPasses[iListener.Name], log)
 		}
 	}
 
@@ -326,7 +307,7 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
 		// Add external listeners SSL configuration
 		if eListener.Type == v1beta1.SecurityProtocolSSL {
-			generateListenerSSLConfig(config, eListener.Name, eListener.SSLClientAuth, serverPasses[eListener.Name], jksFormatCert[eListener.Name], log)
+			generateListenerSSLConfig(config, eListener.Name, eListener.SSLClientAuth, serverPasses[eListener.Name], log)
 		}
 	}
 	if err := config.Set("listener.security.protocol.map", securityProtocolMapConfig); err != nil {
@@ -341,42 +322,22 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 	return config
 }
 
-func generateListenerSSLConfig(config *properties.Properties, name string, sslClientAuth v1beta1.SSLClientAuthentication, password string, jksFormatCert bool, log logr.Logger) {
+func generateListenerSSLConfig(config *properties.Properties, name string, sslClientAuth v1beta1.SSLClientAuthentication, password string, log logr.Logger) {
 	var listenerSSLConfig map[string]string
 	namedKeystorePath := fmt.Sprintf(listenerServerKeyStorePathTemplate, serverKeystorePath, name)
 	keyStoreType := "JKS"
 	keyStoreLoc := namedKeystorePath + "/" + v1alpha1.TLSJKSKeyStore
 	trustStoreType := "JKS"
 	trustStoreLoc := namedKeystorePath + "/" + v1alpha1.TLSJKSTrustStore
-	if !jksFormatCert {
-		keyStoreType = "PEM"
-		trustStoreType = "PEM"
-		trustStoreLoc = namedKeystorePath + "/" + v1alpha1.TLSPEMTrustStore
-		keyStoreLoc = namedKeystorePath + "/" + v1alpha1.TLSPEMKeyStore
-	}
 
 	listenerSSLConfig = map[string]string{
 		fmt.Sprintf(`listener.name.%s.ssl.keystore.location`, name):   keyStoreLoc,
 		fmt.Sprintf("listener.name.%s.ssl.truststore.location", name): trustStoreLoc,
 		fmt.Sprintf("listener.name.%s.ssl.keystore.type", name):       keyStoreType,
 		fmt.Sprintf("listener.name.%s.ssl.truststore.type", name):     trustStoreType,
+		fmt.Sprintf("listener.name.%s.ssl.truststore.password", name): password,
+		fmt.Sprintf("listener.name.%s.ssl.keystore.password", name):   password,
 	}
-
-	if jksFormatCert {
-		listenerSSLConfig[fmt.Sprintf("listener.name.%s.ssl.truststore.password", name)] = password
-		listenerSSLConfig[fmt.Sprintf("listener.name.%s.ssl.keystore.password", name)] = password
-	} else {
-		listenerSSLConfig[fmt.Sprintf("listener.name.%s.ssl.key.password", name)] = ""
-	}
-
-	// listenerSSLConfig = map[string]string{
-	// 	fmt.Sprintf(`listener.name.%s.ssl.keystore.certificate.chain`, name): serverCertsPEM[name][corev1.TLSCertKey],
-	// 	fmt.Sprintf("listener.name.%s.ssl.keystore.key", name):               serverCertsPEM[name][corev1.TLSPrivateKeyKey],
-	// 	//	fmt.Sprintf("listener.name.%s.ssl.key.password", name):               passwordKeyMap[name],
-	// 	fmt.Sprintf("listener.name.%s.ssl.truststore.certificates", name): serverCertsPEM[name][v1alpha1.CoreCACertKey],
-	// 	fmt.Sprintf("listener.name.%s.ssl.keystore.type", name):           "PEM",
-	// 	fmt.Sprintf("listener.name.%s.ssl.truststore.type", name):         "PEM",
-	// }
 
 	// enable 2-way SSL authentication if SSL is enabled but this field is not provided in the listener config
 	if sslClientAuth == "" {
@@ -390,16 +351,15 @@ func generateListenerSSLConfig(config *properties.Properties, name string, sslCl
 			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", k))
 		}
 	}
-
 }
 
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
 	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
-	serverPasses map[string]string, clientPass string, superUsers []string, serverJKSFormatCert map[string]bool, clientJKSFormatCert bool, log logr.Logger) string {
+	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) string {
 	finalBrokerConfig := getBrokerReadOnlyConfig(id, r.KafkaCluster, log)
 
 	// Get operator generated configuration
-	opGenConf := r.getConfigProperties(brokerConfig, id, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, serverJKSFormatCert, clientJKSFormatCert, log)
+	opGenConf := r.getConfigProperties(brokerConfig, id, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 
 	// Merge operator generated configuration to the final one
 	if opGenConf != nil {

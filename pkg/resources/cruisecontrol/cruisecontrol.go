@@ -30,7 +30,7 @@ import (
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/resources"
-	"github.com/banzaicloud/koperator/pkg/util"
+	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
@@ -79,24 +79,19 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	log.V(1).Info("Reconciling")
 
-	var (
-		clientPass                   string
-		pemFormatCert, jksFormatCert bool
-	)
+	var clientPass string
+
 	// Get configuration data from custom client secret
 	if r.KafkaCluster.Spec.IsClientSSLSecretPresent() {
 		clientSecret, err := r.getClientSecret()
 		if err != nil {
-			return err
+			return errors.WrapIf(err, "couldn't get certificates for cruise control configuration")
 		}
-		pemFormatCert, jksFormatCert, err = util.CheckSSLCertSecret(clientSecret)
-		if !pemFormatCert && !jksFormatCert {
-			// TODO format errr
+		if err = certutil.CheckSSLCertSecret(clientSecret); err != nil {
 			return err
 		}
 
 		clientPass = string(clientSecret.Data[v1alpha1.PasswordKey])
-
 	}
 
 	if r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint == "" {
@@ -139,7 +134,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				return errors.WrapIf(err, "failed to generate capacity config")
 			}
 
-			o = r.configMap(clientPass, jksFormatCert, capacityConfig, log)
+			o = r.configMap(clientPass, capacityConfig, log)
 			err = k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())

@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -52,10 +51,10 @@ import (
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/util/cert"
 	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
 	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
-	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 )
 
 const (
@@ -421,7 +420,6 @@ func StorageConfigKafkaMountPath(mountPath string) string {
 }
 
 func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.NamespacedName) (*tls.Config, error) {
-	config := &tls.Config{}
 	tlsKeys := &corev1.Secret{}
 	err := client.Get(context.TODO(),
 		types.NamespacedName{
@@ -434,45 +432,31 @@ func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.Name
 		if apierrors.IsNotFound(err) {
 			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "controller secret not found")
 		}
-		return config, err
+		return nil, err
 	}
 
 	//var clientCert, clientKey, caCert []byte
 	var tlsCert tls.Certificate
 	rootCAs := x509.NewCertPool()
-	pem, jks, err := CheckSSLCertSecret(tlsKeys)
-	if !pem && !jks {
-		return config, err
+	if err := cert.CheckSSLCertSecret(tlsKeys); err != nil {
+		return nil, errors.WrapIfWithDetails(err, "could not get tls config for kafka client")
+	}
+	tlsCert, err = cert.ParseTLSCertFromKeyStore(tlsKeys.Data[v1alpha1.TLSJKSKeyStore], tlsKeys.Data[v1alpha1.PasswordKey])
+	if err != nil {
+		return nil, errors.WrapIfWithDetails(err, "couldn't parse keystore from secret for kafka client auth", "name", secretNamespaceName.Name, "namespace", secretNamespaceName.Namespace)
+	}
+	caCerts, err := cert.ParseCaChainFromTrustStore(tlsKeys.Data[v1alpha1.TLSJKSTrustStore], tlsKeys.Data[v1alpha1.PasswordKey])
+	if err != nil {
+		return nil, errors.WrapIfWithDetails(err, "couldn't parse truststore from secret for kafka client auth", "name", secretNamespaceName.Name, "namespace", secretNamespaceName.Namespace)
+	}
+	for i := range caCerts {
+		rootCAs.AddCert(caCerts[i])
 	}
 
-	if pem {
-		tlsCert, err = parseKeystorePEM(tlsKeys.Data[v1alpha1.TLSPEMKeyStore])
-		if err != nil {
-			return nil, err
-		}
-		rootCAs.AppendCertsFromPEM(tlsKeys.Data[v1alpha1.CoreCACertKey])
-	} else if jks {
-		tlsCert, err = ParseTLSCertFromKeyStore(tlsKeys.Data[v1alpha1.TLSJKSKeyStore], tlsKeys.Data[v1alpha1.PasswordKey])
-		if err != nil {
-			return nil, err
-		}
-		caCerts, err := ParseCaChainFromTrustStore(tlsKeys.Data[v1alpha1.TLSJKSTrustStore], tlsKeys.Data[v1alpha1.PasswordKey])
-		if err != nil {
-			return nil, err
-		}
-		for i := range caCerts {
-			rootCAs.AddCert(caCerts[i])
-		}
-	} else {
-		tlsCert, err = tls.X509KeyPair(tlsKeys.Data[corev1.TLSCertKey], tlsKeys.Data[corev1.TLSPrivateKeyKey])
-		if err != nil {
-			return nil, err
-		}
-		rootCAs.AppendCertsFromPEM(tlsKeys.Data[v1alpha1.CoreCACertKey])
+	config := &tls.Config{
+		Certificates: []tls.Certificate{tlsCert},
+		RootCAs:      rootCAs,
 	}
-
-	config.Certificates = []tls.Certificate{tlsCert}
-	config.RootCAs = rootCAs
 
 	return config, err
 }
@@ -556,149 +540,4 @@ func RetryOnError(backoff wait.Backoff, fn func() error, isRetryableError func(e
 
 func RetryOnConflict(backoff wait.Backoff, fn func() error) error {
 	return RetryOnError(backoff, fn, apierrors.IsConflict)
-}
-
-func isSSLCertInJKS(data map[string][]byte) error {
-	var err error
-	if len(data[v1alpha1.TLSJKSTrustStore]) == 0 {
-		err = errors.Combine(err, fmt.Errorf("%s entry is missing", v1alpha1.TLSJKSTrustStore))
-	}
-	if len(data[v1alpha1.TLSJKSKeyStore]) == 0 {
-		err = errors.Combine(err, fmt.Errorf("%s entry is missing", v1alpha1.TLSJKSKeyStore))
-	}
-	if len(data[v1alpha1.PasswordKey]) == 0 {
-		err = errors.Combine(err, fmt.Errorf("%s entry is missing", v1alpha1.CoreCACertKey))
-	}
-
-	if err != nil {
-		err = errors.WrapIff(err, "there are missing data entries for JKS format based TLS")
-	}
-
-	return err
-}
-func isSSLCertInPEM(data map[string][]byte) error {
-	var err error
-	if len(data[v1alpha1.TLSPEMKeyStore]) == 0 {
-		err = errors.Combine(err, fmt.Errorf("%s is missing from the secret", v1alpha1.TLSPEMKeyStore))
-	}
-	if len(data[v1alpha1.TLSPEMTrustStore]) == 0 {
-		err = errors.Combine(err, fmt.Errorf("%s is missing from the secret", v1alpha1.TLSPEMTrustStore))
-	}
-	//TODO passwordJKS and passwordPEM
-
-	if err != nil {
-		err = errors.WrapIff(err, "there are missing data entries for PEM format based TLS")
-	}
-
-	return err
-}
-
-func CheckSSLCertSecret(secret *corev1.Secret) (pem, jks bool, err error) {
-	if err = isSSLCertInPEM(secret.Data); err == nil {
-		pem = true
-
-	}
-	if errJKS := isSSLCertInJKS(secret.Data); errJKS == nil {
-		jks = true
-	} else {
-		err = errors.Combine(err, errJKS)
-	}
-
-	if !jks && !pem {
-		return false, false, errors.WrapIfWithDetails(err, "could not get certificates from secret for TLS auth", "name", secret.GetName(), "namespace", secret.GetNamespace())
-	}
-
-	return pem, jks, err
-}
-
-func generateTLSConfigFromPEM(data map[string][]byte) (*tls.Config, error) {
-	return nil, nil
-}
-
-func ParseCaChainFromTrustStore(truststore, password []byte) ([]*x509.Certificate, error) {
-	jksTrustStore := jks.New()
-	jksTrustStore.Load(bytes.NewReader(truststore), password)
-	trustedEntry, err := jksTrustStore.GetTrustedCertificateEntry("ca")
-	if err != nil {
-		return nil, err
-	}
-	caCert, err := x509.ParseCertificates(trustedEntry.Certificate.Content)
-	if err != nil {
-		return nil, err
-	}
-	return caCert, nil
-
-}
-
-func ParseTLSCertFromKeyStore(keystore, password []byte) (tls.Certificate, error) {
-
-	jksKeyStore := jks.New()
-	jksKeyStore.Load(bytes.NewReader(keystore), password)
-
-	privateEntry, err := jksKeyStore.GetPrivateKeyEntry("certificate", password)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-
-	parsedKey, err := x509.ParsePKCS8PrivateKey(privateEntry.PrivateKey)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-	privKey, ok := parsedKey.(crypto.Signer)
-	if !ok {
-		return tls.Certificate{}, nil
-	}
-
-	//intermCert, err := x509.ParseCertificates(privateEntry.CertificateChain[1].Content)
-	leaf, err := x509.ParseCertificates(privateEntry.CertificateChain[0].Content)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-
-	// x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
-	// if err != nil {
-	// 	return config, errorfactory.New(errorfactory.InternalError{}, err, "could not decode controller certificate")
-	// }
-	var x509ClientCert tls.Certificate
-	//var leafx509 x509.Certificate
-
-	//tls.X509KeyPair()
-
-	x509ClientCert.Leaf = leaf[0]
-	x509ClientCert.PrivateKey = privKey
-	x509ClientCert.Certificate = [][]byte{privateEntry.CertificateChain[0].Content, privateEntry.CertificateChain[1].Content}
-
-	return x509ClientCert, nil
-}
-
-func SplitKeystorePEM(keystore []byte) ([][]byte, error) {
-	certDelimiter := "-----BEGIN CERTIFICATE-----"
-	ret := strings.Split(string(keystore), certDelimiter)
-	if len(ret) == 1 {
-		return nil, errors.New("could not find PKCS8 key")
-	}
-	var pair [][]byte
-	// Add PKCS8 priv key
-	pair = append(pair, []byte(ret[0]))
-	var certs string
-	for _, cert := range ret[1:] {
-		certs += fmt.Sprintf("%s%s", certDelimiter, cert)
-
-	}
-	pair = append(pair, []byte(certs))
-
-	return pair, nil
-}
-
-func parseKeystorePEM(keystore []byte) (tls.Certificate, error) {
-	keyPair, err := SplitKeystorePEM(keystore)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-
-	cert, err := tls.X509KeyPair(keyPair[1], keyPair[0])
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-	return cert, nil
 }
