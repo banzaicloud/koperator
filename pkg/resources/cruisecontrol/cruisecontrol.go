@@ -31,7 +31,6 @@ import (
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/resources"
 	"github.com/banzaicloud/koperator/pkg/util"
-	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 )
 
@@ -96,23 +95,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			return err
 		}
 
-		if !jksFormatCert {
-			// When ClientSSLCert does not contain JKS format we need to generate JKS for CC
-			jks, jksPassword, err := certutil.GenerateJKSFromByte(clientSecret.Data[corev1.TLSCertKey], clientSecret.Data[corev1.TLSPrivateKeyKey], clientSecret.Data[v1alpha1.CoreCACertKey])
-			if err != nil {
-				//TODO format err
-				return err
-			}
-			clientSecret.Data[v1alpha1.TLSJKSKeyStore] = jks
-			clientSecret.Data[v1alpha1.TLSJKSTrustStore] = jks
-			clientSecret.Data[v1alpha1.PasswordKey] = jksPassword
-			err = r.Client.Update(context.Background(), clientSecret)
-			if err != nil {
-				return err
-			}
-
-		}
-
 		clientPass = string(clientSecret.Data[v1alpha1.PasswordKey])
 
 	}
@@ -157,7 +139,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				return errors.WrapIf(err, "failed to generate capacity config")
 			}
 
-			o = r.configMap(clientPass, capacityConfig, log)
+			o = r.configMap(clientPass, jksFormatCert, capacityConfig, log)
 			err = k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", o.GetObjectKind().GroupVersionKind())

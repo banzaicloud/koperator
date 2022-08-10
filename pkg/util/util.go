@@ -446,7 +446,7 @@ func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.Name
 	}
 
 	if pem {
-		tlsCert, err = tls.X509KeyPair(tlsKeys.Data[corev1.TLSCertKey], tlsKeys.Data[corev1.TLSPrivateKeyKey])
+		tlsCert, err = parseKeystorePEM(tlsKeys.Data[v1alpha1.TLSPEMKeyStore])
 		if err != nil {
 			return nil, err
 		}
@@ -463,7 +463,12 @@ func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.Name
 		for i := range caCerts {
 			rootCAs.AddCert(caCerts[i])
 		}
-
+	} else {
+		tlsCert, err = tls.X509KeyPair(tlsKeys.Data[corev1.TLSCertKey], tlsKeys.Data[corev1.TLSPrivateKeyKey])
+		if err != nil {
+			return nil, err
+		}
+		rootCAs.AppendCertsFromPEM(tlsKeys.Data[v1alpha1.CoreCACertKey])
 	}
 
 	config.Certificates = []tls.Certificate{tlsCert}
@@ -573,15 +578,13 @@ func isSSLCertInJKS(data map[string][]byte) error {
 }
 func isSSLCertInPEM(data map[string][]byte) error {
 	var err error
-	if len(data[corev1.TLSCertKey]) == 0 {
-		err = errors.Combine(err, fmt.Errorf("%s is missing from the secret", corev1.TLSCertKey))
+	if len(data[v1alpha1.TLSPEMKeyStore]) == 0 {
+		err = errors.Combine(err, fmt.Errorf("%s is missing from the secret", v1alpha1.TLSPEMKeyStore))
 	}
-	if len(data[corev1.TLSPrivateKeyKey]) == 0 {
-		err = errors.Combine(err, fmt.Errorf("%s is missing from the secret", corev1.TLSPrivateKeyKey))
+	if len(data[v1alpha1.TLSPEMTrustStore]) == 0 {
+		err = errors.Combine(err, fmt.Errorf("%s is missing from the secret", v1alpha1.TLSPEMTrustStore))
 	}
-	if len(data[v1alpha1.CoreCACertKey]) == 0 {
-		err = errors.Combine(err, fmt.Errorf("%s is missing from the secret", v1alpha1.CoreCACertKey))
-	}
+	//TODO passwordJKS and passwordPEM
 
 	if err != nil {
 		err = errors.WrapIff(err, "there are missing data entries for PEM format based TLS")
@@ -666,4 +669,36 @@ func ParseTLSCertFromKeyStore(keystore, password []byte) (tls.Certificate, error
 	x509ClientCert.Certificate = [][]byte{privateEntry.CertificateChain[0].Content, privateEntry.CertificateChain[1].Content}
 
 	return x509ClientCert, nil
+}
+
+func SplitKeystorePEM(keystore []byte) ([][]byte, error) {
+	certDelimiter := "-----BEGIN CERTIFICATE-----"
+	ret := strings.Split(string(keystore), certDelimiter)
+	if len(ret) == 1 {
+		return nil, errors.New("could not find PKCS8 key")
+	}
+	var pair [][]byte
+	// Add PKCS8 priv key
+	pair = append(pair, []byte(ret[0]))
+	var certs string
+	for _, cert := range ret[1:] {
+		certs += fmt.Sprintf("%s%s", certDelimiter, cert)
+
+	}
+	pair = append(pair, []byte(certs))
+
+	return pair, nil
+}
+
+func parseKeystorePEM(keystore []byte) (tls.Certificate, error) {
+	keyPair, err := SplitKeystorePEM(keystore)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	cert, err := tls.X509KeyPair(keyPair[1], keyPair[0])
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	return cert, nil
 }
