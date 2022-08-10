@@ -32,8 +32,13 @@ type ClusterReference struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
+type CruiseControlTaskOperation string
 
 const (
+	OperationAddBroker      CruiseControlTaskOperation = "addbroker"
+	OperationRemoveBroker   CruiseControlTaskOperation = "removebroker"
+	OperationRebalanceDisks CruiseControlTaskOperation = "rebalancedisk"
+
 	// KafkaAccessTypeRead states that a user wants consume access to a topic
 	KafkaAccessTypeRead KafkaAccessType = "read"
 	// KafkaAccessTypeWrite states that a user wants produce access to a topic
