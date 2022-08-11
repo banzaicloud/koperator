@@ -435,19 +435,17 @@ func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.Name
 		return nil, err
 	}
 
-	//var clientCert, clientKey, caCert []byte
-	var tlsCert tls.Certificate
 	rootCAs := x509.NewCertPool()
 	if err := cert.CheckSSLCertSecret(tlsKeys); err != nil {
 		return nil, errors.WrapIfWithDetails(err, "could not get tls config for kafka client")
 	}
-	tlsCert, err = cert.ParseTLSCertFromKeyStore(tlsKeys.Data[v1alpha1.TLSJKSKeyStore], tlsKeys.Data[v1alpha1.PasswordKey])
+	tlsCert, err := cert.ParseTLSCertFromKeyStore(tlsKeys.Data[v1alpha1.TLSJKSKeyStore], tlsKeys.Data[v1alpha1.PasswordKey])
 	if err != nil {
-		return nil, errors.WrapIfWithDetails(err, "couldn't parse keystore from secret for kafka client auth", "name", secretNamespaceName.Name, "namespace", secretNamespaceName.Namespace)
+		return nil, errors.WrapIfWithDetails(err, "couldn't parse keystore from secret for kafka client configuration", "name", secretNamespaceName.Name, "namespace", secretNamespaceName.Namespace)
 	}
 	caCerts, err := cert.ParseCaChainFromTrustStore(tlsKeys.Data[v1alpha1.TLSJKSTrustStore], tlsKeys.Data[v1alpha1.PasswordKey])
 	if err != nil {
-		return nil, errors.WrapIfWithDetails(err, "couldn't parse truststore from secret for kafka client auth", "name", secretNamespaceName.Name, "namespace", secretNamespaceName.Namespace)
+		return nil, errors.WrapIfWithDetails(err, "couldn't parse truststore from secret for kafka client configuration", "name", secretNamespaceName.Name, "namespace", secretNamespaceName.Namespace)
 	}
 	for i := range caCerts {
 		rootCAs.AddCert(caCerts[i])

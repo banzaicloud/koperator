@@ -16,7 +16,6 @@ package kafka
 
 import (
 	"context"
-	"crypto/x509"
 	"fmt"
 	"reflect"
 	"sort"
@@ -233,6 +232,13 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
+	// We need to grab names for servers and client in case user is enabling ACLs
+	// That way we can continue to manage topics and users
+	clientPass, serverPasses, superUsers, err := r.getPasswordKeysAndSuperUsers()
+	if err != nil {
+		return errors.WrapIf(err, "failed to get configuration data for kafka brokers")
+	}
+
 	brokersVolumes := make(map[string][]*corev1.PersistentVolumeClaim, len(r.KafkaCluster.Spec.Brokers))
 	for _, broker := range r.KafkaCluster.Spec.Brokers {
 		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
@@ -309,20 +315,14 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		var configMap *corev1.ConfigMap
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			configMap, err = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, log)
-			if err != nil {
-				return err
-			}
+			configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
 			}
 		} else if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 			if brokerState.RackAwarenessState != "" {
-				configMap, err = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, log)
-				if err != nil {
-					return err
-				}
+				configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 				err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 				if err != nil {
 					return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
@@ -588,13 +588,11 @@ func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
 			return "", "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.Errorf("SSL JKS certificate has not generated properly yet into secret: %s", clientSecret.Name), "checking secret data fields")
 		}
 
-		var cert *x509.Certificate
 		tlsCert, err := certutil.ParseTLSCertFromKeyStore(clientSecret.Data[v1alpha1.TLSJKSKeyStore], clientSecret.Data[v1alpha1.PasswordKey])
 		if err != nil {
-			return "", "", errors.WrapIfWithDetails(err, fmt.Sprintf("failed to decode certificate, secretName: %s", clientSecret.Name))
+			return "", "", errors.WrapIfWithDetails(err, "failed to decode certificate", "secretName", clientSecret.Name)
 		}
-		cert = tlsCert.Leaf
-		CN = cert.Subject.String()
+		CN = tlsCert.Leaf.Subject.String()
 		clientPass = string(clientSecret.Data[v1alpha1.PasswordKey])
 	}
 	return clientPass, CN, nil
@@ -658,13 +656,11 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 			// That way we can continue to manage topics and users
 			// We put these Common Names from certificates into the superusers kafka broker config
 			if iListener.UsedForControllerCommunication || iListener.UsedForInnerBrokerCommunication {
-				var cert *x509.Certificate
 				tlsCert, err := certutil.ParseTLSCertFromKeyStore(serverSecret.Data[v1alpha1.TLSJKSKeyStore], serverSecret.Data[v1alpha1.PasswordKey])
 				if err != nil {
 					return nil, nil, errors.WrapIfWithDetails(err, fmt.Sprintf("failed to decode certificate, secretName: %s", serverSecret.Name))
 				}
-				cert = tlsCert.Leaf
-				CNList = append(CNList, cert.Subject.String())
+				CNList = append(CNList, tlsCert.Leaf.Subject.String())
 			}
 		}
 	}

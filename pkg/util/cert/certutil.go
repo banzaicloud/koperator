@@ -330,7 +330,7 @@ func isSSLCertInJKS(data map[string][]byte) error {
 	}
 
 	if err != nil {
-		err = errors.WrapIff(err, "there is missing data entry for JKS format based TLS")
+		err = errors.WrapIff(err, "there is missing data entry for JKS format based certificates")
 	}
 
 	return err
@@ -351,7 +351,7 @@ func ParseCaChainFromTrustStore(truststore, password []byte) ([]*x509.Certificat
 	}
 	var trustedEntries []jks.TrustedCertificateEntry
 	aliases := jksTrustStore.Aliases()
-	// searching ca certificate in aliases
+	// searching ca certificate with different aliases
 	for _, alias := range aliases {
 		trustedEntry, retErr := jksTrustStore.GetTrustedCertificateEntry(alias)
 		err = retErr
@@ -389,7 +389,7 @@ func ParseTLSCertFromKeyStore(keystore, password []byte) (tls.Certificate, error
 	}
 
 	if len(privateEntries) > 1 {
-		return tls.Certificate{}, errors.New("keystore should contains only one private entry")
+		return tls.Certificate{}, fmt.Errorf("keystore should contains only one private entry, but got: %d", len(privateEntries))
 	} else if len(privateEntries) == 0 {
 		return tls.Certificate{}, errors.WrapIf(err, "couldn't get proper private entry from keystore")
 	}
@@ -400,7 +400,7 @@ func ParseTLSCertFromKeyStore(keystore, password []byte) (tls.Certificate, error
 	}
 	privKey, ok := parsedKey.(crypto.Signer)
 	if !ok {
-		return tls.Certificate{}, nil
+		return tls.Certificate{}, errors.New("private key couldn't be recognized")
 	}
 
 	leaf, err := x509.ParseCertificates(privateEntries[0].CertificateChain[0].Content)

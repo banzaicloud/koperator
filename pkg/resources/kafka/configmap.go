@@ -182,15 +182,8 @@ func generateSuperUsers(users []string) (suStrings []string) {
 }
 
 func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
-	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList, log logr.Logger) (*corev1.ConfigMap, error) {
-	// We need to grab names for servers and client in case user is enabling ACLs
-	// That way we can continue to manage topics and users
-	// We also need to greb server PEM format certificates when JKS is not available
-	clientPass, serverPasses, superUsers, err := r.getPasswordKeysAndSuperUsers()
-	if err != nil {
-		return nil, err
-	}
-
+	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
+	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) *corev1.ConfigMap {
 	brokerConf := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
@@ -206,7 +199,7 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, ext
 	if brokerConfig.Log4jConfig != "" {
 		brokerConf.Data["log4j.properties"] = brokerConfig.Log4jConfig
 	}
-	return brokerConf, nil
+	return brokerConf
 }
 
 func generateAdvertisedListenerConfig(id int32, l v1beta1.ListenersConfig,

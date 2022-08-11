@@ -88,7 +88,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			return errors.WrapIf(err, "couldn't get certificates for cruise control configuration")
 		}
 		if err = certutil.CheckSSLCertSecret(clientSecret); err != nil {
-			return err
+			return errors.WrapIf(err, "couldn't get certificates for cruise control configuration")
 		}
 
 		clientPass = string(clientSecret.Data[v1alpha1.PasswordKey])
