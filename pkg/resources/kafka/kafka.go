@@ -23,12 +23,11 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	ccTypes "github.com/banzaicloud/go-cruise-control/pkg/types"
 	"github.com/go-logr/logr"
-	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -861,11 +860,13 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 		}
 		desiredPod.Spec.Tolerations = uniqueTolerations
 	}
-	// Check if the resource actually updated
+	// Check if the resource actually updated or if labels match TaintedBrokersSelector
 	patchResult, err := patch.DefaultPatchMaker.Calculate(currentPod, desiredPod)
 	switch {
 	case err != nil:
 		log.Error(err, "could not match objects", "kind", desiredType)
+	case r.isPodTainted(log, currentPod):
+		log.Info("pod has tainted labels, deleting it", "pod", currentPod)
 	case patchResult.IsEmpty():
 		if !k8sutil.IsPodContainsTerminatedContainer(currentPod) &&
 			r.KafkaCluster.Status.BrokersState[currentPod.Labels[v1beta1.BrokerIdLabelKey]].ConfigurationState == v1beta1.ConfigInSync &&
@@ -983,53 +984,21 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 	return nil
 }
 
-func (r *Reconciler) checkCCRackAwareDistributionGoal() error {
-	cruiseControlURL := scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster)
-	cc, err := r.CruiseControlScalerFactory(context.TODO(), r.KafkaCluster)
+// Checks for match between pod labels and TaintedBrokersSelector
+func (r *Reconciler) isPodTainted(log logr.Logger, pod *corev1.Pod) bool {
+	selector, err := metav1.LabelSelectorAsSelector(r.KafkaCluster.Spec.TaintedBrokersSelector)
+
 	if err != nil {
-		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "failed to initialize Cruise Control", "cruise control url", cruiseControlURL)
+		log.Error(err, "Invalid tainted brokers label selector")
+		return false
 	}
-	status, err := cc.Status(context.Background())
-	if err != nil {
-		return errorfactory.New(errorfactory.CruiseControlNotReady{}, errors.New("failed to get status from Cruise Control"), "rolling upgrade in progress")
+
+	if selector.Empty() {
+		return false
 	}
-	if !slices.Contains(status.State.AnalyzerState.ReadyGoals, ccTypes.RackAwareDistributionGoal) {
-		return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("RackAwareDistributionGoal is not ready"), "rolling upgrade in progress")
-	}
-	for _, anomaly := range status.State.AnomalyDetectorState.RecentGoalViolations {
-		if slices.Contains(anomaly.FixableViolatedGoals, ccTypes.RackAwareDistributionGoal) || slices.Contains(anomaly.UnfixableViolatedGoals, ccTypes.RackAwareDistributionGoal) {
-			return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("RackAwareDistributionGoal is violated"), "rolling upgrade in progress")
-		}
-	}
-	return nil
+	return selector.Matches(labels.Set(pod.Labels))
 }
 
-func (r *Reconciler) existsFailedBrokerFromAnotherRack(currentPodAz string, impactedReplicas map[int32]struct{}, kafkaBrokerAvailabilityZoneMap map[int32]string) bool {
-	if currentPodAz == "" && len(impactedReplicas) > 0 {
-		return true
-	}
-	for brokerWithFailure := range impactedReplicas {
-		if currentPodAz != kafkaBrokerAvailabilityZoneMap[brokerWithFailure] {
-			return true
-		}
-	}
-	return false
-}
-
-func (r *Reconciler) existsTerminatingPodFromAnotherAz(currentPodAz string, terminatingOrPendingPods []corev1.Pod, kafkaBrokerAvailabilityZoneMap map[int32]string) bool {
-	if currentPodAz == "" && len(terminatingOrPendingPods) > 0 {
-		return true
-	}
-	for _, terminatingOrPendingPod := range terminatingOrPendingPods {
-		terminatingOrPendingPodAz, err := r.getBrokerAz(&terminatingOrPendingPod, kafkaBrokerAvailabilityZoneMap)
-		if err != nil || currentPodAz != terminatingOrPendingPodAz {
-			return true
-		}
-	}
-	return false
-}
-
-//nolint:funlen
 func (r *Reconciler) reconcileKafkaPvc(ctx context.Context, log logr.Logger, brokersDesiredPvcs map[string][]*corev1.PersistentVolumeClaim) error {
 	brokersVolumesState := make(map[string]map[string]v1beta1.VolumeState)
 	var brokerIds []string
