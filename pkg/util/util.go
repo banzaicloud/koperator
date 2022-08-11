@@ -430,22 +430,30 @@ func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.Name
 	)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "controller secret not found")
+			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not found")
 		}
 		return nil, err
 	}
 
+	config, err := createTLSConfigFromSecret(tlsKeys)
+	if err != nil {
+		return nil, errorfactory.New(errorfactory.InternalError{}, err, fmt.Sprintf("could not get client certificate for kafka client, name: %s namespace: %s", secretNamespaceName.Name, secretNamespaceName.Namespace))
+	}
+	return config, nil
+}
+
+func createTLSConfigFromSecret(tlsKeys *corev1.Secret) (*tls.Config, error) {
 	rootCAs := x509.NewCertPool()
 	if err := cert.CheckSSLCertSecret(tlsKeys); err != nil {
-		return nil, errors.WrapIfWithDetails(err, "could not get tls config for kafka client")
+		return nil, err
 	}
 	tlsCert, err := cert.ParseTLSCertFromKeyStore(tlsKeys.Data[v1alpha1.TLSJKSKeyStore], tlsKeys.Data[v1alpha1.PasswordKey])
 	if err != nil {
-		return nil, errors.WrapIfWithDetails(err, "couldn't parse keystore from secret for kafka client configuration", "name", secretNamespaceName.Name, "namespace", secretNamespaceName.Namespace)
+		return nil, errors.WrapIf(err, "couldn't parse keystore")
 	}
 	caCerts, err := cert.ParseCaChainFromTrustStore(tlsKeys.Data[v1alpha1.TLSJKSTrustStore], tlsKeys.Data[v1alpha1.PasswordKey])
 	if err != nil {
-		return nil, errors.WrapIfWithDetails(err, "couldn't parse truststore from secret for kafka client configuration", "name", secretNamespaceName.Name, "namespace", secretNamespaceName.Namespace)
+		return nil, errors.WrapIf(err, "couldn't parse truststore")
 	}
 	for i := range caCerts {
 		rootCAs.AddCert(caCerts[i])
@@ -455,8 +463,7 @@ func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.Name
 		Certificates: []tls.Certificate{tlsCert},
 		RootCAs:      rootCAs,
 	}
-
-	return config, err
+	return config, nil
 }
 
 func ObjectManagedByClusterRegistry(object metav1.Object) bool {

@@ -236,7 +236,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	// That way we can continue to manage topics and users
 	clientPass, serverPasses, superUsers, err := r.getPasswordKeysAndSuperUsers()
 	if err != nil {
-		return errors.WrapIf(err, "failed to get configuration data for kafka brokers")
+		return err
 	}
 
 	brokersVolumes := make(map[string][]*corev1.PersistentVolumeClaim, len(r.KafkaCluster.Spec.Brokers))

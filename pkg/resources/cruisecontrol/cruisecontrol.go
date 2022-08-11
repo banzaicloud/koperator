@@ -85,7 +85,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	// Get configuration data from client secret
 	if r.KafkaCluster.Spec.IsClientSSLSecretPresent() {
 		if clientPass, err = r.getClientPassword(); err != nil {
-			return errors.WrapIf(err, "couldn't get certificates for cruise control configuration")
+			return err
 		}
 	}
 

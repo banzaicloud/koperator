@@ -351,25 +351,30 @@ func ParseCaChainFromTrustStore(truststore, password []byte) ([]*x509.Certificat
 	}
 	var trustedEntries []jks.TrustedCertificateEntry
 	aliases := jksTrustStore.Aliases()
-	// searching ca certificate with different aliases so truststore can be alias agnostic
+	// collecting ca certificates in aliases so truststore can be alias agnostic
 	for _, alias := range aliases {
-		trustedEntry, retErr := jksTrustStore.GetTrustedCertificateEntry(alias)
-		err = retErr
-		if retErr == nil {
+		trustedEntry, err := jksTrustStore.GetTrustedCertificateEntry(alias)
+		if err != nil && !errors.Is(err, jks.ErrWrongEntryType) {
+			return nil, errors.WrapIf(err, "couldn't get trusted entry from truststore")
+		}
+		if err == nil {
 			trustedEntries = append(trustedEntries, trustedEntry)
 		}
 	}
-	// When there are more trustedEntries then how can we know which one should be used
-	if len(trustedEntries) > 1 {
-		return nil, errors.New("truststore should contains only one trusted certificate entry")
-	} else if len(trustedEntries) == 0 {
-		return nil, errors.WrapIf(err, "couldn't get proper trusted certificate entry from truststore")
+
+	if len(trustedEntries) == 0 {
+		return nil, errors.New("couldn't find trusted certificate entry in truststore")
 	}
-	caCert, err := x509.ParseCertificates(trustedEntries[0].Certificate.Content)
-	if err != nil {
-		return nil, err
+
+	var caCerts []*x509.Certificate
+	for _, trustedEntry := range trustedEntries {
+		caCert, err := x509.ParseCertificates(trustedEntry.Certificate.Content)
+		if err != nil {
+			return nil, errors.WrapIf(err, "couldn't parse trusted certificate entry")
+		}
+		caCerts = append(caCerts, caCert...)
 	}
-	return caCert, nil
+	return caCerts, nil
 }
 
 func ParseTLSCertFromKeyStore(keystore, password []byte) (tls.Certificate, error) {
@@ -380,19 +385,21 @@ func ParseTLSCertFromKeyStore(keystore, password []byte) (tls.Certificate, error
 	}
 	aliases := jksKeyStore.Aliases()
 	var privateEntries []jks.PrivateKeyEntry
-	// searching for pirvate key in aliases so keystore can be alias agnostic
+	// collecting pirvate key entries in aliases so keystore can be alias agnostic
 	for _, alias := range aliases {
-		privateEntry, retErr := jksKeyStore.GetPrivateKeyEntry(alias, password)
-		err = retErr
+		privateEntry, err := jksKeyStore.GetPrivateKeyEntry(alias, password)
+		if err != nil && !errors.Is(err, jks.ErrWrongEntryType) {
+			return tls.Certificate{}, errors.WrapIf(err, "couldn't get private key entry from keystore")
+		}
 		if err == nil {
 			privateEntries = append(privateEntries, privateEntry)
 		}
 	}
 	// When there are more privateEntries then how can we know which one should be used
 	if len(privateEntries) > 1 {
-		return tls.Certificate{}, fmt.Errorf("keystore should contains only one private entry, but got: %d", len(privateEntries))
+		return tls.Certificate{}, fmt.Errorf("keystore should contains only one private key entry, but got: %d", len(privateEntries))
 	} else if len(privateEntries) == 0 {
-		return tls.Certificate{}, errors.WrapIf(err, "couldn't get proper private entry from keystore")
+		return tls.Certificate{}, errors.New("couldn't find private key entry in keystore")
 	}
 
 	parsedKey, err := x509.ParsePKCS8PrivateKey(privateEntries[0].PrivateKey)
