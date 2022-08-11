@@ -588,7 +588,7 @@ func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
 			return "", "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.Errorf("SSL JKS certificate has not generated properly yet into secret: %s", clientSecret.Name), "checking secret data fields")
 		}
 
-		tlsCert, err := certutil.ParseTLSCertFromKeyStore(clientSecret.Data[v1alpha1.TLSJKSKeyStore], clientSecret.Data[v1alpha1.PasswordKey])
+		tlsCert, err := certutil.ParseKeyStoreToTLSCertificate(clientSecret.Data[v1alpha1.TLSJKSKeyStore], clientSecret.Data[v1alpha1.PasswordKey])
 		if err != nil {
 			return "", "", errors.WrapIfWithDetails(err, "failed to decode certificate", "secretName", clientSecret.Name)
 		}
@@ -656,7 +656,7 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 			// That way we can continue to manage topics and users
 			// We put these Common Names from certificates into the superusers kafka broker config
 			if iListener.UsedForControllerCommunication || iListener.UsedForInnerBrokerCommunication {
-				tlsCert, err := certutil.ParseTLSCertFromKeyStore(serverSecret.Data[v1alpha1.TLSJKSKeyStore], serverSecret.Data[v1alpha1.PasswordKey])
+				tlsCert, err := certutil.ParseKeyStoreToTLSCertificate(serverSecret.Data[v1alpha1.TLSJKSKeyStore], serverSecret.Data[v1alpha1.PasswordKey])
 				if err != nil {
 					return nil, nil, errors.WrapIfWithDetails(err, fmt.Sprintf("failed to decode certificate, secretName: %s", serverSecret.Name))
 				}

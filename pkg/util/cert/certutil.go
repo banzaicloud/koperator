@@ -343,7 +343,7 @@ func CheckSSLCertSecret(secret *corev1.Secret) error {
 	return nil
 }
 
-func ParseCaChainFromTrustStore(truststore, password []byte) ([]*x509.Certificate, error) {
+func ParseTrustStoreToCaChain(truststore, password []byte) ([]*x509.Certificate, error) {
 	jksTrustStore := jks.New()
 	err := jksTrustStore.Load(bytes.NewReader(truststore), password)
 	if err != nil {
@@ -377,7 +377,7 @@ func ParseCaChainFromTrustStore(truststore, password []byte) ([]*x509.Certificat
 	return caCerts, nil
 }
 
-func ParseTLSCertFromKeyStore(keystore, password []byte) (tls.Certificate, error) {
+func ParseKeyStoreToTLSCertificate(keystore, password []byte) (tls.Certificate, error) {
 	jksKeyStore := jks.New()
 	err := jksKeyStore.Load(bytes.NewReader(keystore), password)
 	if err != nil {

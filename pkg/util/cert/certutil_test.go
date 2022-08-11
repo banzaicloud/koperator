@@ -187,7 +187,7 @@ func TestEnsureJKSPassoword(t *testing.T) {
 	}
 }
 
-func TestParseTLSCertFromKeyStore(t *testing.T) {
+func TestParseKeyStoreToTLSCertificate(t *testing.T) {
 	testCases := []struct {
 		testName   string
 		trustStore string
@@ -221,7 +221,7 @@ func TestParseTLSCertFromKeyStore(t *testing.T) {
 		keyStore, _ := base64.StdEncoding.DecodeString(test.keyStore)
 		password, _ := base64.StdEncoding.DecodeString(test.password)
 
-		_, err := ParseTLSCertFromKeyStore(keyStore, password)
+		_, err := ParseKeyStoreToTLSCertificate(keyStore, password)
 		if test.succeed && err != nil {
 			t.Errorf("testname: %s, error should be nil, got: %s", test.testName, err)
 		} else if !test.succeed && err == nil {

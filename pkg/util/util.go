@@ -447,11 +447,11 @@ func createTLSConfigFromSecret(tlsKeys *corev1.Secret) (*tls.Config, error) {
 	if err := cert.CheckSSLCertSecret(tlsKeys); err != nil {
 		return nil, err
 	}
-	tlsCert, err := cert.ParseTLSCertFromKeyStore(tlsKeys.Data[v1alpha1.TLSJKSKeyStore], tlsKeys.Data[v1alpha1.PasswordKey])
+	tlsCert, err := cert.ParseKeyStoreToTLSCertificate(tlsKeys.Data[v1alpha1.TLSJKSKeyStore], tlsKeys.Data[v1alpha1.PasswordKey])
 	if err != nil {
 		return nil, errors.WrapIf(err, "couldn't parse keystore")
 	}
-	caCerts, err := cert.ParseCaChainFromTrustStore(tlsKeys.Data[v1alpha1.TLSJKSTrustStore], tlsKeys.Data[v1alpha1.PasswordKey])
+	caCerts, err := cert.ParseTrustStoreToCaChain(tlsKeys.Data[v1alpha1.TLSJKSTrustStore], tlsKeys.Data[v1alpha1.PasswordKey])
 	if err != nil {
 		return nil, errors.WrapIf(err, "couldn't parse truststore")
 	}
