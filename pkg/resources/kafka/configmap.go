@@ -70,7 +70,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, "setting zookeeper.connect parameter in broker configuration resulted an error")
 	}
 
-	// Add Cruise Control SSL configuration
+	// Add Cruise Control Metrics Reporter SSL configuration
 	if util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		if !r.KafkaCluster.Spec.IsClientSSLSecretPresent() {
 			log.Error(errors.New("cruise control metrics reporter needs ssl but client certificate hasn't specified"), "")

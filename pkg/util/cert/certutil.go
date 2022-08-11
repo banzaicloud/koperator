@@ -351,7 +351,7 @@ func ParseCaChainFromTrustStore(truststore, password []byte) ([]*x509.Certificat
 	}
 	var trustedEntries []jks.TrustedCertificateEntry
 	aliases := jksTrustStore.Aliases()
-	// searching ca certificate with different aliases
+	// searching ca certificate with different aliases so truststore can be alias agnostic
 	for _, alias := range aliases {
 		trustedEntry, retErr := jksTrustStore.GetTrustedCertificateEntry(alias)
 		err = retErr
@@ -359,6 +359,7 @@ func ParseCaChainFromTrustStore(truststore, password []byte) ([]*x509.Certificat
 			trustedEntries = append(trustedEntries, trustedEntry)
 		}
 	}
+	// When there are more trustedEntries then how can we know which one should be used
 	if len(trustedEntries) > 1 {
 		return nil, errors.New("truststore should contains only one trusted certificate entry")
 	} else if len(trustedEntries) == 0 {
@@ -379,7 +380,7 @@ func ParseTLSCertFromKeyStore(keystore, password []byte) (tls.Certificate, error
 	}
 	aliases := jksKeyStore.Aliases()
 	var privateEntries []jks.PrivateKeyEntry
-	// searching for pirvate key in aliases
+	// searching for pirvate key in aliases so keystore can be alias agnostic
 	for _, alias := range aliases {
 		privateEntry, retErr := jksKeyStore.GetPrivateKeyEntry(alias, password)
 		err = retErr
@@ -387,7 +388,7 @@ func ParseTLSCertFromKeyStore(keystore, password []byte) (tls.Certificate, error
 			privateEntries = append(privateEntries, privateEntry)
 		}
 	}
-
+	// When there are more privateEntries then how can we know which one should be used
 	if len(privateEntries) > 1 {
 		return tls.Certificate{}, fmt.Errorf("keystore should contains only one private entry, but got: %d", len(privateEntries))
 	} else if len(privateEntries) == 0 {

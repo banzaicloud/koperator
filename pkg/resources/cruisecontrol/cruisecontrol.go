@@ -80,18 +80,13 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciling")
 
 	var clientPass string
+	var err error
 
-	// Get configuration data from custom client secret
+	// Get configuration data from client secret
 	if r.KafkaCluster.Spec.IsClientSSLSecretPresent() {
-		clientSecret, err := r.getClientSecret()
-		if err != nil {
+		if clientPass, err = r.getClientPassword(); err != nil {
 			return errors.WrapIf(err, "couldn't get certificates for cruise control configuration")
 		}
-		if err = certutil.CheckSSLCertSecret(clientSecret); err != nil {
-			return errors.WrapIf(err, "couldn't get certificates for cruise control configuration")
-		}
-
-		clientPass = string(clientSecret.Data[v1alpha1.PasswordKey])
 	}
 
 	if r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint == "" {
@@ -156,6 +151,17 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciled")
 
 	return nil
+}
+
+func (r *Reconciler) getClientPassword() (string, error) {
+	clientSecret, err := r.getClientSecret()
+	if err != nil {
+		return "", err
+	}
+	if err = certutil.CheckSSLCertSecret(clientSecret); err != nil {
+		return "", err
+	}
+	return string(clientSecret.Data[v1alpha1.PasswordKey]), nil
 }
 
 func (r *Reconciler) getClientSecret() (*corev1.Secret, error) {
