@@ -22,7 +22,7 @@ import (
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// CruiseControlOperation is the Schema for the cruiseControlOperation API
+// CruiseControlOperation is the Schema for the cruiseControlOperation API.
 type CruiseControlOperation struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -31,18 +31,18 @@ type CruiseControlOperation struct {
 	Status CruiseControlOperationStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-
-// CruiseControlOperationList contains a list of CruiseControlOperation
+// CruiseControlOperationList contains a list of CruiseControlOperation.
 type CruiseControlOperationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []CruiseControlOperation `json:"items"`
 }
 
-// CruiseControlOperationSpec defines the desired state of CruiseControlOperation
+// CruiseControlOperationSpec defines the desired state of CruiseControlOperation.
 type CruiseControlOperationSpec struct {
 	// FailurePolicy defines how failed downscale operations should be handled. Defaults to retry.
+	// - retry:  the koperator re-executes the failed task in every 30 sec
+	// - ignore: koperator handles the failed task as completed
 	// +kubebuilder:validation:Enum=ignore,retry
 	// +optional
 	ErrorPolicy ErrorPolicyType `json:"errorPolicy,omitempty"`
@@ -50,25 +50,27 @@ type CruiseControlOperationSpec struct {
 
 type ErrorPolicyType string
 
-// CruiseControlOperationStatus defines the observed state of CruiseControlOperation
+// CruiseControlOperationStatus defines the observed state of CruiseControlOperation.
 type CruiseControlOperationStatus struct {
-	CurrentTask     *CruiseControlTask `json:"currentTask,omitempty"`
-	ErrorPolicy     ErrorPolicyType    `json:"errorPolicy"`
-	NumberOfRetries int                `json:"numberOfRetries"`
-	// max faildTasks limit 50
-	FailedTasks []CruiseControlTask `json:"failedTasks,omitempty"`
+	CurrentTask     *CruiseControlTask  `json:"currentTask,omitempty"`
+	ErrorPolicy     ErrorPolicyType     `json:"errorPolicy"`
+	NumberOfRetries int                 `json:"numberOfRetries"`
+	FailedTasks     []CruiseControlTask `json:"failedTasks,omitempty"`
 }
 
-// CruiseControlTask defines
+// CruiseControlTask defines the observed state of the Cruise Control user task.
 type CruiseControlTask struct {
-	ID               string                             `json:"id"`
-	Started          metav1.Time                        `json:"started"`
-	Finished         *metav1.Time                       `json:"finished,omitempty"`
-	Operation        CruiseControlTaskOperation         `json:"cruiseControlTaskOperation"` //koperator/controllers/cruisecontroltask_types.go/CruiseControlOperation
-	Parameters       map[string]string                  `json:"parameters,omitempty"`
-	HTTPRequest      string                             `json:"httpRequest"`
-	HTTPResponseCode *int                               `json:"httpResponseCode,omitempty"`
-	Summary          map[string]string                  `json:"summary,omitempty"`
-	State            v1beta1.CruiseControlUserTaskState `json:"state"` //(already have at api/v1beta1/common_types.go)
-	ErrorMessage     *string                            `json:"errorMessage,omitempty"`
+	ID       string       `json:"id"`
+	Started  metav1.Time  `json:"started"`
+	Finished *metav1.Time `json:"finished,omitempty"`
+	// Operation defines the Cruise Control operation type.
+	Operation CruiseControlTaskOperation `json:"operation"`
+	// Parameters field describes the configuration of the operation.
+	Parameters       map[string]string `json:"parameters,omitempty"`
+	HTTPRequest      string            `json:"httpRequest"`
+	HTTPResponseCode *int              `json:"httpResponseCode,omitempty"`
+	// Summary of the Cruise Control user task execution proposal.
+	Summary      map[string]string                   `json:"summary,omitempty"`
+	State        *v1beta1.CruiseControlUserTaskState `json:"state,omitempty"`
+	ErrorMessage *string                             `json:"errorMessage,omitempty"`
 }
