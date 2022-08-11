@@ -23,8 +23,9 @@ package v1beta1
 
 import (
 	networkingv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
-	metav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	apismetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -839,6 +840,11 @@ func (in *KafkaClusterSpec) DeepCopyInto(out *KafkaClusterSpec) {
 	}
 	out.DisruptionBudget = in.DisruptionBudget
 	out.RollingUpgradeConfig = in.RollingUpgradeConfig
+	if in.TaintedBrokersSelector != nil {
+		in, out := &in.TaintedBrokersSelector, &out.TaintedBrokersSelector
+		*out = new(metav1.LabelSelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.IstioControlPlane != nil {
 		in, out := &in.IstioControlPlane, &out.IstioControlPlane
 		*out = new(IstioControlPlaneReference)
@@ -1121,7 +1127,7 @@ func (in *SSLSecrets) DeepCopyInto(out *SSLSecrets) {
 	*out = *in
 	if in.IssuerRef != nil {
 		in, out := &in.IssuerRef, &out.IssuerRef
-		*out = new(metav1.ObjectReference)
+		*out = new(apismetav1.ObjectReference)
 		**out = **in
 	}
 }

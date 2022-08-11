@@ -78,6 +78,8 @@ type KafkaClusterSpec struct {
 	Brokers                     []Broker                `json:"brokers"`
 	DisruptionBudget            DisruptionBudget        `json:"disruptionBudget,omitempty"`
 	RollingUpgradeConfig        RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
+	// Selector for broker pods that need to be recycled/reconciled
+	TaintedBrokersSelector *metav1.LabelSelector `json:"taintedBrokersSelector,omitempty"`
 	// +kubebuilder:validation:Enum=envoy;istioingress
 	// IngressController specifies the type of the ingress controller to be used for external listeners. The `istioingress` ingress controller type requires the `spec.istioControlPlane` field to be populated as well.
 	IngressController string `json:"ingressController,omitempty"`
