@@ -158,9 +158,6 @@ func (r *Reconciler) getClientPassword() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err = certutil.CheckSSLCertSecret(clientSecret); err != nil {
-		return "", err
-	}
 	return string(clientSecret.Data[v1alpha1.PasswordKey]), nil
 }
 
@@ -178,7 +175,15 @@ func (r *Reconciler) getClientSecret() (*corev1.Secret, error) {
 		if apierrors.IsNotFound(err) && r.KafkaCluster.Spec.GetClientSSLCertSecretName() == "" {
 			return nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")
 		}
+
 		return nil, errors.WrapIfWithDetails(err, "failed to get client secret")
+	}
+
+	if err := certutil.CheckSSLCertSecret(clientSecret); err != nil {
+		if r.KafkaCluster.Spec.GetClientSSLCertSecretName() == "" {
+			return nil, errorfactory.New(errorfactory.ResourceNotReady{}, errors.Errorf("SSL JKS certificate has not generated properly yet into client secret: %s", clientSecret.Name), "checking secret data fields")
+		}
+		return nil, errors.WrapIfWithDetails(err, "failed to get certificates from client secret")
 	}
 
 	return clientSecret, nil
