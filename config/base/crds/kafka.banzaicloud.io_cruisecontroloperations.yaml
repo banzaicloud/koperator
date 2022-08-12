@@ -37,10 +37,10 @@ spec:
             description: CruiseControlOperationSpec defines the desired state of CruiseControlOperation.
             properties:
               errorPolicy:
-                description: 'FailurePolicy defines how failed downscale operations
-                  should be handled. Defaults to retry. - retry:  the koperator re-executes
-                  the failed task in every 30 sec - ignore: koperator handles the
-                  failed task as completed'
+                description: FailurePolicy defines how failed downscale operations
+                  should be handled. When it is "retry" the koperator re-executes
+                  the failed task in every 30 sec. When it is "ignore" the koperator
+                  handles the failed task as completed.
                 enum:
                 - ignore
                 - retry
@@ -72,8 +72,7 @@ spec:
                   parameters:
                     additionalProperties:
                       type: string
-                    description: Parameters field describes the configuration of the
-                      operation.
+                    description: Parameters defines the configuration of the operation.
                     type: object
                   started:
                     format: date-time
@@ -121,8 +120,7 @@ spec:
                     parameters:
                       additionalProperties:
                         type: string
-                      description: Parameters field describes the configuration of
-                        the operation.
+                      description: Parameters defines the configuration of the operation.
                       type: object
                     started:
                       format: date-time

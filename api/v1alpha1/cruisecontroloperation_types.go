@@ -40,9 +40,9 @@ type CruiseControlOperationList struct {
 
 // CruiseControlOperationSpec defines the desired state of CruiseControlOperation.
 type CruiseControlOperationSpec struct {
-	// FailurePolicy defines how failed downscale operations should be handled. Defaults to retry.
-	// - retry:  the koperator re-executes the failed task in every 30 sec
-	// - ignore: koperator handles the failed task as completed
+	// FailurePolicy defines how failed downscale operations should be handled.
+	// When it is "retry" the koperator re-executes the failed task in every 30 sec.
+	// When it is "ignore" the koperator handles the failed task as completed.
 	// +kubebuilder:validation:Enum=ignore;retry
 	// +optional
 	ErrorPolicy ErrorPolicyType `json:"errorPolicy,omitempty"`
@@ -65,7 +65,7 @@ type CruiseControlTask struct {
 	Finished *metav1.Time `json:"finished,omitempty"`
 	// Operation defines the Cruise Control operation kind.
 	Operation CruiseControlTaskOperation `json:"operation"`
-	// Parameters field describes the configuration of the operation.
+	// Parameters defines the configuration of the operation.
 	Parameters map[string]string `json:"parameters,omitempty"`
 	// HTTPRequest is a Cruise Control user task HTTP request.
 	HTTPRequest      string `json:"httpRequest"`
