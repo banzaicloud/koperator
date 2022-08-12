@@ -15,8 +15,9 @@
 package v1alpha1
 
 import (
-	"github.com/banzaicloud/koperator/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 //+kubebuilder:object:root=true
