@@ -32,6 +32,7 @@ type CruiseControlOperation struct {
 	Status CruiseControlOperationStatus `json:"status,omitempty"`
 }
 
+//+kubebuilder:object:root=true
 // CruiseControlOperationList contains a list of CruiseControlOperation.
 type CruiseControlOperationList struct {
 	metav1.TypeMeta `json:",inline"`
