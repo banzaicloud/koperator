@@ -69,6 +69,9 @@ spec:
       # Add custom labels to broker pods within the config group
       # brokerLabels:
       #   kafka_broker_group: "default_group"
+      # priorityClassName can be used to set the priority of broker pods that use this config group
+      # note that the corresponding PriorityClass must be created beforehand
+      # priorityClassName: "high-priority"
   # All Broker requires an image, unique id, and storageConfigs settings
   brokers:
       # Unique broker id which is used as kafka config broker.id
@@ -102,6 +105,8 @@ spec:
         # tolerations:
         # config parameter can be used to pass Kafka config https://kafka.apache.org/documentation/#brokerconfigs
         # which has type per-broker
+        # priorityClassName can be used to set the broker pod's priority
+        # priorityClassName: "high-priority"
         config: |
           sasl.enabled.mechanisms=PLAIN
         # serviceAccountName specifies the serviceAccount used for this specific broker
@@ -235,6 +240,8 @@ spec:
                 #  replicas: 1
                 # image describes the Envoy docker image
                 #  image: "banzaicloud/envoy:0.1.0"
+                # priorityClassName can be used to set the envoy pod's priority
+                # priorityClassName: "moderate-priority"
                 # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
                 # through this property
                 # resourceRequirements:
@@ -369,6 +376,8 @@ spec:
   cruiseControlConfig:
     # image describes the CC docker image
     #image: "solsson/kafka-cruise-control@sha256:c70eae329b4ececba58e8cf4fa6e774dd2e0205988d8e5be1a70e622fcc46716"
+    # priorityClassName can be used to set the cruise control pod's priority
+    # priorityClassName: "low-priority"
     # CruiseControlEndpoint describes the endpoint where the already running CC is accessable. If set the Operator will not
     # try to install one
     #cruiseControlEndpoint: "localhost:8090"

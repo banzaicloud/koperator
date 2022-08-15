@@ -218,6 +218,11 @@ type BrokerConfig struct {
 	// +kubebuilder:default=120
 	// +optional
 	TerminationGracePeriod *int64 `json:"terminationGracePeriodSeconds,omitempty"`
+	// PriorityClassName specifies the priority class name for a broker pod(s).
+	// If specified, the PriorityClass resource with this PriorityClassName must be created beforehand.
+	// If not specified, the broker pods' priority is default to zero.
+	// +optional
+	PriorityClassName string `json:"priorityClassName,omitempty"`
 }
 
 type NetworkConfig struct {
@@ -257,6 +262,11 @@ type CruiseControlConfig struct {
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// SecurityContext allows to set security context for the CruiseControl container
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+	// PriorityClassName specifies the priority class name for the CruiseControl pod.
+	// If specified, the PriorityClass resource with this PriorityClassName must be created beforehand.
+	// If not specified, the CruiseControl pod's priority is default to zero.
+	// +optional
+	PriorityClassName string `json:"priorityClassName,omitempty"`
 }
 
 // CruiseControlTaskSpec specifies the configuration of the CC Tasks
@@ -292,7 +302,7 @@ type EnvoyConfig struct {
 	// If specified and supported by the platform, traffic through the
 	// cloud-provider load-balancer will be restricted to the specified client
 	// IPs. This field will be ignored if the
-	// cloud-provider does not support the feature."
+	// cloud-provider does not support the feature.
 	// More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/
 	LoadBalancerSourceRanges []string `json:"loadBalancerSourceRanges,omitempty"`
 	// LoadBalancerIP can be used to specify an exact IP for the LoadBalancer service
@@ -307,6 +317,11 @@ type EnvoyConfig struct {
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	CommandLineArgs *EnvoyCommandLineArgs `json:"envoyCommandLineArgs,omitempty"`
+	// PriorityClassName specifies the priority class name for the Envoy pod(s)
+	// If specified, the PriorityClass resource with this PriorityClassName must be created beforehand
+	// If not specified, the Envoy pods' priority is default to zero
+	// +optional
+	PriorityClassName string `json:"priorityClassName,omitempty"`
 }
 
 // EnvoyCommandLineArgs defines envoy command line arguments
@@ -790,9 +805,19 @@ func (eConfig *EnvoyConfig) GetTopologySpreadConstaints() []corev1.TopologySprea
 	return eConfig.TopologySpreadConstraints
 }
 
+// GetPriorityClassName returns the priority class name for envoy
+func (eConfig *EnvoyConfig) GetPriorityClassName() string {
+	return eConfig.PriorityClassName
+}
+
 // GetNodeSelector returns the node selector for the given broker
 func (bConfig *BrokerConfig) GetNodeSelector() map[string]string {
 	return bConfig.NodeSelector
+}
+
+// GetPriorityClassName returns the priority class name for the given broker
+func (bConfig *BrokerConfig) GetPriorityClassName() string {
+	return bConfig.PriorityClassName
 }
 
 // GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
@@ -827,6 +852,11 @@ func (eConfig *EnvoyConfig) GetImagePullSecrets() []corev1.LocalObjectReference 
 // GetImagePullSecrets returns the list of Secrets needed to pull Containers images from private repositories
 func (cConfig *CruiseControlConfig) GetImagePullSecrets() []corev1.LocalObjectReference {
 	return cConfig.ImagePullSecrets
+}
+
+// GetPriorityClassName returns the priority class name for the CruiseControl pod
+func (cConfig *CruiseControlConfig) GetPriorityClassName() string {
+	return cConfig.PriorityClassName
 }
 
 // GetResources returns the envoy specific Kubernetes resource

@@ -157,6 +157,7 @@ fi`},
 			ServiceAccountName:            brokerConfig.GetServiceAccount(),
 			Tolerations:                   brokerConfig.GetTolerations(),
 			NodeSelector:                  brokerConfig.GetNodeSelector(),
+			PriorityClassName:             brokerConfig.GetPriorityClassName(),
 		},
 	}
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
