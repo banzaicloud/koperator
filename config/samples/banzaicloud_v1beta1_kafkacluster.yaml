@@ -323,8 +323,12 @@ spec:
     # sslSecrets contains information about ssl related kubernetes secrets if one of the
     # listener setting type set to ssl these fields must be populated too.
     sslSecrets:
-      # tlsSecretName should contain all ssl certs required by kafka including: caCert, caKey, clientCert, clientKey
-      # serverCert, serverKey, peerCert, peerKey
+      # when create is false then the user has to provide the TLS certificate(s) and private key in PEM format in the refererenced secret below.
+      # this certificate and private key is used by cert-manager to issue client and server certificates. The client certificate is used by the Koperator , Cruise Control, 
+      # and Cruise Control Metrics Reporter to communicate with Kafka brokers using listener with SSL enabled.
+      # The server certificate is used by listeners using SSL.
+      # The data field in the secret must contain a caCert entry and a caKey entry. 
+      # The caCert also can contain certificate chain in this order: intermediate(s) -> root. 
       tlsSecretName: "test-kafka-operator"
       # jksPasswordName should contain a password field which contains the jks password
       jksPasswordName: "test-kafka-operator-pass"
