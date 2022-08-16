@@ -32,13 +32,18 @@ type ClusterReference struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
+
+// CruiseControlTaskOperation defines distinct operation types used while running Cruise Control on the Kafka cluster.
+// More details: https://github.com/linkedin/cruise-control/wiki/REST-APIs#post-requests
 type CruiseControlTaskOperation string
 
 const (
 	// OperationAddBroker means a Cruise Control add_broker operation
-	OperationAddBroker CruiseControlTaskOperation = "addbroker"
+	OperationAddBroker CruiseControlTaskOperation = "add_broker"
 	// OperationRemoveBroker means a Cruise Control remove_broker operation
-	OperationRemoveBroker CruiseControlTaskOperation = "removebroker"
+	OperationRemoveBroker CruiseControlTaskOperation = "remove_broker"
+	// OperationRebalance means a Cruise Control rebalance operation
+	OperationRebalance CruiseControlTaskOperation = "rebalance"
 	// KafkaAccessTypeRead states that a user wants consume access to a topic
 	KafkaAccessTypeRead KafkaAccessType = "read"
 	// KafkaAccessTypeWrite states that a user wants produce access to a topic

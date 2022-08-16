@@ -5,3 +5,4 @@ metadata:
   namespace: kafka
 spec:
   errorPolicy: retry
+  

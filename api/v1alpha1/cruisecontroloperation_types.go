@@ -1,4 +1,4 @@
-// Copyright © 2019 Banzai Cloud
+// Copyright © 2022 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,14 +42,16 @@ type CruiseControlOperationList struct {
 
 // CruiseControlOperationSpec defines the desired state of CruiseControlOperation.
 type CruiseControlOperationSpec struct {
-	// FailurePolicy defines how failed downscale operations should be handled.
-	// When it is "retry" the koperator re-executes the failed task in every 30 sec.
-	// When it is "ignore" the koperator handles the failed task as completed.
+	// ErrorPolicy defines how failed Cruise Control operation should be handled.
+	// When it is "retry", the Koperator re-executes the failed task in every 30 sec.
+	// When it is "ignore", the Koperator handles the failed task as completed.
 	// +kubebuilder:validation:Enum=ignore;retry
+	// +kubebuilder:default=retry
 	// +optional
 	ErrorPolicy ErrorPolicyType `json:"errorPolicy,omitempty"`
 }
 
+// ErrorPolicyType defines methods of handling Cruise Control user task errors.
 type ErrorPolicyType string
 
 // CruiseControlOperationStatus defines the observed state of CruiseControlOperation.
