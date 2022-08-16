@@ -43,7 +43,7 @@ type CruiseControlOperationList struct {
 // CruiseControlOperationSpec defines the desired state of CruiseControlOperation.
 type CruiseControlOperationSpec struct {
 	// ErrorPolicy defines how failed Cruise Control operation should be handled.
-	// When it is "retry", the Koperator re-executes the failed task in every 30 sec.
+	// When it is "retry", the Koperator re-executes the failed task in every 30 sec (by default).
 	// When it is "ignore", the Koperator handles the failed task as completed.
 	// +kubebuilder:validation:Enum=ignore;retry
 	// +kubebuilder:default=retry
