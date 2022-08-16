@@ -90,9 +90,9 @@ func (r *Reconciler) configMap(clientPass string, capacityConfig string, log log
 	return configMap
 }
 
-func generateSSLConfig(k v1beta1.KafkaClusterSpec, clientPass string, log logr.Logger) *properties.Properties {
+func generateSSLConfig(kafkaCluster v1beta1.KafkaClusterSpec, clientPass string, log logr.Logger) *properties.Properties {
 	config := properties.NewProperties()
-	if k.IsClientSSLSecretPresent() && util.IsSSLEnabledForInternalCommunication(k.ListenersConfig.InternalListeners) {
+	if kafkaCluster.IsClientSSLSecretPresent() && util.IsSSLEnabledForInternalCommunication(kafkaCluster.ListenersConfig.InternalListeners) {
 		keyStoreLoc := keystoreVolumePath + "/" + v1alpha1.TLSJKSKeyStore
 		trustStoreLoc := keystoreVolumePath + "/" + v1alpha1.TLSJKSTrustStore
 

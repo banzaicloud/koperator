@@ -169,8 +169,8 @@ func (r *Reconciler) getClientSecret() (*corev1.Secret, error) {
 		clientNamespacedName = types.NamespacedName{Name: r.KafkaCluster.Spec.GetClientSSLCertSecretName(), Namespace: r.KafkaCluster.Namespace}
 	}
 
-	if err := r.Client.Get(context.TODO(), clientNamespacedName, clientSecret); err != nil {
-		// We only return with ResourceNotReady (which is goin to retry after period time)
+	if err := r.Client.Get(context.Background(), clientNamespacedName, clientSecret); err != nil {
+		// We only return with ResourceNotReady (which is going to retry after a period time)
 		// when we use our cert generation for client cert
 		if apierrors.IsNotFound(err) && r.KafkaCluster.Spec.GetClientSSLCertSecretName() == "" {
 			return nil, errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")

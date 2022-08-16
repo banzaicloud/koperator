@@ -317,7 +317,7 @@ func GenerateSigningRequestInPemFormat(priv *rsa.PrivateKey, commonName string, 
 	return signingReq, err
 }
 
-func isSSLCertInJKS(data map[string][]byte) error {
+func checkSSLCertInJKS(data map[string][]byte) error {
 	var err error
 	if len(data[v1alpha1.TLSJKSTrustStore]) == 0 {
 		err = errors.Combine(err, fmt.Errorf("%s entry is missing", v1alpha1.TLSJKSTrustStore))
@@ -337,7 +337,7 @@ func isSSLCertInJKS(data map[string][]byte) error {
 }
 
 func CheckSSLCertSecret(secret *corev1.Secret) error {
-	if err := isSSLCertInJKS(secret.Data); err != nil {
+	if err := checkSSLCertInJKS(secret.Data); err != nil {
 		return errors.WrapIfWithDetails(err, "couldn't get certificates from secret", "name", secret.GetName(), "namespace", secret.GetNamespace())
 	}
 	return nil
