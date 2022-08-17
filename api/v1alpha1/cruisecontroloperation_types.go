@@ -20,6 +20,15 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
+const (
+	// ErrorPolicyIgnore means the Koperator handles the failed task as completed.
+	ErrorPolicyIgnore ErrorPolicyType = "ignore"
+	// ErrorPolicyRetry means Koperator re-executes the failed task in every 30 sec (by default).
+	ErrorPolicyRetry ErrorPolicyType = "retry"
+	// DefaultRetryBackOffDurationSec defines the time between retries of the failed tasks.
+	DefaultRetryBackOffDurationSec = 30
+)
+
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
@@ -64,19 +73,23 @@ type CruiseControlOperationStatus struct {
 
 // CruiseControlTask defines the observed state of the Cruise Control user task.
 type CruiseControlTask struct {
-	ID       string       `json:"id"`
-	Started  metav1.Time  `json:"started"`
+	ID       string       `json:"id,omitempty"`
+	Started  *metav1.Time `json:"started,omitempty"`
 	Finished *metav1.Time `json:"finished,omitempty"`
 	// Operation defines the Cruise Control operation kind.
 	Operation CruiseControlTaskOperation `json:"operation"`
 	// Parameters defines the configuration of the operation.
 	Parameters map[string]string `json:"parameters,omitempty"`
 	// HTTPRequest is a Cruise Control user task HTTP request.
-	HTTPRequest      string `json:"httpRequest"`
+	HTTPRequest      string `json:"httpRequest,omitempty"`
 	HTTPResponseCode *int   `json:"httpResponseCode,omitempty"`
 	// Summary of the Cruise Control user task execution proposal.
 	Summary map[string]string `json:"summary,omitempty"`
 	// State is the current state of the Cruise Control user task.
-	State        *v1beta1.CruiseControlUserTaskState `json:"state,omitempty"`
-	ErrorMessage *string                             `json:"errorMessage,omitempty"`
+	State        v1beta1.CruiseControlUserTaskState `json:"state,omitempty"`
+	ErrorMessage string                             `json:"errorMessage,omitempty"`
+}
+
+func init() {
+	SchemeBuilder.Register(&CruiseControlOperation{}, &CruiseControlOperationList{})
 }
