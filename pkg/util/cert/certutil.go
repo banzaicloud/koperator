@@ -19,20 +19,21 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	mathrand "math/rand"
 	"strings"
 	"time"
 
-	"github.com/banzaicloud/koperator/api/v1alpha1"
-
-	"github.com/pavlo-v-chernykh/keystore-go/v4"
+	"emperror.dev/errors"
+	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/banzaicloud/koperator/api/v1alpha1"
 )
 
 const (
@@ -184,18 +185,18 @@ func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byt
 		return nil, nil, err
 	}
 
-	certCABundle := make([]keystore.Certificate, 0, len(certs))
+	certCABundle := make([]jks.Certificate, 0, len(certs))
 	for _, cert := range certs {
-		kcert := keystore.Certificate{
+		kcert := jks.Certificate{
 			Type:    "X.509",
 			Content: cert.Raw,
 		}
 		certCABundle = append(certCABundle, kcert)
 	}
 
-	jksKeyStore := keystore.New()
+	jksKeyStore := jks.New()
 
-	pkeIn := keystore.PrivateKeyEntry{
+	pkeIn := jks.PrivateKeyEntry{
 		CreationTime:     time.Now(),
 		PrivateKey:       pKeyPKCS8,
 		CertificateChain: certCABundle,
@@ -204,9 +205,9 @@ func GenerateJKS(certs []*x509.Certificate, privateKey []byte) (out, passw []byt
 	//Add into trusted from our cert chain
 	for i, cert := range certs {
 		if cert.IsCA {
-			caIn := keystore.TrustedCertificateEntry{
+			caIn := jks.TrustedCertificateEntry{
 				CreationTime: time.Now(),
-				Certificate: keystore.Certificate{
+				Certificate: jks.Certificate{
 					Type:    "X.509",
 					Content: cert.Raw,
 				},
@@ -314,4 +315,116 @@ func GenerateSigningRequestInPemFormat(priv *rsa.PrivateKey, commonName string, 
 	}
 	signingReq := buf.Bytes()
 	return signingReq, err
+}
+
+func checkSSLCertInJKS(data map[string][]byte) error {
+	var err error
+	if len(data[v1alpha1.TLSJKSTrustStore]) == 0 {
+		err = errors.Combine(err, fmt.Errorf("%s entry is missing", v1alpha1.TLSJKSTrustStore))
+	}
+	if len(data[v1alpha1.TLSJKSKeyStore]) == 0 {
+		err = errors.Combine(err, fmt.Errorf("%s entry is missing", v1alpha1.TLSJKSKeyStore))
+	}
+	if len(data[v1alpha1.PasswordKey]) == 0 {
+		err = errors.Combine(err, fmt.Errorf("%s entry is missing", v1alpha1.PasswordKey))
+	}
+
+	if err != nil {
+		err = errors.WrapIff(err, "there is missing data entry for JKS format based certificates")
+	}
+
+	return err
+}
+
+func CheckSSLCertSecret(secret *corev1.Secret) error {
+	if err := checkSSLCertInJKS(secret.Data); err != nil {
+		return errors.WrapIfWithDetails(err, "couldn't get certificates from secret", "name", secret.GetName(), "namespace", secret.GetNamespace())
+	}
+	return nil
+}
+
+func ParseTrustStoreToCaChain(truststore, password []byte) ([]*x509.Certificate, error) {
+	jksTrustStore := jks.New()
+	err := jksTrustStore.Load(bytes.NewReader(truststore), password)
+	if err != nil {
+		return nil, err
+	}
+	var trustedEntries []jks.TrustedCertificateEntry
+	aliases := jksTrustStore.Aliases()
+	// collecting ca certificates in aliases so truststore can be alias agnostic
+	for _, alias := range aliases {
+		trustedEntry, err := jksTrustStore.GetTrustedCertificateEntry(alias)
+		if err != nil && !errors.Is(err, jks.ErrWrongEntryType) {
+			return nil, errors.WrapIf(err, "couldn't get trusted entry from truststore")
+		}
+		if err == nil {
+			trustedEntries = append(trustedEntries, trustedEntry)
+		}
+	}
+
+	if len(trustedEntries) == 0 {
+		return nil, errors.New("couldn't find trusted certificate entry in truststore")
+	}
+
+	var caCerts []*x509.Certificate
+	for _, trustedEntry := range trustedEntries {
+		caCert, err := x509.ParseCertificates(trustedEntry.Certificate.Content)
+		if err != nil {
+			return nil, errors.WrapIf(err, "couldn't parse trusted certificate entry")
+		}
+		caCerts = append(caCerts, caCert...)
+	}
+	return caCerts, nil
+}
+
+func ParseKeyStoreToTLSCertificate(keystore, password []byte) (tls.Certificate, error) {
+	jksKeyStore := jks.New()
+	err := jksKeyStore.Load(bytes.NewReader(keystore), password)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	aliases := jksKeyStore.Aliases()
+	var privateEntries []jks.PrivateKeyEntry
+	// collecting pirvate key entries in aliases so keystore can be alias agnostic
+	for _, alias := range aliases {
+		privateEntry, err := jksKeyStore.GetPrivateKeyEntry(alias, password)
+		if err != nil && !errors.Is(err, jks.ErrWrongEntryType) {
+			return tls.Certificate{}, errors.WrapIf(err, "couldn't get private key entry from keystore")
+		}
+		if err == nil {
+			privateEntries = append(privateEntries, privateEntry)
+		}
+	}
+	// When there are more privateEntries then how can we know which one should be used
+	if len(privateEntries) > 1 {
+		return tls.Certificate{}, fmt.Errorf("keystore should contains only one private key entry, but got: %d", len(privateEntries))
+	} else if len(privateEntries) == 0 {
+		return tls.Certificate{}, errors.New("couldn't find private key entry in keystore")
+	}
+
+	parsedKey, err := x509.ParsePKCS8PrivateKey(privateEntries[0].PrivateKey)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	privKey, ok := parsedKey.(crypto.Signer)
+	if !ok {
+		return tls.Certificate{}, errors.New("private key couldn't be recognized")
+	}
+
+	leaf, err := x509.ParseCertificates(privateEntries[0].CertificateChain[0].Content)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	var certChain [][]byte
+	for _, cert := range privateEntries[0].CertificateChain {
+		certChain = append(certChain, cert.Content)
+	}
+
+	x509ClientCert := tls.Certificate{
+		Leaf:        leaf[0],
+		PrivateKey:  privKey,
+		Certificate: certChain,
+	}
+
+	return x509ClientCert, nil
 }

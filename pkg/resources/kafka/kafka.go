@@ -579,31 +579,23 @@ func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
 			if apierrors.IsNotFound(err) && r.KafkaCluster.Spec.GetClientSSLCertSecretName() == "" {
 				return "", "", errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not ready")
 			}
-			return "", "", errors.WrapIfWithDetails(err, "failed to get client secret")
+			return "", "", errors.WrapIf(err, "failed to get client secret")
 		}
-		if !IsGeneratedSSLCertSecretFilled(*clientSecret) {
+		if err := certutil.CheckSSLCertSecret(clientSecret); err != nil {
 			if r.KafkaCluster.Spec.GetClientSSLCertSecretName() != "" {
-				return "", "", errors.Errorf("secret: %s has missing data fields", clientSecret.Name)
+				return "", "", err
 			}
 			return "", "", errorfactory.New(errorfactory.ResourceNotReady{}, errors.Errorf("SSL JKS certificate has not generated properly yet into secret: %s", clientSecret.Name), "checking secret data fields")
 		}
-		cert, err := certutil.DecodeCertificate(clientSecret.Data[corev1.TLSCertKey])
+
+		tlsCert, err := certutil.ParseKeyStoreToTLSCertificate(clientSecret.Data[v1alpha1.TLSJKSKeyStore], clientSecret.Data[v1alpha1.PasswordKey])
 		if err != nil {
-			return "", "", errors.WrapIfWithDetails(err, "failed to decode client certificate")
+			return "", "", errors.WrapIfWithDetails(err, "failed to decode certificate", "secretName", clientSecret.Name)
 		}
-		CN = cert.Subject.String()
+		CN = tlsCert.Leaf.Subject.String()
 		clientPass = string(clientSecret.Data[v1alpha1.PasswordKey])
 	}
 	return clientPass, CN, nil
-}
-
-func IsGeneratedSSLCertSecretFilled(serverSecret corev1.Secret) bool {
-	// TODO if we accept later PEM format cert for listeners than we need to check that case also.
-	if len(serverSecret.Data[v1alpha1.TLSJKSKeyStore]) == 0 || len(serverSecret.Data[v1alpha1.TLSJKSTrustStore]) == 0 ||
-		len(serverSecret.Data[v1alpha1.PasswordKey]) == 0 {
-		return false
-	}
-	return true
 }
 
 func getListenerSSLCertSecret(client client.Reader, commonSpec v1beta1.CommonListenerSpec, clusterName string, clusterNamespace string) (*corev1.Secret, error) {
@@ -620,9 +612,9 @@ func getListenerSSLCertSecret(client client.Reader, commonSpec v1beta1.CommonLis
 		return nil, errors.WrapIfWithDetails(err, "failed to get server secret")
 	}
 	// Check secret data fields
-	if !IsGeneratedSSLCertSecretFilled(*serverSecret) {
+	if err := certutil.CheckSSLCertSecret(serverSecret); err != nil {
 		if commonSpec.GetServerSSLCertSecretName() != "" {
-			return nil, errors.Errorf("secret: %s has missing data fields", serverSecret.Name)
+			return nil, err
 		}
 		return nil, errorfactory.New(errorfactory.ResourceNotReady{}, errors.Errorf("SSL JKS certificate has not generated properly yet into secret: %s", serverSecret.Name), "checking secret data fields")
 	}
@@ -633,6 +625,7 @@ func getListenerSSLCertSecret(client client.Reader, commonSpec v1beta1.CommonLis
 func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []string, error) {
 	// pair contains the listenerName and the corresponding  JKS cert password
 	pair := make(map[string]string)
+
 	var CNList []string
 	// globKeyPass contains the generated ssl keystore password.
 	var globKeyPass string
@@ -648,8 +641,10 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 				if err != nil {
 					return nil, nil, err
 				}
+
 				pair[iListener.Name] = string(serverSecret.Data[v1alpha1.PasswordKey])
 			}
+
 			// Set the globKeyPass if there is no custom server cert present
 			if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && iListener.GetServerSSLCertSecretName() == "" {
 				if globKeyPass == "" {
@@ -661,11 +656,11 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 			// That way we can continue to manage topics and users
 			// We put these Common Names from certificates into the superusers kafka broker config
 			if iListener.UsedForControllerCommunication || iListener.UsedForInnerBrokerCommunication {
-				cert, err := certutil.DecodeCertificate(serverSecret.Data[corev1.TLSCertKey])
+				tlsCert, err := certutil.ParseKeyStoreToTLSCertificate(serverSecret.Data[v1alpha1.TLSJKSKeyStore], serverSecret.Data[v1alpha1.PasswordKey])
 				if err != nil {
 					return nil, nil, errors.WrapIfWithDetails(err, fmt.Sprintf("failed to decode certificate, secretName: %s", serverSecret.Name))
 				}
-				CNList = append(CNList, cert.Subject.String())
+				CNList = append(CNList, tlsCert.Leaf.Subject.String())
 			}
 		}
 	}
@@ -679,6 +674,7 @@ func (r *Reconciler) getServerPasswordKeysAndUsers() (map[string]string, []strin
 				}
 				pair[eListener.Name] = string(serverSecret.Data[v1alpha1.PasswordKey])
 			}
+
 			if r.KafkaCluster.Spec.ListenersConfig.SSLSecrets != nil && eListener.GetServerSSLCertSecretName() == "" {
 				if globKeyPass == "" {
 					globKeyPass = string(serverSecret.Data[v1alpha1.PasswordKey])

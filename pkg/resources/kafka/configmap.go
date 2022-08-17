@@ -70,25 +70,26 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, "setting zookeeper.connect parameter in broker configuration resulted an error")
 	}
 
-	// Add Cruise Control SSL configuration
+	// Add Cruise Control Metrics Reporter SSL configuration
 	if util.IsSSLEnabledForInternalCommunication(r.KafkaCluster.Spec.ListenersConfig.InternalListeners) {
 		if !r.KafkaCluster.Spec.IsClientSSLSecretPresent() {
 			log.Error(errors.New("cruise control metrics reporter needs ssl but client certificate hasn't specified"), "")
 		}
-		if err := config.Set("cruise.control.metrics.reporter.security.protocol", "SSL"); err != nil {
-			log.Error(err, "setting cruise.control.metrics.reporter.security.protocol in broker configuration resulted an error")
+		keyStoreLoc := clientKeystorePath + "/" + v1alpha1.TLSJKSKeyStore
+		trustStoreLoc := clientKeystorePath + "/" + v1alpha1.TLSJKSTrustStore
+
+		sslConfig := map[string]string{
+			"security.protocol":       "SSL",
+			"ssl.truststore.location": trustStoreLoc,
+			"ssl.keystore.location":   keyStoreLoc,
+			"ssl.keystore.password":   clientPass,
+			"ssl.truststore.password": clientPass,
 		}
-		if err := config.Set("cruise.control.metrics.reporter.ssl.truststore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSTrustStore); err != nil {
-			log.Error(err, "setting cruise.control.metrics.reporter.ssl.truststore.location in broker configuration resulted an error")
-		}
-		if err := config.Set("cruise.control.metrics.reporter.ssl.truststore.password", clientPass); err != nil {
-			log.Error(err, "setting cruise.control.metrics.reporter.ssl.truststore.password parameter in broker configuration resulted an error")
-		}
-		if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.location", clientKeystorePath+"/"+v1alpha1.TLSJKSKeyStore); err != nil {
-			log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.location parameter in broker configuration resulted an error")
-		}
-		if err := config.Set("cruise.control.metrics.reporter.ssl.keystore.password", clientPass); err != nil {
-			log.Error(err, "setting cruise.control.metrics.reporter.ssl.keystore.password parameter in broker configuration resulted an error")
+
+		for k, v := range sslConfig {
+			if err := config.Set(fmt.Sprintf("cruise.control.metrics.reporter.%s", k), v); err != nil {
+				log.Error(err, fmt.Sprintf("setting cruise.control.metrics.reporter.%s parameter in broker configuration resulted in an error", k))
+			}
 		}
 	}
 
@@ -288,7 +289,7 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
 		// Add internal listeners SSL configuration
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
-			generateListenerSSLConfig(config, iListener.Name, iListener.SSLClientAuth, "JKS", serverPasses, log)
+			generateListenerSSLConfig(config, iListener.Name, iListener.SSLClientAuth, serverPasses[iListener.Name], log)
 		}
 	}
 
@@ -299,7 +300,7 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
 		// Add external listeners SSL configuration
 		if eListener.Type == v1beta1.SecurityProtocolSSL {
-			generateListenerSSLConfig(config, eListener.Name, eListener.SSLClientAuth, "JKS", serverPasses, log)
+			generateListenerSSLConfig(config, eListener.Name, eListener.SSLClientAuth, serverPasses[eListener.Name], log)
 		}
 	}
 	if err := config.Set("listener.security.protocol.map", securityProtocolMapConfig); err != nil {
@@ -314,29 +315,33 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 	return config
 }
 
-func generateListenerSSLConfig(config *properties.Properties, name string, sslClientAuth v1beta1.SSLClientAuthentication, certificateStoreType string, passwordKeyMap map[string]string, log logr.Logger) {
-	if certificateStoreType == "JKS" {
-		namedKeystorePath := fmt.Sprintf(listenerServerKeyStorePathTemplate, serverKeystorePath, name)
-		listenerSSLConfig := map[string]string{
-			fmt.Sprintf(`listener.name.%s.ssl.keystore.location`, name):   namedKeystorePath + "/" + v1alpha1.TLSJKSKeyStore,
-			fmt.Sprintf("listener.name.%s.ssl.truststore.location", name): namedKeystorePath + "/" + v1alpha1.TLSJKSTrustStore,
-			fmt.Sprintf("listener.name.%s.ssl.keystore.password", name):   passwordKeyMap[name],
-			fmt.Sprintf("listener.name.%s.ssl.truststore.password", name): passwordKeyMap[name],
-			fmt.Sprintf("listener.name.%s.ssl.keystore.type", name):       "JKS",
-			fmt.Sprintf("listener.name.%s.ssl.truststore.type", name):     "JKS",
-		}
+func generateListenerSSLConfig(config *properties.Properties, name string, sslClientAuth v1beta1.SSLClientAuthentication, password string, log logr.Logger) {
+	var listenerSSLConfig map[string]string
+	namedKeystorePath := fmt.Sprintf(listenerServerKeyStorePathTemplate, serverKeystorePath, name)
+	keyStoreType := "JKS"
+	keyStoreLoc := namedKeystorePath + "/" + v1alpha1.TLSJKSKeyStore
+	trustStoreType := "JKS"
+	trustStoreLoc := namedKeystorePath + "/" + v1alpha1.TLSJKSTrustStore
 
-		// enable 2-way SSL authentication if SSL is enabled but this field is not provided in the listener config
-		if sslClientAuth == "" {
-			listenerSSLConfig[fmt.Sprintf("listener.name.%s.ssl.client.auth", name)] = string(v1beta1.SSLClientAuthRequired)
-		} else {
-			listenerSSLConfig[fmt.Sprintf("listener.name.%s.ssl.client.auth", name)] = string(sslClientAuth)
-		}
+	listenerSSLConfig = map[string]string{
+		fmt.Sprintf(`listener.name.%s.ssl.keystore.location`, name):   keyStoreLoc,
+		fmt.Sprintf("listener.name.%s.ssl.truststore.location", name): trustStoreLoc,
+		fmt.Sprintf("listener.name.%s.ssl.keystore.type", name):       keyStoreType,
+		fmt.Sprintf("listener.name.%s.ssl.truststore.type", name):     trustStoreType,
+		fmt.Sprintf("listener.name.%s.ssl.truststore.password", name): password,
+		fmt.Sprintf("listener.name.%s.ssl.keystore.password", name):   password,
+	}
 
-		for k, v := range listenerSSLConfig {
-			if err := config.Set(k, v); err != nil {
-				log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", k))
-			}
+	// enable 2-way SSL authentication if SSL is enabled but this field is not provided in the listener config
+	if sslClientAuth == "" {
+		listenerSSLConfig[fmt.Sprintf("listener.name.%s.ssl.client.auth", name)] = string(v1beta1.SSLClientAuthRequired)
+	} else {
+		listenerSSLConfig[fmt.Sprintf("listener.name.%s.ssl.client.auth", name)] = string(sslClientAuth)
+	}
+
+	for k, v := range listenerSSLConfig {
+		if err := config.Set(k, v); err != nil {
+			log.Error(err, fmt.Sprintf("setting %s parameter in broker configuration resulted an error", k))
 		}
 	}
 }

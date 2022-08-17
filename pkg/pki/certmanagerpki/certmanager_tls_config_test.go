@@ -31,11 +31,13 @@ func newMockControllerSecret(valid bool) *corev1.Secret {
 	secret.Name = "test-controller"
 	secret.Namespace = testNamespace
 	cert, key, _, _ := certutil.GenerateTestCert()
+	keystore_jks, password, _ := certutil.GenerateJKSFromByte(cert, key, cert)
+
 	if valid {
 		secret.Data = map[string][]byte{
-			corev1.TLSCertKey:       cert,
-			corev1.TLSPrivateKeyKey: key,
-			v1alpha1.CoreCACertKey:  cert,
+			v1alpha1.PasswordKey:      password,
+			v1alpha1.TLSJKSTrustStore: keystore_jks,
+			v1alpha1.TLSJKSKeyStore:   keystore_jks,
 		}
 	}
 	return secret

@@ -51,6 +51,7 @@ import (
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/util/cert"
 	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
 	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
@@ -419,7 +420,6 @@ func StorageConfigKafkaMountPath(mountPath string) string {
 }
 
 func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.NamespacedName) (*tls.Config, error) {
-	config := &tls.Config{}
 	tlsKeys := &corev1.Secret{}
 	err := client.Get(context.TODO(),
 		types.NamespacedName{
@@ -430,25 +430,40 @@ func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.Name
 	)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "controller secret not found")
+			err = errorfactory.New(errorfactory.ResourceNotReady{}, err, "client secret not found")
 		}
-		return config, err
+		return nil, err
 	}
-	clientCert := tlsKeys.Data[corev1.TLSCertKey]
-	clientKey := tlsKeys.Data[corev1.TLSPrivateKeyKey]
-	caCert := tlsKeys.Data[v1alpha1.CoreCACertKey]
-	x509ClientCert, err := tls.X509KeyPair(clientCert, clientKey)
+
+	config, err := createTLSConfigFromSecret(tlsKeys)
 	if err != nil {
-		return config, errorfactory.New(errorfactory.InternalError{}, err, "could not decode controller certificate")
+		return nil, errorfactory.New(errorfactory.InternalError{}, err, fmt.Sprintf("could not get client certificate for kafka client, name: %s namespace: %s", secretNamespaceName.Name, secretNamespaceName.Namespace))
+	}
+	return config, nil
+}
+
+func createTLSConfigFromSecret(tlsKeys *corev1.Secret) (*tls.Config, error) {
+	rootCAs := x509.NewCertPool()
+	if err := cert.CheckSSLCertSecret(tlsKeys); err != nil {
+		return nil, err
+	}
+	tlsCert, err := cert.ParseKeyStoreToTLSCertificate(tlsKeys.Data[v1alpha1.TLSJKSKeyStore], tlsKeys.Data[v1alpha1.PasswordKey])
+	if err != nil {
+		return nil, errors.WrapIf(err, "couldn't parse keystore")
+	}
+	caCerts, err := cert.ParseTrustStoreToCaChain(tlsKeys.Data[v1alpha1.TLSJKSTrustStore], tlsKeys.Data[v1alpha1.PasswordKey])
+	if err != nil {
+		return nil, errors.WrapIf(err, "couldn't parse truststore")
+	}
+	for i := range caCerts {
+		rootCAs.AddCert(caCerts[i])
 	}
 
-	rootCAs := x509.NewCertPool()
-	rootCAs.AppendCertsFromPEM(caCert)
-
-	config.Certificates = []tls.Certificate{x509ClientCert}
-	config.RootCAs = rootCAs
-
-	return config, err
+	config := &tls.Config{
+		Certificates: []tls.Certificate{tlsCert},
+		RootCAs:      rootCAs,
+	}
+	return config, nil
 }
 
 func ObjectManagedByClusterRegistry(object metav1.Object) bool {
