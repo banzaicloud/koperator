@@ -1,0 +1,7 @@
+apiVersion: kafka.banzaicloud.io/v1alpha1
+kind: CruiseControlOperation
+metadata:
+  name: example-cruisecontroloperation
+  namespace: kafka
+spec:
+  errorPolicy: retry
