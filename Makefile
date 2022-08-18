@@ -119,6 +119,7 @@ manifests: bin/controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./controllers/..." output:rbac:artifacts:config=./config/base/rbac
 	## Regenerate CRDs for the helm chart
 	echo "{{- if .Values.crd.enabled }}" > $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_cruisecontroloperations.yaml >> $(HELM_CRD_PATH)
 	cat config/base/crds/kafka.banzaicloud.io_kafkaclusters.yaml >> $(HELM_CRD_PATH)
 	cat config/base/crds/kafka.banzaicloud.io_kafkatopics.yaml >> $(HELM_CRD_PATH)
 	cat config/base/crds/kafka.banzaicloud.io_kafkausers.yaml >> $(HELM_CRD_PATH)
