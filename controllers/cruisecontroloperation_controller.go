@@ -43,13 +43,13 @@ import (
 
 const (
 	defaultFailedTasksHistoryMaxLength = 50
-	defaultTaskStatusUpdateIntervall   = 5
 	cruiseControlOperationFinalizer    = "finalizer.cruisecontroloperations.kafka.banzaicloud.io"
 	executeNewWhenHaveFailedTask       = false
 )
 
 var (
-	executionOrderMap map[banzaiv1alpha1.CruiseControlTaskOperation]int = map[banzaiv1alpha1.CruiseControlTaskOperation]int{
+	defaultTaskStatusUpdateIntervall                                                   = 10
+	executionOrderMap                map[banzaiv1alpha1.CruiseControlTaskOperation]int = map[banzaiv1alpha1.CruiseControlTaskOperation]int{
 		banzaiv1alpha1.OperationAddBroker:    0,
 		banzaiv1alpha1.OperationRemoveBroker: 1,
 		banzaiv1alpha1.OperationRebalance:    2,
@@ -130,9 +130,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		// registering our finalizer.
 		if !controllerutil.ContainsFinalizer(currentCCoperation, cruiseControlOperationFinalizer) {
 			controllerutil.AddFinalizer(currentCCoperation, cruiseControlOperationFinalizer)
-			if err := util.RetryOnConflict(util.DefaultBackOffForConflict, func() error {
-				return r.Update(ctx, currentCCoperation)
-			}); err != nil {
+			if err := r.Update(ctx, currentCCoperation); err != nil {
 				return requeueWithError(log, err.Error(), err)
 			}
 		}
@@ -144,6 +142,9 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		if err != nil {
 			return requeueWithError(log, "failed to create Cruise Control Scaler instance", err)
 		}
+	} else {
+		// In tests we requeue faster
+		defaultTaskStatusUpdateIntervall = 1
 	}
 
 	if !r.Scaler.IsUp() {
@@ -207,11 +208,9 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		// Collecting CC operations to finalize
 		if isWaitingforFinalize(ccOperation) {
 			ccOperationQueueMap["ccOperationFinalizeExecutionQueue"] = append(ccOperationQueueMap["ccOperationFinalizeExecutionQueue"], ccOperation)
-		}
-		if ccOperation.IsWaitingForFirstExecution() {
+		} else if ccOperation.IsWaitingForFirstExecution() {
 			ccOperationQueueMap["ccOperationFirstExecutionQueue"] = append(ccOperationQueueMap["ccOperationFirstExecutionQueue"], ccOperation)
-		}
-		if ccOperation.IsWaitingForRetryExecution() {
+		} else if ccOperation.IsWaitingForRetryExecution() {
 			ccOperationQueueMap["ccOperationRetryExecutionQueue"] = append(ccOperationQueueMap["ccOperationRetryExecutionQueue"], ccOperation)
 		}
 	}
@@ -272,9 +271,9 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		log.Info("executing Cruise Control task", "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTask().Parameters)
 		cruseControlTaskResult, err = r.Scaler.RebalanceWithParams(ccOperationExecution.GetCurrentTask().Parameters)
 	case v1alpha1.OperationStopExecution:
-		//finalize
+		cruseControlTaskResult, err = r.Scaler.StopExecution()
 	default:
-		log.Error(err, "Cruise Control operation not supported", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.GetCurrentTask().Operation, "parameters", ccOperationExecution.GetCurrentTask().Parameters)
+		log.Error(err, "Cruise Control operation not supported", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTask().Parameters)
 		return reconciled()
 	}
 

@@ -218,6 +218,25 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 	}, nil
 }
 
+func (cc *cruiseControlScaler) StopExecution() (*Result, error) {
+	stopReq := api.StopProposalExecutionRequest{}
+	stopResp, err := cc.client.StopProposalExecution(&stopReq)
+	if err != nil {
+		return &Result{
+			TaskID:    stopResp.TaskID,
+			StartedAt: stopResp.Date,
+			State:     v1beta1.CruiseControlTaskCompletedWithError,
+			Err:       fmt.Sprintf("%v", err),
+		}, err
+	}
+
+	return &Result{
+		TaskID:    stopResp.TaskID,
+		StartedAt: stopResp.Date,
+		State:     v1beta1.CruiseControlTaskCompleted,
+	}, nil
+}
+
 func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string) (*Result, error) {
 	rmBrokerReq := &api.RemoveBrokerRequest{
 		AllowCapacityEstimation: true,
@@ -250,7 +269,6 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string)
 	}
 
 	rmBrokerResp, err := cc.client.RemoveBroker(rmBrokerReq)
-
 	if err != nil {
 		return &Result{
 			TaskID:    rmBrokerResp.TaskID,

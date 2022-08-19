@@ -156,7 +156,7 @@ func (o *CruiseControlOperation) IsWaitingForRetryExecution() bool {
 }
 
 func (o *CruiseControlOperation) IsReadyForRetryExecution() bool {
-	return o.IsWaitingForRetryExecution() && o.GetCurrentTask().Finished != nil && o.GetCurrentTask().Finished.Add(time.Second*DefaultRetryBackOffDurationSec).After(time.Now())
+	return o.IsWaitingForRetryExecution() && o.GetCurrentTask().Finished != nil && o.GetCurrentTask().Finished.Add(time.Second*DefaultRetryBackOffDurationSec).Before(time.Now())
 }
 
 func (o *CruiseControlOperation) IsCurrentTaskRunning() bool {

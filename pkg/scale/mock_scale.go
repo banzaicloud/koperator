@@ -8,6 +8,7 @@ import (
         reflect "reflect"
 
         types "github.com/banzaicloud/go-cruise-control/pkg/types"
+       
         gomock "github.com/golang/mock/gomock"
 )
 
@@ -259,4 +260,19 @@ func (m *MockCruiseControlScaler) Status() CruiseControlStatus {
 func (mr *MockCruiseControlScalerMockRecorder) Status() *gomock.Call {
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*MockCruiseControlScaler)(nil).Status))
+}
+
+// StopExecution mocks base method.
+func (m *MockCruiseControlScaler) StopExecution() (*Result, error) {
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "StopExecution")
+        ret0, _ := ret[0].(*Result)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}
+
+// StopExecution indicates an expected call of StopExecution.
+func (mr *MockCruiseControlScalerMockRecorder) StopExecution() *gomock.Call {
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopExecution", reflect.TypeOf((*MockCruiseControlScaler)(nil).StopExecution))
 }

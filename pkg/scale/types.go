@@ -28,6 +28,7 @@ type CruiseControlScaler interface {
 	AddBrokersWithParams(params map[string]string) (*Result, error)
 	RemoveBrokersWithParams(params map[string]string) (*Result, error)
 	RebalanceWithParams(params map[string]string) (*Result, error)
+	StopExecution() (*Result, error)
 	RemoveBrokers(brokerIDs ...string) (*Result, error)
 	RebalanceDisks(brokerIDs ...string) (*Result, error)
 	BrokersWithState(states ...KafkaBrokerState) ([]string, error)
