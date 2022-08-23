@@ -279,8 +279,6 @@ staticResources:
           - name: envoy.filters.http.router
             typedConfig:
               '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-          httpProtocolOptions:
-            acceptHttp10: true
           routeConfig:
             name: local
             virtualHosts:

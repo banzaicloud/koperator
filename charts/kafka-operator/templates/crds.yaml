@@ -16549,6 +16549,10 @@ spec:
                         - maxUnavailable
                         type: string
                     type: object
+                  enableHealthCheckHttp10:
+                    description: EnableHealthCheckHttp10 is a toggle for adding HTTP1.0
+                      support to Envoy health-check
+                    type: boolean
                   envoyCommandLineArgs:
                     description: Envoy command line arguments
                     properties:
@@ -18555,6 +18559,11 @@ spec:
                                             - maxUnavailable
                                             type: string
                                         type: object
+                                      enableHealthCheckHttp10:
+                                        description: EnableHealthCheckHttp10 is a
+                                          toggle for adding HTTP1.0 support to Envoy
+                                          health-check
+                                        type: boolean
                                       envoyCommandLineArgs:
                                         description: Envoy command line arguments
                                         properties:

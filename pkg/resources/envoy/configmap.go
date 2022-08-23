@@ -119,9 +119,6 @@ func generateEnvoyHealthCheckListener(ingressConfig v1beta1.IngressConfig, log l
 	}
 
 	healthCheckFilter := &envoyhcm.HttpConnectionManager{
-		HttpProtocolOptions: &envoycore.Http1ProtocolOptions{
-			AcceptHttp_10: true,
-		},
 		StatPrefix: fmt.Sprintf("%s-healthcheck", envoyutils.AllBrokerEnvoyConfigName),
 		RouteSpecifier: &envoyhcm.HttpConnectionManager_RouteConfig{
 			RouteConfig: &envoyroute.RouteConfiguration{
@@ -172,6 +169,11 @@ func generateEnvoyHealthCheckListener(ingressConfig v1beta1.IngressConfig, log l
 				},
 			},
 		},
+	}
+	if ingressConfig.EnvoyConfig.EnableHealthCheckHttp10 {
+		healthCheckFilter.HttpProtocolOptions = &envoycore.Http1ProtocolOptions{
+			AcceptHttp_10: true,
+		}
 	}
 	pbstHealthCheckFilter, err := anypb.New(healthCheckFilter)
 	if err != nil {
