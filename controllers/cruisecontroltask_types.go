@@ -91,6 +91,7 @@ func (t *CruiseControlTask) FromResult(result *scale.Result) {
 		return
 	}
 
+	//nolint:exhaustive
 	switch t.Operation {
 	case OperationAddBroker:
 		switch result.State {
@@ -100,6 +101,7 @@ func (t *CruiseControlTask) FromResult(result *scale.Result) {
 			t.BrokerState = kafkav1beta1.GracefulUpscaleSucceeded
 		}
 	case OperationRemoveBroker:
+		//nolint:exhaustive
 		switch result.State {
 		case kafkav1beta1.CruiseControlTaskActive, kafkav1beta1.CruiseControlTaskInExecution:
 			t.BrokerState = kafkav1beta1.GracefulDownscaleRunning
@@ -107,6 +109,7 @@ func (t *CruiseControlTask) FromResult(result *scale.Result) {
 			t.BrokerState = kafkav1beta1.GracefulDownscaleSucceeded
 		}
 	case OperationRebalanceDisks:
+		//nolint:exhaustive
 		switch result.State {
 		case kafkav1beta1.CruiseControlTaskActive, kafkav1beta1.CruiseControlTaskInExecution:
 			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceRunning

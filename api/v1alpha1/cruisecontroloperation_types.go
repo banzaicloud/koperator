@@ -96,22 +96,15 @@ func init() {
 	SchemeBuilder.Register(&CruiseControlOperation{}, &CruiseControlOperationList{})
 }
 
-// func (o *CruiseControlOperation) IsCurrentTaskEqual(other *CruiseControlTask) bool {
-// 	if o.GetCurrentTask() == nil && other == nil {
-// 		return true
-// 	}
-// 	if o.GetCurrentTask() != nil && other != nil {
-// 		if o.GetCurrentTask().ID == other.ID &&
-// 		o.GetCurrentTask().Started != nil && o.GetCurrentTask().Started.Equal(){
-// 			return true
-// 		}
-// 	}
-
-// 	return false
-// }
-
 func (o *CruiseControlOperation) GetCurrentTask() *CruiseControlTask {
 	return o.Status.CurrentTask
+}
+
+func (o *CruiseControlOperation) GetCurrentTaskParameters() map[string]string {
+	if o.GetCurrentTask() == nil {
+		return nil
+	}
+	return o.GetCurrentTask().Parameters
 }
 
 func (o *CruiseControlOperation) GetClusterRef() string {
@@ -168,6 +161,6 @@ func (o *CruiseControlOperation) IsCurrentTaskFinished() bool {
 }
 
 func (o *CruiseControlOperation) IsCurrentTaskOperationValid() bool {
-	return o.GetCurrentTask() != nil && (o.GetCurrentTask().Operation == OperationAddBroker ||
-		o.GetCurrentTask().Operation == OperationRebalance || o.GetCurrentTask().Operation == OperationRemoveBroker)
+	return o.GetCurrentTaskOp() == OperationAddBroker ||
+		o.GetCurrentTaskOp() == OperationRebalance || o.GetCurrentTaskOp() == OperationRemoveBroker || o.GetCurrentTaskOp() == OperationStopExecution
 }

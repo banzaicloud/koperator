@@ -32,6 +32,7 @@ type CruiseControlScaler interface {
 	RemoveBrokers(brokerIDs ...string) (*Result, error)
 	RebalanceDisks(brokerIDs ...string) (*Result, error)
 	BrokersWithState(states ...KafkaBrokerState) ([]string, error)
+	GetKafkaClusterState() (*types.KafkaClusterState, error)
 	PartitionReplicasByBroker() (map[string]int32, error)
 	BrokerWithLeastPartitionReplicas() (string, error)
 	LogDirsByBroker() (map[string]map[LogDirState][]string, error)

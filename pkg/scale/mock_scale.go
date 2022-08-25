@@ -8,7 +8,6 @@ import (
         reflect "reflect"
 
         types "github.com/banzaicloud/go-cruise-control/pkg/types"
-       
         gomock "github.com/golang/mock/gomock"
 )
 
@@ -101,6 +100,21 @@ func (m *MockCruiseControlScaler) BrokersWithState(arg0 ...types.BrokerState) ([
 func (mr *MockCruiseControlScalerMockRecorder) BrokersWithState(arg0 ...interface{}) *gomock.Call {
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BrokersWithState", reflect.TypeOf((*MockCruiseControlScaler)(nil).BrokersWithState), arg0...)
+}
+
+// GetKafkaClusterState mocks base method.
+func (m *MockCruiseControlScaler) GetKafkaClusterState() (*types.KafkaClusterState, error) {
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetKafkaClusterState")
+        ret0, _ := ret[0].(*types.KafkaClusterState)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}
+
+// GetKafkaClusterState indicates an expected call of GetKafkaClusterState.
+func (mr *MockCruiseControlScalerMockRecorder) GetKafkaClusterState() *gomock.Call {
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKafkaClusterState", reflect.TypeOf((*MockCruiseControlScaler)(nil).GetKafkaClusterState))
 }
 
 // GetUserTasks mocks base method.

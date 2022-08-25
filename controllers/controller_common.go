@@ -59,17 +59,6 @@ func requeueWithError(logger logr.Logger, msg string, err error) (ctrl.Result, e
 	}, err
 }
 
-// reconciledWithError is a convenience wrapper around logging an error message
-// separate from the stacktrace and then passing the error through to the controller
-// manager. In this case there will be no requeue.
-func reconciledWithError(logger logr.Logger, msg string, err error) (ctrl.Result, error) {
-	// Info log the error message and then let the reconciler dump the stacktrace
-	logger.Info(msg)
-	return ctrl.Result{
-		Requeue: false,
-	}, err
-}
-
 // reconciled returns an empty result with nil error to signal a successful reconcile
 // to the controller manager
 func reconciled() (ctrl.Result, error) {

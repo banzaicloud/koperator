@@ -44,7 +44,7 @@ const (
 	OperationAddBroker CruiseControlTaskOperation = "add_broker"
 	// OperationRemoveBroker means a Cruise Control remove_broker operation
 	OperationRemoveBroker CruiseControlTaskOperation = "remove_broker"
-	// OperationRebalanceDisk means a Cruise Control rebalance operation
+	// OperationRebalance means a Cruise Control rebalance operation
 	OperationRebalance CruiseControlTaskOperation = "rebalance"
 	// KafkaAccessTypeRead states that a user wants consume access to a topic
 	KafkaAccessTypeRead KafkaAccessType = "read"

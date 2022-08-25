@@ -191,6 +191,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	cruiseControlOperationReconciler := controllers.CruiseControlOperationReconciler{
+		Client:       mgr.GetClient(),
+		DirectClient: mgr.GetAPIReader(),
+		Scheme:       mgr.GetScheme(),
+	}
+
+	if err = controllers.SetupCruiseControlOperationWithManager(mgr).Complete(&cruiseControlOperationReconciler); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CruiseControlOperation")
+		os.Exit(1)
+	}
+
 	if !webhookDisabled {
 		err = ctrl.NewWebhookManagedBy(mgr).For(&banzaicloudv1beta1.KafkaCluster{}).
 			WithValidator(webhooks.KafkaClusterValidator{

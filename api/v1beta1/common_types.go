@@ -244,6 +244,10 @@ const (
 	CruiseControlTaskInExecution CruiseControlUserTaskState = "InExecution"
 	// CruiseControlTaskCompleted states the CC task completed successfully
 	CruiseControlTaskCompleted CruiseControlUserTaskState = "Completed"
+	// CruiseControlTaskStopping states the CC task execution gracefully stopping
+	CruiseControlTaskStopping CruiseControlUserTaskState = "Stopping"
+	// CruiseControlTaskStoppedWithError states the CC task execution interrupted with error
+	CruiseControlTaskStoppedWithError CruiseControlUserTaskState = "StoppedWithError"
 	// CruiseControlTaskCompletedWithError states the CC task completed with error
 	CruiseControlTaskCompletedWithError CruiseControlUserTaskState = "CompletedWithError"
 	// // CruiseControlTaskUnavailable states the CC task missing

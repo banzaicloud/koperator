@@ -177,24 +177,6 @@ var _ = BeforeSuite(func() {
 	err = controllers.SetupCruiseControlWithManager(mgr).Complete(&kafkaClusterCCReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
-	// mockCtrl := gomock.NewController(GinkgoT())
-	// scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
-	// scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
-
-	// userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
-	// 	TaskID:    "12345",
-	// 	StartedAt: "2022-02-13T15:04:05Z",
-	// 	State:     banzaicloudv1beta1.CruiseControlTaskCompleted,
-	// })}
-	// scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
-	// scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
-	// 	ExecutorReady: true,
-	// }).AnyTimes()
-	// scaleMock.EXPECT().AddBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
-	// 	TaskID:    "12345",
-	// 	StartedAt: "2022-02-13T15:04:05Z",
-	// 	State:     banzaicloudv1beta1.CruiseControlTaskActive,
-	// }), nil).AnyTimes()
 	cruiseControlOperationReconciler = controllers.CruiseControlOperationReconciler{
 		Client:       mgr.GetClient(),
 		DirectClient: mgr.GetAPIReader(),

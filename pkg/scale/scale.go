@@ -31,23 +31,29 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
+const (
+	brokerid       = "brokerid"
+	excludeDemoted = "exclude_recently_demoted_brokers"
+	excludeRemoved = "exclude_recently_removed_brokers"
+)
+
 var (
 	newCruiseControlScaler                       = createNewDefaultCruiseControlScaler
 	addBrokerSupportedParams map[string]struct{} = map[string]struct{}{
-		"brokerid":                         {},
-		"exclude_recently_demoted_brokers": {},
-		"exclude_recently_removed_brokers": {},
+		brokerid:       {},
+		excludeDemoted: {},
+		excludeRemoved: {},
 	}
 	removeBrokerSupportedParams map[string]struct{} = map[string]struct{}{
-		"brokerid":                         {},
-		"exclude_recently_demoted_brokers": {},
-		"exclude_recently_removed_brokers": {},
+		brokerid:       {},
+		excludeDemoted: {},
+		excludeRemoved: {},
 	}
 	rebalanceSupportedParams map[string]struct{} = map[string]struct{}{
-		"destination_broker_ids":           {},
-		"rebalance_disk":                   {},
-		"exclude_recently_demoted_brokers": {},
-		"exclude_recently_removed_brokers": {},
+		"destination_broker_ids": {},
+		"rebalance_disk":         {},
+		excludeDemoted:           {},
+		excludeRemoved:           {},
 	}
 )
 
@@ -184,18 +190,20 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 					return nil, err
 				}
 				addBrokerReq.BrokerIDs = ret
-			case "exclude_recently_demoted_brokers":
+			case excludeDemoted:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				addBrokerReq.ExcludeRecentlyDemotedBrokers = ret
-			case "exclude_recently_removed_brokers":
+			case excludeRemoved:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				addBrokerReq.ExcludeRecentlyRemovedBrokers = ret
+			default:
+				return nil, fmt.Errorf("unsupported add_broker parameter: %s, supported parameters: %s", param, addBrokerSupportedParams)
 			}
 		}
 	}
@@ -225,7 +233,7 @@ func (cc *cruiseControlScaler) StopExecution() (*Result, error) {
 		return &Result{
 			TaskID:    stopResp.TaskID,
 			StartedAt: stopResp.Date,
-			State:     v1beta1.CruiseControlTaskCompletedWithError,
+			State:     v1beta1.CruiseControlTaskStoppedWithError,
 			Err:       fmt.Sprintf("%v", err),
 		}, err
 	}
@@ -233,7 +241,7 @@ func (cc *cruiseControlScaler) StopExecution() (*Result, error) {
 	return &Result{
 		TaskID:    stopResp.TaskID,
 		StartedAt: stopResp.Date,
-		State:     v1beta1.CruiseControlTaskCompleted,
+		State:     v1beta1.CruiseControlTaskStopping,
 	}, nil
 }
 
@@ -252,18 +260,20 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string)
 					return nil, err
 				}
 				rmBrokerReq.BrokerIDs = ret
-			case "exclude_recently_demoted_brokers":
+			case excludeDemoted:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rmBrokerReq.ExcludeRecentlyDemotedBrokers = ret
-			case "exclude_recently_removed_brokers":
+			case excludeRemoved:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rmBrokerReq.ExcludeRecentlyRemovedBrokers = ret
+			default:
+				return nil, fmt.Errorf("unsupported remove_broker parameter: %s, supported parameters: %s", param, removeBrokerSupportedParams)
 			}
 		}
 	}
@@ -284,7 +294,6 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string)
 		Result:    rmBrokerResp.Result,
 		State:     v1beta1.CruiseControlTaskActive,
 	}, nil
-
 }
 
 // AddBrokers requests Cruise Control to add the list of provided brokers to the Kafka cluster
@@ -428,18 +437,20 @@ func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*R
 					return nil, err
 				}
 				rebalanceReq.RebalanceDisk = ret
-			case "exclude_recently_demoted_brokers":
+			case excludeDemoted:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rebalanceReq.ExcludeRecentlyDemotedBrokers = ret
-			case "exclude_recently_removed_brokers":
+			case excludeRemoved:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rebalanceReq.ExcludeRecentlyRemovedBrokers = ret
+			default:
+				return nil, fmt.Errorf("unsupported rebalance parameter: %s, supported parameters: %s", param, rebalanceSupportedParams)
 			}
 		}
 	}
@@ -535,14 +546,24 @@ func (cc *cruiseControlScaler) BrokersWithState(states ...KafkaBrokerState) ([]s
 	return brokersIDs, nil
 }
 
-// PartitionReplicasByBroker returns the number of partition replicas for every broker in the Kafka cluster.
-func (cc *cruiseControlScaler) PartitionReplicasByBroker() (map[string]int32, error) {
+// GetKafkaClusterState returns the state of the Kafka cluster
+func (cc *cruiseControlScaler) GetKafkaClusterState() (*types.KafkaClusterState, error) {
 	clusterStateReq := api.KafkaClusterStateRequestWithDefaults()
 	clusterStateResp, err := cc.client.KafkaClusterState(clusterStateReq)
 	if err != nil {
 		return nil, err
 	}
-	return clusterStateResp.Result.KafkaBrokerState.ReplicaCountByBrokerID, nil
+	return clusterStateResp.Result, nil
+}
+
+// PartitionReplicasByBroker returns the number of partition replicas for every broker in the Kafka cluster.
+func (cc *cruiseControlScaler) PartitionLeadersReplicasByBroker() (map[string]int32, map[string]int32, error) {
+	clusterStateReq := api.KafkaClusterStateRequestWithDefaults()
+	clusterStateResp, err := cc.client.KafkaClusterState(clusterStateReq)
+	if err != nil {
+		return nil, nil, err
+	}
+	return clusterStateResp.Result.KafkaBrokerState.ReplicaCountByBrokerID, clusterStateResp.Result.KafkaBrokerState.LeaderCountByBrokerID, nil
 }
 
 // BrokerWithLeastPartitionReplicas returns the ID of the broker which host the least partition replicas.
