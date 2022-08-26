@@ -140,6 +140,13 @@ func (o *CruiseControlOperation) IsWaitingForFirstExecution() bool {
 	return false
 }
 
+func (o *CruiseControlOperation) IsInProgress() bool {
+	if o.GetCurrentTaskID() != "" && (o.GetCurrentTaskState() == v1beta1.CruiseControlTaskActive || o.GetCurrentTaskState() == v1beta1.CruiseControlTaskInExecution) {
+		return true
+	}
+	return false
+}
+
 func (o *CruiseControlOperation) IsWaitingForRetryExecution() bool {
 	if (o.GetLabels()["pause"] != "true" && o.Spec.ErrorPolicy != ErrorPolicyIgnore) &&
 		o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError && o.GetCurrentTaskID() != "" {
@@ -153,7 +160,7 @@ func (o *CruiseControlOperation) IsReadyForRetryExecution() bool {
 }
 
 func (o *CruiseControlOperation) IsCurrentTaskRunning() bool {
-	return o.GetCurrentTaskState() == v1beta1.CruiseControlTaskInExecution && o.GetCurrentTask().Finished == nil
+	return (o.GetCurrentTaskState() == v1beta1.CruiseControlTaskInExecution || o.GetCurrentTaskState() == v1beta1.CruiseControlTaskActive) && o.GetCurrentTask().Finished == nil
 }
 
 func (o *CruiseControlOperation) IsCurrentTaskFinished() bool {

@@ -163,7 +163,7 @@ rules:
 - apiGroups:
   - kafka.banzaicloud.io
   resources:
-  - cruisecontroloperation
+  - cruisecontroloperations
   verbs:
   - create
   - delete
@@ -176,13 +176,13 @@ rules:
 - apiGroups:
   - kafka.banzaicloud.io
   resources:
-  - cruisecontroloperation/finalizers
+  - cruisecontroloperations/finalizers
   verbs:
   - update
 - apiGroups:
   - kafka.banzaicloud.io
   resources:
-  - cruisecontroloperation/status
+  - cruisecontroloperations/status
   verbs:
   - get
   - patch

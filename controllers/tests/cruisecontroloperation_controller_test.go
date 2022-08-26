@@ -369,7 +369,7 @@ func getScaleMock2(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 
 	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
 		TaskID:    "12345",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompletedWithError,
 	})}
 	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
@@ -378,7 +378,7 @@ func getScaleMock2(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	}).AnyTimes()
 	scaleMock.EXPECT().AddBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskActive,
 	}), nil).Times(1)
 	return scaleMock
@@ -390,7 +390,7 @@ func getScaleMock1(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 
 	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
 		TaskID:    "12345",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompleted,
 	})}
 	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
@@ -399,7 +399,7 @@ func getScaleMock1(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	}).AnyTimes()
 	scaleMock.EXPECT().AddBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskActive,
 	}), nil)
 	return scaleMock
@@ -412,11 +412,11 @@ func getScaleMock3(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 
 	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
 		TaskID:    "12345",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompletedWithError,
 	}), scaleResultPointer(scale.Result{
 		TaskID:    "2",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompleted,
 	})}
 	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
@@ -425,12 +425,12 @@ func getScaleMock3(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	}).AnyTimes()
 	scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskActive,
 	}), nil).AnyTimes()
 	scaleMock.EXPECT().AddBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "2",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskActive,
 	}), nil).Times(1)
 
@@ -449,12 +449,12 @@ func getScaleMock4(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	}).AnyTimes()
 	first := scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "1",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskActive,
 	}), nil).Times(1)
 	scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "2",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskActive,
 	}), nil).After(first).Times(1)
 	return scaleMock
@@ -467,12 +467,12 @@ func getScaleMock5(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 
 	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
 		TaskID:    "12345",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompletedWithError,
 	})}
 	userTaskResult2 := []*scale.Result{scaleResultPointer(scale.Result{
 		TaskID:    "12345",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompleted,
 	})}
 	first := scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).Times(1)
@@ -482,7 +482,7 @@ func getScaleMock5(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	}).AnyTimes()
 	scaleMock.EXPECT().AddBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
-		StartedAt: "2022-02-13T15:04:05Z",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskActive,
 	}), nil).Times(2)
 	return scaleMock

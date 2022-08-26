@@ -143,7 +143,6 @@ func (cc *cruiseControlScaler) IsUp() bool {
 func (cc *cruiseControlScaler) GetUserTasks(taskIDs ...string) ([]*Result, error) {
 	req := &api.UserTasksRequest{
 		UserTaskIDs: taskIDs,
-		Entries:     100,
 	}
 
 	resp, err := cc.client.UserTasks(req)
@@ -235,7 +234,7 @@ func (cc *cruiseControlScaler) StopExecution() (*Result, error) {
 		return &Result{
 			TaskID:    stopResp.TaskID,
 			StartedAt: stopResp.Date,
-			State:     v1beta1.CruiseControlTaskStoppedWithError,
+			State:     v1beta1.CruiseControlTaskCompletedWithError,
 			Err:       fmt.Sprintf("%v", err),
 		}, err
 	}
@@ -243,7 +242,7 @@ func (cc *cruiseControlScaler) StopExecution() (*Result, error) {
 	return &Result{
 		TaskID:    stopResp.TaskID,
 		StartedAt: stopResp.Date,
-		State:     v1beta1.CruiseControlTaskStopping,
+		State:     v1beta1.CruiseControlTaskActive,
 	}, nil
 }
 
