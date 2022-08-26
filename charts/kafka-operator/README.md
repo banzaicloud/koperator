@@ -71,6 +71,7 @@ Parameter | Description | Default
 `imagePullSecrets` | Image pull secrets can be set | `[]`
 `replicaCount` | Operator replica count can be set | `1`
 `alertManager.enable` | AlertManager can be enabled | `true`
+`alertManager.permissivePeerAuthentication.create` | Permissive PeerAuthentication (Istio resource) for AlertManager can be created | `true`
 `nodeSelector` | Operator pod node selector can be set | `{}`
 `tolerations` | Operator pod tolerations can be set | `[]`
 `affinity` | Operator pod affinity can be set | `{}`
