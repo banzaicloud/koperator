@@ -32,28 +32,30 @@ import (
 )
 
 const (
-	brokerid       = "brokerid"
+	brokerID       = "brokerid"
 	excludeDemoted = "exclude_recently_demoted_brokers"
 	excludeRemoved = "exclude_recently_removed_brokers"
+	destbrokeriIDs = "destination_broker_ids"
+	rebalanceDisk  = "rebalance_disk"
 )
 
 var (
 	newCruiseControlScaler                       = createNewDefaultCruiseControlScaler
 	addBrokerSupportedParams map[string]struct{} = map[string]struct{}{
-		brokerid:       {},
+		brokerID:       {},
 		excludeDemoted: {},
 		excludeRemoved: {},
 	}
 	removeBrokerSupportedParams map[string]struct{} = map[string]struct{}{
-		brokerid:       {},
+		brokerID:       {},
 		excludeDemoted: {},
 		excludeRemoved: {},
 	}
 	rebalanceSupportedParams map[string]struct{} = map[string]struct{}{
-		"destination_broker_ids": {},
-		"rebalance_disk":         {},
-		excludeDemoted:           {},
-		excludeRemoved:           {},
+		destbrokeriIDs: {},
+		rebalanceDisk:  {},
+		excludeDemoted: {},
+		excludeRemoved: {},
 	}
 )
 
@@ -184,7 +186,7 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 	for param, pvalue := range params {
 		if _, ok := addBrokerSupportedParams[param]; ok {
 			switch param {
-			case "brokerid":
+			case brokerID:
 				ret, err := parseBrokerIDtoSlice(pvalue)
 				if err != nil {
 					return nil, err
@@ -254,7 +256,7 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string)
 	for param, pvalue := range params {
 		if _, ok := removeBrokerSupportedParams[param]; ok {
 			switch param {
-			case "brokerid":
+			case brokerID:
 				ret, err := parseBrokerIDtoSlice(pvalue)
 				if err != nil {
 					return nil, err
@@ -425,13 +427,13 @@ func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*R
 	for param, pvalue := range params {
 		if _, ok := rebalanceSupportedParams[param]; ok {
 			switch param {
-			case "destination_broker_ids":
+			case destbrokeriIDs:
 				ret, err := parseBrokerIDtoSlice(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rebalanceReq.DestinationBrokerIDs = ret
-			case "rebalance_disk":
+			case rebalanceDisk:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err

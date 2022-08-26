@@ -46,7 +46,7 @@ const (
 
 var (
 	defaultRequeueIntervall                                                   = 10
-	executionOrderMap       map[banzaiv1alpha1.CruiseControlTaskOperation]int = map[banzaiv1alpha1.CruiseControlTaskOperation]int{
+	executionPriorityMap    map[banzaiv1alpha1.CruiseControlTaskOperation]int = map[banzaiv1alpha1.CruiseControlTaskOperation]int{
 		banzaiv1alpha1.OperationAddBroker:    0,
 		banzaiv1alpha1.OperationRemoveBroker: 1,
 		banzaiv1alpha1.OperationRebalance:    2,
@@ -217,7 +217,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	}
 
 	// Requeue after execution
-	return requeueAfter(defaultRequeueIntervall)
+	return reconciled()
 }
 
 func (r *CruiseControlOperationReconciler) executeOperation(ccOperationExecution *banzaiv1alpha1.CruiseControlOperation) (*scale.Result, error) {
@@ -256,9 +256,9 @@ func sortOperations(ccOperations []*banzaiv1alpha1.CruiseControlOperation) map[s
 	for key := range ccOperationQueueMap {
 		sort.SliceStable(ccOperationQueueMap[key], func(i, j int) bool {
 			ccOperationQueue := ccOperationQueueMap[key]
-			if executionOrderMap[ccOperationQueue[i].GetCurrentTaskOp()] < executionOrderMap[ccOperationQueue[j].GetCurrentTaskOp()] {
+			if executionPriorityMap[ccOperationQueue[i].GetCurrentTaskOp()] < executionPriorityMap[ccOperationQueue[j].GetCurrentTaskOp()] {
 				return true
-			} else if executionOrderMap[ccOperationQueue[i].GetCurrentTaskOp()] == executionOrderMap[ccOperationQueue[j].GetCurrentTaskOp()] {
+			} else if executionPriorityMap[ccOperationQueue[i].GetCurrentTaskOp()] == executionPriorityMap[ccOperationQueue[j].GetCurrentTaskOp()] {
 				return ccOperationQueue[i].CreationTimestamp.Unix() < ccOperationQueue[j].CreationTimestamp.Unix()
 			}
 			return true
@@ -308,8 +308,7 @@ func SetupCruiseControlOperationWithManager(mgr ctrl.Manager) *ctrl.Builder {
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObj := e.ObjectOld.(*banzaiv1alpha1.CruiseControlOperation)
 				newObj := e.ObjectNew.(*banzaiv1alpha1.CruiseControlOperation)
-				// We only reconcile when spec or operation or deletiontimestamp is changed
-				if oldObj.GetCurrentTaskOp() != newObj.GetCurrentTaskOp() ||
+				if !reflect.DeepEqual(oldObj.GetCurrentTask(), newObj.GetCurrentTask()) ||
 					oldObj.GetDeletionTimestamp() != newObj.GetDeletionTimestamp() ||
 					oldObj.GetGeneration() != newObj.GetGeneration() {
 					return true

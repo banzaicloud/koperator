@@ -43,7 +43,6 @@ var newKafkaFromCluster = kafkaclient.NewFromCluster
 
 func requeueAfter(sec int) (ctrl.Result, error) {
 	return ctrl.Result{
-		Requeue:      true,
 		RequeueAfter: time.Duration(sec) * time.Second,
 	}, nil
 }
@@ -54,9 +53,7 @@ func requeueAfter(sec int) (ctrl.Result, error) {
 func requeueWithError(logger logr.Logger, msg string, err error) (ctrl.Result, error) {
 	// Info log the error message and then let the reconciler dump the stacktrace
 	logger.Info(msg)
-	return ctrl.Result{
-		Requeue: true,
-	}, err
+	return ctrl.Result{}, err
 }
 
 // reconciled returns an empty result with nil error to signal a successful reconcile

@@ -69,10 +69,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 
 	When("there is an add_broker operation for execution", func() {
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock1(GinkgoT())
-		})
-		It("should execute the task and later it will be completed", func() {
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -83,6 +81,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 
+		})
+		It("should execute the task and the task later will be completed", func() {
 			Eventually(func() v1beta1.CruiseControlUserTaskState {
 				operation := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -96,11 +96,9 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(Equal(v1beta1.CruiseControlTaskCompleted))
 		})
 	})
-	When("add_broker operation is finished with completedWithError", func() {
-		BeforeEach(func() {
+	When("add_broker operation is finished with completedWithError and 30s has not epalsed", func() {
+		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock2(GinkgoT())
-		})
-		It("should not retry the failed task because 30s has not epalsed", func() {
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -110,7 +108,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
-
+		})
+		It("should not retry the failed task", func() {
 			Eventually(func() bool {
 				operation := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -120,15 +119,13 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				if err != nil {
 					return false
 				}
-				return operation.GetCurrentTaskState() == v1beta1.CruiseControlTaskActive && len(operation.Status.FailedTasks) == 0
+				return operation.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError && len(operation.Status.FailedTasks) == 0
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("add_broker operation is finished with completedWithError and completed after retry", func() {
-		BeforeEach(func() {
+	When("add_broker operation is finished with completedWithError and 30s has epalsed", func() {
+		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock5(GinkgoT())
-		})
-		It("should retry the failed task because 30s has epalsed", func() {
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -140,7 +137,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
-
+		})
+		It("should retry the failed task", func() {
 			Eventually(func() bool {
 				operation := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -154,19 +152,19 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("there are is an errored remove_broker and an add_broker operation", func() {
-		BeforeEach(func() {
+	When("there is an errored remove_broker and an add_broker operation", func() {
+		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock3(GinkgoT())
-		})
-		It("should not retry the errored task but should execute the add_broker", func() {
 			// First operation will get completedWithError
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
+				//	ID:        "12345",
 				Operation: v1alpha1.OperationRemoveBroker,
-				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
+				//	State:     v1beta1.CruiseControlTaskCompletedWithError,
+				Finished: &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 			}
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -179,7 +177,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
-
+		})
+		It("should not retry the errored task but should execute the add_broker", func() {
 			Eventually(func() bool {
 				operation1 := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -198,15 +197,13 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 
-				return operation2.GetCurrentTaskState() == v1beta1.CruiseControlTaskActive
+				return operation2.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompleted
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
 	When("there is a new remove_roker and an errored remove_broker operation with pause annotation", func() {
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
-		})
-		It("should execute new remove_broker operation and should not retry the other one with pause annotation", func() {
 			// First operation will get completedWithError
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Labels = map[string]string{
@@ -216,7 +213,9 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
+				ID:        "12345",
 				Operation: v1alpha1.OperationRemoveBroker,
+				State:     v1beta1.CruiseControlTaskCompletedWithError,
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 			}
 			err = k8sClient.Status().Update(context.TODO(), &operation)
@@ -230,7 +229,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
-
+		})
+		It("should execute new remove_broker operation and should not retry the other one with pause annotation", func() {
 			Eventually(func() bool {
 				operation1 := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -254,16 +254,16 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		})
 	})
 	When("there is a new remove_roker and an errored remove_broker operation", func() {
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
-		})
-		It("should execute errored remove_broker operation first", func() {
 			// First operation will get completedWithError
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
+				ID:        "123",
+				State:     v1beta1.CruiseControlTaskCompletedWithError,
 				Operation: v1alpha1.OperationRemoveBroker,
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 			}
@@ -278,7 +278,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
-
+		})
+		It("should execute errored remove_broker operation first", func() {
 			Eventually(func() bool {
 				operation1 := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -297,15 +298,13 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 
-				return operation1.Status.NumberOfRetries > 0 && operation2.GetCurrentTaskState() == ""
-			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue(), "")
+				return operation1.Status.NumberOfRetries > 0 && (operation2.GetCurrentTaskState() == "" || operation2.GetCurrentTaskState() != "" && operation2.GetCurrentTask().ID == "2")
+			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
 	When("there is a new remove_roker and an errored remove_broker operation with ignore errorpolicy", func() {
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
-		})
-		It("should execute the new remove_broker operation and should not execute the errored one", func() {
 			// Creating first operation
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Spec.ErrorPolicy = v1alpha1.ErrorPolicyIgnore
@@ -327,7 +326,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
-
+		})
+		It("should execute the new remove_broker operation and should not execute the errored one", func() {
 			Eventually(func() bool {
 				operation1 := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -350,42 +350,6 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	// When("there is an active remove_roker operation under deletion", func() {
-	// 	BeforeEach(func() {
-	// 		cruiseControlOperationReconciler.Scaler = getScaleMock6(GinkgoT())
-	// 	})
-	// 	FIt("should execute the stopExecution task", func() {
-
-	// 		opName1 := "operation1"
-	// 		// Creating first operation
-	// 		operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
-	// 		operation.Spec.ErrorPolicy = v1alpha1.ErrorPolicyIgnore
-	// 		operation.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-	// 		err := k8sClient.Create(context.TODO(), &operation)
-	// 		Expect(err).NotTo(HaveOccurred())
-	// 		operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
-	// 			ID:        "123",
-	// 			Operation: v1alpha1.OperationRemoveBroker,
-	// 			State:     v1beta1.CruiseControlTaskActive,
-	// 		}
-	// 		err = k8sClient.Status().Update(context.TODO(), &operation)
-	// 		Expect(err).NotTo(HaveOccurred())
-
-	// 		Eventually(func() bool {
-	// 			operation1 := v1alpha1.CruiseControlOperation{}
-	// 			err := k8sClient.Get(context.Background(), client.ObjectKey{
-	// 				Namespace: kafkaCluster.Namespace,
-	// 				Name:      opName1,
-	// 			}, &operation1)
-	// 			if err != nil {
-	// 				return false
-	// 			}
-
-	// 			return operation1.GetCurrentTaskState() == v1beta1.CruiseControlTaskStopping
-	// 		}, 70*time.Second, 500*time.Millisecond).Should(BeTrue())
-	// 	})
-	// })
-
 })
 
 func generateCruiseControlOperation(name, namespace, kafkaRef string) v1alpha1.CruiseControlOperation {
@@ -450,6 +414,10 @@ func getScaleMock3(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 		TaskID:    "12345",
 		StartedAt: "2022-02-13T15:04:05Z",
 		State:     v1beta1.CruiseControlTaskCompletedWithError,
+	}), scaleResultPointer(scale.Result{
+		TaskID:    "2",
+		StartedAt: "2022-02-13T15:04:05Z",
+		State:     v1beta1.CruiseControlTaskCompleted,
 	})}
 	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
@@ -474,21 +442,21 @@ func getScaleMock4(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
 
-	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
-		TaskID:    "12345",
-		StartedAt: "2022-02-13T15:04:05Z",
-		State:     v1beta1.CruiseControlTaskCompletedWithError,
-	})}
+	userTaskResult := []*scale.Result{}
 	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
 	}).AnyTimes()
-	scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
-		TaskID:    "12345",
+	first := scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
+		TaskID:    "1",
 		StartedAt: "2022-02-13T15:04:05Z",
 		State:     v1beta1.CruiseControlTaskActive,
-	}), nil).AnyTimes()
-
+	}), nil).Times(1)
+	scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
+		TaskID:    "2",
+		StartedAt: "2022-02-13T15:04:05Z",
+		State:     v1beta1.CruiseControlTaskActive,
+	}), nil).After(first).Times(1)
 	return scaleMock
 }
 
@@ -520,28 +488,6 @@ func getScaleMock5(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	return scaleMock
 }
 
-// func getScaleMock6(t GinkgoTInterface) *scale.MockCruiseControlScaler {
-// 	mockCtrl := gomock.NewController(t)
-// 	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
-// 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
-
-// 	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
-// 		TaskID:    "12345",
-// 		StartedAt: "2022-02-13T15:04:05Z",
-// 		State:     v1beta1.CruiseControlTaskCompletedWithError,
-// 	})}
-// 	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
-// 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
-// 		ExecutorReady: true,
-// 	}).AnyTimes()
-// 	scaleMock.EXPECT().AddBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
-// 		TaskID:    "12345",
-// 		StartedAt: "2022-02-13T15:04:05Z",
-// 		State:     v1beta1.CruiseControlTaskActive,
-// 	}), nil).AnyTimes()
-// 	scaleMock.EXPECT().StopExecution().Return(scaleResultPointer(scale.Result{
-// 		TaskID:    "12345",
-// 		StartedAt: "2022-02-13T15:04:05Z",
-// 	}), nil).Times(1)
-// 	return scaleMock
-// }
+func scaleResultPointer(res scale.Result) *scale.Result {
+	return &res
+}

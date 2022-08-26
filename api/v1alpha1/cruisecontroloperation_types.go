@@ -113,21 +113,21 @@ func (o *CruiseControlOperation) GetClusterRef() string {
 
 func (o *CruiseControlOperation) GetCurrentTaskState() v1beta1.CruiseControlUserTaskState {
 	if o.GetCurrentTask() != nil {
-		return o.Status.CurrentTask.State
+		return o.GetCurrentTask().State
 	}
 	return ""
 }
 
 func (o *CruiseControlOperation) GetCurrentTaskID() string {
 	if o.GetCurrentTask() != nil {
-		return o.Status.CurrentTask.ID
+		return o.GetCurrentTask().ID
 	}
 	return ""
 }
 
 func (o *CruiseControlOperation) GetCurrentTaskOp() CruiseControlTaskOperation {
 	if o.GetCurrentTask() != nil {
-		return o.Status.CurrentTask.Operation
+		return o.GetCurrentTask().Operation
 	}
 	return ""
 }
