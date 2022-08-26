@@ -46,6 +46,9 @@ certSigning:
 
 alertManager:
   enable: true
+  port: 9001
+  permissivePeerAuthentication:
+    create: false
 
 prometheusMetrics:
   enabled: true

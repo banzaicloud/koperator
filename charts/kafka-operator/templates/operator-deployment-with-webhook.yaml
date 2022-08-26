@@ -215,7 +215,7 @@ spec:
             - containerPort: {{ (.Values.metricEndpoint).port | default 8080 }}
               name: metrics
               protocol: TCP
-            - containerPort: 9001
+            - containerPort: {{ .Values.alertManager.port }}
               name: alerts
               protocol: TCP
           volumeMounts:
