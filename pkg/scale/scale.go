@@ -26,6 +26,7 @@ import (
 	"github.com/banzaicloud/go-cruise-control/pkg/api"
 	"github.com/banzaicloud/go-cruise-control/pkg/client"
 	"github.com/banzaicloud/go-cruise-control/pkg/types"
+
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
