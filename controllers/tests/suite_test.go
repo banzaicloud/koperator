@@ -204,6 +204,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaCluster"))
 
+	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "cruisecontroloperations.kafka.banzaicloud.io"}, crd)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(crd.Spec.Names.Kind).To(Equal("CruiseControlOperation"))
+
 	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaTopic"))
