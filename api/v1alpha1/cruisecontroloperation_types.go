@@ -136,8 +136,7 @@ func (o *CruiseControlOperation) GetCurrentTaskOp() CruiseControlTaskOperation {
 }
 
 func (o *CruiseControlOperation) IsWaitingForFirstExecution() bool {
-	if (o.GetLabels()["pause"] != "true" && o.Spec.ErrorPolicy != ErrorPolicyIgnore) &&
-		o.GetCurrentTaskState() == "" && o.GetCurrentTaskID() == "" {
+	if o.GetCurrentTaskState() == "" && o.GetCurrentTaskID() == "" && o.Status.NumberOfRetries == 0 {
 		return true
 	}
 	return false
@@ -150,8 +149,16 @@ func (o *CruiseControlOperation) IsInProgress() bool {
 	return false
 }
 
+func (o *CruiseControlOperation) IsPaused() bool {
+	return o.GetLabels()["pause"] == "true"
+}
+
+func (o *CruiseControlOperation) IsErrorPolicyIgnore() bool {
+	return o.Spec.ErrorPolicy == ErrorPolicyIgnore
+}
+
 func (o *CruiseControlOperation) IsWaitingForRetryExecution() bool {
-	if (o.GetLabels()["pause"] != "true" && o.Spec.ErrorPolicy != ErrorPolicyIgnore) &&
+	if (!o.IsPaused() && !o.IsErrorPolicyIgnore()) &&
 		o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError && o.GetCurrentTaskID() != "" {
 		return true
 	}
