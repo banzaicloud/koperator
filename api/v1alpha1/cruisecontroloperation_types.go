@@ -97,7 +97,10 @@ func init() {
 }
 
 func (o *CruiseControlOperation) GetCurrentTask() *CruiseControlTask {
-	return o.Status.CurrentTask
+	if o != nil {
+		return o.Status.CurrentTask
+	}
+	return nil
 }
 
 func (o *CruiseControlOperation) GetCurrentTaskParameters() map[string]string {
