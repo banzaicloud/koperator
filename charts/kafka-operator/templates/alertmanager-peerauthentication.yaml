@@ -1,0 +1,24 @@
+{{- if and (.Values.alertManager.enable) (.Values.alertManager.permissivePeerAuthentication.create) (.Capabilities.APIVersions.Has "security.istio.io/v1beta1") -}}
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: "{{ include "kafka-operator.fullname" . }}-alertmanager-peerauthenticaiton"
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+    app.kubernetes.io/name: {{ include "kafka-operator.name" . }}
+    helm.sh/chart: {{ include "kafka-operator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/component: alertmanager
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      component: alertmanager
+  portLevelMtls:
+    {{ .Values.alertManager.port | quote }}:
+      mode: PERMISSIVE
+{{- end -}}
