@@ -60,7 +60,7 @@ linters-settings:
   golint:
     min-confidence: 0.1
   goimports:
-    local-prefixes: github.com/banzaicloud
+    local-prefixes: github.com/banzaicloud/koperator
   lll:
     # FIXME: we should be able to reduce the length of lines to be closer to the default 120 lines
     line-length: 300  # default: 120
