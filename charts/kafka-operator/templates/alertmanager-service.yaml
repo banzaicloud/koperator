@@ -25,5 +25,5 @@ spec:
     app.kubernetes.io/component: operator
   ports:
   - name: http-alerts
-    port: 9001
+    port: {{ .Values.alertManager.port }}
 {{- end -}}
