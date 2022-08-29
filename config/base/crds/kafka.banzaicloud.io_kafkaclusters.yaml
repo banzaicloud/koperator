@@ -19574,51 +19574,48 @@ spec:
                       description: GracefulActionState holds info about cc action
                         status
                       properties:
-                        TaskStarted:
-                          description: TaskStarted hold the time when the execution
-                            started
-                          type: string
+                        cruiseControlOperationReference:
+                          description: CruiseControlOperationReference referencing
+                            to the created CruiseControlOperation to execute CC task
+                          properties:
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                          type: object
+                          x-kubernetes-map-type: atomic
                         cruiseControlState:
                           description: CruiseControlState holds the information about
-                            CC state
-                          type: string
-                        cruiseControlTaskId:
-                          description: CruiseControlTaskId holds info about the task
-                            id ran by CC
-                          type: string
-                        errorMessage:
-                          description: ErrorMessage holds the information what happened
-                            with CC
+                            graceful action state
                           type: string
                         volumeStates:
                           additionalProperties:
                             properties:
-                              TaskStarted:
-                                description: TaskStarted hold the time when the execution
-                                  started
-                                type: string
-                              cruiseControlTaskId:
-                                description: CruiseControlTaskId holds info about
-                                  the task id ran by CC
-                                type: string
+                              cruiseControlOperationReference:
+                                description: CruiseControlOperationReference referencing
+                                  to the created CruiseControlOperation to execute
+                                  CC task
+                                properties:
+                                  name:
+                                    description: 'Name of the referent. More info:
+                                      https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind,
+                                      uid?'
+                                    type: string
+                                type: object
+                                x-kubernetes-map-type: atomic
                               cruiseControlVolumeState:
                                 description: CruiseControlVolumeState holds the information
-                                  about the CC disk rebalance state
-                                type: string
-                              errorMessage:
-                                description: ErrorMessage holds the information what
-                                  happened with CC disk rebalance
+                                  about CC disk rebalance state
                                 type: string
                             required:
                             - cruiseControlVolumeState
-                            - errorMessage
                             type: object
                           description: VolumeStates holds the information about the
-                            CC disk rebalance states and tasks
+                            CC disk rebalance states and CruiseControlOperation reference
                           type: object
                       required:
                       - cruiseControlState
-                      - errorMessage
                       type: object
                     image:
                       description: Image specifies the current docker image of the

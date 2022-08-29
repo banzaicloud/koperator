@@ -93,7 +93,7 @@ type cruiseControlScaler struct {
 }
 
 // Status returns a CruiseControlStatus describing the internal state of Cruise Control.
-func (cc *cruiseControlScaler) Status() (CruiseControlStatus, error) {
+func (cc *cruiseControlScaler) Status() CruiseControlStatus {
 	req := api.StateRequestWithDefaults()
 	req.Verbose = true
 	resp, err := cc.client.State(req)

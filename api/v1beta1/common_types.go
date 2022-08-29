@@ -16,6 +16,8 @@ package v1beta1
 
 import (
 	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // RackAwarenessState stores info about rack awareness status
@@ -67,29 +69,34 @@ type CruiseControlVolumeState string
 // IsRunningState returns true if CruiseControlVolumeState indicates (GracefulDisk*Running)
 // that there is a running operation in Cruise Control related to the resource the CruiseControlVolumeState belongs to.
 func (s CruiseControlVolumeState) IsRunningState() bool {
-	return s == GracefulDiskRebalanceRunning
+	return s == GracefulDiskRebalanceRunning || s == GracefulDiskRebalanceCompletedWithError || s == GracefulDiskRebalancePaused || s == GracefulDiskRebalanceScheduled
+}
+
+func (s CruiseControlVolumeState) IsRequiredState() bool {
+	return s == GracefulDiskRebalanceRequired
 }
 
 // IsActive returns true if CruiseControlVolumeState is in active state (GracefulDisk*Running or GracefulDisk*Required)
 // the controller needs to take care of.
 func (s CruiseControlVolumeState) IsActive() bool {
-	return s == GracefulDiskRebalanceRunning || s == GracefulDiskRebalanceRequired
+	return s == GracefulDiskRebalanceRunning || s == GracefulDiskRebalanceRequired || s == GracefulDiskRebalanceCompletedWithError || s == GracefulDiskRebalancePaused || s == GracefulDiskRebalanceScheduled
 }
 
 // IsUpscale returns true if CruiseControlState in GracefulUpscale* state.
 func (r CruiseControlState) IsUpscale() bool {
-	return r == GracefulUpscaleRequired || r == GracefulUpscaleSucceeded || r == GracefulUpscaleRunning
+	return r == GracefulUpscaleRequired || r == GracefulUpscaleSucceeded || r == GracefulUpscaleRunning || r == GracefulUpscaleCompletedWithError || r == GracefulUpscalePaused || r == GracefulUpscaleScheduled
 }
 
 // IsDownscale returns true if CruiseControlState in GracefulDownscale* state.
 func (r CruiseControlState) IsDownscale() bool {
-	return r == GracefulDownscaleRequired || r == GracefulDownscaleSucceeded || r == GracefulDownscaleRunning
+	return r == GracefulDownscaleRequired || r == GracefulDownscaleSucceeded || r == GracefulDownscaleRunning || r == GracefulDownscaleCompletedWithError || r == GracefulDownscalePaused || r == GracefulDownscaleScheduled
 }
 
 // IsRunningState returns true if CruiseControlState indicates (any of Graceful*Running)
 // that there is a running operation in Cruise Control related to the resource the CruiseControlState belongs to.
 func (r CruiseControlState) IsRunningState() bool {
-	return r == GracefulDownscaleRunning || r == GracefulUpscaleRunning
+	return r == GracefulUpscaleRunning || r == GracefulUpscaleCompletedWithError || r == GracefulUpscalePaused || r == GracefulUpscaleScheduled ||
+		r == GracefulDownscaleRunning || r == GracefulDownscaleCompletedWithError || r == GracefulDownscalePaused || r == GracefulDownscaleScheduled
 }
 
 // IsRequiredState returns true if CruiseControlVolumeState indicates that either upscaling or downscaling
@@ -160,27 +167,19 @@ type IstioControlPlaneReference struct {
 
 // GracefulActionState holds information about GracefulAction State
 type GracefulActionState struct {
-	// ErrorMessage holds the information what happened with CC
-	ErrorMessage string `json:"errorMessage"`
-	// CruiseControlTaskId holds info about the task id ran by CC
-	CruiseControlTaskId string `json:"cruiseControlTaskId,omitempty"`
-	// TaskStarted hold the time when the execution started
-	TaskStarted string `json:"TaskStarted,omitempty"`
-	// CruiseControlState holds the information about CC state
+	// CruiseControlState holds the information about graceful action state
 	CruiseControlState CruiseControlState `json:"cruiseControlState"`
-	// VolumeStates holds the information about the CC disk rebalance states and tasks
+	// CruiseControlOperationReference referencing to the created CruiseControlOperation to execute CC task
+	CruiseControlOperationReference *corev1.LocalObjectReference `json:"cruiseControlOperationReference,omitempty"`
+	// VolumeStates holds the information about the CC disk rebalance states and CruiseControlOperation reference
 	VolumeStates map[string]VolumeState `json:"volumeStates,omitempty"`
 }
 
 type VolumeState struct {
-	// ErrorMessage holds the information what happened with CC disk rebalance
-	ErrorMessage string `json:"errorMessage"`
-	// CruiseControlTaskId holds info about the task id ran by CC
-	CruiseControlTaskId string `json:"cruiseControlTaskId,omitempty"`
-	// TaskStarted hold the time when the execution started
-	TaskStarted string `json:"TaskStarted,omitempty"`
-	// CruiseControlVolumeState holds the information about the CC disk rebalance state
+	// CruiseControlVolumeState holds the information about CC disk rebalance state
 	CruiseControlVolumeState CruiseControlVolumeState `json:"cruiseControlVolumeState"`
+	// CruiseControlOperationReference referencing to the created CruiseControlOperation to execute CC task
+	CruiseControlOperationReference *corev1.LocalObjectReference `json:"cruiseControlOperationReference,omitempty"`
 }
 
 // BrokerState holds information about broker state
@@ -214,17 +213,28 @@ const (
 	GracefulUpscaleRequired CruiseControlState = "GracefulUpscaleRequired"
 	// GracefulUpscaleRunning states that the broker upscale task is still running in CC
 	GracefulUpscaleRunning CruiseControlState = "GracefulUpscaleRunning"
+	// GracefulUpscaleScheduled states that the broker upscale CCOperation is created and the task is waiting for execution
+	GracefulUpscaleScheduled CruiseControlState = "GracefulUpscaleScheduled"
 	// GracefulUpscaleSucceeded states the broker is updated gracefully OR
 	// states that the broker is part of the initial cluster creation where CC topic is still in creating stage
 	GracefulUpscaleSucceeded CruiseControlState = "GracefulUpscaleSucceeded"
-
+	// GracefulUpscaleCompletedWithError states that the broker upscale task completed with an error
+	GracefulUpscaleCompletedWithError CruiseControlState = "GracefulUpscaleCompletedWithError"
+	// GracefulUpscalePaused states that the broker upscale task is completed with an error and it will not be retried, it is paused
+	GracefulUpscalePaused CruiseControlState = "GracefulUpscalePaused"
 	// Downscale cruise control states
 	// GracefulDownscaleRequired states that a broker downscale is required
 	GracefulDownscaleRequired CruiseControlState = "GracefulDownscaleRequired"
+	// GracefulDownscaleScheduled states that the broker downscale CCOperation is created and the task is waiting for execution
+	GracefulDownscaleScheduled CruiseControlState = "GracefulDownscaleScheduled"
 	// GracefulDownscaleRunning states that the broker downscale is still running in CC
 	GracefulDownscaleRunning CruiseControlState = "GracefulDownscaleRunning"
 	// GracefulDownscaleSucceeded states that the broker downscaled gracefully
 	GracefulDownscaleSucceeded CruiseControlState = "GracefulDownscaleSucceeded"
+	// GracefulDownscaleCompletedWithError states that the broker downscale task completed with an error
+	GracefulDownscaleCompletedWithError CruiseControlState = "GracefulDownscaleCompletedWithError"
+	// GracefulDownscalePaused states that the broker downscale task is completed with an error and it will not be retried, it is paused. In this case further downscale tasks can be executed
+	GracefulDownscalePaused CruiseControlState = "GracefulDownscalePaused"
 
 	// Disk rebalance cruise control states
 	// GracefulDiskRebalanceRequired states that the broker volume needs a CC disk rebalance
@@ -233,6 +243,12 @@ const (
 	GracefulDiskRebalanceRunning CruiseControlVolumeState = "GracefulDiskRebalanceRunning"
 	// GracefulDiskRebalanceSucceeded states that the for the broker volume rebalance has succeeded
 	GracefulDiskRebalanceSucceeded CruiseControlVolumeState = "GracefulDiskRebalanceSucceeded"
+	// GracefulDiskRebalanceScheduled states that the broker  volume rebalance CCOperation is created and the task is waiting for execution
+	GracefulDiskRebalanceScheduled CruiseControlVolumeState = "GracefulDiskRebalanceScheduled"
+	// GracefulDiskRebalanceCompletedWithError states that the broker volume rebalance task completed with an error
+	GracefulDiskRebalanceCompletedWithError CruiseControlVolumeState = "GracefulDiskRebalanceCompletedWithError"
+	// GracefulDiskRebalancePaused states that the broker volume rebalance task is completed with an error and it will not be retried, it is paused
+	GracefulDiskRebalancePaused CruiseControlVolumeState = "GracefulDiskRebalancePaused"
 
 	// CruiseControlTopicNotReady states the CC required topic is not yet created
 	CruiseControlTopicNotReady CruiseControlTopicStatus = "CruiseControlTopicNotReady"
