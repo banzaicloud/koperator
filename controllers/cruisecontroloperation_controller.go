@@ -250,14 +250,14 @@ func (r *CruiseControlOperationReconciler) executeOperation(ccOperationExecution
 func sortOperations(ccOperations []*banzaiv1alpha1.CruiseControlOperation) map[string][]*banzaiv1alpha1.CruiseControlOperation {
 	ccOperationQueueMap := make(map[string][]*banzaiv1alpha1.CruiseControlOperation)
 	for _, ccOperation := range ccOperations {
-		//nolint:gocritic
-		if isWaitingforFinalize(ccOperation) {
+		switch {
+		case isWaitingforFinalize(ccOperation):
 			ccOperationQueueMap[ccOperationForFinalize] = append(ccOperationQueueMap[ccOperationForFinalize], ccOperation)
-		} else if ccOperation.IsWaitingForFirstExecution() {
+		case ccOperation.IsWaitingForFirstExecution():
 			ccOperationQueueMap[ccOperationFirstExecution] = append(ccOperationQueueMap[ccOperationFirstExecution], ccOperation)
-		} else if ccOperation.IsWaitingForRetryExecution() {
+		case ccOperation.IsWaitingForRetryExecution():
 			ccOperationQueueMap[ccOperationRetryExecution] = append(ccOperationQueueMap[ccOperationRetryExecution], ccOperation)
-		} else if ccOperation.IsInProgress() {
+		case ccOperation.IsInProgress():
 			ccOperationQueueMap[ccOperationInProgress] = append(ccOperationQueueMap[ccOperationInProgress], ccOperation)
 		}
 	}
@@ -281,23 +281,24 @@ func selectOperationForExecution(ccOperationQueueMap map[string][]*banzaiv1alpha
 	// SELECTING OPERATION FOR EXECUTION
 	var ccOperationExecution *banzaiv1alpha1.CruiseControlOperation
 	// First prio: execute the finalize task
-	//nolint:gocritic
-	if len(ccOperationQueueMap[ccOperationForFinalize]) > 0 {
+	switch {
+	case len(ccOperationQueueMap[ccOperationForFinalize]) > 0:
 		ccOperationExecution = ccOperationQueueMap[ccOperationForFinalize][0]
 		ccOperationExecution.GetCurrentTask().Operation = banzaiv1alpha1.OperationStopExecution
-		// Second prio: execute add_broker operation
-	} else if len(ccOperationQueueMap[ccOperationFirstExecution]) > 0 && ccOperationQueueMap[ccOperationFirstExecution][0].GetCurrentTaskOp() == banzaiv1alpha1.OperationAddBroker {
+	// Second prio: execute add_broker operation
+	case len(ccOperationQueueMap[ccOperationFirstExecution]) > 0 && ccOperationQueueMap[ccOperationFirstExecution][0].GetCurrentTaskOp() == banzaiv1alpha1.OperationAddBroker:
 		ccOperationExecution = ccOperationQueueMap[ccOperationFirstExecution][0]
-		// Third prio: execute failed task
-	} else if len(ccOperationQueueMap[ccOperationRetryExecution]) > 0 {
+	// Third prio: execute failed task
+	case len(ccOperationQueueMap[ccOperationRetryExecution]) > 0:
 		// When default backoff duration elapsed we retry
 		if ccOperationQueueMap[ccOperationRetryExecution][0].IsReadyForRetryExecution() {
 			ccOperationExecution = ccOperationQueueMap[ccOperationRetryExecution][0]
 		}
-		// Forth prio: execute the first element in the FirstExecutionQueue which is ordered by operation type and k8s creation timestamp
-	} else if len(ccOperationQueueMap[ccOperationFirstExecution]) > 0 {
+	// Forth prio: execute the first element in the FirstExecutionQueue which is ordered by operation type and k8s creation timestamp
+	case len(ccOperationQueueMap[ccOperationFirstExecution]) > 0:
 		ccOperationExecution = ccOperationQueueMap[ccOperationFirstExecution][0]
 	}
+
 	return ccOperationExecution
 }
 
