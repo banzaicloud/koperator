@@ -242,6 +242,8 @@ spec:
                 #  image: "banzaicloud/envoy:0.1.0"
                 # priorityClassName can be used to set the envoy pod's priority
                 # priorityClassName: "moderate-priority"
+                # enableHealthCheckHttp10 can be toggled to enable HTTP1.0 support for Envoy health-checks
+                # enableHealthCheckHttp10: false
                 # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
                 # through this property
                 # resourceRequirements:
@@ -324,11 +326,11 @@ spec:
     # listener setting type set to ssl these fields must be populated too.
     sslSecrets:
       # when create is false then the user has to provide the TLS certificate(s) and private key in PEM format in the refererenced secret below.
-      # this certificate and private key is used by cert-manager to issue client and server certificates. The client certificate is used by the Koperator , Cruise Control, 
+      # this certificate and private key is used by cert-manager to issue client and server certificates. The client certificate is used by the Koperator , Cruise Control,
       # and Cruise Control Metrics Reporter to communicate with Kafka brokers using listener with SSL enabled.
       # The server certificate is used by listeners using SSL.
-      # The data field in the secret must contain a caCert entry and a caKey entry. 
-      # The caCert also can contain certificate chain in this order: intermediate(s) -> root. 
+      # The data field in the secret must contain a caCert entry and a caKey entry.
+      # The caCert also can contain certificate chain in this order: intermediate(s) -> root.
       tlsSecretName: "test-kafka-operator"
       # jksPasswordName should contain a password field which contains the jks password
       jksPasswordName: "test-kafka-operator-pass"
