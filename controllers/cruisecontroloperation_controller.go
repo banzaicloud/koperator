@@ -125,7 +125,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return requeueWithError(log, "failed to add finalizer to CruiseControlOperation", err)
 	}
 
-	// We only get scaler when we have not had mocked one for test
+	// We only get a scaler when we have not had mocked one for testing
 	if _, ok := r.Scaler.(*scale.MockCruiseControlScaler); !ok {
 		r.Scaler, err = scale.NewCruiseControlScaler(ctx, scale.CruiseControlURLFromKafkaCluster(kafkaCluster))
 		if err != nil {
@@ -195,7 +195,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	cruseControlTaskResult, err := r.executeOperation(ccOperationExecution)
 
 	if err != nil {
-		log.Error(err, "Cruise Control task execution got error", "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTaskParameters())
+		log.Error(err, "Cruise Control task execution got an error", "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTaskParameters())
 	}
 
 	// Protection to avoid re-execution task when status update is failed
@@ -252,7 +252,7 @@ func sortOperations(ccOperations []*banzaiv1alpha1.CruiseControlOperation) map[s
 	ccOperationQueueMap := make(map[string][]*banzaiv1alpha1.CruiseControlOperation)
 	for _, ccOperation := range ccOperations {
 		switch {
-		case isWaitingforFinalize(ccOperation):
+		case isWaitingForFinalize(ccOperation):
 			ccOperationQueueMap[ccOperationForFinalize] = append(ccOperationQueueMap[ccOperationForFinalize], ccOperation)
 		case ccOperation.IsWaitingForFirstExecution():
 			ccOperationQueueMap[ccOperationFirstExecution] = append(ccOperationQueueMap[ccOperationFirstExecution], ccOperation)
@@ -291,7 +291,7 @@ func selectOperationForExecution(ccOperationQueueMap map[string][]*banzaiv1alpha
 		ccOperationExecution = ccOperationQueueMap[ccOperationFirstExecution][0]
 	// Third prio: execute failed task
 	case len(ccOperationQueueMap[ccOperationRetryExecution]) > 0:
-		// When default backoff duration elapsed we retry
+		// When the default backoff duration elapsed we retry
 		if ccOperationQueueMap[ccOperationRetryExecution][0].IsReadyForRetryExecution() {
 			ccOperationExecution = ccOperationQueueMap[ccOperationRetryExecution][0]
 		}
@@ -352,7 +352,7 @@ func updateResult(res *scale.Result, operation *banzaiv1alpha1.CruiseControlOper
 		task.Finished = &v1.Time{Time: time.Now()}
 	}
 
-	// Add the failed task into the status.failedTasks slice only when the update is happened after executing task
+	// Add the failed task into the status.failedTasks slice only when the update is happened after executing the task
 	if isAfterExecution && task.Finished != nil && task.State == banzaiv1beta1.CruiseControlTaskCompletedWithError {
 		if len(operation.Status.FailedTasks) >= defaultFailedTasksHistoryMaxLength {
 			operation.Status.FailedTasks = append(operation.Status.FailedTasks[1:], *task)
@@ -368,7 +368,6 @@ func updateResult(res *scale.Result, operation *banzaiv1alpha1.CruiseControlOper
 
 	task.ID = res.TaskID
 	if task.Started == nil {
-		//Sat, 27 Aug 2022 12:22:21 GMT
 		startTime, err := time.Parse(time.RFC1123, res.StartedAt)
 		if err != nil {
 			return errors.WrapIff(err, "could not parse user task start time from Cruise Control API")
@@ -424,7 +423,7 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 	return nil
 }
 
-func isWaitingforFinalize(ccOperation *banzaiv1alpha1.CruiseControlOperation) bool {
+func isWaitingForFinalize(ccOperation *banzaiv1alpha1.CruiseControlOperation) bool {
 	if ccOperation.IsCurrentTaskRunning() && !ccOperation.ObjectMeta.DeletionTimestamp.IsZero() && controllerutil.ContainsFinalizer(ccOperation, cruiseControlOperationFinalizer) {
 		return true
 	}
