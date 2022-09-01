@@ -55,6 +55,7 @@ var (
 		banzaiv1alpha1.OperationRemoveBroker: 1,
 		banzaiv1alpha1.OperationRebalance:    2,
 	}
+	missingCCResErr = errors.New("missing Cruise Control user task result")
 )
 
 // CruiseControlOperationReconciler reconciles CruiseControlOperation custom resources
@@ -93,6 +94,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	if currentCCOperation == nil {
 		return reconciled()
 	}
+
 	// CruiseControlOperation has invalid operation type, reconciled
 	if !currentCCOperation.IsCurrentTaskOperationValid() {
 		log.Error(errors.New("Koperator does not support this operation"), "operation", currentCCOperation.GetCurrentTaskOp())
@@ -175,6 +177,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	// When there is no more job present in the cluster we reconciled.
 	if len(ccOperationQueueMap[ccOperationForFinalize]) == 0 && len(ccOperationQueueMap[ccOperationFirstExecution]) == 0 &&
 		len(ccOperationQueueMap[ccOperationRetryExecution]) == 0 && len(ccOperationQueueMap[ccOperationInProgress]) == 0 {
+		log.Info("there is no more operation for execution")
 		return reconciled()
 	}
 
@@ -200,7 +203,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 
 	// Protection to avoid re-execution task when status update is failed
 	if errEnd := util.RetryOnConflict(util.DefaultBackOffForConflict, func() error {
-		if err = updateResult(cruseControlTaskResult, ccOperationExecution, true); err != nil {
+		if err = updateResult(log, cruseControlTaskResult, ccOperationExecution, true); err != nil {
 			return err
 		}
 		err = r.Status().Update(ctx, ccOperationExecution)
@@ -342,10 +345,17 @@ func getKafkaClusterReference(operation *banzaiv1alpha1.CruiseControlOperation) 
 	}, nil
 }
 
-func updateResult(res *scale.Result, operation *banzaiv1alpha1.CruiseControlOperation, isAfterExecution bool) error {
-	if res == nil || operation.GetCurrentTask() == nil {
-		return nil
+func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.CruiseControlOperation, isAfterExecution bool) error {
+	// This can happen rarely when the max cached completed user tasks reached
+	if res == nil {
+		log.Error(missingCCResErr, "Cruise Control's max.cached.completed.user.tasks configuration value is too small. Missing user task state is handled as completedWithError", "name", operation.GetName(), "namespace", operation.GetNamespace(), "task ID", operation.GetCurrentTaskID())
+		res = &scale.Result{
+			TaskID: operation.GetCurrentTaskID(),
+			State:  banzaiv1beta1.CruiseControlTaskCompletedWithError,
+			Err:    missingCCResErr.Error(),
+		}
 	}
+
 	task := operation.GetCurrentTask()
 
 	if (task.State == banzaiv1beta1.CruiseControlTaskCompleted || task.State == banzaiv1beta1.CruiseControlTaskCompletedWithError) && task.Finished == nil {
@@ -390,15 +400,20 @@ func updateResult(res *scale.Result, operation *banzaiv1alpha1.CruiseControlOper
 // status from Cruise Control.
 func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Context, ccOperations []*banzaiv1alpha1.CruiseControlOperation) error {
 	log := logr.FromContextOrDiscard(ctx)
-	tasks, err := r.Scaler.GetUserTasks()
-	if err != nil {
-		return errors.WrapIff(err, "could not get user tasks from Cruise Control API")
-	}
 
+	userTaskIDs := make([]string, 0, len(ccOperations))
 	var ccOperationsCopy []*banzaiv1alpha1.CruiseControlOperation
 	for _, ccOperation := range ccOperations {
+		if ccOperation.GetCurrentTaskID() != "" {
+			userTaskIDs = append(userTaskIDs, ccOperation.GetCurrentTaskID())
+		}
 		copy := ccOperation.DeepCopy()
 		ccOperationsCopy = append(ccOperationsCopy, copy)
+	}
+
+	tasks, err := r.Scaler.GetUserTasks(userTaskIDs...)
+	if err != nil {
+		return errors.WrapIff(err, "could not get user tasks from Cruise Control API")
 	}
 
 	taskResultsByID := make(map[string]*scale.Result, len(tasks))
@@ -408,8 +423,10 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 	for i := range ccOperations {
 		ccOperation := ccOperations[i]
 		log.Info("taskres current", "res", taskResultsByID[ccOperation.GetCurrentTaskID()])
-		if err := updateResult(taskResultsByID[ccOperation.GetCurrentTaskID()], ccOperation, false); err != nil {
-			return errors.WrapWithDetails(err, "could not set Cruise Control user task result to CruiseControlOperation CurrentTask", "name", ccOperations[i].GetName(), "namespace", ccOperations[i].GetNamespace())
+		if ccOperation.GetCurrentTaskID() != "" {
+			if err := updateResult(log, taskResultsByID[ccOperation.GetCurrentTaskID()], ccOperation, false); err != nil {
+				return errors.WrapWithDetails(err, "could not set Cruise Control user task result to CruiseControlOperation CurrentTask", "name", ccOperations[i].GetName(), "namespace", ccOperations[i].GetNamespace())
+			}
 		}
 	}
 

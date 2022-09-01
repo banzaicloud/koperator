@@ -206,9 +206,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
 			// First operation will get completedWithError
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
-			operation.Labels = map[string]string{
-				"pause": "true",
-			}
+			operation.Labels["pause"] = "true"
 			err := k8sClient.Create(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -249,8 +247,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 
-				return operation1.Status.NumberOfRetries == 0 && operation2.GetCurrentTaskState() == v1beta1.CruiseControlTaskActive
-			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
+				return operation1.Status.NumberOfRetries == 0 && operation2.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompleted
+			}, 40*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
 	When("there is a new remove_roker and an errored remove_broker operation", func() {
@@ -262,7 +260,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
-				ID:        "123",
+				ID:        "1",
 				State:     v1beta1.CruiseControlTaskCompletedWithError,
 				Operation: v1alpha1.OperationRemoveBroker,
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
@@ -298,7 +296,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 
-				return operation1.Status.NumberOfRetries > 0 && (operation2.GetCurrentTaskState() == "" || operation2.GetCurrentTaskState() != "" && operation2.GetCurrentTask().ID == "2")
+				return operation1.Status.NumberOfRetries > 1 && (operation2.GetCurrentTaskState() == "" && operation2.GetCurrentTask().ID != "1")
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
@@ -314,6 +312,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 				Operation: v1alpha1.OperationRemoveBroker,
+				State:     v1beta1.CruiseControlTaskCompletedWithError,
 			}
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -327,7 +326,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 		})
-		It("should execute the new remove_broker operation and should not execute the errored one", func() {
+		FIt("should execute the new remove_broker operation and should not execute the errored one", func() {
 			Eventually(func() bool {
 				operation1 := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -346,8 +345,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 
-				return operation1.Status.NumberOfRetries == 0 && operation2.GetCurrentTaskState() == v1beta1.CruiseControlTaskActive
-			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
+				return operation1.Status.NumberOfRetries == 0 && operation2.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompleted
+			}, 40*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
 })
@@ -372,7 +371,7 @@ func getScaleMock2(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompletedWithError,
 	})}
-	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
+	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
 	}).AnyTimes()
@@ -393,7 +392,7 @@ func getScaleMock1(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompleted,
 	})}
-	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
+	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
 	}).AnyTimes()
@@ -419,7 +418,7 @@ func getScaleMock3(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompleted,
 	})}
-	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
+	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
 	}).AnyTimes()
@@ -442,21 +441,20 @@ func getScaleMock4(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
 
-	userTaskResult := []*scale.Result{}
-	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).AnyTimes()
+	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
+		TaskID:    "1",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
+		State:     v1beta1.CruiseControlTaskCompleted,
+	})}
+	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
 	}).AnyTimes()
-	first := scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
+	scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "1",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskActive,
 	}), nil).Times(1)
-	scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
-		TaskID:    "2",
-		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
-		State:     v1beta1.CruiseControlTaskActive,
-	}), nil).After(first).Times(1)
 	return scaleMock
 }
 
@@ -475,8 +473,8 @@ func getScaleMock5(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompleted,
 	})}
-	first := scaleMock.EXPECT().GetUserTasks().Return(userTaskResult, nil).Times(1)
-	scaleMock.EXPECT().GetUserTasks().Return(userTaskResult2, nil).After(first).AnyTimes()
+	first := scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult, nil).Times(1)
+	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult2, nil).After(first).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
 	}).AnyTimes()
