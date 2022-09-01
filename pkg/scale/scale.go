@@ -162,7 +162,7 @@ func (cc *cruiseControlScaler) GetUserTasks(taskIDs ...string) ([]*Result, error
 	return results, nil
 }
 
-// parseBrokerIDtoSlice parse brokerIDs to int slice
+// parseBrokerIDtoSlice parses brokerIDs to int slice
 func parseBrokerIDtoSlice(brokerid string) ([]int32, error) {
 	var ret []int32
 	splittedBrokerIDs := strings.Split(brokerid, ",")

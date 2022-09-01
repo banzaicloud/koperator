@@ -157,8 +157,12 @@ func (o *CruiseControlOperation) IsErrorPolicyIgnore() bool {
 	return o.Spec.ErrorPolicy == ErrorPolicyIgnore
 }
 
+func (o *CruiseControlOperation) IsErrorPolicyRetry() bool {
+	return o.Spec.ErrorPolicy == ErrorPolicyRetry
+}
+
 func (o *CruiseControlOperation) IsWaitingForRetryExecution() bool {
-	if (!o.IsPaused() && !o.IsErrorPolicyIgnore()) &&
+	if (!o.IsPaused() && o.IsErrorPolicyRetry()) &&
 		o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError && o.GetCurrentTaskID() != "" {
 		return true
 	}
