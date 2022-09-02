@@ -36,3 +36,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: make license-check
+
+      - name: Build
+        run: |
+          make generate
+
+      - name: Lint
+        run: |
+          make lint
+
+      - name: Run tests
+        run: |
+          make test
