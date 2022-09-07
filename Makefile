@@ -49,9 +49,9 @@ bin/golangci-lint-${GOLANGCI_VERSION}:
 
 .PHONY: lint
 lint: bin/golangci-lint ## Run linter
-	@bin/golangci-lint run -v
-	cd api && golangci-lint run -c ../.golangci.yml
-	cd properties && golangci-lint run -c ../.golangci.yml
+	@bin/golangci-lint run -v --timeout=5m
+	cd api && golangci-lint run -c ../.golangci.yml --timeout=5m
+	cd properties && golangci-lint run -c ../.golangci.yml --timeout=5m
 
 .PHONY: lint-fix
 lint-fix: bin/golangci-lint ## Run linter
