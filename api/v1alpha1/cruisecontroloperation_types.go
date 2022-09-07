@@ -96,6 +96,17 @@ func init() {
 	SchemeBuilder.Register(&CruiseControlOperation{}, &CruiseControlOperationList{})
 }
 
+func (task *CruiseControlTask) SetDefaults() {
+	task.Finished = nil
+	task.State = ""
+	task.Started = nil
+	task.ErrorMessage = ""
+	task.HTTPRequest = ""
+	task.HTTPResponseCode = nil
+	task.ID = ""
+	task.Summary = nil
+}
+
 func (o *CruiseControlOperation) GetCurrentTask() *CruiseControlTask {
 	if o != nil {
 		return o.Status.CurrentTask
@@ -149,12 +160,20 @@ func (o *CruiseControlOperation) IsInProgress() bool {
 	return false
 }
 
+func (o *CruiseControlOperation) IsDone() bool {
+	return (o.IsPaused() && o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError) || o.IsFinished()
+}
+
 func (o *CruiseControlOperation) IsPaused() bool {
 	return o.GetLabels()["pause"] == "true"
 }
 
 func (o *CruiseControlOperation) IsErrorPolicyIgnore() bool {
 	return o.Spec.ErrorPolicy == ErrorPolicyIgnore
+}
+
+func (o *CruiseControlOperation) IsFinished() bool {
+	return o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompleted || (o.Spec.ErrorPolicy == ErrorPolicyIgnore && o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError)
 }
 
 func (o *CruiseControlOperation) IsErrorPolicyRetry() bool {

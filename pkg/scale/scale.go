@@ -90,13 +90,12 @@ type cruiseControlScaler struct {
 }
 
 // Status returns a CruiseControlStatus describing the internal state of Cruise Control.
-func (cc *cruiseControlScaler) Status() CruiseControlStatus {
+func (cc *cruiseControlScaler) Status() (CruiseControlStatus, error) {
 	req := api.StateRequestWithDefaults()
 	req.Verbose = true
 	resp, err := cc.client.State(req)
 	if err != nil {
-		cc.log.Error(err, "failed to get Cruise Control state")
-		return CruiseControlStatus{}
+		return CruiseControlStatus{}, err
 	}
 
 	goalsReady := true
@@ -117,12 +116,16 @@ func (cc *cruiseControlScaler) Status() CruiseControlStatus {
 		GoalsReady:         goalsReady,
 		MonitoredWindows:   resp.Result.MonitorState.NumMonitoredWindows,
 		MonitoringCoverage: resp.Result.MonitorState.MonitoringCoveragePercentage,
-	}
+	}, nil
 }
 
 // IsReady returns true if the Analyzer and Monitor components of Cruise Control are in ready state.
 func (cc *cruiseControlScaler) IsReady() bool {
-	status := cc.Status()
+	status, err := cc.Status()
+	if err != nil {
+		cc.log.Error(err, "could not get Cruise Control status")
+		return false
+	}
 	cc.log.Info("cruise control readiness",
 		"analyzer", status.AnalyzerReady,
 		"monitor", status.MonitorReady,
@@ -137,6 +140,15 @@ func (cc *cruiseControlScaler) IsReady() bool {
 func (cc *cruiseControlScaler) IsUp() bool {
 	_, err := cc.client.State(api.StateRequestWithDefaults())
 	return err == nil
+}
+
+// IsUp returns true if Cruise Control is online.
+func (cc *cruiseControlScaler) GetNumMonitoredWin() (float32, types.MonitorState, error) {
+	res, err := cc.client.State(api.StateRequestWithDefaults())
+	if err != nil || res == nil {
+		return 0, 0, err
+	}
+	return res.Result.MonitorState.NumMonitoredWindows, res.Result.MonitorState.State, nil
 }
 
 // GetUserTasks returns list of Result describing User Tasks from Cruise Control for the provided task IDs.
@@ -210,20 +222,25 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 	}
 
 	addBrokerResp, err := cc.client.AddBroker(addBrokerReq)
+	// TODO (zob) || StatusCode >= 500
 	if err != nil {
 		return &Result{
-			TaskID:    addBrokerResp.TaskID,
-			StartedAt: addBrokerResp.Date,
-			State:     v1beta1.CruiseControlTaskCompletedWithError,
-			Err:       fmt.Sprintf("%v", err),
+			TaskID:             addBrokerResp.TaskID,
+			StartedAt:          addBrokerResp.Date,
+			ResponseStatusCode: addBrokerResp.StatusCode,
+			RequestURL:         addBrokerResp.RequestURL,
+			State:              v1beta1.CruiseControlTaskCompletedWithError,
+			Err:                fmt.Sprintf("%v", err),
 		}, err
 	}
 
 	return &Result{
-		TaskID:    addBrokerResp.TaskID,
-		StartedAt: addBrokerResp.Date,
-		Result:    addBrokerResp.Result,
-		State:     v1beta1.CruiseControlTaskActive,
+		TaskID:             addBrokerResp.TaskID,
+		StartedAt:          addBrokerResp.Date,
+		ResponseStatusCode: addBrokerResp.StatusCode,
+		RequestURL:         addBrokerResp.RequestURL,
+		Result:             addBrokerResp.Result,
+		State:              v1beta1.CruiseControlTaskActive,
 	}, nil
 }
 
@@ -232,10 +249,12 @@ func (cc *cruiseControlScaler) StopExecution() (*Result, error) {
 	stopResp, err := cc.client.StopProposalExecution(&stopReq)
 	if err != nil {
 		return &Result{
-			TaskID:    stopResp.TaskID,
-			StartedAt: stopResp.Date,
-			State:     v1beta1.CruiseControlTaskCompletedWithError,
-			Err:       fmt.Sprintf("%v", err),
+			TaskID:             stopResp.TaskID,
+			StartedAt:          stopResp.Date,
+			ResponseStatusCode: stopResp.StatusCode,
+			RequestURL:         stopResp.RequestURL,
+			State:              v1beta1.CruiseControlTaskCompletedWithError,
+			Err:                fmt.Sprintf("%v", err),
 		}, err
 	}
 
@@ -282,18 +301,22 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string)
 	rmBrokerResp, err := cc.client.RemoveBroker(rmBrokerReq)
 	if err != nil {
 		return &Result{
-			TaskID:    rmBrokerResp.TaskID,
-			StartedAt: rmBrokerResp.Date,
-			State:     v1beta1.CruiseControlTaskCompletedWithError,
-			Err:       fmt.Sprintf("%v", err),
+			TaskID:             rmBrokerResp.TaskID,
+			StartedAt:          rmBrokerResp.Date,
+			ResponseStatusCode: rmBrokerResp.StatusCode,
+			RequestURL:         rmBrokerResp.RequestURL,
+			State:              v1beta1.CruiseControlTaskCompletedWithError,
+			Err:                fmt.Sprintf("%v", err),
 		}, err
 	}
 
 	return &Result{
-		TaskID:    rmBrokerResp.TaskID,
-		StartedAt: rmBrokerResp.Date,
-		Result:    rmBrokerResp.Result,
-		State:     v1beta1.CruiseControlTaskActive,
+		TaskID:             rmBrokerResp.TaskID,
+		StartedAt:          rmBrokerResp.Date,
+		ResponseStatusCode: rmBrokerResp.StatusCode,
+		RequestURL:         rmBrokerResp.RequestURL,
+		Result:             rmBrokerResp.Result,
+		State:              v1beta1.CruiseControlTaskActive,
 	}, nil
 }
 
@@ -318,7 +341,7 @@ func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) 
 		return nil, err
 	}
 
-	availableBrokersMap := stringSliceToMap(availableBrokers)
+	availableBrokersMap := StringSliceToMap(availableBrokers)
 	unavailableBrokerIDs := make([]string, 0, len(brokerIDs))
 	for _, id := range brokerIDs {
 		if _, ok := availableBrokersMap[id]; !ok {
@@ -340,17 +363,21 @@ func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) 
 	addBrokerResp, err := cc.client.AddBroker(addBrokerReq)
 	if err != nil {
 		return &Result{
-			TaskID:    addBrokerResp.TaskID,
-			StartedAt: addBrokerResp.Date,
-			State:     v1beta1.CruiseControlTaskCompletedWithError,
-			Err:       fmt.Sprintf("%v", err),
+			TaskID:             addBrokerResp.TaskID,
+			StartedAt:          addBrokerResp.Date,
+			ResponseStatusCode: addBrokerResp.StatusCode,
+			RequestURL:         addBrokerResp.RequestURL,
+			State:              v1beta1.CruiseControlTaskCompletedWithError,
+			Err:                fmt.Sprintf("%v", err),
 		}, err
 	}
 
 	return &Result{
-		TaskID:    addBrokerResp.TaskID,
-		StartedAt: addBrokerResp.Date,
-		State:     v1beta1.CruiseControlTaskActive,
+		TaskID:             addBrokerResp.TaskID,
+		StartedAt:          addBrokerResp.Date,
+		ResponseStatusCode: addBrokerResp.StatusCode,
+		RequestURL:         addBrokerResp.RequestURL,
+		State:              v1beta1.CruiseControlTaskActive,
 	}, nil
 }
 
@@ -401,26 +428,29 @@ func (cc *cruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*Result, erro
 
 	if err != nil {
 		return &Result{
-			TaskID:    rmBrokerResp.TaskID,
-			StartedAt: rmBrokerResp.Date,
-			State:     v1beta1.CruiseControlTaskCompletedWithError,
-			Err:       fmt.Sprintf("%v", err),
+			TaskID:             rmBrokerResp.TaskID,
+			StartedAt:          rmBrokerResp.Date,
+			ResponseStatusCode: rmBrokerResp.StatusCode,
+			RequestURL:         rmBrokerResp.RequestURL,
+			State:              v1beta1.CruiseControlTaskCompletedWithError,
+			Err:                fmt.Sprintf("%v", err),
 		}, err
 	}
 
 	return &Result{
-		TaskID:    rmBrokerResp.TaskID,
-		StartedAt: rmBrokerResp.Date,
-		State:     v1beta1.CruiseControlTaskActive,
+		TaskID:             rmBrokerResp.TaskID,
+		StartedAt:          rmBrokerResp.Date,
+		ResponseStatusCode: rmBrokerResp.StatusCode,
+		RequestURL:         rmBrokerResp.RequestURL,
+		State:              v1beta1.CruiseControlTaskActive,
 	}, nil
 }
 
 func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*Result, error) {
 	rebalanceReq := &api.RebalanceRequest{
-		AllowCapacityEstimation:       true,
-		DataFrom:                      types.ProposalDataSourceValidWindows,
-		UseReadyDefaultGoals:          true,
-		ExcludeRecentlyRemovedBrokers: true,
+		AllowCapacityEstimation: true,
+		DataFrom:                types.ProposalDataSourceValidWindows,
+		UseReadyDefaultGoals:    true,
 	}
 
 	for param, pvalue := range params {
@@ -459,19 +489,31 @@ func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*R
 	rebalanceResp, err := cc.client.Rebalance(rebalanceReq)
 	if err != nil {
 		return &Result{
-			TaskID:    rebalanceResp.TaskID,
-			StartedAt: rebalanceResp.Date,
-			State:     v1beta1.CruiseControlTaskCompletedWithError,
-			Err:       fmt.Sprintf("%v", err),
+			TaskID:             rebalanceResp.TaskID,
+			StartedAt:          rebalanceResp.Date,
+			ResponseStatusCode: rebalanceResp.StatusCode,
+			RequestURL:         rebalanceResp.RequestURL,
+			State:              v1beta1.CruiseControlTaskCompletedWithError,
+			Err:                fmt.Sprintf("%v", err),
 		}, err
 	}
 
 	return &Result{
-		TaskID:    rebalanceResp.TaskID,
-		StartedAt: rebalanceResp.Date,
-		Result:    rebalanceResp.Result,
-		State:     v1beta1.CruiseControlTaskActive,
+		TaskID:             rebalanceResp.TaskID,
+		StartedAt:          rebalanceResp.Date,
+		ResponseStatusCode: rebalanceResp.StatusCode,
+		RequestURL:         rebalanceResp.RequestURL,
+		Result:             rebalanceResp.Result,
+		State:              v1beta1.CruiseControlTaskActive,
 	}, nil
+}
+
+func (cc *cruiseControlScaler) GetKafkaClusterLoad() (*api.KafkaClusterLoadResponse, error) {
+	clusterLoadResp, err := cc.client.KafkaClusterLoad(api.KafkaClusterLoadRequestWithDefaults())
+	if err != nil {
+		return nil, err
+	}
+	return clusterLoadResp, nil
 }
 
 // RebalanceDisks performs a disk rebalance via Cruise Control for the provided list of brokers.
@@ -481,7 +523,7 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, err
 		return nil, err
 	}
 
-	brokerIDsMap := stringSliceToMap(brokerIDs)
+	brokerIDsMap := StringSliceToMap(brokerIDs)
 
 	brokersWithEmptyDisks := make([]int32, 0, len(brokerIDs))
 	for _, brokerStat := range clusterLoadResp.Result.Brokers {
@@ -511,17 +553,21 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, err
 	rebalanceResp, err := cc.client.Rebalance(rebalanceReq)
 	if err != nil {
 		return &Result{
-			TaskID:    rebalanceResp.TaskID,
-			StartedAt: rebalanceResp.Date,
-			State:     v1beta1.CruiseControlTaskCompletedWithError,
-			Err:       fmt.Sprintf("%v", err),
+			TaskID:             rebalanceResp.TaskID,
+			StartedAt:          rebalanceResp.Date,
+			ResponseStatusCode: rebalanceResp.StatusCode,
+			RequestURL:         rebalanceResp.RequestURL,
+			State:              v1beta1.CruiseControlTaskCompletedWithError,
+			Err:                fmt.Sprintf("%v", err),
 		}, err
 	}
 
 	return &Result{
-		TaskID:    rebalanceResp.TaskID,
-		StartedAt: rebalanceResp.Date,
-		State:     v1beta1.CruiseControlTaskActive,
+		TaskID:             rebalanceResp.TaskID,
+		StartedAt:          rebalanceResp.Date,
+		ResponseStatusCode: rebalanceResp.StatusCode,
+		RequestURL:         rebalanceResp.RequestURL,
+		State:              v1beta1.CruiseControlTaskActive,
 	}, nil
 }
 

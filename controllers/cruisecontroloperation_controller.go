@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/banzaicloud/go-cruise-control/pkg/types"
+
 	banzaiv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 	banzaiv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/scale"
@@ -69,7 +70,7 @@ type CruiseControlOperationReconciler struct {
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=cruisecontroloperations,verbs=get;list;watch;create;update;patch;delete;deletecollection
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=cruisecontroloperations/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=cruisecontroloperations/finalizers,verbs=update
-
+//nolint:gocyclo
 func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	log := logr.FromContextOrDiscard(ctx)
 	log.V(1).Info("reconciling CruiseControlOperation custom resources")
@@ -137,13 +138,19 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		// In tests we requeue faster
 		defaultRequeueIntervalInSeconds = 1
 	}
-	// Checking Cruise Control availability
-	if !r.Scaler.IsUp() {
-		log.Info("requeue event as Cruise Control is not available (yet)")
+	// Checking Cruise Control health
+	status, err := r.Scaler.Status()
+	if err != nil {
+		log.Error(err, "could not get Cruise Control status")
 		return requeueAfter(defaultRequeueIntervalInSeconds)
 	}
 
-	// Filtering out CruiseControlOperation by kafka cluster ref
+	if !status.IsReady() {
+		log.Info("requeue event as Cruise Control is not ready (yet)", "status", status)
+		return requeueAfter(defaultRequeueIntervalInSeconds)
+	}
+
+	// Filtering out CruiseControlOperation by kafka cluster ref and state
 	var ccOperationsKafkaClusterFiltered []*banzaiv1alpha1.CruiseControlOperation
 	for i := range ccOperationListClusterWide.Items {
 		operation := &ccOperationListClusterWide.Items[i]
@@ -151,7 +158,8 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		if err != nil {
 			log.Info(err.Error())
 		}
-		if ref.Name == kafkaClusterRef.Name && ref.Namespace == kafkaClusterRef.Namespace && operation.IsCurrentTaskOperationValid() {
+		if ref.Name == kafkaClusterRef.Name && ref.Namespace == kafkaClusterRef.Namespace &&
+			operation.IsCurrentTaskOperationValid() && !operation.IsDone() {
 			ccOperationsKafkaClusterFiltered = append(ccOperationsKafkaClusterFiltered, operation)
 		}
 	}
@@ -188,7 +196,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	}
 
 	// Check if CruiseControl is ready as we cannot perform any operation until it is in ready state unless it is a stop execution operation
-	if status := r.Scaler.Status(); status.InExecution() && ccOperationExecution.GetCurrentTaskOp() != banzaiv1alpha1.OperationStopExecution {
+	if (status.InExecution() || len(ccOperationQueueMap[ccOperationInProgress]) > 0) && ccOperationExecution.GetCurrentTaskOp() != banzaiv1alpha1.OperationStopExecution {
 		// Requeue becuse we can't do more
 		return requeueAfter(defaultRequeueIntervalInSeconds)
 	}
@@ -348,7 +356,7 @@ func getKafkaClusterReference(operation *banzaiv1alpha1.CruiseControlOperation) 
 func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.CruiseControlOperation, isAfterExecution bool) error {
 	// This can happen rarely when the max cached completed user tasks reached
 	if res == nil {
-		log.Error(missingCCResErr, "Cruise Control's max.cached.completed.user.tasks configuration value is too small. Missing user task state is handled as completedWithError", "name", operation.GetName(), "namespace", operation.GetNamespace(), "task ID", operation.GetCurrentTaskID())
+		log.Error(missingCCResErr, "Cruise Control's max.cached.completed.user.tasks configuration value probably too small. Missing user task state is handled as completedWithError", "name", operation.GetName(), "namespace", operation.GetNamespace(), "task ID", operation.GetCurrentTaskID())
 		res = &scale.Result{
 			TaskID: operation.GetCurrentTaskID(),
 			State:  banzaiv1beta1.CruiseControlTaskCompletedWithError,
@@ -356,6 +364,7 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 		}
 	}
 
+	operation.Status.ErrorPolicy = operation.Spec.ErrorPolicy
 	task := operation.GetCurrentTask()
 
 	if (task.State == banzaiv1beta1.CruiseControlTaskCompleted || task.State == banzaiv1beta1.CruiseControlTaskCompletedWithError) && task.Finished == nil {
@@ -370,27 +379,23 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 			operation.Status.FailedTasks = append(operation.Status.FailedTasks, *task)
 		}
 		operation.Status.NumberOfRetries += 1
-		operation.Status.ErrorPolicy = banzaiv1alpha1.ErrorPolicyRetry
-		task.Finished = nil
-		task.State = ""
-		task.Started = nil
+		task.SetDefaults()
 	}
 
-	task.ID = res.TaskID
-	if task.Started == nil {
-		startTime, err := time.Parse(time.RFC1123, res.StartedAt)
-		if err != nil {
-			return errors.WrapIff(err, "could not parse user task start time from Cruise Control API")
-		}
-		task.Started = &v1.Time{Time: startTime}
-	}
-	// We only have summary after execution
 	if isAfterExecution {
+		if task.Started == nil {
+			startTime, err := time.Parse(time.RFC1123, res.StartedAt)
+			if err != nil {
+				return errors.WrapIff(err, "could not parse user task start time from Cruise Control API")
+			}
+			task.Started = &v1.Time{Time: startTime}
+		}
+		task.ID = res.TaskID
 		task.Summary = parseSummary(res.Result)
 		task.ErrorMessage = res.Err
+		task.HTTPRequest = res.RequestURL
+		task.HTTPResponseCode = &res.ResponseStatusCode
 	}
-	// This is necessary because of a bug in CC (when a user task resulted in error later when get usertasks status from CC the corresponding task state is Active and not CompletedWithError...)
-	//if task.State != banzaiv1beta1.CruiseControlTaskCompletedWithError && task.State != banzaiv1beta1.CruiseControlTaskCompleted {
 	task.State = res.State
 	//}
 	return nil

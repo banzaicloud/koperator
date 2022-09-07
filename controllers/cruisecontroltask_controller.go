@@ -88,7 +88,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 	}
 
 	// Check if CruiseControl is ready as we cannot perform any operation until it is in ready state
-	if status := scaler.Status(); status.InExecution() {
+	if status, _ := scaler.Status(); status.InExecution() {
 		log.Info("updating status of Kafka Cluster and requeue event as Cruise Control is in execution")
 		if err := r.UpdateStatus(ctx, instance, tasksAndStates); err != nil {
 			log.Error(err, "failed to update Kafka Cluster status")
