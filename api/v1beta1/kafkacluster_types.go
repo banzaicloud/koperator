@@ -321,6 +321,9 @@ type EnvoyConfig struct {
 	// If not specified, the Envoy pods' priority is default to zero
 	// +optional
 	PriorityClassName string `json:"priorityClassName,omitempty"`
+	// EnableHealthCheckHttp10 is a toggle for adding HTTP1.0 support to Envoy health-check, default false
+	// +optional
+	EnableHealthCheckHttp10 bool `json:"enableHealthCheckHttp10,omitempty"`
 }
 
 // EnvoyCommandLineArgs defines envoy command line arguments

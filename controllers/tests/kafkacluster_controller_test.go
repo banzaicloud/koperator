@@ -291,6 +291,7 @@ var _ = Describe("KafkaCluster with two config external listener", func() {
 
 		kafkaCluster = createMinimalKafkaClusterCR(fmt.Sprintf("kafkacluster-%d", count), namespace)
 		kafkaCluster.Spec.ListenersConfig.ExternalListeners[0].HostnameOverride = ""
+		kafkaCluster.Spec.EnvoyConfig.EnableHealthCheckHttp10 = true
 		testExternalListener := kafkaCluster.Spec.ListenersConfig.ExternalListeners[0]
 		testExternalListener.Config = &v1beta1.Config{
 			DefaultIngressConfig: "az2",

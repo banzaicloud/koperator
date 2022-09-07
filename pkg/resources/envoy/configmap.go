@@ -170,6 +170,11 @@ func generateEnvoyHealthCheckListener(ingressConfig v1beta1.IngressConfig, log l
 			},
 		},
 	}
+	if ingressConfig.EnvoyConfig.EnableHealthCheckHttp10 {
+		healthCheckFilter.HttpProtocolOptions = &envoycore.Http1ProtocolOptions{
+			AcceptHttp_10: true,
+		}
+	}
 	pbstHealthCheckFilter, err := anypb.New(healthCheckFilter)
 	if err != nil {
 		log.Error(err, "could not marshall envoy healthCheckFilter config")
