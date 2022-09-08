@@ -70,6 +70,7 @@ type CruiseControlOperationReconciler struct {
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=cruisecontroloperations,verbs=get;list;watch;create;update;patch;delete;deletecollection
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=cruisecontroloperations/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=cruisecontroloperations/finalizers,verbs=update
+
 //nolint:gocyclo
 func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	log := logr.FromContextOrDiscard(ctx)
@@ -138,6 +139,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		// In tests we requeue faster
 		defaultRequeueIntervalInSeconds = 1
 	}
+
 	// Checking Cruise Control health
 	status, err := r.Scaler.Status()
 	if err != nil {
@@ -171,8 +173,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return requeueAfter(defaultRequeueIntervalInSeconds)
 	}
 	//When the task is not in execution we can remove the finalizer
-	if controllerutil.ContainsFinalizer(currentCCOperation, cruiseControlOperationFinalizer) && !currentCCOperation.ObjectMeta.DeletionTimestamp.IsZero() &&
-		!currentCCOperation.IsCurrentTaskRunning() {
+	if isFinalizeNeeded(currentCCOperation) && !currentCCOperation.IsCurrentTaskRunning() {
 		controllerutil.RemoveFinalizer(currentCCOperation, cruiseControlOperationFinalizer)
 		if err := r.Update(ctx, currentCCOperation); err != nil {
 			return requeueWithError(log, err.Error(), err)
@@ -343,6 +344,10 @@ func SetupCruiseControlOperationWithManager(mgr ctrl.Manager) *ctrl.Builder {
 	return builder
 }
 
+func isFinalizeNeeded(operation *banzaiv1alpha1.CruiseControlOperation) bool {
+	return controllerutil.ContainsFinalizer(operation, cruiseControlOperationFinalizer) && !operation.ObjectMeta.DeletionTimestamp.IsZero()
+}
+
 func getKafkaClusterReference(operation *banzaiv1alpha1.CruiseControlOperation) (client.ObjectKey, error) {
 	if operation.GetClusterRef() == "" {
 		return client.ObjectKey{}, errors.NewWithDetails("could not find kafka cluster reference label for CruiseControlOperation", "missing label", banzaiv1beta1.KafkaCRLabelKey, "name", operation.GetName(), "namespace", operation.GetNamespace())
@@ -396,8 +401,9 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 		task.HTTPRequest = res.RequestURL
 		task.HTTPResponseCode = &res.ResponseStatusCode
 	}
+
 	task.State = res.State
-	//}
+
 	return nil
 }
 
@@ -427,8 +433,7 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 	}
 	for i := range ccOperations {
 		ccOperation := ccOperations[i]
-		log.Info("taskres current", "res", taskResultsByID[ccOperation.GetCurrentTaskID()])
-		if ccOperation.GetCurrentTaskID() != "" {
+		if ccOperation.GetCurrentTaskID() != "" && !ccOperation.IsDone() {
 			if err := updateResult(log, taskResultsByID[ccOperation.GetCurrentTaskID()], ccOperation, false); err != nil {
 				return errors.WrapWithDetails(err, "could not set Cruise Control user task result to CruiseControlOperation CurrentTask", "name", ccOperations[i].GetName(), "namespace", ccOperations[i].GetNamespace())
 			}
