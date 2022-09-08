@@ -118,16 +118,16 @@ func (t *CruiseControlTask) FromResult(operation *kafkav1alpha1.CruiseControlOpe
 		// When CruiseControlOperation is missing
 		case operation == nil:
 			t.BrokerState = kafkav1beta1.GracefulUpscaleSucceeded
+		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
+			t.BrokerState = kafkav1beta1.GracefulUpscaleSucceeded
+		case operation.IsPaused() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
+			t.BrokerState = kafkav1beta1.GracefulUpscalePaused
 		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskInExecution:
 			t.BrokerState = kafkav1beta1.GracefulUpscaleRunning
 		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompleted:
 			t.BrokerState = kafkav1beta1.GracefulUpscaleSucceeded
 		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
 			t.BrokerState = kafkav1beta1.GracefulUpscaleCompletedWithError
-		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.BrokerState = kafkav1beta1.GracefulUpscaleSucceeded
-		case operation.IsPaused() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.BrokerState = kafkav1beta1.GracefulUpscalePaused
 		case operation.GetCurrentTaskState() == "":
 			t.BrokerState = kafkav1beta1.GracefulUpscaleScheduled
 		}
@@ -135,16 +135,16 @@ func (t *CruiseControlTask) FromResult(operation *kafkav1alpha1.CruiseControlOpe
 		switch {
 		case operation == nil:
 			t.BrokerState = kafkav1beta1.GracefulDownscaleSucceeded
+		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
+			t.BrokerState = kafkav1beta1.GracefulDownscaleSucceeded
+		case operation.IsPaused() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
+			t.BrokerState = kafkav1beta1.GracefulDownscalePaused
 		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskInExecution:
 			t.BrokerState = kafkav1beta1.GracefulDownscaleRunning
 		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompleted:
 			t.BrokerState = kafkav1beta1.GracefulDownscaleSucceeded
 		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
 			t.BrokerState = kafkav1beta1.GracefulDownscaleCompletedWithError
-		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.BrokerState = kafkav1beta1.GracefulDownscaleSucceeded
-		case operation.IsPaused() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.BrokerState = kafkav1beta1.GracefulDownscalePaused
 		case operation.GetCurrentTaskState() == "":
 			t.BrokerState = kafkav1beta1.GracefulDownscaleScheduled
 		}
@@ -153,16 +153,16 @@ func (t *CruiseControlTask) FromResult(operation *kafkav1alpha1.CruiseControlOpe
 		switch {
 		case operation == nil:
 			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceSucceeded
+		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
+			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceSucceeded
+		case operation.IsPaused() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
+			t.VolumeState = kafkav1beta1.GracefulDiskRebalancePaused
 		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskInExecution:
 			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceRunning
 		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompleted:
 			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceSucceeded
 		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
 			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceCompletedWithError
-		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceSucceeded
-		case operation.IsPaused() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.VolumeState = kafkav1beta1.GracefulDiskRebalancePaused
 		case operation.GetCurrentTaskState() == "":
 			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceScheduled
 		}
