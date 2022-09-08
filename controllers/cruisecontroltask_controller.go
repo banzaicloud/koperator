@@ -190,11 +190,6 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			// This requeue is not necessary because the cruisecontrloperation controller retry the errored task
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
-		if len(unavailableBrokerIDs) > 0 {
-			log.Info("requeue as there are offline broker log dirs for rebalance", "brokerIDs", unavailableBrokerIDs)
-			// This requeue is not necessary because the cruisecontrloperation controller retry the errored task
-			return requeueAfter(DefaultRequeueAfterTimeInSec)
-		}
 
 		details := []interface{}{"operation", "rebalance disks", "brokers", brokerIDs}
 		cruiseControlOpRef, err := r.rebalanceDisks(ctx, instance, brokerIDs)
