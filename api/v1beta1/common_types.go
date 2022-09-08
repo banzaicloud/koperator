@@ -111,19 +111,6 @@ func (r CruiseControlState) IsActive() bool {
 	return r.IsRunningState() || r.IsRequiredState()
 }
 
-func (r CruiseControlState) Complete() CruiseControlState {
-	switch r {
-	case GracefulUpscaleRequired, GracefulUpscaleRunning:
-		return GracefulUpscaleSucceeded
-	case GracefulDownscaleRequired, GracefulDownscaleRunning:
-		return GracefulDownscaleSucceeded
-	case GracefulUpscaleSucceeded, GracefulDownscaleSucceeded:
-		return r
-	default:
-		return r
-	}
-}
-
 // IsSSL determines if the receiver is using SSL
 func (r SecurityProtocol) IsSSL() bool {
 	return r.Equal(SecurityProtocolSaslSSL) || r.Equal(SecurityProtocolSSL)

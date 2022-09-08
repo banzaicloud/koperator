@@ -126,7 +126,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 		if len(unavailableBrokers) > 0 {
-			log.Info("requeue... broker(s) are not ready for upscale", "brokerIDs", unavailableBrokers)
+			log.Info("requeue as broker(s) are not ready for upscale", "brokerIDs", unavailableBrokers)
 			// This requeue is not necessary because the cruisecontrloperation controller retry the errored task
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
