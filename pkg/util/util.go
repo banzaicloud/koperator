@@ -23,7 +23,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"reflect"
 	"sort"
@@ -502,7 +502,7 @@ func GetBrokerFromBrokerConfigurationBackup(config string) (v1beta1.Broker, erro
 	if err != nil {
 		return v1beta1.Broker{}, err
 	}
-	configJSON, err := ioutil.ReadAll(gzipReader)
+	configJSON, err := io.ReadAll(gzipReader)
 	if err != nil {
 		return v1beta1.Broker{}, err
 	}

@@ -25,7 +25,7 @@ func TestListTopics(t *testing.T) {
 	if topics, err := client.ListTopics(); err != nil {
 		t.Error("Expected no error, got:", err)
 	} else {
-		for topic, _ := range topics {
+		for topic := range topics {
 			if topic != "test-topic" {
 				t.Error("Expected test-topic from mock, got:", topic)
 			}

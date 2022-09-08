@@ -28,6 +28,7 @@ import (
 
 var log = logf.Log.WithName("kafka_util")
 var apiVersion = sarama.V2_6_0_0
+var clientId = "koperator"
 
 // KafkaClient is the exported interface for kafka operations
 type KafkaClient interface {
@@ -166,5 +167,6 @@ func (k *kafkaClient) getSaramaConfig() (config *sarama.Config) {
 		config.Net.TLS.Config = k.opts.TLSConfig
 	}
 	config.Version = apiVersion
+	config.ClientID = clientId
 	return
 }

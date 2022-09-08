@@ -16,7 +16,7 @@ package jmxextractor
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 
@@ -95,7 +95,7 @@ func (exp *jmxExtractor) ExtractDockerImageAndVersion(brokerId int32, brokerConf
 		}
 	}()
 
-	body, err := ioutil.ReadAll(rsp.Body)
+	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, err
 	}

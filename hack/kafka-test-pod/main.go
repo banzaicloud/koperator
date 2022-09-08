@@ -17,7 +17,6 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -86,7 +85,7 @@ func getTLSConfig() *tls.Config {
 	if err != nil {
 		log.Fatal(err)
 	}
-	caCert, err := ioutil.ReadFile(caFile)
+	caCert, err := os.ReadFile(caFile)
 	if err != nil {
 		log.Fatal(err)
 	}

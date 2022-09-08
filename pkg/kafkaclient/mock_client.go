@@ -89,7 +89,7 @@ func (m *mockClusterAdmin) DescribeCluster() ([]*sarama.Broker, int32, error) {
 	if m.failOps {
 		return []*sarama.Broker{}, 0, errors.New("bad describe cluster")
 	}
-	return []*sarama.Broker{&sarama.Broker{}}, 0, nil
+	return []*sarama.Broker{{}}, 0, nil
 }
 
 func (m *mockClusterAdmin) ListTopics() (map[string]sarama.TopicDetail, error) {
@@ -123,9 +123,9 @@ func (m *mockClusterAdmin) DescribeTopics(topics []string) ([]*sarama.TopicMetad
 	switch topics[0] {
 	case "test-topic", "already-created-topic":
 		return []*sarama.TopicMetadata{
-			&sarama.TopicMetadata{
+			{
 				Name:       topics[0],
-				Partitions: []*sarama.PartitionMetadata{&sarama.PartitionMetadata{}},
+				Partitions: []*sarama.PartitionMetadata{{}},
 				Err:        sarama.ErrNoError,
 			},
 		}, nil
@@ -133,9 +133,9 @@ func (m *mockClusterAdmin) DescribeTopics(topics []string) ([]*sarama.TopicMetad
 		return []*sarama.TopicMetadata{}, nil
 	case "with-error":
 		return []*sarama.TopicMetadata{
-			&sarama.TopicMetadata{
+			{
 				Name:       "with-error",
-				Partitions: []*sarama.PartitionMetadata{&sarama.PartitionMetadata{}},
+				Partitions: []*sarama.PartitionMetadata{{}},
 				Err:        sarama.ErrUnknown,
 			},
 		}, nil
@@ -229,13 +229,13 @@ func (m *mockClusterAdmin) DeleteACL(filter sarama.AclFilter, validateOnly bool)
 	}
 	switch *filter.Principal {
 	case "test-user":
-		return []sarama.MatchingAcl{sarama.MatchingAcl{}}, nil
+		return []sarama.MatchingAcl{{}}, nil
 	case "with-error":
-		return []sarama.MatchingAcl{sarama.MatchingAcl{Err: sarama.ErrUnknown}}, nil
+		return []sarama.MatchingAcl{{Err: sarama.ErrUnknown}}, nil
 	default:
 		// for mock it's enough to erase the whole map
 		m.mockACLs = make(map[sarama.Resource]*sarama.ResourceAcls, 0)
-		return []sarama.MatchingAcl{sarama.MatchingAcl{}}, nil
+		return []sarama.MatchingAcl{{}}, nil
 	}
 }
 
