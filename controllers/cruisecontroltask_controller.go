@@ -120,7 +120,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		}
 		details := []interface{}{"operation", "add broker", "brokers", brokerIDs}
 
-		unavailableBrokers, err := checkBrokersAvailability(scaler, log, brokerIDs)
+		unavailableBrokers, err := checkBrokersAvailability(scaler, brokerIDs)
 		if err != nil {
 			log.Error(err, "could not get unavailable brokers for upscale")
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
@@ -147,10 +147,6 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		var removeTask *CruiseControlTask
 		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationRemoveBroker) {
 			removeTask = task
-			break
-		}
-
-		if removeTask == nil {
 			break
 		}
 
@@ -212,11 +208,11 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 	return reconciled()
 }
 
-func checkBrokersAvailability(scaler scale.CruiseControlScaler, log logr.Logger, brokerIDs []string) ([]string, error) {
+func checkBrokersAvailability(scaler scale.CruiseControlScaler, brokerIDs []string) ([]string, error) {
 	states := []scale.KafkaBrokerState{scale.KafkaBrokerAlive, scale.KafkaBrokerNew}
 	availableBrokers, err := scaler.BrokersWithState(states...)
 	if err != nil {
-		return nil, errors.WrapIf(err, "failed to retrieve list of available brokers from Cruise Control")
+		return nil, errors.WrapIff(err, "failed to retrieve list of available brokers from Cruise Control")
 	}
 
 	availableBrokersMap := scale.StringSliceToMap(availableBrokers)
