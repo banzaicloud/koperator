@@ -47,21 +47,6 @@ func (t *CruiseControlTask) IsRequired() bool {
 	return false
 }
 
-func (t *CruiseControlTask) IsRunning() bool {
-	if t == nil {
-		return true
-	}
-
-	//nolint:exhaustive
-	switch t.Operation {
-	case kafkav1alpha1.OperationAddBroker, kafkav1alpha1.OperationRemoveBroker:
-		return t.BrokerState.IsRunningState()
-	case kafkav1alpha1.OperationRebalance:
-		return t.VolumeState.IsRunningState()
-	}
-	return false
-}
-
 // Apply takes a kafkav1beta1.KafkaCluster instance and updates its Status field to reflect the state of the task.
 func (t *CruiseControlTask) Apply(instance *kafkav1beta1.KafkaCluster) {
 	if t == nil || instance == nil {

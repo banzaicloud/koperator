@@ -72,6 +72,7 @@ var csrClient *csrclient.CertificatesV1Client
 var testEnv *envtest.Environment
 var mockKafkaClients map[types.NamespacedName]kafkaclient.KafkaClient
 var cruiseControlOperationReconciler controllers.CruiseControlOperationReconciler
+var kafkaClusterCCReconciler controllers.CruiseControlTaskReconciler
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -168,7 +169,7 @@ var _ = BeforeSuite(func() {
 	err = controllers.SetupKafkaUserWithManager(mgr, true, true).Complete(&kafkaUserReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
-	kafkaClusterCCReconciler := controllers.CruiseControlTaskReconciler{
+	kafkaClusterCCReconciler = controllers.CruiseControlTaskReconciler{
 		Client:       mgr.GetClient(),
 		DirectClient: mgr.GetAPIReader(),
 		Scheme:       mgr.GetScheme(),

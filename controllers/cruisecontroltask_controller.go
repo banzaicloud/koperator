@@ -42,7 +42,8 @@ import (
 )
 
 const (
-	DefaultRequeueAfterTimeInSec = 20
+	DefaultRequeueAfterTimeInSec          = 20
+	CruiseControlTaskTestKafkaClusterName = "cruisecontroltask-test"
 )
 
 // CruiseControlTaskReconciler reconciles a kafka cluster object
@@ -50,6 +51,7 @@ type CruiseControlTaskReconciler struct {
 	client.Client
 	DirectClient client.Reader
 	Scheme       *runtime.Scheme
+	Scaler       scale.CruiseControlScaler
 }
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
@@ -104,9 +106,11 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		return requeueAfter(DefaultRequeueAfterTimeInSec)
 	}
 
-	scaler, err := scale.NewCruiseControlScaler(ctx, scale.CruiseControlURLFromKafkaCluster(instance))
-	if err != nil {
-		return requeueWithError(log, "failed to create Cruise Control Scaler instance", err)
+	if _, ok := r.Scaler.(*scale.MockCruiseControlScaler); !ok {
+		r.Scaler, err = scale.NewCruiseControlScaler(ctx, scale.CruiseControlURLFromKafkaCluster(instance))
+		if err != nil {
+			return requeueWithError(log, "failed to create Cruise Control Scaler instance", err)
+		}
 	}
 
 	switch {
@@ -120,7 +124,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		}
 		details := []interface{}{"operation", "add broker", "brokers", brokerIDs}
 
-		unavailableBrokers, err := checkBrokersAvailability(scaler, brokerIDs)
+		unavailableBrokers, err := checkBrokersAvailability(r.Scaler, brokerIDs)
 		if err != nil {
 			log.Error(err, "could not get unavailable brokers for upscale")
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
@@ -160,7 +164,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		removeTask.SetStateScheduled()
 
 	case tasksAndStates.NumActiveTasksByOp(banzaiv1alpha1.OperationRebalance) > 0:
-		logDirsByBroker, err := scaler.LogDirsByBroker()
+		logDirsByBroker, err := r.Scaler.LogDirsByBroker()
 		if err != nil {
 			log.Error(err, "failed to get list of volumes per broker from Cruise Control")
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
