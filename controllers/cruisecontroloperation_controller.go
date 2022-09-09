@@ -173,7 +173,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return requeueAfter(defaultRequeueIntervalInSeconds)
 	}
 	//When the task is not in execution we can remove the finalizer
-	if isFinalizeNeeded(currentCCOperation) && !currentCCOperation.IsCurrentTaskRunning() {
+	if isFinalizerNeeded(currentCCOperation) && !currentCCOperation.IsCurrentTaskRunning() {
 		controllerutil.RemoveFinalizer(currentCCOperation, cruiseControlOperationFinalizer)
 		if err := r.Update(ctx, currentCCOperation); err != nil {
 			return requeueWithError(log, err.Error(), err)
@@ -207,7 +207,11 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	cruseControlTaskResult, err := r.executeOperation(ccOperationExecution)
 
 	if err != nil {
-		log.Error(err, "Cruise Control task execution got an error", "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTaskParameters())
+		log.Error(err, "Cruise Control task execution got an error", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTaskParameters())
+		// This can happen when the CruiseControlOperation parameter is wrong
+		if cruseControlTaskResult == nil {
+			return requeueWithError(log, "CruiseControlOperation custom resource is invalid", err)
+		}
 	}
 
 	// Protection to avoid re-execution task when status update is failed
@@ -344,7 +348,7 @@ func SetupCruiseControlOperationWithManager(mgr ctrl.Manager) *ctrl.Builder {
 	return builder
 }
 
-func isFinalizeNeeded(operation *banzaiv1alpha1.CruiseControlOperation) bool {
+func isFinalizerNeeded(operation *banzaiv1alpha1.CruiseControlOperation) bool {
 	return controllerutil.ContainsFinalizer(operation, cruiseControlOperationFinalizer) && !operation.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
@@ -359,7 +363,7 @@ func getKafkaClusterReference(operation *banzaiv1alpha1.CruiseControlOperation) 
 }
 
 func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.CruiseControlOperation, isAfterExecution bool) error {
-	// This can happen rarely when the max cached completed user tasks reached
+	// This can happen rarely when the max cached completed user tasks is reached
 	if res == nil {
 		log.Error(missingCCResErr, "Cruise Control's max.cached.completed.user.tasks configuration value probably too small. Missing user task state is handled as completedWithError", "name", operation.GetName(), "namespace", operation.GetNamespace(), "task ID", operation.GetCurrentTaskID())
 		res = &scale.Result{
@@ -407,7 +411,7 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 	return nil
 }
 
-// updateActiveTasks updates the state of the CruiseControlOperation from the CruiseControlTasksAndStates instance by getting their
+// updateCurrentTasks the state of the CruiseControlOperation from the CruiseControlTasksAndStates instance by getting their
 // status from Cruise Control.
 func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Context, ccOperations []*banzaiv1alpha1.CruiseControlOperation) error {
 	log := logr.FromContextOrDiscard(ctx)
@@ -451,10 +455,7 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 }
 
 func isWaitingForFinalize(ccOperation *banzaiv1alpha1.CruiseControlOperation) bool {
-	if ccOperation.IsCurrentTaskRunning() && !ccOperation.ObjectMeta.DeletionTimestamp.IsZero() && controllerutil.ContainsFinalizer(ccOperation, cruiseControlOperationFinalizer) {
-		return true
-	}
-	return false
+	return ccOperation.IsCurrentTaskRunning() && !ccOperation.ObjectMeta.DeletionTimestamp.IsZero() && controllerutil.ContainsFinalizer(ccOperation, cruiseControlOperationFinalizer)
 }
 
 func parseSummary(res *types.OptimizationResult) map[string]string {

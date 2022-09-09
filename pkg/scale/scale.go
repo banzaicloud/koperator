@@ -35,24 +35,24 @@ const (
 	brokerID       = "brokerid"
 	excludeDemoted = "exclude_recently_demoted_brokers"
 	excludeRemoved = "exclude_recently_removed_brokers"
-	destbrokeriIDs = "destination_broker_ids"
+	destbrokerIDs  = "destination_broker_ids"
 	rebalanceDisk  = "rebalance_disk"
 )
 
 var (
-	newCruiseControlScaler                       = createNewDefaultCruiseControlScaler
-	addBrokerSupportedParams map[string]struct{} = map[string]struct{}{
+	newCruiseControlScaler   = createNewDefaultCruiseControlScaler
+	addBrokerSupportedParams = map[string]struct{}{
 		brokerID:       {},
 		excludeDemoted: {},
 		excludeRemoved: {},
 	}
-	removeBrokerSupportedParams map[string]struct{} = map[string]struct{}{
+	removeBrokerSupportedParams = map[string]struct{}{
 		brokerID:       {},
 		excludeDemoted: {},
 		excludeRemoved: {},
 	}
-	rebalanceSupportedParams map[string]struct{} = map[string]struct{}{
-		destbrokeriIDs: {},
+	rebalanceSupportedParams = map[string]struct{}{
+		destbrokerIDs:  {},
 		rebalanceDisk:  {},
 		excludeDemoted: {},
 		excludeRemoved: {},
@@ -142,15 +142,6 @@ func (cc *cruiseControlScaler) IsUp() bool {
 	return err == nil
 }
 
-// IsUp returns true if Cruise Control is online.
-func (cc *cruiseControlScaler) GetNumMonitoredWin() (float32, types.MonitorState, error) {
-	res, err := cc.client.State(api.StateRequestWithDefaults())
-	if err != nil || res == nil {
-		return 0, 0, err
-	}
-	return res.Result.MonitorState.NumMonitoredWindows, res.Result.MonitorState.State, nil
-}
-
 // GetUserTasks returns list of Result describing User Tasks from Cruise Control for the provided task IDs.
 func (cc *cruiseControlScaler) GetUserTasks(taskIDs ...string) ([]*Result, error) {
 	req := &api.UserTasksRequest{
@@ -222,7 +213,6 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 	}
 
 	addBrokerResp, err := cc.client.AddBroker(addBrokerReq)
-	// TODO (zob) || StatusCode >= 500
 	if err != nil {
 		return &Result{
 			TaskID:             addBrokerResp.TaskID,
@@ -456,7 +446,7 @@ func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*R
 	for param, pvalue := range params {
 		if _, ok := rebalanceSupportedParams[param]; ok {
 			switch param {
-			case destbrokeriIDs:
+			case destbrokerIDs:
 				ret, err := parseBrokerIDtoSlice(pvalue)
 				if err != nil {
 					return nil, err

@@ -201,7 +201,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("there is a new remove_roker and an errored remove_broker operation with pause annotation", func() {
+	When("there is a new remove_broker and an errored remove_broker operation with pause annotation", func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
 			// First operation will get completedWithError
@@ -251,7 +251,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 40*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("there is a new remove_roker and an errored remove_broker operation", func() {
+	When("there is a new remove_broker and an errored remove_broker operation", func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
 			// First operation will get completedWithError
@@ -300,7 +300,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("there is a new remove_roker and an errored remove_broker operation with ignore errorpolicy", func() {
+	When("there is a new remove_broker and an errored remove_broker operation with ignore ErrorPolicy", func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
 			// Creating first operation
