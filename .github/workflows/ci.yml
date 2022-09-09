@@ -14,7 +14,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
 
       - name: Checkout code
         uses: actions/checkout@v3
@@ -31,6 +31,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: make license-cache
+
+      - name: Vendor dependencies to retrieve licenses locally
+        # Vendor deps before running https://github.com/goph/licensei
+        # to avoid false-positive when modules github repo could not be determined
+        run: go mod vendor
 
       - name: Check licenses
         env:

@@ -15,7 +15,7 @@
 package receiver
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/go-logr/logr"
@@ -51,7 +51,7 @@ func (a *HTTPController) reciveAlert(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch r.Method {
 	case "POST":
-		alert, err := ioutil.ReadAll(r.Body)
+		alert, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "reading request body failed", http.StatusInternalServerError)
 			return

@@ -8,7 +8,6 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     # - dupl            # NOTE: intentionally disabled
@@ -34,15 +33,14 @@ linters:
 #    - noctx # Note: FIXME by adding refactoring http calls
     # - nolintlint      # NOTE: intentionally disabled
     - rowserrcheck
+    - reassign
     - exportloopref
     - staticcheck
-    - structcheck
 #    - stylecheck # NOTE: brokerID must be dealt as brokerId
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
 linters-settings:

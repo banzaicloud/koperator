@@ -20,7 +20,7 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
-//nolint: funlen
+// nolint: funlen
 func TestCheckBrokerStorageRemoval(t *testing.T) {
 	testCases := []struct {
 		testName            string
