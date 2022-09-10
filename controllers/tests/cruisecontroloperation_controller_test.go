@@ -161,10 +161,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
-				//	ID:        "12345",
 				Operation: v1alpha1.OperationRemoveBroker,
-				//	State:     v1beta1.CruiseControlTaskCompletedWithError,
-				Finished: &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
+				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 			}
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -204,7 +202,6 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	When("there is a new remove_broker and an errored remove_broker operation with pause annotation", func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
-			// First operation will get completedWithError
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Labels["pause"] = "true"
 			err := k8sClient.Create(context.TODO(), &operation)
@@ -261,6 +258,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
+				ID:        "12345",
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 				Operation: v1alpha1.OperationRemoveBroker,
 				State:     v1beta1.CruiseControlTaskCompletedWithError,
@@ -402,6 +400,10 @@ func getScaleMock4(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 		TaskID:    "1",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskCompleted,
+	}), scaleResultPointer(scale.Result{
+		TaskID:    "12345",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
+		State:     v1beta1.CruiseControlTaskCompletedWithError,
 	})}
 	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
