@@ -251,55 +251,6 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 40*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("there is a new remove_broker and an errored remove_broker operation", func() {
-		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
-			// First operation will get completedWithError
-			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
-			err := k8sClient.Create(context.TODO(), &operation)
-			Expect(err).NotTo(HaveOccurred())
-
-			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
-				ID:        "1",
-				State:     v1beta1.CruiseControlTaskCompletedWithError,
-				Operation: v1alpha1.OperationRemoveBroker,
-				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
-			}
-			err = k8sClient.Status().Update(context.TODO(), &operation)
-			Expect(err).NotTo(HaveOccurred())
-			// Creating the second operation
-			operation = generateCruiseControlOperation(opName2, namespace, kafkaCluster.GetName())
-			err = k8sClient.Create(context.TODO(), &operation)
-			Expect(err).NotTo(HaveOccurred())
-			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
-				Operation: v1alpha1.OperationRemoveBroker,
-			}
-			err = k8sClient.Status().Update(context.TODO(), &operation)
-			Expect(err).NotTo(HaveOccurred())
-		})
-		It("should execute errored remove_broker operation first", func() {
-			Eventually(func() bool {
-				operation1 := v1alpha1.CruiseControlOperation{}
-				err := k8sClient.Get(context.Background(), client.ObjectKey{
-					Namespace: kafkaCluster.Namespace,
-					Name:      opName1,
-				}, &operation1)
-				if err != nil {
-					return false
-				}
-				operation2 := v1alpha1.CruiseControlOperation{}
-				err = k8sClient.Get(context.Background(), client.ObjectKey{
-					Namespace: kafkaCluster.Namespace,
-					Name:      opName2,
-				}, &operation2)
-				if err != nil {
-					return false
-				}
-
-				return operation1.Status.NumberOfRetries > 1 && (operation2.GetCurrentTaskState() == "" && operation2.GetCurrentTask().ID != "1")
-			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
-		})
-	})
 	When("there is a new remove_broker and an errored remove_broker operation with ignore ErrorPolicy", func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
@@ -326,7 +277,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			err = k8sClient.Status().Update(context.TODO(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 		})
-		FIt("should execute the new remove_broker operation and should not execute the errored one", func() {
+		It("should execute the new remove_broker operation and should not execute the errored one", func() {
 			Eventually(func() bool {
 				operation1 := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -374,7 +325,9 @@ func getScaleMock2(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
-	}).AnyTimes()
+		MonitorReady:  true,
+		AnalyzerReady: true,
+	}, nil).AnyTimes()
 	scaleMock.EXPECT().AddBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
@@ -395,7 +348,9 @@ func getScaleMock1(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
-	}).AnyTimes()
+		MonitorReady:  true,
+		AnalyzerReady: true,
+	}, nil).AnyTimes()
 	scaleMock.EXPECT().AddBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
@@ -421,7 +376,9 @@ func getScaleMock3(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
-	}).AnyTimes()
+		MonitorReady:  true,
+		AnalyzerReady: true,
+	}, nil).AnyTimes()
 	scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
@@ -449,7 +406,9 @@ func getScaleMock4(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult, nil).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
-	}).AnyTimes()
+		MonitorReady:  true,
+		AnalyzerReady: true,
+	}, nil).AnyTimes()
 	scaleMock.EXPECT().RemoveBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "1",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
@@ -477,7 +436,9 @@ func getScaleMock5(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	scaleMock.EXPECT().GetUserTasks(gomock.Any()).Return(userTaskResult2, nil).After(first).AnyTimes()
 	scaleMock.EXPECT().Status().Return(scale.CruiseControlStatus{
 		ExecutorReady: true,
-	}).AnyTimes()
+		MonitorReady:  true,
+		AnalyzerReady: true,
+	}, nil).AnyTimes()
 	scaleMock.EXPECT().AddBrokersWithParams(gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
