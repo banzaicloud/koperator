@@ -66,7 +66,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 
 		kafkaCluster.Spec.IngressController = istioingress.IngressControllerName
-		kafkaCluster.Spec.IstioControlPlane = &v1beta1.IstioControlPlaneReference{Name: "icp-v113x-sample", Namespace: "istio-system"}
+		kafkaCluster.Spec.IstioControlPlane = &v1beta1.IstioControlPlaneReference{Name: "icp-v115x-sample", Namespace: "istio-system"}
 		kafkaCluster.Spec.ListenersConfig.ExternalListeners = []v1beta1.ExternalListenerConfig{
 			{
 				CommonListenerSpec: v1beta1.CommonListenerSpec{
@@ -144,8 +144,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 
 			actualResourceJSON, err := json.Marshal(deploymentConf.Resources)
 			Expect(err).NotTo(HaveOccurred())
-			var expectedResource *istioOperatorApi.ResourceRequirements
-			expectedResource = &istioOperatorApi.ResourceRequirements{
+			expectedResource := &istioOperatorApi.ResourceRequirements{
 				Limits: map[string]*istioOperatorApi.Quantity{
 					"cpu":    {Quantity: resource.MustParse("2000m")},
 					"memory": {Quantity: resource.MustParse("1024Mi")},
@@ -417,7 +416,7 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 
 		kafkaCluster.Spec.IngressController = istioingress.IngressControllerName
-		kafkaCluster.Spec.IstioControlPlane = &v1beta1.IstioControlPlaneReference{Name: "icp-v113x-sample", Namespace: "istio-system"}
+		kafkaCluster.Spec.IstioControlPlane = &v1beta1.IstioControlPlaneReference{Name: "icp-v115x-sample", Namespace: "istio-system"}
 		kafkaCluster.Spec.ListenersConfig.ExternalListeners = []v1beta1.ExternalListenerConfig{
 			{
 				CommonListenerSpec: v1beta1.CommonListenerSpec{

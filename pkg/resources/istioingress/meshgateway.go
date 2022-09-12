@@ -16,6 +16,7 @@ package istioingress
 
 import (
 	"fmt"
+
 	istioOperatorApi "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 	"github.com/go-logr/logr"
 	"google.golang.org/protobuf/types/known/wrapperspb"
