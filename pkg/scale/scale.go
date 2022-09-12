@@ -179,6 +179,9 @@ func parseBrokerIDtoSlice(brokerid string) ([]int32, error) {
 	return ret, nil
 }
 
+// AddBrokersWithParams requests Cruise Control to add the list of provided brokers to the Kafka cluster
+// by reassigning partition replicas to them. The broker list and operation properties can be added
+// with the use of the params argument.
 func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*Result, error) {
 	addBrokerReq := &api.AddBrokerRequest{
 		AllowCapacityEstimation: true,
@@ -234,6 +237,7 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 	}, nil
 }
 
+// StopExecution requests Cruise Control to stop running operation gracefully
 func (cc *cruiseControlScaler) StopExecution() (*Result, error) {
 	stopReq := api.StopProposalExecutionRequest{}
 	stopResp, err := cc.client.StopProposalExecution(&stopReq)
@@ -372,7 +376,7 @@ func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) 
 }
 
 // RemoveBrokers requests Cruise Control to move partition replicase off from the provided brokers.
-// It does not attempt to remove the provided brokers in case none of them are available in Cruise Control.
+// The broker list and operation properties can be added with the use of the params argument.
 func (cc *cruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*Result, error) {
 	if len(brokerIDs) == 0 {
 		return nil, errors.New("no broker id(s) provided for remove brokers request")
