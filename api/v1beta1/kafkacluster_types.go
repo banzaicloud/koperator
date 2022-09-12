@@ -339,15 +339,15 @@ type EnvoyCommandLineArgs struct {
 type IstioIngressConfig struct {
 	Resources *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
 	// +kubebuilder:validation:Minimum=1
-	Replicas     int32               `json:"replicas,omitempty"`
-	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
-	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
+	Replicas     int32                `json:"replicas,omitempty"`
+	NodeSelector map[string]string    `json:"nodeSelector,omitempty"`
+	Tolerations  []*corev1.Toleration `json:"tolerations,omitempty"`
 	// Annotations defines the annotations placed on the istio ingress controller deployment
 	Annotations               map[string]string   `json:"annotations,omitempty"`
 	TLSOptions                *v1beta1.TLSOptions `json:"gatewayConfig,omitempty"`
 	VirtualServiceAnnotations map[string]string   `json:"virtualServiceAnnotations,omitempty"`
 	// Envs allows to add additional env vars to the istio meshgateway resource
-	Envs []corev1.EnvVar `json:"envs,omitempty"`
+	Envs []*corev1.EnvVar `json:"envs,omitempty"`
 	// If specified and supported by the platform, traffic through the
 	// cloud-provider load-balancer will be restricted to the specified client
 	// IPs. This field will be ignored if the

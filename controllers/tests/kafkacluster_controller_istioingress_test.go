@@ -144,7 +144,8 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 
 			actualResourceJSON, err := json.Marshal(deploymentConf.Resources)
 			Expect(err).NotTo(HaveOccurred())
-			expectedResource := istioOperatorApi.ResourceRequirements{
+			var expectedResource *istioOperatorApi.ResourceRequirements
+			expectedResource = &istioOperatorApi.ResourceRequirements{
 				Limits: map[string]*istioOperatorApi.Quantity{
 					"cpu":    {Quantity: resource.MustParse("2000m")},
 					"memory": {Quantity: resource.MustParse("1024Mi")},

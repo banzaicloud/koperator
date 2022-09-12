@@ -647,9 +647,13 @@ func (in *IstioIngressConfig) DeepCopyInto(out *IstioIngressConfig) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]v1.Toleration, len(*in))
+		*out = make([]*v1.Toleration, len(*in))
 		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(v1.Toleration)
+				(*in).DeepCopyInto(*out)
+			}
 		}
 	}
 	if in.Annotations != nil {
@@ -673,9 +677,13 @@ func (in *IstioIngressConfig) DeepCopyInto(out *IstioIngressConfig) {
 	}
 	if in.Envs != nil {
 		in, out := &in.Envs, &out.Envs
-		*out = make([]v1.EnvVar, len(*in))
+		*out = make([]*v1.EnvVar, len(*in))
 		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(v1.EnvVar)
+				(*in).DeepCopyInto(*out)
+			}
 		}
 	}
 	if in.LoadBalancerSourceRanges != nil {
