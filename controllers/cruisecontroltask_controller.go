@@ -220,6 +220,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 
 func checkBrokersAvailability(scaler scale.CruiseControlScaler, brokerIDs []string) ([]string, error) {
 	states := []scale.KafkaBrokerState{scale.KafkaBrokerAlive, scale.KafkaBrokerNew}
+	// This can result NullPointerException when the capacity calculation is missing for a broker in the cruisecontrol configmap
 	availableBrokers, err := scaler.BrokersWithState(states...)
 	if err != nil {
 		return nil, errors.WrapIff(err, "failed to retrieve list of available brokers from Cruise Control")
