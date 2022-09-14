@@ -28,10 +28,13 @@ import (
 	"github.com/banzaicloud/go-cruise-control/pkg/client"
 	"github.com/banzaicloud/go-cruise-control/pkg/types"
 
+	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 const (
+	// Constans for the Cruise Control operations parameters
+	// Check for more details: https://github.com/linkedin/cruise-control/wiki/REST-APIs
 	brokerID       = "brokerid"
 	excludeDemoted = "exclude_recently_demoted_brokers"
 	excludeRemoved = "exclude_recently_removed_brokers"
@@ -167,16 +170,16 @@ func (cc *cruiseControlScaler) GetUserTasks(taskIDs ...string) ([]*Result, error
 
 // parseBrokerIDtoSlice parses brokerIDs to int slice
 func parseBrokerIDtoSlice(brokerid string) ([]int32, error) {
-	var ret []int32
+	var brokerIDIntSlice []int32
 	splittedBrokerIDs := strings.Split(brokerid, ",")
 	for _, brokerID := range splittedBrokerIDs {
 		brokerIDint, err := strconv.ParseInt(brokerID, 10, 32)
 		if err != nil {
 			return nil, err
 		}
-		ret = append(ret, int32(brokerIDint))
+		brokerIDIntSlice = append(brokerIDIntSlice, int32(brokerIDint))
 	}
-	return ret, nil
+	return brokerIDIntSlice, nil
 }
 
 // AddBrokersWithParams requests Cruise Control to add the list of provided brokers to the Kafka cluster
@@ -210,7 +213,7 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 				}
 				addBrokerReq.ExcludeRecentlyRemovedBrokers = ret
 			default:
-				return nil, fmt.Errorf("unsupported add_broker parameter: %s, supported parameters: %s", param, addBrokerSupportedParams)
+				return nil, fmt.Errorf("unsupported %s parameter: %s, supported parameters: %s", v1alpha1.OperationAddBroker, param, addBrokerSupportedParams)
 			}
 		}
 	}
@@ -287,7 +290,7 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string)
 				}
 				rmBrokerReq.ExcludeRecentlyRemovedBrokers = ret
 			default:
-				return nil, fmt.Errorf("unsupported remove_broker parameter: %s, supported parameters: %s", param, removeBrokerSupportedParams)
+				return nil, fmt.Errorf("unsupported %s parameter: %s, supported parameters: %s", v1alpha1.OperationRemoveBroker, param, removeBrokerSupportedParams)
 			}
 		}
 	}
@@ -335,7 +338,7 @@ func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) 
 		return nil, err
 	}
 
-	availableBrokersMap := StringSliceToMap(availableBrokers)
+	availableBrokersMap := stringSliceToMap(availableBrokers)
 	unavailableBrokerIDs := make([]string, 0, len(brokerIDs))
 	for _, id := range brokerIDs {
 		if _, ok := availableBrokersMap[id]; !ok {
@@ -475,7 +478,7 @@ func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*R
 				}
 				rebalanceReq.ExcludeRecentlyRemovedBrokers = ret
 			default:
-				return nil, fmt.Errorf("unsupported rebalance parameter: %s, supported parameters: %s", param, rebalanceSupportedParams)
+				return nil, fmt.Errorf("unsupported %s parameter: %s, supported parameters: %s", v1alpha1.OperationRebalance, param, rebalanceSupportedParams)
 			}
 		}
 	}
@@ -517,7 +520,7 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, err
 		return nil, err
 	}
 
-	brokerIDsMap := StringSliceToMap(brokerIDs)
+	brokerIDsMap := stringSliceToMap(brokerIDs)
 
 	brokersWithEmptyDisks := make([]int32, 0, len(brokerIDs))
 	for _, brokerStat := range clusterLoadResp.Result.Brokers {

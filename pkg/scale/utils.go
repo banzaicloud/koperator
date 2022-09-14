@@ -63,7 +63,7 @@ func cruiseControlURL(endpoint string, secure bool) string {
 	return fmt.Sprintf("%s://%s/%s", scheme, endpoint, "kafkacruisecontrol")
 }
 
-func StringSliceToMap(s []string) map[string]bool {
+func stringSliceToMap(s []string) map[string]bool {
 	brokerIDsMap := make(map[string]bool, len(s))
 	for _, id := range s {
 		brokerIDsMap[id] = true

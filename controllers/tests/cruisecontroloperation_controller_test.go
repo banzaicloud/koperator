@@ -96,7 +96,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(Equal(v1beta1.CruiseControlTaskCompleted))
 		})
 	})
-	When("add_broker operation is finished with completedWithError and 30s has not epalsed", func() {
+	When("add_broker operation is finished with completedWithError and 30s has not elapsed", func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock2(GinkgoT())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
@@ -123,7 +123,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("add_broker operation is finished with completedWithError and 30s has epalsed", func() {
+	When("add_broker operation is finished with completedWithError and 30s has elapsed", func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.Scaler = getScaleMock5(GinkgoT())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
