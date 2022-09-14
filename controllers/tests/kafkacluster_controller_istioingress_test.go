@@ -25,9 +25,6 @@ import (
 
 	istioOperatorApi "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
-	"github.com/banzaicloud/koperator/api/v1beta1"
-	"github.com/banzaicloud/koperator/pkg/util"
-	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/ginkgo"
@@ -37,6 +34,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/util"
+	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 )
 
 var _ = Describe("KafkaClusterIstioIngressController", func() {

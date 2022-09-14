@@ -8,7 +8,7 @@ require (
 	github.com/Shopify/sarama v1.36.0
 	github.com/banzaicloud/go-cruise-control v0.0.0-20220607120220-b616ae113366
 	github.com/banzaicloud/istio-client-go v0.0.17
-	github.com/banzaicloud/istio-operator/api/v2 v2.14.0-rc.1
+	github.com/banzaicloud/istio-operator/api/v2 v2.14.0
 	github.com/banzaicloud/k8s-objectmatcher v1.8.0
 	github.com/banzaicloud/koperator/api v0.0.0
 	github.com/banzaicloud/koperator/properties v0.0.0
@@ -138,4 +138,5 @@ replace (
 	github.com/banzaicloud/koperator/api => ./api
 	github.com/banzaicloud/koperator/properties => ./properties
 	github.com/gogo/protobuf => github.com/waynz0r/protobuf v1.3.3-0.20210811122234-64636cae0910
+	github.com/golang/protobuf => github.com/luciferinlove/protobuf v0.0.0-20220913214010-c63936d75066
 )

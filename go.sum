@@ -98,6 +98,8 @@ github.com/banzaicloud/istio-client-go v0.0.17 h1:wiplbM7FDiIHopujInAnin3zuovtVc
 github.com/banzaicloud/istio-client-go v0.0.17/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
 github.com/banzaicloud/istio-operator/api/v2 v2.14.0-rc.1 h1:jPoiGPymDtPuZ/XcCTptRvj31++2tfUV60PBFkRyzeg=
 github.com/banzaicloud/istio-operator/api/v2 v2.14.0-rc.1/go.mod h1:OgmVTp1T0Pq1R1JJTK8Xo4wSJkiRuQCyZh0TNSFM6YQ=
+github.com/banzaicloud/istio-operator/api/v2 v2.14.0 h1:AM/K15z9jJ7NGucC7nAPz0FLMSXd7jYmSyiEBOkdLTo=
+github.com/banzaicloud/istio-operator/api/v2 v2.14.0/go.mod h1:5qCpwWlIfxiLvBfTvT2mD2wp5RlFCDEt8Xql4sYPNBc=
 github.com/banzaicloud/k8s-objectmatcher v1.8.0 h1:Nugn25elKtPMTA2br+JgHNeSQ04sc05MDPmpJnd1N2A=
 github.com/banzaicloud/k8s-objectmatcher v1.8.0/go.mod h1:p2LSNAjlECf07fbhDyebTkPUIYnU05G+WfGgkTmgeMg=
 github.com/banzaicloud/operator-tools v0.28.0 h1:GSfc0qZr6zo7WrNxdgWZE1LcTChPU8QFYOTDirYVtIM=
@@ -459,6 +461,8 @@ github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
 github.com/lithammer/dedent v1.1.0/go.mod h1:jrXYCQtgg0nJiN+StA2KgR7w6CiQNv9Fd/Z9BP0jIOc=
+github.com/luciferinlove/protobuf v0.0.0-20220913214010-c63936d75066 h1:BQKOM2ATglKs0TQ55cJ/PDzqKjpzJ8P8UANBeifLHdY=
+github.com/luciferinlove/protobuf v0.0.0-20220913214010-c63936d75066/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
 github.com/lyft/protoc-gen-star v0.6.0/go.mod h1:TGAoBVkt8w7MPG72TrKIu85MIdXwDuzJYeZuUPFPNwA=
 github.com/magiconair/properties v1.8.1/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/magiconair/properties v1.8.5/go.mod h1:y3VJvCyxH9uVvJTWEGAELF3aiYNyPKd5NZ3oSwXrF60=
