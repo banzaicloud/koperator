@@ -52,9 +52,9 @@ const (
 var (
 	defaultRequeueIntervalInSeconds = 10
 	executionPriorityMap            = map[banzaiv1alpha1.CruiseControlTaskOperation]int{
-		banzaiv1alpha1.OperationAddBroker:    0,
+		banzaiv1alpha1.OperationAddBroker:    2,
 		banzaiv1alpha1.OperationRemoveBroker: 1,
-		banzaiv1alpha1.OperationRebalance:    2,
+		banzaiv1alpha1.OperationRebalance:    0,
 	}
 	missingCCResErr = errors.New("missing Cruise Control user task result")
 )
