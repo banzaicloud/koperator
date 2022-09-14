@@ -106,6 +106,12 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		return requeueAfter(DefaultRequeueAfterTimeInSec)
 	}
 
+	if instance.Spec.CruiseControlConfig.CruiseControlOperatonSpec.AutoRemoveSucceededOperation {
+		if err := r.removeSucceededCruiseControlOperations(ctx, tasksAndStates, instance.GetNamespace()); err != nil {
+			log.Error(err, "could not remove unnecessary CruiseControlOpration custom resources")
+		}
+	}
+
 	if _, ok := r.Scaler.(*scale.MockCruiseControlScaler); !ok {
 		r.Scaler, err = scale.NewCruiseControlScaler(ctx, scale.CruiseControlURLFromKafkaCluster(instance))
 		if err != nil {
@@ -418,6 +424,34 @@ func updateActiveTasks(tasksAndStates *CruiseControlTasksAndStates, ccOperations
 		}
 
 		task.FromResult(ccOperationMap[task.CruiseControlOperationReference.Name])
+
 	}
 	return nil
+}
+
+func (r *CruiseControlTaskReconciler) removeSucceededCruiseControlOperations(ctx context.Context, tasksAndStates *CruiseControlTasksAndStates, kafkaNamespace string) error {
+	var err error
+	log := logr.FromContextOrDiscard(ctx)
+	for _, task := range tasksAndStates.tasks {
+		if task.CruiseControlOperationReference != nil && (task.BrokerState.IsSucceeded() || task.VolumeState.IsSucceeded()) {
+			operation := &banzaiv1alpha1.CruiseControlOperation{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: banzaiv1alpha1.GroupVersion.Version,
+					Kind:       "CruiseControlOperation",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: kafkaNamespace,
+					Name:      task.CruiseControlOperationReference.Name,
+				},
+			}
+			log.Info("operation succeeded, removing CruiseControlOperation custom resource", "name", task.CruiseControlOperationReference.Name, "namespace", kafkaNamespace)
+			errDel := r.Client.Delete(ctx, operation)
+			if err != nil && !apiErrors.IsNotFound(err) {
+				err = errors.Combine(err, errDel)
+			} else {
+				task.CruiseControlOperationReference = nil
+			}
+		}
+	}
+	return err
 }

@@ -111,6 +111,16 @@ func (r CruiseControlState) IsActive() bool {
 	return r.IsRunningState() || r.IsRequiredState()
 }
 
+// IsSucceeded returns true if CruiseControlState is succeeded
+func (r CruiseControlState) IsSucceeded() bool {
+	return r == GracefulDownscaleSucceeded || r == GracefulUpscaleSucceeded
+}
+
+// IsSucceeded returns true if CruiseControlState is succeeded
+func (r CruiseControlVolumeState) IsSucceeded() bool {
+	return r == GracefulDiskRebalanceSucceeded
+}
+
 // IsSSL determines if the receiver is using SSL
 func (r SecurityProtocol) IsSSL() bool {
 	return r.Equal(SecurityProtocolSaslSSL) || r.Equal(SecurityProtocolSSL)

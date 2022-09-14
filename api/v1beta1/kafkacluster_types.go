@@ -236,19 +236,20 @@ type RackAwareness struct {
 
 // CruiseControlConfig defines the config for Cruise Control
 type CruiseControlConfig struct {
-	CruiseControlTaskSpec CruiseControlTaskSpec         `json:"cruiseControlTaskSpec,omitempty"`
-	CruiseControlEndpoint string                        `json:"cruiseControlEndpoint,omitempty"`
-	Resources             *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
-	ServiceAccountName    string                        `json:"serviceAccountName,omitempty"`
-	ImagePullSecrets      []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	NodeSelector          map[string]string             `json:"nodeSelector,omitempty"`
-	Tolerations           []corev1.Toleration           `json:"tolerations,omitempty"`
-	Config                string                        `json:"config,omitempty"`
-	CapacityConfig        string                        `json:"capacityConfig,omitempty"`
-	ClusterConfig         string                        `json:"clusterConfig,omitempty"`
-	Log4jConfig           string                        `json:"log4jConfig,omitempty"`
-	Image                 string                        `json:"image,omitempty"`
-	TopicConfig           *TopicConfig                  `json:"topicConfig,omitempty"`
+	CruiseControlTaskSpec     CruiseControlTaskSpec         `json:"cruiseControlTaskSpec,omitempty"`
+	CruiseControlOperatonSpec CruiseControlOperatonSpec     `json:"cruiseControlOperatonSpec,omitempty"`
+	CruiseControlEndpoint     string                        `json:"cruiseControlEndpoint,omitempty"`
+	Resources                 *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
+	ServiceAccountName        string                        `json:"serviceAccountName,omitempty"`
+	ImagePullSecrets          []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	NodeSelector              map[string]string             `json:"nodeSelector,omitempty"`
+	Tolerations               []corev1.Toleration           `json:"tolerations,omitempty"`
+	Config                    string                        `json:"config,omitempty"`
+	CapacityConfig            string                        `json:"capacityConfig,omitempty"`
+	ClusterConfig             string                        `json:"clusterConfig,omitempty"`
+	Log4jConfig               string                        `json:"log4jConfig,omitempty"`
+	Image                     string                        `json:"image,omitempty"`
+	TopicConfig               *TopicConfig                  `json:"topicConfig,omitempty"`
 	//  Annotations to be applied to CruiseControl pod
 	// +optional
 	CruiseControlAnnotations map[string]string `json:"cruiseControlAnnotations,omitempty"`
@@ -266,6 +267,14 @@ type CruiseControlConfig struct {
 	// If not specified, the CruiseControl pod's priority is default to zero.
 	// +optional
 	PriorityClassName string `json:"priorityClassName,omitempty"`
+}
+
+// CruiseControlOperatonSpec specifies the configuration of the CruiseControlOperaton handling
+type CruiseControlOperatonSpec struct {
+	// AutoRemoveSucceededOperation when true the Koperator created CruiseControlOperation will be deleted after usage.
+	// +kubebuilder:default=true
+	// +optional
+	AutoRemoveSucceededOperation bool `json:"autoRemoveSucceededOperation,omitempty"`
 }
 
 // CruiseControlTaskSpec specifies the configuration of the CC Tasks

@@ -12303,6 +12303,16 @@ spec:
                     type: object
                   cruiseControlEndpoint:
                     type: string
+                  cruiseControlOperatonSpec:
+                    description: CruiseControlOperatonSpec specifies the configuration
+                      of the CruiseControlOperaton handling
+                    properties:
+                      autoRemoveSucceededOperation:
+                        default: true
+                        description: AutoRemoveSucceededOperation when true the Koperator
+                          created CruiseControlOperation will be deleted after usage.
+                        type: boolean
+                    type: object
                   cruiseControlTaskSpec:
                     description: CruiseControlTaskSpec specifies the configuration
                       of the CC Tasks
