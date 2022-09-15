@@ -162,6 +162,8 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualResourceJSON).To(Equal(expectedResourceJSON))
 
+			Expect(len(meshGatewaySpec.Service.Ports)).To(Equal(4))
+
 			expectedPort := &istioOperatorApi.ServicePort{
 				Name:       "tcp-broker-0",
 				Protocol:   string(corev1.ProtocolTCP),
@@ -494,6 +496,8 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			meshGatewaySpec := meshGateway.Spec
 			ExpectIstioIngressLabels(meshGatewaySpec.Deployment.Metadata.Labels, "external-az1", kafkaClusterCRName)
 
+			Expect(len(meshGatewaySpec.Service.Ports)).To(Equal(3))
+
 			expectedPort := &istioOperatorApi.ServicePort{
 				Name:       "tcp-broker-0",
 				Protocol:   string(corev1.ProtocolTCP),
@@ -600,6 +604,8 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 
 			meshGatewaySpec = meshGateway.Spec
 			ExpectIstioIngressLabels(meshGatewaySpec.Deployment.Metadata.Labels, "external-az2", kafkaClusterCRName)
+
+			Expect(len(meshGatewaySpec.Service.Ports)).To(Equal(2))
 
 			expectedPort = &istioOperatorApi.ServicePort{
 				Name:       "tcp-broker-1",
