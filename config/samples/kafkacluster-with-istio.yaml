@@ -8,7 +8,7 @@ spec:
   headlessServiceEnabled: false
   ingressController: "istioingress"
   istioControlPlane:
-    name: icp-v113x-sample # The name of the existing istio control plane should be used here
+    name: icp-v115x-sample # The name of the existing istio control plane should be used here
     namespace: istio-system
   istioIngressConfig:
     gatewayConfig:

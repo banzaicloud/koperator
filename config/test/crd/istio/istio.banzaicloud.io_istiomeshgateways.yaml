@@ -5,7 +5,7 @@ metadata:
     "helm.sh/resource-policy": keep
   name: istiomeshgateways.servicemesh.cisco.com
   labels:
-    resource.alpha.banzaicloud.io/revision: 1.10.4
+    resource.alpha.banzaicloud.io/revision: 1.15.0
 spec:
   group: servicemesh.cisco.com
   names:
@@ -156,6 +156,26 @@ spec:
                                               type: string
                                             type: object
                                         type: object
+                                      namespaceSelector:
+                                        properties:
+                                          matchExpressions:
+                                            items:
+                                              properties:
+                                                key:
+                                                  type: string
+                                                operator:
+                                                  type: string
+                                                values:
+                                                  items:
+                                                    type: string
+                                                  type: array
+                                              type: object
+                                            type: array
+                                          matchLabels:
+                                            additionalProperties:
+                                              type: string
+                                            type: object
+                                        type: object
                                       namespaces:
                                         items:
                                           type: string
@@ -172,6 +192,26 @@ spec:
                               items:
                                 properties:
                                   labelSelector:
+                                    properties:
+                                      matchExpressions:
+                                        items:
+                                          properties:
+                                            key:
+                                              type: string
+                                            operator:
+                                              type: string
+                                            values:
+                                              items:
+                                                type: string
+                                              type: array
+                                          type: object
+                                        type: array
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        type: object
+                                    type: object
+                                  namespaceSelector:
                                     properties:
                                       matchExpressions:
                                         items:
@@ -227,6 +267,26 @@ spec:
                                               type: string
                                             type: object
                                         type: object
+                                      namespaceSelector:
+                                        properties:
+                                          matchExpressions:
+                                            items:
+                                              properties:
+                                                key:
+                                                  type: string
+                                                operator:
+                                                  type: string
+                                                values:
+                                                  items:
+                                                    type: string
+                                                  type: array
+                                              type: object
+                                            type: array
+                                          matchLabels:
+                                            additionalProperties:
+                                              type: string
+                                            type: object
+                                        type: object
                                       namespaces:
                                         items:
                                           type: string
@@ -243,6 +303,26 @@ spec:
                               items:
                                 properties:
                                   labelSelector:
+                                    properties:
+                                      matchExpressions:
+                                        items:
+                                          properties:
+                                            key:
+                                              type: string
+                                            operator:
+                                              type: string
+                                            values:
+                                              items:
+                                                type: string
+                                              type: array
+                                          type: object
+                                        type: array
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        type: object
+                                    type: object
+                                  namespaceSelector:
                                     properties:
                                       matchExpressions:
                                         items:
@@ -371,6 +451,15 @@ spec:
                                     type: string
                                   type: array
                               type: object
+                            grpc:
+                              properties:
+                                port:
+                                  format: int32
+                                  type: integer
+                                service:
+                                  default: ""
+                                  type: string
+                              type: object
                             httpGet:
                               properties:
                                 host:
@@ -413,6 +502,9 @@ spec:
                           type: integer
                         successThreshold:
                           format: int32
+                          type: integer
+                        terminationGracePeriodSeconds:
+                          format: int64
                           type: integer
                         timeoutSeconds:
                           format: int32
@@ -462,6 +554,8 @@ spec:
                         fsGroup:
                           format: int64
                           type: integer
+                        fsGroupChangePolicy:
+                          type: string
                         runAsGroup:
                           format: int64
                           type: integer
@@ -479,6 +573,13 @@ spec:
                             type:
                               type: string
                             user:
+                              type: string
+                          type: object
+                        seccompProfile:
+                          properties:
+                            localhostProfile:
+                              type: string
+                            type:
                               type: string
                           type: object
                         supplementalGroups:
@@ -501,6 +602,8 @@ spec:
                               type: string
                             gmsaCredentialSpecName:
                               type: string
+                            hostProcess:
+                              type: boolean
                             runAsUserName:
                               type: string
                           type: object
@@ -520,6 +623,15 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                              type: object
+                            grpc:
+                              properties:
+                                port:
+                                  format: int32
+                                  type: integer
+                                service:
+                                  default: ""
+                                  type: string
                               type: object
                             httpGet:
                               properties:
@@ -564,6 +676,9 @@ spec:
                         successThreshold:
                           format: int32
                           type: integer
+                        terminationGracePeriodSeconds:
+                          format: int64
+                          type: integer
                         timeoutSeconds:
                           format: int32
                           type: integer
@@ -575,7 +690,7 @@ spec:
                           nullable: true
                           type: integer
                         max:
-                          minimum: 0
+                          minimum: 1
                           nullable: true
                           type: integer
                         min:
@@ -644,12 +759,21 @@ spec:
                             user:
                               type: string
                           type: object
+                        seccompProfile:
+                          properties:
+                            localhostProfile:
+                              type: string
+                            type:
+                              type: string
+                          type: object
                         windowsOptions:
                           properties:
                             gmsaCredentialSpec:
                               type: string
                             gmsaCredentialSpecName:
                               type: string
+                            hostProcess:
+                              type: boolean
                             runAsUserName:
                               type: string
                           type: object
@@ -670,6 +794,36 @@ spec:
                             type: string
                         type: object
                       type: array
+                    topologySpreadConstraints:
+                      properties:
+                        labelSelector:
+                          properties:
+                            matchExpressions:
+                              items:
+                                properties:
+                                  key:
+                                    type: string
+                                  operator:
+                                    type: string
+                                  values:
+                                    items:
+                                      type: string
+                                    type: array
+                                type: object
+                              type: array
+                            matchLabels:
+                              additionalProperties:
+                                type: string
+                              type: object
+                          type: object
+                        maxSkew:
+                          format: int32
+                          type: integer
+                        topologyKey:
+                          type: string
+                        whenUnsatisfiable:
+                          type: string
+                      type: object
                     volumeMounts:
                       items:
                         properties:
@@ -853,6 +1007,180 @@ spec:
                                       - type: string
                                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                     x-kubernetes-int-or-string: true
+                                type: object
+                              ephemeral:
+                                properties:
+                                  volumeClaimTemplate:
+                                    properties:
+                                      metadata:
+                                        properties:
+                                          annotations:
+                                            additionalProperties:
+                                              type: string
+                                            type: object
+                                          clusterName:
+                                            type: string
+                                          creationTimestamp:
+                                            properties:
+                                              nanos:
+                                                format: int32
+                                                type: integer
+                                              seconds:
+                                                format: int64
+                                                type: integer
+                                            type: object
+                                          deletionGracePeriodSeconds:
+                                            format: int64
+                                            type: integer
+                                          deletionTimestamp:
+                                            properties:
+                                              nanos:
+                                                format: int32
+                                                type: integer
+                                              seconds:
+                                                format: int64
+                                                type: integer
+                                            type: object
+                                          finalizers:
+                                            items:
+                                              type: string
+                                            type: array
+                                          generateName:
+                                            type: string
+                                          generation:
+                                            format: int64
+                                            type: integer
+                                          labels:
+                                            additionalProperties:
+                                              type: string
+                                            type: object
+                                          managedFields:
+                                            items:
+                                              properties:
+                                                apiVersion:
+                                                  type: string
+                                                fieldsType:
+                                                  type: string
+                                                fieldsV1:
+                                                  properties:
+                                                    Raw:
+                                                      format: binary
+                                                      type: string
+                                                  type: object
+                                                manager:
+                                                  type: string
+                                                operation:
+                                                  type: string
+                                                subresource:
+                                                  type: string
+                                                time:
+                                                  properties:
+                                                    nanos:
+                                                      format: int32
+                                                      type: integer
+                                                    seconds:
+                                                      format: int64
+                                                      type: integer
+                                                  type: object
+                                              type: object
+                                            type: array
+                                          name:
+                                            type: string
+                                          namespace:
+                                            type: string
+                                          ownerReferences:
+                                            items:
+                                              properties:
+                                                apiVersion:
+                                                  type: string
+                                                blockOwnerDeletion:
+                                                  type: boolean
+                                                controller:
+                                                  type: boolean
+                                                kind:
+                                                  type: string
+                                                name:
+                                                  type: string
+                                                uid:
+                                                  type: string
+                                              type: object
+                                            type: array
+                                          resourceVersion:
+                                            type: string
+                                          selfLink:
+                                            type: string
+                                          uid:
+                                            type: string
+                                        type: object
+                                      spec:
+                                        properties:
+                                          accessModes:
+                                            items:
+                                              type: string
+                                            type: array
+                                          dataSource:
+                                            properties:
+                                              apiGroup:
+                                                type: string
+                                              kind:
+                                                type: string
+                                              name:
+                                                type: string
+                                            type: object
+                                          dataSourceRef:
+                                            properties:
+                                              apiGroup:
+                                                type: string
+                                              kind:
+                                                type: string
+                                              name:
+                                                type: string
+                                            type: object
+                                          resources:
+                                            properties:
+                                              limits:
+                                                additionalProperties:
+                                                  properties:
+                                                    string:
+                                                      type: string
+                                                  type: object
+                                                type: object
+                                              requests:
+                                                additionalProperties:
+                                                  properties:
+                                                    string:
+                                                      type: string
+                                                  type: object
+                                                type: object
+                                            type: object
+                                          selector:
+                                            properties:
+                                              matchExpressions:
+                                                items:
+                                                  properties:
+                                                    key:
+                                                      type: string
+                                                    operator:
+                                                      type: string
+                                                    values:
+                                                      items:
+                                                        type: string
+                                                      type: array
+                                                  type: object
+                                                type: array
+                                              matchLabels:
+                                                additionalProperties:
+                                                  type: string
+                                                type: object
+                                            type: object
+                                          storageClassName:
+                                            type: string
+                                          volumeMode:
+                                            type: string
+                                          volumeName:
+                                            type: string
+                                        type: object
+                                    type: object
                                 type: object
                               fc:
                                 properties:

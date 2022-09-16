@@ -16550,7 +16550,7 @@ spec:
                     type: object
                   enableHealthCheckHttp10:
                     description: EnableHealthCheckHttp10 is a toggle for adding HTTP1.0
-                      support to Envoy health-check
+                      support to Envoy health-check, default false
                     type: boolean
                   envoyCommandLineArgs:
                     description: Envoy command line arguments
@@ -18596,7 +18596,7 @@ spec:
                                       enableHealthCheckHttp10:
                                         description: EnableHealthCheckHttp10 is a
                                           toggle for adding HTTP1.0 support to Envoy
-                                          health-check
+                                          health-check, default false
                                         type: boolean
                                       envoyCommandLineArgs:
                                         description: Envoy command line arguments

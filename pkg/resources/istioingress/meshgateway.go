@@ -18,8 +18,8 @@ import (
 	"fmt"
 
 	istioOperatorApi "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
-
 	"github.com/go-logr/logr"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -63,9 +63,9 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 				},
 				Tolerations: ingressConfig.IstioIngressConfig.Tolerations,
 				Replicas: &istioOperatorApi.Replicas{
-					Count: util.Int32Pointer(ingressConfig.IstioIngressConfig.GetReplicas()),
-					Min:   util.Int32Pointer(ingressConfig.IstioIngressConfig.GetReplicas()),
-					Max:   util.Int32Pointer(ingressConfig.IstioIngressConfig.GetReplicas()),
+					Count: wrapperspb.Int32(ingressConfig.IstioIngressConfig.GetReplicas()),
+					Min:   wrapperspb.Int32(ingressConfig.IstioIngressConfig.GetReplicas()),
+					Max:   wrapperspb.Int32(ingressConfig.IstioIngressConfig.GetReplicas()),
 				},
 			},
 			Service: &istioOperatorApi.Service{
@@ -78,7 +78,7 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 				Type:                     string(ingressConfig.GetServiceType()),
 				LoadBalancerSourceRanges: ingressConfig.IstioIngressConfig.GetLoadBalancerSourceRanges(),
 			},
-			RunAsRoot: util.BoolPointer(true),
+			RunAsRoot: wrapperspb.Bool(true),
 			Type:      istioOperatorApi.GatewayType_ingress,
 			IstioControlPlane: &istioOperatorApi.NamespacedName{
 				Name:      r.KafkaCluster.Spec.IstioControlPlane.Name,
@@ -91,8 +91,8 @@ func (r *Reconciler) meshgateway(log logr.Logger, externalListenerConfig v1beta1
 }
 
 func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
-	externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger, ingressConfigName, defaultIngressConfigName string) []istioOperatorApi.ServicePort {
-	generatedPorts := make([]istioOperatorApi.ServicePort, 0)
+	externalListenerConfig v1beta1.ExternalListenerConfig, log logr.Logger, ingressConfigName, defaultIngressConfigName string) []*istioOperatorApi.ServicePort {
+	generatedPorts := make([]*istioOperatorApi.ServicePort, 0)
 	for _, brokerId := range brokerIds {
 		brokerConfig, err := kafkautils.GatherBrokerConfigIfAvailable(kc.Spec, brokerId)
 		if err != nil {
@@ -100,7 +100,7 @@ func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
 			continue
 		}
 		if util.ShouldIncludeBroker(brokerConfig, kc.Status, brokerId, defaultIngressConfigName, ingressConfigName) {
-			generatedPorts = append(generatedPorts, istioOperatorApi.ServicePort{
+			generatedPorts = append(generatedPorts, &istioOperatorApi.ServicePort{
 				Name:       fmt.Sprintf("tcp-broker-%d", brokerId),
 				Protocol:   string(corev1.ProtocolTCP),
 				Port:       externalListenerConfig.ExternalStartingPort + int32(brokerId),
@@ -109,7 +109,7 @@ func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
 		}
 	}
 
-	generatedPorts = append(generatedPorts, istioOperatorApi.ServicePort{
+	generatedPorts = append(generatedPorts, &istioOperatorApi.ServicePort{
 		Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
 		Protocol:   string(corev1.ProtocolTCP),
 		Port:       externalListenerConfig.GetAnyCastPort(),
