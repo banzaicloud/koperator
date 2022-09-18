@@ -331,11 +331,16 @@ func SetupCruiseControlOperationWithManager(mgr ctrl.Manager) *ctrl.Builder {
 			// We dont reconcile when there is no operation definied
 			CreateFunc: func(e event.CreateEvent) bool {
 				obj := e.Object.(*banzaiv1alpha1.CruiseControlOperation)
-				return obj.GetCurrentTaskOp() != ""
+				// Doesn't need to reconcile when the operation is done and finalizing is not needed
+				return !(obj.IsDone() && obj.GetDeletionTimestamp().IsZero()) && obj.GetCurrentTaskOp() != ""
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObj := e.ObjectOld.(*banzaiv1alpha1.CruiseControlOperation)
 				newObj := e.ObjectNew.(*banzaiv1alpha1.CruiseControlOperation)
+				// Doesn't need to reconcile when the operation is done and finalizing is not needed
+				if newObj.IsDone() && newObj.GetDeletionTimestamp().IsZero() {
+					return false
+				}
 				if !reflect.DeepEqual(oldObj.GetCurrentTask(), newObj.GetCurrentTask()) ||
 					oldObj.GetDeletionTimestamp() != newObj.GetDeletionTimestamp() ||
 					oldObj.GetGeneration() != newObj.GetGeneration() {
