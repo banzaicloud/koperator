@@ -106,7 +106,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		return requeueAfter(DefaultRequeueAfterTimeInSec)
 	}
 
-	if instance.Spec.CruiseControlConfig.CruiseControlOperatonSpec.AutoRemoveSucceededOperation {
+	if instance.Spec.CruiseControlConfig.CruiseControlOperatonSpec.GetTTLSecondsAfterFinished() != nil {
 		if err := r.removeSucceededCruiseControlOperations(ctx, tasksAndStates, instance.GetNamespace()); err != nil {
 			log.Error(err, "could not remove unnecessary CruiseControlOpration custom resources")
 		}
