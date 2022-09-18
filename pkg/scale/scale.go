@@ -338,7 +338,7 @@ func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) 
 		return nil, err
 	}
 
-	availableBrokersMap := stringSliceToMap(availableBrokers)
+	availableBrokersMap := StringSliceToMap(availableBrokers)
 	unavailableBrokerIDs := make([]string, 0, len(brokerIDs))
 	for _, id := range brokerIDs {
 		if _, ok := availableBrokersMap[id]; !ok {
@@ -520,7 +520,7 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, err
 		return nil, err
 	}
 
-	brokerIDsMap := stringSliceToMap(brokerIDs)
+	brokerIDsMap := StringSliceToMap(brokerIDs)
 
 	brokersWithEmptyDisks := make([]int32, 0, len(brokerIDs))
 	for _, brokerStat := range clusterLoadResp.Result.Brokers {
