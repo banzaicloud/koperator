@@ -271,12 +271,12 @@ type CruiseControlConfig struct {
 
 // CruiseControlOperatonSpec specifies the configuration of the CruiseControlOperaton handling
 type CruiseControlOperatonSpec struct {
-	// TTLSecondsAfterFinished when is specified, the created succeeded CruiseControlOperation custom resource will be deleted after the given time elapsed.
+	// TTLSecondsAfterFinished when is specified, the created and succeeded CruiseControlOperation custom resource will be deleted after the given time elapsed.
 	// +kubebuilder:validation:Minimum=0
 	TTLSecondsAfterFinished *int `json:"ttlSecondsAfterFinished,omitempty"`
 }
 
-// GetTTLSecondsAfterFinished is return NIL when TTLSecondsAfterFinished is not specified otherwise return it
+// GetTTLSecondsAfterFinished returns NIL when TTLSecondsAfterFinished is not specified otherwise it returns itself
 func (c *CruiseControlOperatonSpec) GetTTLSecondsAfterFinished() *int {
 	if c == nil {
 		return nil

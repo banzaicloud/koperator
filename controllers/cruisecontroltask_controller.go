@@ -106,12 +106,6 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		return requeueAfter(DefaultRequeueAfterTimeInSec)
 	}
 
-	if instance.Spec.CruiseControlConfig.CruiseControlOperatonSpec.GetTTLSecondsAfterFinished() != nil {
-		if err := r.removeSucceededCruiseControlOperations(ctx, tasksAndStates, instance.GetNamespace()); err != nil {
-			log.Error(err, "could not remove unnecessary CruiseControlOpration custom resources")
-		}
-	}
-
 	if _, ok := r.Scaler.(*scale.MockCruiseControlScaler); !ok {
 		r.Scaler, err = scale.NewCruiseControlScaler(ctx, scale.CruiseControlURLFromKafkaCluster(instance))
 		if err != nil {
@@ -141,7 +135,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
-		cruiseControlOpRef, err := r.addBrokers(ctx, instance, brokerIDs)
+		cruiseControlOpRef, err := r.addBrokers(ctx, instance, nil, brokerIDs)
 		if err != nil {
 			log.Error(err, "creating CruiseControlOperation for upscale has failed", details...)
 		}
@@ -162,7 +156,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 
 		details := []interface{}{"operation", "remove broker", "brokers", removeTask.BrokerID}
 
-		cruiseControlOpRef, err := r.removeBroker(ctx, instance, removeTask.BrokerID)
+		cruiseControlOpRef, err := r.removeBroker(ctx, instance, nil, removeTask.BrokerID)
 		if err != nil {
 			log.Error(err, "creating CruiseControlOperation for downscale has failed", details...)
 		}
@@ -198,7 +192,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		}
 
 		details := []interface{}{"operation", "rebalance disks", "brokers", brokerIDs}
-		cruiseControlOpRef, err := r.rebalanceDisks(ctx, instance, brokerIDs)
+		cruiseControlOpRef, err := r.rebalanceDisks(ctx, instance, nil, brokerIDs)
 		if err != nil {
 			log.Error(err, "creating CruiseControlOperation for re-balancing disks has failed", details...)
 		}
@@ -237,19 +231,19 @@ func checkBrokersAvailability(scaler scale.CruiseControlScaler, brokerIDs []stri
 	return unavailableBrokerIDs, nil
 }
 
-func (r *CruiseControlTaskReconciler) addBrokers(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, bokerIDs []string) (corev1.LocalObjectReference, error) {
-	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, banzaiv1alpha1.OperationAddBroker, bokerIDs)
+func (r *CruiseControlTaskReconciler) addBrokers(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, ttlSecondsAfterFinished *int, bokerIDs []string) (corev1.LocalObjectReference, error) {
+	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationAddBroker, bokerIDs)
 }
 
-func (r *CruiseControlTaskReconciler) removeBroker(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, brokerID string) (corev1.LocalObjectReference, error) {
-	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, banzaiv1alpha1.OperationRemoveBroker, []string{brokerID})
+func (r *CruiseControlTaskReconciler) removeBroker(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, ttlSecondsAfterFinished *int, brokerID string) (corev1.LocalObjectReference, error) {
+	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationRemoveBroker, []string{brokerID})
 }
 
-func (r *CruiseControlTaskReconciler) rebalanceDisks(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, bokerIDs []string) (corev1.LocalObjectReference, error) {
-	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, banzaiv1alpha1.OperationRebalance, bokerIDs)
+func (r *CruiseControlTaskReconciler) rebalanceDisks(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, ttlSecondsAfterFinished *int, bokerIDs []string) (corev1.LocalObjectReference, error) {
+	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationRebalance, bokerIDs)
 }
 
-func (r *CruiseControlTaskReconciler) createCCOperation(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, errorPolicy banzaiv1alpha1.ErrorPolicyType,
+func (r *CruiseControlTaskReconciler) createCCOperation(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, errorPolicy banzaiv1alpha1.ErrorPolicyType, ttlSecondsAfterFinished *int,
 	operationType banzaiv1alpha1.CruiseControlTaskOperation, bokerIDs []string) (corev1.LocalObjectReference, error) {
 	operation := &banzaiv1alpha1.CruiseControlOperation{
 		ObjectMeta: metav1.ObjectMeta{
@@ -261,6 +255,11 @@ func (r *CruiseControlTaskReconciler) createCCOperation(ctx context.Context, kaf
 			ErrorPolicy: errorPolicy,
 		},
 	}
+
+	// if ttlSecondsAfterFinished != nil {
+	// 	operation.Spec.ttlSecondsAfterFinished = ttlSecondsAfterFinished
+	// }
+
 	if err := controllerutil.SetControllerReference(kafkaCluster, operation, r.Scheme); err != nil {
 		return corev1.LocalObjectReference{}, err
 	}
@@ -428,31 +427,4 @@ func updateActiveTasks(tasksAndStates *CruiseControlTasksAndStates, ccOperations
 
 	}
 	return nil
-}
-
-func (r *CruiseControlTaskReconciler) removeSucceededCruiseControlOperations(ctx context.Context, tasksAndStates *CruiseControlTasksAndStates, kafkaNamespace string) error {
-	var err error
-	log := logr.FromContextOrDiscard(ctx)
-	for _, task := range tasksAndStates.tasks {
-		if task.CruiseControlOperationReference != nil && (task.BrokerState.IsSucceeded() || task.VolumeState.IsSucceeded()) {
-			operation := &banzaiv1alpha1.CruiseControlOperation{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: banzaiv1alpha1.GroupVersion.Version,
-					Kind:       "CruiseControlOperation",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: kafkaNamespace,
-					Name:      task.CruiseControlOperationReference.Name,
-				},
-			}
-			log.Info("operation succeeded, removing CruiseControlOperation custom resource", "name", task.CruiseControlOperationReference.Name, "namespace", kafkaNamespace)
-			errDel := r.Client.Delete(ctx, operation)
-			if err != nil && !apiErrors.IsNotFound(err) {
-				err = errors.Combine(err, errDel)
-			} else {
-				task.CruiseControlOperationReference = nil
-			}
-		}
-	}
-	return err
 }
