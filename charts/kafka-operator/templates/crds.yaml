@@ -47,6 +47,12 @@ spec:
                 - ignore
                 - retry
                 type: string
+              ttlSecondsAfterFinished:
+                description: TTLSecondsAfterFinished when is specified, the created
+                  succeeded CruiseControlOperation custom resource will be deleted
+                  after the given time elapsed.
+                minimum: 0
+                type: integer
             type: object
           status:
             description: CruiseControlOperationStatus defines the observed state of

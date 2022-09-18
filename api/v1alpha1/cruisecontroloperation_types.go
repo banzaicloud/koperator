@@ -43,7 +43,7 @@ type CruiseControlOperation struct {
 	Status CruiseControlOperationStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 // CruiseControlOperationList contains a list of CruiseControlOperation.
 type CruiseControlOperationList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -60,6 +60,9 @@ type CruiseControlOperationSpec struct {
 	// +kubebuilder:default=retry
 	// +optional
 	ErrorPolicy ErrorPolicyType `json:"errorPolicy,omitempty"`
+	// TTLSecondsAfterFinished when is specified, the created succeeded CruiseControlOperation custom resource will be deleted after the given time elapsed.
+	// +kubebuilder:validation:Minimum=0
+	TTLSecondsAfterFinished *int `json:"ttlSecondsAfterFinished,omitempty"`
 }
 
 // ErrorPolicyType defines methods of handling Cruise Control user task errors.
@@ -94,6 +97,11 @@ type CruiseControlTask struct {
 
 func init() {
 	SchemeBuilder.Register(&CruiseControlOperation{}, &CruiseControlOperationList{})
+}
+
+// GetTTLSecondsAfterFinished returns Spec.TTLSecondsAfterFinished
+func (c CruiseControlOperation) GetTTLSecondsAfterFinished() *int {
+	return c.Spec.TTLSecondsAfterFinished
 }
 
 func (task *CruiseControlTask) SetDefaults() {
