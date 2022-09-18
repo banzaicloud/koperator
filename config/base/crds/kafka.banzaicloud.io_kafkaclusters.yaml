@@ -12307,11 +12307,12 @@ spec:
                     description: CruiseControlOperatonSpec specifies the configuration
                       of the CruiseControlOperaton handling
                     properties:
-                      autoRemoveSucceededOperation:
-                        default: true
-                        description: AutoRemoveSucceededOperation when true the Koperator
-                          created CruiseControlOperation will be deleted after usage.
-                        type: boolean
+                      ttlSecondsAfterFinished:
+                        description: TTLSecondsAfterFinished when is specified, the
+                          created succeeded CruiseControlOperation custom resource
+                          will be deleted after the given time elapsed.
+                        minimum: 0
+                        type: integer
                     type: object
                   cruiseControlTaskSpec:
                     description: CruiseControlTaskSpec specifies the configuration

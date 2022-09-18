@@ -237,7 +237,7 @@ type RackAwareness struct {
 // CruiseControlConfig defines the config for Cruise Control
 type CruiseControlConfig struct {
 	CruiseControlTaskSpec     CruiseControlTaskSpec         `json:"cruiseControlTaskSpec,omitempty"`
-	CruiseControlOperatonSpec CruiseControlOperatonSpec     `json:"cruiseControlOperatonSpec,omitempty"`
+	CruiseControlOperatonSpec *CruiseControlOperatonSpec    `json:"cruiseControlOperatonSpec,omitempty"`
 	CruiseControlEndpoint     string                        `json:"cruiseControlEndpoint,omitempty"`
 	Resources                 *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
 	ServiceAccountName        string                        `json:"serviceAccountName,omitempty"`
@@ -271,10 +271,17 @@ type CruiseControlConfig struct {
 
 // CruiseControlOperatonSpec specifies the configuration of the CruiseControlOperaton handling
 type CruiseControlOperatonSpec struct {
-	// AutoRemoveSucceededOperation when true the Koperator created CruiseControlOperation will be deleted after usage.
-	// +kubebuilder:default=true
-	// +optional
-	AutoRemoveSucceededOperation bool `json:"autoRemoveSucceededOperation,omitempty"`
+	// TTLSecondsAfterFinished when is specified, the created succeeded CruiseControlOperation custom resource will be deleted after the given time elapsed.
+	// +kubebuilder:validation:Minimum=0
+	TTLSecondsAfterFinished *int `json:"ttlSecondsAfterFinished,omitempty"`
+}
+
+// GetTTLSecondsAfterFinished is return NIL when TTLSecondsAfterFinished is not specified otherwise return it
+func (c *CruiseControlOperatonSpec) GetTTLSecondsAfterFinished() *int {
+	if c == nil {
+		return nil
+	}
+	return c.TTLSecondsAfterFinished
 }
 
 // CruiseControlTaskSpec specifies the configuration of the CC Tasks
