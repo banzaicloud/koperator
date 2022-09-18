@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
@@ -38,7 +38,7 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger, extListener v1beta1.Ex
 	ingressConfig v1beta1.IngressConfig, ingressConfigName, defaultIngressConfigName string) runtime.Object {
 	eListenerLabelName := util.ConstructEListenerLabelName(ingressConfigName, extListener.Name)
 
-	var deploymentName string = util.GenerateEnvoyResourceName(envoyutils.EnvoyDeploymentName, envoyutils.EnvoyDeploymentNameWithScope,
+	var deploymentName = util.GenerateEnvoyResourceName(envoyutils.EnvoyDeploymentName, envoyutils.EnvoyDeploymentNameWithScope,
 		extListener, ingressConfig, ingressConfigName, r.KafkaCluster.GetName())
 
 	pdbConfig := r.KafkaCluster.Spec.EnvoyConfig.GetDistruptionBudget()
@@ -47,18 +47,18 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger, extListener v1beta1.Ex
 	// an improper regex will be used to verify the value
 	budget := intstr.Parse(pdbConfig.DisruptionBudget.Budget)
 
-	var spec policyv1beta1.PodDisruptionBudgetSpec
-	var matchLabels map[string]string = labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName)
+	var spec policyv1.PodDisruptionBudgetSpec
+	var matchLabels = labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName)
 
 	if pdbConfig.Stategy == MIN_AVAILABLE {
-		spec = policyv1beta1.PodDisruptionBudgetSpec{
+		spec = policyv1.PodDisruptionBudgetSpec{
 			MinAvailable: &budget,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 			},
 		}
 	} else if pdbConfig.Stategy == MAX_UNAVAILABLE {
-		spec = policyv1beta1.PodDisruptionBudgetSpec{
+		spec = policyv1.PodDisruptionBudgetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 			},
@@ -66,10 +66,10 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger, extListener v1beta1.Ex
 		}
 	}
 
-	return &policyv1beta1.PodDisruptionBudget{
+	return &policyv1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PodDisruptionBudget",
-			APIVersion: "policy/v1beta1",
+			APIVersion: "policy/v1",
 		},
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			deploymentName+"-pdb",
