@@ -376,7 +376,7 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 	operation.Status.ErrorPolicy = operation.Spec.ErrorPolicy
 	task := operation.GetCurrentTask()
 
-	if (task.State == banzaiv1beta1.CruiseControlTaskCompleted || task.State == banzaiv1beta1.CruiseControlTaskCompletedWithError) && task.Finished == nil {
+	if (res.State == banzaiv1beta1.CruiseControlTaskCompleted || res.State == banzaiv1beta1.CruiseControlTaskCompletedWithError) && task.Finished == nil {
 		task.Finished = &v1.Time{Time: time.Now()}
 	}
 
