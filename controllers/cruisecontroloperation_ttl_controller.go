@@ -63,11 +63,11 @@ func (r *CruiseControlOperationTTLReconciler) Reconcile(ctx context.Context, req
 		return reconciled()
 	}
 
-	operationTTL := time.Duration(*ccOperation.GetTTLSecondsAfterFinished())
+	operationTTL := time.Duration(*ccOperation.GetTTLSecondsAfterFinished() * int(time.Second))
 	finishedAt := ccOperation.GetCurrentTask().Finished
 
 	if IsExpired(operationTTL, finishedAt.Time) {
-		log.Info("cleaning up finished CruiseControlOperation", "name", ccOperation.GetName(), "namespace", ccOperation.GetNamespace())
+		log.Info("cleaning up finished CruiseControlOperation", "name", ccOperation.GetName(), "namespace", ccOperation.GetNamespace(), "finished", finishedAt.Time, "ttl+now", finishedAt.Time.Add(operationTTL))
 		return r.delete(ctx, ccOperation)
 	} else {
 		return requeueAfter(int(finishedAt.Time.Add(operationTTL).Sub(time.Now())))
