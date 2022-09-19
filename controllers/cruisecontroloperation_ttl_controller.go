@@ -67,10 +67,12 @@ func (r *CruiseControlOperationTTLReconciler) Reconcile(ctx context.Context, req
 	finishedAt := ccOperation.GetCurrentTask().Finished
 
 	if IsExpired(operationTTL, finishedAt.Time) {
-		log.Info("cleaning up finished CruiseControlOperation", "name", ccOperation.GetName(), "namespace", ccOperation.GetNamespace(), "finished", finishedAt.Time, "cleanup time", finishedAt.Time.Add(operationTTL))
+		log.Info("cleaning up finished CruiseControlOperation", "finished", finishedAt.Time, "clean-up time", finishedAt.Time.Add(operationTTL))
 		return r.delete(ctx, ccOperation)
 	} else {
-		return requeueAfter(int(finishedAt.Time.Add(operationTTL).Sub(time.Now()).Seconds()))
+		reqSec := int(finishedAt.Time.Add(operationTTL).Sub(time.Now()).Seconds() + 1)
+		log.Info("requeue later to clean up CruiseControlOperation", "clean-up time", finishedAt.Time.Add(operationTTL))
+		return requeueAfter(reqSec)
 	}
 }
 
