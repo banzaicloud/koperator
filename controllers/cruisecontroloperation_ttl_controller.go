@@ -43,7 +43,6 @@ type CruiseControlOperationTTLReconciler struct {
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=cruisecontroloperations,verbs=get;list;watch;create;update;patch;delete;deletecollection
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=cruisecontroloperations/status,verbs=get
-// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=cruisecontroloperations/finalizers,verbs=update
 
 //nolint:gocyclo
 func (r *CruiseControlOperationTTLReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -83,7 +82,7 @@ func SetupCruiseControlOperationTTLWithManager(mgr ctrl.Manager) *ctrl.Builder {
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			newObj := e.ObjectNew.(*banzaiv1alpha1.CruiseControlOperation)
-			if newObj.IsFinished() && newObj.GetTTLSecondsAfterFinished() != nil {
+			if newObj.IsFinished() && newObj.GetTTLSecondsAfterFinished() != nil && newObj.GetDeletionTimestamp().IsZero() {
 				return true
 			}
 			return false
