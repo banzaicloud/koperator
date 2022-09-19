@@ -78,6 +78,10 @@ func (r *CruiseControlOperationTTLReconciler) Reconcile(ctx context.Context, req
 func SetupCruiseControlOperationTTLWithManager(mgr ctrl.Manager) *ctrl.Builder {
 	cruiseControlOperationTTLPredicate := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
+			obj := e.Object.(*banzaiv1alpha1.CruiseControlOperation)
+			if obj.IsFinished() && obj.GetTTLSecondsAfterFinished() != nil && obj.GetDeletionTimestamp().IsZero() {
+				return true
+			}
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
