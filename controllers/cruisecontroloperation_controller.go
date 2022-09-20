@@ -92,8 +92,17 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		}
 	}
 
-	// Object is deleted...
+	// When the resource has been removed before reconcile.
 	if currentCCOperation == nil {
+		return reconciled()
+	}
+
+	//When the task is done we can remove the finalizer instantly thus we can return fast here.
+	if isFinalizerNeeded(currentCCOperation) && currentCCOperation.IsDone() {
+		controllerutil.RemoveFinalizer(currentCCOperation, cruiseControlOperationFinalizer)
+		if err := r.Update(ctx, currentCCOperation); err != nil {
+			return requeueWithError(log, "error is happened when removing finalizer", err)
+		}
 		return reconciled()
 	}
 
@@ -198,7 +207,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 
 	// Check if CruiseControl is ready as we cannot perform any operation until it is in ready state unless it is a stop execution operation
 	if (status.InExecution() || len(ccOperationQueueMap[ccOperationInProgress]) > 0) && ccOperationExecution.GetCurrentTaskOp() != banzaiv1alpha1.OperationStopExecution {
-		// Requeue becuse we can't do more
+		// Requeue because we can't do more
 		return requeueAfter(defaultRequeueIntervalInSeconds)
 	}
 
@@ -230,6 +239,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 
 	return reconciled()
 }
+
 func (r *CruiseControlOperationReconciler) addFinalizer(ctx context.Context, currentCCOperation *banzaiv1alpha1.CruiseControlOperation) error {
 	// examine DeletionTimestamp to determine if object is under deletion
 	if currentCCOperation.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -328,7 +338,7 @@ func SetupCruiseControlOperationWithManager(mgr ctrl.Manager) *ctrl.Builder {
 
 	builder.WithEventFilter(
 		predicate.Funcs{
-			// We dont reconcile when there is no operation definied
+			// We don't reconcile when there is no operation defined
 			CreateFunc: func(e event.CreateEvent) bool {
 				obj := e.Object.(*banzaiv1alpha1.CruiseControlOperation)
 				// Doesn't need to reconcile when the operation is done and finalizing is not needed
