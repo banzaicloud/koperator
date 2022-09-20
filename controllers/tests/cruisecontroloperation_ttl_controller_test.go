@@ -58,11 +58,11 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 
 	JustBeforeEach(func() {
 		By("creating namespace " + namespace)
-		err := k8sClient.Create(context.TODO(), namespaceObj)
+		err := k8sClient.Create(context.Background(), namespaceObj)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err = k8sClient.Create(context.TODO(), kafkaCluster)
+		err = k8sClient.Create(context.Background(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
 	})
@@ -71,7 +71,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		JustBeforeEach(func() {
 			operation := generateCruiseControlOperation(opName, namespace, kafkaCluster.GetName())
 			operation.Spec.TTLSecondsAfterFinished = util.IntPointer(5)
-			err := k8sClient.Create(context.TODO(), &operation)
+			err := k8sClient.Create(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
@@ -80,11 +80,11 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				State:     v1beta1.CruiseControlTaskCompleted,
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 			}
-			err = k8sClient.Status().Update(context.TODO(), &operation)
+			err = k8sClient.Status().Update(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 		})
-		It("it should  remove the finished CruiseControlOperation", func() {
+		FIt("it should  remove the finished CruiseControlOperation", func() {
 			Eventually(func() bool {
 				operation := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -103,7 +103,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			operation := generateCruiseControlOperation(opName, namespace, kafkaCluster.GetName())
 			operation.Spec.TTLSecondsAfterFinished = util.IntPointer(5)
 			operation.Spec.ErrorPolicy = v1alpha1.ErrorPolicyIgnore
-			err := k8sClient.Create(context.TODO(), &operation)
+			err := k8sClient.Create(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
@@ -112,7 +112,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				State:     v1beta1.CruiseControlTaskCompletedWithError,
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 			}
-			err = k8sClient.Status().Update(context.TODO(), &operation)
+			err = k8sClient.Status().Update(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 		})
@@ -133,7 +133,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	When("there is finished operation without TTL", func() {
 		JustBeforeEach(func() {
 			operation := generateCruiseControlOperation(opName, namespace, kafkaCluster.GetName())
-			err := k8sClient.Create(context.TODO(), &operation)
+			err := k8sClient.Create(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
@@ -142,7 +142,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				State:     v1beta1.CruiseControlTaskCompleted,
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 			}
-			err = k8sClient.Status().Update(context.TODO(), &operation)
+			err = k8sClient.Status().Update(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 		})

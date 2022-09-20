@@ -31,10 +31,6 @@ import (
 	banzaiv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 )
 
-const (
-	defaultRequeueCruiseControlOperatonTTL = 30
-)
-
 // CruiseControlOperationTTLReconciler reconciles CruiseControlOperation custom resources
 type CruiseControlOperationTTLReconciler struct {
 	client.Client
@@ -69,11 +65,10 @@ func (r *CruiseControlOperationTTLReconciler) Reconcile(ctx context.Context, req
 	if IsExpired(operationTTL, finishedAt.Time) {
 		log.Info("cleaning up finished CruiseControlOperation", "finished", finishedAt.Time, "clean-up time", finishedAt.Time.Add(operationTTL))
 		return r.delete(ctx, ccOperation)
-	} else {
-		reqSec := int(finishedAt.Time.Add(operationTTL).Sub(time.Now()).Seconds() + 1)
-		log.Info("requeue later to clean up CruiseControlOperation", "clean-up time", finishedAt.Time.Add(operationTTL))
-		return requeueAfter(reqSec)
 	}
+	reqSec := int(finishedAt.Time.Add(operationTTL).Sub(time.Now()).Seconds() + 1)
+	log.V(1).Info("requeue later to clean up CruiseControlOperation", "clean-up time", finishedAt.Time.Add(operationTTL))
+	return requeueAfter(reqSec)
 }
 
 // SetupCruiseControlWithManager registers cruise control controller to the manager
@@ -108,7 +103,7 @@ func SetupCruiseControlOperationTTLWithManager(mgr ctrl.Manager) *ctrl.Builder {
 }
 
 func IsExpired(ttl time.Duration, finishedAt time.Time) bool {
-	return finishedAt.Add(ttl).Before(time.Now())
+	return time.Since(finishedAt) > ttl
 }
 
 func (r *CruiseControlOperationTTLReconciler) delete(ctx context.Context, ccOperation *v1alpha1.CruiseControlOperation) (reconcile.Result, error) {
