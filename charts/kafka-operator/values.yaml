@@ -14,6 +14,15 @@ operator:
     repository: ghcr.io/banzaicloud/kafka-operator
     tag: ""
     pullPolicy: IfNotPresent
+  # In constrained environments where operator cannot
+  # be granted cluster level roles, users can configure
+  # the Koperator to watch CRs only in specific set of
+  # configurable Kubernetes namespaces.
+  # In this scenario, users can replace the default
+  # ClusterRole and ClusterRoleBinding to Role and RoleBinding respectively.
+  # When this field is not empty and Cert-manager is used, 
+  # the Cert-manager's Custom Resource Namespace must be included in the comma separated list.
+  # When it is empty, all namespaces will be watched. 
   namespaces: ""
   verboseLogging: false
   developmentLogging: false
@@ -38,8 +47,10 @@ webhook:
     secret: "kafka-operator-serving-cert"
 
 certManager:
+  enabled: true
+  # namespace field specifies the Cert-manager's Cluster Resource Namespace.
+  # https://cert-manager.io/docs/configuration/
   namespace: "cert-manager"
-  enabled: false
 
 certSigning:
   enabled: true
