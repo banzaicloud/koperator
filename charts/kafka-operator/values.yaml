@@ -47,7 +47,7 @@ webhook:
     secret: "kafka-operator-serving-cert"
 
 certManager:
-  enabled: true
+  enabled: false
   # namespace field specifies the Cert-manager's Cluster Resource Namespace.
   # https://cert-manager.io/docs/configuration/
   namespace: "cert-manager"
