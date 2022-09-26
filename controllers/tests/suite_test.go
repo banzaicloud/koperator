@@ -187,6 +187,14 @@ var _ = BeforeSuite(func() {
 	err = controllers.SetupCruiseControlOperationWithManager(mgr).Complete(&cruiseControlOperationReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
+	cruiseControlOperationTTLReconciler := controllers.CruiseControlOperationTTLReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}
+
+	err = controllers.SetupCruiseControlOperationTTLWithManager(mgr).Complete(&cruiseControlOperationTTLReconciler)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:builder
 
 	go func() {
