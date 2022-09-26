@@ -101,7 +101,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	if isFinalizerNeeded(currentCCOperation) && currentCCOperation.IsDone() {
 		controllerutil.RemoveFinalizer(currentCCOperation, cruiseControlOperationFinalizer)
 		if err := r.Update(ctx, currentCCOperation); err != nil {
-			return requeueWithError(log, "error is happened when removing finalizer", err)
+			return requeueWithError(log, "error happened when removing finalizer", err)
 		}
 		return reconciled()
 	}
@@ -181,6 +181,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		log.Error(err, "requeue event as updating state of currentTask(s) failed")
 		return requeueAfter(defaultRequeueIntervalInSeconds)
 	}
+
 	//When the task is not in execution we can remove the finalizer
 	if isFinalizerNeeded(currentCCOperation) && !currentCCOperation.IsCurrentTaskRunning() {
 		controllerutil.RemoveFinalizer(currentCCOperation, cruiseControlOperationFinalizer)
@@ -192,6 +193,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 
 	// Sorting operations into categories which are sorted by priority
 	ccOperationQueueMap := sortOperations(ccOperationsKafkaClusterFiltered)
+
 	// When there is no more job present in the cluster we reconciled.
 	if len(ccOperationQueueMap[ccOperationForFinalize]) == 0 && len(ccOperationQueueMap[ccOperationFirstExecution]) == 0 &&
 		len(ccOperationQueueMap[ccOperationRetryExecution]) == 0 && len(ccOperationQueueMap[ccOperationInProgress]) == 0 {
@@ -211,8 +213,8 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return requeueAfter(defaultRequeueIntervalInSeconds)
 	}
 
-	log.Info("executing Cruise Control task", "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTaskParameters())
 	// Executing operation
+	log.Info("executing Cruise Control task", "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTaskParameters())
 	cruseControlTaskResult, err := r.executeOperation(ccOperationExecution)
 
 	if err != nil {
