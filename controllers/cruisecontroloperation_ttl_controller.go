@@ -66,6 +66,7 @@ func (r *CruiseControlOperationTTLReconciler) Reconcile(ctx context.Context, req
 		log.Info("cleaning up finished CruiseControlOperation", "finished", finishedAt.Time, "clean-up time", finishedAt.Time.Add(operationTTL))
 		return r.delete(ctx, ccOperation)
 	}
+	// +1 sec is needed to be sure, because double to int conversion round down
 	reqSec := int(finishedAt.Time.Add(operationTTL).Sub(time.Now()).Seconds() + 1)
 	log.V(1).Info("requeue later to clean up CruiseControlOperation", "clean-up time", finishedAt.Time.Add(operationTTL))
 	return requeueAfter(reqSec)

@@ -34,6 +34,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
+const (
+	maxReconcileDuration   = 10 * time.Second       // max amount of time to wait for a reconcile to execute
+	reconcilePollingPeriod = 500 * time.Millisecond // poll the results of a reconcile every 500 millisecond for up to maxReconcileDuration
+)
+
 var _ = Describe("CruiseControlTaskReconciler", func() {
 	var (
 		count              uint64 = 0
@@ -67,7 +72,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 
 	})
 
-	When("there is finished (completed) operation with TTL", func() {
+	When("there is a finished (completed) operation with TTL", func() {
 		JustBeforeEach(func() {
 			operation := generateCruiseControlOperation(opName, namespace, kafkaCluster.GetName())
 			operation.Spec.TTLSecondsAfterFinished = util.IntPointer(5)
@@ -84,7 +89,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 		})
-		FIt("it should  remove the finished CruiseControlOperation", func() {
+		It("it should remove the finished CruiseControlOperation", func() {
 			Eventually(func() bool {
 				operation := v1alpha1.CruiseControlOperation{}
 				err := k8sClient.Get(context.Background(), client.ObjectKey{
@@ -95,10 +100,10 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return true
 				}
 				return false
-			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
+			}, maxReconcileDuration, reconcilePollingPeriod).Should(BeTrue())
 		})
 	})
-	When("there is finished (completedWithError and errorPolicy: ignore) operation with TTL", func() {
+	When("there is a finished (completedWithError and errorPolicy: ignore) operation with TTL", func() {
 		JustBeforeEach(func() {
 			operation := generateCruiseControlOperation(opName, namespace, kafkaCluster.GetName())
 			operation.Spec.TTLSecondsAfterFinished = util.IntPointer(5)
@@ -127,10 +132,10 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return true
 				}
 				return false
-			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
+			}, maxReconcileDuration, reconcilePollingPeriod).Should(BeTrue())
 		})
 	})
-	When("there is finished operation without TTL", func() {
+	When("there is a finished operation without TTL", func() {
 		JustBeforeEach(func() {
 			operation := generateCruiseControlOperation(opName, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
@@ -160,7 +165,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return true
 				}
 				return false
-			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
+			}, maxReconcileDuration, reconcilePollingPeriod).Should(BeTrue())
 		})
 	})
 })
