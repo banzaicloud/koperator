@@ -55,7 +55,7 @@ import (
 var userFinalizer = "finalizer.kafkausers.kafka.banzaicloud.io"
 
 // SetupKafkaUserWithManager registers KafkaUser controller to the manager
-func SetupKafkaUserWithManager(mgr ctrl.Manager, certSigningEnabled bool, certManagerNamespace bool) *ctrl.Builder {
+func SetupKafkaUserWithManager(mgr ctrl.Manager, certSigningEnabled bool, certManagerEnabled bool) *ctrl.Builder {
 	log := mgr.GetLogger()
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.KafkaUser{}).
@@ -71,7 +71,7 @@ func SetupKafkaUserWithManager(mgr ctrl.Manager, certSigningEnabled bool, certMa
 			handler.EnqueueRequestsFromMapFunc(csrMapper.mapToKafkaUser),
 			ctrlBuilder.WithPredicates(certificateSigningRequestFilter(log)))
 	}
-	if certManagerNamespace {
+	if certManagerEnabled {
 		builder.Owns(&certv1.Certificate{})
 	}
 	return builder
