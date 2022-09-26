@@ -44,6 +44,7 @@ import (
 const (
 	DefaultRequeueAfterTimeInSec          = 20
 	CruiseControlTaskTestKafkaClusterName = "cruisecontroltask-test"
+	nullPointerExceptionErrString         = "NullPointerException"
 )
 
 // CruiseControlTaskReconciler reconciles a kafka cluster object
@@ -131,7 +132,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		}
 		if len(unavailableBrokers) > 0 {
 			log.Info("requeue as broker(s) are not ready for upscale", "brokerIDs", unavailableBrokers)
-			// This requeue is not necessary because the cruisecontrloperation controller retry the errored task
+			// This requeue is not necessary because the cruisecontrloperation controller retries the errored task
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
@@ -187,7 +188,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		}
 		if len(unavailableBrokerIDs) > 0 {
 			log.Info("requeue as there are offline broker log dirs for rebalance", "brokerIDs", unavailableBrokerIDs)
-			// This requeue is not necessary because the cruisecontrloperation controller retry the errored task
+			// This requeue is not necessary because the cruiseContrlOperation controller retries the errored task
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
@@ -217,6 +218,9 @@ func checkBrokersAvailability(scaler scale.CruiseControlScaler, brokerIDs []stri
 	// This can result NullPointerException when the capacity calculation is missing for a broker in the cruisecontrol configmap
 	availableBrokers, err := scaler.BrokersWithState(states...)
 	if err != nil {
+		if strings.Contains(err.Error(), nullPointerExceptionErrString) {
+			return nil, errors.WrapIff(err, "broker storage capacity calculations for Cruise Control has not been finished yet")
+		}
 		return nil, errors.WrapIff(err, "failed to retrieve list of available brokers from Cruise Control")
 	}
 

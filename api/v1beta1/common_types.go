@@ -166,7 +166,7 @@ type IstioControlPlaneReference struct {
 type GracefulActionState struct {
 	// CruiseControlState holds the information about graceful action state
 	CruiseControlState CruiseControlState `json:"cruiseControlState"`
-	// CruiseControlOperationReference referencing to the created CruiseControlOperation to execute CC task
+	// CruiseControlOperationReference references to the created CruiseControlOperation to execute a CC task
 	CruiseControlOperationReference *corev1.LocalObjectReference `json:"cruiseControlOperationReference,omitempty"`
 	// VolumeStates holds the information about the CC disk rebalance states and CruiseControlOperation reference
 	VolumeStates map[string]VolumeState `json:"volumeStates,omitempty"`
@@ -175,7 +175,7 @@ type GracefulActionState struct {
 type VolumeState struct {
 	// CruiseControlVolumeState holds the information about CC disk rebalance state
 	CruiseControlVolumeState CruiseControlVolumeState `json:"cruiseControlVolumeState"`
-	// CruiseControlOperationReference referencing to the created CruiseControlOperation to execute CC task
+	// CruiseControlOperationReference references to the created CruiseControlOperation to execute a CC task
 	CruiseControlOperationReference *corev1.LocalObjectReference `json:"cruiseControlOperationReference,omitempty"`
 }
 

@@ -271,7 +271,11 @@ type CruiseControlConfig struct {
 
 // CruiseControlOperatonSpec specifies the configuration of the CruiseControlOperaton handling
 type CruiseControlOperatonSpec struct {
-	// TTLSecondsAfterFinished when is specified, the created and succeeded CruiseControlOperation custom resource will be deleted after the given time elapsed.
+	// When TTLSecondsAfterFinished is specified, the created and finished (completed successfully or completedWithError and errorPolicy: ignore)
+	// cruiseControlOperation custom resource will be deleted after the given time elapsed.
+	// When it is 0 then the resource is going to be deleted instantly after the operation is finished.
+	// When it is not specified the resource is not going to be removed.
+	// Value can be only zero and positive integers.
 	// +kubebuilder:validation:Minimum=0
 	TTLSecondsAfterFinished *int `json:"ttlSecondsAfterFinished,omitempty"`
 }
