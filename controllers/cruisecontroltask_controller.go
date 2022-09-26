@@ -114,6 +114,8 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		}
 	}
 
+	operationTTLSecondsAfterFinished := instance.Spec.CruiseControlConfig.CruiseControlOperationSpec.GetTTLSecondsAfterFinished()
+
 	switch {
 	case tasksAndStates.NumActiveTasksByOp(banzaiv1alpha1.OperationAddBroker) > 0:
 		brokerIDs := make([]string, 0)
@@ -136,7 +138,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
-		cruiseControlOpRef, err := r.addBrokers(ctx, instance, nil, brokerIDs)
+		cruiseControlOpRef, err := r.addBrokers(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs)
 		if err != nil {
 			log.Error(err, "creating CruiseControlOperation for upscale has failed", details...)
 		}
@@ -157,7 +159,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 
 		details := []interface{}{"operation", "remove broker", "brokers", removeTask.BrokerID}
 
-		cruiseControlOpRef, err := r.removeBroker(ctx, instance, nil, removeTask.BrokerID)
+		cruiseControlOpRef, err := r.removeBroker(ctx, instance, operationTTLSecondsAfterFinished, removeTask.BrokerID)
 		if err != nil {
 			log.Error(err, "creating CruiseControlOperation for downscale has failed", details...)
 		}
@@ -193,7 +195,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		}
 
 		details := []interface{}{"operation", "rebalance disks", "brokers", brokerIDs}
-		cruiseControlOpRef, err := r.rebalanceDisks(ctx, instance, nil, brokerIDs)
+		cruiseControlOpRef, err := r.rebalanceDisks(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs)
 		if err != nil {
 			log.Error(err, "creating CruiseControlOperation for re-balancing disks has failed", details...)
 		}
@@ -260,9 +262,9 @@ func (r *CruiseControlTaskReconciler) createCCOperation(ctx context.Context, kaf
 		},
 	}
 
-	// if ttlSecondsAfterFinished != nil {
-	// 	operation.Spec.ttlSecondsAfterFinished = ttlSecondsAfterFinished
-	// }
+	if ttlSecondsAfterFinished != nil {
+		operation.Spec.TTLSecondsAfterFinished = ttlSecondsAfterFinished
+	}
 
 	if err := controllerutil.SetControllerReference(kafkaCluster, operation, r.Scheme); err != nil {
 		return corev1.LocalObjectReference{}, err

@@ -48,13 +48,13 @@ spec:
                 - retry
                 type: string
               ttlSecondsAfterFinished:
-                description: 'TTLSecondsAfterFinished when is specified, the created
-                  completed successfully or completedWithError and errorPolicy: ignore
-                  CruiseControlOperation custom resource will be deleted after the
-                  given time elapsed. When it is 0 then the resource is going to be
-                  deleted instantly after the operation is finished. When it is not
-                  specified the resource is not going to be removed. Value can be
-                  only zero and positive integers'
+                description: 'When TTLSecondsAfterFinished is specified, the created
+                  and finished (completed successfully or completedWithError and errorPolicy:
+                  ignore) cruiseControlOperation custom resource will be deleted after
+                  the given time elapsed. When it is 0 then the resource is going
+                  to be deleted instantly after the operation is finished. When it
+                  is not specified the resource is not going to be removed. Value
+                  can be only zero and positive integers'
                 minimum: 0
                 type: integer
             type: object
@@ -12466,14 +12466,19 @@ spec:
                     type: object
                   cruiseControlEndpoint:
                     type: string
-                  cruiseControlOperatonSpec:
-                    description: CruiseControlOperatonSpec specifies the configuration
-                      of the CruiseControlOperaton handling
+                  cruiseControlOperationSpec:
+                    description: CruiseControlOperationSpec specifies the configuration
+                      of the CruiseControlOperation handling
                     properties:
                       ttlSecondsAfterFinished:
-                        description: TTLSecondsAfterFinished when is specified, the
-                          created and succeeded CruiseControlOperation custom resource
-                          will be deleted after the given time elapsed.
+                        description: 'When TTLSecondsAfterFinished is specified, the
+                          created and finished (completed successfully or completedWithError
+                          and errorPolicy: ignore) cruiseControlOperation custom resource
+                          will be deleted after the given time elapsed. When it is
+                          0 then the resource is going to be deleted instantly after
+                          the operation is finished. When it is not specified the
+                          resource is not going to be removed. Value can be only zero
+                          and positive integers.'
                         minimum: 0
                         type: integer
                     type: object
@@ -19749,8 +19754,9 @@ spec:
                         status
                       properties:
                         cruiseControlOperationReference:
-                          description: CruiseControlOperationReference referencing
-                            to the created CruiseControlOperation to execute CC task
+                          description: CruiseControlOperationReference references
+                            to the created CruiseControlOperation to execute a CC
+                            task
                           properties:
                             name:
                               description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -19766,9 +19772,9 @@ spec:
                           additionalProperties:
                             properties:
                               cruiseControlOperationReference:
-                                description: CruiseControlOperationReference referencing
+                                description: CruiseControlOperationReference references
                                   to the created CruiseControlOperation to execute
-                                  CC task
+                                  a CC task
                                 properties:
                                   name:
                                     description: 'Name of the referent. More info:

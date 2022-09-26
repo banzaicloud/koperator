@@ -236,20 +236,20 @@ type RackAwareness struct {
 
 // CruiseControlConfig defines the config for Cruise Control
 type CruiseControlConfig struct {
-	CruiseControlTaskSpec     CruiseControlTaskSpec         `json:"cruiseControlTaskSpec,omitempty"`
-	CruiseControlOperatonSpec *CruiseControlOperatonSpec    `json:"cruiseControlOperatonSpec,omitempty"`
-	CruiseControlEndpoint     string                        `json:"cruiseControlEndpoint,omitempty"`
-	Resources                 *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
-	ServiceAccountName        string                        `json:"serviceAccountName,omitempty"`
-	ImagePullSecrets          []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	NodeSelector              map[string]string             `json:"nodeSelector,omitempty"`
-	Tolerations               []corev1.Toleration           `json:"tolerations,omitempty"`
-	Config                    string                        `json:"config,omitempty"`
-	CapacityConfig            string                        `json:"capacityConfig,omitempty"`
-	ClusterConfig             string                        `json:"clusterConfig,omitempty"`
-	Log4jConfig               string                        `json:"log4jConfig,omitempty"`
-	Image                     string                        `json:"image,omitempty"`
-	TopicConfig               *TopicConfig                  `json:"topicConfig,omitempty"`
+	CruiseControlTaskSpec      CruiseControlTaskSpec         `json:"cruiseControlTaskSpec,omitempty"`
+	CruiseControlOperationSpec *CruiseControlOperationSpec   `json:"cruiseControlOperationSpec,omitempty"`
+	CruiseControlEndpoint      string                        `json:"cruiseControlEndpoint,omitempty"`
+	Resources                  *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
+	ServiceAccountName         string                        `json:"serviceAccountName,omitempty"`
+	ImagePullSecrets           []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	NodeSelector               map[string]string             `json:"nodeSelector,omitempty"`
+	Tolerations                []corev1.Toleration           `json:"tolerations,omitempty"`
+	Config                     string                        `json:"config,omitempty"`
+	CapacityConfig             string                        `json:"capacityConfig,omitempty"`
+	ClusterConfig              string                        `json:"clusterConfig,omitempty"`
+	Log4jConfig                string                        `json:"log4jConfig,omitempty"`
+	Image                      string                        `json:"image,omitempty"`
+	TopicConfig                *TopicConfig                  `json:"topicConfig,omitempty"`
 	//  Annotations to be applied to CruiseControl pod
 	// +optional
 	CruiseControlAnnotations map[string]string `json:"cruiseControlAnnotations,omitempty"`
@@ -269,8 +269,8 @@ type CruiseControlConfig struct {
 	PriorityClassName string `json:"priorityClassName,omitempty"`
 }
 
-// CruiseControlOperatonSpec specifies the configuration of the CruiseControlOperaton handling
-type CruiseControlOperatonSpec struct {
+// CruiseControlOperationSpec specifies the configuration of the CruiseControlOperation handling
+type CruiseControlOperationSpec struct {
 	// When TTLSecondsAfterFinished is specified, the created and finished (completed successfully or completedWithError and errorPolicy: ignore)
 	// cruiseControlOperation custom resource will be deleted after the given time elapsed.
 	// When it is 0 then the resource is going to be deleted instantly after the operation is finished.
@@ -281,7 +281,7 @@ type CruiseControlOperatonSpec struct {
 }
 
 // GetTTLSecondsAfterFinished returns NIL when TTLSecondsAfterFinished is not specified otherwise it returns itself
-func (c *CruiseControlOperatonSpec) GetTTLSecondsAfterFinished() *int {
+func (c *CruiseControlOperationSpec) GetTTLSecondsAfterFinished() *int {
 	if c == nil {
 		return nil
 	}
