@@ -60,7 +60,7 @@ type CruiseControlOperationSpec struct {
 	// +kubebuilder:default=retry
 	// +optional
 	ErrorPolicy ErrorPolicyType `json:"errorPolicy,omitempty"`
-	// TTLSecondsAfterFinished when is specified, the created and finished (completed successfully or completedWithError and errorPolicy: ignore)
+	// When TTLSecondsAfterFinished is specified, the created and finished (completed successfully or completedWithError and errorPolicy: ignore)
 	// cruiseControlOperation custom resource will be deleted after the given time elapsed.
 	// When it is 0 then the resource is going to be deleted instantly after the operation is finished.
 	// When it is not specified the resource is not going to be removed.
