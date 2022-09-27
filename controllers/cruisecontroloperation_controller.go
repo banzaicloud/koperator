@@ -242,13 +242,16 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 // isCCTaskTest returns true when the CruiseControlOperation is created by the cruisecontroltask_controller_test
 // In this case the CR should be skipped because the scale mock interference
 func (r *CruiseControlOperationReconciler) isCCTaskTest(operation *banzaiv1alpha1.CruiseControlOperation) bool {
-	_, ok := r.Scaler.(*scale.MockCruiseControlScaler)
+	if _, ok := r.Scaler.(*scale.MockCruiseControlScaler); !ok {
+		return false
+	}
+
 	for _, ownerRef := range operation.GetOwnerReferences() {
 		if ownerRef.Name == CruiseControlTaskTestKafkaClusterName {
-			return ok
+			return true
 		}
-
 	}
+
 	return false
 }
 

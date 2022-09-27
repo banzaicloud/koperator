@@ -59,16 +59,17 @@ func (r *CruiseControlOperationTTLReconciler) Reconcile(ctx context.Context, req
 		return reconciled()
 	}
 
-	operationTTL := time.Duration(*ccOperation.GetTTLSecondsAfterFinished() * int(time.Second))
+	operationTTL := time.Duration(*ccOperation.GetTTLSecondsAfterFinished()) * time.Second
 	finishedAt := ccOperation.GetCurrentTask().Finished
+	cleanupTime := finishedAt.Time.Add(operationTTL)
 
 	if IsExpired(operationTTL, finishedAt.Time) {
-		log.Info("cleaning up finished CruiseControlOperation", "finished", finishedAt.Time, "clean-up time", finishedAt.Time.Add(operationTTL))
+		log.Info("cleaning up finished CruiseControlOperation", "finished", finishedAt.Time, "clean-up time", cleanupTime)
 		return r.delete(ctx, ccOperation)
 	}
 	// +1 sec is needed to be sure, because double to int conversion round down
-	reqSec := int(finishedAt.Time.Add(operationTTL).Sub(time.Now()).Seconds() + 1)
-	log.V(1).Info("requeue later to clean up CruiseControlOperation", "clean-up time", finishedAt.Time.Add(operationTTL))
+	reqSec := int(time.Until(cleanupTime).Seconds() + 1)
+	log.V(1).Info("requeue later to clean up CruiseControlOperation", "clean-up time", cleanupTime)
 	return requeueAfter(reqSec)
 }
 

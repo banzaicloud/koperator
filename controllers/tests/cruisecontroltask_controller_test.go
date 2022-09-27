@@ -61,11 +61,11 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 
 	JustBeforeEach(func() {
 		By("creating namespace " + namespace)
-		err := k8sClient.Create(context.TODO(), namespaceObj)
+		err := k8sClient.Create(context.Background(), namespaceObj)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err = k8sClient.Create(context.TODO(), kafkaCluster)
+		err = k8sClient.Create(context.Background(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
 		waitForClusterRunningState(kafkaCluster, namespace)
@@ -73,7 +73,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	When("new broker is added", func() {
 		JustBeforeEach(func() {
 			kafkaClusterCCReconciler.Scaler = getScaleMockCCTask1(GinkgoT())
-			err := k8sClient.Get(context.TODO(), types.NamespacedName{
+			err := k8sClient.Get(context.Background(), types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
 			}, kafkaCluster)
@@ -82,12 +82,12 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				Id:                3,
 				BrokerConfigGroup: "default",
 			})
-			err = k8sClient.Update(context.TODO(), kafkaCluster)
+			err = k8sClient.Update(context.Background(), kafkaCluster)
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("should create one add_broker CruiseControlOperation", func() {
 			Eventually(func() bool {
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{
+				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      kafkaCluster.Name,
 					Namespace: kafkaCluster.Namespace,
 				}, kafkaCluster)
@@ -111,10 +111,10 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				return false
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
-		When("created CruiseControlOperation state is inExecutuin", func() {
+		When("created CruiseControlOperation state is inExecution", func() {
 			It("kafkaCluster gracefulActionState should be GracefulUpscaleRunning", func() {
 				Eventually(func() bool {
-					err := k8sClient.Get(context.TODO(), types.NamespacedName{
+					err := k8sClient.Get(context.Background(), types.NamespacedName{
 						Name:      kafkaCluster.Name,
 						Namespace: kafkaCluster.Namespace,
 					}, kafkaCluster)
@@ -151,7 +151,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	When("a broker is removed", func() {
 		JustBeforeEach(func() {
 			err := util.RetryOnConflict(util.DefaultBackOffForConflict, func() error {
-				if err := k8sClient.Get(context.TODO(), types.NamespacedName{
+				if err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      kafkaCluster.Name,
 					Namespace: kafkaCluster.Namespace,
 				}, kafkaCluster); err != nil {
@@ -169,7 +169,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		})
 		It("should create one remove_broker CruiseControlOperation", func() {
 			Eventually(func() bool {
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{
+				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      kafkaCluster.Name,
 					Namespace: kafkaCluster.Namespace,
 				}, kafkaCluster)

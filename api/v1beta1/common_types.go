@@ -69,7 +69,10 @@ type CruiseControlVolumeState string
 // IsRunningState returns true if CruiseControlVolumeState indicates
 // that the CC operation is scheduled and in-progress
 func (s CruiseControlVolumeState) IsRunningState() bool {
-	return s == GracefulDiskRebalanceRunning || s == GracefulDiskRebalanceCompletedWithError || s == GracefulDiskRebalancePaused || s == GracefulDiskRebalanceScheduled
+	return s == GracefulDiskRebalanceRunning ||
+		s == GracefulDiskRebalanceCompletedWithError ||
+		s == GracefulDiskRebalancePaused ||
+		s == GracefulDiskRebalanceScheduled
 }
 
 // IsRequiredState returns true if CruiseControlVolumeState is in GracefulDiskRebalanceRequired state
@@ -80,30 +83,47 @@ func (s CruiseControlVolumeState) IsRequiredState() bool {
 // IsActive returns true if CruiseControlVolumeState is in active state
 // the controller needs to take care of.
 func (s CruiseControlVolumeState) IsActive() bool {
-	return s == GracefulDiskRebalanceRunning || s == GracefulDiskRebalanceRequired || s == GracefulDiskRebalanceCompletedWithError || s == GracefulDiskRebalancePaused || s == GracefulDiskRebalanceScheduled
+	return s.IsRunningState() || s == GracefulDiskRebalanceRequired
 }
 
 // IsUpscale returns true if CruiseControlState in GracefulUpscale* state.
 func (r CruiseControlState) IsUpscale() bool {
-	return r == GracefulUpscaleRequired || r == GracefulUpscaleSucceeded || r == GracefulUpscaleRunning || r == GracefulUpscaleCompletedWithError || r == GracefulUpscalePaused || r == GracefulUpscaleScheduled
+	return r == GracefulUpscaleRequired ||
+		r == GracefulUpscaleSucceeded ||
+		r == GracefulUpscaleRunning ||
+		r == GracefulUpscaleCompletedWithError ||
+		r == GracefulUpscalePaused ||
+		r == GracefulUpscaleScheduled
 }
 
 // IsDownscale returns true if CruiseControlState in GracefulDownscale* state.
 func (r CruiseControlState) IsDownscale() bool {
-	return r == GracefulDownscaleRequired || r == GracefulDownscaleSucceeded || r == GracefulDownscaleRunning || r == GracefulDownscaleCompletedWithError || r == GracefulDownscalePaused || r == GracefulDownscaleScheduled
+	return r == GracefulDownscaleRequired ||
+		r == GracefulDownscaleSucceeded ||
+		r == GracefulDownscaleRunning ||
+		r == GracefulDownscaleCompletedWithError ||
+		r == GracefulDownscalePaused ||
+		r == GracefulDownscaleScheduled
 }
 
 // IsRunningState returns true if CruiseControlState indicates
 // that the CC operation is scheduled and in-progress
 func (r CruiseControlState) IsRunningState() bool {
-	return r == GracefulUpscaleRunning || r == GracefulUpscaleCompletedWithError || r == GracefulUpscalePaused || r == GracefulUpscaleScheduled ||
-		r == GracefulDownscaleRunning || r == GracefulDownscaleCompletedWithError || r == GracefulDownscalePaused || r == GracefulDownscaleScheduled
+	return r == GracefulUpscaleRunning ||
+		r == GracefulUpscaleCompletedWithError ||
+		r == GracefulUpscalePaused ||
+		r == GracefulUpscaleScheduled ||
+		r == GracefulDownscaleRunning ||
+		r == GracefulDownscaleCompletedWithError ||
+		r == GracefulDownscalePaused ||
+		r == GracefulDownscaleScheduled
 }
 
 // IsRequiredState returns true if CruiseControlVolumeState indicates that either upscaling or downscaling
 // (GracefulDownscaleRequired or GracefulUpscaleRequired) operation needs to be performed.
 func (r CruiseControlState) IsRequiredState() bool {
-	return r == GracefulDownscaleRequired || r == GracefulUpscaleRequired
+	return r == GracefulDownscaleRequired ||
+		r == GracefulUpscaleRequired
 }
 
 // IsActive returns true if CruiseControlState is in active state
@@ -114,7 +134,8 @@ func (r CruiseControlState) IsActive() bool {
 
 // IsSucceeded returns true if CruiseControlState is succeeded
 func (r CruiseControlState) IsSucceeded() bool {
-	return r == GracefulDownscaleSucceeded || r == GracefulUpscaleSucceeded
+	return r == GracefulDownscaleSucceeded ||
+		r == GracefulUpscaleSucceeded
 }
 
 // IsSucceeded returns true if CruiseControlVolumeState is succeeded

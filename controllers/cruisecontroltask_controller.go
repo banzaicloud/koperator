@@ -126,7 +126,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			break
 		}
 
-		unavailableBrokers, err := checkBrokersAvailability(r.Scaler, brokerIDs)
+		unavailableBrokers, err := getBrokersAvailability(r.Scaler, brokerIDs)
 		if err != nil {
 			log.Error(err, "could not get unavailable brokers for upscale")
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
@@ -213,7 +213,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 	return reconciled()
 }
 
-func checkBrokersAvailability(scaler scale.CruiseControlScaler, brokerIDs []string) ([]string, error) {
+func getBrokersAvailability(scaler scale.CruiseControlScaler, brokerIDs []string) ([]string, error) {
 	states := []scale.KafkaBrokerState{scale.KafkaBrokerAlive, scale.KafkaBrokerNew}
 	// This can result NullPointerException when the capacity calculation is missing for a broker in the cruisecontrol configmap
 	availableBrokers, err := scaler.BrokersWithState(states...)
@@ -247,8 +247,14 @@ func (r *CruiseControlTaskReconciler) rebalanceDisks(ctx context.Context, kafkaC
 	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationRebalance, bokerIDs)
 }
 
-func (r *CruiseControlTaskReconciler) createCCOperation(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, errorPolicy banzaiv1alpha1.ErrorPolicyType, ttlSecondsAfterFinished *int,
-	operationType banzaiv1alpha1.CruiseControlTaskOperation, bokerIDs []string) (corev1.LocalObjectReference, error) {
+func (r *CruiseControlTaskReconciler) createCCOperation(
+	ctx context.Context,
+	kafkaCluster *banzaiv1beta1.KafkaCluster,
+	errorPolicy banzaiv1alpha1.ErrorPolicyType,
+	ttlSecondsAfterFinished *int,
+	operationType banzaiv1alpha1.CruiseControlTaskOperation,
+	bokerIDs []string,
+) (corev1.LocalObjectReference, error) {
 	operation := &banzaiv1alpha1.CruiseControlOperation{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-%s-", kafkaCluster.Name, strings.ReplaceAll(string(operationType), "_", "")),
@@ -307,7 +313,7 @@ func (r *CruiseControlTaskReconciler) UpdateStatus(ctx context.Context, instance
 		return nil
 	}
 
-	if err := util.RetryOnConflict(util.DefaultBackOffForConflict, func() error {
+	conflictRetryFunction := func() error {
 		log.Info("Updating status....")
 		err := r.Status().Update(ctx, instance)
 		if apiErrors.IsConflict(err) {
@@ -318,7 +324,8 @@ func (r *CruiseControlTaskReconciler) UpdateStatus(ctx context.Context, instance
 			taskAndStates.SyncState(instance)
 		}
 		return err
-	}); err != nil {
+	}
+	if err := util.RetryOnConflict(util.DefaultBackOffForConflict, conflictRetryFunction); err != nil {
 		return err
 	}
 

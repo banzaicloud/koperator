@@ -17,17 +17,17 @@ package controllers
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	kafkav1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
-	kafkav1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
+	koperatorv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
+	koperatorv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 // CruiseControlTask defines a task to be performed via Cruise Control.
 type CruiseControlTask struct {
 	BrokerID                        string
-	BrokerState                     kafkav1beta1.CruiseControlState
+	BrokerState                     koperatorv1beta1.CruiseControlState
 	Volume                          string
-	VolumeState                     kafkav1beta1.CruiseControlVolumeState
-	Operation                       kafkav1alpha1.CruiseControlTaskOperation
+	VolumeState                     koperatorv1beta1.CruiseControlVolumeState
+	Operation                       koperatorv1alpha1.CruiseControlTaskOperation
 	CruiseControlOperationReference *corev1.LocalObjectReference
 }
 
@@ -37,30 +37,31 @@ func (t *CruiseControlTask) IsRequired() bool {
 		return true
 	}
 
-	//nolint:exhaustive
+	// nolint:exhaustive // Note: Not all CC operations have to be checked.
 	switch t.Operation {
-	case kafkav1alpha1.OperationAddBroker, kafkav1alpha1.OperationRemoveBroker:
+	case koperatorv1alpha1.OperationAddBroker, koperatorv1alpha1.OperationRemoveBroker:
 		return t.BrokerState.IsRequiredState()
-	case kafkav1alpha1.OperationRebalance:
+	case koperatorv1alpha1.OperationRebalance:
 		return t.VolumeState.IsRequiredState()
 	}
 	return false
 }
 
-// Apply takes a kafkav1beta1.KafkaCluster instance and updates its Status field to reflect the state of the task.
-func (t *CruiseControlTask) Apply(instance *kafkav1beta1.KafkaCluster) {
+// Apply takes a koperatorv1beta1.KafkaCluster instance and updates its Status field to reflect the state of the task.
+func (t *CruiseControlTask) Apply(instance *koperatorv1beta1.KafkaCluster) {
 	if t == nil || instance == nil {
 		return
 	}
-	//nolint:exhaustive
+
+	// nolint:exhaustive // Note: Not all CC operations require updates to the KafkaCluster status.
 	switch t.Operation {
-	case kafkav1alpha1.OperationAddBroker, kafkav1alpha1.OperationRemoveBroker:
+	case koperatorv1alpha1.OperationAddBroker, koperatorv1alpha1.OperationRemoveBroker:
 		if state, ok := instance.Status.BrokersState[t.BrokerID]; ok {
 			state.GracefulActionState.CruiseControlState = t.BrokerState
 			state.GracefulActionState.CruiseControlOperationReference = t.CruiseControlOperationReference
 			instance.Status.BrokersState[t.BrokerID] = state
 		}
-	case kafkav1alpha1.OperationRebalance:
+	case koperatorv1alpha1.OperationRebalance:
 		if state, ok := instance.Status.BrokersState[t.BrokerID]; ok {
 			if volState, ok := state.GracefulActionState.VolumeStates[t.Volume]; ok {
 				volState.CruiseControlVolumeState = t.VolumeState
@@ -79,77 +80,77 @@ func (t *CruiseControlTask) SetCruiseControlOperationRef(ref corev1.LocalObjectR
 }
 
 func (t *CruiseControlTask) SetStateScheduled() {
-	//nolint:exhaustive
+	// nolint:exhaustive // Note: Not all CC operations require updates to the CruiseControlTask state.
 	switch t.Operation {
-	case kafkav1alpha1.OperationAddBroker:
-		t.BrokerState = kafkav1beta1.GracefulUpscaleScheduled
-	case kafkav1alpha1.OperationRemoveBroker:
-		t.BrokerState = kafkav1beta1.GracefulDownscaleScheduled
-	case kafkav1alpha1.OperationRebalance:
-		t.VolumeState = kafkav1beta1.GracefulDiskRebalanceScheduled
+	case koperatorv1alpha1.OperationAddBroker:
+		t.BrokerState = koperatorv1beta1.GracefulUpscaleScheduled
+	case koperatorv1alpha1.OperationRemoveBroker:
+		t.BrokerState = koperatorv1beta1.GracefulDownscaleScheduled
+	case koperatorv1alpha1.OperationRebalance:
+		t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceScheduled
 	}
 }
 
 // FromResult takes a scale.Result instance returned by scale.CruiseControlScaler and updates its own state accordingly.
-func (t *CruiseControlTask) FromResult(operation *kafkav1alpha1.CruiseControlOperation) {
+func (t *CruiseControlTask) FromResult(operation *koperatorv1alpha1.CruiseControlOperation) {
 	if t == nil {
 		return
 	}
 
 	//nolint:exhaustive
 	switch t.Operation {
-	case kafkav1alpha1.OperationAddBroker:
+	case koperatorv1alpha1.OperationAddBroker:
 		switch {
 		// When CruiseControlOperation is missing
 		case operation == nil:
-			t.BrokerState = kafkav1beta1.GracefulUpscaleSucceeded
-		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.BrokerState = kafkav1beta1.GracefulUpscaleSucceeded
-		case operation.IsPaused() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.BrokerState = kafkav1beta1.GracefulUpscalePaused
-		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskInExecution:
-			t.BrokerState = kafkav1beta1.GracefulUpscaleRunning
-		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompleted:
-			t.BrokerState = kafkav1beta1.GracefulUpscaleSucceeded
-		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.BrokerState = kafkav1beta1.GracefulUpscaleCompletedWithError
+			t.BrokerState = koperatorv1beta1.GracefulUpscaleSucceeded
+		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.BrokerState = koperatorv1beta1.GracefulUpscaleSucceeded
+		case operation.IsPaused() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.BrokerState = koperatorv1beta1.GracefulUpscalePaused
+		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskInExecution:
+			t.BrokerState = koperatorv1beta1.GracefulUpscaleRunning
+		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompleted:
+			t.BrokerState = koperatorv1beta1.GracefulUpscaleSucceeded
+		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.BrokerState = koperatorv1beta1.GracefulUpscaleCompletedWithError
 		case operation.GetCurrentTaskState() == "":
-			t.BrokerState = kafkav1beta1.GracefulUpscaleScheduled
+			t.BrokerState = koperatorv1beta1.GracefulUpscaleScheduled
 		}
-	case kafkav1alpha1.OperationRemoveBroker:
+	case koperatorv1alpha1.OperationRemoveBroker:
 		switch {
 		case operation == nil:
-			t.BrokerState = kafkav1beta1.GracefulDownscaleSucceeded
-		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.BrokerState = kafkav1beta1.GracefulDownscaleSucceeded
-		case operation.IsPaused() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.BrokerState = kafkav1beta1.GracefulDownscalePaused
-		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskInExecution:
-			t.BrokerState = kafkav1beta1.GracefulDownscaleRunning
-		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompleted:
-			t.BrokerState = kafkav1beta1.GracefulDownscaleSucceeded
-		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.BrokerState = kafkav1beta1.GracefulDownscaleCompletedWithError
+			t.BrokerState = koperatorv1beta1.GracefulDownscaleSucceeded
+		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.BrokerState = koperatorv1beta1.GracefulDownscaleSucceeded
+		case operation.IsPaused() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.BrokerState = koperatorv1beta1.GracefulDownscalePaused
+		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskInExecution:
+			t.BrokerState = koperatorv1beta1.GracefulDownscaleRunning
+		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompleted:
+			t.BrokerState = koperatorv1beta1.GracefulDownscaleSucceeded
+		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.BrokerState = koperatorv1beta1.GracefulDownscaleCompletedWithError
 		case operation.GetCurrentTaskState() == "":
-			t.BrokerState = kafkav1beta1.GracefulDownscaleScheduled
+			t.BrokerState = koperatorv1beta1.GracefulDownscaleScheduled
 		}
 
-	case kafkav1alpha1.OperationRebalance:
+	case koperatorv1alpha1.OperationRebalance:
 		switch {
 		case operation == nil:
-			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceSucceeded
-		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceSucceeded
-		case operation.IsPaused() && operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.VolumeState = kafkav1beta1.GracefulDiskRebalancePaused
-		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskInExecution:
-			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceRunning
-		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompleted:
-			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceSucceeded
-		case operation.GetCurrentTaskState() == kafkav1beta1.CruiseControlTaskCompletedWithError:
-			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceCompletedWithError
+			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceSucceeded
+		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceSucceeded
+		case operation.IsPaused() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRebalancePaused
+		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskInExecution:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceRunning
+		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompleted:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceSucceeded
+		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceCompletedWithError
 		case operation.GetCurrentTaskState() == "":
-			t.VolumeState = kafkav1beta1.GracefulDiskRebalanceScheduled
+			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceScheduled
 		}
 	}
 }
@@ -157,7 +158,7 @@ func (t *CruiseControlTask) FromResult(operation *kafkav1alpha1.CruiseControlOpe
 // CruiseControlTasksAndStates is a container for CruiseControlTask objects.
 type CruiseControlTasksAndStates struct {
 	tasks     []*CruiseControlTask
-	tasksByOp map[kafkav1alpha1.CruiseControlTaskOperation][]*CruiseControlTask
+	tasksByOp map[koperatorv1alpha1.CruiseControlTaskOperation][]*CruiseControlTask
 }
 
 // Add registers the provided CruiseControlTask instance.
@@ -175,7 +176,7 @@ func (s CruiseControlTasksAndStates) IsEmpty() bool {
 }
 
 // GetActiveTasksByOp returns a list of active CruiseControlTask filtered by the provided CruiseControlOperation type.
-func (s *CruiseControlTasksAndStates) GetActiveTasksByOp(o kafkav1alpha1.CruiseControlTaskOperation) []*CruiseControlTask {
+func (s *CruiseControlTasksAndStates) GetActiveTasksByOp(o koperatorv1alpha1.CruiseControlTaskOperation) []*CruiseControlTask {
 	tasks := make([]*CruiseControlTask, 0, len(s.tasksByOp[o]))
 	for _, task := range s.tasksByOp[o] {
 		if task != nil && task.IsRequired() {
@@ -186,13 +187,13 @@ func (s *CruiseControlTasksAndStates) GetActiveTasksByOp(o kafkav1alpha1.CruiseC
 }
 
 // NumActiveTasksByOp the number of active CruiseControlTask instances stored.
-func (s *CruiseControlTasksAndStates) NumActiveTasksByOp(o kafkav1alpha1.CruiseControlTaskOperation) int {
+func (s *CruiseControlTasksAndStates) NumActiveTasksByOp(o koperatorv1alpha1.CruiseControlTaskOperation) int {
 	return len(s.GetActiveTasksByOp(o))
 }
 
-// SyncState makes sure that the status of the provided kafkav1beta1.KafkaCluster reflects the state of the
+// SyncState makes sure that the status of the provided koperatorv1beta1.KafkaCluster reflects the state of the
 // CruiseControlTask instances.
-func (s *CruiseControlTasksAndStates) SyncState(instance *kafkav1beta1.KafkaCluster) {
+func (s *CruiseControlTasksAndStates) SyncState(instance *koperatorv1beta1.KafkaCluster) {
 	for _, task := range s.tasks {
 		task.Apply(instance)
 	}
@@ -202,6 +203,6 @@ func (s *CruiseControlTasksAndStates) SyncState(instance *kafkav1beta1.KafkaClus
 func newCruiseControlTasksAndStates() *CruiseControlTasksAndStates {
 	return &CruiseControlTasksAndStates{
 		tasks:     make([]*CruiseControlTask, 0),
-		tasksByOp: make(map[kafkav1alpha1.CruiseControlTaskOperation][]*CruiseControlTask),
+		tasksByOp: make(map[koperatorv1alpha1.CruiseControlTaskOperation][]*CruiseControlTask),
 	}
 }

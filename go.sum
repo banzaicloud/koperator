@@ -103,6 +103,8 @@ github.com/banzaicloud/go-cruise-control v0.0.0-20220907152453-bbd0e3a63b06 h1:P
 github.com/banzaicloud/go-cruise-control v0.0.0-20220907152453-bbd0e3a63b06/go.mod h1:TdgOy6tNm8tXAIck6lDBRXClGV+/TWoqR/DD1aKvW0U=
 github.com/banzaicloud/go-cruise-control v0.0.0-20220907181942-3d28c1a29e59 h1:E5OILBGyjIlBSeoZFxlPE7+PkiWq7xbjKyRHVzc1D7U=
 github.com/banzaicloud/go-cruise-control v0.0.0-20220907181942-3d28c1a29e59/go.mod h1:TdgOy6tNm8tXAIck6lDBRXClGV+/TWoqR/DD1aKvW0U=
+github.com/banzaicloud/go-cruise-control v0.2.0 h1:g0zsJMuFrw/nUa7f9Y5IZIvB9pR6jF6usOHMbY8+J6Q=
+github.com/banzaicloud/go-cruise-control v0.2.0/go.mod h1:TdgOy6tNm8tXAIck6lDBRXClGV+/TWoqR/DD1aKvW0U=
 github.com/banzaicloud/istio-client-go v0.0.17 h1:wiplbM7FDiIHopujInAnin3zuovtVcphtKy9En39q5I=
 github.com/banzaicloud/istio-client-go v0.0.17/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
 github.com/banzaicloud/istio-operator/api/v2 v2.13.3 h1:2NLJ81gon0WKJDCx+l0/228bmC+U09L9eW4rDt9VIF8=
