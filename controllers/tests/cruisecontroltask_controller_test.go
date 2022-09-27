@@ -72,7 +72,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("new broker is added", func() {
 		JustBeforeEach(func() {
-			kafkaClusterCCReconciler.Scaler = getScaleMockCCTask1(GinkgoT())
+			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask1(GinkgoT()))
 			err := k8sClient.Get(context.Background(), types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
@@ -195,6 +195,12 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		})
 	})
 })
+
+func NewMockScaleFactory(mock scale.CruiseControlScaler) func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
+	return func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
+		return mock, nil
+	}
+}
 
 func getScaleMockCCTask1(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())

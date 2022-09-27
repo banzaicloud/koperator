@@ -52,7 +52,7 @@ type CruiseControlTaskReconciler struct {
 	client.Client
 	DirectClient client.Reader
 	Scheme       *runtime.Scheme
-	Scaler       scale.CruiseControlScaler
+	ScaleFactory func(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster) (scale.CruiseControlScaler, error)
 }
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
@@ -107,11 +107,9 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		return requeueAfter(DefaultRequeueAfterTimeInSec)
 	}
 
-	if _, ok := r.Scaler.(*scale.MockCruiseControlScaler); !ok {
-		r.Scaler, err = scale.NewCruiseControlScaler(ctx, scale.CruiseControlURLFromKafkaCluster(instance))
-		if err != nil {
-			return requeueWithError(log, "failed to create Cruise Control Scaler instance", err)
-		}
+	scaler, err := r.ScaleFactory(ctx, instance)
+	if err != nil {
+		return requeueWithError(log, "failed to create Cruise Control Scaler instance", err)
 	}
 
 	operationTTLSecondsAfterFinished := instance.Spec.CruiseControlConfig.CruiseControlOperationSpec.GetTTLSecondsAfterFinished()
@@ -126,7 +124,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			break
 		}
 
-		unavailableBrokers, err := getBrokersAvailability(r.Scaler, brokerIDs)
+		unavailableBrokers, err := getBrokersAvailability(scaler, brokerIDs)
 		if err != nil {
 			log.Error(err, "could not get unavailable brokers for upscale")
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
@@ -165,7 +163,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		removeTask.SetStateScheduled()
 
 	case tasksAndStates.NumActiveTasksByOp(banzaiv1alpha1.OperationRebalance) > 0:
-		logDirsByBroker, err := r.Scaler.LogDirsByBroker()
+		logDirsByBroker, err := scaler.LogDirsByBroker()
 		if err != nil {
 			log.Error(err, "failed to get list of volumes per broker from Cruise Control")
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
