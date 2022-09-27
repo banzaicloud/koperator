@@ -72,6 +72,7 @@ func (s CruiseControlVolumeState) IsRunningState() bool {
 	return s == GracefulDiskRebalanceRunning || s == GracefulDiskRebalanceCompletedWithError || s == GracefulDiskRebalancePaused || s == GracefulDiskRebalanceScheduled
 }
 
+// IsRequiredState returns true if CruiseControlVolumeState is in GracefulDiskRebalanceRequired state
 func (s CruiseControlVolumeState) IsRequiredState() bool {
 	return s == GracefulDiskRebalanceRequired
 }
@@ -116,7 +117,7 @@ func (r CruiseControlState) IsSucceeded() bool {
 	return r == GracefulDownscaleSucceeded || r == GracefulUpscaleSucceeded
 }
 
-// IsSucceeded returns true if CruiseControlState is succeeded
+// IsSucceeded returns true if CruiseControlVolumeState is succeeded
 func (r CruiseControlVolumeState) IsSucceeded() bool {
 	return r == GracefulDiskRebalanceSucceeded
 }
@@ -166,7 +167,7 @@ type IstioControlPlaneReference struct {
 type GracefulActionState struct {
 	// CruiseControlState holds the information about graceful action state
 	CruiseControlState CruiseControlState `json:"cruiseControlState"`
-	// CruiseControlOperationReference references to the created CruiseControlOperation to execute a CC task
+	// CruiseControlOperationReference refers to the created CruiseControlOperation to execute a CC task
 	CruiseControlOperationReference *corev1.LocalObjectReference `json:"cruiseControlOperationReference,omitempty"`
 	// VolumeStates holds the information about the CC disk rebalance states and CruiseControlOperation reference
 	VolumeStates map[string]VolumeState `json:"volumeStates,omitempty"`
@@ -175,7 +176,7 @@ type GracefulActionState struct {
 type VolumeState struct {
 	// CruiseControlVolumeState holds the information about CC disk rebalance state
 	CruiseControlVolumeState CruiseControlVolumeState `json:"cruiseControlVolumeState"`
-	// CruiseControlOperationReference references to the created CruiseControlOperation to execute a CC task
+	// CruiseControlOperationReference refers to the created CruiseControlOperation to execute a CC task
 	CruiseControlOperationReference *corev1.LocalObjectReference `json:"cruiseControlOperationReference,omitempty"`
 }
 
@@ -240,7 +241,7 @@ const (
 	GracefulDiskRebalanceRunning CruiseControlVolumeState = "GracefulDiskRebalanceRunning"
 	// GracefulDiskRebalanceSucceeded states that the for the broker volume rebalance has succeeded
 	GracefulDiskRebalanceSucceeded CruiseControlVolumeState = "GracefulDiskRebalanceSucceeded"
-	// GracefulDiskRebalanceScheduled states that the broker  volume rebalance CCOperation is created and the task is waiting for execution
+	// GracefulDiskRebalanceScheduled states that the broker volume rebalance CCOperation is created and the task is waiting for execution
 	GracefulDiskRebalanceScheduled CruiseControlVolumeState = "GracefulDiskRebalanceScheduled"
 	// GracefulDiskRebalanceCompletedWithError states that the broker volume rebalance task completed with an error
 	GracefulDiskRebalanceCompletedWithError CruiseControlVolumeState = "GracefulDiskRebalanceCompletedWithError"

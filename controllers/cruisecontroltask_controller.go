@@ -125,7 +125,6 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		if len(brokerIDs) == 0 {
 			break
 		}
-		details := []interface{}{"operation", "add broker", "brokers", brokerIDs}
 
 		unavailableBrokers, err := checkBrokersAvailability(r.Scaler, brokerIDs)
 		if err != nil {
@@ -140,7 +139,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 
 		cruiseControlOpRef, err := r.addBrokers(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs)
 		if err != nil {
-			log.Error(err, "creating CruiseControlOperation for upscale has failed", details...)
+			requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for upscale has failed, brokerIDs: %s", brokerIDs), err)
 		}
 
 		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationAddBroker) {
@@ -157,12 +156,11 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			break
 		}
 
-		details := []interface{}{"operation", "remove broker", "brokers", removeTask.BrokerID}
-
 		cruiseControlOpRef, err := r.removeBroker(ctx, instance, operationTTLSecondsAfterFinished, removeTask.BrokerID)
 		if err != nil {
-			log.Error(err, "creating CruiseControlOperation for downscale has failed", details...)
+			requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for downscale has failed, brokerID: %s", removeTask.BrokerID), err)
 		}
+
 		removeTask.SetCruiseControlOperationRef(cruiseControlOpRef)
 		removeTask.SetStateScheduled()
 
@@ -194,11 +192,11 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
-		details := []interface{}{"operation", "rebalance disks", "brokers", brokerIDs}
 		cruiseControlOpRef, err := r.rebalanceDisks(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs)
 		if err != nil {
-			log.Error(err, "creating CruiseControlOperation for re-balancing disks has failed", details...)
+			requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for re-balancing disks has failed, brokerIDs: %s", brokerIDs), err)
 		}
+
 		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationRebalance) {
 			if task == nil {
 				continue
@@ -368,7 +366,7 @@ func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
 		WithEventFilter(SkipClusterRegistryOwnedResourcePredicate{}).
 		WithEventFilter(kafkaClusterPredicate).
 		Owns(&banzaiv1alpha1.CruiseControlOperation{}, builder.WithPredicates(cruiseControlOperationPredicate)).
-		Named("CruiseControl")
+		Named("CruiseControlTask")
 }
 
 // getActiveTasksFromCluster returns a CruiseControlTasksAndStates instance which stores active (operation needed) tasks

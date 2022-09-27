@@ -31,7 +31,7 @@ type CruiseControlTask struct {
 	CruiseControlOperationReference *corev1.LocalObjectReference
 }
 
-// IsDone returns true if the task is considered finished.
+// IsRequired returns true if the task needs to be executed.
 func (t *CruiseControlTask) IsRequired() bool {
 	if t == nil {
 		return true
