@@ -188,7 +188,9 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		}
 		if len(unavailableBrokerIDs) > 0 {
 			log.Info("requeue as there are offline broker log dirs for rebalance", "brokerIDs", unavailableBrokerIDs)
-			// This requeue is not necessary because the cruiseContrlOperation controller retries the errored task
+			// This requeue is not necessary because the cruisecontrloperation controller retries the errored task
+			// but in this case there will be GracefulUpscaleCompletedWithError status in the kafkaCluster's status.
+			// To avoid that requeue is here until brokers with the new data logs come up.
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
