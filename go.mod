@@ -6,7 +6,7 @@ require (
 	emperror.dev/errors v0.8.1
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/Shopify/sarama v1.34.1
-	github.com/banzaicloud/go-cruise-control v0.0.0-20220907151904-6e368ae16e1c
+	github.com/banzaicloud/go-cruise-control v0.2.0
 	github.com/banzaicloud/istio-client-go v0.0.17
 	github.com/banzaicloud/istio-operator/api/v2 v2.13.3
 	github.com/banzaicloud/k8s-objectmatcher v1.8.0

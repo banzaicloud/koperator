@@ -18,16 +18,23 @@ import (
 	"context"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/controllers"
+	"github.com/banzaicloud/koperator/pkg/scale"
+	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 var _ = Describe("CruiseControlTaskReconciler", func() {
@@ -48,72 +55,157 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				Name: namespace,
 			},
 		}
-
-		kafkaClusterCRName = fmt.Sprintf("kafkacluster-%d", count)
+		kafkaClusterCRName = controllers.CruiseControlTaskTestKafkaClusterName
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 	})
 
 	JustBeforeEach(func() {
 		By("creating namespace " + namespace)
-		err := k8sClient.Create(context.TODO(), namespaceObj)
+		err := k8sClient.Create(context.Background(), namespaceObj)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err = k8sClient.Create(context.TODO(), kafkaCluster)
+		err = k8sClient.Create(context.Background(), kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
 		waitForClusterRunningState(kafkaCluster, namespace)
 	})
+	When("new broker is added", func() {
+		JustBeforeEach(func() {
+			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask1(GinkgoT()))
+			err := k8sClient.Get(context.Background(), types.NamespacedName{
+				Name:      kafkaCluster.Name,
+				Namespace: kafkaCluster.Namespace,
+			}, kafkaCluster)
+			Expect(err).NotTo(HaveOccurred())
+			kafkaCluster.Spec.Brokers = append(kafkaCluster.Spec.Brokers, v1beta1.Broker{
+				Id:                3,
+				BrokerConfigGroup: "default",
+			})
+			err = k8sClient.Update(context.Background(), kafkaCluster)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("should create one add_broker CruiseControlOperation", func() {
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), types.NamespacedName{
+					Name:      kafkaCluster.Name,
+					Namespace: kafkaCluster.Namespace,
+				}, kafkaCluster)
+				Expect(err).NotTo(HaveOccurred())
 
-	When("broker is removed from CR", func() {
-		BeforeEach(func() {
-			kafkaCluster.Spec.Brokers = []v1beta1.Broker{
-				{
-					Id:                0,
-					BrokerConfigGroup: "default",
-				},
-				{
-					Id:                1,
-					BrokerConfigGroup: "default",
-				},
-				{
-					Id:                2,
-					BrokerConfigGroup: "default",
-				},
-			}
+				brokerState, ok := kafkaCluster.Status.BrokersState["3"]
+				if ok && brokerState.GracefulActionState.CruiseControlOperationReference != nil {
+					actionState := brokerState.GracefulActionState
+
+					operationList := &v1alpha1.CruiseControlOperationList{}
+
+					err = k8sClient.List(context.Background(), operationList, client.ListOption(client.InNamespace(kafkaCluster.Namespace)))
+					Expect(err).NotTo(HaveOccurred())
+
+					if len(operationList.Items) != 1 {
+						return false
+					}
+					operation := &operationList.Items[0]
+					return actionState.CruiseControlOperationReference.Name == operation.Name && operation.GetCurrentTaskOp() == v1alpha1.OperationAddBroker && actionState.CruiseControlState == v1beta1.GracefulUpscaleScheduled
+				}
+				return false
+			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
+		})
+		When("created CruiseControlOperation state is inExecution", func() {
+			It("kafkaCluster gracefulActionState should be GracefulUpscaleRunning", func() {
+				Eventually(func() bool {
+					err := k8sClient.Get(context.Background(), types.NamespacedName{
+						Name:      kafkaCluster.Name,
+						Namespace: kafkaCluster.Namespace,
+					}, kafkaCluster)
+					Expect(err).NotTo(HaveOccurred())
+
+					brokerState, ok := kafkaCluster.Status.BrokersState["3"]
+					if ok && brokerState.GracefulActionState.CruiseControlOperationReference != nil {
+						actionState := brokerState.GracefulActionState
+
+						operationList := &v1alpha1.CruiseControlOperationList{}
+
+						err = k8sClient.List(context.Background(), operationList, client.ListOption(client.InNamespace(kafkaCluster.Namespace)))
+						Expect(err).NotTo(HaveOccurred())
+
+						if len(operationList.Items) != 1 {
+							return false
+						}
+						operation := &operationList.Items[0]
+						if operation.Status.CurrentTask.State != v1beta1.CruiseControlTaskInExecution {
+							operation.Status.CurrentTask.State = v1beta1.CruiseControlTaskInExecution
+							err := k8sClient.Status().Update(context.Background(), operation)
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						return actionState.CruiseControlOperationReference.Name == operation.Name &&
+							operation.GetCurrentTaskOp() == v1alpha1.OperationAddBroker && actionState.CruiseControlState == v1beta1.GracefulUpscaleRunning
+					}
+					return false
+				}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
+			})
 		})
 
-		It("reconciles the task correctly", func() {
-			err := k8sClient.Get(context.TODO(), types.NamespacedName{
-				Name:      kafkaCluster.Name,
-				Namespace: kafkaCluster.Namespace,
-			}, kafkaCluster)
+	})
+	When("a broker is removed", func() {
+		JustBeforeEach(func() {
+			err := util.RetryOnConflict(util.DefaultBackOffForConflict, func() error {
+				if err := k8sClient.Get(context.Background(), types.NamespacedName{
+					Name:      kafkaCluster.Name,
+					Namespace: kafkaCluster.Namespace,
+				}, kafkaCluster); err != nil {
+					return err
+				}
+
+				brokerState := kafkaCluster.Status.BrokersState["2"]
+				brokerState.GracefulActionState.CruiseControlState = v1beta1.GracefulDownscaleRequired
+				kafkaCluster.Status.BrokersState["2"] = brokerState
+				err := k8sClient.Status().Update(context.Background(), kafkaCluster)
+				return err
+			})
 			Expect(err).NotTo(HaveOccurred())
 
-			getGracefulActionState := func(state v1beta1.BrokerState) v1beta1.CruiseControlState {
-				return state.GracefulActionState.CruiseControlState
-			}
-			Expect(kafkaCluster.Status.BrokersState).To(And(
-				HaveKeyWithValue("0", WithTransform(getGracefulActionState, Equal(v1beta1.GracefulUpscaleSucceeded))),
-				HaveKeyWithValue("1", WithTransform(getGracefulActionState, Equal(v1beta1.GracefulUpscaleSucceeded))),
-				HaveKeyWithValue("2", WithTransform(getGracefulActionState, Equal(v1beta1.GracefulUpscaleSucceeded))),
-			))
+		})
+		It("should create one remove_broker CruiseControlOperation", func() {
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), types.NamespacedName{
+					Name:      kafkaCluster.Name,
+					Namespace: kafkaCluster.Namespace,
+				}, kafkaCluster)
+				Expect(err).NotTo(HaveOccurred())
 
-			// remove broker with id 2, update CR
-			kafkaCluster.Spec.Brokers = kafkaCluster.Spec.Brokers[:1]
-			err = k8sClient.Update(context.TODO(), kafkaCluster)
-			Expect(err).NotTo(HaveOccurred())
+				brokerState, ok := kafkaCluster.Status.BrokersState["2"]
+				if ok && brokerState.GracefulActionState.CruiseControlOperationReference != nil {
+					actionState := brokerState.GracefulActionState
 
-			err = k8sClient.Get(context.TODO(), types.NamespacedName{
-				Name:      kafkaCluster.Name,
-				Namespace: kafkaCluster.Namespace,
-			}, kafkaCluster)
-			Expect(err).NotTo(HaveOccurred())
+					operationList := &v1alpha1.CruiseControlOperationList{}
 
-			Expect(kafkaCluster.Status.BrokersState).To(And(
-				HaveKeyWithValue("0", WithTransform(getGracefulActionState, Equal(v1beta1.GracefulUpscaleSucceeded))),
-				HaveKeyWithValue("1", WithTransform(getGracefulActionState, Equal(v1beta1.GracefulUpscaleSucceeded))),
-			))
+					err = k8sClient.List(context.Background(), operationList, client.ListOption(client.InNamespace(kafkaCluster.Namespace)))
+					Expect(err).NotTo(HaveOccurred())
+
+					if len(operationList.Items) != 1 {
+						return false
+					}
+					operation := &operationList.Items[0]
+					return actionState.CruiseControlOperationReference.Name == operation.Name && operation.GetCurrentTaskOp() == v1alpha1.OperationRemoveBroker && actionState.CruiseControlState == v1beta1.GracefulDownscaleScheduled
+				}
+				return false
+			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
 })
+
+func NewMockScaleFactory(mock scale.CruiseControlScaler) func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
+	return func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
+		return mock, nil
+	}
+}
+
+func getScaleMockCCTask1(t GinkgoTInterface) *scale.MockCruiseControlScaler {
+	mockCtrl := gomock.NewController(GinkgoT())
+	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
+	availableBrokers := []string{"1", "2", "3"}
+	scaleMock.EXPECT().BrokersWithState(gomock.All()).Return(availableBrokers, nil).AnyTimes()
+	return scaleMock
+}

@@ -16,31 +16,45 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	kafkav1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
+	apiutil "github.com/banzaicloud/koperator/api/util"
+	banzaiv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
+	banzaiv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/scale"
+	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 const (
-	DefaultRequeueAfterTimeInSec = 20
+	DefaultRequeueAfterTimeInSec          = 20
+	CruiseControlTaskTestKafkaClusterName = "cruisecontroltask-test"
+	nullPointerExceptionErrString         = "NullPointerException"
 )
 
 // CruiseControlTaskReconciler reconciles a kafka cluster object
 type CruiseControlTaskReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	// DirectClient here is needed because when the next reconciliation is happened instantly after status update then
+	// the changes in some cases will not be in the resource otherwise.
+	DirectClient client.Reader
+	Scheme       *runtime.Scheme
+	ScaleFactory func(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster) (scale.CruiseControlScaler, error)
 }
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
@@ -49,8 +63,8 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 	log := logr.FromContextOrDiscard(ctx)
 
 	// Fetch the KafkaCluster instance
-	instance := &kafkav1beta1.KafkaCluster{}
-	err := r.Get(ctx, request.NamespacedName, instance)
+	instance := &banzaiv1beta1.KafkaCluster{}
+	err := r.DirectClient.Get(ctx, request.NamespacedName, instance)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -61,7 +75,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		return requeueWithError(log, err.Error(), err)
 	}
 
-	log.V(1).Info("reconciling Cruise Control tasks")
+	log.Info("reconciling Cruise Control tasks")
 
 	// Get all active tasks reported in status of Kafka Cluster CR
 	tasksAndStates := getActiveTasksFromCluster(instance)
@@ -70,121 +84,229 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		return reconciled()
 	}
 
-	scaler, err := scale.NewCruiseControlScaler(ctx, scale.CruiseControlURLFromKafkaCluster(instance))
+	ccOperationList := banzaiv1alpha1.CruiseControlOperationList{}
+	matchingLabels := client.MatchingLabels(apiutil.LabelsForKafka(instance.Name))
+	err = r.DirectClient.List(ctx, &ccOperationList, client.ListOption(client.InNamespace(request.Namespace)), client.ListOption(matchingLabels))
 	if err != nil {
-		return requeueWithError(log, "failed to create Cruise Control Scaler instance", err)
+		return requeueWithError(log, err.Error(), err)
 	}
-
-	if !scaler.IsUp() {
-		log.Info("requeue event as Cruise Control is not available (yet)")
-		return requeueAfter(DefaultRequeueAfterTimeInSec)
+	// Selecting owned CruiseControlOperations
+	var ccOperations []*banzaiv1alpha1.CruiseControlOperation
+	for i := range ccOperationList.Items {
+		operation := &ccOperationList.Items[i]
+		for _, ownerRef := range operation.GetOwnerReferences() {
+			if ownerRef.Name == instance.Name {
+				ccOperations = append(ccOperations, operation)
+				break
+			}
+		}
 	}
 
 	// Update task states with information from Cruise Control
-	err = updateActiveTasks(scaler, tasksAndStates)
+	err = updateActiveTasks(tasksAndStates, ccOperations)
 	if err != nil {
 		log.Error(err, "requeue event as updating state of active tasks failed")
 		return requeueAfter(DefaultRequeueAfterTimeInSec)
 	}
 
-	// Check if CruiseControl is ready as we cannot perform any operation until it is in ready state
-	if status, _ := scaler.Status(); status.InExecution() {
-		log.Info("updating status of Kafka Cluster and requeue event as Cruise Control is in execution")
-		if err := r.UpdateStatus(ctx, instance, tasksAndStates); err != nil {
-			log.Error(err, "failed to update Kafka Cluster status")
-		}
-		return requeueAfter(DefaultRequeueAfterTimeInSec)
+	scaler, err := r.ScaleFactory(ctx, instance)
+	if err != nil {
+		return requeueWithError(log, "failed to create Cruise Control Scaler instance", err)
 	}
 
+	operationTTLSecondsAfterFinished := instance.Spec.CruiseControlConfig.CruiseControlOperationSpec.GetTTLSecondsAfterFinished()
+
 	switch {
-	case tasksAndStates.NumActiveTasksByOp(OperationAddBroker) > 0:
-		addBrokerTasks := make([]*CruiseControlTask, 0)
+	case tasksAndStates.NumActiveTasksByOp(banzaiv1alpha1.OperationAddBroker) > 0:
 		brokerIDs := make([]string, 0)
-		for _, task := range tasksAndStates.GetActiveTasksByOp(OperationAddBroker) {
+		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationAddBroker) {
 			brokerIDs = append(brokerIDs, task.BrokerID)
-			addBrokerTasks = append(addBrokerTasks, task)
 		}
-		details := []interface{}{"operation", "add broker", "brokers", brokerIDs}
+		if len(brokerIDs) == 0 {
+			break
+		}
 
-		result, err := scaler.AddBrokers(brokerIDs...)
+		unavailableBrokers, err := getUnavailableBrokers(scaler, brokerIDs)
 		if err != nil {
-			log.Error(err, "adding broker(s) to Kafka cluster via Cruise Control failed", details...)
+			log.Error(err, "could not get unavailable brokers for upscale")
+			return requeueAfter(DefaultRequeueAfterTimeInSec)
+		}
+		if len(unavailableBrokers) > 0 {
+			log.Info("requeue as broker(s) are not ready for upscale", "brokerIDs", unavailableBrokers)
+			// This requeue is not necessary because the cruisecontrloperation controller retries the errored task
+			// but in this case there will be GracefulUpscaleCompletedWithError status in the kafkaCluster's status.
+			// To avoid that requeue is here until brokers come up.
+			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
-		for _, task := range addBrokerTasks {
+		cruiseControlOpRef, err := r.addBrokers(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs)
+		if err != nil {
+			requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for upscale has failed, brokerIDs: %s", brokerIDs), err)
+		}
+
+		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationAddBroker) {
 			if task == nil {
 				continue
 			}
-			task.FromResult(result)
+			task.SetCruiseControlOperationRef(cruiseControlOpRef)
+			task.SetStateScheduled()
 		}
-
-	case tasksAndStates.NumActiveTasksByOp(OperationRemoveBroker) > 0:
+	case tasksAndStates.NumActiveTasksByOp(banzaiv1alpha1.OperationRemoveBroker) > 0:
 		var removeTask *CruiseControlTask
-		for _, task := range tasksAndStates.GetActiveTasksByOp(OperationRemoveBroker) {
+		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationRemoveBroker) {
 			removeTask = task
 			break
 		}
 
-		details := []interface{}{"operation", "remove broker", "brokers", removeTask.BrokerID}
-
-		result, err := scaler.RemoveBrokers(removeTask.BrokerID)
+		cruiseControlOpRef, err := r.removeBroker(ctx, instance, operationTTLSecondsAfterFinished, removeTask.BrokerID)
 		if err != nil {
-			log.Error(err, "removing broker(s) from Kafka cluster via Cruise Control failed", details...)
+			requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for downscale has failed, brokerID: %s", removeTask.BrokerID), err)
 		}
-		removeTask.FromResult(result)
 
-	case tasksAndStates.NumActiveTasksByOp(OperationRebalanceDisks) > 0:
+		removeTask.SetCruiseControlOperationRef(cruiseControlOpRef)
+		removeTask.SetStateScheduled()
+
+	case tasksAndStates.NumActiveTasksByOp(banzaiv1alpha1.OperationRebalance) > 0:
 		logDirsByBroker, err := scaler.LogDirsByBroker()
 		if err != nil {
 			log.Error(err, "failed to get list of volumes per broker from Cruise Control")
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
-
 		brokerIDs := make([]string, 0)
-		for _, task := range tasksAndStates.GetActiveTasksByOp(OperationRebalanceDisks) {
-			if task == nil || task.IsDone() {
-				continue
-			}
+		unavailableBrokerIDs := make([]string, 0)
+		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationRebalance) {
+			brokerIDs = append(brokerIDs, task.BrokerID)
+			found := false
 			if onlineDirs, ok := logDirsByBroker[task.BrokerID][scale.LogDirStateOnline]; ok {
-				found := true
 				for _, dir := range onlineDirs {
-					if !strings.HasPrefix(strings.TrimSpace(dir), strings.TrimSpace(task.Volume)) {
-						found = false
+					if strings.HasPrefix(strings.TrimSpace(dir), strings.TrimSpace(task.Volume)) {
+						found = true
 					}
 				}
-				if found {
-					brokerIDs = append(brokerIDs, task.BrokerID)
+				if !found {
+					unavailableBrokerIDs = append(unavailableBrokerIDs, task.BrokerID)
 				}
-			} else {
-				task.Err = "log dir is not available in Cruise Control"
 			}
 		}
-
-		details := []interface{}{"operation", "rebalance disks", "brokers", brokerIDs}
-
-		result, err := scaler.RebalanceDisks(brokerIDs...)
-		if err != nil {
-			log.Error(err, "re-balancing disk(s) in Kafka cluster via Cruise Control failed", details...)
+		if len(unavailableBrokerIDs) > 0 {
+			log.Info("requeue as there are offline broker log dirs for rebalance", "brokerIDs", unavailableBrokerIDs)
+			// This requeue is not necessary because the cruisecontrloperation controller retries the errored task
+			// but in this case there will be GracefulUpscaleCompletedWithError status in the kafkaCluster's status.
+			// To avoid that requeue is here until brokers with the new data logs come up.
+			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
-		for _, task := range tasksAndStates.GetActiveTasksByOp(OperationRebalanceDisks) {
+		cruiseControlOpRef, err := r.rebalanceDisks(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs)
+		if err != nil {
+			requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for re-balancing disks has failed, brokerIDs: %s", brokerIDs), err)
+		}
+
+		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationRebalance) {
 			if task == nil {
 				continue
 			}
-			task.FromResult(result)
+			task.SetCruiseControlOperationRef(cruiseControlOpRef)
+			task.SetStateScheduled()
 		}
 	}
 
 	if err = r.UpdateStatus(ctx, instance, tasksAndStates); err != nil {
 		log.Error(err, "failed to update Kafka Cluster status")
 	}
-	return requeueAfter(DefaultRequeueAfterTimeInSec)
+
+	return reconciled()
 }
 
-// UpdateStatus updates the Status of the provided kafkav1beta1.KafkaCluster instance with the status of the tasks
+func getUnavailableBrokers(scaler scale.CruiseControlScaler, brokerIDs []string) ([]string, error) {
+	states := []scale.KafkaBrokerState{scale.KafkaBrokerAlive, scale.KafkaBrokerNew}
+	// This can result NullPointerException when the capacity calculation is missing for a broker in the cruisecontrol configmap
+	availableBrokers, err := scaler.BrokersWithState(states...)
+	if err != nil {
+		if strings.Contains(err.Error(), nullPointerExceptionErrString) {
+			return nil, errors.WrapIff(err, "broker storage capacity calculations for Cruise Control has not been finished yet")
+		}
+		return nil, errors.WrapIff(err, "failed to retrieve list of available brokers from Cruise Control")
+	}
+
+	availableBrokersMap := scale.StringSliceToMap(availableBrokers)
+	unavailableBrokerIDs := make([]string, 0, len(brokerIDs))
+	for _, id := range brokerIDs {
+		if _, ok := availableBrokersMap[id]; !ok {
+			unavailableBrokerIDs = append(unavailableBrokerIDs, id)
+		}
+	}
+
+	return unavailableBrokerIDs, nil
+}
+
+func (r *CruiseControlTaskReconciler) addBrokers(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, ttlSecondsAfterFinished *int, bokerIDs []string) (corev1.LocalObjectReference, error) {
+	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationAddBroker, bokerIDs)
+}
+
+func (r *CruiseControlTaskReconciler) removeBroker(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, ttlSecondsAfterFinished *int, brokerID string) (corev1.LocalObjectReference, error) {
+	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationRemoveBroker, []string{brokerID})
+}
+
+func (r *CruiseControlTaskReconciler) rebalanceDisks(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, ttlSecondsAfterFinished *int, bokerIDs []string) (corev1.LocalObjectReference, error) {
+	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationRebalance, bokerIDs)
+}
+
+func (r *CruiseControlTaskReconciler) createCCOperation(
+	ctx context.Context,
+	kafkaCluster *banzaiv1beta1.KafkaCluster,
+	errorPolicy banzaiv1alpha1.ErrorPolicyType,
+	ttlSecondsAfterFinished *int,
+	operationType banzaiv1alpha1.CruiseControlTaskOperation,
+	bokerIDs []string,
+) (corev1.LocalObjectReference, error) {
+	operation := &banzaiv1alpha1.CruiseControlOperation{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-%s-", kafkaCluster.Name, strings.ReplaceAll(string(operationType), "_", "")),
+			Namespace:    kafkaCluster.Namespace,
+			Labels:       apiutil.LabelsForKafka(kafkaCluster.Name),
+		},
+		Spec: banzaiv1alpha1.CruiseControlOperationSpec{
+			ErrorPolicy: errorPolicy,
+		},
+	}
+
+	if ttlSecondsAfterFinished != nil {
+		operation.Spec.TTLSecondsAfterFinished = ttlSecondsAfterFinished
+	}
+
+	if err := controllerutil.SetControllerReference(kafkaCluster, operation, r.Scheme); err != nil {
+		return corev1.LocalObjectReference{}, err
+	}
+	if err := r.Client.Create(ctx, operation); err != nil {
+		return corev1.LocalObjectReference{}, err
+	}
+
+	operation.Status.CurrentTask = &banzaiv1alpha1.CruiseControlTask{
+		Operation: operationType,
+		Parameters: map[string]string{
+			"exclude_recently_demoted_brokers": "true",
+			"exclude_recently_removed_brokers": "true",
+		},
+	}
+
+	if operationType == banzaiv1alpha1.OperationRebalance {
+		operation.Status.CurrentTask.Parameters["destination_broker_ids"] = strings.Join(bokerIDs, ",")
+	} else {
+		operation.Status.CurrentTask.Parameters["brokerid"] = strings.Join(bokerIDs, ",")
+	}
+
+	if err := r.Status().Update(ctx, operation); err != nil {
+		return corev1.LocalObjectReference{}, err
+	}
+	return corev1.LocalObjectReference{
+		Name: operation.Name,
+	}, nil
+}
+
+// UpdateStatus updates the Status of the provided banzaiv1beta1.KafkaCluster instance with the status of the tasks
 // from a CruiseControlTasksAndStates and sends the updates to the Kubernetes API if any changes in the Status field is
 // detected. Otherwise, this step is skipped.
-func (r *CruiseControlTaskReconciler) UpdateStatus(ctx context.Context, instance *kafkav1beta1.KafkaCluster,
+func (r *CruiseControlTaskReconciler) UpdateStatus(ctx context.Context, instance *banzaiv1beta1.KafkaCluster,
 	taskAndStates *CruiseControlTasksAndStates) error {
 	log := logr.FromContextOrDiscard(ctx)
 
@@ -195,55 +317,72 @@ func (r *CruiseControlTaskReconciler) UpdateStatus(ctx context.Context, instance
 		return nil
 	}
 
-	err := r.Client.Status().Update(ctx, instance)
-	if err != nil {
+	conflictRetryFunction := func() error {
+		log.Info("Updating status....")
+		err := r.Status().Update(ctx, instance)
 		if apiErrors.IsConflict(err) {
-			err = r.Client.Get(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, instance)
+			err := r.Client.Get(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, instance)
 			if err != nil {
 				return errors.WithMessage(err, "failed to get updated Kafka Cluster CR before updating its status")
 			}
 			taskAndStates.SyncState(instance)
-			err = r.Client.Status().Update(ctx, instance)
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
 		}
+		return err
 	}
+	if err := util.RetryOnConflict(util.DefaultBackOffForConflict, conflictRetryFunction); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // SetupCruiseControlWithManager registers cruise control controller to the manager
 func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
-	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&kafkav1beta1.KafkaCluster{}).
-		WithEventFilter(SkipClusterRegistryOwnedResourcePredicate{}).
-		Named("CruiseControl")
-
-	builder.WithEventFilter(
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				if _, ok := e.ObjectNew.(*kafkav1beta1.KafkaCluster); ok {
-					oldObj := e.ObjectOld.(*kafkav1beta1.KafkaCluster)
-					newObj := e.ObjectNew.(*kafkav1beta1.KafkaCluster)
-					if !reflect.DeepEqual(oldObj.Status.BrokersState, newObj.Status.BrokersState) ||
-						oldObj.GetDeletionTimestamp() != newObj.GetDeletionTimestamp() ||
-						oldObj.GetGeneration() != newObj.GetGeneration() {
-						return true
-					}
-					return false
-				}
+	cruiseControlOperationPredicate := predicate.Funcs{
+		// We dont reconcile when there is no operation state
+		CreateFunc: func(e event.CreateEvent) bool {
+			obj := e.Object.(*banzaiv1alpha1.CruiseControlOperation)
+			return obj.GetCurrentTaskState() != ""
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObj := e.ObjectOld.(*banzaiv1alpha1.CruiseControlOperation)
+			newObj := e.ObjectNew.(*banzaiv1alpha1.CruiseControlOperation)
+			if !reflect.DeepEqual(oldObj.GetCurrentTask(), newObj.GetCurrentTask()) || oldObj.IsPaused() != newObj.IsPaused() ||
+				oldObj.GetDeletionTimestamp() != newObj.GetDeletionTimestamp() ||
+				oldObj.GetGeneration() != newObj.GetGeneration() {
 				return true
-			},
-		})
+			}
+			return false
+		},
+	}
 
-	return builder
+	kafkaClusterPredicate := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if _, ok := e.ObjectNew.(*banzaiv1beta1.KafkaCluster); ok {
+				oldObj := e.ObjectOld.(*banzaiv1beta1.KafkaCluster)
+				newObj := e.ObjectNew.(*banzaiv1beta1.KafkaCluster)
+				if !reflect.DeepEqual(oldObj.Status.BrokersState, newObj.Status.BrokersState) ||
+					oldObj.GetDeletionTimestamp() != newObj.GetDeletionTimestamp() ||
+					oldObj.GetGeneration() != newObj.GetGeneration() {
+					return true
+				}
+				return false
+			}
+			return true
+		},
+	}
+
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&banzaiv1beta1.KafkaCluster{}).
+		WithEventFilter(SkipClusterRegistryOwnedResourcePredicate{}).
+		WithEventFilter(kafkaClusterPredicate).
+		Owns(&banzaiv1alpha1.CruiseControlOperation{}, builder.WithPredicates(cruiseControlOperationPredicate)).
+		Named("CruiseControlTask")
 }
 
 // getActiveTasksFromCluster returns a CruiseControlTasksAndStates instance which stores active (operation needed) tasks
-// collected from the status field of kafkav1beta1.KafkaCluster instance.
-func getActiveTasksFromCluster(instance *kafkav1beta1.KafkaCluster) *CruiseControlTasksAndStates {
+// collected from the status field of banzaiv1beta1.KafkaCluster instance.
+func getActiveTasksFromCluster(instance *banzaiv1beta1.KafkaCluster) *CruiseControlTasksAndStates {
 	tasksAndStates := newCruiseControlTasksAndStates()
 
 	for brokerId, brokerStatus := range instance.Status.BrokersState {
@@ -252,22 +391,18 @@ func getActiveTasksFromCluster(instance *kafkav1beta1.KafkaCluster) *CruiseContr
 			switch {
 			case state.CruiseControlState.IsUpscale():
 				t := &CruiseControlTask{
-					TaskID:      state.CruiseControlTaskId,
-					BrokerID:    brokerId,
-					BrokerState: state.CruiseControlState,
-					StartedAt:   state.TaskStarted,
-					Operation:   OperationAddBroker,
-					Err:         state.ErrorMessage,
+					BrokerID:                        brokerId,
+					BrokerState:                     state.CruiseControlState,
+					Operation:                       banzaiv1alpha1.OperationAddBroker,
+					CruiseControlOperationReference: brokerStatus.GracefulActionState.CruiseControlOperationReference,
 				}
 				tasksAndStates.Add(t)
 			case state.CruiseControlState.IsDownscale():
 				t := &CruiseControlTask{
-					TaskID:      state.CruiseControlTaskId,
-					BrokerID:    brokerId,
-					BrokerState: state.CruiseControlState,
-					StartedAt:   state.TaskStarted,
-					Operation:   OperationRemoveBroker,
-					Err:         state.ErrorMessage,
+					BrokerID:                        brokerId,
+					BrokerState:                     state.CruiseControlState,
+					Operation:                       banzaiv1alpha1.OperationRemoveBroker,
+					CruiseControlOperationReference: brokerStatus.GracefulActionState.CruiseControlOperationReference,
 				}
 				tasksAndStates.Add(t)
 			}
@@ -276,13 +411,11 @@ func getActiveTasksFromCluster(instance *kafkav1beta1.KafkaCluster) *CruiseContr
 		for mountPath, volumeState := range brokerStatus.GracefulActionState.VolumeStates {
 			if volumeState.CruiseControlVolumeState.IsActive() {
 				t := &CruiseControlTask{
-					TaskID:      volumeState.CruiseControlTaskId,
-					BrokerID:    brokerId,
-					StartedAt:   volumeState.TaskStarted,
-					Volume:      mountPath,
-					VolumeState: volumeState.CruiseControlVolumeState,
-					Operation:   OperationRebalanceDisks,
-					Err:         volumeState.ErrorMessage,
+					BrokerID:                        brokerId,
+					Volume:                          mountPath,
+					VolumeState:                     volumeState.CruiseControlVolumeState,
+					Operation:                       banzaiv1alpha1.OperationRebalance,
+					CruiseControlOperationReference: volumeState.CruiseControlOperationReference,
 				}
 				tasksAndStates.Add(t)
 			}
@@ -292,28 +425,21 @@ func getActiveTasksFromCluster(instance *kafkav1beta1.KafkaCluster) *CruiseContr
 }
 
 // updateActiveTasks updates the state of the tasks from the CruiseControlTasksAndStates instance by getting their
-// status from CruiseControl using the provided scale.CruiseControlScaler.
-func updateActiveTasks(scaler scale.CruiseControlScaler, tasksAndStates *CruiseControlTasksAndStates) error {
-	tasks, err := scaler.GetUserTasks()
-	if err != nil {
-		return err
-	}
-
-	taskResultsByID := make(map[string]*scale.Result, len(tasks))
-	for _, task := range tasks {
-		taskResultsByID[task.TaskID] = task
+// status from CruiseControlOperation
+func updateActiveTasks(tasksAndStates *CruiseControlTasksAndStates, ccOperations []*banzaiv1alpha1.CruiseControlOperation) error {
+	ccOperationMap := make(map[string]*banzaiv1alpha1.CruiseControlOperation)
+	for i := range ccOperations {
+		operation := ccOperations[i]
+		ccOperationMap[operation.Name] = operation
 	}
 
 	for _, task := range tasksAndStates.tasks {
-		if task == nil || task.TaskID == "" {
+		if task == nil || task.CruiseControlOperationReference == nil {
 			continue
 		}
 
-		taskResult, ok := taskResultsByID[task.TaskID]
-		if !ok {
-			continue
-		}
-		task.FromResult(taskResult)
+		task.FromResult(ccOperationMap[task.CruiseControlOperationReference.Name])
+
 	}
 	return nil
 }
