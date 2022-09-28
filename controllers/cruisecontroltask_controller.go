@@ -124,7 +124,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			break
 		}
 
-		unavailableBrokers, err := getBrokersAvailability(scaler, brokerIDs)
+		unavailableBrokers, err := getUnavailableBrokers(scaler, brokerIDs)
 		if err != nil {
 			log.Error(err, "could not get unavailable brokers for upscale")
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
@@ -132,6 +132,8 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		if len(unavailableBrokers) > 0 {
 			log.Info("requeue as broker(s) are not ready for upscale", "brokerIDs", unavailableBrokers)
 			// This requeue is not necessary because the cruisecontrloperation controller retries the errored task
+			// but in this case there will be GracefulUpscaleCompletedWithError status in the kafkaCluster's status.
+			// To avoid that requeue is here until brokers come up.
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
@@ -211,7 +213,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 	return reconciled()
 }
 
-func getBrokersAvailability(scaler scale.CruiseControlScaler, brokerIDs []string) ([]string, error) {
+func getUnavailableBrokers(scaler scale.CruiseControlScaler, brokerIDs []string) ([]string, error) {
 	states := []scale.KafkaBrokerState{scale.KafkaBrokerAlive, scale.KafkaBrokerNew}
 	// This can result NullPointerException when the capacity calculation is missing for a broker in the cruisecontrol configmap
 	availableBrokers, err := scaler.BrokersWithState(states...)
