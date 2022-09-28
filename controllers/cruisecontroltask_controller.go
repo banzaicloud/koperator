@@ -50,6 +50,8 @@ const (
 // CruiseControlTaskReconciler reconciles a kafka cluster object
 type CruiseControlTaskReconciler struct {
 	client.Client
+	// DirectClient here is needed because when the next reconciliation is happened instantly after status update then
+	// the changes in some cases will not be in the resource otherwise.
 	DirectClient client.Reader
 	Scheme       *runtime.Scheme
 	ScaleFactory func(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster) (scale.CruiseControlScaler, error)
