@@ -342,12 +342,12 @@ func SetupCruiseControlWithManager(mgr ctrl.Manager) *ctrl.Builder {
 		// We dont reconcile when there is no operation state
 		CreateFunc: func(e event.CreateEvent) bool {
 			obj := e.Object.(*banzaiv1alpha1.CruiseControlOperation)
-			return obj.GetCurrentTaskState() != ""
+			return obj.CurrentTaskState() != ""
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			oldObj := e.ObjectOld.(*banzaiv1alpha1.CruiseControlOperation)
 			newObj := e.ObjectNew.(*banzaiv1alpha1.CruiseControlOperation)
-			if !reflect.DeepEqual(oldObj.GetCurrentTask(), newObj.GetCurrentTask()) || oldObj.IsPaused() != newObj.IsPaused() ||
+			if !reflect.DeepEqual(oldObj.CurrentTask(), newObj.CurrentTask()) || oldObj.IsPaused() != newObj.IsPaused() ||
 				oldObj.GetDeletionTimestamp() != newObj.GetDeletionTimestamp() ||
 				oldObj.GetGeneration() != newObj.GetGeneration() {
 				return true
@@ -429,8 +429,7 @@ func getActiveTasksFromCluster(instance *banzaiv1beta1.KafkaCluster) *CruiseCont
 func updateActiveTasks(tasksAndStates *CruiseControlTasksAndStates, ccOperations []*banzaiv1alpha1.CruiseControlOperation) error {
 	ccOperationMap := make(map[string]*banzaiv1alpha1.CruiseControlOperation)
 	for i := range ccOperations {
-		operation := ccOperations[i]
-		ccOperationMap[operation.Name] = operation
+		ccOperationMap[ccOperations[i].Name] = ccOperations[i]
 	}
 
 	for _, task := range tasksAndStates.tasks {

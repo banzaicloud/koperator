@@ -35,30 +35,30 @@ import (
 const (
 	// Constans for the Cruise Control operations parameters
 	// Check for more details: https://github.com/linkedin/cruise-control/wiki/REST-APIs
-	brokerID       = "brokerid"
-	excludeDemoted = "exclude_recently_demoted_brokers"
-	excludeRemoved = "exclude_recently_removed_brokers"
-	destbrokerIDs  = "destination_broker_ids"
-	rebalanceDisk  = "rebalance_disk"
+	paramBrokerID       = "brokerid"
+	paramExcludeDemoted = "exclude_recently_demoted_brokers"
+	paramExcludeRemoved = "exclude_recently_removed_brokers"
+	paramDestbrokerIDs  = "destination_broker_ids"
+	paramRebalanceDisk  = "rebalance_disk"
 )
 
 var (
 	newCruiseControlScaler   = createNewDefaultCruiseControlScaler
 	addBrokerSupportedParams = map[string]struct{}{
-		brokerID:       {},
-		excludeDemoted: {},
-		excludeRemoved: {},
+		paramBrokerID:       {},
+		paramExcludeDemoted: {},
+		paramExcludeRemoved: {},
 	}
 	removeBrokerSupportedParams = map[string]struct{}{
-		brokerID:       {},
-		excludeDemoted: {},
-		excludeRemoved: {},
+		paramBrokerID:       {},
+		paramExcludeDemoted: {},
+		paramExcludeRemoved: {},
 	}
 	rebalanceSupportedParams = map[string]struct{}{
-		destbrokerIDs:  {},
-		rebalanceDisk:  {},
-		excludeDemoted: {},
-		excludeRemoved: {},
+		paramDestbrokerIDs:  {},
+		paramRebalanceDisk:  {},
+		paramExcludeDemoted: {},
+		paramExcludeRemoved: {},
 	}
 )
 
@@ -145,8 +145,8 @@ func (cc *cruiseControlScaler) IsUp() bool {
 	return err == nil
 }
 
-// GetUserTasks returns list of Result describing User Tasks from Cruise Control for the provided task IDs.
-func (cc *cruiseControlScaler) GetUserTasks(taskIDs ...string) ([]*Result, error) {
+// UserTasks returns list of Result describing User Tasks from Cruise Control for the provided task IDs.
+func (cc *cruiseControlScaler) UserTasks(taskIDs ...string) ([]*Result, error) {
 	req := &api.UserTasksRequest{
 		UserTaskIDs: taskIDs,
 	}
@@ -171,8 +171,8 @@ func (cc *cruiseControlScaler) GetUserTasks(taskIDs ...string) ([]*Result, error
 // parseBrokerIDtoSlice parses brokerIDs to int slice
 func parseBrokerIDtoSlice(brokerid string) ([]int32, error) {
 	var brokerIDIntSlice []int32
-	splittedBrokerIDs := strings.Split(brokerid, ",")
-	for _, brokerID := range splittedBrokerIDs {
+	splitBrokerIDs := strings.Split(brokerid, ",")
+	for _, brokerID := range splitBrokerIDs {
 		brokerIDint, err := strconv.ParseInt(brokerID, 10, 32)
 		if err != nil {
 			return nil, err
@@ -194,19 +194,19 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 	for param, pvalue := range params {
 		if _, ok := addBrokerSupportedParams[param]; ok {
 			switch param {
-			case brokerID:
+			case paramBrokerID:
 				ret, err := parseBrokerIDtoSlice(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				addBrokerReq.BrokerIDs = ret
-			case excludeDemoted:
+			case paramExcludeDemoted:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				addBrokerReq.ExcludeRecentlyDemotedBrokers = ret
-			case excludeRemoved:
+			case paramExcludeRemoved:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
@@ -271,19 +271,19 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string)
 	for param, pvalue := range params {
 		if _, ok := removeBrokerSupportedParams[param]; ok {
 			switch param {
-			case brokerID:
+			case paramBrokerID:
 				ret, err := parseBrokerIDtoSlice(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rmBrokerReq.BrokerIDs = ret
-			case excludeDemoted:
+			case paramExcludeDemoted:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rmBrokerReq.ExcludeRecentlyDemotedBrokers = ret
-			case excludeRemoved:
+			case paramExcludeRemoved:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
@@ -453,25 +453,25 @@ func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*R
 	for param, pvalue := range params {
 		if _, ok := rebalanceSupportedParams[param]; ok {
 			switch param {
-			case destbrokerIDs:
+			case paramDestbrokerIDs:
 				ret, err := parseBrokerIDtoSlice(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rebalanceReq.DestinationBrokerIDs = ret
-			case rebalanceDisk:
+			case paramRebalanceDisk:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rebalanceReq.RebalanceDisk = ret
-			case excludeDemoted:
+			case paramExcludeDemoted:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rebalanceReq.ExcludeRecentlyDemotedBrokers = ret
-			case excludeRemoved:
+			case paramExcludeRemoved:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
@@ -505,7 +505,7 @@ func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*R
 	}, nil
 }
 
-func (cc *cruiseControlScaler) GetKafkaClusterLoad() (*api.KafkaClusterLoadResponse, error) {
+func (cc *cruiseControlScaler) KafkaClusterLoad() (*api.KafkaClusterLoadResponse, error) {
 	clusterLoadResp, err := cc.client.KafkaClusterLoad(api.KafkaClusterLoadRequestWithDefaults())
 	if err != nil {
 		return nil, err
@@ -590,8 +590,8 @@ func (cc *cruiseControlScaler) BrokersWithState(states ...KafkaBrokerState) ([]s
 	return brokersIDs, nil
 }
 
-// GetKafkaClusterState returns the state of the Kafka cluster
-func (cc *cruiseControlScaler) GetKafkaClusterState() (*types.KafkaClusterState, error) {
+// KafkaClusterState returns the state of the Kafka cluster
+func (cc *cruiseControlScaler) KafkaClusterState() (*types.KafkaClusterState, error) {
 	clusterStateReq := api.KafkaClusterStateRequestWithDefaults()
 	clusterStateResp, err := cc.client.KafkaClusterState(clusterStateReq)
 	if err != nil {
@@ -601,7 +601,7 @@ func (cc *cruiseControlScaler) GetKafkaClusterState() (*types.KafkaClusterState,
 }
 
 // PartitionReplicasByBroker returns the number of partition replicas for every broker in the Kafka cluster.
-func (cc *cruiseControlScaler) PartitionLeadersReplicasByBroker() (map[string]int32, map[string]int32, error) {
+func (cc *cruiseControlScaler) PartitionLeadersReplicasByBroker() (brokerIDReplicaCounts map[string]int32, brokerIDLeaderCounts map[string]int32, err error) {
 	clusterStateReq := api.KafkaClusterStateRequestWithDefaults()
 	clusterStateResp, err := cc.client.KafkaClusterState(clusterStateReq)
 	if err != nil {

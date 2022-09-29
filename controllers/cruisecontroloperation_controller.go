@@ -107,7 +107,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 
 	// CruiseControlOperation has invalid operation type, reconciled
 	if !currentCCOperation.IsCurrentTaskOperationValid() {
-		log.Error(errors.New("Koperator does not support this operation"), "operation", currentCCOperation.GetCurrentTaskOp())
+		log.Error(errors.New("Koperator does not support this operation"), "operation", currentCCOperation.CurrentTaskOperation())
 		return reconciled()
 	}
 
@@ -207,17 +207,17 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	}
 
 	// Check if CruiseControl is ready as we cannot perform any operation until it is in ready state unless it is a stop execution operation
-	if (status.InExecution() || len(ccOperationQueueMap[ccOperationInProgress]) > 0) && ccOperationExecution.GetCurrentTaskOp() != banzaiv1alpha1.OperationStopExecution {
+	if (status.InExecution() || len(ccOperationQueueMap[ccOperationInProgress]) > 0) && ccOperationExecution.CurrentTaskOperation() != banzaiv1alpha1.OperationStopExecution {
 		// Requeue because we can't do more
 		return requeueAfter(defaultRequeueIntervalInSeconds)
 	}
 
 	// Executing operation
-	log.Info("executing Cruise Control task", "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTaskParameters())
+	log.Info("executing Cruise Control task", "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
 	cruseControlTaskResult, err := r.executeOperation(ccOperationExecution)
 
 	if err != nil {
-		log.Error(err, "Cruise Control task execution got an error", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTaskParameters())
+		log.Error(err, "Cruise Control task execution got an error", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
 		// This can happen when the CruiseControlOperation parameter is wrong
 		if cruseControlTaskResult == nil {
 			return requeueWithError(log, "CruiseControlOperation custom resource is invalid", err)
@@ -276,17 +276,17 @@ func (r *CruiseControlOperationReconciler) addFinalizer(ctx context.Context, cur
 func (r *CruiseControlOperationReconciler) executeOperation(ccOperationExecution *banzaiv1alpha1.CruiseControlOperation) (*scale.Result, error) {
 	var cruseControlTaskResult *scale.Result
 	var err error
-	switch ccOperationExecution.GetCurrentTaskOp() {
+	switch ccOperationExecution.CurrentTaskOperation() {
 	case banzaiv1alpha1.OperationAddBroker:
-		cruseControlTaskResult, err = r.Scaler.AddBrokersWithParams(ccOperationExecution.GetCurrentTaskParameters())
+		cruseControlTaskResult, err = r.Scaler.AddBrokersWithParams(ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationRemoveBroker:
-		cruseControlTaskResult, err = r.Scaler.RemoveBrokersWithParams(ccOperationExecution.GetCurrentTaskParameters())
+		cruseControlTaskResult, err = r.Scaler.RemoveBrokersWithParams(ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationRebalance:
-		cruseControlTaskResult, err = r.Scaler.RebalanceWithParams(ccOperationExecution.GetCurrentTaskParameters())
+		cruseControlTaskResult, err = r.Scaler.RebalanceWithParams(ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationStopExecution:
 		cruseControlTaskResult, err = r.Scaler.StopExecution()
 	default:
-		err = errors.NewWithDetails("Cruise Control operation not supported", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.GetCurrentTaskOp(), "parameters", ccOperationExecution.GetCurrentTaskParameters())
+		err = errors.NewWithDetails("Cruise Control operation not supported", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
 	}
 	return cruseControlTaskResult, err
 }
@@ -310,9 +310,9 @@ func sortOperations(ccOperations []*banzaiv1alpha1.CruiseControlOperation) map[s
 	for key := range ccOperationQueueMap {
 		sort.SliceStable(ccOperationQueueMap[key], func(i, j int) bool {
 			ccOperationQueue := ccOperationQueueMap[key]
-			if executionPriorityMap[ccOperationQueue[i].GetCurrentTaskOp()] < executionPriorityMap[ccOperationQueue[j].GetCurrentTaskOp()] {
+			if executionPriorityMap[ccOperationQueue[i].CurrentTaskOperation()] < executionPriorityMap[ccOperationQueue[j].CurrentTaskOperation()] {
 				return true
-			} else if executionPriorityMap[ccOperationQueue[i].GetCurrentTaskOp()] == executionPriorityMap[ccOperationQueue[j].GetCurrentTaskOp()] {
+			} else if executionPriorityMap[ccOperationQueue[i].CurrentTaskOperation()] == executionPriorityMap[ccOperationQueue[j].CurrentTaskOperation()] {
 				return ccOperationQueue[i].CreationTimestamp.Unix() < ccOperationQueue[j].CreationTimestamp.Unix()
 			}
 			return true
@@ -328,9 +328,9 @@ func selectOperationForExecution(ccOperationQueueMap map[string][]*banzaiv1alpha
 	switch {
 	case len(ccOperationQueueMap[ccOperationForFinalize]) > 0:
 		ccOperationExecution = ccOperationQueueMap[ccOperationForFinalize][0]
-		ccOperationExecution.GetCurrentTask().Operation = banzaiv1alpha1.OperationStopExecution
+		ccOperationExecution.CurrentTask().Operation = banzaiv1alpha1.OperationStopExecution
 	// Second prio: execute add_broker operation
-	case len(ccOperationQueueMap[ccOperationFirstExecution]) > 0 && ccOperationQueueMap[ccOperationFirstExecution][0].GetCurrentTaskOp() == banzaiv1alpha1.OperationAddBroker:
+	case len(ccOperationQueueMap[ccOperationFirstExecution]) > 0 && ccOperationQueueMap[ccOperationFirstExecution][0].CurrentTaskOperation() == banzaiv1alpha1.OperationAddBroker:
 		ccOperationExecution = ccOperationQueueMap[ccOperationFirstExecution][0]
 	// Third prio: execute failed task
 	case len(ccOperationQueueMap[ccOperationRetryExecution]) > 0:
@@ -359,7 +359,7 @@ func SetupCruiseControlOperationWithManager(mgr ctrl.Manager) *ctrl.Builder {
 			CreateFunc: func(e event.CreateEvent) bool {
 				obj := e.Object.(*banzaiv1alpha1.CruiseControlOperation)
 				// Doesn't need to reconcile when the operation is done and finalizing is not needed
-				return !(obj.IsDone() && obj.GetDeletionTimestamp().IsZero()) && obj.GetCurrentTaskOp() != ""
+				return !(obj.IsDone() && obj.GetDeletionTimestamp().IsZero()) && obj.CurrentTaskOperation() != ""
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObj := e.ObjectOld.(*banzaiv1alpha1.CruiseControlOperation)
@@ -368,7 +368,7 @@ func SetupCruiseControlOperationWithManager(mgr ctrl.Manager) *ctrl.Builder {
 				if newObj.IsDone() && newObj.GetDeletionTimestamp().IsZero() {
 					return false
 				}
-				if !reflect.DeepEqual(oldObj.GetCurrentTask(), newObj.GetCurrentTask()) ||
+				if !reflect.DeepEqual(oldObj.CurrentTask(), newObj.CurrentTask()) ||
 					oldObj.GetDeletionTimestamp() != newObj.GetDeletionTimestamp() ||
 					oldObj.GetGeneration() != newObj.GetGeneration() {
 					return true
@@ -397,16 +397,16 @@ func getKafkaClusterReference(operation *banzaiv1alpha1.CruiseControlOperation) 
 func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.CruiseControlOperation, isAfterExecution bool) error {
 	// This can happen rarely when the max cached completed user tasks is reached
 	if res == nil {
-		log.Error(missingCCResErr, "Cruise Control's max.cached.completed.user.tasks configuration value probably too small. Missing user task state is handled as completedWithError", "name", operation.GetName(), "namespace", operation.GetNamespace(), "task ID", operation.GetCurrentTaskID())
+		log.Error(missingCCResErr, "Cruise Control's max.cached.completed.user.tasks configuration value probably too small. Missing user task state is handled as completedWithError", "name", operation.GetName(), "namespace", operation.GetNamespace(), "task ID", operation.CurrentTaskID())
 		res = &scale.Result{
-			TaskID: operation.GetCurrentTaskID(),
+			TaskID: operation.CurrentTaskID(),
 			State:  banzaiv1beta1.CruiseControlTaskCompletedWithError,
 			Err:    missingCCResErr.Error(),
 		}
 	}
 
 	operation.Status.ErrorPolicy = operation.Spec.ErrorPolicy
-	task := operation.GetCurrentTask()
+	task := operation.CurrentTask()
 
 	if (res.State == banzaiv1beta1.CruiseControlTaskCompleted || res.State == banzaiv1beta1.CruiseControlTaskCompletedWithError) && task.Finished == nil {
 		task.Finished = &v1.Time{Time: time.Now()}
@@ -419,7 +419,7 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 		} else {
 			operation.Status.FailedTasks = append(operation.Status.FailedTasks, *task)
 		}
-		operation.Status.NumberOfRetries += 1
+		operation.Status.RetryCount += 1
 		task.SetDefaults()
 	}
 
@@ -451,14 +451,14 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 	userTaskIDs := make([]string, 0, len(ccOperations))
 	var ccOperationsCopy []*banzaiv1alpha1.CruiseControlOperation
 	for _, ccOperation := range ccOperations {
-		if ccOperation.GetCurrentTaskID() != "" {
-			userTaskIDs = append(userTaskIDs, ccOperation.GetCurrentTaskID())
+		if ccOperation.CurrentTaskID() != "" {
+			userTaskIDs = append(userTaskIDs, ccOperation.CurrentTaskID())
 		}
 		copy := ccOperation.DeepCopy()
 		ccOperationsCopy = append(ccOperationsCopy, copy)
 	}
 
-	tasks, err := r.Scaler.GetUserTasks(userTaskIDs...)
+	tasks, err := r.Scaler.UserTasks(userTaskIDs...)
 	if err != nil {
 		return errors.WrapIff(err, "could not get user tasks from Cruise Control API")
 	}
@@ -469,8 +469,8 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 	}
 	for i := range ccOperations {
 		ccOperation := ccOperations[i]
-		if ccOperation.GetCurrentTaskID() != "" && !ccOperation.IsDone() {
-			if err := updateResult(log, taskResultsByID[ccOperation.GetCurrentTaskID()], ccOperation, false); err != nil {
+		if ccOperation.CurrentTaskID() != "" && !ccOperation.IsDone() {
+			if err := updateResult(log, taskResultsByID[ccOperation.CurrentTaskID()], ccOperation, false); err != nil {
 				return errors.WrapWithDetails(err, "could not set Cruise Control user task result to CruiseControlOperation CurrentTask", "name", ccOperations[i].GetName(), "namespace", ccOperations[i].GetNamespace())
 			}
 		}

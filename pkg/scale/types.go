@@ -24,22 +24,21 @@ import (
 type CruiseControlScaler interface {
 	IsReady() bool
 	Status() (CruiseControlStatus, error)
-	GetUserTasks(taskIDs ...string) ([]*Result, error)
+	UserTasks(taskIDs ...string) ([]*Result, error)
 	IsUp() bool
 	AddBrokers(brokerIDs ...string) (*Result, error)
 	AddBrokersWithParams(params map[string]string) (*Result, error)
 	RemoveBrokersWithParams(params map[string]string) (*Result, error)
 	RebalanceWithParams(params map[string]string) (*Result, error)
 	StopExecution() (*Result, error)
-	GetNumMonitoredWin() (float32, types.MonitorState, error)
 	RemoveBrokers(brokerIDs ...string) (*Result, error)
 	RebalanceDisks(brokerIDs ...string) (*Result, error)
 	BrokersWithState(states ...KafkaBrokerState) ([]string, error)
-	GetKafkaClusterState() (*types.KafkaClusterState, error)
+	KafkaClusterState() (*types.KafkaClusterState, error)
 	PartitionReplicasByBroker() (map[string]int32, error)
 	BrokerWithLeastPartitionReplicas() (string, error)
 	LogDirsByBroker() (map[string]map[LogDirState][]string, error)
-	GetKafkaClusterLoad() (*api.KafkaClusterLoadResponse, error)
+	KafkaClusterLoad() (*api.KafkaClusterLoadResponse, error)
 }
 
 type Result struct {

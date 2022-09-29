@@ -74,10 +74,10 @@ type ErrorPolicyType string
 
 // CruiseControlOperationStatus defines the observed state of CruiseControlOperation.
 type CruiseControlOperationStatus struct {
-	CurrentTask     *CruiseControlTask  `json:"currentTask,omitempty"`
-	ErrorPolicy     ErrorPolicyType     `json:"errorPolicy"`
-	NumberOfRetries int                 `json:"numberOfRetries"`
-	FailedTasks     []CruiseControlTask `json:"failedTasks,omitempty"`
+	CurrentTask *CruiseControlTask  `json:"currentTask,omitempty"`
+	ErrorPolicy ErrorPolicyType     `json:"errorPolicy"`
+	RetryCount  int                 `json:"retryCount"`
+	FailedTasks []CruiseControlTask `json:"failedTasks,omitempty"`
 }
 
 // CruiseControlTask defines the observed state of the Cruise Control user task.
@@ -119,61 +119,68 @@ func (task *CruiseControlTask) SetDefaults() {
 	task.Summary = nil
 }
 
-func (o *CruiseControlOperation) GetCurrentTask() *CruiseControlTask {
+func (o *CruiseControlOperation) CurrentTask() *CruiseControlTask {
 	if o != nil {
 		return o.Status.CurrentTask
 	}
 	return nil
 }
 
-func (o *CruiseControlOperation) GetCurrentTaskParameters() map[string]string {
-	if o.GetCurrentTask() == nil {
+func (o *CruiseControlOperation) CurrentTaskParameters() map[string]string {
+	if o.CurrentTask() == nil {
 		return nil
 	}
-	return o.GetCurrentTask().Parameters
+	return o.CurrentTask().Parameters
 }
 
 func (o *CruiseControlOperation) GetClusterRef() string {
 	return o.GetLabels()[v1beta1.KafkaCRLabelKey]
 }
 
-func (o *CruiseControlOperation) GetCurrentTaskState() v1beta1.CruiseControlUserTaskState {
-	if o.GetCurrentTask() != nil {
-		return o.GetCurrentTask().State
+func (o *CruiseControlOperation) CurrentTaskState() v1beta1.CruiseControlUserTaskState {
+	if o.CurrentTask() != nil {
+		return o.CurrentTask().State
 	}
 	return ""
 }
 
-func (o *CruiseControlOperation) GetCurrentTaskID() string {
-	if o.GetCurrentTask() != nil {
-		return o.GetCurrentTask().ID
+func (o *CruiseControlOperation) CurrentTaskID() string {
+	if o.CurrentTask() != nil {
+		return o.CurrentTask().ID
 	}
 	return ""
 }
 
-func (o *CruiseControlOperation) GetCurrentTaskOp() CruiseControlTaskOperation {
-	if o.GetCurrentTask() != nil {
-		return o.GetCurrentTask().Operation
+func (o *CruiseControlOperation) CurrentTaskFinished() *metav1.Time {
+	if o.CurrentTask() == nil {
+		return nil
 	}
-	return ""
+	return o.CurrentTask().Finished
+}
+
+func (o *CruiseControlOperation) CurrentTaskOperation() CruiseControlTaskOperation {
+	if o.CurrentTask() == nil {
+		return ""
+	}
+	return o.CurrentTask().Operation
 }
 
 func (o *CruiseControlOperation) IsWaitingForFirstExecution() bool {
-	if o.GetCurrentTaskState() == "" && o.GetCurrentTaskID() == "" && o.Status.NumberOfRetries == 0 {
+	if o.CurrentTaskState() == "" && o.CurrentTaskID() == "" && o.Status.RetryCount == 0 {
 		return true
 	}
 	return false
 }
 
 func (o *CruiseControlOperation) IsInProgress() bool {
-	if o.GetCurrentTaskID() != "" && (o.GetCurrentTaskState() == v1beta1.CruiseControlTaskActive || o.GetCurrentTaskState() == v1beta1.CruiseControlTaskInExecution) {
+	if o.CurrentTaskID() != "" && (o.CurrentTaskState() == v1beta1.CruiseControlTaskActive || o.CurrentTaskState() == v1beta1.CruiseControlTaskInExecution) {
 		return true
 	}
 	return false
 }
 
 func (o *CruiseControlOperation) IsDone() bool {
-	return (o.IsPaused() && o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError) || o.IsFinished()
+	return (o.IsPaused() && o.CurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError) || o.IsFinished()
 }
 
 func (o *CruiseControlOperation) IsPaused() bool {
@@ -185,7 +192,7 @@ func (o *CruiseControlOperation) IsErrorPolicyIgnore() bool {
 }
 
 func (o *CruiseControlOperation) IsFinished() bool {
-	return o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompleted || (o.Spec.ErrorPolicy == ErrorPolicyIgnore && o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError)
+	return o.CurrentTaskState() == v1beta1.CruiseControlTaskCompleted || (o.Spec.ErrorPolicy == ErrorPolicyIgnore && o.CurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError)
 }
 
 func (o *CruiseControlOperation) IsErrorPolicyRetry() bool {
@@ -194,25 +201,25 @@ func (o *CruiseControlOperation) IsErrorPolicyRetry() bool {
 
 func (o *CruiseControlOperation) IsWaitingForRetryExecution() bool {
 	if (!o.IsPaused() && o.IsErrorPolicyRetry()) &&
-		o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError && o.GetCurrentTaskID() != "" {
+		o.CurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError && o.CurrentTaskID() != "" {
 		return true
 	}
 	return false
 }
 
 func (o *CruiseControlOperation) IsReadyForRetryExecution() bool {
-	return o.IsWaitingForRetryExecution() && o.GetCurrentTask().Finished != nil && o.GetCurrentTask().Finished.Add(time.Second*DefaultRetryBackOffDurationSec).Before(time.Now())
+	return o.IsWaitingForRetryExecution() && o.CurrentTaskFinished() != nil && o.CurrentTaskFinished().Add(time.Second*DefaultRetryBackOffDurationSec).Before(time.Now())
 }
 
 func (o *CruiseControlOperation) IsCurrentTaskRunning() bool {
-	return (o.GetCurrentTaskState() == v1beta1.CruiseControlTaskInExecution || o.GetCurrentTaskState() == v1beta1.CruiseControlTaskActive) && o.GetCurrentTask().Finished == nil
+	return (o.CurrentTaskState() == v1beta1.CruiseControlTaskInExecution || o.CurrentTaskState() == v1beta1.CruiseControlTaskActive) && o.CurrentTaskFinished() == nil
 }
 
 func (o *CruiseControlOperation) IsCurrentTaskFinished() bool {
-	return o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompleted || o.GetCurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError
+	return o.CurrentTaskState() == v1beta1.CruiseControlTaskCompleted || o.CurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError
 }
 
 func (o *CruiseControlOperation) IsCurrentTaskOperationValid() bool {
-	return o.GetCurrentTaskOp() == OperationAddBroker ||
-		o.GetCurrentTaskOp() == OperationRebalance || o.GetCurrentTaskOp() == OperationRemoveBroker || o.GetCurrentTaskOp() == OperationStopExecution
+	return o.CurrentTaskOperation() == OperationAddBroker ||
+		o.CurrentTaskOperation() == OperationRebalance || o.CurrentTaskOperation() == OperationRemoveBroker || o.CurrentTaskOperation() == OperationStopExecution
 }

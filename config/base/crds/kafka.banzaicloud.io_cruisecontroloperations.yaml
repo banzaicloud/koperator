@@ -149,11 +149,11 @@ spec:
                   - operation
                   type: object
                 type: array
-              numberOfRetries:
+              retryCount:
                 type: integer
             required:
             - errorPolicy
-            - numberOfRetries
+            - retryCount
             type: object
         type: object
     served: true

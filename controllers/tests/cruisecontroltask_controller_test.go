@@ -106,7 +106,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 						return false
 					}
 					operation := &operationList.Items[0]
-					return actionState.CruiseControlOperationReference.Name == operation.Name && operation.GetCurrentTaskOp() == v1alpha1.OperationAddBroker && actionState.CruiseControlState == v1beta1.GracefulUpscaleScheduled
+					return actionState.CruiseControlOperationReference.Name == operation.Name && operation.CurrentTaskOperation() == v1alpha1.OperationAddBroker && actionState.CruiseControlState == v1beta1.GracefulUpscaleScheduled
 				}
 				return false
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
@@ -140,7 +140,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 						}
 
 						return actionState.CruiseControlOperationReference.Name == operation.Name &&
-							operation.GetCurrentTaskOp() == v1alpha1.OperationAddBroker && actionState.CruiseControlState == v1beta1.GracefulUpscaleRunning
+							operation.CurrentTaskOperation() == v1alpha1.OperationAddBroker && actionState.CruiseControlState == v1beta1.GracefulUpscaleRunning
 					}
 					return false
 				}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
@@ -188,7 +188,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 						return false
 					}
 					operation := &operationList.Items[0]
-					return actionState.CruiseControlOperationReference.Name == operation.Name && operation.GetCurrentTaskOp() == v1alpha1.OperationRemoveBroker && actionState.CruiseControlState == v1beta1.GracefulDownscaleScheduled
+					return actionState.CruiseControlOperationReference.Name == operation.Name && operation.CurrentTaskOperation() == v1alpha1.OperationRemoveBroker && actionState.CruiseControlState == v1beta1.GracefulDownscaleScheduled
 				}
 				return false
 			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())

@@ -97,41 +97,41 @@ func (t *CruiseControlTask) FromResult(operation *koperatorv1alpha1.CruiseContro
 		return
 	}
 
-	//nolint:exhaustive
+	//nolint:exhaustive // Note: Not all CC operations require updates to kafkaCluster's GracefulActionState
 	switch t.Operation {
 	case koperatorv1alpha1.OperationAddBroker:
 		switch {
 		// When CruiseControlOperation is missing
 		case operation == nil:
 			t.BrokerState = koperatorv1beta1.GracefulUpscaleSucceeded
-		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+		case operation.IsErrorPolicyIgnore() && operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
 			t.BrokerState = koperatorv1beta1.GracefulUpscaleSucceeded
-		case operation.IsPaused() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+		case operation.IsPaused() && operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
 			t.BrokerState = koperatorv1beta1.GracefulUpscalePaused
-		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskInExecution:
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskActive, operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskInExecution:
 			t.BrokerState = koperatorv1beta1.GracefulUpscaleRunning
-		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompleted:
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompleted:
 			t.BrokerState = koperatorv1beta1.GracefulUpscaleSucceeded
-		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
 			t.BrokerState = koperatorv1beta1.GracefulUpscaleCompletedWithError
-		case operation.GetCurrentTaskState() == "":
+		case operation.CurrentTaskState() == "":
 			t.BrokerState = koperatorv1beta1.GracefulUpscaleScheduled
 		}
 	case koperatorv1alpha1.OperationRemoveBroker:
 		switch {
 		case operation == nil:
 			t.BrokerState = koperatorv1beta1.GracefulDownscaleSucceeded
-		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+		case operation.IsErrorPolicyIgnore() && operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
 			t.BrokerState = koperatorv1beta1.GracefulDownscaleSucceeded
-		case operation.IsPaused() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+		case operation.IsPaused() && operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
 			t.BrokerState = koperatorv1beta1.GracefulDownscalePaused
-		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskInExecution:
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskActive, operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskInExecution:
 			t.BrokerState = koperatorv1beta1.GracefulDownscaleRunning
-		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompleted:
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompleted:
 			t.BrokerState = koperatorv1beta1.GracefulDownscaleSucceeded
-		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
 			t.BrokerState = koperatorv1beta1.GracefulDownscaleCompletedWithError
-		case operation.GetCurrentTaskState() == "":
+		case operation.CurrentTaskState() == "":
 			t.BrokerState = koperatorv1beta1.GracefulDownscaleScheduled
 		}
 
@@ -139,17 +139,17 @@ func (t *CruiseControlTask) FromResult(operation *koperatorv1alpha1.CruiseContro
 		switch {
 		case operation == nil:
 			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceSucceeded
-		case operation.IsErrorPolicyIgnore() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+		case operation.IsErrorPolicyIgnore() && operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
 			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceSucceeded
-		case operation.IsPaused() && operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+		case operation.IsPaused() && operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
 			t.VolumeState = koperatorv1beta1.GracefulDiskRebalancePaused
-		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskActive, operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskInExecution:
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskActive, operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskInExecution:
 			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceRunning
-		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompleted:
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompleted:
 			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceSucceeded
-		case operation.GetCurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
 			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceCompletedWithError
-		case operation.GetCurrentTaskState() == "":
+		case operation.CurrentTaskState() == "":
 			t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceScheduled
 		}
 	}

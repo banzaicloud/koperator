@@ -55,12 +55,12 @@ func (r *CruiseControlOperationTTLReconciler) Reconcile(ctx context.Context, req
 		return requeueWithError(log, err.Error(), err)
 	}
 
-	if ccOperation.GetTTLSecondsAfterFinished() == nil || ccOperation.GetCurrentTask().Finished == nil {
+	if ccOperation.GetTTLSecondsAfterFinished() == nil || ccOperation.CurrentTaskFinished() == nil {
 		return reconciled()
 	}
 
 	operationTTL := time.Duration(*ccOperation.GetTTLSecondsAfterFinished()) * time.Second
-	finishedAt := ccOperation.GetCurrentTask().Finished
+	finishedAt := ccOperation.CurrentTaskFinished()
 	cleanupTime := finishedAt.Time.Add(operationTTL)
 
 	if IsExpired(operationTTL, finishedAt.Time) {

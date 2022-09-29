@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -112,69 +112,53 @@ func (mr *MockCruiseControlScalerMockRecorder) BrokersWithState(arg0 ...interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BrokersWithState", reflect.TypeOf((*MockCruiseControlScaler)(nil).BrokersWithState), arg0...)
 }
 
-// GetKafkaClusterLoad mocks base method.
-func (m *MockCruiseControlScaler) GetKafkaClusterLoad() (*api.KafkaClusterLoadResponse, error) {
+// KafkaClusterLoad mocks base method.
+func (m *MockCruiseControlScaler) KafkaClusterLoad() (*api.KafkaClusterLoadResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetKafkaClusterLoad")
+	ret := m.ctrl.Call(m, "KafkaClusterLoad")
 	ret0, _ := ret[0].(*api.KafkaClusterLoadResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetKafkaClusterLoad indicates an expected call of GetKafkaClusterLoad.
-func (mr *MockCruiseControlScalerMockRecorder) GetKafkaClusterLoad() *gomock.Call {
+// KafkaClusterLoad indicates an expected call of KafkaClusterLoad.
+func (mr *MockCruiseControlScalerMockRecorder) KafkaClusterLoad() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKafkaClusterLoad", reflect.TypeOf((*MockCruiseControlScaler)(nil).GetKafkaClusterLoad))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KafkaClusterLoad", reflect.TypeOf((*MockCruiseControlScaler)(nil).KafkaClusterLoad))
 }
 
-// GetKafkaClusterState mocks base method.
-func (m *MockCruiseControlScaler) GetKafkaClusterState() (*types.KafkaClusterState, error) {
+// KafkaClusterState mocks base method.
+func (m *MockCruiseControlScaler) KafkaClusterState() (*types.KafkaClusterState, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetKafkaClusterState")
+	ret := m.ctrl.Call(m, "KafkaClusterState")
 	ret0, _ := ret[0].(*types.KafkaClusterState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetKafkaClusterState indicates an expected call of GetKafkaClusterState.
-func (mr *MockCruiseControlScalerMockRecorder) GetKafkaClusterState() *gomock.Call {
+// KafkaClusterState indicates an expected call of KafkaClusterState.
+func (mr *MockCruiseControlScalerMockRecorder) KafkaClusterState() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKafkaClusterState", reflect.TypeOf((*MockCruiseControlScaler)(nil).GetKafkaClusterState))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KafkaClusterState", reflect.TypeOf((*MockCruiseControlScaler)(nil).KafkaClusterState))
 }
 
-// GetNumMonitoredWin mocks base method.
-func (m *MockCruiseControlScaler) GetNumMonitoredWin() (float32, types.MonitorState, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNumMonitoredWin")
-	ret0, _ := ret[0].(float32)
-	ret1, _ := ret[1].(types.MonitorState)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetNumMonitoredWin indicates an expected call of GetNumMonitoredWin.
-func (mr *MockCruiseControlScalerMockRecorder) GetNumMonitoredWin() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNumMonitoredWin", reflect.TypeOf((*MockCruiseControlScaler)(nil).GetNumMonitoredWin))
-}
-
-// GetUserTasks mocks base method.
-func (m *MockCruiseControlScaler) GetUserTasks(arg0 ...string) ([]*Result, error) {
+// UserTasks mocks base method.
+func (m *MockCruiseControlScaler) UserTasks(arg0 ...string) ([]*Result, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
 	for _, a := range arg0 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "GetUserTasks", varargs...)
+	ret := m.ctrl.Call(m, "UserTasks", varargs...)
 	ret0, _ := ret[0].([]*Result)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetUserTasks indicates an expected call of GetUserTasks.
-func (mr *MockCruiseControlScalerMockRecorder) GetUserTasks(arg0 ...interface{}) *gomock.Call {
+// UserTasks indicates an expected call of UserTasks.
+func (mr *MockCruiseControlScalerMockRecorder) UserTasks(arg0 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserTasks", reflect.TypeOf((*MockCruiseControlScaler)(nil).GetUserTasks), arg0...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserTasks", reflect.TypeOf((*MockCruiseControlScaler)(nil).UserTasks), arg0...)
 }
 
 // IsReady mocks base method.

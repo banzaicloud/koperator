@@ -19591,9 +19591,8 @@ spec:
                         status
                       properties:
                         cruiseControlOperationReference:
-                          description: CruiseControlOperationReference references
-                            to the created CruiseControlOperation to execute a CC
-                            task
+                          description: CruiseControlOperationReference refers to the
+                            created CruiseControlOperation to execute a CC task
                           properties:
                             name:
                               description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -19609,7 +19608,7 @@ spec:
                           additionalProperties:
                             properties:
                               cruiseControlOperationReference:
-                                description: CruiseControlOperationReference references
+                                description: CruiseControlOperationReference refers
                                   to the created CruiseControlOperation to execute
                                   a CC task
                                 properties:
