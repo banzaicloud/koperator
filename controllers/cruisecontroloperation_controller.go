@@ -111,7 +111,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return reconciled()
 	}
 
-	kafkaClusterRef, err := getKafkaClusterReference(currentCCOperation)
+	kafkaClusterRef, err := kafkaClusterReference(currentCCOperation)
 	if err != nil {
 		return requeueWithError(log, "couldn't get kafka cluster reference", err)
 	}
@@ -164,7 +164,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	var ccOperationsKafkaClusterFiltered []*banzaiv1alpha1.CruiseControlOperation
 	for i := range ccOperationListClusterWide.Items {
 		operation := &ccOperationListClusterWide.Items[i]
-		ref, err := getKafkaClusterReference(operation)
+		ref, err := kafkaClusterReference(operation)
 		if err != nil {
 			// Note: not returning here to continue processing the operations,
 			// even if the user does not provide a KafkaClusterRef label on the CCOperation then the ref will be an empty object (not nil) and the filter will skip it.
@@ -226,8 +226,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		}
 	}
 
-	// Protection to avoid re-execution task when status update is failed
-	if errEnd := util.RetryOnConflict(util.DefaultBackOffForConflict, func() error {
+	conflictRetryFunction := func() error {
 		if err = updateResult(log, cruseControlTaskResult, ccOperationExecution, true); err != nil {
 			return err
 		}
@@ -236,8 +235,10 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 			err = r.Get(ctx, client.ObjectKey{Name: ccOperationExecution.GetName(), Namespace: ccOperationExecution.GetNamespace()}, ccOperationExecution)
 		}
 		return err
-	}); errEnd != nil {
-		return requeueWithError(log, "could not update the result of the Cruise Control user task execution to the CruiseControlOperation status", errEnd)
+	}
+	// Protection to avoid re-execution task when status update is failed
+	if err := util.RetryOnConflict(util.DefaultBackOffForConflict, conflictRetryFunction); err != nil {
+		return requeueWithError(log, "could not update the result of the Cruise Control user task execution to the CruiseControlOperation status", err)
 	}
 
 	return reconciled()
@@ -297,7 +298,7 @@ func sortOperations(ccOperations []*banzaiv1alpha1.CruiseControlOperation) map[s
 	ccOperationQueueMap := make(map[string][]*banzaiv1alpha1.CruiseControlOperation)
 	for _, ccOperation := range ccOperations {
 		switch {
-		case isWaitingForFinalize(ccOperation):
+		case isWaitingForFinalization(ccOperation):
 			ccOperationQueueMap[ccOperationForStopExecution] = append(ccOperationQueueMap[ccOperationForStopExecution], ccOperation)
 		case ccOperation.IsWaitingForFirstExecution():
 			ccOperationQueueMap[ccOperationFirstExecution] = append(ccOperationQueueMap[ccOperationFirstExecution], ccOperation)
@@ -312,12 +313,11 @@ func sortOperations(ccOperations []*banzaiv1alpha1.CruiseControlOperation) map[s
 	for key := range ccOperationQueueMap {
 		sort.SliceStable(ccOperationQueueMap[key], func(i, j int) bool {
 			ccOperationQueue := ccOperationQueueMap[key]
-			if executionPriorityMap[ccOperationQueue[i].CurrentTaskOperation()] < executionPriorityMap[ccOperationQueue[j].CurrentTaskOperation()] {
-				return true
-			} else if executionPriorityMap[ccOperationQueue[i].CurrentTaskOperation()] == executionPriorityMap[ccOperationQueue[j].CurrentTaskOperation()] {
-				return ccOperationQueue[i].CreationTimestamp.Unix() < ccOperationQueue[j].CreationTimestamp.Unix()
-			}
-			return true
+
+			return executionPriorityMap[ccOperationQueue[i].CurrentTaskOperation()] > executionPriorityMap[ccOperationQueue[j].CurrentTaskOperation()] ||
+				(executionPriorityMap[ccOperationQueue[i].CurrentTaskOperation()] == executionPriorityMap[ccOperationQueue[j].CurrentTaskOperation()] &&
+					ccOperationQueue[i].CreationTimestamp.Unix() < ccOperationQueue[j].CreationTimestamp.Unix())
+
 		})
 	}
 	return ccOperationQueueMap
@@ -386,7 +386,7 @@ func isFinalizerNeeded(operation *banzaiv1alpha1.CruiseControlOperation) bool {
 	return controllerutil.ContainsFinalizer(operation, ccOperationFinalizerGroup) && !operation.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
-func getKafkaClusterReference(operation *banzaiv1alpha1.CruiseControlOperation) (client.ObjectKey, error) {
+func kafkaClusterReference(operation *banzaiv1alpha1.CruiseControlOperation) (client.ObjectKey, error) {
 	if operation.GetClusterRef() == "" {
 		return client.ObjectKey{}, errors.NewWithDetails("could not find kafka cluster reference label for CruiseControlOperation", "missing label", banzaiv1beta1.KafkaCRLabelKey, "name", operation.GetName(), "namespace", operation.GetNamespace())
 	}
@@ -434,7 +434,7 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 			task.Started = &v1.Time{Time: startTime}
 		}
 		task.ID = res.TaskID
-		task.Summary = parseSummary(res.Result)
+		task.Summary = formatSummary(res.Result)
 		task.ErrorMessage = res.Err.Error()
 		task.HTTPRequest = res.RequestURL
 		task.HTTPResponseCode = &res.ResponseStatusCode
@@ -456,8 +456,8 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 		if ccOperation.CurrentTaskID() != "" {
 			userTaskIDs = append(userTaskIDs, ccOperation.CurrentTaskID())
 		}
-		copy := ccOperation.DeepCopy()
-		ccOperationsCopy = append(ccOperationsCopy, copy)
+
+		ccOperationsCopy = append(ccOperationsCopy, ccOperation.DeepCopy())
 	}
 
 	tasks, err := r.Scaler.UserTasks(userTaskIDs...)
@@ -488,11 +488,11 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 	return nil
 }
 
-func isWaitingForFinalize(ccOperation *banzaiv1alpha1.CruiseControlOperation) bool {
+func isWaitingForFinalization(ccOperation *banzaiv1alpha1.CruiseControlOperation) bool {
 	return ccOperation.IsCurrentTaskRunning() && !ccOperation.ObjectMeta.DeletionTimestamp.IsZero() && controllerutil.ContainsFinalizer(ccOperation, ccOperationFinalizerGroup)
 }
 
-func parseSummary(res *types.OptimizationResult) map[string]string {
+func formatSummary(res *types.OptimizationResult) map[string]string {
 	if res == nil {
 		return nil
 	}
