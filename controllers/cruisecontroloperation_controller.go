@@ -42,8 +42,8 @@ import (
 
 const (
 	defaultFailedTasksHistoryMaxLength = 50
-	cruiseControlOperationFinalizer    = "finalizer.cruisecontroloperations.kafka.banzaicloud.io"
-	ccOperationForFinalize             = "ccOperationStopExecution"
+	ccOperationFinalizerGroup          = "finalizer.cruisecontroloperations.kafka.banzaicloud.io"
+	ccOperationForStopExecution        = "ccOperationStopExecution"
 	ccOperationFirstExecution          = "ccOperationFirstExecution"
 	ccOperationRetryExecution          = "ccOperationRetryExecution"
 	ccOperationInProgress              = "ccOperationInProgress"
@@ -96,9 +96,9 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return reconciled()
 	}
 
-	//When the task is done we can remove the finalizer instantly thus we can return fast here.
+	// When the task is done we can remove the finalizer instantly thus we can return fast here.
 	if isFinalizerNeeded(currentCCOperation) && currentCCOperation.IsDone() {
-		controllerutil.RemoveFinalizer(currentCCOperation, cruiseControlOperationFinalizer)
+		controllerutil.RemoveFinalizer(currentCCOperation, ccOperationFinalizerGroup)
 		if err := r.Update(ctx, currentCCOperation); err != nil {
 			return requeueWithError(log, "error happened when removing finalizer", err)
 		}
@@ -122,7 +122,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		if apiErrors.IsNotFound(err) {
 			if !currentCCOperation.ObjectMeta.DeletionTimestamp.IsZero() {
 				log.Info("kafka cluster has been removed, now removing finalizer from CruiseControlOperation")
-				controllerutil.RemoveFinalizer(currentCCOperation, cruiseControlOperationFinalizer)
+				controllerutil.RemoveFinalizer(currentCCOperation, ccOperationFinalizerGroup)
 				if err := r.Update(ctx, currentCCOperation); err != nil {
 					return requeueWithError(log, "failed to remove finalizer from CruiseControlOperation", err)
 				}
@@ -166,6 +166,8 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		operation := &ccOperationListClusterWide.Items[i]
 		ref, err := getKafkaClusterReference(operation)
 		if err != nil {
+			// Note: not returning here to continue processing the operations,
+			// even if the user does not provide a KafkaClusterRef label on the CCOperation then the ref will be an empty object (not nil) and the filter will skip it.
 			log.Info(err.Error())
 		}
 		if ref.Name == kafkaClusterRef.Name && ref.Namespace == kafkaClusterRef.Namespace &&
@@ -183,7 +185,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 
 	//When the task is not in execution we can remove the finalizer
 	if isFinalizerNeeded(currentCCOperation) && !currentCCOperation.IsCurrentTaskRunning() {
-		controllerutil.RemoveFinalizer(currentCCOperation, cruiseControlOperationFinalizer)
+		controllerutil.RemoveFinalizer(currentCCOperation, ccOperationFinalizerGroup)
 		if err := r.Update(ctx, currentCCOperation); err != nil {
 			return requeueWithError(log, err.Error(), err)
 		}
@@ -194,7 +196,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	ccOperationQueueMap := sortOperations(ccOperationsKafkaClusterFiltered)
 
 	// When there is no more job present in the cluster we reconciled.
-	if len(ccOperationQueueMap[ccOperationForFinalize]) == 0 && len(ccOperationQueueMap[ccOperationFirstExecution]) == 0 &&
+	if len(ccOperationQueueMap[ccOperationForStopExecution]) == 0 && len(ccOperationQueueMap[ccOperationFirstExecution]) == 0 &&
 		len(ccOperationQueueMap[ccOperationRetryExecution]) == 0 && len(ccOperationQueueMap[ccOperationInProgress]) == 0 {
 		log.Info("there is no more operation for execution")
 		return reconciled()
@@ -263,8 +265,8 @@ func (r *CruiseControlOperationReconciler) addFinalizer(ctx context.Context, cur
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object. This is equivalent
 		// registering our finalizer.
-		if !controllerutil.ContainsFinalizer(currentCCOperation, cruiseControlOperationFinalizer) {
-			controllerutil.AddFinalizer(currentCCOperation, cruiseControlOperationFinalizer)
+		if !controllerutil.ContainsFinalizer(currentCCOperation, ccOperationFinalizerGroup) {
+			controllerutil.AddFinalizer(currentCCOperation, ccOperationFinalizerGroup)
 			if err := r.Update(ctx, currentCCOperation); err != nil {
 				return err
 			}
@@ -296,7 +298,7 @@ func sortOperations(ccOperations []*banzaiv1alpha1.CruiseControlOperation) map[s
 	for _, ccOperation := range ccOperations {
 		switch {
 		case isWaitingForFinalize(ccOperation):
-			ccOperationQueueMap[ccOperationForFinalize] = append(ccOperationQueueMap[ccOperationForFinalize], ccOperation)
+			ccOperationQueueMap[ccOperationForStopExecution] = append(ccOperationQueueMap[ccOperationForStopExecution], ccOperation)
 		case ccOperation.IsWaitingForFirstExecution():
 			ccOperationQueueMap[ccOperationFirstExecution] = append(ccOperationQueueMap[ccOperationFirstExecution], ccOperation)
 		case ccOperation.IsWaitingForRetryExecution():
@@ -326,8 +328,8 @@ func selectOperationForExecution(ccOperationQueueMap map[string][]*banzaiv1alpha
 	var ccOperationExecution *banzaiv1alpha1.CruiseControlOperation
 	// First prio: execute the finalize task
 	switch {
-	case len(ccOperationQueueMap[ccOperationForFinalize]) > 0:
-		ccOperationExecution = ccOperationQueueMap[ccOperationForFinalize][0]
+	case len(ccOperationQueueMap[ccOperationForStopExecution]) > 0:
+		ccOperationExecution = ccOperationQueueMap[ccOperationForStopExecution][0]
 		ccOperationExecution.CurrentTask().Operation = banzaiv1alpha1.OperationStopExecution
 	// Second prio: execute add_broker operation
 	case len(ccOperationQueueMap[ccOperationFirstExecution]) > 0 && ccOperationQueueMap[ccOperationFirstExecution][0].CurrentTaskOperation() == banzaiv1alpha1.OperationAddBroker:
@@ -381,7 +383,7 @@ func SetupCruiseControlOperationWithManager(mgr ctrl.Manager) *ctrl.Builder {
 }
 
 func isFinalizerNeeded(operation *banzaiv1alpha1.CruiseControlOperation) bool {
-	return controllerutil.ContainsFinalizer(operation, cruiseControlOperationFinalizer) && !operation.ObjectMeta.DeletionTimestamp.IsZero()
+	return controllerutil.ContainsFinalizer(operation, ccOperationFinalizerGroup) && !operation.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
 func getKafkaClusterReference(operation *banzaiv1alpha1.CruiseControlOperation) (client.ObjectKey, error) {
@@ -401,7 +403,7 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 		res = &scale.Result{
 			TaskID: operation.CurrentTaskID(),
 			State:  banzaiv1beta1.CruiseControlTaskCompletedWithError,
-			Err:    missingCCResErr.Error(),
+			Err:    missingCCResErr,
 		}
 	}
 
@@ -433,7 +435,7 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 		}
 		task.ID = res.TaskID
 		task.Summary = parseSummary(res.Result)
-		task.ErrorMessage = res.Err
+		task.ErrorMessage = res.Err.Error()
 		task.HTTPRequest = res.RequestURL
 		task.HTTPResponseCode = &res.ResponseStatusCode
 	}
@@ -487,7 +489,7 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 }
 
 func isWaitingForFinalize(ccOperation *banzaiv1alpha1.CruiseControlOperation) bool {
-	return ccOperation.IsCurrentTaskRunning() && !ccOperation.ObjectMeta.DeletionTimestamp.IsZero() && controllerutil.ContainsFinalizer(ccOperation, cruiseControlOperationFinalizer)
+	return ccOperation.IsCurrentTaskRunning() && !ccOperation.ObjectMeta.DeletionTimestamp.IsZero() && controllerutil.ContainsFinalizer(ccOperation, ccOperationFinalizerGroup)
 }
 
 func parseSummary(res *types.OptimizationResult) map[string]string {

@@ -226,7 +226,7 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 			ResponseStatusCode: addBrokerResp.StatusCode,
 			RequestURL:         addBrokerResp.RequestURL,
 			State:              v1beta1.CruiseControlTaskCompletedWithError,
-			Err:                fmt.Sprintf("%v", err),
+			Err:                err,
 		}, err
 	}
 
@@ -251,7 +251,7 @@ func (cc *cruiseControlScaler) StopExecution() (*Result, error) {
 			ResponseStatusCode: stopResp.StatusCode,
 			RequestURL:         stopResp.RequestURL,
 			State:              v1beta1.CruiseControlTaskCompletedWithError,
-			Err:                fmt.Sprintf("%v", err),
+			Err:                err,
 		}, err
 	}
 
@@ -303,7 +303,7 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string)
 			ResponseStatusCode: rmBrokerResp.StatusCode,
 			RequestURL:         rmBrokerResp.RequestURL,
 			State:              v1beta1.CruiseControlTaskCompletedWithError,
-			Err:                fmt.Sprintf("%v", err),
+			Err:                err,
 		}, err
 	}
 
@@ -365,7 +365,7 @@ func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) 
 			ResponseStatusCode: addBrokerResp.StatusCode,
 			RequestURL:         addBrokerResp.RequestURL,
 			State:              v1beta1.CruiseControlTaskCompletedWithError,
-			Err:                fmt.Sprintf("%v", err),
+			Err:                err,
 		}, err
 	}
 
@@ -430,7 +430,7 @@ func (cc *cruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*Result, erro
 			ResponseStatusCode: rmBrokerResp.StatusCode,
 			RequestURL:         rmBrokerResp.RequestURL,
 			State:              v1beta1.CruiseControlTaskCompletedWithError,
-			Err:                fmt.Sprintf("%v", err),
+			Err:                err,
 		}, err
 	}
 
@@ -491,7 +491,7 @@ func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*R
 			ResponseStatusCode: rebalanceResp.StatusCode,
 			RequestURL:         rebalanceResp.RequestURL,
 			State:              v1beta1.CruiseControlTaskCompletedWithError,
-			Err:                fmt.Sprintf("%v", err),
+			Err:                err,
 		}, err
 	}
 
@@ -555,7 +555,7 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, err
 			ResponseStatusCode: rebalanceResp.StatusCode,
 			RequestURL:         rebalanceResp.RequestURL,
 			State:              v1beta1.CruiseControlTaskCompletedWithError,
-			Err:                fmt.Sprintf("%v", err),
+			Err:                err,
 		}, err
 	}
 
