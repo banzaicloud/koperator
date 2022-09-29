@@ -31,12 +31,15 @@ const (
 // `omitempty` and `default`.
 //
 // The following string can be parsed as StructTag:
-//  s := "properties:test_key,omitempty,default=test_key_default_value"
-//  st, err := ParseStructTag(s)
+//
+//	s := "properties:test_key,omitempty,default=test_key_default_value"
+//	st, err := ParseStructTag(s)
+//
 // And information can be accessed:
-//  st.Key       // returns "test_key"
-//  st.OmitEmpty // return true
-//  st.Default   // returns "test_key_default_value"
+//
+//	st.Key       // returns "test_key"
+//	st.OmitEmpty // return true
+//	st.Default   // returns "test_key_default_value"
 type StructTag struct {
 	// Key name which is the first item of a struct tag
 	Key string
@@ -49,13 +52,16 @@ type StructTag struct {
 // that the struct field should not be considered during marshal/unmarshal.
 //
 // Calling Skip method for st1 or st2 StructTag object will result false:
-//  s1 := "properties:,omitempty,default=test_key_default_value"
-//  st1, err := ParseStructTag(s1)
-//  st1.Skip()
+//
+//	s1 := "properties:,omitempty,default=test_key_default_value"
+//	st1, err := ParseStructTag(s1)
+//	st1.Skip()
+//
 // Or
-//  s2 := "properties:-,omitempty,default=test_key_default_value"
-//  st2, err := ParseStructTag(s2)
-//  st2.Skip()
+//
+//	s2 := "properties:-,omitempty,default=test_key_default_value"
+//	st2, err := ParseStructTag(s2)
+//	st2.Skip()
 func (t StructTag) Skip() bool {
 	return t.Key == "" || t.Key == "-"
 }

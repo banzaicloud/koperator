@@ -46,7 +46,7 @@ type Resource func() runtime.Object
 type ResourceWithLogs func(log logr.Logger) runtime.Object
 
 // ResourceWithLogAndExternalListenerSpecificInfos function with
-//log and externalListenerConfig and ingressConfig parameter with name and default ingress config name
+// log and externalListenerConfig and ingressConfig parameter with name and default ingress config name
 type ResourceWithLogAndExternalListenerSpecificInfos func(log logr.Logger,
 	externalListenerConfig v1beta1.ExternalListenerConfig, ingressConfig v1beta1.IngressConfig,
 	ingressConfigName, defaultIngressConfigName string) runtime.Object

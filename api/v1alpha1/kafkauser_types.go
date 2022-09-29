@@ -59,7 +59,7 @@ type KafkaUserStatus struct {
 	ACLs  []string  `json:"acls,omitempty"`
 }
 
-//KafkaUser is the Schema for the kafka users API
+// KafkaUser is the Schema for the kafka users API
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
@@ -92,7 +92,7 @@ func (spec *KafkaUserSpec) GetIfCertShouldBeCreated() bool {
 	return true
 }
 
-//GetAnnotations returns Annotations to use for certificate or certificate signing request object
+// GetAnnotations returns Annotations to use for certificate or certificate signing request object
 func (spec *KafkaUserSpec) GetAnnotations() map[string]string {
 	return util.CloneMap(spec.Annotations)
 }
