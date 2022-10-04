@@ -70,7 +70,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 
 	When("there is an add_broker operation for execution", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.Scaler = getScaleMock1(GinkgoT())
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock1(GinkgoT()))
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -98,7 +98,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("add_broker operation is finished with completedWithError and 30s has not elapsed", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.Scaler = getScaleMock2(GinkgoT())
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock2(GinkgoT()))
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -125,7 +125,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("add_broker operation is finished with completedWithError and 30s has elapsed", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.Scaler = getScaleMock5(GinkgoT())
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock5(GinkgoT()))
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -154,7 +154,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("there is an errored remove_broker and an add_broker operation", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.Scaler = getScaleMock3(GinkgoT())
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock3(GinkgoT()))
 			// First operation will get completedWithError
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
@@ -201,7 +201,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("there is a new remove_broker and an errored remove_broker operation with pause annotation", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4(GinkgoT()))
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Labels["pause"] = "true"
 			err := k8sClient.Create(context.Background(), &operation)
@@ -245,12 +245,12 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				}
 
 				return operation1.Status.RetryCount == 0 && operation2.CurrentTaskState() == v1beta1.CruiseControlTaskCompleted
-			}, 40*time.Second, 500*time.Millisecond).Should(BeTrue())
+			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
 	When("there is a new remove_broker and an errored remove_broker operation with ignore ErrorPolicy", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.Scaler = getScaleMock4(GinkgoT())
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4(GinkgoT()))
 			// Creating first operation
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Spec.ErrorPolicy = v1alpha1.ErrorPolicyIgnore
@@ -295,7 +295,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				}
 
 				return operation1.Status.RetryCount == 0 && operation2.CurrentTaskState() == v1beta1.CruiseControlTaskCompleted
-			}, 40*time.Second, 500*time.Millisecond).Should(BeTrue())
+			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
 })

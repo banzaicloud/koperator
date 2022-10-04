@@ -62,6 +62,12 @@ var (
 	}
 )
 
+func ScaleFactoryFn() func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (CruiseControlScaler, error) {
+	return func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (CruiseControlScaler, error) {
+		return NewCruiseControlScaler(ctx, CruiseControlURLFromKafkaCluster(kafkaCluster))
+	}
+}
+
 func NewCruiseControlScaler(ctx context.Context, serverURL string) (CruiseControlScaler, error) {
 	return newCruiseControlScaler(ctx, serverURL)
 }

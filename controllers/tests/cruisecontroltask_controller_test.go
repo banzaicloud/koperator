@@ -150,6 +150,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("a broker is removed", func() {
 		JustBeforeEach(func() {
+			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask1(GinkgoT()))
 			err := util.RetryOnConflict(util.DefaultBackOffForConflict, func() error {
 				if err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      kafkaCluster.Name,

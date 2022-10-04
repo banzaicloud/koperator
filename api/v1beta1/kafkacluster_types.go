@@ -280,7 +280,7 @@ type CruiseControlOperationSpec struct {
 	TTLSecondsAfterFinished *int `json:"ttlSecondsAfterFinished,omitempty"`
 }
 
-// GetTTLSecondsAfterFinished returns NIL when TTLSecondsAfterFinished is not specified otherwise it returns itself
+// GetTTLSecondsAfterFinished returns NIL when CruiseControlOperationSpec is not specified otherwise it returns itself
 func (c *CruiseControlOperationSpec) GetTTLSecondsAfterFinished() *int {
 	if c == nil {
 		return nil

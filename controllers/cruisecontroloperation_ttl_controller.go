@@ -73,7 +73,7 @@ func (r *CruiseControlOperationTTLReconciler) Reconcile(ctx context.Context, req
 	return requeueAfter(reqSec)
 }
 
-// SetupCruiseControlWithManager registers cruise control controller to the manager
+// SetupCruiseControlWithManager registers cruise control operation controller to the manager
 func SetupCruiseControlOperationTTLWithManager(mgr ctrl.Manager) *ctrl.Builder {
 	cruiseControlOperationTTLPredicate := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {

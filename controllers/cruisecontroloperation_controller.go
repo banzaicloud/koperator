@@ -64,7 +64,8 @@ type CruiseControlOperationReconciler struct {
 	client.Client
 	DirectClient client.Reader
 	Scheme       *runtime.Scheme
-	Scaler       scale.CruiseControlScaler
+	scaler       scale.CruiseControlScaler
+	ScaleFactory func(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster) (scale.CruiseControlScaler, error)
 }
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=cruisecontroloperations,verbs=get;list;watch;create;update;patch;delete;deletecollection
@@ -137,19 +138,13 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return requeueWithError(log, "failed to add finalizer to CruiseControlOperation", err)
 	}
 
-	// We only get a scaler when we have not had mocked one for testing
-	if _, ok := r.Scaler.(*scale.MockCruiseControlScaler); !ok {
-		r.Scaler, err = scale.NewCruiseControlScaler(ctx, scale.CruiseControlURLFromKafkaCluster(kafkaCluster))
-		if err != nil {
-			return requeueWithError(log, "failed to create Cruise Control Scaler instance", err)
-		}
-	} else {
-		// In tests we requeue faster
-		defaultRequeueIntervalInSeconds = 1
+	r.scaler, err = r.ScaleFactory(ctx, kafkaCluster)
+	if err != nil {
+		return requeueWithError(log, "failed to create Cruise Control Scaler instance", err)
 	}
 
 	// Checking Cruise Control health
-	status, err := r.Scaler.Status()
+	status, err := r.scaler.Status()
 	if err != nil {
 		log.Error(err, "could not get Cruise Control status")
 		return requeueAfter(defaultRequeueIntervalInSeconds)
@@ -214,8 +209,8 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return requeueAfter(defaultRequeueIntervalInSeconds)
 	}
 
-	// Executing operation
 	log.Info("executing Cruise Control task", "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
+	// Executing operation
 	cruseControlTaskResult, err := r.executeOperation(ccOperationExecution)
 
 	if err != nil {
@@ -247,7 +242,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 // isCCTaskTest returns true when the CruiseControlOperation is created by the cruisecontroltask_controller_test
 // In this case the CR should be skipped because the scale mock interference
 func (r *CruiseControlOperationReconciler) isCCTaskTest(operation *banzaiv1alpha1.CruiseControlOperation) bool {
-	if _, ok := r.Scaler.(*scale.MockCruiseControlScaler); !ok {
+	if _, ok := r.scaler.(*scale.MockCruiseControlScaler); !ok {
 		return false
 	}
 
@@ -281,13 +276,13 @@ func (r *CruiseControlOperationReconciler) executeOperation(ccOperationExecution
 	var err error
 	switch ccOperationExecution.CurrentTaskOperation() {
 	case banzaiv1alpha1.OperationAddBroker:
-		cruseControlTaskResult, err = r.Scaler.AddBrokersWithParams(ccOperationExecution.CurrentTaskParameters())
+		cruseControlTaskResult, err = r.scaler.AddBrokersWithParams(ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationRemoveBroker:
-		cruseControlTaskResult, err = r.Scaler.RemoveBrokersWithParams(ccOperationExecution.CurrentTaskParameters())
+		cruseControlTaskResult, err = r.scaler.RemoveBrokersWithParams(ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationRebalance:
-		cruseControlTaskResult, err = r.Scaler.RebalanceWithParams(ccOperationExecution.CurrentTaskParameters())
+		cruseControlTaskResult, err = r.scaler.RebalanceWithParams(ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationStopExecution:
-		cruseControlTaskResult, err = r.Scaler.StopExecution()
+		cruseControlTaskResult, err = r.scaler.StopExecution()
 	default:
 		err = errors.NewWithDetails("Cruise Control operation not supported", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
 	}
@@ -417,10 +412,10 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 	// Add the failed task into the status.failedTasks slice only when the update is happened after executing the task
 	if isAfterExecution && task.Finished != nil && task.State == banzaiv1beta1.CruiseControlTaskCompletedWithError {
 		if len(operation.Status.FailedTasks) >= defaultFailedTasksHistoryMaxLength {
-			operation.Status.FailedTasks = append(operation.Status.FailedTasks[1:], *task)
-		} else {
-			operation.Status.FailedTasks = append(operation.Status.FailedTasks, *task)
+			operation.Status.FailedTasks = operation.Status.FailedTasks[1:]
 		}
+		operation.Status.FailedTasks = append(operation.Status.FailedTasks, *task)
+
 		operation.Status.RetryCount += 1
 		task.SetDefaults()
 	}
@@ -435,7 +430,9 @@ func updateResult(log logr.Logger, res *scale.Result, operation *banzaiv1alpha1.
 		}
 		task.ID = res.TaskID
 		task.Summary = formatSummary(res.Result)
-		task.ErrorMessage = res.Err.Error()
+		if res.Err != nil {
+			task.ErrorMessage = res.Err.Error()
+		}
 		task.HTTPRequest = res.RequestURL
 		task.HTTPResponseCode = &res.ResponseStatusCode
 	}
@@ -460,7 +457,7 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 		ccOperationsCopy = append(ccOperationsCopy, ccOperation.DeepCopy())
 	}
 
-	tasks, err := r.Scaler.UserTasks(userTaskIDs...)
+	tasks, err := r.scaler.UserTasks(userTaskIDs...)
 	if err != nil {
 		return errors.WrapIff(err, "could not get user tasks from Cruise Control API")
 	}

@@ -31,6 +31,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -57,10 +58,12 @@ import (
 	banzaiistiov1alpha1 "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/controllers"
 	"github.com/banzaicloud/koperator/pkg/jmxextractor"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
+	"github.com/banzaicloud/koperator/pkg/scale"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -173,6 +176,9 @@ var _ = BeforeSuite(func() {
 		Client:       mgr.GetClient(),
 		DirectClient: mgr.GetAPIReader(),
 		Scheme:       mgr.GetScheme(),
+		ScaleFactory: func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
+			return nil, errors.New("there is no scale mock")
+		},
 	}
 
 	err = controllers.SetupCruiseControlWithManager(mgr).Complete(&kafkaClusterCCReconciler)
@@ -182,6 +188,9 @@ var _ = BeforeSuite(func() {
 		Client:       mgr.GetClient(),
 		DirectClient: mgr.GetAPIReader(),
 		Scheme:       mgr.GetScheme(),
+		ScaleFactory: func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
+			return nil, errors.New("there is no scale mock")
+		},
 	}
 
 	err = controllers.SetupCruiseControlOperationWithManager(mgr).Complete(&cruiseControlOperationReconciler)
@@ -208,20 +217,21 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).ToNot(BeNil())
 
 	crd := &apiv1.CustomResourceDefinition{}
+	ctx := context.Background()
 
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkaclusters.kafka.banzaicloud.io"}, crd)
+	err = k8sClient.Get(ctx, types.NamespacedName{Name: "kafkaclusters.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaCluster"))
 
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "cruisecontroloperations.kafka.banzaicloud.io"}, crd)
+	err = k8sClient.Get(ctx, types.NamespacedName{Name: "cruisecontroloperations.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("CruiseControlOperation"))
 
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
+	err = k8sClient.Get(ctx, types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaTopic"))
 
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkausers.kafka.banzaicloud.io"}, crd)
+	err = k8sClient.Get(ctx, types.NamespacedName{Name: "kafkausers.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))
 }, 240)

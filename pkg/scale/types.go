@@ -48,7 +48,7 @@ type Result struct {
 	RequestURL         string
 	Result             *types.OptimizationResult
 	State              v1beta1.CruiseControlUserTaskState
-	Err                string
+	Err                error
 }
 
 type LogDirState int8

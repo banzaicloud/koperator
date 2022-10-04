@@ -186,9 +186,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		DirectClient: mgr.GetAPIReader(),
 		Scheme:       mgr.GetScheme(),
-		ScaleFactory: func(ctx context.Context, kafkaCluster *banzaicloudv1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
-			return scale.NewCruiseControlScaler(ctx, scale.CruiseControlURLFromKafkaCluster(kafkaCluster))
-		},
+		ScaleFactory: scale.ScaleFactoryFn(),
 	}
 
 	if err = controllers.SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler); err != nil {
@@ -200,6 +198,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		DirectClient: mgr.GetAPIReader(),
 		Scheme:       mgr.GetScheme(),
+		ScaleFactory: scale.ScaleFactoryFn(),
 	}
 
 	if err = controllers.SetupCruiseControlOperationWithManager(mgr).Complete(&cruiseControlOperationReconciler); err != nil {
