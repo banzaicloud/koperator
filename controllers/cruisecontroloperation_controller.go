@@ -306,13 +306,11 @@ func sortOperations(ccOperations []*banzaiv1alpha1.CruiseControlOperation) map[s
 
 	// Sorting by operation type and by the k8s object creation time
 	for key := range ccOperationQueueMap {
-		sort.SliceStable(ccOperationQueueMap[key], func(i, j int) bool {
-			ccOperationQueue := ccOperationQueueMap[key]
-
+		ccOperationQueue := ccOperationQueueMap[key]
+		sort.SliceStable(ccOperationQueue, func(i, j int) bool {
 			return executionPriorityMap[ccOperationQueue[i].CurrentTaskOperation()] > executionPriorityMap[ccOperationQueue[j].CurrentTaskOperation()] ||
 				(executionPriorityMap[ccOperationQueue[i].CurrentTaskOperation()] == executionPriorityMap[ccOperationQueue[j].CurrentTaskOperation()] &&
 					ccOperationQueue[i].CreationTimestamp.Unix() < ccOperationQueue[j].CreationTimestamp.Unix())
-
 		})
 	}
 	return ccOperationQueueMap
