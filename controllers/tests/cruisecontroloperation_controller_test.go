@@ -70,7 +70,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 
 	When("there is an add_broker operation for execution", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock1(GinkgoT()))
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock1())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -98,7 +98,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("add_broker operation is finished with completedWithError and 30s has not elapsed", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock2(GinkgoT()))
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock2())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -125,7 +125,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("add_broker operation is finished with completedWithError and 30s has elapsed", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock5(GinkgoT()))
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock5())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -154,7 +154,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("there is an errored remove_broker and an add_broker operation", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock3(GinkgoT()))
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock3())
 			// First operation will get completedWithError
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
@@ -201,7 +201,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("there is a new remove_broker and an errored remove_broker operation with pause annotation", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4(GinkgoT()))
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Labels["pause"] = "true"
 			err := k8sClient.Create(context.Background(), &operation)
@@ -250,7 +250,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("there is a new remove_broker and an errored remove_broker operation with ignore ErrorPolicy", func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4(GinkgoT()))
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4())
 			// Creating first operation
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Spec.ErrorPolicy = v1alpha1.ErrorPolicyIgnore
@@ -310,8 +310,8 @@ func generateCruiseControlOperation(name, namespace, kafkaRef string) v1alpha1.C
 		Spec: v1alpha1.CruiseControlOperationSpec{},
 	}
 }
-func getScaleMock2(t GinkgoTInterface) *scale.MockCruiseControlScaler {
-	mockCtrl := gomock.NewController(t)
+func getScaleMock2() *scale.MockCruiseControlScaler {
+	mockCtrl := gomock.NewController(GinkgoT())
 	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
 
@@ -333,7 +333,7 @@ func getScaleMock2(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	}), nil).Times(1)
 	return scaleMock
 }
-func getScaleMock1(t GinkgoTInterface) *scale.MockCruiseControlScaler {
+func getScaleMock1() *scale.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
 	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
@@ -357,7 +357,7 @@ func getScaleMock1(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	return scaleMock
 }
 
-func getScaleMock3(t GinkgoTInterface) *scale.MockCruiseControlScaler {
+func getScaleMock3() *scale.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
 	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
@@ -391,8 +391,8 @@ func getScaleMock3(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	return scaleMock
 }
 
-func getScaleMock4(t GinkgoTInterface) *scale.MockCruiseControlScaler {
-	mockCtrl := gomock.NewController(t)
+func getScaleMock4() *scale.MockCruiseControlScaler {
+	mockCtrl := gomock.NewController(GinkgoT())
 	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
 
@@ -419,8 +419,8 @@ func getScaleMock4(t GinkgoTInterface) *scale.MockCruiseControlScaler {
 	return scaleMock
 }
 
-func getScaleMock5(t GinkgoTInterface) *scale.MockCruiseControlScaler {
-	mockCtrl := gomock.NewController(t)
+func getScaleMock5() *scale.MockCruiseControlScaler {
+	mockCtrl := gomock.NewController(GinkgoT())
 	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
 

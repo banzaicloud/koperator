@@ -112,7 +112,7 @@ func (r *CruiseControlOperationTTLReconciler) delete(ctx context.Context, ccOper
 	log := logr.FromContextOrDiscard(ctx)
 	err := r.Delete(ctx, ccOperation)
 	if err != nil && !apierrors.IsNotFound(err) {
-		return requeueWithError(log, "error is occured when deleting finished CruiseControlOperation ", err)
+		return requeueWithError(log, "error is occurred when deleting finished CruiseControlOperation ", err)
 	}
 
 	return reconcile.Result{}, nil

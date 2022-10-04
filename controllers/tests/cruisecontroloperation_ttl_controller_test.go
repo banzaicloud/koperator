@@ -27,11 +27,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/controllers"
 	"github.com/banzaicloud/koperator/pkg/util"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -161,10 +162,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					Name:      opName,
 				}, &operation)
 				Expect(err).NotTo(HaveOccurred())
-				if counter >= 3 {
-					return true
-				}
-				return false
+				return counter >= 3
 			}, maxReconcileDuration, reconcilePollingPeriod).Should(BeTrue())
 		})
 	})

@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	// Constans for the Cruise Control operations parameters
+	// Constants for the Cruise Control operations parameters
 	// Check for more details: https://github.com/linkedin/cruise-control/wiki/REST-APIs
 	paramBrokerID       = "brokerid"
 	paramExcludeDemoted = "exclude_recently_demoted_brokers"
