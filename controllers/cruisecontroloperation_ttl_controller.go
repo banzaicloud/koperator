@@ -64,7 +64,7 @@ func (r *CruiseControlOperationTTLReconciler) Reconcile(ctx context.Context, req
 	cleanupTime := finishedAt.Time.Add(operationTTL)
 
 	if IsExpired(operationTTL, finishedAt.Time) {
-		log.Info("cleaning up finished CruiseControlOperation", "finished", finishedAt.Time, "clean-up time", cleanupTime)
+		log.V(1).Info("cleaning up finished CruiseControlOperation", "finished", finishedAt.Time, "clean-up time", cleanupTime)
 		return r.delete(ctx, ccOperation)
 	}
 	// +1 sec is needed to be sure, because double to int conversion round down
