@@ -67,8 +67,7 @@ spec:
         usedForInnerBrokerCommunication: false
         usedForControllerCommunication: true
     sslSecrets:
-      tlsSecretName: "test-kafka-operator"
-      jksPasswordName: "test-kafka-operator-pass"
+      tlsSecretName: "kafka-ca-certs"
       create: true
   cruiseControlConfig:
     config: |

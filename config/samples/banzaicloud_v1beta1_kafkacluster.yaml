@@ -331,9 +331,7 @@ spec:
       # The server certificate is used by listeners using SSL.
       # The data field in the secret must contain a caCert entry and a caKey entry.
       # The caCert also can contain certificate chain in this order: intermediate(s) -> root.
-      tlsSecretName: "test-kafka-operator"
-      # jksPasswordName should contain a password field which contains the jks password
-      jksPasswordName: "test-kafka-operator-pass"
+      tlsSecretName: "kafka-ca-certs"
       # create tells the installed cert manager to create the required certs keys
       create: true
   # disruptionBudget defines the configuration for PodDisruptionBudget
