@@ -57,8 +57,7 @@ spec:
         # sslClientAuth defaults to be "required" for two-way SSL authentication, possible values are: "required", "requested", and "none"
         # sslClientAuth: "requested"
     sslSecrets:
-      tlsSecretName: "test-kafka-operator"
-      jksPasswordName: "test-kafka-operator-pass"
+      tlsSecretName: "kafka-ca-certs"
       create: true
   cruiseControlConfig:
     config: |
