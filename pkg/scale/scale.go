@@ -40,6 +40,9 @@ const (
 	paramExcludeRemoved = "exclude_recently_removed_brokers"
 	paramDestbrokerIDs  = "destination_broker_ids"
 	paramRebalanceDisk  = "rebalance_disk"
+	// Cruise Control API returns NullPointerException when a broker storage capacity calculations are missing
+	// from the Cruise Control configurations
+	nullPointerExceptionErrString = "NullPointerException"
 )
 
 var (
@@ -579,7 +582,11 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, err
 func (cc *cruiseControlScaler) BrokersWithState(states ...KafkaBrokerState) ([]string, error) {
 	resp, err := cc.client.KafkaClusterLoad(api.KafkaClusterLoadRequestWithDefaults())
 	if err != nil {
-		cc.log.Error(err, "getting Kafka cluster load from Cruise Control returned an error")
+		if strings.Contains(err.Error(), nullPointerExceptionErrString) {
+			cc.log.Error(err, "could not get Kafka cluster load from Cruise Control because broker storage capacity calculation has not been finished yet")
+		} else {
+			cc.log.Error(err, "getting Kafka cluster load from Cruise Control returned an error")
+		}
 		return nil, err
 	}
 

@@ -44,7 +44,6 @@ import (
 const (
 	DefaultRequeueAfterTimeInSec          = 20
 	CruiseControlTaskTestKafkaClusterName = "cruisecontroltask-test"
-	nullPointerExceptionErrString         = "NullPointerException"
 )
 
 // CruiseControlTaskReconciler reconciles a kafka cluster object
@@ -218,9 +217,6 @@ func getUnavailableBrokers(scaler scale.CruiseControlScaler, brokerIDs []string)
 	// This can result NullPointerException when the capacity calculation is missing for a broker in the cruisecontrol configmap
 	availableBrokers, err := scaler.BrokersWithState(states...)
 	if err != nil {
-		if strings.Contains(err.Error(), nullPointerExceptionErrString) {
-			return nil, errors.WrapIff(err, "broker storage capacity calculations for Cruise Control has not been finished yet")
-		}
 		return nil, errors.WrapIff(err, "failed to retrieve list of available brokers from Cruise Control")
 	}
 
