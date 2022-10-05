@@ -224,7 +224,11 @@ func getUnavailableBrokers(scaler scale.CruiseControlScaler, brokerIDs []string)
 		return nil, errors.WrapIff(err, "failed to retrieve list of available brokers from Cruise Control")
 	}
 
-	availableBrokersMap := scale.StringSliceToMap(availableBrokers)
+	availableBrokersMap := make(map[string]bool, len(availableBrokers))
+	for _, id := range availableBrokers {
+		availableBrokersMap[id] = true
+	}
+
 	unavailableBrokerIDs := make([]string, 0, len(brokerIDs))
 	for _, id := range brokerIDs {
 		if _, ok := availableBrokersMap[id]; !ok {
