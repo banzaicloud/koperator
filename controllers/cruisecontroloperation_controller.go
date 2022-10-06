@@ -365,6 +365,7 @@ func SetupCruiseControlOperationWithManager(mgr ctrl.Manager) *ctrl.Builder {
 				}
 				if !reflect.DeepEqual(oldObj.CurrentTask(), newObj.CurrentTask()) ||
 					oldObj.GetDeletionTimestamp() != newObj.GetDeletionTimestamp() ||
+					oldObj.IsPaused() != newObj.IsPaused() ||
 					oldObj.GetGeneration() != newObj.GetGeneration() {
 					return true
 				}
