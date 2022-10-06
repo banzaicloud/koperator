@@ -16,12 +16,12 @@ package scale
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
+	"emperror.dev/errors"
 	"github.com/go-logr/logr"
 
 	"github.com/banzaicloud/go-cruise-control/pkg/api"
@@ -43,6 +43,8 @@ const (
 	// Cruise Control API returns NullPointerException when a broker storage capacity calculations are missing
 	// from the Cruise Control configurations
 	nullPointerExceptionErrString = "NullPointerException"
+	// This error happens when the Cruise Control has not got enough information from the metrics yet
+	notEnoughValidWindowsExceptionErrString = "NotEnoughValidWindowsException"
 )
 
 var (
@@ -582,10 +584,13 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, err
 func (cc *cruiseControlScaler) BrokersWithState(states ...KafkaBrokerState) ([]string, error) {
 	resp, err := cc.client.KafkaClusterLoad(api.KafkaClusterLoadRequestWithDefaults())
 	if err != nil {
-		if strings.Contains(err.Error(), nullPointerExceptionErrString) {
-			cc.log.Error(err, "could not get Kafka cluster load from Cruise Control because broker storage capacity calculation has not been finished yet")
-		} else {
-			cc.log.Error(err, "getting Kafka cluster load from Cruise Control returned an error")
+		switch {
+		case strings.Contains(err.Error(), nullPointerExceptionErrString):
+			err = errors.WrapIff(err, "could not get Kafka cluster load from Cruise Control because broker storage capacity calculation has not been finished yet")
+		case strings.Contains(err.Error(), notEnoughValidWindowsExceptionErrString):
+			err = errors.WrapIff(err, "could not get Kafka cluster load from Cruise Control because has not been collected enough data yet")
+		default:
+			err = errors.WrapIff(err, "getting Kafka cluster load from Cruise Control returned an error")
 		}
 		return nil, err
 	}
