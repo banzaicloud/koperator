@@ -38,6 +38,8 @@ type ClusterReference struct {
 type CruiseControlTaskOperation string
 
 const (
+	// OperationStopExecution means a Cruise Control stop_proposal_execution operation
+	OperationStopExecution CruiseControlTaskOperation = "stop_proposal_execution"
 	// OperationAddBroker means a Cruise Control add_broker operation
 	OperationAddBroker CruiseControlTaskOperation = "add_broker"
 	// OperationRemoveBroker means a Cruise Control remove_broker operation

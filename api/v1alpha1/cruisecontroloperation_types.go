@@ -15,6 +15,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
@@ -41,7 +43,7 @@ type CruiseControlOperation struct {
 	Status CruiseControlOperationStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 // CruiseControlOperationList contains a list of CruiseControlOperation.
 type CruiseControlOperationList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -58,6 +60,13 @@ type CruiseControlOperationSpec struct {
 	// +kubebuilder:default=retry
 	// +optional
 	ErrorPolicy ErrorPolicyType `json:"errorPolicy,omitempty"`
+	// When TTLSecondsAfterFinished is specified, the created and finished (completed successfully or completedWithError and errorPolicy: ignore)
+	// cruiseControlOperation custom resource will be deleted after the given time elapsed.
+	// When it is 0 then the resource is going to be deleted instantly after the operation is finished.
+	// When it is not specified the resource is not going to be removed.
+	// Value can be only zero and positive integers
+	// +kubebuilder:validation:Minimum=0
+	TTLSecondsAfterFinished *int `json:"ttlSecondsAfterFinished,omitempty"`
 }
 
 // ErrorPolicyType defines methods of handling Cruise Control user task errors.
@@ -65,10 +74,10 @@ type ErrorPolicyType string
 
 // CruiseControlOperationStatus defines the observed state of CruiseControlOperation.
 type CruiseControlOperationStatus struct {
-	CurrentTask     *CruiseControlTask  `json:"currentTask,omitempty"`
-	ErrorPolicy     ErrorPolicyType     `json:"errorPolicy"`
-	NumberOfRetries int                 `json:"numberOfRetries"`
-	FailedTasks     []CruiseControlTask `json:"failedTasks,omitempty"`
+	CurrentTask *CruiseControlTask  `json:"currentTask,omitempty"`
+	ErrorPolicy ErrorPolicyType     `json:"errorPolicy"`
+	RetryCount  int                 `json:"retryCount"`
+	FailedTasks []CruiseControlTask `json:"failedTasks,omitempty"`
 }
 
 // CruiseControlTask defines the observed state of the Cruise Control user task.
@@ -92,4 +101,125 @@ type CruiseControlTask struct {
 
 func init() {
 	SchemeBuilder.Register(&CruiseControlOperation{}, &CruiseControlOperationList{})
+}
+
+// GetTTLSecondsAfterFinished returns Spec.TTLSecondsAfterFinished
+func (c CruiseControlOperation) GetTTLSecondsAfterFinished() *int {
+	return c.Spec.TTLSecondsAfterFinished
+}
+
+func (task *CruiseControlTask) SetDefaults() {
+	task.Finished = nil
+	task.State = ""
+	task.Started = nil
+	task.ErrorMessage = ""
+	task.HTTPRequest = ""
+	task.HTTPResponseCode = nil
+	task.ID = ""
+	task.Summary = nil
+}
+
+func (o *CruiseControlOperation) CurrentTask() *CruiseControlTask {
+	if o != nil {
+		return o.Status.CurrentTask
+	}
+	return nil
+}
+
+func (o *CruiseControlOperation) CurrentTaskParameters() map[string]string {
+	if o.CurrentTask() == nil {
+		return nil
+	}
+	return o.CurrentTask().Parameters
+}
+
+func (o *CruiseControlOperation) GetClusterRef() string {
+	return o.GetLabels()[v1beta1.KafkaCRLabelKey]
+}
+
+func (o *CruiseControlOperation) CurrentTaskState() v1beta1.CruiseControlUserTaskState {
+	if o.CurrentTask() != nil {
+		return o.CurrentTask().State
+	}
+	return ""
+}
+
+func (o *CruiseControlOperation) CurrentTaskID() string {
+	if o.CurrentTask() != nil {
+		return o.CurrentTask().ID
+	}
+	return ""
+}
+
+func (o *CruiseControlOperation) CurrentTaskFinished() *metav1.Time {
+	if o.CurrentTask() == nil {
+		return nil
+	}
+	return o.CurrentTask().Finished
+}
+
+func (o *CruiseControlOperation) CurrentTaskOperation() CruiseControlTaskOperation {
+	if o.CurrentTask() == nil {
+		return ""
+	}
+	return o.CurrentTask().Operation
+}
+
+func (o *CruiseControlOperation) IsWaitingForFirstExecution() bool {
+	if o.CurrentTaskState() == "" && o.CurrentTaskID() == "" && o.Status.RetryCount == 0 {
+		return true
+	}
+	return false
+}
+
+func (o *CruiseControlOperation) IsInProgress() bool {
+	if o.CurrentTaskID() != "" && (o.CurrentTaskState() == v1beta1.CruiseControlTaskActive || o.CurrentTaskState() == v1beta1.CruiseControlTaskInExecution) {
+		return true
+	}
+	return false
+}
+
+func (o *CruiseControlOperation) IsDone() bool {
+	return (o.IsPaused() && o.CurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError) || o.IsFinished()
+}
+
+func (o *CruiseControlOperation) IsPaused() bool {
+	return o.GetLabels()["pause"] == "true"
+}
+
+func (o *CruiseControlOperation) IsErrorPolicyIgnore() bool {
+	return o.Spec.ErrorPolicy == ErrorPolicyIgnore
+}
+
+func (o *CruiseControlOperation) IsFinished() bool {
+	return o.CurrentTaskState() == v1beta1.CruiseControlTaskCompleted || (o.Spec.ErrorPolicy == ErrorPolicyIgnore && o.CurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError)
+}
+
+func (o *CruiseControlOperation) IsErrorPolicyRetry() bool {
+	return o.Spec.ErrorPolicy == ErrorPolicyRetry
+}
+
+func (o *CruiseControlOperation) IsWaitingForRetryExecution() bool {
+	if (!o.IsPaused() && o.IsErrorPolicyRetry()) &&
+		o.CurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError && o.CurrentTaskID() != "" {
+		return true
+	}
+	return false
+}
+
+func (o *CruiseControlOperation) IsReadyForRetryExecution() bool {
+	return o.IsWaitingForRetryExecution() && o.CurrentTaskFinished() != nil && o.CurrentTaskFinished().Add(time.Second*DefaultRetryBackOffDurationSec).Before(time.Now())
+}
+
+func (o *CruiseControlOperation) IsCurrentTaskRunning() bool {
+	return (o.CurrentTaskState() == v1beta1.CruiseControlTaskInExecution || o.CurrentTaskState() == v1beta1.CruiseControlTaskActive) && o.CurrentTaskFinished() == nil
+}
+
+func (o *CruiseControlOperation) IsCurrentTaskFinished() bool {
+	return o.CurrentTaskState() == v1beta1.CruiseControlTaskCompleted || o.CurrentTaskState() == v1beta1.CruiseControlTaskCompletedWithError
+}
+
+func (o *CruiseControlOperation) IsCurrentTaskOperationValid() bool {
+	return o.CurrentTaskOperation() == OperationAddBroker ||
+		o.CurrentTaskOperation() == OperationRebalance || o.CurrentTaskOperation() == OperationRemoveBroker || o.CurrentTaskOperation() == OperationStopExecution
 }

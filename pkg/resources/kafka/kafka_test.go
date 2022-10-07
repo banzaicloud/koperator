@@ -65,15 +65,13 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 					BrokersState: map[string]v1beta1.BrokerState{
 						"0": {
 							GracefulActionState: v1beta1.GracefulActionState{
-								CruiseControlTaskId: "cc-task-id-1",
-								CruiseControlState:  v1beta1.GracefulDownscaleRunning,
+								CruiseControlState: v1beta1.GracefulDownscaleRunning,
 							},
 						},
 						"1": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded,
 								VolumeStates: map[string]v1beta1.VolumeState{
 									"/path1": {
-										CruiseControlTaskId:      "1",
 										CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRunning,
 									}}},
 						},
@@ -152,8 +150,7 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 					BrokersState: map[string]v1beta1.BrokerState{
 						"0": {
 							GracefulActionState: v1beta1.GracefulActionState{
-								CruiseControlTaskId: "cc-task-id-1",
-								CruiseControlState:  v1beta1.GracefulUpscaleRunning,
+								CruiseControlState: v1beta1.GracefulUpscaleRunning,
 							},
 						},
 						"1": {
@@ -230,8 +227,7 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 					BrokersState: map[string]v1beta1.BrokerState{
 						"0": {
 							GracefulActionState: v1beta1.GracefulActionState{
-								CruiseControlTaskId: "cc-task-id-1",
-								CruiseControlState:  v1beta1.GracefulDownscaleRunning,
+								CruiseControlState: v1beta1.GracefulDownscaleRunning,
 							},
 						},
 						"1": {

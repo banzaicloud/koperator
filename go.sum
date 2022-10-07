@@ -94,6 +94,14 @@ github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj
 github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
 github.com/banzaicloud/go-cruise-control v0.0.0-20220607120220-b616ae113366 h1:gT4x/JWv21KYkIwuRWXUBRil4Aqt18BJx5USNdocW7U=
 github.com/banzaicloud/go-cruise-control v0.0.0-20220607120220-b616ae113366/go.mod h1:TdgOy6tNm8tXAIck6lDBRXClGV+/TWoqR/DD1aKvW0U=
+github.com/banzaicloud/go-cruise-control v0.0.0-20220907150419-b1e5f7a34179 h1:Q4hBS7l28U+4CgQh3g6WSjRxDQLFjsD7Dia/8oYzyJM=
+github.com/banzaicloud/go-cruise-control v0.0.0-20220907150419-b1e5f7a34179/go.mod h1:TdgOy6tNm8tXAIck6lDBRXClGV+/TWoqR/DD1aKvW0U=
+github.com/banzaicloud/go-cruise-control v0.0.0-20220907152453-bbd0e3a63b06 h1:PNXhrKgDkqh0FZWh5g9y9L1nLRPC6+BGud3kGgYL84s=
+github.com/banzaicloud/go-cruise-control v0.0.0-20220907152453-bbd0e3a63b06/go.mod h1:TdgOy6tNm8tXAIck6lDBRXClGV+/TWoqR/DD1aKvW0U=
+github.com/banzaicloud/go-cruise-control v0.0.0-20220907181942-3d28c1a29e59 h1:E5OILBGyjIlBSeoZFxlPE7+PkiWq7xbjKyRHVzc1D7U=
+github.com/banzaicloud/go-cruise-control v0.0.0-20220907181942-3d28c1a29e59/go.mod h1:TdgOy6tNm8tXAIck6lDBRXClGV+/TWoqR/DD1aKvW0U=
+github.com/banzaicloud/go-cruise-control v0.2.0 h1:g0zsJMuFrw/nUa7f9Y5IZIvB9pR6jF6usOHMbY8+J6Q=
+github.com/banzaicloud/go-cruise-control v0.2.0/go.mod h1:TdgOy6tNm8tXAIck6lDBRXClGV+/TWoqR/DD1aKvW0U=
 github.com/banzaicloud/istio-client-go v0.0.17 h1:wiplbM7FDiIHopujInAnin3zuovtVcphtKy9En39q5I=
 github.com/banzaicloud/istio-client-go v0.0.17/go.mod h1:rpnEYYGHzisx8nARl2d30Oq38EeCX0/PPaxMaREfE9I=
 github.com/banzaicloud/istio-operator/api/v2 v2.14.0-rc.1 h1:jPoiGPymDtPuZ/XcCTptRvj31++2tfUV60PBFkRyzeg=
@@ -280,6 +288,7 @@ github.com/golang/mock v1.4.1/go.mod h1:UOMv5ysSaYNkG+OFQykRIcU/QvvxJf3p21QfJ2Bt
 github.com/golang/mock v1.4.3/go.mod h1:UOMv5ysSaYNkG+OFQykRIcU/QvvxJf3p21QfJ2Bt3cw=
 github.com/golang/mock v1.4.4/go.mod h1:l3mdAwkq5BuhzHwde/uurv3sEJeZMXNpwsxVWU71h+4=
 github.com/golang/mock v1.5.0/go.mod h1:CWnOUgYIOo4TcNZ0wHX3YZCqsaM1I1Jvs6v3mP3KVu8=
+github.com/golang/mock v1.6.0 h1:ErTB+efbowRARo13NNdxyJji2egdxLGQhRaY+DUumQc=
 github.com/golang/mock v1.6.0/go.mod h1:p6yTPP+5HYm5mzsMV8JkE6ZKdX+/wYM6Hr+LicevLPs=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/protobuf v1.3.1/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
