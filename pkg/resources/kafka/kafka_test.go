@@ -65,14 +65,16 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 					BrokersState: map[string]v1beta1.BrokerState{
 						"0": {
 							GracefulActionState: v1beta1.GracefulActionState{
-								CruiseControlState: v1beta1.GracefulDownscaleRunning,
+								CruiseControlState:              v1beta1.GracefulDownscaleRunning,
+								CruiseControlOperationReference: &corev1.LocalObjectReference{Name: "test-ccopref"},
 							},
 						},
 						"1": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleSucceeded,
 								VolumeStates: map[string]v1beta1.VolumeState{
 									"/path1": {
-										CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRunning,
+										CruiseControlVolumeState:        v1beta1.GracefulDiskRebalanceRunning,
+										CruiseControlOperationReference: &corev1.LocalObjectReference{Name: "test-ccopref"},
 									}}},
 						},
 						"2": {
@@ -86,7 +88,9 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
 						},
 						"4": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRunning},
+							GracefulActionState: v1beta1.GracefulActionState{
+								CruiseControlState: v1beta1.GracefulDownscaleRunning,
+							},
 						},
 					},
 				},
@@ -150,7 +154,8 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 					BrokersState: map[string]v1beta1.BrokerState{
 						"0": {
 							GracefulActionState: v1beta1.GracefulActionState{
-								CruiseControlState: v1beta1.GracefulUpscaleRunning,
+								CruiseControlState:              v1beta1.GracefulUpscaleRunning,
+								CruiseControlOperationReference: &corev1.LocalObjectReference{Name: "test-ccopref"},
 							},
 						},
 						"1": {
@@ -163,7 +168,9 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRequired},
 						},
 						"4": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRunning},
+							GracefulActionState: v1beta1.GracefulActionState{
+								CruiseControlState: v1beta1.GracefulUpscaleRunning,
+							},
 						},
 					},
 				},
@@ -219,6 +226,9 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 							Id: 2,
 						},
 						{
+							Id: 3,
+						},
+						{
 							Id: 4,
 						},
 					},
@@ -227,11 +237,15 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 					BrokersState: map[string]v1beta1.BrokerState{
 						"0": {
 							GracefulActionState: v1beta1.GracefulActionState{
-								CruiseControlState: v1beta1.GracefulDownscaleRunning,
+								CruiseControlState:              v1beta1.GracefulDownscaleRunning,
+								CruiseControlOperationReference: &corev1.LocalObjectReference{Name: "test-ccopref"},
 							},
 						},
 						"1": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRunning},
+							GracefulActionState: v1beta1.GracefulActionState{
+								CruiseControlState:              v1beta1.GracefulDownscaleRunning,
+								CruiseControlOperationReference: &corev1.LocalObjectReference{Name: "test-ccopref"},
+							},
 						},
 						"2": {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
@@ -240,12 +254,15 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRequired},
 						},
 						"4": {
-							GracefulActionState: v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulDownscaleRunning},
+							GracefulActionState: v1beta1.GracefulActionState{
+								CruiseControlState:              v1beta1.GracefulDownscaleRunning,
+								CruiseControlOperationReference: &corev1.LocalObjectReference{Name: "test-ccopref"},
+							},
 						},
 					},
 				},
 			},
-			expectedIDs: []int32{0, 2},
+			expectedIDs: []int32{0, 1, 2, 3, 4},
 		},
 		{
 			testName: "no pending or running CC rebalance tasks",
@@ -287,7 +304,7 @@ func TestGetBrokersWithPendingOrRunningCCTask(t *testing.T) {
 		},
 	}
 
-	t.Parallel()
+	//t.Parallel()
 
 	for _, test := range testCases {
 		test := test

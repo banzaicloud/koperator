@@ -1062,7 +1062,7 @@ func GetBrokersWithPendingOrRunningCCTask(kafkaCluster *v1beta1.KafkaCluster) []
 				// Check if the volumes are rebalancing
 				for _, volumeState := range state.GracefulActionState.VolumeStates {
 					if volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceRequired ||
-						(volumeState.CruiseControlOperationReference != nil && volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceRunning) {
+						(volumeState.CruiseControlOperationReference != nil && volumeState.CruiseControlVolumeState.IsRunningState()) {
 						brokerIDs = append(brokerIDs, kafkaCluster.Spec.Brokers[i].Id)
 					}
 				}
