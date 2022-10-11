@@ -19744,7 +19744,6 @@ spec:
                       tlsSecretName:
                         type: string
                     required:
-                    - jksPasswordName
                     - tlsSecretName
                     type: object
                 required:
