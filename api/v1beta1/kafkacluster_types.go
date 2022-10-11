@@ -463,7 +463,7 @@ func (c IngressServiceSettings) GetServiceType() corev1.ServiceType {
 // SSLSecrets defines the Kafka SSL secrets
 type SSLSecrets struct {
 	TLSSecretName   string                  `json:"tlsSecretName"`
-	JKSPasswordName string                  `json:"jksPasswordName"`
+	JKSPasswordName string                  `json:"jksPasswordName,omitempty"`
 	Create          bool                    `json:"create,omitempty"`
 	IssuerRef       *cmmeta.ObjectReference `json:"issuerRef,omitempty"`
 	// +kubebuilder:validation:Enum={"cert-manager"}
