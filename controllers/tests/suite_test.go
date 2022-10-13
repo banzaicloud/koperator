@@ -31,6 +31,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -57,6 +58,7 @@ import (
 	banzaiistiov1alpha1 "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
+	"github.com/banzaicloud/koperator/api/v1beta1"
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/controllers"
 	"github.com/banzaicloud/koperator/pkg/jmxextractor"
@@ -72,6 +74,8 @@ var k8sClient client.Client
 var csrClient *csrclient.CertificatesV1Client
 var testEnv *envtest.Environment
 var mockKafkaClients map[types.NamespacedName]kafkaclient.KafkaClient
+var cruiseControlOperationReconciler controllers.CruiseControlOperationReconciler
+var kafkaClusterCCReconciler controllers.CruiseControlTaskReconciler
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -131,7 +135,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(mgr).ToNot(BeNil())
 
-	scale.MockNewCruiseControlScaler()
 	jmxextractor.NewMockJMXExtractor()
 
 	mockKafkaClients = make(map[types.NamespacedName]kafkaclient.KafkaClient)
@@ -169,12 +172,36 @@ var _ = BeforeSuite(func() {
 	err = controllers.SetupKafkaUserWithManager(mgr, true, true).Complete(&kafkaUserReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
-	kafkaClusterCCReconciler := controllers.CruiseControlTaskReconciler{
+	kafkaClusterCCReconciler = controllers.CruiseControlTaskReconciler{
+		Client:       mgr.GetClient(),
+		DirectClient: mgr.GetAPIReader(),
+		Scheme:       mgr.GetScheme(),
+		ScaleFactory: func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
+			return nil, errors.New("there is no scale mock")
+		},
+	}
+
+	err = controllers.SetupCruiseControlWithManager(mgr).Complete(&kafkaClusterCCReconciler)
+	Expect(err).NotTo(HaveOccurred())
+
+	cruiseControlOperationReconciler = controllers.CruiseControlOperationReconciler{
+		Client:       mgr.GetClient(),
+		DirectClient: mgr.GetAPIReader(),
+		Scheme:       mgr.GetScheme(),
+		ScaleFactory: func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
+			return nil, errors.New("there is no scale mock")
+		},
+	}
+
+	err = controllers.SetupCruiseControlOperationWithManager(mgr).Complete(&cruiseControlOperationReconciler)
+	Expect(err).NotTo(HaveOccurred())
+
+	cruiseControlOperationTTLReconciler := controllers.CruiseControlOperationTTLReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}
 
-	err = controllers.SetupCruiseControlWithManager(mgr).Complete(&kafkaClusterCCReconciler)
+	err = controllers.SetupCruiseControlOperationTTLWithManager(mgr).Complete(&cruiseControlOperationTTLReconciler)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:builder
@@ -190,16 +217,21 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).ToNot(BeNil())
 
 	crd := &apiv1.CustomResourceDefinition{}
+	ctx := context.Background()
 
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkaclusters.kafka.banzaicloud.io"}, crd)
+	err = k8sClient.Get(ctx, types.NamespacedName{Name: "kafkaclusters.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaCluster"))
 
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
+	err = k8sClient.Get(ctx, types.NamespacedName{Name: "cruisecontroloperations.kafka.banzaicloud.io"}, crd)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(crd.Spec.Names.Kind).To(Equal("CruiseControlOperation"))
+
+	err = k8sClient.Get(ctx, types.NamespacedName{Name: "kafkatopics.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaTopic"))
 
-	err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "kafkausers.kafka.banzaicloud.io"}, crd)
+	err = k8sClient.Get(ctx, types.NamespacedName{Name: "kafkausers.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))
 }, 240)

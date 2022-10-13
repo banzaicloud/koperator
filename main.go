@@ -52,6 +52,7 @@ import (
 	"github.com/banzaicloud/koperator/controllers"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
+	"github.com/banzaicloud/koperator/pkg/scale"
 	"github.com/banzaicloud/koperator/pkg/util"
 	"github.com/banzaicloud/koperator/pkg/webhooks"
 	// +kubebuilder:scaffold:imports
@@ -182,12 +183,36 @@ func main() {
 	}
 
 	kafkaClusterCCReconciler := &controllers.CruiseControlTaskReconciler{
+		Client:       mgr.GetClient(),
+		DirectClient: mgr.GetAPIReader(),
+		Scheme:       mgr.GetScheme(),
+		ScaleFactory: scale.ScaleFactoryFn(),
+	}
+
+	if err = controllers.SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CruiseControlTask")
+		os.Exit(1)
+	}
+
+	cruiseControlOperationReconciler := controllers.CruiseControlOperationReconciler{
+		Client:       mgr.GetClient(),
+		DirectClient: mgr.GetAPIReader(),
+		Scheme:       mgr.GetScheme(),
+		ScaleFactory: scale.ScaleFactoryFn(),
+	}
+
+	if err = controllers.SetupCruiseControlOperationWithManager(mgr).Complete(&cruiseControlOperationReconciler); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CruiseControlOperation")
+		os.Exit(1)
+	}
+
+	cruiseControlOperationTTLReconciler := controllers.CruiseControlOperationTTLReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}
 
-	if err = controllers.SetupCruiseControlWithManager(mgr).Complete(kafkaClusterCCReconciler); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CruiseControl")
+	if err = controllers.SetupCruiseControlOperationTTLWithManager(mgr).Complete(&cruiseControlOperationTTLReconciler); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CruiseControlOperationTTL")
 		os.Exit(1)
 	}
 

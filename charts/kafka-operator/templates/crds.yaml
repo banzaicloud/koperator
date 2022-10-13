@@ -6,6 +6,168 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
+  name: cruisecontroloperations.kafka.banzaicloud.io
+spec:
+  group: kafka.banzaicloud.io
+  names:
+    kind: CruiseControlOperation
+    listKind: CruiseControlOperationList
+    plural: cruisecontroloperations
+    singular: cruisecontroloperation
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: CruiseControlOperation is the Schema for the cruiseControlOperation
+          API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CruiseControlOperationSpec defines the desired state of CruiseControlOperation.
+            properties:
+              errorPolicy:
+                default: retry
+                description: ErrorPolicy defines how failed Cruise Control operation
+                  should be handled. When it is "retry", the Koperator re-executes
+                  the failed task in every 30 sec (by default). When it is "ignore",
+                  the Koperator handles the failed task as completed.
+                enum:
+                - ignore
+                - retry
+                type: string
+              ttlSecondsAfterFinished:
+                description: 'When TTLSecondsAfterFinished is specified, the created
+                  and finished (completed successfully or completedWithError and errorPolicy:
+                  ignore) cruiseControlOperation custom resource will be deleted after
+                  the given time elapsed. When it is 0 then the resource is going
+                  to be deleted instantly after the operation is finished. When it
+                  is not specified the resource is not going to be removed. Value
+                  can be only zero and positive integers'
+                minimum: 0
+                type: integer
+            type: object
+          status:
+            description: CruiseControlOperationStatus defines the observed state of
+              CruiseControlOperation.
+            properties:
+              currentTask:
+                description: CruiseControlTask defines the observed state of the Cruise
+                  Control user task.
+                properties:
+                  errorMessage:
+                    type: string
+                  finished:
+                    format: date-time
+                    type: string
+                  httpRequest:
+                    description: HTTPRequest is a Cruise Control user task HTTP request.
+                    type: string
+                  httpResponseCode:
+                    type: integer
+                  id:
+                    type: string
+                  operation:
+                    description: Operation defines the Cruise Control operation kind.
+                    type: string
+                  parameters:
+                    additionalProperties:
+                      type: string
+                    description: Parameters defines the configuration of the operation.
+                    type: object
+                  started:
+                    format: date-time
+                    type: string
+                  state:
+                    description: State is the current state of the Cruise Control
+                      user task.
+                    type: string
+                  summary:
+                    additionalProperties:
+                      type: string
+                    description: Summary of the Cruise Control user task execution
+                      proposal.
+                    type: object
+                required:
+                - operation
+                type: object
+              errorPolicy:
+                description: ErrorPolicyType defines methods of handling Cruise Control
+                  user task errors.
+                type: string
+              failedTasks:
+                items:
+                  description: CruiseControlTask defines the observed state of the
+                    Cruise Control user task.
+                  properties:
+                    errorMessage:
+                      type: string
+                    finished:
+                      format: date-time
+                      type: string
+                    httpRequest:
+                      description: HTTPRequest is a Cruise Control user task HTTP
+                        request.
+                      type: string
+                    httpResponseCode:
+                      type: integer
+                    id:
+                      type: string
+                    operation:
+                      description: Operation defines the Cruise Control operation
+                        kind.
+                      type: string
+                    parameters:
+                      additionalProperties:
+                        type: string
+                      description: Parameters defines the configuration of the operation.
+                      type: object
+                    started:
+                      format: date-time
+                      type: string
+                    state:
+                      description: State is the current state of the Cruise Control
+                        user task.
+                      type: string
+                    summary:
+                      additionalProperties:
+                        type: string
+                      description: Summary of the Cruise Control user task execution
+                        proposal.
+                      type: object
+                  required:
+                  - operation
+                  type: object
+                type: array
+              retryCount:
+                type: integer
+            required:
+            - errorPolicy
+            - retryCount
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
   name: kafkaclusters.kafka.banzaicloud.io
 spec:
   group: kafka.banzaicloud.io
@@ -12304,6 +12466,22 @@ spec:
                     type: object
                   cruiseControlEndpoint:
                     type: string
+                  cruiseControlOperationSpec:
+                    description: CruiseControlOperationSpec specifies the configuration
+                      of the CruiseControlOperation handling
+                    properties:
+                      ttlSecondsAfterFinished:
+                        description: 'When TTLSecondsAfterFinished is specified, the
+                          created and finished (completed successfully or completedWithError
+                          and errorPolicy: ignore) cruiseControlOperation custom resource
+                          will be deleted after the given time elapsed. When it is
+                          0 then the resource is going to be deleted instantly after
+                          the operation is finished. When it is not specified the
+                          resource is not going to be removed. Value can be only zero
+                          and positive integers.'
+                        minimum: 0
+                        type: integer
+                    type: object
                   cruiseControlTaskSpec:
                     description: CruiseControlTaskSpec specifies the configuration
                       of the CC Tasks
@@ -19566,7 +19744,6 @@ spec:
                       tlsSecretName:
                         type: string
                     required:
-                    - jksPasswordName
                     - tlsSecretName
                     type: object
                 required:
@@ -19667,51 +19844,48 @@ spec:
                       description: GracefulActionState holds info about cc action
                         status
                       properties:
-                        TaskStarted:
-                          description: TaskStarted hold the time when the execution
-                            started
-                          type: string
+                        cruiseControlOperationReference:
+                          description: CruiseControlOperationReference refers to the
+                            created CruiseControlOperation to execute a CC task
+                          properties:
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                          type: object
+                          x-kubernetes-map-type: atomic
                         cruiseControlState:
                           description: CruiseControlState holds the information about
-                            CC state
-                          type: string
-                        cruiseControlTaskId:
-                          description: CruiseControlTaskId holds info about the task
-                            id ran by CC
-                          type: string
-                        errorMessage:
-                          description: ErrorMessage holds the information what happened
-                            with CC
+                            graceful action state
                           type: string
                         volumeStates:
                           additionalProperties:
                             properties:
-                              TaskStarted:
-                                description: TaskStarted hold the time when the execution
-                                  started
-                                type: string
-                              cruiseControlTaskId:
-                                description: CruiseControlTaskId holds info about
-                                  the task id ran by CC
-                                type: string
+                              cruiseControlOperationReference:
+                                description: CruiseControlOperationReference refers
+                                  to the created CruiseControlOperation to execute
+                                  a CC task
+                                properties:
+                                  name:
+                                    description: 'Name of the referent. More info:
+                                      https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind,
+                                      uid?'
+                                    type: string
+                                type: object
+                                x-kubernetes-map-type: atomic
                               cruiseControlVolumeState:
                                 description: CruiseControlVolumeState holds the information
-                                  about the CC disk rebalance state
-                                type: string
-                              errorMessage:
-                                description: ErrorMessage holds the information what
-                                  happened with CC disk rebalance
+                                  about CC disk rebalance state
                                 type: string
                             required:
                             - cruiseControlVolumeState
-                            - errorMessage
                             type: object
                           description: VolumeStates holds the information about the
-                            CC disk rebalance states and tasks
+                            CC disk rebalance states and CruiseControlOperation reference
                           type: object
                       required:
                       - cruiseControlState
-                      - errorMessage
                       type: object
                     image:
                       description: Image specifies the current docker image of the

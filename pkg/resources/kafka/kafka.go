@@ -499,7 +499,7 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded &&
 				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleRequired {
 				if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
-					log.Info("cc task is still running for broker", v1beta1.BrokerIdLabelKey, broker.Labels[v1beta1.BrokerIdLabelKey], "taskId", brokerState.GracefulActionState.CruiseControlTaskId)
+					log.Info("cc task is still running for broker", v1beta1.BrokerIdLabelKey, broker.Labels[v1beta1.BrokerIdLabelKey], "CruiseControlOperationReference", brokerState.GracefulActionState.CruiseControlOperationReference)
 				}
 				continue
 			}
@@ -760,10 +760,10 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 		if val, hasBrokerState := r.KafkaCluster.Status.BrokersState[desiredPod.Labels[v1beta1.BrokerIdLabelKey]]; hasBrokerState {
 			ccState := val.GracefulActionState.CruiseControlState
 			if ccState != v1beta1.GracefulUpscaleSucceeded && !ccState.IsDownscale() {
-				gracefulActionState := v1beta1.GracefulActionState{ErrorMessage: "CruiseControl not yet ready", CruiseControlState: v1beta1.GracefulUpscaleSucceeded}
+				gracefulActionState := v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded}
 
 				if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
-					gracefulActionState = v1beta1.GracefulActionState{ErrorMessage: "", CruiseControlState: v1beta1.GracefulUpscaleRequired}
+					gracefulActionState = v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRequired}
 				}
 				statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels[v1beta1.BrokerIdLabelKey]}, r.KafkaCluster, gracefulActionState, log)
 				if statusErr != nil {
@@ -1056,13 +1056,13 @@ func GetBrokersWithPendingOrRunningCCTask(kafkaCluster *v1beta1.KafkaCluster) []
 	for i := range kafkaCluster.Spec.Brokers {
 		if state, ok := kafkaCluster.Status.BrokersState[strconv.Itoa(int(kafkaCluster.Spec.Brokers[i].Id))]; ok {
 			if state.GracefulActionState.CruiseControlState.IsRequiredState() ||
-				(state.GracefulActionState.CruiseControlTaskId != "" && state.GracefulActionState.CruiseControlState.IsRunningState()) {
+				(state.GracefulActionState.CruiseControlOperationReference != nil && state.GracefulActionState.CruiseControlState.IsRunningState()) {
 				brokerIDs = append(brokerIDs, kafkaCluster.Spec.Brokers[i].Id)
 			} else {
 				// Check if the volumes are rebalancing
 				for _, volumeState := range state.GracefulActionState.VolumeStates {
 					if volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceRequired ||
-						(volumeState.CruiseControlTaskId != "" && volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceRunning) {
+						(volumeState.CruiseControlOperationReference != nil && volumeState.CruiseControlVolumeState.IsRunningState()) {
 						brokerIDs = append(brokerIDs, kafkaCluster.Spec.Brokers[i].Id)
 					}
 				}

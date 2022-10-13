@@ -14,27 +14,41 @@
 
 package scale
 
-import "github.com/banzaicloud/koperator/api/v1beta1"
+import (
+	"github.com/banzaicloud/go-cruise-control/pkg/api"
+	"github.com/banzaicloud/go-cruise-control/pkg/types"
+
+	"github.com/banzaicloud/koperator/api/v1beta1"
+)
 
 type CruiseControlScaler interface {
 	IsReady() bool
-	Status() CruiseControlStatus
-	GetUserTasks(taskIDs ...string) ([]*Result, error)
+	Status() (CruiseControlStatus, error)
+	UserTasks(taskIDs ...string) ([]*Result, error)
 	IsUp() bool
 	AddBrokers(brokerIDs ...string) (*Result, error)
+	AddBrokersWithParams(params map[string]string) (*Result, error)
+	RemoveBrokersWithParams(params map[string]string) (*Result, error)
+	RebalanceWithParams(params map[string]string) (*Result, error)
+	StopExecution() (*Result, error)
 	RemoveBrokers(brokerIDs ...string) (*Result, error)
 	RebalanceDisks(brokerIDs ...string) (*Result, error)
 	BrokersWithState(states ...KafkaBrokerState) ([]string, error)
+	KafkaClusterState() (*types.KafkaClusterState, error)
 	PartitionReplicasByBroker() (map[string]int32, error)
 	BrokerWithLeastPartitionReplicas() (string, error)
 	LogDirsByBroker() (map[string]map[LogDirState][]string, error)
+	KafkaClusterLoad() (*api.KafkaClusterLoadResponse, error)
 }
 
 type Result struct {
-	TaskID    string
-	StartedAt string
-	State     v1beta1.CruiseControlUserTaskState
-	Err       string
+	TaskID             string
+	StartedAt          string
+	ResponseStatusCode int
+	RequestURL         string
+	Result             *types.OptimizationResult
+	State              v1beta1.CruiseControlUserTaskState
+	Err                error
 }
 
 type LogDirState int8

@@ -104,11 +104,7 @@ run: generate fmt vet manifests
 # Install CRDs into a cluster by manually creating or replacing the CRD depending on whether is currently existing
 # Apply is not applicable as the last-applied-configuration annotation would exceed the size limit enforced by the api server
 install: manifests
-ifeq ($(shell kubectl get -f config/base/crds >/dev/null 2>&1; echo $$?), 1)
-	kubectl create -f config/base/crds
-else
-	kubectl replace -f config/base/crds
-endif
+	kubectl create -f config/base/crds || kubectl replace -f config/base/crds
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: install-kustomize install
@@ -123,6 +119,7 @@ manifests: bin/controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./controllers/..." output:rbac:artifacts:config=./config/base/rbac
 	## Regenerate CRDs for the helm chart
 	echo "{{- if .Values.crd.enabled }}" > $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_cruisecontroloperations.yaml >> $(HELM_CRD_PATH)
 	cat config/base/crds/kafka.banzaicloud.io_kafkaclusters.yaml >> $(HELM_CRD_PATH)
 	cat config/base/crds/kafka.banzaicloud.io_kafkatopics.yaml >> $(HELM_CRD_PATH)
 	cat config/base/crds/kafka.banzaicloud.io_kafkausers.yaml >> $(HELM_CRD_PATH)
