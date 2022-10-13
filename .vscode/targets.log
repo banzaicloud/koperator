@@ -1,0 +1,547 @@
+make all --print-data-base --no-builtin-variables --no-builtin-rules --question
+# GNU Make 3.81
+# Copyright (C) 2006  Free Software Foundation, Inc.
+# This is free software; see the source for copying conditions.
+# There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
+
+# This program built for i386-apple-darwin11.3.0
+
+# Make data base, printed on Thu Oct 13 14:18:21 2022
+
+# Variables
+
+# automatic
+<D = $(patsubst %/,%,$(dir $<))
+# automatic
+?F = $(notdir $?)
+# makefile (from `Makefile', line 2)
+.SHELLFLAGS := -eu -o pipefail -c
+# environment
+PROVIDE_FULLSTACK_ACTION = true
+# automatic
+?D = $(patsubst %/,%,$(dir $?))
+# makefile (from `Makefile', line 16)
+GOLANGCI_VERSION = 1.49.0
+# automatic
+@D = $(patsubst %/,%,$(dir $@))
+# automatic
+@F = $(notdir $@)
+# makefile
+CURDIR := /Users/davkovac/Git/koperator
+# makefile (from `Makefile', line 1)
+SHELL = /bin/bash
+# environment
+VSCODE_NLS_CONFIG = {"locale":"en-gb","availableLanguages":{},"_languagePackSupport":true}
+# environment
+_ = /usr/bin/make
+# makefile (from `Makefile', line 1)
+MAKEFILE_LIST :=  Makefile
+# environment
+VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
+# environment
+__CFBundleIdentifier = com.microsoft.VSCode
+# makefile (from `Makefile', line 12)
+RELEASE_MSG = "operator release"
+# environment
+VSCODE_CWD = /
+# makefile (from `Makefile', line 18)
+GOPROXY = https://proxy.golang.org
+# makefile (from `Makefile', line 36)
+PATH := /Users/davkovac/Git/koperator/bin:/usr/local/opt/python/libexec/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/go/bin:/Users/davkovac/Git/supertubes-cli/build/:/Users/davkovac/Git/banzai-cli/build/:/usr/local/opt/fzf/bin
+# environment
+GOLANG_EXECUTABLE = go
+# makefile (from `Makefile', line 25)
+KUSTOMIZE_BASE = config/overlays/specific-manager-version
+# environment
+THREE_SCALE_USER_TOKEN = 207c527cfc2a6b8dcf4fa43ad7a976da
+# makefile (from `Makefile', line 11)
+RELEASE_TYPE = p
+# environment
+GOPATH = /Users/davkovac/go
+# environment
+ELECTRON_RUN_AS_NODE = 1
+# default
+.FEATURES := target-specific order-only second-expansion else-if archives jobserver check-symlink
+# makefile (from `Makefile', line 5)
+TAG = $(shell git describe --tags --abbrev=0 --match 'v[0-9].*[0-9].*[0-9]' 2>/dev/null )
+# makefile (from `Makefile', line 21)
+CONTROLLER_GEN = $(PWD)/bin/controller-gen
+# environment
+UUID = cb4c3f87-cfd9-440e-bc34-f034285b244a
+# environment
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.AM6hZOvSPE/Listeners
+# automatic
+%F = $(notdir $%)
+# makefile (from `Makefile', line 31)
+GOBIN = $(shell go env GOPATH)/bin
+# makefile (from `Makefile', line 20)
+CONTROLLER_GEN_VERSION = v0.9.2
+# makefile (from `Makefile', line 14)
+REL_TAG = $(shell ./scripts/increment_version.sh -${RELEASE_TYPE} ${TAG})
+# environment
+PWD = /Users/davkovac/Git/koperator
+# environment
+ORIGINAL_XDG_CURRENT_DESKTOP = undefined
+# environment
+GOMODCACHE = /Users/davkovac/go/pkg/mod
+# environment
+HOME = /Users/davkovac
+# makefile (from `Makefile', line 17)
+LICENSEI_VERSION = 0.6.1
+# default
+MAKEFILEPATH = $(shell /usr/bin/xcode-select -print-path 2>/dev/null || echo /Developer)/Makefiles
+# environment
+VSCODE_CODE_CACHE_PATH = /Users/davkovac/Library/Application Support/Code/CachedData/e4503b30fc78200f846c62cf8091b76ff5547662
+# environment
+LOGNAME = davkovac
+# environment
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
+# environment
+TELEMETRY_ID = 33062f72-d10f-46db-adda-ce55527bb64e
+# environment
+VSCODE_HANDLES_UNCAUGHT_ERRORS = true
+# automatic
+^D = $(patsubst %/,%,$(dir $^))
+# environment
+XPC_FLAGS = 0x0
+# makefile (from `Makefile', line 9)
+CRD_OPTIONS = "crd"
+# default
+MAKE = $(MAKE_COMMAND)
+# default
+MAKECMDGOALS := all
+# environment
+SHLVL = 1
+# default
+MAKE_VERSION := 3.81
+# environment
+USER = davkovac
+# makefile
+.DEFAULT_GOAL := all
+# automatic
+%D = $(patsubst %/,%,$(dir $%))
+# default
+MAKE_COMMAND := /Library/Developer/CommandLineTools/usr/bin/make
+# environment
+UTM_SOURCE = vscode
+# default
+.VARIABLES := 
+# environment
+TMPDIR = /var/folders/8z/21v9fhbs2_g56xt6kl59xrsr0000gn/T/
+# automatic
+*F = $(notdir $*)
+# makefile (from `Makefile', line 6)
+IMG = ghcr.io/banzaicloud/kafka-operator:$(TAG)
+# environment
+VSCODE_IPC_HOOK = /Users/davkovac/Library/Application Support/Code/1.70.2-main.sock
+# environment
+MallocNanoZone = 0
+# makefile
+MAKEFLAGS = Rrqp
+# environment
+MFLAGS = -Rrqp
+# automatic
+*D = $(patsubst %/,%,$(dir $*))
+# environment
+XPC_SERVICE_NAME = application.com.microsoft.VSCode.75983248.75983256
+# automatic
++D = $(patsubst %/,%,$(dir $+))
+# environment
+RECOMMENDER_API_URL = https://gw.api.openshift.io//api/v2
+# automatic
++F = $(notdir $+)
+# environment
+__CF_USER_TEXT_ENCODING = 0x1F5:0x0:0x0
+# environment
+COMMAND_MODE = unix2003
+# default
+MAKEFILES := 
+# automatic
+<F = $(notdir $<)
+# environment
+GOPRIVATE = github.com/banzaicloud,wwwin-github.cisco.com
+# environment
+LC_ALL = C
+# makefile (from `Makefile', line 27)
+HELM_CRD_PATH = charts/kafka-operator/templates/crds.yaml
+# automatic
+^F = $(notdir $^)
+# default
+SUFFIXES := 
+# default
+.INCLUDE_DIRS = /usr/local/include
+# environment
+MAKELEVEL := 0
+# environment
+LANG = C
+# makefile (from `Makefile', line 23)
+ENVTEST_K8S_VERSION = 1.24.2
+# environment
+VSCODE_PID = 8665
+# variable set hash-table stats:
+# Load=84/1024=8%, Rehash=0, Collisions=3/130=2%
+
+# Pattern-specific Variable Values
+
+# No pattern-specific variable values.
+
+# Directories
+
+# . (device 16777221, inode 5720196): 35 files, no impossibilities.
+
+# 35 files, no impossibilities in 1 directories.
+
+# Implicit Rules
+
+# No implicit rules.
+
+# Files
+
+all: test manager
+#  Command-line target.
+#  Implicit rule search has been done.
+#  File does not exist.
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/4=0%
+
+docker-build:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 145):
+	docker build . -t ${IMG}
+	
+
+.PHONY: check lint lint-fix license-check license-cache
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+bin/controller-gen: bin/controller-gen-v0.9.2
+#  Implicit rule search has not been done.
+#  Last modified 2022-08-26 14:06:00
+#  File has been updated.
+#  Successfully updated.
+#  commands to execute (from `Makefile', line 154):
+	@ln -sf controller-gen-$(CONTROLLER_GEN_VERSION) bin/controller-gen
+	
+
+# Not a target:
+.SUFFIXES:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+manager: generate fmt vet
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 98):
+	go build -o bin/manager main.go
+	
+
+# Not a target:
+Makefile:
+#  Implicit rule search has been done.
+#  Last modified 2022-10-08 19:38:28
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+bin/controller-gen-v0.9.2:
+#  Implicit rule search has not been done.
+#  Last modified 2022-08-26 14:06:00
+#  File has been updated.
+#  Successfully updated.
+#  commands to execute (from `Makefile', line 157):
+	GOBIN=$(PWD)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION)
+	mv bin/controller-gen bin/controller-gen-$(CONTROLLER_GEN_VERSION)
+	
+
+test: generate fmt vet manifests bin/setup-envtest
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/4=0%
+#  commands to execute (from `Makefile', line 84):
+	cd api && go test ./...
+	bin/setup-envtest use -p env ${ENVTEST_K8S_VERSION} > bin/envtest.sh \
+	&& source bin/envtest.sh; \
+	go test ./... \
+	-coverprofile cover.out \
+	-v \
+	-failfast \
+	-test.v \
+	-test.paniconexit0 \
+	-timeout 1h
+	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
+	
+
+install-kustomize:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+ 
+#  commands to execute (from `Makefile', line 78):
+	@ if ! which bin/kustomize &>/dev/null; then\
+	scripts/install_kustomize.sh;\
+	fi
+	
+
+vet:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 135):
+	go vet ./...
+	cd api && go fmt ./...
+	cd properties && go vet ./...
+	
+
+generate: bin/controller-gen
+#  Implicit rule search has not been done.
+#  Implicit/static pattern stem: `'
+#  File does not exist.
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# automatic
+# @ := generate
+# automatic
+# % := 
+# automatic
+# * := 
+# automatic
+# + := bin/controller-gen
+# automatic
+# | := 
+# automatic
+# < := bin/controller-gen
+# automatic
+# ^ := bin/controller-gen
+# automatic
+# ? := bin/controller-gen
+# variable set hash-table stats:
+# Load=8/32=25%, Rehash=0, Collisions=1/12=8%
+#  commands to execute (from `Makefile', line 141):
+	cd api && $(CONTROLLER_GEN) object:headerFile=./../hack/boilerplate.go.txt paths="./..."
+	
+
+manifests: bin/controller-gen
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 118):
+	cd api && $(CONTROLLER_GEN) $(CRD_OPTIONS) webhook paths="./..." output:crd:artifacts:config=../config/base/crds output:webhook:artifacts:config=../config/base/webhook
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./controllers/..." output:rbac:artifacts:config=./config/base/rbac
+	## Regenerate CRDs for the helm chart
+	echo "{{- if .Values.crd.enabled }}" > $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_kafkaclusters.yaml >> $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_kafkatopics.yaml >> $(HELM_CRD_PATH)
+	cat config/base/crds/kafka.banzaicloud.io_kafkausers.yaml >> $(HELM_CRD_PATH)
+	echo "{{- end }}" >> $(HELM_CRD_PATH)
+	
+
+release: check_release
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 175):
+	git tag -a ${REL_TAG} -m ${RELEASE_MSG}
+	git push origin ${REL_TAG}
+	
+
+# Not a target:
+.DEFAULT:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+license-check: bin/licensei
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 69):
+	bin/licensei check
+	./scripts/check-header.sh
+	
+
+run: generate fmt vet manifests
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 102):
+	go run ./main.go
+	
+
+bin/setup-envtest:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 162):
+	@ if ! test -x $(PWD)/bin/setup-envtest; then \
+	set -ex ;\
+	SETUP_ENVTEST_TMP_DIR=$$(mktemp -d) ;\
+	cd $$SETUP_ENVTEST_TMP_DIR ;\
+	go mod init tmp ;\
+	GOBIN=$(PWD)/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest ;\
+	rm -rf $$SETUP_ENVTEST_TMP_DIR ;\
+	fi
+	
+
+update-go-deps:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 179):
+	for dir in api properties .; do \
+	( \
+	echo "Updating $$dir deps"; \
+	cd $$dir; \
+	go mod tidy; \
+	for m in $$(go list -mod=readonly -m -f '{{ if and (not .Replace) (not .Indirect) (not .Main)}}{{.Path}}{{end}}' all); do \
+	go get -d $$m; \
+	done; \
+	go mod tidy \
+	) \
+	done
+	
+
+check_release:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 172):
+	@echo "A new tag (${REL_TAG}) will be pushed to Github, and a new Docker image will be released. Are you sure? [y/N] " && read ans && [ $${ans:-N} == y ]
+	
+
+bin/golangci-lint-1.49.0:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 46):
+	@mkdir -p bin
+	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | bash -s -- -b ./bin v${GOLANGCI_VERSION}
+	@mv bin/golangci-lint $@
+	
+
+license-cache: bin/licensei
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 74):
+	bin/licensei cache
+	
+
+fmt:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 129):
+	go fmt ./...
+	cd api && go fmt ./...
+	cd properties && go fmt ./...
+	
+
+lint: bin/golangci-lint
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 52):
+	@bin/golangci-lint run -v --timeout=5m
+	cd api && golangci-lint run -c ../.golangci.yml --timeout=5m
+	cd properties && golangci-lint run -c ../.golangci.yml --timeout=5m
+	
+
+deploy: install-kustomize install
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 111):
+	# creates the kafka namespace
+	bin/kustomize build config | kubectl apply -f -
+	./scripts/image_patch.sh "${KUSTOMIZE_BASE}/manager_image_patch.yaml" ${IMG}
+	bin/kustomize build $(KUSTOMIZE_BASE) | kubectl apply -f -
+	
+
+check: test lint
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+
+lint-fix: bin/golangci-lint
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 58):
+	@bin/golangci-lint run --fix
+	
+
+docker-push:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 149):
+	docker push ${IMG}
+	
+
+bin/licensei-0.6.1:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 63):
+	@mkdir -p bin
+	curl -sfL https://raw.githubusercontent.com/goph/licensei/master/install.sh | bash -s v${LICENSEI_VERSION}
+	@mv bin/licensei $@
+	
+
+bin/licensei: bin/licensei-0.6.1
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 61):
+	@ln -sf licensei-${LICENSEI_VERSION} bin/licensei
+	
+
+bin/golangci-lint: bin/golangci-lint-1.49.0
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 44):
+	@ln -sf golangci-lint-${GOLANGCI_VERSION} bin/golangci-lint
+	
+
+install: manifests
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 107):
+	kubectl create -f config/base/crds || kubectl replace -f config/base/crds
+	
+
+# files hash-table stats:
+# Load=32/1024=3%, Rehash=0, Collisions=0/84=0%
+# VPATH Search Paths
+
+# No `vpath' search paths.
+
+# No general (`VPATH' variable) search path.
+
+# # of strings in strcache: 1
+# # of strcache buffers: 1
+# strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
+# strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
+
+# Finished Make data base on Thu Oct 13 14:18:21 2022
+
+ 

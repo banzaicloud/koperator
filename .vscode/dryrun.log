@@ -1,0 +1,42 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/davkovac/Git/koperator'
+GOBIN=/Users/davkovac/Git/koperator/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2
+mv bin/controller-gen bin/controller-gen-v0.9.2
+ln -sf controller-gen-v0.9.2 bin/controller-gen
+cd api && /Users/davkovac/Git/koperator/bin/controller-gen object:headerFile=./../hack/boilerplate.go.txt paths="./..."
+go fmt ./...
+cd api && go fmt ./...
+cd properties && go fmt ./...
+go vet ./...
+cd api && go fmt ./...
+cd properties && go vet ./...
+cd api && /Users/davkovac/Git/koperator/bin/controller-gen "crd" webhook paths="./..." output:crd:artifacts:config=../config/base/crds output:webhook:artifacts:config=../config/base/webhook
+/Users/davkovac/Git/koperator/bin/controller-gen "crd" rbac:roleName=manager-role paths="./controllers/..." output:rbac:artifacts:config=./config/base/rbac
+## Regenerate CRDs for the helm chart
+echo "{{- if .Values.crd.enabled }}" > charts/kafka-operator/templates/crds.yaml
+cat config/base/crds/kafka.banzaicloud.io_kafkaclusters.yaml >> charts/kafka-operator/templates/crds.yaml
+cat config/base/crds/kafka.banzaicloud.io_kafkatopics.yaml >> charts/kafka-operator/templates/crds.yaml
+cat config/base/crds/kafka.banzaicloud.io_kafkausers.yaml >> charts/kafka-operator/templates/crds.yaml
+echo "{{- end }}" >> charts/kafka-operator/templates/crds.yaml
+if ! test -x /Users/davkovac/Git/koperator/bin/setup-envtest; then \
+		set -ex ;\
+		SETUP_ENVTEST_TMP_DIR=$(mktemp -d) ;\
+		cd $SETUP_ENVTEST_TMP_DIR ;\
+		go mod init tmp ;\
+		GOBIN=/Users/davkovac/Git/koperator/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest ;\
+		rm -rf $SETUP_ENVTEST_TMP_DIR ;\
+	fi
+cd api && go test ./...
+bin/setup-envtest use -p env 1.24.2 > bin/envtest.sh \
+		&& source bin/envtest.sh; \
+		go test ./... \
+			-coverprofile cover.out \
+			-v \
+			-failfast \
+			-test.v \
+			-test.paniconexit0 \
+			-timeout 1h
+cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
+go build -o bin/manager main.go
+make: Leaving directory `/Users/davkovac/Git/koperator'
+ 
