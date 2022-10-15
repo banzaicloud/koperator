@@ -915,11 +915,11 @@ func (cConfig *CruiseControlConfig) GetResources() *corev1.ResourceRequirements 
 	return &corev1.ResourceRequirements{
 		Limits: corev1.ResourceList{
 			"cpu":    resource.MustParse("200m"),
-			"memory": resource.MustParse("512Mi"),
+			"memory": resource.MustParse("768Mi"),
 		},
 		Requests: corev1.ResourceList{
 			"cpu":    resource.MustParse("200m"),
-			"memory": resource.MustParse("512Mi"),
+			"memory": resource.MustParse("768Mi"),
 		},
 	}
 }
