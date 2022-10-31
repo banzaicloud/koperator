@@ -183,6 +183,18 @@ func (r *KafkaClusterReconciler) Reconcile(ctx context.Context, request ctrl.Req
 		}
 	}
 
+	log.Info("ensuring all Kafka brokers are available")
+	brokers, kafkaClientClose, err := kafkaclient.NewFromCluster(r.Client, instance)
+	if err != nil {
+		return checkBrokerConnectionError(log, err)
+	}
+	defer kafkaClientClose()
+
+	if brokers.NumBrokers() != len(instance.Spec.Brokers) {
+		err = errors.New("not all brokers are available(yet)")
+		return requeueWithError(log, err.Error(), err)
+	}
+
 	if err := k8sutil.UpdateCRStatus(r.Client, instance, v1beta1.KafkaClusterRunning, log); err != nil {
 		return requeueWithError(log, err.Error(), err)
 	}
