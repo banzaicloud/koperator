@@ -24,7 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	policyv1 "k8s.io/api/policy/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -397,7 +397,7 @@ func kafkaWatches(builder *ctrl.Builder) *ctrl.Builder {
 	return builder.
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&policyv1beta1.PodDisruptionBudget{}).
+		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&corev1.Pod{})
 }
