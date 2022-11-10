@@ -105,7 +105,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 	updateActiveTasks(tasksAndStates, ccOperations)
 
 	if err = r.UpdateStatus(ctx, instance, tasksAndStates); err != nil {
-		requeueWithError(log, "failed to update Kafka Cluster status", err)
+		return requeueWithError(log, "failed to update Kafka Cluster status", err)
 	}
 
 	scaler, err := r.ScaleFactory(ctx, instance)
@@ -210,7 +210,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 	}
 
 	if err = r.UpdateStatus(ctx, instance, tasksAndStates); err != nil {
-		requeueWithError(log, "failed to update Kafka Cluster status", err)
+		return requeueWithError(log, "failed to update Kafka Cluster status", err)
 	}
 
 	return reconciled()
