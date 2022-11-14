@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -445,7 +445,7 @@ func getScaleMock5() *scale.MockCruiseControlScaler {
 		TaskID:    "12345",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskActive,
-	}), nil).Times(2)
+	}), nil).Times(1)
 	return scaleMock
 }
 
