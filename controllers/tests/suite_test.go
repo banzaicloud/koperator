@@ -36,16 +36,15 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	ginkoconfig "github.com/onsi/ginkgo/config"
 
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8sscheme "k8s.io/client-go/kubernetes/scheme"
 	csrclient "k8s.io/client-go/kubernetes/typed/certificates/v1"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -79,9 +78,6 @@ var kafkaClusterCCReconciler controllers.CruiseControlTaskReconciler
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
-
-	ginkoconfig.DefaultReporterConfig.SlowSpecThreshold = 120
-
 	RunSpecs(t, "Controller Suite")
 }
 
@@ -102,9 +98,17 @@ var _ = BeforeSuite(func() {
 		AttachControlPlaneOutput: false,
 	}
 
-	cfg, err := testEnv.Start()
-	Expect(err).ToNot(HaveOccurred())
-	Expect(cfg).ToNot(BeNil())
+	var cfg *rest.Config
+	var err error
+	done := make(chan interface{})
+	go func() {
+		defer GinkgoRecover()
+		cfg, err = testEnv.Start()
+		close(done)
+	}()
+	Eventually(done).WithTimeout(time.Minute).Should(BeClosed())
+	Expect(err).NotTo(HaveOccurred())
+	Expect(cfg).NotTo(BeNil())
 
 	scheme := runtime.NewScheme()
 
@@ -205,8 +209,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:builder
-
 	go func() {
+		defer GinkgoRecover()
 		ctrl.Log.Info("starting manager")
 		err = mgr.Start(ctrl.SetupSignalHandler())
 		Expect(err).ToNot(HaveOccurred())
@@ -234,7 +238,7 @@ var _ = BeforeSuite(func() {
 	err = k8sClient.Get(ctx, types.NamespacedName{Name: "kafkausers.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crd.Spec.Names.Kind).To(Equal("KafkaUser"))
-}, 240)
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
