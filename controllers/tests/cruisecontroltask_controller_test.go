@@ -142,7 +142,9 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 						var operation v1alpha1.CruiseControlOperation
 						if len(operationList.Items) == 0 {
 							operation = generateCruiseControlOperation(brokerState.GracefulActionState.CruiseControlOperationReference.Name, kafkaCluster.Namespace, kafkaCluster.Name)
-							k8sClient.Create(context.Background(), &operation)
+							err := k8sClient.Create(context.Background(), &operation)
+							Expect(err).NotTo(HaveOccurred())
+
 						} else {
 							operation = operationList.Items[0]
 						}
