@@ -16,6 +16,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -67,8 +68,12 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 	})
-
-	When("there is an add_broker operation for execution", func() {
+	JustAfterEach(func() {
+		cruiseControlOperationReconciler.ScaleFactory = func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
+			return nil, errors.New("there is no scale mock")
+		}
+	})
+	When("there is an add_broker operation for execution", Serial, func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock1())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
@@ -96,7 +101,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(Equal(v1beta1.CruiseControlTaskCompleted))
 		})
 	})
-	When("add_broker operation is finished with completedWithError and 30s has not elapsed", func() {
+	When("add_broker operation is finished with completedWithError and 30s has not elapsed", Serial, func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock2())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
@@ -123,7 +128,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("add_broker operation is finished with completedWithError and 30s has elapsed", func() {
+	When("add_broker operation is finished with completedWithError and 30s has elapsed", Serial, func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock5())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
@@ -152,7 +157,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("there is an errored remove_broker and an add_broker operation", func() {
+	When("there is an errored remove_broker and an add_broker operation", Serial, func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock3())
 			// First operation will get completedWithError
@@ -199,7 +204,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("there is a new remove_broker and an errored remove_broker operation with pause annotation", func() {
+	When("there is a new remove_broker and an errored remove_broker operation with pause annotation", Serial, func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
@@ -248,7 +253,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("there is a new remove_broker and an errored remove_broker operation with ignore ErrorPolicy", func() {
+	When("there is a new remove_broker and an errored remove_broker operation with ignore ErrorPolicy", Serial, func() {
 		JustBeforeEach(func() {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4())
 			// Creating first operation

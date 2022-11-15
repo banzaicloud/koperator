@@ -42,8 +42,7 @@ import (
 )
 
 const (
-	DefaultRequeueAfterTimeInSec          = 20
-	CruiseControlTaskTestKafkaClusterName = "cruisecontroltask-test"
+	DefaultRequeueAfterTimeInSec = 20
 )
 
 // CruiseControlTaskReconciler reconciles a kafka cluster object

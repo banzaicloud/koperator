@@ -31,7 +31,6 @@ import (
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
-	"github.com/banzaicloud/koperator/controllers"
 	"github.com/banzaicloud/koperator/pkg/util"
 )
 
@@ -58,7 +57,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				Name: namespace,
 			},
 		}
-		kafkaClusterCRName = controllers.CruiseControlTaskTestKafkaClusterName
+		kafkaClusterCRName = fmt.Sprintf("kafkacluster-ttl-%v", count)
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 	})
 
@@ -73,7 +72,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 
 	})
 
-	When("there is a finished (completed) operation with TTL", func() {
+	When("there is a finished (completed) operation with TTL", Serial, func() {
 		JustBeforeEach(func() {
 			operation := generateCruiseControlOperation(opName, namespace, kafkaCluster.GetName())
 			operation.Spec.TTLSecondsAfterFinished = util.IntPointer(5)
@@ -104,7 +103,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, maxReconcileDuration, reconcilePollingPeriod).Should(BeTrue())
 		})
 	})
-	When("there is a finished (completedWithError and errorPolicy: ignore) operation with TTL", func() {
+	When("there is a finished (completedWithError and errorPolicy: ignore) operation with TTL", Serial, func() {
 		JustBeforeEach(func() {
 			operation := generateCruiseControlOperation(opName, namespace, kafkaCluster.GetName())
 			operation.Spec.TTLSecondsAfterFinished = util.IntPointer(5)
@@ -136,7 +135,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, maxReconcileDuration, reconcilePollingPeriod).Should(BeTrue())
 		})
 	})
-	When("there is a finished operation without TTL", func() {
+	When("there is a finished operation without TTL", Serial, func() {
 		JustBeforeEach(func() {
 			operation := generateCruiseControlOperation(opName, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
