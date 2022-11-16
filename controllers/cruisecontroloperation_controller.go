@@ -93,7 +93,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		}
 	}
 
-	if currentCCOperation == nil || r.isCCTaskTest(currentCCOperation) {
+	if currentCCOperation == nil {
 		return reconciled()
 	}
 
@@ -237,22 +237,6 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	}
 
 	return reconciled()
-}
-
-// isCCTaskTest returns true when the CruiseControlOperation is created by the cruisecontroltask_controller_test
-// In this case the CR should be skipped because the scale mock interference
-func (r *CruiseControlOperationReconciler) isCCTaskTest(operation *banzaiv1alpha1.CruiseControlOperation) bool {
-	if _, ok := r.scaler.(*scale.MockCruiseControlScaler); !ok {
-		return false
-	}
-
-	for _, ownerRef := range operation.GetOwnerReferences() {
-		if ownerRef.Name == CruiseControlTaskTestKafkaClusterName {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (r *CruiseControlOperationReconciler) addFinalizer(ctx context.Context, currentCCOperation *banzaiv1alpha1.CruiseControlOperation) error {

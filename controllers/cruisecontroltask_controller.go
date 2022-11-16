@@ -42,8 +42,7 @@ import (
 )
 
 const (
-	DefaultRequeueAfterTimeInSec          = 20
-	CruiseControlTaskTestKafkaClusterName = "cruisecontroltask-test"
+	DefaultRequeueAfterTimeInSec = 20
 )
 
 // CruiseControlTaskReconciler reconciles a kafka cluster object
@@ -103,6 +102,10 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 
 	// Update task states with information from Cruise Control
 	updateActiveTasks(tasksAndStates, ccOperations)
+
+	if err = r.UpdateStatus(ctx, instance, tasksAndStates); err != nil {
+		return requeueWithError(log, "failed to update Kafka Cluster status", err)
+	}
 
 	scaler, err := r.ScaleFactory(ctx, instance)
 	if err != nil {
@@ -206,7 +209,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 	}
 
 	if err = r.UpdateStatus(ctx, instance, tasksAndStates); err != nil {
-		log.Error(err, "failed to update Kafka Cluster status")
+		return requeueWithError(log, "failed to update Kafka Cluster status", err)
 	}
 
 	return reconciled()
@@ -308,7 +311,7 @@ func (r *CruiseControlTaskReconciler) UpdateStatus(ctx context.Context, instance
 
 	currentStatus := instance.Status.DeepCopy()
 	taskAndStates.SyncState(instance)
-	if reflect.DeepEqual(currentStatus, instance.Status) {
+	if reflect.DeepEqual(*currentStatus, instance.Status) {
 		log.Info("there are no updates to apply to Kafka Cluster Status")
 		return nil
 	}

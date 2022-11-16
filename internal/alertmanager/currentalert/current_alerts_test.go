@@ -27,7 +27,7 @@ import (
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
