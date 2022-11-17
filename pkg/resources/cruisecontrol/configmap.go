@@ -164,7 +164,7 @@ func GenerateCapacityConfig(kafkaCluster *v1beta1.KafkaCluster, log logr.Logger,
 			brokerId, ok, err := unstructured.NestedString(brokerCapacityMap, v1beta1.BrokerIdLabelKey)
 			if err != nil {
 				return "", errors.WrapIfWithDetails(err,
-					"could retrieve broker Id from broker capacity configuration",
+					"could not retrieve broker Id from broker capacity configuration",
 					"capacity configuration", brokerCapacityMap)
 			}
 			if !ok {
