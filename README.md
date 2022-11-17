@@ -73,7 +73,7 @@ When you are opening a PR to Koperator the first time we will require you to sig
 
 ## License
 
-Copyright (c) 2019 [Banzai Cloud, Inc.](https://banzaicloud.com)
+Copyright (c) 2019 [Cisco Systems, Inc.](https://www.cisco.com) and/or its affiliates
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
