@@ -294,5 +294,4 @@ func TestBrokersJBODSelector(t *testing.T) {
 		assert.ElementsMatch(t, testCase.expectedBrokersJBOD, brokersJBOD, "testName", testCase.testName)
 		assert.ElementsMatch(t, testCase.expectedBrokersNotJBOD, brokersNotJBOD, "testName", testCase.testName)
 	}
-
 }

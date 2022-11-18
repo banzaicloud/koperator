@@ -45,6 +45,11 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		operation          *v1alpha1.CruiseControlOperation
 	)
 
+	const (
+		mountPath = "/kafka-logs-test"
+		trueStr   = "true"
+	)
+
 	BeforeEach(func() {
 		atomic.AddUint64(&count, 1)
 
@@ -79,7 +84,6 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 	When("new storage is added", Serial, func() {
-		mountPath := "/kafka-logs-test"
 
 		JustBeforeEach(func() {
 			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask2([]string{mountPath}))
@@ -134,14 +138,12 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				return volumeState.CruiseControlOperationReference.Name == operation.Name &&
 					operation.CurrentTaskOperation() == v1alpha1.OperationRebalance &&
 					volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceScheduled &&
-					operation.CurrentTask().Parameters["rebalance_disk"] == "true"
+					operation.CurrentTask().Parameters["rebalance_disk"] == trueStr
 
 			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
 	When("new storage is added but there is a not JBOD capacityConfig for that", Serial, func() {
-		mountPath := "/kafka-logs-test"
-
 		JustBeforeEach(func() {
 			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask2([]string{mountPath}))
 			err := k8sClient.Get(context.Background(), types.NamespacedName{
@@ -216,14 +218,12 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				return volumeState.CruiseControlOperationReference.Name == operation.Name &&
 					operation.CurrentTaskOperation() == v1alpha1.OperationRebalance &&
 					volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceScheduled &&
-					operation.CurrentTask().Parameters["rebalance_disk"] != "true"
+					operation.CurrentTask().Parameters["rebalance_disk"] != trueStr
 
 			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
 	When("new storage is added and one broker is JBOD and another is not JBOD", Serial, func() {
-		mountPath := "/kafka-logs-test"
-
 		JustBeforeEach(func() {
 			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask2([]string{mountPath}))
 			err := k8sClient.Get(context.Background(), types.NamespacedName{
@@ -304,7 +304,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				return volumeState.CruiseControlOperationReference.Name == operation.Name &&
 					operation.CurrentTaskOperation() == v1alpha1.OperationRebalance &&
 					volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceScheduled &&
-					operation.CurrentTask().Parameters["rebalance_disk"] != "true"
+					operation.CurrentTask().Parameters["rebalance_disk"] != trueStr
 			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})

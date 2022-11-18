@@ -323,7 +323,6 @@ func (r *CruiseControlTaskReconciler) createCCOperation(
 		if isJBOD {
 			operation.Status.CurrentTask.Parameters["rebalance_disk"] = "true"
 		}
-
 	} else {
 		operation.Status.CurrentTask.Parameters["brokerid"] = strings.Join(bokerIDs, ",")
 	}
