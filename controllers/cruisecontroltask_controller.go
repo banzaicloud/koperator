@@ -171,27 +171,17 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 		removeTask.SetStateScheduled()
 
 	case tasksAndStates.NumActiveTasksByOp(banzaiv1alpha1.OperationRebalance) > 0:
-		logDirsByBroker, err := scaler.LogDirsByBroker()
-		if err != nil {
-			log.Error(err, "failed to get list of volumes per broker from Cruise Control")
-			return requeueAfter(DefaultRequeueAfterTimeInSec)
-		}
 		brokerIDs := make([]string, 0)
-		unavailableBrokerIDs := make([]string, 0)
 		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationRebalance) {
 			brokerIDs = append(brokerIDs, task.BrokerID)
-			found := false
-			if onlineDirs, ok := logDirsByBroker[task.BrokerID][scale.LogDirStateOnline]; ok {
-				for _, dir := range onlineDirs {
-					if strings.HasPrefix(strings.TrimSpace(dir), strings.TrimSpace(task.Volume)) {
-						found = true
-					}
-				}
-				if !found {
-					unavailableBrokerIDs = append(unavailableBrokerIDs, task.BrokerID)
-				}
-			}
 		}
+
+		unavailableBrokerIDs, err := checkBrokerLogDirsAvailability(scaler, tasksAndStates)
+		if err != nil {
+			log.Error(err, "failed to get unavailable brokers at rebalance")
+			return requeueAfter(DefaultRequeueAfterTimeInSec)
+		}
+
 		if len(unavailableBrokerIDs) > 0 {
 			log.Info("requeue as there are offline broker log dirs for rebalance", "brokerIDs", unavailableBrokerIDs)
 			// This requeue is not necessary because the cruisecontrloperation controller retries the errored task
@@ -242,6 +232,29 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 	}
 
 	return reconciled()
+}
+
+func checkBrokerLogDirsAvailability(scaler scale.CruiseControlScaler, tasksAndStates *CruiseControlTasksAndStates) (unavailableBrokerIDs []string, err error) {
+	logDirsByBroker, err := scaler.LogDirsByBroker()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get list of volumes per broker from Cruise Control")
+	}
+
+	unavailableBrokerIDs = make([]string, 0)
+	for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationRebalance) {
+		found := false
+		if onlineDirs, ok := logDirsByBroker[task.BrokerID][scale.LogDirStateOnline]; ok {
+			for _, dir := range onlineDirs {
+				if strings.HasPrefix(strings.TrimSpace(dir), strings.TrimSpace(task.Volume)) {
+					found = true
+				}
+			}
+			if !found {
+				unavailableBrokerIDs = append(unavailableBrokerIDs, task.BrokerID)
+			}
+		}
+	}
+	return unavailableBrokerIDs, nil
 }
 
 func getUnavailableBrokers(scaler scale.CruiseControlScaler, brokerIDs []string) ([]string, error) {
