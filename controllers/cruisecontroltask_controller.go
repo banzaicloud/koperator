@@ -200,15 +200,21 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
-		// we can use rebalance between the disks of a broker when JBOD capacity config is used
+		allBrokerIDs := make([]string, 0, len(instance.Spec.Brokers))
+		for i := range instance.Spec.Brokers {
+			allBrokerIDs = append(allBrokerIDs, fmt.Sprint(instance.Spec.Brokers[i].Id))
+		}
+		// we can do rebalance between the broker's disks when JBOD capacity config is used
 		// this selector distinguish the JBOD brokers from the not JBOD brokers
-		_, brokersNotJBOD, err := brokersJBODSelector(brokerIDs, instance.Spec.CruiseControlConfig.CapacityConfig)
+		// we need to search in all brokers to find out is there any not JBOD broker because
+		// CC cannot do disk rebalance when one of the brokers has not JBOD capacity configuration
+		_, brokersNotJBOD, err := brokersJBODSelector(allBrokerIDs, instance.Spec.CruiseControlConfig.CapacityConfig)
 		if err != nil {
 			return requeueWithError(log, "failed to determine which broker using JBOD or not JBOD capacity configuration at rebalance operation", err)
 		}
 
 		var cruiseControlOpRef corev1.LocalObjectReference
-		// when there is one not JBOD broker in the cluster CC cannot do disk rebalance :(
+		// when there is one not JBOD broker in the kafka cluster CC cannot do the disk rebalance :(
 		if len(brokersNotJBOD) > 0 {
 			cruiseControlOpRef, err = r.rebalanceDisks(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs, false)
 			if err != nil {
@@ -363,7 +369,7 @@ func brokersJBODSelector(brokerIDs []string, capacityConfigJSON string) (brokers
 		}
 
 		_, ok, err = unstructured.NestedMap(brokerCapacityMap, BrokerCapacity, BrokerCapacityDisk)
-		// when the format is not a map[string]interface then it has been considered not JBOD
+		// when the format is not a map[string]interface then it has been considered as not JBOD
 		if err != nil {
 			// brokerID -1 means all brokers get this capacity config as default
 			if brokerId == "-1" {
@@ -382,7 +388,7 @@ func brokersJBODSelector(brokerIDs []string, capacityConfigJSON string) (brokers
 			brokerIsJBOD[brokerId] = true
 		}
 	}
-
+	//
 	for brokerID, isJBOD := range brokerIsJBOD {
 		if isJBOD {
 			brokersJBOD = append(brokersJBOD, brokerID)

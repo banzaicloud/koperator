@@ -92,8 +92,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return err
 				}
 				brokerState := kafkaCluster.Status.BrokersState["0"]
-				volumeState := brokerState.GracefulActionState.VolumeStates
-				volumeState = make(map[string]v1beta1.VolumeState)
+				volumeState := make(map[string]v1beta1.VolumeState)
 				volumeState[mountPath] = v1beta1.VolumeState{
 					CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
 				}
@@ -106,7 +105,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 		})
-		It("should create one JBOD rebalance CruiseControlOperation", func() {
+		It("should creates one JBOD rebalance CruiseControlOperation", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      kafkaCluster.Name,
@@ -140,7 +139,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("new storage config is added but there is not JBOD capacityConfig for that", Serial, func() {
+	When("new storage is added but there is a not JBOD capacityConfig for that", Serial, func() {
 		mountPath := "/kafka-logs-test"
 
 		JustBeforeEach(func() {
@@ -157,7 +156,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			  {
 				"brokerId": "0",
 				"capacity": {
-				  "DISK": 50000,
+				  "DISK": "50000",
 				  "CPU": "100",
 				  "NW_IN": "50000",
 				  "NW_OUT": "50000"
@@ -175,8 +174,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return err
 				}
 				brokerState := kafkaCluster.Status.BrokersState["0"]
-				volumeState := brokerState.GracefulActionState.VolumeStates
-				volumeState = make(map[string]v1beta1.VolumeState)
+				volumeState := make(map[string]v1beta1.VolumeState)
 				volumeState[mountPath] = v1beta1.VolumeState{
 					CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
 				}
@@ -189,7 +187,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 		})
-		It("should create one not JBOD rebalance CruiseControlOperation", func() {
+		It("should creates one not JBOD rebalance CruiseControlOperation", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      kafkaCluster.Name,
@@ -223,7 +221,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
-	When("new storage config is added and one broker is JBOD and another is not JBOD", Serial, func() {
+	When("new storage is added and one broker is JBOD and another is not JBOD", Serial, func() {
 		mountPath := "/kafka-logs-test"
 
 		JustBeforeEach(func() {
@@ -240,7 +238,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			  {
 				"brokerId": "1",
 				"capacity": {
-				  "DISK": 50000,
+				  "DISK": "50000",
 				  "CPU": "100",
 				  "NW_IN": "50000",
 				  "NW_OUT": "50000"
@@ -258,8 +256,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return err
 				}
 				brokerState0 := kafkaCluster.Status.BrokersState["0"]
-				volumeState := brokerState0.GracefulActionState.VolumeStates
-				volumeState = make(map[string]v1beta1.VolumeState)
+				volumeState := make(map[string]v1beta1.VolumeState)
 				volumeState[mountPath] = v1beta1.VolumeState{
 					CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired,
 				}
@@ -276,7 +273,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 		})
-		It("should create one JBOD and one not JBOD rebalance CruiseControlOperations", func() {
+		It("should creates not JBOD rebalance CruiseControlOperation", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      kafkaCluster.Name,
@@ -284,20 +281,11 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				}, kafkaCluster)
 				Expect(err).NotTo(HaveOccurred())
 
-				brokerState0, ok := kafkaCluster.Status.BrokersState["0"]
+				brokerState, ok := kafkaCluster.Status.BrokersState["0"]
 				if !ok {
 					return false
 				}
-				volumeState0, ok := brokerState0.GracefulActionState.VolumeStates[mountPath]
-				if !ok {
-					return false
-				}
-
-				brokerState1, ok := kafkaCluster.Status.BrokersState["1"]
-				if !ok {
-					return false
-				}
-				volumeState1, ok := brokerState1.GracefulActionState.VolumeStates[mountPath]
+				volumeState, ok := brokerState.GracefulActionState.VolumeStates[mountPath]
 				if !ok {
 					return false
 				}
@@ -307,28 +295,16 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				err = k8sClient.List(context.Background(), operationList, client.ListOption(client.InNamespace(kafkaCluster.Namespace)))
 				Expect(err).NotTo(HaveOccurred())
 
-				if len(operationList.Items) != 2 {
+				if len(operationList.Items) != 1 {
 					return false
 				}
 
-				var operationJBOD, operationNotJBOD *v1alpha1.CruiseControlOperation
-				if operationList.Items[0].CurrentTask().Parameters["rebalance_disk"] == "true" {
-					operationJBOD = &operationList.Items[0]
-					operationNotJBOD = &operationList.Items[1]
-				} else {
-					operationJBOD = &operationList.Items[1]
-					operationNotJBOD = &operationList.Items[0]
-				}
+				operation = &operationList.Items[0]
 
-				return volumeState0.CruiseControlOperationReference.Name == operationJBOD.Name &&
-					operationJBOD.CurrentTaskOperation() == v1alpha1.OperationRebalance &&
-					volumeState0.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceScheduled &&
-					operationJBOD.CurrentTask().Parameters["rebalance_disk"] == "true" &&
-					volumeState1.CruiseControlOperationReference.Name == operationNotJBOD.Name &&
-					operationNotJBOD.CurrentTaskOperation() == v1alpha1.OperationRebalance &&
-					volumeState1.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceScheduled &&
-					operationNotJBOD.CurrentTask().Parameters["rebalance_disk"] != "true"
-
+				return volumeState.CruiseControlOperationReference.Name == operation.Name &&
+					operation.CurrentTaskOperation() == v1alpha1.OperationRebalance &&
+					volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceScheduled &&
+					operation.CurrentTask().Parameters["rebalance_disk"] != "true"
 			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
@@ -494,6 +470,7 @@ func getScaleMockCCTask2(onlineLogDirs []string) *scale.MockCruiseControlScaler 
 
 	logDirs[scale.LogDirStateOnline] = onlineLogDirs
 	logDirsBrokerRet["0"] = logDirs
+	logDirsBrokerRet["1"] = logDirs
 	scaleMock.EXPECT().LogDirsByBroker().Return(logDirsBrokerRet, nil).AnyTimes()
 	return scaleMock
 }

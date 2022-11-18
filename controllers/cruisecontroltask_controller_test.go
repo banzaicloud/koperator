@@ -29,7 +29,7 @@ func TestBrokersJBODSelector(t *testing.T) {
 		expectedBrokersNotJBOD []string
 	}{
 		{
-			testName:               "All JBOD because no custom config",
+			testName:               "All JBOD because there is no custom config",
 			brokerIDs:              []string{"0", "1", "2"},
 			capacityConfig:         "",
 			expectedBrokersJBOD:    []string{"0", "1", "2"},
@@ -65,7 +65,7 @@ func TestBrokersJBODSelector(t *testing.T) {
 			expectedBrokersNotJBOD: []string(nil),
 		},
 		{
-			testName:  "All JBOD and one brokerID",
+			testName:  "All JBOD and brokerID selection",
 			brokerIDs: []string{"1"},
 			capacityConfig: `
 			{
@@ -94,7 +94,7 @@ func TestBrokersJBODSelector(t *testing.T) {
 			expectedBrokersNotJBOD: []string(nil),
 		},
 		{
-			testName:  "All JBOD and more brokerID",
+			testName:  "All JBOD and more brokerID selection",
 			brokerIDs: []string{"1", "3"},
 			capacityConfig: `
 			{
@@ -123,7 +123,7 @@ func TestBrokersJBODSelector(t *testing.T) {
 			expectedBrokersNotJBOD: []string(nil),
 		},
 		{
-			testName:  "All JBOD and more brokerID v2",
+			testName:  "All JBOD and more brokerID selection v2",
 			brokerIDs: []string{"3", "4"},
 			capacityConfig: `
 			{
