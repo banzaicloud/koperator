@@ -138,7 +138,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				return volumeState.CruiseControlOperationReference.Name == operation.Name &&
 					operation.CurrentTaskOperation() == v1alpha1.OperationRebalance &&
 					volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceScheduled &&
-					operation.CurrentTask().Parameters["rebalance_disk"] == trueStr
+					operation.CurrentTask() != nil && operation.CurrentTask().Parameters["rebalance_disk"] == trueStr
 
 			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
@@ -218,7 +218,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				return volumeState.CruiseControlOperationReference.Name == operation.Name &&
 					operation.CurrentTaskOperation() == v1alpha1.OperationRebalance &&
 					volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceScheduled &&
-					operation.CurrentTask().Parameters["rebalance_disk"] != trueStr
+					operation.CurrentTask() != nil && operation.CurrentTask().Parameters["rebalance_disk"] != trueStr
 
 			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
@@ -304,7 +304,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				return volumeState.CruiseControlOperationReference.Name == operation.Name &&
 					operation.CurrentTaskOperation() == v1alpha1.OperationRebalance &&
 					volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceScheduled &&
-					operation.CurrentTask().Parameters["rebalance_disk"] != trueStr
+					operation.CurrentTask() != nil && operation.CurrentTask().Parameters["rebalance_disk"] != trueStr
 			}, 15*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
