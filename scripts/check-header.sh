@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 read -r -d '' EXPECTED <<EOF
-// Copyright © DATE Banzai Cloud
+// Copyright © DATE Cisco Systems, Inc. and/or its affiliates
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
