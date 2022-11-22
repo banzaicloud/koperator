@@ -109,7 +109,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 		})
-		It("should creates one JBOD rebalance CruiseControlOperation", func() {
+		It("should create one JBOD rebalance CruiseControlOperation", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      kafkaCluster.Name,
@@ -189,7 +189,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 		})
-		It("should creates one not JBOD rebalance CruiseControlOperation", func() {
+		It("should create one not JBOD rebalance CruiseControlOperation", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      kafkaCluster.Name,
@@ -273,7 +273,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 		})
-		It("should creates not JBOD rebalance CruiseControlOperation", func() {
+		It("should create one not JBOD rebalance CruiseControlOperation", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      kafkaCluster.Name,

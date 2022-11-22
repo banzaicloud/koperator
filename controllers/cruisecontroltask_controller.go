@@ -195,16 +195,16 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			allBrokerIDs = append(allBrokerIDs, fmt.Sprint(instance.Spec.Brokers[i].Id))
 		}
 		// we can do rebalance between the broker's disks when JBOD capacity config is used
-		// this selector distinguish the JBOD brokers from the not JBOD brokers
-		// we need to search in all brokers to find out is there any not JBOD broker because
-		// CC cannot do disk rebalance when one of the brokers has not JBOD capacity configuration
+		// this selector distinguishes the JBOD brokers from the not JBOD brokers
+		// we need to search in all brokers to find out if there are any not JBOD brokers because
+		// CC cannot do disk rebalance when at least one of the brokers has not JBOD capacity configuration
 		_, brokersNotJBOD, err := brokersJBODSelector(allBrokerIDs, instance.Spec.CruiseControlConfig.CapacityConfig)
 		if err != nil {
 			return requeueWithError(log, "failed to determine which broker using JBOD or not JBOD capacity configuration at rebalance operation", err)
 		}
 
 		var cruiseControlOpRef corev1.LocalObjectReference
-		// when there is one not JBOD broker in the kafka cluster CC cannot do the disk rebalance :(
+		// when there is at least one not JBOD broker in the kafka cluster CC cannot do the disk rebalance :(
 		if len(brokersNotJBOD) > 0 {
 			cruiseControlOpRef, err = r.rebalanceDisks(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs, false)
 			if err != nil {
@@ -395,7 +395,7 @@ func brokersJBODSelector(brokerIDs []string, capacityConfigJSON string) (brokers
 			continue
 		}
 
-		// this cover that case when there was a -1 default capacity config but there is an override for a specific broker
+		// this covers the case when there was a -1 default capacity config but there is an override for a specific broker
 		if _, has := brokerIsJBOD[brokerId]; has && ok {
 			brokerIsJBOD[brokerId] = true
 		}
