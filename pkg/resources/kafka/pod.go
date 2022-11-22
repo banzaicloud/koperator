@@ -63,6 +63,10 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 		})
 	}
 
+	for _, additionalPort := range r.KafkaCluster.Spec.AdditionalPorts {
+		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, additionalPort)
+	}
+
 	for _, envVar := range r.KafkaCluster.Spec.Envs {
 		if envVar.Name == "JMX_PORT" {
 			port, err := strconv.ParseInt(envVar.Value, 10, 32)

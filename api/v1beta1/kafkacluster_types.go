@@ -60,6 +60,8 @@ const (
 type KafkaClusterSpec struct {
 	HeadlessServiceEnabled bool            `json:"headlessServiceEnabled"`
 	ListenersConfig        ListenersConfig `json:"listenersConfig"`
+	// Custom ports to expose in the container. Example use case: a custom kafka distribution, that includes an integrated metrics api endpoint
+	AdditionalPorts []corev1.ContainerPort `json:"additionalPorts,omitempty"`
 	// ZKAddresses specifies the ZooKeeper connection string
 	// in the form hostname:port where host and port are the host and port of a ZooKeeper server.
 	ZKAddresses []string `json:"zkAddresses"`

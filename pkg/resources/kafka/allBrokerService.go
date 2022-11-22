@@ -46,6 +46,10 @@ func (r *Reconciler) allBrokerService() runtime.Object {
 	usedPorts = append(usedPorts,
 		generateServicePortForEListeners(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners)...)
 
+	// Append additional ports
+	usedPorts = append(usedPorts,
+		generateServicePortForAdditionalPorts(r.KafkaCluster.Spec.AdditionalPorts)...)
+
 	return &corev1.Service{
 		ObjectMeta: templates.ObjectMetaWithAnnotations(
 			fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, r.KafkaCluster.GetName()),

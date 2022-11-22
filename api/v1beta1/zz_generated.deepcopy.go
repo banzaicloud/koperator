@@ -796,6 +796,11 @@ func (in *KafkaClusterList) DeepCopyObject() runtime.Object {
 func (in *KafkaClusterSpec) DeepCopyInto(out *KafkaClusterSpec) {
 	*out = *in
 	in.ListenersConfig.DeepCopyInto(&out.ListenersConfig)
+	if in.AdditionalPorts != nil {
+		in, out := &in.AdditionalPorts, &out.AdditionalPorts
+		*out = make([]v1.ContainerPort, len(*in))
+		copy(*out, *in)
+	}
 	if in.ZKAddresses != nil {
 		in, out := &in.ZKAddresses, &out.ZKAddresses
 		*out = make([]string, len(*in))
