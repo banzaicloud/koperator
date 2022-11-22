@@ -1,4 +1,4 @@
-// Copyright © 2020 Banzai Cloud
+// Copyright © 2020 Cisco Systems, Inc. and/or its affiliates
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -107,7 +107,7 @@ func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster) {
 	waitForClusterRunningState(kafkaCluster, kafkaCluster.Namespace)
 
 	// get created PDB
-	pdb := policyv1beta1.PodDisruptionBudget{}
+	pdb := policyv1.PodDisruptionBudget{}
 	Eventually(func() error {
 		return k8sClient.Get(context.Background(), types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
