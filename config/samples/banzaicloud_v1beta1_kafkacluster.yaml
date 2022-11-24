@@ -8,6 +8,11 @@ spec:
   # Specify if the cluster should use headlessService for Kafka or individual services
   # using service/broker may come in handy in case of service mesh
   headlessServiceEnabled: true
+  # Specify additional broker ports to expose through services
+  additionalPorts:
+    - name: "remote-debug"
+      containerPort: 5005
+      protocol: "TCP"
   # Specify the usable ingress controller, only envoy and istioingress supported can be left blank
   ingressController: "envoy"
   # Specify the zookeeper addresses where the Kafka should store it's metadata
