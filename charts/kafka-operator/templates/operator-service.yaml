@@ -28,7 +28,9 @@ spec:
   ports:
   - name: https
     port: 443
+    targetPort: {{ (.Values.webhook).serverPort | default 443 }}
   {{- if and .Values.prometheusMetrics.enabled (not .Values.prometheusMetrics.authProxy.enabled) }}
   - name: metrics
     port: 8080
+    targetPort: {{ (.Values.metricEndpoint).port | default 8080 }}
   {{- end }}
