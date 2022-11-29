@@ -191,6 +191,13 @@ type BrokerConfig struct {
 	// type service to expose the broker outside the Kubernetes cluster. Also, when "hostnameOverride" field of the external listener is set
 	// it will override the broker's external listener advertise address according to the description of the "hostnameOverride" field.
 	NodePortExternalIP map[string]string `json:"nodePortExternalIP,omitempty"`
+	// When "hostNameOverride" and brokerConfig.nodePortExternalIP are empty and NodePort access method is selected
+	// the NodePortNodeAdddressType defines the external listener Address that shall be used in the advertised.listeners property.
+	// https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
+	// If NodePortNodeAddressType is not provided the first non empty address is used in the following order:
+	// 1. ExternalIP
+	// 2. InternalIP
+	NodePortNodeAddressType corev1.NodeAddressType `json:"nodePortNodeAddressType,omitempty"`
 	// Any definition received through this field will override the default behaviour of OneBrokerPerNode flag
 	// and the operator supposes that the user is aware of how scheduling is done by kubernetes
 	// Affinity could be set through brokerConfigGroups definitions and can be set for individual brokers as well
