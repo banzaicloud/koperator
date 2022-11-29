@@ -1161,7 +1161,14 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 						portNumber = eListener.ContainerPort
 					}
 					if brokerHost == "" {
-						brokerHost = bConfig.NodePortExternalIP[eListener.Name]
+						if bConfig.NodePortExternalIP[eListener.Name] == "" {
+							brokerHost, err = r.getK8sAssignedNode(log, broker.Id, string(bConfig.NodePortNodeAddressType))
+							if err != nil {
+								log.Error(err, "Could not get the address of broker's node.")
+							}
+						} else {
+							brokerHost = bConfig.NodePortExternalIP[eListener.Name]
+						}
 					} else {
 						brokerHost = fmt.Sprintf("%s-%d-%s.%s%s", r.KafkaCluster.Name, broker.Id, eListener.Name, r.KafkaCluster.Namespace, brokerHost)
 					}
@@ -1215,6 +1222,48 @@ func (r *Reconciler) getK8sAssignedNodeport(log logr.Logger, eListenerName strin
 			errors.New("nodeport port number is not allocated"), "nodeport number is still 0")
 	}
 	return nodePort, nil
+}
+
+func (r *Reconciler) getK8sAssignedNode(log logr.Logger, brokerId int32, nodeAddressType string) (string, error) {
+	podList := &corev1.PodList{}
+	err := r.Client.List(context.TODO(), podList,
+		client.InNamespace(r.KafkaCluster.Namespace),
+		client.MatchingLabels(apiutil.LabelsForKafka(r.KafkaCluster.Name)),
+	)
+	if err != nil {
+		return "", err
+	}
+	for _, pod := range podList.Items {
+		id, ok := pod.Labels[v1beta1.BrokerIdLabelKey]
+		if !ok {
+			continue
+		}
+		if id == strconv.Itoa(int(brokerId)) {
+			return r.getK8sNodeIp(log, pod.Spec.NodeName, nodeAddressType)
+		}
+	}
+	return "", errors.New("Could not find matching brokerId")
+}
+
+func (r *Reconciler) getK8sNodeIp(log logr.Logger, nodeName string, nodeAddressType string) (string, error) {
+	node := &corev1.Node{}
+	clientNamespacedName := types.NamespacedName{Name: nodeName, Namespace: r.KafkaCluster.Namespace}
+	if err := r.Client.Get(context.TODO(), clientNamespacedName, node); err != nil {
+		return "", err
+	}
+	addressMap := make(map[string]string)
+	for _, address := range node.Status.Addresses {
+		addressMap[string(address.Type)] = address.Address
+	}
+	if val, ok := addressMap[nodeAddressType]; ok && val != "" {
+		return val, nil
+	} else if val, ok := addressMap[string(corev1.NodeExternalIP)]; ok && val != "" {
+		return val, nil
+	} else if val, ok := addressMap[string(corev1.NodeInternalIP)]; ok && val != "" {
+		return val, nil
+	}
+	log.Info("Could not detect IP address of node", "node", nodeName)
+	return "", errors.New("Could not detect IP address of node.")
 }
 
 // determineControllerId returns the ID of the controller broker of the current cluster

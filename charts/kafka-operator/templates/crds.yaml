@@ -3907,6 +3907,14 @@ spec:
                         external listener advertise address according to the description
                         of the "hostnameOverride" field.
                       type: object
+                    nodePortNodeAddressType:
+                      description: 'When "hostNameOverride" and brokerConfig.nodePortExternalIP
+                        are empty and NodePort access method is selected the NodePortNodeAdddressType
+                        defines the external listener Address that shall be used in
+                        the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
+                        If NodePortNodeAddressType is not provided the first non empty
+                        address is used in the following order: 1. ExternalIP 2. InternalIP'
+                      type: string
                     nodeSelector:
                       additionalProperties:
                         type: string
@@ -10034,6 +10042,15 @@ spec:
                             the broker's external listener advertise address according
                             to the description of the "hostnameOverride" field.
                           type: object
+                        nodePortNodeAddressType:
+                          description: 'When "hostNameOverride" and brokerConfig.nodePortExternalIP
+                            are empty and NodePort access method is selected the NodePortNodeAdddressType
+                            defines the external listener Address that shall be used
+                            in the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
+                            If NodePortNodeAddressType is not provided the first non
+                            empty address is used in the following order: 1. ExternalIP
+                            2. InternalIP'
+                          type: string
                         nodeSelector:
                           additionalProperties:
                             type: string
