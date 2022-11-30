@@ -39,6 +39,10 @@ func (r *Reconciler) headlessService() runtime.Object {
 	usedPorts = append(usedPorts,
 		generateServicePortForEListeners(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners)...)
 
+	// Append additional ports
+	usedPorts = append(usedPorts,
+		generateServicePortForAdditionalPorts(r.KafkaCluster.Spec.AdditionalPorts)...)
+
 	// prometheus metrics port for servicemonitor
 	usedPorts = append(usedPorts, corev1.ServicePort{
 		Name:       "metrics",

@@ -1346,3 +1346,16 @@ func generateServicePortForEListeners(listeners []v1beta1.ExternalListenerConfig
 	}
 	return usedPorts
 }
+
+func generateServicePortForAdditionalPorts(containerPorts []corev1.ContainerPort) []corev1.ServicePort {
+	var usedPorts []corev1.ServicePort
+	for _, containerPort := range containerPorts {
+		usedPorts = append(usedPorts, corev1.ServicePort{
+			Name:       containerPort.Name,
+			Protocol:   containerPort.Protocol,
+			Port:       containerPort.ContainerPort,
+			TargetPort: intstr.FromInt(int(containerPort.ContainerPort)),
+		})
+	}
+	return usedPorts
+}

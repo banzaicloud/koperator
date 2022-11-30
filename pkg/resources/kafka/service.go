@@ -35,6 +35,9 @@ func (r *Reconciler) service(id int32, _ *v1beta1.BrokerConfig) runtime.Object {
 	// Append external listener ports
 	usedPorts = append(usedPorts,
 		generateServicePortForEListeners(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners)...)
+	// Append additional ports
+	usedPorts = append(usedPorts,
+		generateServicePortForAdditionalPorts(r.KafkaCluster.Spec.AdditionalPorts)...)
 
 	usedPorts = append(usedPorts, corev1.ServicePort{
 		Name:       "metrics",
