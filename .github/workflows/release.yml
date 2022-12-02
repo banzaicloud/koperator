@@ -1,11 +1,11 @@
-name: CI test
+name: Release
 
 on:
   push:
     tags:
       - 'v?[0-9]+.[0-9]+.[0-9]+'
       - "v?[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
-      - "v?[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+"
+      #- "v?[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+" Disabled for now for dev tags
 jobs:
   build:
     runs-on: ubuntu-latest
