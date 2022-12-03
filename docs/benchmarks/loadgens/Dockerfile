@@ -11,7 +11,7 @@ WORKDIR /build
 
 RUN git clone https://github.com/jamiealquiza/sangrenel.git
 
-WORKDIR sangrenel
+WORKDIR /build/sangrenel
 
 RUN go mod download && go build -o /sangrenel
 
