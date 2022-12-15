@@ -71,6 +71,7 @@ type KafkaTopicReconciler struct {
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics,verbs=get;list;watch;create;update;patch;delete;deletecollection
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkatopics/finalizers,verbs=create;update;patch;delete
 
 // Reconcile reconciles the kafka topic
 func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {

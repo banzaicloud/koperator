@@ -178,6 +178,9 @@ rules:
   resources:
   - cruisecontroloperations/finalizers
   verbs:
+  - create
+  - delete
+  - patch
   - update
 - apiGroups:
   - kafka.banzaicloud.io
@@ -202,6 +205,15 @@ rules:
 - apiGroups:
   - kafka.banzaicloud.io
   resources:
+  - kafkaclusters/finalizers
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
   - kafkaclusters/status
   verbs:
   - get
@@ -223,6 +235,15 @@ rules:
 - apiGroups:
   - kafka.banzaicloud.io
   resources:
+  - kafkatopics/finalizers
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
   - kafkatopics/status
   verbs:
   - get
@@ -241,6 +262,15 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - kafkausers/finalizers
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
 - apiGroups:
   - kafka.banzaicloud.io
   resources:

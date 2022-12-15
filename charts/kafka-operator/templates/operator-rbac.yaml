@@ -116,6 +116,63 @@ rules:
   - update
   - patch
 - apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - kafkaclusters/finalizers
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - kafkausers/finalizers
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - kafkatopics/finalizers
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - cruisecontroloperations
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - cruisecontroloperations/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kafka.banzaicloud.io
+  resources:
+  - cruisecontroloperations/finalizers
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
   - ""
   resources:
   - persistentvolumeclaims
@@ -234,33 +291,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - kafka.banzaicloud.io
-  resources:
-  - cruisecontroloperations
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - kafka.banzaicloud.io
-  resources:
-  - cruisecontroloperations/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - kafka.banzaicloud.io
-  resources:
-  - cruisecontroloperations/status
-  verbs:
-  - get
-  - patch
-  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
