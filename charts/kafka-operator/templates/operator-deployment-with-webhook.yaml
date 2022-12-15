@@ -213,7 +213,7 @@ spec:
           {{- end }}
           ports:
           {{- if .Values.webhook.enabled }}
-            - containerPort: {{ .Values.webhook.serverPort | default 443 }}
+            - containerPort: {{ .Values.webhook.serverPort | default 9443 }}
               name: webhook-server
               protocol: TCP
           {{- end }}
