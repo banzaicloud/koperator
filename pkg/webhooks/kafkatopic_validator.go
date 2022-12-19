@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/go-logr/logr"
 
@@ -160,13 +161,12 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 		topicCR := &banzaicloudv1alpha1.KafkaTopic{}
 		if err := s.Client.Get(ctx, types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, topicCR); err != nil {
 			if apiErrors.IsNotFound(err) {
-				// User is trying to overwrite an existing topic - bad user
-				logMsg := fmt.Sprintf("topic already exists on kafka cluster '%s'", topic.Spec.ClusterRef.Name)
-				return field.Invalid(field.NewPath("spec").Child("name"), topic.Spec.Name, logMsg), nil
+				// We permit to create KafkaTopic CR when topic with same name already present on the Kafka cluster
+				log.Log.Info(fmt.Sprintf("topic already exists on kafka cluster '%s'", topic.Spec.ClusterRef.Name))
+			} else {
+				return nil, errors.WrapIff(err, cantConnectAPIServerMsg)
 			}
-			return nil, errors.WrapIff(err, cantConnectAPIServerMsg)
 		}
-
 		// make sure the user isn't trying to decrease partition count
 		if existing.NumPartitions > topic.Spec.Partitions {
 			logMsg := fmt.Sprintf("kafka does not support decreasing partition count on an existing topic (from %v to %v)", existing.NumPartitions, topic.Spec.Partitions)

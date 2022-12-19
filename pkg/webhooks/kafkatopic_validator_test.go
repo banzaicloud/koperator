@@ -75,7 +75,7 @@ func newMockClients(cluster *v1beta1.KafkaCluster) (runtimeClient.WithWatch, kaf
 func TestValidateTopic(t *testing.T) {
 	topic := newMockTopic()
 	cluster := newMockCluster()
-	client, kafkaClient, returnMockedKafkaClient := newMockClients(cluster)
+	client, _, returnMockedKafkaClient := newMockClients(cluster)
 
 	kafkaTopicValidator := KafkaTopicValidator{
 		Client:              client,
@@ -167,22 +167,6 @@ func TestValidateTopic(t *testing.T) {
 	}
 
 	topic.Spec.ReplicationFactor = 1
-
-	// Test overwrite attempt
-	err = kafkaClient.CreateTopic(&kafkaclient.CreateTopicOptions{Name: "test-topic", ReplicationFactor: 1, Partitions: 2})
-	if err != nil {
-		t.Error("creation of topic should have been successful")
-	}
-	topic.Name = "test-topic"
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic, logr.Discard())
-	if err != nil {
-		t.Errorf("err should be nil, got: %s", err)
-	}
-	if len(fieldErrorList) != 1 {
-		t.Error("Expected not allowed due to existing topic with same name, got allowed")
-	} else if !strings.Contains(fieldErrorList.ToAggregate().Error(), "topic already exists on kafka cluster") {
-		t.Error("Expected not allowed for reason: already exists")
-	}
 
 	// Add topic and test existing topic reason
 	if err := kafkaTopicValidator.Client.Create(context.TODO(), topic); err != nil {
