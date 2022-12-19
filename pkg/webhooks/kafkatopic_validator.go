@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/go-logr/logr"
 
@@ -56,22 +55,22 @@ func (s KafkaTopicValidator) ValidateDelete(ctx context.Context, obj runtime.Obj
 
 func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) error {
 	kafkaTopic := obj.(*banzaicloudv1alpha1.KafkaTopic)
-	log := s.Log.WithValues("name", kafkaTopic.GetName(), "namespace", kafkaTopic.GetNamespace())
-	fieldErrs, err := s.validateKafkaTopic(ctx, kafkaTopic, log)
+	s.Log = s.Log.WithValues("name", kafkaTopic.GetName(), "namespace", kafkaTopic.GetNamespace())
+	fieldErrs, err := s.validateKafkaTopic(ctx, kafkaTopic)
 	if err != nil {
-		log.Error(err, errorDuringValidationMsg)
+		s.Log.Error(err, errorDuringValidationMsg)
 		return apiErrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
 	}
 	if len(fieldErrs) == 0 {
 		return nil
 	}
-	log.Info("rejected", "invalid field(s)", fieldErrs.ToAggregate().Error())
+	s.Log.Info("rejected", "invalid field(s)", fieldErrs.ToAggregate().Error())
 	return apiErrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 }
 
-func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *banzaicloudv1alpha1.KafkaTopic, log logr.Logger) (field.ErrorList, error) {
+func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *banzaicloudv1alpha1.KafkaTopic) (field.ErrorList, error) {
 	var allErrs field.ErrorList
 	var logMsg string
 	// First check if the kafkatopic is valid
@@ -99,7 +98,7 @@ func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *ban
 			return nil, errors.Wrap(err, cantConnectAPIServerMsg)
 		}
 		if k8sutil.IsMarkedForDeletion(topic.ObjectMeta) {
-			log.Info("Deleted as a result of a cluster deletion")
+			s.Log.Info("Deleted as a result of a cluster deletion")
 			return nil, nil
 		}
 		logMsg = fmt.Sprintf("kafkaCluster '%s' in the namespace '%s' does not exist", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace)
@@ -109,7 +108,7 @@ func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *ban
 	}
 	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
 		// Let this through, it's a delete topic request from a parent cluster being deleted
-		log.Info("Cluster is going down for deletion, assuming a delete topic request")
+		s.Log.Info("Cluster is going down for deletion, assuming a delete topic request")
 		return nil, nil
 	}
 
@@ -162,7 +161,7 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 		if err := s.Client.Get(ctx, types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, topicCR); err != nil {
 			if apiErrors.IsNotFound(err) {
 				// We permit to create KafkaTopic CR when topic with same name already present on the Kafka cluster
-				log.Log.Info(fmt.Sprintf("topic already exists on kafka cluster '%s'", topic.Spec.ClusterRef.Name))
+				s.Log.Info(fmt.Sprintf("topic already exists on kafka cluster '%s'", topic.Spec.ClusterRef.Name))
 			} else {
 				return nil, errors.WrapIff(err, cantConnectAPIServerMsg)
 			}
