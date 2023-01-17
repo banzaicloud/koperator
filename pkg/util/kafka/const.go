@@ -28,26 +28,27 @@ const (
 
 // used for Kafka configurations
 const (
+	KafkaConfigSuperUsers = "super.users"
+
+	KafkaConfigBoostrapServers    = "bootstrap.servers"
+	KafkaConfigZooKeeperConnect   = "zookeeper.connect"
+	KafkaConfigBrokerId           = "broker.id"
+	KafkaConfigBrokerLogDirectory = "log.dirs"
+
+	KafkaConfigListeners               = "listeners"
 	KafkaConfigSecurityProtocolMap     = "listener.security.protocol.map"
 	KafkaConfigInterBrokerListenerName = "inter.broker.listener.name"
-	KafkaConfigListeners               = "listeners"
 	KafkaConfigAdvertisedListeners     = "advertised.listeners"
-	KafkaConfigBoostrapServers         = "bootstrap.servers"
-	KafkaConfigZooKeeperConnect        = "zookeeper.connect"
-	KafkaConfigBrokerId                = "broker.id"
 	KafkaConfigControlPlaneListener    = "control.plane.listener.name"
-	KafkaConfigBrokerLogDirectory      = "log.dirs"
-	KafkaConfigSuperUsers              = "super.users"
 
 	KafkaConfigSecurityProtocol      = "security.protocol"
+	KafkaConfigSSLClientAuth         = "ssl.client.auth"
 	KafkaConfigSSLTrustStoreType     = "ssl.truststore.type"
 	KafkaConfigSSLTrustStoreLocation = "ssl.truststore.location"
 	KafkaConfigSSLTrustStorePassword = "ssl.truststore.password"
 	KafkaConfigSSLKeystoreType       = "ssl.keystore.type"
 	KafkaConfigSSLKeyStoreLocation   = "ssl.keystore.location"
 	KafkaConfigSSLKeyStorePassword   = "ssl.keystore.password"
-
-	KafkaConfigSSLClientAuth = "ssl.client.auth"
 )
 
 // used for Cruise Control configurations
