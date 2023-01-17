@@ -56,14 +56,14 @@ func (r *Reconciler) configMap(clientPass string, capacityConfig string, log log
 	if err != nil {
 		log.Error(err, "getting Kafka bootstrap servers for Cruise Control failed")
 	}
-	if err = ccConfig.Set("bootstrap.servers", bootstrapServers); err != nil {
-		log.Error(err, "setting bootstrap.servers in Cruise Control configuration failed", "config", bootstrapServers)
+	if err = ccConfig.Set(kafkautils.KafkaConfigBoostrapServers, bootstrapServers); err != nil {
+		log.Error(err, fmt.Sprintf("setting '%s' in Cruise Control configuration failed", kafkautils.KafkaConfigBoostrapServers), "config", bootstrapServers)
 	}
 
 	// Add Zookeeper configuration
 	zkConnect := zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())
-	if err = ccConfig.Set("zookeeper.connect", zkConnect); err != nil {
-		log.Error(err, "setting zookeeper.connect in Cruise Control configuration failed", "config", zkConnect)
+	if err = ccConfig.Set(kafkautils.KafkaConfigZooKeeperConnect, zkConnect); err != nil {
+		log.Error(err, fmt.Sprintf("setting '%s' in Cruise Control configuration failed", kafkautils.KafkaConfigZooKeeperConnect), "config", zkConnect)
 	}
 
 	// Add SSL configuration
@@ -97,18 +97,18 @@ func generateSSLConfig(kafkaCluster v1beta1.KafkaClusterSpec, clientPass string,
 		trustStoreLoc := keystoreVolumePath + "/" + v1alpha1.TLSJKSTrustStore
 
 		sslConfig := map[string]string{
-			"security.protocol":       "SSL",
-			"ssl.truststore.type":     "JKS",
-			"ssl.keystore.type":       "JKS",
-			"ssl.truststore.location": trustStoreLoc,
-			"ssl.keystore.location":   keyStoreLoc,
-			"ssl.keystore.password":   clientPass,
-			"ssl.truststore.password": clientPass,
+			kafkautils.KafkaConfigSecurityProtocol:      "SSL",
+			kafkautils.KafkaConfigSSLTrustStoreType:     "JKS",
+			kafkautils.KafkaConfigSSLKeystoreType:       "JKS",
+			kafkautils.KafkaConfigSSLTrustStoreLocation: trustStoreLoc,
+			kafkautils.KafkaConfigSSLKeyStoreLocation:   keyStoreLoc,
+			kafkautils.KafkaConfigSSLKeyStorePassword:   clientPass,
+			kafkautils.KafkaConfigSSLTrustStorePassword: clientPass,
 		}
 
 		for k, v := range sslConfig {
 			if err := config.Set(k, v); err != nil {
-				log.Error(err, fmt.Sprintf("setting %s parameter in cruise control configuration resulted an error", k))
+				log.Error(err, fmt.Sprintf("setting '%s' parameter in Cruise Control configuration resulted an error", k))
 			}
 		}
 	}

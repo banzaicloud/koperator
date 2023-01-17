@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
+	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
@@ -54,7 +55,7 @@ func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1
 		listeners, found := brokerConfig.Get("listeners")
 		Expect(found).To(BeTrue())
 		Expect(listeners.Value()).To(Equal("INTERNAL://:29092,CONTROLLER://:29093,TEST://:9094"))
-		listenerSecMap, found := brokerConfig.Get("listener.security.protocol.map")
+		listenerSecMap, found := brokerConfig.Get(kafkautils.KafkaConfigSecurityProtocolMap)
 		Expect(found).To(BeTrue())
 		Expect(listenerSecMap.Value()).To(Equal("INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:PLAINTEXT"))
 		// check service

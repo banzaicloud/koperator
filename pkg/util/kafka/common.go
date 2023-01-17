@@ -28,29 +28,15 @@ import (
 	"github.com/banzaicloud/koperator/pkg/util"
 )
 
-const (
-	// AllBrokerServiceTemplate template for Kafka all broker service
-	AllBrokerServiceTemplate = "%s-all-broker"
-	// HeadlessServiceTemplate template for Kafka headless service
-	HeadlessServiceTemplate = "%s-headless"
-	// NodePortServiceTemplate template for Kafka nodeport service
-	NodePortServiceTemplate = "%s-%d-%s"
-
-	//ConfigPropertyName name in the ConfigMap's Data field for the broker configuration
-	ConfigPropertyName            = "broker-config"
-	securityProtocolMapConfigName = "listener.security.protocol.map"
-)
-
 // PerBrokerConfigs configurations will not trigger rolling upgrade when updated
 var PerBrokerConfigs = []string{
 	// currently hardcoded in configmap.go
-	"ssl.client.auth",
+	KafkaConfigSSLClientAuth,
 
 	// listener related config change will trigger rolling upgrade anyways due to pod spec change
-	"listeners",
-	"advertised.listeners",
-
-	securityProtocolMapConfigName,
+	KafkaConfigListeners,
+	KafkaConfigAdvertisedListeners,
+	KafkaConfigSecurityProtocolMap,
 }
 
 // commonACLString is the raw representation of an ACL allowing Describe on a Topic
@@ -114,7 +100,7 @@ func ShouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs *propertie
 
 	log.V(1).Info("configs have been changed", "configs", configDiff)
 
-	if diff, ok := configDiff[securityProtocolMapConfigName]; ok {
+	if diff, ok := configDiff[KafkaConfigSecurityProtocolMap]; ok {
 		if listenersSecurityProtocolChanged(diff[0].Value(), diff[1].Value()) {
 			return false
 		}
