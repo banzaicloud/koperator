@@ -36,7 +36,7 @@ var PerBrokerConfigs = []string{
 	// listener related config change will trigger rolling upgrade anyways due to pod spec change
 	KafkaConfigListeners,
 	KafkaConfigAdvertisedListeners,
-	KafkaConfigSecurityProtocolMap,
+	KafkaConfigListenerSecurityProtocolMap,
 }
 
 // commonACLString is the raw representation of an ACL allowing Describe on a Topic
@@ -100,7 +100,7 @@ func ShouldRefreshOnlyPerBrokerConfigs(currentConfigs, desiredConfigs *propertie
 
 	log.V(1).Info("configs have been changed", "configs", configDiff)
 
-	if diff, ok := configDiff[KafkaConfigSecurityProtocolMap]; ok {
+	if diff, ok := configDiff[KafkaConfigListenerSecurityProtocolMap]; ok {
 		if listenersSecurityProtocolChanged(diff[0].Value(), diff[1].Value()) {
 			return false
 		}

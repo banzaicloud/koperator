@@ -35,11 +35,11 @@ const (
 	KafkaConfigBrokerId           = "broker.id"
 	KafkaConfigBrokerLogDirectory = "log.dirs"
 
-	KafkaConfigListeners               = "listeners"
-	KafkaConfigSecurityProtocolMap     = "listener.security.protocol.map"
-	KafkaConfigInterBrokerListenerName = "inter.broker.listener.name"
-	KafkaConfigAdvertisedListeners     = "advertised.listeners"
-	KafkaConfigControlPlaneListener    = "control.plane.listener.name"
+	KafkaConfigListeners                   = "listeners"
+	KafkaConfigListenerSecurityProtocolMap = "listener.security.protocol.map"
+	KafkaConfigInterBrokerListenerName     = "inter.broker.listener.name"
+	KafkaConfigAdvertisedListeners         = "advertised.listeners"
+	KafkaConfigControlPlaneListener        = "control.plane.listener.name"
 
 	KafkaConfigSecurityProtocol      = "security.protocol"
 	KafkaConfigSSLClientAuth         = "ssl.client.auth"
