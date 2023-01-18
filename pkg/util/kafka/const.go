@@ -36,6 +36,7 @@ const (
 	KafkaConfigBrokerLogDirectory = "log.dirs"
 
 	KafkaConfigListeners                   = "listeners"
+	KafkaConfigListenerName                = "listener.name"
 	KafkaConfigListenerSecurityProtocolMap = "listener.security.protocol.map"
 	KafkaConfigInterBrokerListenerName     = "inter.broker.listener.name"
 	KafkaConfigAdvertisedListeners         = "advertised.listeners"

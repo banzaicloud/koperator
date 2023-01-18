@@ -322,19 +322,19 @@ func generateListenerSSLConfig(config *properties.Properties, name string, sslCl
 	trustStoreLoc := namedKeystorePath + "/" + v1alpha1.TLSJKSTrustStore
 
 	listenerSSLConfig = map[string]string{
-		fmt.Sprintf("listener.name.%s.%s", name, kafkautils.KafkaConfigSSLKeyStoreLocation):   keyStoreLoc,
-		fmt.Sprintf("listener.name.%s.%s", name, kafkautils.KafkaConfigSSLTrustStoreLocation): trustStoreLoc,
-		fmt.Sprintf("listener.name.%s.%s", name, kafkautils.KafkaConfigSSLKeystoreType):       keyStoreType,
-		fmt.Sprintf("listener.name.%s.%s", name, kafkautils.KafkaConfigSSLTrustStoreType):     trustStoreType,
-		fmt.Sprintf("listener.name.%s.%s", name, kafkautils.KafkaConfigSSLTrustStorePassword): password,
-		fmt.Sprintf("listener.name.%s.%s", name, kafkautils.KafkaConfigSSLKeyStorePassword):   password,
+		fmt.Sprintf("%s.%s.%s", kafkautils.KafkaConfigListenerName, name, kafkautils.KafkaConfigSSLKeyStoreLocation):   keyStoreLoc,
+		fmt.Sprintf("%s.%s.%s", kafkautils.KafkaConfigListenerName, name, kafkautils.KafkaConfigSSLTrustStoreLocation): trustStoreLoc,
+		fmt.Sprintf("%s.%s.%s", kafkautils.KafkaConfigListenerName, name, kafkautils.KafkaConfigSSLKeystoreType):       keyStoreType,
+		fmt.Sprintf("%s.%s.%s", kafkautils.KafkaConfigListenerName, name, kafkautils.KafkaConfigSSLTrustStoreType):     trustStoreType,
+		fmt.Sprintf("%s.%s.%s", kafkautils.KafkaConfigListenerName, name, kafkautils.KafkaConfigSSLTrustStorePassword): password,
+		fmt.Sprintf("%s.%s.%s", kafkautils.KafkaConfigListenerName, name, kafkautils.KafkaConfigSSLKeyStorePassword):   password,
 	}
 
 	// enable 2-way SSL authentication if SSL is enabled but this field is not provided in the listener config
 	if sslClientAuth == "" {
-		listenerSSLConfig[fmt.Sprintf("listener.name.%s.%s", name, kafkautils.KafkaConfigSSLClientAuth)] = string(v1beta1.SSLClientAuthRequired)
+		listenerSSLConfig[fmt.Sprintf("%s.%s.%s", kafkautils.KafkaConfigListenerName, name, kafkautils.KafkaConfigSSLClientAuth)] = string(v1beta1.SSLClientAuthRequired)
 	} else {
-		listenerSSLConfig[fmt.Sprintf("listener.name.%s.%s", name, kafkautils.KafkaConfigSSLClientAuth)] = string(sslClientAuth)
+		listenerSSLConfig[fmt.Sprintf("%s.%s.%s", kafkautils.KafkaConfigListenerName, name, kafkautils.KafkaConfigSSLClientAuth)] = string(sslClientAuth)
 	}
 
 	for k, v := range listenerSSLConfig {
