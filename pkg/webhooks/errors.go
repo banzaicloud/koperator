@@ -43,3 +43,38 @@ func IsInvalidReplicationFactor(err error) bool {
 	}
 	return false
 }
+
+func IsCantConnectAPIServer(err error) bool {
+	if apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectAPIServerMsg) {
+		return true
+	}
+	return false
+}
+
+func IsOutOfRangeReplicationFactor(err error) bool {
+	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), outOfRangeReplicationFactorErrMsg) {
+		return true
+	}
+	return false
+}
+
+func IsOutOfRangePartitions(err error) bool {
+	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), outOfRangePartitionsErrMsg) {
+		return true
+	}
+	return false
+}
+
+func IsInvalidRemovingStorage(err error) bool {
+	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), removingStorageMsg) {
+		return true
+	}
+	return false
+}
+
+func IsErrorDuringValidation(err error) bool {
+	if apierrors.IsInternalError(err) && strings.Contains(err.Error(), errorDuringValidationMsg) {
+		return true
+	}
+	return false
+}
