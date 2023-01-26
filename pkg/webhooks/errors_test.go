@@ -115,11 +115,11 @@ func Test_IsInvalidRemovingStorage(t *testing.T) {
 	}{
 		{
 			testname:  "field.Invalid",
-			fieldErrs: append(field.ErrorList{}, field.Invalid(field.NewPath("spec").Child("brokers").Index(0).Child("brokerConfigGroup"), "test-broker-config-group", removingStorageMsg+", provided brokerConfigGroup not found")),
+			fieldErrs: append(field.ErrorList{}, field.Invalid(field.NewPath("spec").Child("brokers").Index(0).Child("brokerConfigGroup"), "test-broker-config-group", unsupportedRemovingStorageMsg+", provided brokerConfigGroup not found")),
 		},
 		{
 			testname:  "field.NotFound",
-			fieldErrs: append(field.ErrorList{}, field.NotFound(field.NewPath("spec").Child("brokers").Index(0).Child("storageConfig").Index(0), "/test/storageConfig/mount/path"+", "+removingStorageMsg)),
+			fieldErrs: append(field.ErrorList{}, field.NotFound(field.NewPath("spec").Child("brokers").Index(0).Child("storageConfig").Index(0), "/test/storageConfig/mount/path"+", "+unsupportedRemovingStorageMsg)),
 		},
 		//		{
 		//			testname:  "field.Invalid_wrong",
