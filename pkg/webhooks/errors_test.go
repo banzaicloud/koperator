@@ -70,18 +70,34 @@ func TestIsInvalidReplicationFactor(t *testing.T) {
 	}
 }
 
-// Mihai - starting here
+func TestIsCantConnectAPIServer(t *testing.T) {
+	testcases := []struct {
+		testname string
+		err      error
+		want     bool
+	}{
+		{
+			testname: "cantConnectAPIServer",
+			err:      apiErrors.NewInternalError(errors.Wrap(errors.New("..."), cantConnectAPIServerMsg)),
+			want:     true,
+		},
+		{
+			testname: "wrong-error-message",
+			err:      apiErrors.NewInternalError(errors.Wrap(errors.New("..."), "wrong-error-message")),
+			want:     false,
+		},
+	}
 
-func Test_IsCantConnectAPIServer(t *testing.T) {
-	err := apiErrors.NewInternalError(errors.Wrap(errors.New("..."), cantConnectAPIServerMsg))
-	//err := apierrors.NewInternalError(errors.Wrap(errors.New("..."), "!varza!"))
-
-	if ok := IsCantConnectAPIServer(err); !ok {
-		t.Errorf("Check connection to API Server error message. Expected: %t ; Got: %t", true, ok)
+	for _, tc := range testcases {
+		t.Run(tc.testname, func(t *testing.T) {
+			if got := IsCantConnectAPIServer(tc.err); got != tc.want {
+				t.Errorf("Check connection to API Server error message. Expected: %t ; Got: %t", tc.want, got)
+			}
+		})
 	}
 }
 
-func Test_IsOutOfRangeReplicationFactor(t *testing.T) {
+func TestIsOutOfRangeReplicationFactor(t *testing.T) {
 	kafkaTopic := banzaicloudv1alpha1.KafkaTopic{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaTopic"}}
 	var fieldErrs field.ErrorList
 	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("replicationFactor"), "-2", outOfRangeReplicationFactorErrMsg))
@@ -94,11 +110,10 @@ func Test_IsOutOfRangeReplicationFactor(t *testing.T) {
 	}
 }
 
-func Test_IsOutOfRangePartitions(t *testing.T) {
+func TestIsOutOfRangePartitions(t *testing.T) {
 	kafkaTopic := banzaicloudv1alpha1.KafkaTopic{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaTopic"}}
 	var fieldErrs field.ErrorList
 	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("partitions"), "-2", outOfRangePartitionsErrMsg))
-	//fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("partitions"), "-2", "!varza!"))
 	err := apiErrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
@@ -108,27 +123,32 @@ func Test_IsOutOfRangePartitions(t *testing.T) {
 	}
 }
 
-func Test_IsInvalidRemovingStorage(t *testing.T) {
+func TestIsInvalidRemovingStorage(t *testing.T) {
 	testcases := []struct {
 		testname  string
 		fieldErrs field.ErrorList
+		want      bool
 	}{
 		{
-			testname:  "field.Invalid",
+			testname:  "field.Invalid_removingStorage",
 			fieldErrs: append(field.ErrorList{}, field.Invalid(field.NewPath("spec").Child("brokers").Index(0).Child("brokerConfigGroup"), "test-broker-config-group", unsupportedRemovingStorageMsg+", provided brokerConfigGroup not found")),
+			want:      true,
 		},
 		{
-			testname:  "field.NotFound",
+			testname:  "field.NotFound_removingStorage",
 			fieldErrs: append(field.ErrorList{}, field.NotFound(field.NewPath("spec").Child("brokers").Index(0).Child("storageConfig").Index(0), "/test/storageConfig/mount/path"+", "+unsupportedRemovingStorageMsg)),
+			want:      true,
 		},
-		//		{
-		//			testname:  "field.Invalid_wrong",
-		//			fieldErrs: append(field.ErrorList{}, field.Invalid(field.NewPath("spec").Child("brokers").Index(0).Child("brokerConfigGroup"), "test-broker-config-group", "!varza!"+", provided brokerConfigGroup not found")),
-		//		},
-		//		{
-		//			testname:  "field.NotFound_wrong",
-		//			fieldErrs: append(field.ErrorList{}, field.NotFound(field.NewPath("spec").Child("brokers").Index(0).Child("storageConfig").Index(0), "/test/storageConfig/mount/path"+", "+"!varza!")),
-		//		},
+		{
+			testname:  "field.Invalid_wrong-error-message",
+			fieldErrs: append(field.ErrorList{}, field.Invalid(field.NewPath("spec").Child("brokers").Index(0).Child("brokerConfigGroup"), "test-broker-config-group", "wrong-error-message"+", provided brokerConfigGroup not found")),
+			want:      false,
+		},
+		{
+			testname:  "field.NotFound_wrong-error-message",
+			fieldErrs: append(field.ErrorList{}, field.NotFound(field.NewPath("spec").Child("brokers").Index(0).Child("storageConfig").Index(0), "/test/storageConfig/mount/path"+", "+"wrong-error-message")),
+			want:      false,
+		},
 	}
 
 	for _, tc := range testcases {
@@ -139,18 +159,36 @@ func Test_IsInvalidRemovingStorage(t *testing.T) {
 				kafkaCluster.GetObjectKind().GroupVersionKind().GroupKind(),
 				kafkaCluster.Name, tc.fieldErrs)
 
-			if ok := IsInvalidRemovingStorage(err); !ok {
-				t.Errorf("Check Storage Removal Error message. Expected: %t ; Got: %t", true, ok)
+			if got := IsInvalidRemovingStorage(err); got != tc.want {
+				t.Errorf("Check Storage Removal Error message. Expected: %t ; Got: %t", tc.want, got)
 			}
 		})
 	}
 }
 
-func Test_IsErrorDuringValidation(t *testing.T) {
-	err := apiErrors.NewInternalError(errors.WithMessage(errors.New("..."), errorDuringValidationMsg))
-	//err := apiErrors.NewInternalError(errors.WithMessage(errors.New("..."), "!varza!"))
+func TestIsErrorDuringValidation(t *testing.T) {
+	testcases := []struct {
+		testname string
+		err      error
+		want     bool
+	}{
+		{
+			testname: "errorDuringValidation",
+			err:      apiErrors.NewInternalError(errors.WithMessage(errors.New("..."), errorDuringValidationMsg)),
+			want:     true,
+		},
+		{
+			testname: "wrong-error-message",
+			err:      apiErrors.NewInternalError(errors.WithMessage(errors.New("..."), "wrong-error-message")),
+			want:     false,
+		},
+	}
 
-	if ok := IsErrorDuringValidation(err); !ok {
-		t.Errorf("Check overall Error During Validation error message. Expected: %t ; Got: %t", true, ok)
+	for _, tc := range testcases {
+		t.Run(tc.testname, func(t *testing.T) {
+			if got := IsErrorDuringValidation(tc.err); got != tc.want {
+				t.Errorf("Check overall Error During Validation error message. Expected: %t ; Got: %t", tc.want, got)
+			}
+		})
 	}
 }

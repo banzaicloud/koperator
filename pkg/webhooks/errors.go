@@ -39,15 +39,15 @@ func IsAdmissionCantConnect(err error) bool {
 	return false
 }
 
-func IsInvalidReplicationFactor(err error) bool {
-	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), invalidReplicationFactorErrMsg) {
+func IsCantConnectAPIServer(err error) bool {
+	if apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectAPIServerMsg) {
 		return true
 	}
 	return false
 }
 
-func IsCantConnectAPIServer(err error) bool {
-	if apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectAPIServerMsg) {
+func IsInvalidReplicationFactor(err error) bool {
+	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), invalidReplicationFactorErrMsg) {
 		return true
 	}
 	return false
