@@ -71,25 +71,25 @@ func TestIsInvalidReplicationFactor(t *testing.T) {
 }
 
 func TestIsCantConnectAPIServer(t *testing.T) {
-	testcases := []struct {
-		testname string
+	testCases := []struct {
+		testName string
 		err      error
 		want     bool
 	}{
 		{
-			testname: "cantConnectAPIServer",
+			testName: "cantConnectAPIServer",
 			err:      apierrors.NewInternalError(errors.Wrap(errors.New("..."), cantConnectAPIServerMsg)),
 			want:     true,
 		},
 		{
-			testname: "wrong-error-message",
+			testName: "wrong-error-message",
 			err:      apierrors.NewInternalError(errors.Wrap(errors.New("..."), "wrong-error-message")),
 			want:     false,
 		},
 	}
 
-	for _, tc := range testcases {
-		t.Run(tc.testname, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			if got := IsCantConnectAPIServer(tc.err); got != tc.want {
 				t.Errorf("Check connection to API Server error message. Expected: %t ; Got: %t", tc.want, got)
 			}
@@ -124,35 +124,35 @@ func TestIsOutOfRangePartitions(t *testing.T) {
 }
 
 func TestIsInvalidRemovingStorage(t *testing.T) {
-	testcases := []struct {
-		testname  string
+	testCases := []struct {
+		testName  string
 		fieldErrs field.ErrorList
 		want      bool
 	}{
 		{
-			testname:  "field.Invalid_removingStorage",
+			testName:  "field.Invalid_removingStorage",
 			fieldErrs: append(field.ErrorList{}, field.Invalid(field.NewPath("spec").Child("brokers").Index(0).Child("brokerConfigGroup"), "test-broker-config-group", unsupportedRemovingStorageMsg+", provided brokerConfigGroup not found")),
 			want:      true,
 		},
 		{
-			testname:  "field.NotFound_removingStorage",
+			testName:  "field.NotFound_removingStorage",
 			fieldErrs: append(field.ErrorList{}, field.NotFound(field.NewPath("spec").Child("brokers").Index(0).Child("storageConfig").Index(0), "/test/storageConfig/mount/path"+", "+unsupportedRemovingStorageMsg)),
 			want:      true,
 		},
 		{
-			testname:  "field.Invalid_wrong-error-message",
+			testName:  "field.Invalid_wrong-error-message",
 			fieldErrs: append(field.ErrorList{}, field.Invalid(field.NewPath("spec").Child("brokers").Index(0).Child("brokerConfigGroup"), "test-broker-config-group", "wrong-error-message"+", provided brokerConfigGroup not found")),
 			want:      false,
 		},
 		{
-			testname:  "field.NotFound_wrong-error-message",
+			testName:  "field.NotFound_wrong-error-message",
 			fieldErrs: append(field.ErrorList{}, field.NotFound(field.NewPath("spec").Child("brokers").Index(0).Child("storageConfig").Index(0), "/test/storageConfig/mount/path"+", "+"wrong-error-message")),
 			want:      false,
 		},
 	}
 
-	for _, tc := range testcases {
-		t.Run(tc.testname, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			kafkaCluster := banzaicloudv1beta1.KafkaCluster{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaCluster"}}
 
 			err := apierrors.NewInvalid(
@@ -167,25 +167,25 @@ func TestIsInvalidRemovingStorage(t *testing.T) {
 }
 
 func TestIsErrorDuringValidation(t *testing.T) {
-	testcases := []struct {
-		testname string
+	testCases := []struct {
+		testName string
 		err      error
 		want     bool
 	}{
 		{
-			testname: "errorDuringValidation",
+			testName: "errorDuringValidation",
 			err:      apierrors.NewInternalError(errors.WithMessage(errors.New("..."), errorDuringValidationMsg)),
 			want:     true,
 		},
 		{
-			testname: "wrong-error-message",
+			testName: "wrong-error-message",
 			err:      apierrors.NewInternalError(errors.WithMessage(errors.New("..."), "wrong-error-message")),
 			want:     false,
 		},
 	}
 
-	for _, tc := range testcases {
-		t.Run(tc.testname, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			if got := IsErrorDuringValidation(tc.err); got != tc.want {
 				t.Errorf("Check overall Error During Validation error message. Expected: %t ; Got: %t", tc.want, got)
 			}
