@@ -33,50 +33,29 @@ const (
 )
 
 func IsAdmissionCantConnect(err error) bool {
-	if apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectErrorMsg) {
-		return true
-	}
-	return false
+	return apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectErrorMsg)
 }
 
 func IsCantConnectAPIServer(err error) bool {
-	if apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectAPIServerMsg) {
-		return true
-	}
-	return false
+	return apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectAPIServerMsg)
 }
 
 func IsInvalidReplicationFactor(err error) bool {
-	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), invalidReplicationFactorErrMsg) {
-		return true
-	}
-	return false
+	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), invalidReplicationFactorErrMsg)
 }
 
 func IsOutOfRangeReplicationFactor(err error) bool {
-	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), outOfRangeReplicationFactorErrMsg) {
-		return true
-	}
-	return false
+	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), outOfRangeReplicationFactorErrMsg)
 }
 
 func IsOutOfRangePartitions(err error) bool {
-	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), outOfRangePartitionsErrMsg) {
-		return true
-	}
-	return false
+	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), outOfRangePartitionsErrMsg)
 }
 
 func IsInvalidRemovingStorage(err error) bool {
-	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), unsupportedRemovingStorageMsg) {
-		return true
-	}
-	return false
+	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), unsupportedRemovingStorageMsg)
 }
 
 func IsErrorDuringValidation(err error) bool {
-	if apierrors.IsInternalError(err) && strings.Contains(err.Error(), errorDuringValidationMsg) {
-		return true
-	}
-	return false
+	return apierrors.IsInternalError(err) && strings.Contains(err.Error(), errorDuringValidationMsg)
 }

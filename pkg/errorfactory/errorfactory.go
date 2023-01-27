@@ -19,6 +19,7 @@ import "emperror.dev/errors"
 // ResourceNotReady states that resource is not ready
 type ResourceNotReady struct{ error }
 
+// Unwrap() allows compliance with Go1.13+ error chaining behavior
 func (e ResourceNotReady) Unwrap() error { return e.error }
 
 // APIFailure states that something went wrong with the api
