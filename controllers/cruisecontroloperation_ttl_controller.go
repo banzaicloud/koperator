@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/banzaicloud/koperator/api/v1alpha1"
 	banzaiv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 )
 
@@ -108,7 +107,7 @@ func IsExpired(ttl time.Duration, finishedAt time.Time) bool {
 	return time.Since(finishedAt) > ttl
 }
 
-func (r *CruiseControlOperationTTLReconciler) delete(ctx context.Context, ccOperation *v1alpha1.CruiseControlOperation) (reconcile.Result, error) {
+func (r *CruiseControlOperationTTLReconciler) delete(ctx context.Context, ccOperation *banzaiv1alpha1.CruiseControlOperation) (reconcile.Result, error) {
 	log := logr.FromContextOrDiscard(ctx)
 	err := r.Delete(ctx, ccOperation)
 	if err != nil && !apierrors.IsNotFound(err) {
