@@ -20,7 +20,7 @@ import (
 
 	"emperror.dev/errors"
 	"golang.org/x/exp/slices"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -42,7 +42,7 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	fieldErr, err := checkBrokerStorageRemoval(&kafkaClusterOld.Spec, &kafkaClusterNew.Spec)
 	if err != nil {
 		log.Error(err, errorDuringValidationMsg)
-		return apiErrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
+		return apierrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
 	}
 	if fieldErr != nil {
 		allErrs = append(allErrs, fieldErr)
@@ -51,7 +51,7 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 		return nil
 	}
 	log.Info("rejected", "invalid field(s)", allErrs.ToAggregate().Error())
-	return apiErrors.NewInvalid(
+	return apierrors.NewInvalid(
 		kafkaClusterNew.GroupVersionKind().GroupKind(),
 		kafkaClusterNew.Name, allErrs)
 }

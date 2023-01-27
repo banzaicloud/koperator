@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"emperror.dev/errors"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
@@ -29,18 +29,18 @@ import (
 )
 
 func TestIsAdmissionConnectionError(t *testing.T) {
-	err := apiErrors.NewInternalError(errors.Wrap(errors.New("..."), cantConnectErrorMsg))
+	err := apierrors.NewInternalError(errors.Wrap(errors.New("..."), cantConnectErrorMsg))
 
 	if !IsAdmissionCantConnect(err) {
 		t.Error("Expected is connection error to be true, got false")
 	}
 
-	err = apiErrors.NewServiceUnavailable("some other reason")
+	err = apierrors.NewServiceUnavailable("some other reason")
 	if IsAdmissionCantConnect(err) {
 		t.Error("Expected is connection error to be false, got true")
 	}
 
-	err = apiErrors.NewBadRequest(cantConnectErrorMsg)
+	err = apierrors.NewBadRequest(cantConnectErrorMsg)
 	if IsAdmissionCantConnect(err) {
 		t.Error("Expected is connection error to be false, got true")
 	}
@@ -51,7 +51,7 @@ func TestIsInvalidReplicationFactor(t *testing.T) {
 	var fieldErrs field.ErrorList
 	logMsg := fmt.Sprintf("%s (available brokers: 2)", invalidReplicationFactorErrMsg)
 	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("replicationFactor"), "4", logMsg))
-	err := apiErrors.NewInvalid(
+	err := apierrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 
@@ -59,12 +59,12 @@ func TestIsInvalidReplicationFactor(t *testing.T) {
 		t.Error("Expected is invalid replication error to be true, got false")
 	}
 
-	err = apiErrors.NewServiceUnavailable("some other reason")
+	err = apierrors.NewServiceUnavailable("some other reason")
 	if IsInvalidReplicationFactor(err) {
 		t.Error("Expected is invalid replication error to be false, got true")
 	}
 
-	err = apiErrors.NewServiceUnavailable(invalidReplicationFactorErrMsg)
+	err = apierrors.NewServiceUnavailable(invalidReplicationFactorErrMsg)
 	if IsInvalidReplicationFactor(err) {
 		t.Error("Expected is invalid replication error to be false, got true")
 	}
@@ -78,12 +78,12 @@ func TestIsCantConnectAPIServer(t *testing.T) {
 	}{
 		{
 			testname: "cantConnectAPIServer",
-			err:      apiErrors.NewInternalError(errors.Wrap(errors.New("..."), cantConnectAPIServerMsg)),
+			err:      apierrors.NewInternalError(errors.Wrap(errors.New("..."), cantConnectAPIServerMsg)),
 			want:     true,
 		},
 		{
 			testname: "wrong-error-message",
-			err:      apiErrors.NewInternalError(errors.Wrap(errors.New("..."), "wrong-error-message")),
+			err:      apierrors.NewInternalError(errors.Wrap(errors.New("..."), "wrong-error-message")),
 			want:     false,
 		},
 	}
@@ -101,7 +101,7 @@ func TestIsOutOfRangeReplicationFactor(t *testing.T) {
 	kafkaTopic := banzaicloudv1alpha1.KafkaTopic{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaTopic"}}
 	var fieldErrs field.ErrorList
 	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("replicationFactor"), "-2", outOfRangeReplicationFactorErrMsg))
-	err := apiErrors.NewInvalid(
+	err := apierrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 
@@ -114,7 +114,7 @@ func TestIsOutOfRangePartitions(t *testing.T) {
 	kafkaTopic := banzaicloudv1alpha1.KafkaTopic{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaTopic"}}
 	var fieldErrs field.ErrorList
 	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("partitions"), "-2", outOfRangePartitionsErrMsg))
-	err := apiErrors.NewInvalid(
+	err := apierrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 
@@ -155,7 +155,7 @@ func TestIsInvalidRemovingStorage(t *testing.T) {
 		t.Run(tc.testname, func(t *testing.T) {
 			kafkaCluster := banzaicloudv1beta1.KafkaCluster{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaCluster"}}
 
-			err := apiErrors.NewInvalid(
+			err := apierrors.NewInvalid(
 				kafkaCluster.GetObjectKind().GroupVersionKind().GroupKind(),
 				kafkaCluster.Name, tc.fieldErrs)
 
@@ -174,12 +174,12 @@ func TestIsErrorDuringValidation(t *testing.T) {
 	}{
 		{
 			testname: "errorDuringValidation",
-			err:      apiErrors.NewInternalError(errors.WithMessage(errors.New("..."), errorDuringValidationMsg)),
+			err:      apierrors.NewInternalError(errors.WithMessage(errors.New("..."), errorDuringValidationMsg)),
 			want:     true,
 		},
 		{
 			testname: "wrong-error-message",
-			err:      apiErrors.NewInternalError(errors.WithMessage(errors.New("..."), "wrong-error-message")),
+			err:      apierrors.NewInternalError(errors.WithMessage(errors.New("..."), "wrong-error-message")),
 			want:     false,
 		},
 	}
