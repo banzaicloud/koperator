@@ -20,7 +20,7 @@ import (
 
 	"emperror.dev/errors"
 
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -59,13 +59,13 @@ func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) 
 	fieldErrs, err := s.validateKafkaTopic(ctx, kafkaTopic)
 	if err != nil {
 		s.Log.Error(err, errorDuringValidationMsg)
-		return apiErrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
+		return apierrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
 	}
 	if len(fieldErrs) == 0 {
 		return nil
 	}
 	s.Log.Info("rejected", "invalid field(s)", fieldErrs.ToAggregate().Error())
-	return apiErrors.NewInvalid(
+	return apierrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 }
@@ -94,7 +94,7 @@ func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *ban
 
 	// Check if the cluster being referenced actually exists
 	if cluster, err = k8sutil.LookupKafkaCluster(ctx, s.Client, clusterName, clusterNamespace); err != nil {
-		if !apiErrors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return nil, errors.Wrap(err, cantConnectAPIServerMsg)
 		}
 		if k8sutil.IsMarkedForDeletion(topic.ObjectMeta) {
@@ -159,7 +159,7 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 		// Check if this is the correct CR for this topic
 		topicCR := &banzaicloudv1alpha1.KafkaTopic{}
 		if err := s.Client.Get(ctx, types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, topicCR); err != nil {
-			if apiErrors.IsNotFound(err) {
+			if apierrors.IsNotFound(err) {
 				// We permit to create KafkaTopic CR when topic with same name already present on the Kafka cluster
 				s.Log.Info(fmt.Sprintf("topic already exists on kafka cluster '%s'", topic.Spec.ClusterRef.Name))
 			} else {
