@@ -346,6 +346,42 @@ func generateListenerSSLConfig(config *properties.Properties, name string, sslCl
 	}
 }
 
+// mergeSuperUsersPropertyValue merges the super.users property value from the source into the target properties
+func mergeSuperUsersPropertyValue(source *properties.Properties, target *properties.Properties) {
+	sourceVal, foundSource := source.Get("super.users")
+	if !foundSource || sourceVal.IsEmpty() {
+		return
+	}
+	targetVal, foundTarget := target.Get("super.users")
+	if !foundTarget || targetVal.IsEmpty() {
+		return
+	}
+
+	sourceSuperUsers := strings.Split(sourceVal.Value(), ";")
+	targetSuperUsers := strings.Split(targetVal.Value(), ";")
+
+	inserted := false
+	for _, sourceSuperUser := range sourceSuperUsers {
+		found := false
+		for _, targetSuperUser := range targetSuperUsers {
+			if sourceSuperUser == targetSuperUser {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			inserted = true
+			targetSuperUsers = append(targetSuperUsers, sourceSuperUser)
+		}
+	}
+
+	if inserted {
+		mergedSuperUsers := strings.Join(targetSuperUsers, ";")
+		target.Set("super.users", mergedSuperUsers)
+	}
+}
+
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
 	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
 	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) string {
@@ -356,6 +392,9 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 
 	// Merge operator generated configuration to the final one
 	if opGenConf != nil {
+		// When there is super.users configuration in the readOnly config we merge its value into the Koperator generated one.
+		// thus finalBrokerConfig contains the merged super.user value.
+		mergeSuperUsersPropertyValue(finalBrokerConfig, opGenConf)
 		finalBrokerConfig.Merge(opGenConf)
 	}
 
