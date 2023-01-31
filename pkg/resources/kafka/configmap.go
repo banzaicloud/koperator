@@ -392,8 +392,8 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 
 	// Merge operator generated configuration to the final one
 	if opGenConf != nil {
-		// When there is super.users configuration in the readOnly config we merge its value into the Koperator generated one.
-		// thus finalBrokerConfig contains the merged super.user value.
+		// When there is custom super.users configuration we merge its value into the Koperator generated one
+		// thus finalBrokerConfig contains merged super.users value.
 		mergeSuperUsersPropertyValue(finalBrokerConfig, opGenConf)
 		finalBrokerConfig.Merge(opGenConf)
 	}
