@@ -20,7 +20,7 @@ import (
 
 	"emperror.dev/errors"
 	"golang.org/x/exp/slices"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -42,7 +42,7 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	fieldErr, err := checkBrokerStorageRemoval(&kafkaClusterOld.Spec, &kafkaClusterNew.Spec)
 	if err != nil {
 		log.Error(err, errorDuringValidationMsg)
-		return apiErrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
+		return apierrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
 	}
 	if fieldErr != nil {
 		allErrs = append(allErrs, fieldErr)
@@ -51,7 +51,7 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 		return nil
 	}
 	log.Info("rejected", "invalid field(s)", allErrs.ToAggregate().Error())
-	return apiErrors.NewInvalid(
+	return apierrors.NewInvalid(
 		kafkaClusterNew.GroupVersionKind().GroupKind(),
 		kafkaClusterNew.Name, allErrs)
 }
@@ -78,7 +78,7 @@ func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaic
 				// checking broukerConfigGroup existence
 				if brokerNew.BrokerConfigGroup != "" {
 					if _, exists := kafkaClusterSpecNew.BrokerConfigGroups[brokerNew.BrokerConfigGroup]; !exists {
-						return field.Invalid(field.NewPath("spec").Child("brokers").Index(int(brokerNew.Id)).Child("brokerConfigGroup"), brokerNew.BrokerConfigGroup, removingStorageMsg+", provided brokerConfigGroup not found"), nil
+						return field.Invalid(field.NewPath("spec").Child("brokers").Index(int(brokerNew.Id)).Child("brokerConfigGroup"), brokerNew.BrokerConfigGroup, unsupportedRemovingStorageMsg+", provided brokerConfigGroup not found"), nil
 					}
 				}
 				brokerConfigsNew, err := brokerNew.GetBrokerConfig(*kafkaClusterSpecNew)
@@ -99,9 +99,9 @@ func checkBrokerStorageRemoval(kafkaClusterSpecOld, kafkaClusterSpecNew *banzaic
 					if !isStorageFound {
 						fromConfigGroup := getMissingMounthPathLocation(storageConfigOld.MountPath, kafkaClusterSpecOld, int32(k))
 						if fromConfigGroup != nil && *fromConfigGroup {
-							return field.Invalid(field.NewPath("spec").Child("brokers").Index(k).Child("brokerConfigGroup"), brokerNew.BrokerConfigGroup, fmt.Sprintf("%s, missing storageConfig mounthPath: %s", removingStorageMsg, storageConfigOld.MountPath)), nil
+							return field.Invalid(field.NewPath("spec").Child("brokers").Index(k).Child("brokerConfigGroup"), brokerNew.BrokerConfigGroup, fmt.Sprintf("%s, missing storageConfig mounthPath: %s", unsupportedRemovingStorageMsg, storageConfigOld.MountPath)), nil
 						}
-						return field.NotFound(field.NewPath("spec").Child("brokers").Index(k).Child("storageConfig").Index(e), storageConfigOld.MountPath+", "+removingStorageMsg), nil
+						return field.NotFound(field.NewPath("spec").Child("brokers").Index(k).Child("storageConfig").Index(e), storageConfigOld.MountPath+", "+unsupportedRemovingStorageMsg), nil
 					}
 				}
 			}

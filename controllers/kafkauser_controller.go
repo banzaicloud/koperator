@@ -211,14 +211,14 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 
 		user, err := pkiManager.ReconcileUserCertificate(ctx, instance, r.Scheme, cluster.Spec.GetKubernetesClusterDomain())
 		if err != nil {
-			switch errors.Cause(err).(type) {
-			case errorfactory.ResourceNotReady:
+			switch {
+			case errors.As(err, &errorfactory.ResourceNotReady{}):
 				reqLogger.Info("generated secret not found, may not be ready")
 				return ctrl.Result{
 					Requeue:      true,
 					RequeueAfter: time.Duration(5) * time.Second,
 				}, nil
-			case errorfactory.FatalReconcileError:
+			case errors.As(err, &errorfactory.FatalReconcileError{}):
 				// TODO: (tinyzimmer) - Sleep for longer for now to give user time to see the error
 				// But really we should catch these kinds of issues in a pre-admission hook in a future PR
 				// The user can fix while this is looping and it will pick it up next reconcile attempt

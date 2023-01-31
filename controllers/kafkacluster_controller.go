@@ -124,44 +124,48 @@ func (r *KafkaClusterReconciler) Reconcile(ctx context.Context, request ctrl.Req
 	for _, rec := range reconcilers {
 		err = rec.Reconcile(log)
 		if err != nil {
-			switch errors.Cause(err).(type) {
-			case errorfactory.BrokersUnreachable:
+			switch {
+			case errors.As(err, &errorfactory.BrokersUnreachable{}):
 				log.Info("Brokers unreachable, may still be starting up", "error", err.Error())
 				return ctrl.Result{
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
-			case errorfactory.BrokersNotReady:
+			case errors.As(err, &errorfactory.BrokersNotReady{}):
 				log.Info("Brokers not ready, may still be starting up", "error", err.Error())
 				return ctrl.Result{
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
-			case errorfactory.ResourceNotReady:
+			case errors.As(err, &errorfactory.ResourceNotReady{}):
 				log.Info("A new resource was not found or may not be ready", "error", err.Error())
 				return ctrl.Result{
 					RequeueAfter: time.Duration(7) * time.Second,
 				}, nil
-			case errorfactory.ReconcileRollingUpgrade:
+			case errors.As(err, &errorfactory.ReconcileRollingUpgrade{}):
 				log.Info("Rolling Upgrade in Progress")
 				return ctrl.Result{
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
-			case errorfactory.CruiseControlNotReady:
+			case errors.As(err, &errorfactory.CruiseControlNotReady{}):
 				return ctrl.Result{
 					RequeueAfter: time.Duration(15) * time.Second,
 				}, nil
-			case errorfactory.CruiseControlTaskRunning:
+			case errors.As(err, &errorfactory.CruiseControlTaskRunning{}):
 				return ctrl.Result{
 					RequeueAfter: time.Duration(20) * time.Second,
 				}, nil
-			case errorfactory.CruiseControlTaskTimeout, errorfactory.CruiseControlTaskFailure:
+			case errors.As(err, &errorfactory.CruiseControlTaskTimeout{}):
 				return ctrl.Result{
 					RequeueAfter: time.Duration(20) * time.Second,
 				}, nil
-			case errorfactory.PerBrokerConfigNotReady:
+			case errors.As(err, &errorfactory.CruiseControlTaskFailure{}):
+				return ctrl.Result{
+					RequeueAfter: time.Duration(20) * time.Second,
+				}, nil
+			case errors.As(err, &errorfactory.PerBrokerConfigNotReady{}):
 				log.V(1).Info("dynamically updated broker configuration hasn't propagated through yet")
 				// for exponential backoff
 				return ctrl.Result{}, err
-			case errorfactory.LoadBalancerIPNotReady:
+			case errors.As(err, &errorfactory.LoadBalancerIPNotReady{}):
 				return ctrl.Result{
 					RequeueAfter: time.Duration(30) * time.Second,
 				}, nil
