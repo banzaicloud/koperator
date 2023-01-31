@@ -378,6 +378,8 @@ func mergeSuperUsersPropertyValue(source *properties.Properties, target *propert
 
 	if inserted {
 		mergedSuperUsers := strings.Join(targetSuperUsers, ";")
+		// Setting string value for a property is not going to run into error, also we don't have error handling at upper levels
+		//nolint:errcheck
 		target.Set("super.users", mergedSuperUsers)
 	}
 }
