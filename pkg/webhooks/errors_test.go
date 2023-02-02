@@ -70,7 +70,7 @@ func TestIsInvalidReplicationFactor(t *testing.T) {
 	}
 }
 
-func TestIsCantConnectAPIServer(t *testing.T) {
+func TestIsAdmissionCantConnectAPIServer(t *testing.T) {
 	testCases := []struct {
 		testName string
 		err      error
@@ -90,14 +90,14 @@ func TestIsCantConnectAPIServer(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			if got := IsCantConnectAPIServer(tc.err); got != tc.want {
+			if got := IsAdmissionCantConnectAPIServer(tc.err); got != tc.want {
 				t.Errorf("Check connection to API Server error message. Expected: %t ; Got: %t", tc.want, got)
 			}
 		})
 	}
 }
 
-func TestIsOutOfRangeReplicationFactor(t *testing.T) {
+func TestIsAdmissionOutOfRangeReplicationFactor(t *testing.T) {
 	kafkaTopic := banzaicloudv1alpha1.KafkaTopic{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaTopic"}}
 	var fieldErrs field.ErrorList
 	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("replicationFactor"), "-2", outOfRangeReplicationFactorErrMsg))
@@ -105,12 +105,12 @@ func TestIsOutOfRangeReplicationFactor(t *testing.T) {
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 
-	if ok := IsOutOfRangeReplicationFactor(err); !ok {
+	if ok := IsAdmissionOutOfRangeReplicationFactor(err); !ok {
 		t.Errorf("Check Out of Range ReplicationFactor error message. Expected: %t ; Got: %t", true, ok)
 	}
 }
 
-func TestIsOutOfRangePartitions(t *testing.T) {
+func TestIsAdmissionOutOfRangePartitions(t *testing.T) {
 	kafkaTopic := banzaicloudv1alpha1.KafkaTopic{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaTopic"}}
 	var fieldErrs field.ErrorList
 	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("partitions"), "-2", outOfRangePartitionsErrMsg))
@@ -118,12 +118,12 @@ func TestIsOutOfRangePartitions(t *testing.T) {
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 
-	if ok := IsOutOfRangePartitions(err); !ok {
+	if ok := IsAdmissionOutOfRangePartitions(err); !ok {
 		t.Errorf("Check Out of Range Partitions error message. Expected: %t ; Got: %t", true, ok)
 	}
 }
 
-func TestIsInvalidRemovingStorage(t *testing.T) {
+func TestIsAdmissionInvalidRemovingStorage(t *testing.T) {
 	testCases := []struct {
 		testName  string
 		fieldErrs field.ErrorList
@@ -159,14 +159,14 @@ func TestIsInvalidRemovingStorage(t *testing.T) {
 				kafkaCluster.GetObjectKind().GroupVersionKind().GroupKind(),
 				kafkaCluster.Name, tc.fieldErrs)
 
-			if got := IsInvalidRemovingStorage(err); got != tc.want {
+			if got := IsAdmissionInvalidRemovingStorage(err); got != tc.want {
 				t.Errorf("Check Storage Removal Error message. Expected: %t ; Got: %t", tc.want, got)
 			}
 		})
 	}
 }
 
-func TestIsErrorDuringValidation(t *testing.T) {
+func TestIsAdmissionErrorDuringValidation(t *testing.T) {
 	testCases := []struct {
 		testName string
 		err      error
@@ -186,7 +186,7 @@ func TestIsErrorDuringValidation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			if got := IsErrorDuringValidation(tc.err); got != tc.want {
+			if got := IsAdmissionErrorDuringValidation(tc.err); got != tc.want {
 				t.Errorf("Check overall Error During Validation error message. Expected: %t ; Got: %t", tc.want, got)
 			}
 		})
