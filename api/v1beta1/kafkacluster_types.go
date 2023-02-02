@@ -153,6 +153,9 @@ type DisruptionBudgetWithStrategy struct {
 
 // Broker defines the broker basic configuration
 type Broker struct {
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:validation:ExclusiveMaximum=true
 	Id                int32         `json:"id"`
 	BrokerConfigGroup string        `json:"brokerConfigGroup,omitempty"`
 	ReadOnlyConfig    string        `json:"readOnlyConfig,omitempty"`
