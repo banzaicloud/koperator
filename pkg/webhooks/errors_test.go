@@ -55,17 +55,17 @@ func TestIsInvalidReplicationFactor(t *testing.T) {
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 
-	if !IsInvalidReplicationFactor(err) {
+	if !IsAdmissionInvalidReplicationFactor(err) {
 		t.Error("Expected is invalid replication error to be true, got false")
 	}
 
 	err = apierrors.NewServiceUnavailable("some other reason")
-	if IsInvalidReplicationFactor(err) {
+	if IsAdmissionInvalidReplicationFactor(err) {
 		t.Error("Expected is invalid replication error to be false, got true")
 	}
 
 	err = apierrors.NewServiceUnavailable(invalidReplicationFactorErrMsg)
-	if IsInvalidReplicationFactor(err) {
+	if IsAdmissionInvalidReplicationFactor(err) {
 		t.Error("Expected is invalid replication error to be false, got true")
 	}
 }

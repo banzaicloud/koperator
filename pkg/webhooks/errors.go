@@ -40,7 +40,7 @@ func IsAdmissionCantConnectAPIServer(err error) bool {
 	return apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectAPIServerMsg)
 }
 
-func IsInvalidReplicationFactor(err error) bool {
+func IsAdmissionInvalidReplicationFactor(err error) bool {
 	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), invalidReplicationFactorErrMsg)
 }
 
