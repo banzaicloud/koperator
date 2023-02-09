@@ -148,13 +148,13 @@ func (r *Reconciler) deleteNonHeadlessServices(ctx context.Context) error {
 
 	// if NodePort is used for any of the external listeners, the corresponding services need to remain
 	// so that clients from outside the Kubernetes cluster can reach the brokers
-	filteredServices := services
+	filteredSvcsToDelete := services
 	if r.checkIfNodePortSvcNeeded() {
-		filteredServices = getNonNodePortSvc(services)
+		filteredSvcsToDelete = getNonNodePortSvc(services)
 	}
 
-	for i := range filteredServices.Items {
-		svc = filteredServices.Items[i]
+	for i := range filteredSvcsToDelete.Items {
+		svc = filteredSvcsToDelete.Items[i]
 		if !svc.GetDeletionTimestamp().IsZero() {
 			continue
 		}
