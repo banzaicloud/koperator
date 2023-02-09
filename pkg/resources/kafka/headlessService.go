@@ -18,11 +18,16 @@ import (
 	"context"
 	"fmt"
 
+	"emperror.dev/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/banzaicloud/koperator/api/v1beta1"
 
 	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
@@ -91,4 +96,97 @@ func (r *Reconciler) deleteHeadlessService() error {
 	}
 
 	return err
+}
+
+// deleteNonHeadlessServices deletes the all-broker service that was created for the current KafkaCluster
+// if there is any and also the service of each broker
+func (r *Reconciler) deleteNonHeadlessServices(ctx context.Context) error {
+	svc := corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Service",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: r.KafkaCluster.GetNamespace(),
+			Name:      fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, r.KafkaCluster.GetName()),
+		},
+	}
+
+	err := r.Client.Delete(ctx, &svc)
+	if err != nil && client.IgnoreNotFound(err) != nil {
+		return err
+	}
+
+	// delete broker services
+	labelSelector := labels.NewSelector()
+	for k, v := range apiutil.LabelsForKafka(r.KafkaCluster.GetName()) {
+		req, err := labels.NewRequirement(k, selection.Equals, []string{v})
+		if err != nil {
+			return err
+		}
+		labelSelector = labelSelector.Add(*req)
+	}
+
+	// add "has label 'brokerId' to matching labels selector expression
+	req, err := labels.NewRequirement(v1beta1.BrokerIdLabelKey, selection.Exists, nil)
+	if err != nil {
+		return err
+	}
+	labelSelector = labelSelector.Add(*req)
+
+	var services corev1.ServiceList
+	err = r.Client.List(ctx, &services,
+		client.InNamespace(r.KafkaCluster.GetNamespace()),
+		client.MatchingLabelsSelector{Selector: labelSelector},
+	)
+
+	if err != nil {
+		return errors.WrapIfWithDetails(err, "failed to list services",
+			"namespace", r.KafkaCluster.GetNamespace(),
+			"label selector", labelSelector.String())
+	}
+
+	// if NodePort is used for any of the external listeners, the corresponding services need to remain
+	// so that clients from outside the Kubernetes cluster can reach the brokers
+	filteredServices := services
+	if r.checkIfNodePortSvcNeeded() {
+		filteredServices = getNonNodePortSvc(services)
+	}
+
+	for i := range filteredServices.Items {
+		svc = filteredServices.Items[i]
+		if !svc.GetDeletionTimestamp().IsZero() {
+			continue
+		}
+		err = r.Client.Delete(ctx, &svc)
+		if err != nil && client.IgnoreNotFound(err) != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// checkIfNodePortSvcNeeded returns true when users specify any of the external listeners to use NodePort
+func (r *Reconciler) checkIfNodePortSvcNeeded() bool {
+	for _, externalListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		if externalListener.GetAccessMethod() == corev1.ServiceTypeNodePort {
+			return true
+		}
+	}
+	return false
+}
+
+func getNonNodePortSvc(services corev1.ServiceList) corev1.ServiceList {
+	var svc corev1.Service
+	var nonNodePortSvc corev1.ServiceList
+
+	for i := range services.Items {
+		svc = services.Items[i]
+		if svc.Spec.Type != corev1.ServiceTypeNodePort {
+			nonNodePortSvc.Items = append(nonNodePortSvc.Items, svc)
+		}
+	}
+
+	return nonNodePortSvc
 }

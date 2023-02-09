@@ -352,7 +352,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			return err
 		}
 		// If dynamic configs can not be set then let the loop continue to the next broker,
-		// after the loop we return error. This solve that case when other brokers could get healthy,
+		// after the loop we return error. This solves that case when other brokers could get healthy,
 		// but the loop exits too soon because dynamic configs can not be set.
 		err = r.reconcilePerBrokerDynamicConfig(broker.Id, brokerConfig, configMap, log)
 		if err != nil {
@@ -373,7 +373,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		return err
 	}
 
-	// in case HeadlessServiceEnabled is changed delete the service that was created by the previous
+	// in case HeadlessServiceEnabled is changed, delete the service that was created by the previous
 	// reconcile flow. The services must be deleted at the end of the reconcile flow after the new services
 	// were created and broker configurations reflecting the new services otherwise the Kafka brokers
 	// won't be reachable by koperator.
@@ -381,7 +381,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		// delete non headless services for all brokers
 		log.V(1).Info("deleting non headless services for all brokers")
 
-		if err := r.deleteNonHeadlessServices(); err != nil {
+		if err := r.deleteNonHeadlessServices(ctx); err != nil {
 			return errors.WrapIfWithDetails(err, "failed to delete non headless services for all brokers",
 				"component", componentName,
 				"clusterName", r.KafkaCluster.Name,
