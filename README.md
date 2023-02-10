@@ -1,19 +1,7 @@
 <p align="center">
 
-  <a href="https://hub.docker.com/r/banzaicloud/kafka-operator/">
-    <img src="https://img.shields.io/docker/cloud/automated/banzaicloud/kafka-operator.svg" alt="Docker Automated build">
-  </a>
-
-  <a href="https://circleci.com/gh/banzaicloud/koperator">
-    <img src="https://circleci.com/gh/banzaicloud/koperator/tree/master.svg?style=shield" alt="CircleCI">
-  </a>
-
   <a href="https://goreportcard.com/report/github.com/banzaicloud/koperator">
     <img src="https://goreportcard.com/badge/github.com/banzaicloud/koperator" alt="Go Report Card">
-  </a>
-
-  <a href="https://github.com/banzaicloud/koperator/">
-    <img src="https://img.shields.io/badge/license-Apache%20v2-orange.svg" alt="license">
   </a>
 
 </p>
