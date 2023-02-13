@@ -36,26 +36,26 @@ func IsAdmissionCantConnect(err error) bool {
 	return apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectErrorMsg)
 }
 
-func IsCantConnectAPIServer(err error) bool {
+func IsAdmissionCantConnectAPIServer(err error) bool {
 	return apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectAPIServerMsg)
 }
 
-func IsInvalidReplicationFactor(err error) bool {
+func IsAdmissionInvalidReplicationFactor(err error) bool {
 	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), invalidReplicationFactorErrMsg)
 }
 
-func IsOutOfRangeReplicationFactor(err error) bool {
+func IsAdmissionOutOfRangeReplicationFactor(err error) bool {
 	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), outOfRangeReplicationFactorErrMsg)
 }
 
-func IsOutOfRangePartitions(err error) bool {
+func IsAdmissionOutOfRangePartitions(err error) bool {
 	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), outOfRangePartitionsErrMsg)
 }
 
-func IsInvalidRemovingStorage(err error) bool {
+func IsAdmissionInvalidRemovingStorage(err error) bool {
 	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), unsupportedRemovingStorageMsg)
 }
 
-func IsErrorDuringValidation(err error) bool {
+func IsAdmissionErrorDuringValidation(err error) bool {
 	return apierrors.IsInternalError(err) && strings.Contains(err.Error(), errorDuringValidationMsg)
 }
