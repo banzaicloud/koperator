@@ -149,8 +149,8 @@ func (r *Reconciler) deleteNonHeadlessServices(ctx context.Context) error {
 	// if NodePort is used for any of the external listeners, the corresponding services need to remain
 	// so that clients from outside the Kubernetes cluster can reach the brokers
 	filteredSvcsToDelete := services
-	if r.checkIfNodePortSvcNeeded() {
-		filteredSvcsToDelete = getNonNodePortSvc(services)
+	if isNodePortAccessMethodInUseAmongExternalListeners(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners) {
+		filteredSvcsToDelete = nonNodePortServices(services)
 	}
 
 	for i := range filteredSvcsToDelete.Items {
@@ -167,22 +167,21 @@ func (r *Reconciler) deleteNonHeadlessServices(ctx context.Context) error {
 	return nil
 }
 
-// checkIfNodePortSvcNeeded returns true when users specify any of the external listeners to use NodePort
-func (r *Reconciler) checkIfNodePortSvcNeeded() bool {
-	for _, externalListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+// isNodePortAccessMethodInUseAmongExternalListeners returns true when users specify any of the external listeners to use NodePort
+func isNodePortAccessMethodInUseAmongExternalListeners(externalListeners []v1beta1.ExternalListenerConfig) bool {
+	for _, externalListener := range externalListeners {
 		if externalListener.GetAccessMethod() == corev1.ServiceTypeNodePort {
 			return true
 		}
 	}
+
 	return false
 }
 
-func getNonNodePortSvc(services corev1.ServiceList) corev1.ServiceList {
-	var svc corev1.Service
+func nonNodePortServices(services corev1.ServiceList) corev1.ServiceList {
 	var nonNodePortSvc corev1.ServiceList
 
-	for i := range services.Items {
-		svc = services.Items[i]
+	for _, svc := range services.Items {
 		if svc.Spec.Type != corev1.ServiceTypeNodePort {
 			nonNodePortSvc.Items = append(nonNodePortSvc.Items, svc)
 		}

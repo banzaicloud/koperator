@@ -24,89 +24,70 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
-func TestCheckIfNodePortSvcNeeded(t *testing.T) {
-	testReconciler := Reconciler{}
-
+func TestIsNodePortAccessMethodInUseAmongExternalListeners(t *testing.T) {
 	testCases := []struct {
-		testName            string
-		kafkaCluster        *v1beta1.KafkaCluster
-		isNodePortSvcNeeded bool
+		testName                                                string
+		externalListeners                                       []v1beta1.ExternalListenerConfig
+		expectedNodePortAccessMethodInUseAmongExternalListeners bool
 	}{
 		{
-			testName: "KafkaCluster with all external listeners using NodePort",
-			kafkaCluster: &v1beta1.KafkaCluster{
-				Spec: v1beta1.KafkaClusterSpec{
-					ListenersConfig: v1beta1.ListenersConfig{
-						ExternalListeners: []v1beta1.ExternalListenerConfig{
-							{
-								AccessMethod: corev1.ServiceTypeNodePort,
-							},
-							{
-								AccessMethod: corev1.ServiceTypeNodePort,
-							},
-						},
-					},
+			testName: "All external listeners use NodePort access method",
+			externalListeners: []v1beta1.ExternalListenerConfig{
+				{
+					AccessMethod: corev1.ServiceTypeNodePort,
+				},
+				{
+					AccessMethod: corev1.ServiceTypeNodePort,
+				},
+				{
+					AccessMethod: corev1.ServiceTypeNodePort,
 				},
 			},
-			isNodePortSvcNeeded: true,
+			expectedNodePortAccessMethodInUseAmongExternalListeners: true,
 		},
 		{
-			testName: "KafkaCluster with all external listeners using non-NodePort",
-			kafkaCluster: &v1beta1.KafkaCluster{
-				Spec: v1beta1.KafkaClusterSpec{
-					ListenersConfig: v1beta1.ListenersConfig{
-						ExternalListeners: []v1beta1.ExternalListenerConfig{
-							{
-								AccessMethod: corev1.ServiceTypeLoadBalancer,
-							},
-							{
-								AccessMethod: corev1.ServiceTypeClusterIP,
-							},
-						},
-					},
+			testName: "All external listeners use non-NodePort access method",
+			externalListeners: []v1beta1.ExternalListenerConfig{
+				{
+					AccessMethod: corev1.ServiceTypeLoadBalancer,
+				},
+				{
+					AccessMethod: corev1.ServiceTypeClusterIP,
 				},
 			},
-			isNodePortSvcNeeded: false,
+			expectedNodePortAccessMethodInUseAmongExternalListeners: false,
 		},
 		{
-			testName: "KafkaCluster with external listeners of mixed usages of NodePort and non-NodePort",
-			kafkaCluster: &v1beta1.KafkaCluster{
-				Spec: v1beta1.KafkaClusterSpec{
-					ListenersConfig: v1beta1.ListenersConfig{
-						ExternalListeners: []v1beta1.ExternalListenerConfig{
-							{
-								AccessMethod: corev1.ServiceTypeLoadBalancer,
-							},
-							{
-								AccessMethod: corev1.ServiceTypeNodePort,
-							},
-						},
-					},
+			testName: "External listeners with mixed usages of NodePort and non-NodePort access methods",
+			externalListeners: []v1beta1.ExternalListenerConfig{
+				{
+					AccessMethod: corev1.ServiceTypeLoadBalancer,
+				},
+				{
+					AccessMethod: corev1.ServiceTypeNodePort,
 				},
 			},
-			isNodePortSvcNeeded: true,
+			expectedNodePortAccessMethodInUseAmongExternalListeners: true,
 		},
 	}
 
 	for _, test := range testCases {
-		testReconciler.KafkaCluster = test.kafkaCluster
-		got := testReconciler.checkIfNodePortSvcNeeded()
 		t.Run(test.testName, func(t *testing.T) {
-			if got != test.isNodePortSvcNeeded {
-				t.Errorf("Expected: %v  Got: %v", test.isNodePortSvcNeeded, got)
-			}
+			actualNodePortAccessMethodInUseAmongExternalListeners := isNodePortAccessMethodInUseAmongExternalListeners(test.externalListeners)
+
+			require.Equal(t, test.expectedNodePortAccessMethodInUseAmongExternalListeners, actualNodePortAccessMethodInUseAmongExternalListeners)
 		})
 	}
 }
 
-func TestGetNonNodePortSvc(t *testing.T) {
+func TestNonNodePortServices(t *testing.T) {
 	testCases := []struct {
-		testName         string
-		services         corev1.ServiceList
-		filteredServices corev1.ServiceList
+		testName                    string
+		services                    corev1.ServiceList
+		expectedNonNodePortServices corev1.ServiceList
 	}{
 		{
-			testName: "Services with mixed NodePort and non-NodePort services",
+			testName: "Services with mixed NodePort and non-NodePort services that are evenly distributed",
 			services: corev1.ServiceList{
 				Items: []corev1.Service{
 					{
@@ -119,6 +100,14 @@ func TestGetNonNodePortSvc(t *testing.T) {
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{
+							Name: "Non-NodePort service 1",
+						},
+						Spec: corev1.ServiceSpec{
+							Type: corev1.ServiceTypeLoadBalancer,
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
 							Name: "NodePort service 2",
 						},
 						Spec: corev1.ServiceSpec{
@@ -127,15 +116,7 @@ func TestGetNonNodePortSvc(t *testing.T) {
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "LoadBalancer service",
-						},
-						Spec: corev1.ServiceSpec{
-							Type: corev1.ServiceTypeLoadBalancer,
-						},
-					},
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "ClusterIP service",
+							Name: "Non-NodePort service 2",
 						},
 						Spec: corev1.ServiceSpec{
 							Type: corev1.ServiceTypeClusterIP,
@@ -143,11 +124,11 @@ func TestGetNonNodePortSvc(t *testing.T) {
 					},
 				},
 			},
-			filteredServices: corev1.ServiceList{
+			expectedNonNodePortServices: corev1.ServiceList{
 				Items: []corev1.Service{
 					{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "LoadBalancer service",
+							Name: "Non-NodePort service 1",
 						},
 						Spec: corev1.ServiceSpec{
 							Type: corev1.ServiceTypeLoadBalancer,
@@ -155,7 +136,58 @@ func TestGetNonNodePortSvc(t *testing.T) {
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "ClusterIP service",
+							Name: "Non-NodePort service 2",
+						},
+						Spec: corev1.ServiceSpec{
+							Type: corev1.ServiceTypeClusterIP,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "Services with mixed NodePort and non-NodePort services that are non-evenly distributed",
+			services: corev1.ServiceList{
+				Items: []corev1.Service{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "Non-NodePort service 1",
+						},
+						Spec: corev1.ServiceSpec{
+							Type: corev1.ServiceTypeLoadBalancer,
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "NodePort service 1",
+						},
+						Spec: corev1.ServiceSpec{
+							Type: corev1.ServiceTypeNodePort,
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "Non-NodePort service 2",
+						},
+						Spec: corev1.ServiceSpec{
+							Type: corev1.ServiceTypeClusterIP,
+						},
+					},
+				},
+			},
+			expectedNonNodePortServices: corev1.ServiceList{
+				Items: []corev1.Service{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "Non-NodePort service 1",
+						},
+						Spec: corev1.ServiceSpec{
+							Type: corev1.ServiceTypeLoadBalancer,
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "Non-NodePort service 2",
 						},
 						Spec: corev1.ServiceSpec{
 							Type: corev1.ServiceTypeClusterIP,
@@ -184,9 +216,17 @@ func TestGetNonNodePortSvc(t *testing.T) {
 							Type: corev1.ServiceTypeNodePort,
 						},
 					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "NodePort service 3",
+						},
+						Spec: corev1.ServiceSpec{
+							Type: corev1.ServiceTypeNodePort,
+						},
+					},
 				},
 			},
-			filteredServices: corev1.ServiceList{},
+			expectedNonNodePortServices: corev1.ServiceList{},
 		},
 		{
 			testName: "Services with only non-NodePort services",
@@ -194,7 +234,7 @@ func TestGetNonNodePortSvc(t *testing.T) {
 				Items: []corev1.Service{
 					{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "LoadBalancer service",
+							Name: "Non-NodePort service 1",
 						},
 						Spec: corev1.ServiceSpec{
 							Type: corev1.ServiceTypeLoadBalancer,
@@ -202,7 +242,15 @@ func TestGetNonNodePortSvc(t *testing.T) {
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "ClusterIP service",
+							Name: "Non-NodePort service 2",
+						},
+						Spec: corev1.ServiceSpec{
+							Type: corev1.ServiceTypeClusterIP,
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "Non-NodePort service 3",
 						},
 						Spec: corev1.ServiceSpec{
 							Type: corev1.ServiceTypeClusterIP,
@@ -210,19 +258,26 @@ func TestGetNonNodePortSvc(t *testing.T) {
 					},
 				},
 			},
-			filteredServices: corev1.ServiceList{
-				Items: []corev1.Service{
+			expectedNonNodePortServices: corev1.ServiceList{
+				Items: []corev1.Service{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "Non-NodePort service 1",
+					},
+					Spec: corev1.ServiceSpec{
+						Type: corev1.ServiceTypeLoadBalancer,
+					},
+				},
 					{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "LoadBalancer service",
+							Name: "Non-NodePort service 2",
 						},
 						Spec: corev1.ServiceSpec{
-							Type: corev1.ServiceTypeLoadBalancer,
+							Type: corev1.ServiceTypeClusterIP,
 						},
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "ClusterIP service",
+							Name: "Non-NodePort service 3",
 						},
 						Spec: corev1.ServiceSpec{
 							Type: corev1.ServiceTypeClusterIP,
@@ -235,8 +290,9 @@ func TestGetNonNodePortSvc(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.testName, func(t *testing.T) {
-			got := getNonNodePortSvc(test.services)
-			require.Equal(t, test.filteredServices, got)
+			actualNonNodePortServices := nonNodePortServices(test.services)
+
+			require.Equal(t, test.expectedNonNodePortServices, actualNonNodePortServices)
 		})
 	}
 }
