@@ -346,15 +346,16 @@ func generateListenerSSLConfig(config *properties.Properties, name string, sslCl
 	}
 }
 
-// mergeSuperUsersPropertyValue merges the super.users property value from the source into the target properties
-func mergeSuperUsersPropertyValue(source *properties.Properties, target *properties.Properties) {
+// mergeSuperUsersPropertyValue merges the target and source super.users property value, and returns it as string.
+// It returns empty string when there were no updates or any  of the super.users property value was empty.
+func mergeSuperUsersPropertyValue(source *properties.Properties, target *properties.Properties) string {
 	sourceVal, foundSource := source.Get("super.users")
 	if !foundSource || sourceVal.IsEmpty() {
-		return
+		return ""
 	}
 	targetVal, foundTarget := target.Get("super.users")
 	if !foundTarget || targetVal.IsEmpty() {
-		return
+		return ""
 	}
 
 	sourceSuperUsers := strings.Split(sourceVal.Value(), ";")
@@ -377,11 +378,10 @@ func mergeSuperUsersPropertyValue(source *properties.Properties, target *propert
 	}
 
 	if inserted {
-		mergedSuperUsers := strings.Join(targetSuperUsers, ";")
-		// Setting string value for a property is not going to run into error, also we don't have error handling at upper levels
-		//nolint:errcheck
-		target.Set("super.users", mergedSuperUsers)
+		return strings.Join(targetSuperUsers, ";")
 	}
+
+	return ""
 }
 
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
@@ -394,9 +394,13 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 
 	// Merge operator generated configuration to the final one
 	if opGenConf != nil {
-		// When there is custom super.users configuration we merge its value into the Koperator generated one
-		// thus finalBrokerConfig contains merged super.users value.
-		mergeSuperUsersPropertyValue(finalBrokerConfig, opGenConf)
+		// When there is custom super.users configuration we merge its value with the Koperator generated one
+		// to avoid overwrite that happens when the finalBrokerConfig.Merge(opGenConf) is called.
+		if suMerged := mergeSuperUsersPropertyValue(finalBrokerConfig, opGenConf); suMerged != "" {
+			// Setting string value for a property is not going to run into error, also we don't return error in this function
+			//nolint:errcheck
+			opGenConf.Set("super.users", suMerged)
+		}
 		finalBrokerConfig.Merge(opGenConf)
 	}
 
