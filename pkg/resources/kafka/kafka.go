@@ -378,11 +378,10 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	// were created and broker configurations reflecting the new services otherwise the Kafka brokers
 	// won't be reachable by koperator.
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
-		// delete non headless services for all brokers
-		log.V(1).Info("deleting non headless services for all brokers")
+		log.V(1).Info("deleting non-headless services for all of the brokers")
 
 		if err := r.deleteNonHeadlessServices(ctx); err != nil {
-			return errors.WrapIfWithDetails(err, "failed to delete non headless services for all brokers",
+			return errors.WrapIfWithDetails(err, "failed to delete non-headless services for all of the brokers",
 				"component", componentName,
 				"clusterName", r.KafkaCluster.Name,
 				"clusterNamespace", r.KafkaCluster.Namespace)
