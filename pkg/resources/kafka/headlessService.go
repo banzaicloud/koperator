@@ -153,8 +153,7 @@ func (r *Reconciler) deleteNonHeadlessServices(ctx context.Context) error {
 		filteredSvcsToDelete = nonNodePortServices(services)
 	}
 
-	for i := range filteredSvcsToDelete.Items {
-		svc = filteredSvcsToDelete.Items[i]
+	for _, svc := range filteredSvcsToDelete.Items {
 		if !svc.GetDeletionTimestamp().IsZero() {
 			continue
 		}
