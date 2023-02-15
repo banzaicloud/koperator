@@ -347,7 +347,7 @@ func generateListenerSSLConfig(config *properties.Properties, name string, sslCl
 }
 
 // mergeSuperUsersPropertyValue merges the target and source super.users property value, and returns it as string.
-// It returns empty string when there were no updates or any  of the super.users property value was empty.
+// It returns empty string when there were no updates or any of the super.users property value was empty.
 func mergeSuperUsersPropertyValue(source *properties.Properties, target *properties.Properties) string {
 	sourceVal, foundSource := source.Get("super.users")
 	if !foundSource || sourceVal.IsEmpty() {
