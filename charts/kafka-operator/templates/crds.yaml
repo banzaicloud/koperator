@@ -19610,7 +19610,10 @@ spec:
                           format: int32
                           type: integer
                         externalStartingPort:
+                          exclusiveMinimum: true
                           format: int32
+                          maximum: 65535
+                          minimum: 0
                           type: integer
                         externalTrafficPolicy:
                           description: externalTrafficPolicy denotes if this Service

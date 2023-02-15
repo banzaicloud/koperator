@@ -15,6 +15,7 @@
 package webhooks
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
@@ -484,5 +485,136 @@ func TestCheckBrokerStorageRemoval(t *testing.T) {
 		} else if res == nil && !testCase.isValid {
 			t.Errorf("there should be storage removal, testName: %s", testCase.testName)
 		}
+	}
+}
+
+func TestCheckExternalListenerStartingPort(t *testing.T) {
+	testCases := []struct {
+		testName         string
+		kafkaClusterSpec v1beta1.KafkaClusterSpec
+		isValid          bool
+	}{
+		{
+			// In this test case, all resulting external port numbers should be valid
+			testName: "valid-2-brokers-2-externalListeners",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				Brokers: []v1beta1.Broker{
+					{Id: int32(900)},
+					{Id: int32(901)},
+					{Id: int32(902)},
+				},
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external1"},
+							ExternalStartingPort: int32(19090),
+						},
+						{
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external2"},
+							ExternalStartingPort: int32(29090),
+						},
+					},
+				},
+			},
+			isValid: true,
+		},
+		{
+			// In this test case, both externalListeners have an externalStartinPort that is already >65535
+			// so both should generate field.Error's for all brokers/brokerIDs
+			testName: "invalid-2-brokers-2-huge-externalListeners",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				Brokers: []v1beta1.Broker{
+					{Id: int32(900)},
+					{Id: int32(901)},
+					{Id: int32(902)},
+				},
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external1"},
+							ExternalStartingPort: int32(79090),
+						},
+						{
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external2"},
+							ExternalStartingPort: int32(89090),
+						},
+					},
+				},
+			},
+			isValid: false,
+		},
+		{
+			// In this test case:
+			// - external1 should be invalid for brokers [11, 102] but not [0] (sum is not >65535)
+			// - external2 should be invalid for brokers [102] but not [0, 11]
+			testName: "partially-invalid-2-brokers-2-atlimit-externalListeners",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				Brokers: []v1beta1.Broker{
+					{Id: int32(0)},
+					{Id: int32(11)},
+					{Id: int32(102)},
+				},
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external1"},
+							ExternalStartingPort: int32(65535),
+						},
+						{
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external2"},
+							ExternalStartingPort: int32(65434),
+						},
+					},
+				},
+			},
+			isValid: false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			got := checkExternalListenerStartingPort(&testCase.kafkaClusterSpec)
+			switch {
+			case testCase.isValid && got != nil:
+				t.Errorf("Message: %s, testName: %s", got.ToAggregate().Error(), testCase.testName)
+			case !testCase.isValid && got == nil:
+				t.Errorf("Message: %s, testName: %s", got.ToAggregate().Error(), testCase.testName)
+			}
+		})
+	}
+}
+
+func TestCheckExternalListenerStartingPort_errorstring(t *testing.T) {
+	testCases := []struct {
+		testName         string
+		kafkaClusterSpec v1beta1.KafkaClusterSpec
+	}{
+		{
+			// In this test case, the resulting field.ErrorList should have 1 element
+			testName: "invalid-ports",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				Brokers: []v1beta1.Broker{
+					{Id: int32(1)},
+				},
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external1"},
+							ExternalStartingPort: int32(65535),
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			got := checkExternalListenerStartingPort(&testCase.kafkaClusterSpec)
+			for _, fldErr := range got {
+				if !strings.Contains(fldErr.Error(), invalidExternalListenerPortErrMsg) {
+					t.Errorf("Error %q does not contain the sentinel error string %q", fldErr, invalidExternalListenerPortErrMsg)
+				}
+			}
+		})
 	}
 }

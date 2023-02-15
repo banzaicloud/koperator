@@ -39,6 +39,8 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	kafkaClusterOld := oldObj.(*banzaicloudv1beta1.KafkaCluster)
 	kafkaClusterNew := newObj.(*banzaicloudv1beta1.KafkaCluster)
 	log := s.Log.WithValues("name", kafkaClusterNew.GetName(), "namespace", kafkaClusterNew.GetNamespace())
+	fmt.Printf("\n\nmylog: Running ValidateUpdate()\n\n")
+	// check storage removal
 	fieldErr, err := checkBrokerStorageRemoval(&kafkaClusterOld.Spec, &kafkaClusterNew.Spec)
 	if err != nil {
 		log.Error(err, errorDuringValidationMsg)
@@ -47,9 +49,17 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	if fieldErr != nil {
 		allErrs = append(allErrs, fieldErr)
 	}
+
+	// check external listeners starting port
+	extListenerErrs := checkExternalListenerStartingPort(&kafkaClusterNew.Spec)
+	if extListenerErrs != nil {
+		allErrs = append(allErrs, extListenerErrs...)
+	}
+
 	if len(allErrs) == 0 {
 		return nil
 	}
+	fmt.Printf("\n\nmylog: Got some field errors during ValidateUpdate()\n\n")
 	log.Info("rejected", "invalid field(s)", allErrs.ToAggregate().Error())
 	return apierrors.NewInvalid(
 		kafkaClusterNew.GroupVersionKind().GroupKind(),
@@ -57,7 +67,26 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 }
 
 func (s KafkaClusterValidator) ValidateCreate(ctx context.Context, obj runtime.Object) error {
-	return nil
+	var allErrs field.ErrorList
+	kafkaCluster := obj.(*banzaicloudv1beta1.KafkaCluster)
+	log := s.Log.WithValues("name", kafkaCluster.GetName(), "namespace", kafkaCluster.GetNamespace())
+
+	fmt.Printf("\n\nmylog: Running ValidateCreate()\n\n")
+
+	// check external listeners starting port
+	extListenerErrs := checkExternalListenerStartingPort(&kafkaCluster.Spec)
+	if extListenerErrs != nil {
+		allErrs = append(allErrs, extListenerErrs...)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	fmt.Printf("\n\nmylog: Got some field errors during ValidateCreate()\n\n")
+	log.Info("rejected", "invalid field(s)", allErrs.ToAggregate().Error())
+	return apierrors.NewInvalid(
+		kafkaCluster.GroupVersionKind().GroupKind(),
+		kafkaCluster.Name, allErrs)
 }
 
 func (s KafkaClusterValidator) ValidateDelete(ctx context.Context, obj runtime.Object) error {
@@ -132,4 +161,35 @@ func getMissingMounthPathLocation(mounthPath string, kafkaClusterSpec *banzaiclo
 		}
 	}
 	return fromConfigGroup
+}
+
+// checkExternalListenerPort checks the generic sanity of the resulting external port (valid port number <65535)
+// ?? currently doesn't consider NodePort logic - is it even possible ??
+// ?? currently doesn't consider overlapping ports due to misconfiguration - is that even a thing ??
+func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
+	// if there are no externalListeners, there is no need to perform the rest of the check in this function
+	if kafkaClusterSpec.ListenersConfig.ExternalListeners == nil {
+		return nil
+	}
+
+	fmt.Printf("\n\nmylog: Running checkExternalListenerStartingPort()\n\n")
+
+	const maxPort int32 = 65535
+	var allErrs field.ErrorList
+
+	for i, extLstn := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
+		var errbrokerids []int32
+		for _, broker := range kafkaClusterSpec.Brokers {
+			if extLstn.ExternalStartingPort+broker.Id < 1 || extLstn.ExternalStartingPort+broker.Id > maxPort {
+				errbrokerids = append(errbrokerids, broker.Id)
+			}
+		}
+		if len(errbrokerids) > 0 {
+			errmsg := invalidExternalListenerPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate invalid port numbers (not between 1 and 65535) for brokers %v", extLstn.Name, errbrokerids)
+			fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extLstn.ExternalStartingPort, errmsg)
+			allErrs = append(allErrs, fldErr)
+		}
+	}
+
+	return allErrs
 }

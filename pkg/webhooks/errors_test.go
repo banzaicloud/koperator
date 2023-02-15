@@ -166,6 +166,39 @@ func TestIsAdmissionInvalidRemovingStorage(t *testing.T) {
 	}
 }
 
+func TestIsAdmissionInvalidExternalListenerPort(t *testing.T) {
+	testCases := []struct {
+		testName  string
+		fieldErrs field.ErrorList
+		want      bool
+	}{
+		{
+			testName:  "field.Invalid_externalListeners.[0]",
+			fieldErrs: append(field.ErrorList{}, field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(0).Child("externalStartingPort"), int32(79090), invalidExternalListenerPortErrMsg+": "+fmt.Sprintf("ExternalListener '%s' would generate invalid port numbers (not between 1 and 65535) for brokers %v", "test-external1", []int32{0, 1, 2}))),
+			want:      true,
+		},
+		{
+			testName:  "field.Invalid_externalListeners.[1]_wrong-error-message",
+			fieldErrs: append(field.ErrorList{}, field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(1).Child("externalStartingPort"), int32(59090), "wrong-error-message"+": "+fmt.Sprintf("ExternalListener '%s' would generate invalid port numbers (not between 1 and 65535) for brokers %v", "test-external1", []int32{901, 902}))),
+			want:      false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			kafkaCluster := banzaicloudv1beta1.KafkaCluster{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaCluster"}}
+
+			err := apierrors.NewInvalid(
+				kafkaCluster.GetObjectKind().GroupVersionKind().GroupKind(),
+				kafkaCluster.Name, tc.fieldErrs)
+
+			if got := IsAdmissionInvalidExternalListenerPort(err); got != tc.want {
+				t.Errorf("Check External Listener Port Error message. Expected: %t ; Got: %t", tc.want, got)
+			}
+		})
+	}
+}
+
 func TestIsAdmissionErrorDuringValidation(t *testing.T) {
 	testCases := []struct {
 		testName string
