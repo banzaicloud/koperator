@@ -24,21 +24,13 @@ spec:
         num.io.threads=16
         num.network.threads=6
       kafkaHeapOpts: "-Xmx10G -Xms10G"
-      resourceReqs:
+      resourceRequirements:
         limits:
           memory: "16Gi"
           cpu: "7500m"
         requests:
           memory: "12Gi"
           cpu: "4000m"
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: nodepool.banzaicloud.io/name
-                  operator: In
-                  values:
-                    - pool2
       storageConfigs:
         - mountPath: "/kafka-logs"
           pvcSpec:
@@ -106,6 +98,7 @@ spec:
       metric.sampler.partition.assignor.class=com.linkedin.kafka.cruisecontrol.monitor.sampling.DefaultMetricSamplerPartitionAssignor
       # The metric sampling interval in milliseconds
       metric.sampling.interval.ms=120000
+      metric.anomaly.detection.interval.ms=180000
       # The partition metrics window size in milliseconds
       partition.metrics.window.ms=300000
       # The number of partition metric windows to keep in memory
@@ -264,7 +257,7 @@ spec:
           }
         ]
       }
-    clusterConfigs: |
+    clusterConfig: |
       {
         "min.insync.replicas": 3
       }
