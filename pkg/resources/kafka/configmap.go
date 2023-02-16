@@ -347,11 +347,11 @@ func generateListenerSSLConfig(config *properties.Properties, name string, sslCl
 // mergeSuperUsersPropertyValue merges the target and source super.users property value, and returns it as string.
 // It returns empty string when there were no updates or any of the super.users property value was empty.
 func mergeSuperUsersPropertyValue(source *properties.Properties, target *properties.Properties) string {
-	sourceVal, foundSource := source.Get("super.users")
+	sourceVal, foundSource := source.Get(kafkautils.KafkaConfigSuperUsers)
 	if !foundSource || sourceVal.IsEmpty() {
 		return ""
 	}
-	targetVal, foundTarget := target.Get("super.users")
+	targetVal, foundTarget := target.Get(kafkautils.KafkaConfigSuperUsers)
 	if !foundTarget || targetVal.IsEmpty() {
 		return ""
 	}
@@ -397,7 +397,7 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 		if suMerged := mergeSuperUsersPropertyValue(finalBrokerConfig, opGenConf); suMerged != "" {
 			// Setting string value for a property is not going to run into error, also we don't return error in this function
 			//nolint:errcheck
-			opGenConf.Set("super.users", suMerged)
+			opGenConf.Set(kafkautils.KafkaConfigSuperUsers, suMerged)
 		}
 		finalBrokerConfig.Merge(opGenConf)
 	}
