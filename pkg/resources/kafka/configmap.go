@@ -281,10 +281,10 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 				log.Error(errors.New("inter broker listener name already set"), "config error")
 			}
 		}
-		UpperedListenerType := iListener.Type.ToUpperString()
-		UpperedListenerName := strings.ToUpper(iListener.Name)
-		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
-		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, iListener.ContainerPort))
+		upperedListenerType := iListener.Type.ToUpperString()
+		upperedListenerName := strings.ToUpper(iListener.Name)
+		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", upperedListenerName, upperedListenerType))
+		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", upperedListenerName, iListener.ContainerPort))
 		// Add internal listeners SSL configuration
 		if iListener.Type == v1beta1.SecurityProtocolSSL {
 			generateListenerSSLConfig(config, iListener.Name, iListener.SSLClientAuth, serverPasses[iListener.Name], log)
@@ -292,10 +292,10 @@ func generateListenerSpecificConfig(l *v1beta1.ListenersConfig, serverPasses map
 	}
 
 	for _, eListener := range l.ExternalListeners {
-		UpperedListenerType := eListener.Type.ToUpperString()
-		UpperedListenerName := strings.ToUpper(eListener.Name)
-		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", UpperedListenerName, UpperedListenerType))
-		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", UpperedListenerName, eListener.ContainerPort))
+		upperedListenerType := eListener.Type.ToUpperString()
+		upperedListenerName := strings.ToUpper(eListener.Name)
+		securityProtocolMapConfig = append(securityProtocolMapConfig, fmt.Sprintf("%s:%s", upperedListenerName, upperedListenerType))
+		listenerConfig = append(listenerConfig, fmt.Sprintf("%s://:%d", upperedListenerName, eListener.ContainerPort))
 		// Add external listeners SSL configuration
 		if eListener.Type == v1beta1.SecurityProtocolSSL {
 			generateListenerSSLConfig(config, eListener.Name, eListener.SSLClientAuth, serverPasses[eListener.Name], log)
