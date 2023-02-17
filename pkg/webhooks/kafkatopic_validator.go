@@ -178,16 +178,16 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 				// Comparing KafkaTopic configuration with the Kafka topic
 				if existing.NumPartitions != topic.Spec.Partitions {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("partitions"), topic.Spec.Partitions,
-						fmt.Sprintf(`initial KafkaTopic configuration must be the same as the already exist kafka topic configuration (partitions: given: %v present: %v)`, topic.Spec.Partitions, existing.NumPartitions)))
+						fmt.Sprintf(`initial KafkaTopic partition number must be the same as the already exist kafka topic has  (given: %v present: %v)`, topic.Spec.Partitions, existing.NumPartitions)))
 				}
 				if existing.ReplicationFactor != int16(topic.Spec.ReplicationFactor) {
-					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("partitions"), topic.Spec.Partitions,
-						fmt.Sprintf(`initial KafkaTopic configuration must be the same as the already exist kafka topic configuration (replication factor: given: %v present: %v)`, topic.Spec.Partitions, existing.NumPartitions)))
+					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("replicationfactor"), topic.Spec.ReplicationFactor,
+						fmt.Sprintf(`initial KafkaTopic replication factor must be the same as the already exist kafka topic has (given: %v present: %v)`, topic.Spec.ReplicationFactor, existing.ReplicationFactor)))
 				}
 
 				if diff := cmp.Diff(existing.ConfigEntries, util.MapStringStringPointer(topic.Spec.Config), cmpopts.EquateEmpty()); diff != "" {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("config"), topic.Spec.Partitions,
-						fmt.Sprintf(`initial KafkaTopic configuration must be the same as the already exist kafka topic configuration (topic configuration differs from the present topic: %s`, diff)))
+						fmt.Sprintf(`initial KafkaTopic configuration must be the same as the already exist kafka topic configuration (difference: %s`, diff)))
 				}
 
 				if len(allErrs) > 0 {
