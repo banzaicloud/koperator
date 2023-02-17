@@ -26,12 +26,12 @@ import (
 
 	//nolint:staticcheck
 
-	"github.com/go-logr/logr"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
+	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 func newMockCluster() *v1beta1.KafkaCluster {
@@ -72,8 +72,7 @@ func newMockClients(cluster *v1beta1.KafkaCluster) (runtimeClient.WithWatch, kaf
 	return client, kafkaClient, returnMockedKafkaClient
 }
 
-func TestValidateTopic(t *testing.T) {
-	topic := newMockTopic()
+func TestCheckKafkaTopicExist(t *testing.T) {
 	cluster := newMockCluster()
 	client, kafkaClient, returnMockedKafkaClient := newMockClients(cluster)
 
@@ -82,8 +81,142 @@ func TestValidateTopic(t *testing.T) {
 		NewKafkaFromCluster: returnMockedKafkaClient,
 	}
 
+	err := kafkaClient.CreateTopic(&kafkaclient.CreateTopicOptions{Name: "test-topic", ReplicationFactor: 1, Partitions: 2, Config: util.MapStringStringPointer(map[string]string{"testConfKey": "testConfVal"})})
+	if err != nil {
+		t.Error("creation of topic should have been successful")
+	}
+
+	testCases := []struct {
+		testName         string
+		kafkaTopic       v1alpha1.KafkaTopic
+		expectedErrCount int
+	}{
+		{
+			testName: "topic configuration is same and managedBy koperator",
+			kafkaTopic: v1alpha1.KafkaTopic{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{ManagedByAnnotationKey: ManagedByAnnotationValue},
+				},
+				Spec: v1alpha1.KafkaTopicSpec{
+					Name:              "test-topic",
+					Partitions:        2,
+					ReplicationFactor: 1,
+					Config:            map[string]string{"testConfKey": "testConfVal"},
+					ClusterRef:        v1alpha1.ClusterReference{},
+				},
+			},
+			expectedErrCount: 0,
+		},
+		{
+			testName: "topic configuration is same and not managedBy koperator",
+			kafkaTopic: v1alpha1.KafkaTopic{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+				Spec: v1alpha1.KafkaTopicSpec{
+					Name:              "test-topic",
+					Partitions:        2,
+					ReplicationFactor: 1,
+					Config:            map[string]string{"testConfKey": "testConfVal"},
+					ClusterRef:        v1alpha1.ClusterReference{},
+				},
+			},
+			expectedErrCount: 1,
+		},
+		{
+			testName: "topic replication factor is different and managedBy koperator",
+			kafkaTopic: v1alpha1.KafkaTopic{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{ManagedByAnnotationKey: ManagedByAnnotationValue},
+				},
+				Spec: v1alpha1.KafkaTopicSpec{
+					Name:              "test-topic",
+					Partitions:        2,
+					ReplicationFactor: 5,
+					Config:            map[string]string{"testConfKey": "testConfVal"},
+					ClusterRef:        v1alpha1.ClusterReference{},
+				},
+			},
+			expectedErrCount: 1,
+		},
+		{
+			testName: "topic partition is different and managedBy koperator",
+			kafkaTopic: v1alpha1.KafkaTopic{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{ManagedByAnnotationKey: ManagedByAnnotationValue},
+				},
+				Spec: v1alpha1.KafkaTopicSpec{
+					Name:              "test-topic",
+					Partitions:        5,
+					ReplicationFactor: 1,
+					Config:            map[string]string{"testConfKey": "testConfVal"},
+					ClusterRef:        v1alpha1.ClusterReference{},
+				},
+			},
+			expectedErrCount: 1,
+		},
+
+		{
+			testName: "topic partition and replication is different and not managedBy koperator",
+			kafkaTopic: v1alpha1.KafkaTopic{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{ManagedByAnnotationKey: ManagedByAnnotationValue},
+				},
+				Spec: v1alpha1.KafkaTopicSpec{
+					Name:              "test-topic",
+					Partitions:        5,
+					ReplicationFactor: 5,
+					Config:            map[string]string{"testConfKey": "testConfVal"},
+					ClusterRef:        v1alpha1.ClusterReference{},
+				},
+			},
+			expectedErrCount: 3,
+		},
+		{
+			testName: "topic configuration is different and managedBy koperator",
+			kafkaTopic: v1alpha1.KafkaTopic{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{ManagedByAnnotationKey: ManagedByAnnotationValue},
+				},
+				Spec: v1alpha1.KafkaTopicSpec{
+					Name:              "test-topic",
+					Partitions:        2,
+					ReplicationFactor: 1,
+					Config:            map[string]string{"testConfKey": "testConfVal1"},
+					ClusterRef:        v1alpha1.ClusterReference{},
+				},
+			},
+			expectedErrCount: 1,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			t.Parallel()
+			fieldErrorList, err := kafkaTopicValidator.checkKafka(context.Background(), &testCase.kafkaTopic, cluster)
+			if err != nil {
+				t.Errorf("err should be nil, got: %s", err)
+			}
+
+			if len(fieldErrorList) != testCase.expectedErrCount {
+				t.Errorf("%s", fieldErrorList.ToAggregate().Error())
+			}
+		})
+	}
+}
+
+func TestValidateTopic(t *testing.T) {
+	topic := newMockTopic()
+	cluster := newMockCluster()
+	client, _, returnMockedKafkaClient := newMockClients(cluster)
+
+	kafkaTopicValidator := KafkaTopicValidator{
+		Client:              client,
+		NewKafkaFromCluster: returnMockedKafkaClient,
+	}
+
 	// Test non-existent kafka cluster
-	fieldErrorList, err := kafkaTopicValidator.validateKafkaTopic(context.Background(), topic, logr.Discard())
+	fieldErrorList, err := kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -104,7 +237,7 @@ func TestValidateTopic(t *testing.T) {
 	topic.Spec.Partitions = 2
 
 	// Test kafka topic with invalid replication factor
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic, logr.Discard())
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -118,7 +251,7 @@ func TestValidateTopic(t *testing.T) {
 	// test topic marked for deletion
 	now := metav1.Now()
 	topic.SetDeletionTimestamp(&now)
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic, logr.Discard())
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -131,7 +264,7 @@ func TestValidateTopic(t *testing.T) {
 	// test cluster marked for deletion
 	cluster.SetDeletionTimestamp(&now)
 
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic, logr.Discard())
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -146,7 +279,7 @@ func TestValidateTopic(t *testing.T) {
 	}
 
 	// test no rejection reasons
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic, logr.Discard())
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -158,30 +291,12 @@ func TestValidateTopic(t *testing.T) {
 
 	// Replication factor larger than num brokers
 	topic.Spec.ReplicationFactor = 2
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic, logr.Discard())
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
 	if len(fieldErrorList) != 1 {
 		t.Error("Expected not allowed due to replication factor larger than num brokers, got allowed")
-	}
-
-	topic.Spec.ReplicationFactor = 1
-
-	// Test overwrite attempt
-	err = kafkaClient.CreateTopic(&kafkaclient.CreateTopicOptions{Name: "test-topic", ReplicationFactor: 1, Partitions: 2})
-	if err != nil {
-		t.Error("creation of topic should have been successful")
-	}
-	topic.Name = "test-topic"
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic, logr.Discard())
-	if err != nil {
-		t.Errorf("err should be nil, got: %s", err)
-	}
-	if len(fieldErrorList) != 1 {
-		t.Error("Expected not allowed due to existing topic with same name, got allowed")
-	} else if !strings.Contains(fieldErrorList.ToAggregate().Error(), "topic already exists on kafka cluster") {
-		t.Error("Expected not allowed for reason: already exists")
 	}
 
 	// Add topic and test existing topic reason
@@ -191,7 +306,7 @@ func TestValidateTopic(t *testing.T) {
 
 	// partition decrease attempt
 	topic.Spec.Partitions = 1
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic, logr.Discard())
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -204,7 +319,7 @@ func TestValidateTopic(t *testing.T) {
 	// replication factor change attempt
 	topic.Spec.Partitions = 2
 	topic.Spec.ReplicationFactor = 2
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic, logr.Discard())
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
