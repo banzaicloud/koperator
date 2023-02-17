@@ -32,6 +32,7 @@ import (
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/util"
+	"github.com/banzaicloud/koperator/pkg/webhooks"
 )
 
 var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
@@ -216,6 +217,10 @@ func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker 
 		return err
 	}
 	if exists != nil {
+		// When the topic is not managed by the Koperator then not our responsibility to delete it.
+		if val, ok := topic.GetLabels()[webhooks.ManagedByAnnotationKey]; ok && val != webhooks.ManagedByAnnotationValue {
+			return nil
+		}
 		// DeleteTopic with wait to make sure it goes down fully in case of cluster
 		// deletion.
 		// TODO (tinyzimmer): Perhaps this should only wait when it's the cluster

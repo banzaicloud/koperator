@@ -17,6 +17,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"emperror.dev/errors"
 
@@ -27,12 +28,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 
 	banzaicloudv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/util"
+)
+
+const (
+	ManagedByAnnotationKey   = "managedBy"
+	ManagedByAnnotationValue = "koperator"
 )
 
 type KafkaTopicValidator struct {
@@ -126,13 +133,12 @@ func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *ban
 		allErrs = append(allErrs, fieldErr)
 	}
 
-	fieldErr, err = s.checkKafka(ctx, topic, cluster)
+	fieldErrList, err := s.checkKafka(ctx, topic, cluster)
 	if err != nil {
 		return nil, err
 	}
-	if fieldErr != nil {
-		allErrs = append(allErrs, fieldErr)
-	}
+
+	allErrs = append(allErrs, fieldErrList...)
 
 	return allErrs, nil
 }
@@ -140,7 +146,7 @@ func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *ban
 // checkKafka creates a Kafka admin client and connects to the Kafka brokers to check
 // whether the referred topic exists, and what are its properties
 func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloudv1alpha1.KafkaTopic,
-	cluster *banzaicloudv1beta1.KafkaCluster) (*field.Error, error) {
+	cluster *banzaicloudv1beta1.KafkaCluster) (field.ErrorList, error) {
 	// retrieve an admin client for the cluster
 	broker, closeClient, err := s.NewKafkaFromCluster(s.Client, cluster)
 	if err != nil {
@@ -154,36 +160,60 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 		return nil, errors.WrapIff(err, fmt.Sprintf("failed to list topics for kafka cluster: %s", topic.Spec.ClusterRef.Name))
 	}
 
+	var allErrs field.ErrorList
 	// The topic exists
 	if existing != nil {
 		// Check if this is the correct CR for this topic
 		topicCR := &banzaicloudv1alpha1.KafkaTopic{}
 		if err := s.Client.Get(ctx, types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, topicCR); err != nil {
+			// Checking that the validation is request update
 			if apierrors.IsNotFound(err) {
-				// We permit to create KafkaTopic CR when topic with same name already present on the Kafka cluster
-				s.Log.Info(fmt.Sprintf("topic already exists on kafka cluster '%s'", topic.Spec.ClusterRef.Name))
+				if manager, ok := topic.GetLabels()[ManagedByAnnotationKey]; !ok || strings.ToLower(manager) != ManagedByAnnotationValue {
+					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("name"), topic.Spec.Name,
+						fmt.Sprintf(`topic already exists on kafka cluster "%s",
+					when you want that topic to be managed by Koperator to be able to modify its configuration through KafkaTopic CR,
+					add "%s: %s" annotation for this KafkaTopic CR`, topic.Spec.Name, ManagedByAnnotationKey, ManagedByAnnotationValue)))
+				}
+				// Comparing KafkaTopic configuration with the Kafka topic
+				if existing.NumPartitions != topic.Spec.Partitions {
+					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("partitions"), topic.Spec.Partitions,
+						fmt.Sprintf(`initial KafkaTopic configuration must be the same as the already exist kafka topic configuration (partitions: given %v present %v)`, topic.Spec.Partitions, existing.NumPartitions)))
+				}
+				if existing.ReplicationFactor != int16(topic.Spec.ReplicationFactor) {
+					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("partitions"), topic.Spec.Partitions,
+						fmt.Sprintf(`initial KafkaTopic configuration must be the same as the already exist kafka topic configuration (replication factor: given %v present %v)`, topic.Spec.Partitions, existing.NumPartitions)))
+				}
+
+				if diff := cmp.Diff(existing.ConfigEntries, util.MapStringStringPointer(topic.Spec.Config)); diff != "" {
+					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("config"), topic.Spec.Partitions,
+						fmt.Sprintf(`initial KafkaTopic configuration must be the same as the already exist kafka topic configuration (topic configuration differs from the present topic: %s`, diff)))
+				}
+
+				if len(allErrs) > 0 {
+					return allErrs, nil
+				}
 			} else {
 				return nil, errors.WrapIff(err, cantConnectAPIServerMsg)
 			}
 		}
 		// make sure the user isn't trying to decrease partition count
 		if existing.NumPartitions > topic.Spec.Partitions {
-			logMsg := fmt.Sprintf("kafka does not support decreasing partition count on an existing topic (from %v to %v)", existing.NumPartitions, topic.Spec.Partitions)
-			return field.Invalid(field.NewPath("spec").Child("partitions"), topic.Spec.Partitions, logMsg), nil
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("partitions"), topic.Spec.Partitions,
+				fmt.Sprintf("kafka does not support decreasing partition count on an existing topic (from %v to %v)", existing.NumPartitions, topic.Spec.Partitions)))
 		}
 
 		// check if the user is trying to change the replication factor
 		if existing.ReplicationFactor != int16(topic.Spec.ReplicationFactor) {
-			logMsg := fmt.Sprintf("kafka does not support changing the replication factor on an existing topic (from %v to %v)", existing.ReplicationFactor, topic.Spec.ReplicationFactor)
-			return field.Invalid(field.NewPath("spec").Child("replicationFactor"), topic.Spec.ReplicationFactor, logMsg), nil
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("replicationFactor"), topic.Spec.ReplicationFactor,
+				fmt.Sprintf("kafka does not support changing the replication factor on an existing topic (from %v to %v)", existing.ReplicationFactor, topic.Spec.ReplicationFactor)))
 		}
 
 		// the topic does not exist check if requesting a replication factor larger than the broker size
 	} else if int(topic.Spec.ReplicationFactor) > broker.NumBrokers() {
-		logMsg := fmt.Sprintf("%s (available brokers: %v)", invalidReplicationFactorErrMsg, broker.NumBrokers())
-		return field.Invalid(field.NewPath("spec").Child("replicationFactor"), topic.Spec.ReplicationFactor, logMsg), nil
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("replicationFactor"), topic.Spec.ReplicationFactor,
+			fmt.Sprintf("%s (available brokers: %v)", invalidReplicationFactorErrMsg, broker.NumBrokers())))
 	}
-	return nil, nil
+	return allErrs, nil
 }
 
 // checkExistingKafkaTopicCRs checks whether there's any other duplicate KafkaTopic CR exists
