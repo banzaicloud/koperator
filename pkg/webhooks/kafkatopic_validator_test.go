@@ -203,7 +203,6 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 					t.Errorf("missing error: %s from: %s", err, fieldErrorList.ToAggregate().Error())
 				}
 			}
-
 		})
 	}
 }
