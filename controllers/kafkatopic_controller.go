@@ -18,9 +18,11 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,6 +38,13 @@ import (
 )
 
 var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
+
+func isTopicManagedByKoperator(topic metav1.Object) bool {
+	if manager, ok := topic.GetAnnotations()[webhooks.TopicManagedByKoperatorAnnotationKey]; !ok || strings.ToLower(manager) == webhooks.TopicManagedByKoperatorAnnotationValue {
+		return true
+	}
+	return false
+}
 
 // SetupKafkaTopicWithManager registers kafka topic controller with manager
 func SetupKafkaTopicWithManager(mgr ctrl.Manager, maxConcurrentReconciles int) *ctrl.Builder {
@@ -106,6 +115,17 @@ func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.
 	// Check if marked for deletion and if so run finalizers
 	if k8sutil.IsMarkedForDeletion(instance.ObjectMeta) {
 		return r.checkFinalizers(ctx, broker, instance)
+	}
+
+	// No need to do anything when the kafka topic is not managed by Koperator
+	if !isTopicManagedByKoperator(instance) {
+		// if instance.Status.State != v1alpha1.TopicStateUnmanaged {
+		// 	instance.Status = v1alpha1.KafkaTopicStatus{State: v1alpha1.TopicStateUnmanaged}
+		// 	if err := r.Client.Status().Update(ctx, instance); err != nil {
+		// 		return requeueWithError(reqLogger, "failed to update kafkatopic status", err)
+		// 	}
+		// }
+		return reconciled()
 	}
 
 	// Check if the topic already exists
@@ -195,8 +215,11 @@ func (r *KafkaTopicReconciler) checkFinalizers(ctx context.Context, broker kafka
 	reqLogger.Info("Kafka topic is marked for deletion")
 	var err error
 	if util.StringSliceContains(topic.GetFinalizers(), topicFinalizer) {
-		if err = r.finalizeKafkaTopic(reqLogger, broker, topic); err != nil {
-			return requeueWithError(reqLogger, "failed to finalize kafkatopic", err)
+		// Remove topic from Kafka cluster when it is managed by Koperator
+		if isTopicManagedByKoperator(topic) {
+			if err = r.finalizeKafkaTopic(reqLogger, broker, topic); err != nil {
+				return requeueWithError(reqLogger, "failed to finalize kafkatopic", err)
+			}
 		}
 		if err = r.removeFinalizer(ctx, topic); err != nil {
 			return requeueWithError(reqLogger, "failed to remove finalizer from kafkatopic", err)
@@ -217,10 +240,6 @@ func (r *KafkaTopicReconciler) finalizeKafkaTopic(reqLogger logr.Logger, broker 
 		return err
 	}
 	if exists != nil {
-		// When the topic is not managed by the Koperator, it is not our responsibility to delete it.
-		if val, ok := topic.GetAnnotations()[webhooks.ManagedByAnnotationKey]; ok && val != webhooks.ManagedByAnnotationValue {
-			return nil
-		}
 		// DeleteTopic with wait to make sure it goes down fully in case of cluster
 		// deletion.
 		// TODO (tinyzimmer): Perhaps this should only wait when it's the cluster

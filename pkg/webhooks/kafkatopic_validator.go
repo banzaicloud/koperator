@@ -39,8 +39,8 @@ import (
 )
 
 const (
-	ManagedByAnnotationKey   = "managedBy"
-	ManagedByAnnotationValue = "koperator"
+	TopicManagedByKoperatorAnnotationKey   = "managedBy"
+	TopicManagedByKoperatorAnnotationValue = "koperator"
 )
 
 type KafkaTopicValidator struct {
@@ -169,11 +169,11 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 		if err := s.Client.Get(ctx, types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, topicCR); err != nil {
 			// Checking that the validation request is update
 			if apierrors.IsNotFound(err) {
-				if manager, ok := topic.GetAnnotations()[ManagedByAnnotationKey]; !ok || strings.ToLower(manager) != ManagedByAnnotationValue {
+				if manager, ok := topic.GetAnnotations()[TopicManagedByKoperatorAnnotationKey]; !ok || strings.ToLower(manager) != TopicManagedByKoperatorAnnotationValue {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("name"), topic.Spec.Name,
 						fmt.Sprintf(`topic "%s" already exists on kafka cluster and it is not managed by Koperator,
 					when you want to be managed by Koperator to be able to modify its configuration through KafkaTopic CR,
-					add this "%s: %s" annotation for this KafkaTopic CR`, topic.Spec.Name, ManagedByAnnotationKey, ManagedByAnnotationValue)))
+					add this "%s: %s" annotation for this KafkaTopic CR`, topic.Spec.Name, TopicManagedByKoperatorAnnotationKey, TopicManagedByKoperatorAnnotationValue)))
 				}
 				// Comparing KafkaTopic configuration with the Kafka topic
 				if existing.NumPartitions != topic.Spec.Partitions {
@@ -187,7 +187,7 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 
 				if diff := cmp.Diff(existing.ConfigEntries, util.MapStringStringPointer(topic.Spec.Config), cmpopts.EquateEmpty()); diff != "" {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("config"), topic.Spec.Partitions,
-						fmt.Sprintf(`initial KafkaTopic configuration must be the same as the already exist kafka topic configuration (difference: %s`, diff)))
+						fmt.Sprintf(`initial KafkaTopic configuration must be the same as the already exist kafka topic configuration difference: %s`, diff)))
 				}
 
 				if len(allErrs) > 0 {

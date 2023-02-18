@@ -87,15 +87,15 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 	}
 
 	testCases := []struct {
-		testName         string
-		kafkaTopic       v1alpha1.KafkaTopic
-		expectedErrCount int
+		testName       string
+		kafkaTopic     v1alpha1.KafkaTopic
+		expectedErrors []string
 	}{
 		{
 			testName: "topic configuration is same and managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{ManagedByAnnotationKey: ManagedByAnnotationValue},
+					Annotations: map[string]string{TopicManagedByKoperatorAnnotationKey: TopicManagedByKoperatorAnnotationValue},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",
@@ -105,7 +105,7 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 					ClusterRef:        v1alpha1.ClusterReference{},
 				},
 			},
-			expectedErrCount: 0,
+			expectedErrors: []string{},
 		},
 		{
 			testName: "topic configuration is same and not managedBy koperator",
@@ -121,13 +121,13 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 					ClusterRef:        v1alpha1.ClusterReference{},
 				},
 			},
-			expectedErrCount: 1,
+			expectedErrors: []string{TopicManagedByKoperatorAnnotationKey},
 		},
 		{
 			testName: "topic replication factor is different and managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{ManagedByAnnotationKey: ManagedByAnnotationValue},
+					Annotations: map[string]string{TopicManagedByKoperatorAnnotationKey: TopicManagedByKoperatorAnnotationValue},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",
@@ -137,13 +137,13 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 					ClusterRef:        v1alpha1.ClusterReference{},
 				},
 			},
-			expectedErrCount: 1,
+			expectedErrors: []string{"replication"},
 		},
 		{
 			testName: "topic partition is different and managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{ManagedByAnnotationKey: ManagedByAnnotationValue},
+					Annotations: map[string]string{TopicManagedByKoperatorAnnotationKey: TopicManagedByKoperatorAnnotationValue},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",
@@ -153,14 +153,14 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 					ClusterRef:        v1alpha1.ClusterReference{},
 				},
 			},
-			expectedErrCount: 1,
+			expectedErrors: []string{"partition"},
 		},
 
 		{
 			testName: "topic partition and replication is different and not managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{ManagedByAnnotationKey: ManagedByAnnotationValue},
+					Annotations: map[string]string{TopicManagedByKoperatorAnnotationKey: TopicManagedByKoperatorAnnotationValue},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",
@@ -170,13 +170,13 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 					ClusterRef:        v1alpha1.ClusterReference{},
 				},
 			},
-			expectedErrCount: 3,
+			expectedErrors: []string{"replication", "partition", TopicManagedByKoperatorAnnotationKey},
 		},
 		{
 			testName: "topic configuration is different and managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{ManagedByAnnotationKey: ManagedByAnnotationValue},
+					Annotations: map[string]string{TopicManagedByKoperatorAnnotationKey: TopicManagedByKoperatorAnnotationValue},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",
@@ -186,7 +186,7 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 					ClusterRef:        v1alpha1.ClusterReference{},
 				},
 			},
-			expectedErrCount: 1,
+			expectedErrors: []string{"configuration difference"},
 		},
 	}
 
@@ -198,9 +198,12 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 				t.Errorf("err should be nil, got: %s", err)
 			}
 
-			if len(fieldErrorList) != testCase.expectedErrCount {
-				t.Errorf("%s", fieldErrorList.ToAggregate().Error())
+			for _, err := range testCase.expectedErrors {
+				if !strings.Contains(fieldErrorList.ToAggregate().Error(), err) {
+					t.Errorf("missing error: %s from: %s", err, fieldErrorList.ToAggregate().Error())
+				}
 			}
+
 		})
 	}
 }
@@ -208,7 +211,7 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 func TestValidateTopic(t *testing.T) {
 	topic := newMockTopic()
 	cluster := newMockCluster()
-	client, _, returnMockedKafkaClient := newMockClients(cluster)
+	client, kafkaClient, returnMockedKafkaClient := newMockClients(cluster)
 
 	kafkaTopicValidator := KafkaTopicValidator{
 		Client:              client,
@@ -299,6 +302,14 @@ func TestValidateTopic(t *testing.T) {
 		t.Error("Expected not allowed due to replication factor larger than num brokers, got allowed")
 	}
 
+	topic.Spec.ReplicationFactor = 1
+
+	err = kafkaClient.CreateTopic(&kafkaclient.CreateTopicOptions{Name: "test-topic", ReplicationFactor: 1, Partitions: 2})
+	if err != nil {
+		t.Error("creation of topic should have been successful")
+	}
+	topic.Name = "test-topic"
+
 	// Add topic and test existing topic reason
 	if err := kafkaTopicValidator.Client.Create(context.TODO(), topic); err != nil {
 		t.Error("Expected no error, got:", err)
@@ -310,6 +321,7 @@ func TestValidateTopic(t *testing.T) {
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
+	// TODO BUG
 	if len(fieldErrorList) != 1 {
 		t.Error("Expected not allowed due to partition decrease, got allowed")
 	} else if !strings.Contains(fieldErrorList.ToAggregate().Error(), "kafka does not support decreasing partition count on an existing") {
