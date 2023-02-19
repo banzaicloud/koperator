@@ -58,8 +58,6 @@ const (
 	KafkaPatternTypeDefault  KafkaPatternType = "literal"
 	// TopicStateCreated describes the status of a KafkaTopic as created
 	TopicStateCreated TopicState = "created"
-	// // TopicStateUnmanaged describes the status of a KafkaTopic as not managed by Koperator
-	// TopicStateUnmanaged TopicState = "unmanaged"
 	// UserStateCreated describes the status of a KafkaUser as created
 	UserStateCreated UserState = "created"
 	// TLSJKSKeyStore is where a JKS keystore is stored in a user secret when requested

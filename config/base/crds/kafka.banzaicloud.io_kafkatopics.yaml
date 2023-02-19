@@ -73,10 +73,13 @@ spec:
           status:
             description: KafkaTopicStatus defines the observed state of KafkaTopic
             properties:
+              managedBy:
+                type: string
               state:
                 description: TopicState defines the state of a KafkaTopic
                 type: string
             required:
+            - managedBy
             - state
             type: object
         type: object

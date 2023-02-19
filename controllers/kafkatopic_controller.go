@@ -17,6 +17,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -40,7 +41,7 @@ import (
 var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
 
 func isTopicManagedByKoperator(topic metav1.Object) bool {
-	if manager, ok := topic.GetAnnotations()[webhooks.TopicManagedByKoperatorAnnotationKey]; !ok || strings.ToLower(manager) == webhooks.TopicManagedByKoperatorAnnotationValue {
+	if manager, ok := topic.GetAnnotations()[webhooks.TopicManagedByAnnotationKey]; !ok || strings.ToLower(manager) == webhooks.TopicManagedByKoperatorAnnotationValue {
 		return true
 	}
 	return false
@@ -105,6 +106,19 @@ func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.
 		return requeueWithError(reqLogger, "failed to lookup referenced cluster", err)
 	}
 
+	// Set managed status based on KafkaTopic managedBy annotation
+	managedByStatus := webhooks.TopicManagedByKoperatorAnnotationValue
+	if !isTopicManagedByKoperator(instance) {
+		managedByStatus = instance.GetAnnotations()[webhooks.TopicManagedByAnnotationKey]
+	}
+
+	if instance.Status.ManagedBy != managedByStatus {
+		instance.Status.ManagedBy = managedByStatus
+		if err := r.Client.Status().Update(ctx, instance); err != nil {
+			return requeueWithError(reqLogger, "failed to update kafkatopic status", err)
+		}
+	}
+
 	// Get a kafka connection
 	broker, close, err := newKafkaFromCluster(r.Client, cluster)
 	if err != nil {
@@ -119,12 +133,7 @@ func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.
 
 	// No need to do anything when the kafka topic is not managed by Koperator
 	if !isTopicManagedByKoperator(instance) {
-		// if instance.Status.State != v1alpha1.TopicStateUnmanaged {
-		// 	instance.Status = v1alpha1.KafkaTopicStatus{State: v1alpha1.TopicStateUnmanaged}
-		// 	if err := r.Client.Status().Update(ctx, instance); err != nil {
-		// 		return requeueWithError(reqLogger, "failed to update kafkatopic status", err)
-		// 	}
-		// }
+		reqLogger.Info(fmt.Sprintf("topic '%s' is not managed by %s it is managed by '%s' ==> reconciled", instance.Spec.Name, webhooks.TopicManagedByKoperatorAnnotationValue, instance.GetAnnotations()[webhooks.TopicManagedByAnnotationKey]))
 		return reconciled()
 	}
 

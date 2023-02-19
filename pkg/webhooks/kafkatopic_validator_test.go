@@ -95,7 +95,7 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 			testName: "topic configuration is same and managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{TopicManagedByKoperatorAnnotationKey: TopicManagedByKoperatorAnnotationValue},
+					Annotations: map[string]string{TopicManagedByAnnotationKey: TopicManagedByKoperatorAnnotationValue},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",
@@ -121,13 +121,13 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 					ClusterRef:        v1alpha1.ClusterReference{},
 				},
 			},
-			expectedErrors: []string{TopicManagedByKoperatorAnnotationKey},
+			expectedErrors: []string{TopicManagedByAnnotationKey},
 		},
 		{
 			testName: "topic replication factor is different and managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{TopicManagedByKoperatorAnnotationKey: TopicManagedByKoperatorAnnotationValue},
+					Annotations: map[string]string{TopicManagedByAnnotationKey: TopicManagedByKoperatorAnnotationValue},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",
@@ -143,7 +143,7 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 			testName: "topic partition is different and managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{TopicManagedByKoperatorAnnotationKey: TopicManagedByKoperatorAnnotationValue},
+					Annotations: map[string]string{TopicManagedByAnnotationKey: TopicManagedByKoperatorAnnotationValue},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",
@@ -160,7 +160,7 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 			testName: "topic partition and replication is different and not managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{TopicManagedByKoperatorAnnotationKey: TopicManagedByKoperatorAnnotationValue},
+					Annotations: map[string]string{TopicManagedByAnnotationKey: TopicManagedByKoperatorAnnotationValue},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",
@@ -170,13 +170,13 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 					ClusterRef:        v1alpha1.ClusterReference{},
 				},
 			},
-			expectedErrors: []string{"replication", "partition", TopicManagedByKoperatorAnnotationKey},
+			expectedErrors: []string{"replication", "partition", TopicManagedByAnnotationKey},
 		},
 		{
 			testName: "topic configuration is different and managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{TopicManagedByKoperatorAnnotationKey: TopicManagedByKoperatorAnnotationValue},
+					Annotations: map[string]string{TopicManagedByAnnotationKey: TopicManagedByKoperatorAnnotationValue},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",

@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	TopicManagedByKoperatorAnnotationKey   = "managedBy"
+	TopicManagedByAnnotationKey            = "managedBy"
 	TopicManagedByKoperatorAnnotationValue = "koperator"
 )
 
@@ -169,11 +169,11 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 		if err := s.Client.Get(ctx, types.NamespacedName{Name: topic.Name, Namespace: topic.Namespace}, topicCR); err != nil {
 			// Checking that the validation request is update
 			if apierrors.IsNotFound(err) {
-				if manager, ok := topic.GetAnnotations()[TopicManagedByKoperatorAnnotationKey]; !ok || strings.ToLower(manager) != TopicManagedByKoperatorAnnotationValue {
+				if manager, ok := topic.GetAnnotations()[TopicManagedByAnnotationKey]; !ok || strings.ToLower(manager) != TopicManagedByKoperatorAnnotationValue {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("name"), topic.Spec.Name,
 						fmt.Sprintf(`topic "%s" already exists on kafka cluster and it is not managed by Koperator,
 					when you want to be managed by Koperator to be able to modify its configuration through KafkaTopic CR,
-					add this "%s: %s" annotation for this KafkaTopic CR`, topic.Spec.Name, TopicManagedByKoperatorAnnotationKey, TopicManagedByKoperatorAnnotationValue)))
+					add this "%s: %s" annotation for this KafkaTopic CR`, topic.Spec.Name, TopicManagedByAnnotationKey, TopicManagedByKoperatorAnnotationValue)))
 				}
 				// Comparing KafkaTopic configuration with the Kafka topic
 				if existing.NumPartitions != topic.Spec.Partitions {
