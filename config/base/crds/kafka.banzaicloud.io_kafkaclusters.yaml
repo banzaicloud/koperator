@@ -3749,15 +3749,14 @@ spec:
                         are empty and NodePort access method is selected the NodePortNodeAdddressType
                         defines the external listener address that shall be used in
                         the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
-                        The NodePortNodeAddressType's values can be ExternalIP, InternalIP,
-                        InternalDNS,ExternalDNS, NodeHostName
+                        The NodePortNodeAddressType's values can be Hostname, ExternalIP,
+                        InternalIP, InternalDNS,ExternalDNS
                       enum:
                       - Hostname
                       - ExternalIP
                       - InternalIP
                       - InternalDNS
                       - ExternalDNS
-                      - NodeHostName
                       type: string
                     nodeSelector:
                       additionalProperties:
@@ -9891,15 +9890,14 @@ spec:
                             are empty and NodePort access method is selected the NodePortNodeAdddressType
                             defines the external listener address that shall be used
                             in the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
-                            The NodePortNodeAddressType's values can be ExternalIP,
-                            InternalIP, InternalDNS,ExternalDNS, NodeHostName
+                            The NodePortNodeAddressType's values can be Hostname,
+                            ExternalIP, InternalIP, InternalDNS,ExternalDNS
                           enum:
                           - Hostname
                           - ExternalIP
                           - InternalIP
                           - InternalDNS
                           - ExternalDNS
-                          - NodeHostName
                           type: string
                         nodeSelector:
                           additionalProperties:
