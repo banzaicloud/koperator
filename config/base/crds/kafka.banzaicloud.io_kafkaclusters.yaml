@@ -3745,12 +3745,19 @@ spec:
                         of the "hostnameOverride" field.
                       type: object
                     nodePortNodeAddressType:
-                      description: 'When "hostNameOverride" and brokerConfig.nodePortExternalIP
+                      description: When "hostNameOverride" and brokerConfig.nodePortExternalIP
                         are empty and NodePort access method is selected the NodePortNodeAdddressType
-                        defines the external listener Address that shall be used in
+                        defines the external listener address that shall be used in
                         the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
-                        If NodePortNodeAddressType is not provided the first non empty
-                        address is used in the following order: 1. ExternalIP 2. InternalIP'
+                        The NodePortNodeAddressType's values can be ExternalIP, InternalIP,
+                        InternalDNS,ExternalDNS, NodeHostName
+                      enum:
+                      - Hostname
+                      - ExternalIP
+                      - InternalIP
+                      - InternalDNS
+                      - ExternalDNS
+                      - NodeHostName
                       type: string
                     nodeSelector:
                       additionalProperties:
@@ -9880,13 +9887,19 @@ spec:
                             to the description of the "hostnameOverride" field.
                           type: object
                         nodePortNodeAddressType:
-                          description: 'When "hostNameOverride" and brokerConfig.nodePortExternalIP
+                          description: When "hostNameOverride" and brokerConfig.nodePortExternalIP
                             are empty and NodePort access method is selected the NodePortNodeAdddressType
-                            defines the external listener Address that shall be used
+                            defines the external listener address that shall be used
                             in the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
-                            If NodePortNodeAddressType is not provided the first non
-                            empty address is used in the following order: 1. ExternalIP
-                            2. InternalIP'
+                            The NodePortNodeAddressType's values can be ExternalIP,
+                            InternalIP, InternalDNS,ExternalDNS, NodeHostName
+                          enum:
+                          - Hostname
+                          - ExternalIP
+                          - InternalIP
+                          - InternalDNS
+                          - ExternalDNS
+                          - NodeHostName
                           type: string
                         nodeSelector:
                           additionalProperties:
