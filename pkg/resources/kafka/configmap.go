@@ -346,6 +346,44 @@ func generateListenerSSLConfig(config *properties.Properties, name string, sslCl
 	}
 }
 
+// mergeSuperUsersPropertyValue merges the target and source super.users property value, and returns it as string.
+// It returns empty string when there were no updates or any of the super.users property value was empty.
+func mergeSuperUsersPropertyValue(source *properties.Properties, target *properties.Properties) string {
+	sourceVal, foundSource := source.Get("super.users")
+	if !foundSource || sourceVal.IsEmpty() {
+		return ""
+	}
+	targetVal, foundTarget := target.Get("super.users")
+	if !foundTarget || targetVal.IsEmpty() {
+		return ""
+	}
+
+	sourceSuperUsers := strings.Split(sourceVal.Value(), ";")
+	targetSuperUsers := strings.Split(targetVal.Value(), ";")
+
+	inserted := false
+	for _, sourceSuperUser := range sourceSuperUsers {
+		found := false
+		for _, targetSuperUser := range targetSuperUsers {
+			if sourceSuperUser == targetSuperUser {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			inserted = true
+			targetSuperUsers = append(targetSuperUsers, sourceSuperUser)
+		}
+	}
+
+	if inserted {
+		return strings.Join(targetSuperUsers, ";")
+	}
+
+	return ""
+}
+
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
 	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
 	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) string {
@@ -356,6 +394,13 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 
 	// Merge operator generated configuration to the final one
 	if opGenConf != nil {
+		// When there is custom super.users configuration we merge its value with the Koperator generated one
+		// to avoid overwrite that happens when the finalBrokerConfig.Merge(opGenConf) is called.
+		if suMerged := mergeSuperUsersPropertyValue(finalBrokerConfig, opGenConf); suMerged != "" {
+			// Setting string value for a property is not going to run into error, also we don't return error in this function
+			//nolint:errcheck
+			opGenConf.Set("super.users", suMerged)
+		}
 		finalBrokerConfig.Merge(opGenConf)
 	}
 

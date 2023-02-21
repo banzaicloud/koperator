@@ -122,7 +122,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 				volumeState, ok := brokerState.GracefulActionState.VolumeStates[mountPath]
-				if !ok {
+				if !ok || volumeState.CruiseControlOperationReference == nil {
 					return false
 				}
 
@@ -202,7 +202,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 				volumeState, ok := brokerState.GracefulActionState.VolumeStates[mountPath]
-				if !ok {
+				if !ok || volumeState.CruiseControlOperationReference == nil {
 					return false
 				}
 
@@ -286,7 +286,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 				volumeState, ok := brokerState.GracefulActionState.VolumeStates[mountPath]
-				if !ok {
+				if !ok || volumeState.CruiseControlOperationReference == nil {
 					return false
 				}
 

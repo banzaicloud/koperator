@@ -53,3 +53,29 @@ func TestNew(t *testing.T) {
 		}
 	}
 }
+
+func TestUnwrapMethod(t *testing.T) {
+	// testError is a custom error type used to test the features of unwrapping errors using errors.Is() and errors.As()
+	type testError struct{ error }
+	var tstErr = testError{errors.New("inner-error")}
+
+	for _, errType := range errorTypes {
+		errType := errType
+		err := New(errType, tstErr, "test-message")
+
+		// This tests the use of errors.Is() using the Unwrap() method
+		if ok := errors.Is(err, tstErr); !ok {
+			t.Errorf("Type %T does not Unwrap() correctly using errors.Is(). Expected: %t ; Got: %t", errType, true, ok)
+		}
+
+		var c testError
+		// This tests the use of errors.As() using the Unwrap() method
+		if ok := errors.As(err, &c); !ok {
+			t.Errorf("Type %T does not Unwrap() correctly using errors.As(). Expected: %t ; Got: %t", errType, true, ok)
+			// This tests whether errors.As() succeeded in extracting the correct wrapped error into the given variable, not just the boolean return value
+			if c != tstErr {
+				t.Errorf("Type %T does not extract correctly the wrapped error using errors.As(). Expected: %v ; Got: %v", errType, tstErr, c)
+			}
+		}
+	}
+}

@@ -38,7 +38,6 @@ import (
 
 	apiutil "github.com/banzaicloud/koperator/api/util"
 	banzaiv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
-	"github.com/banzaicloud/koperator/api/v1beta1"
 	banzaiv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	koperatorccconf "github.com/banzaicloud/koperator/pkg/resources/cruisecontrol"
 	"github.com/banzaicloud/koperator/pkg/scale"
@@ -370,7 +369,7 @@ func brokersJBODSelector(brokerIDs []string, capacityConfigJSON string) (brokers
 			continue
 		}
 
-		brokerId, ok, err := unstructured.NestedString(brokerCapacityMap, v1beta1.BrokerIdLabelKey)
+		brokerId, ok, err := unstructured.NestedString(brokerCapacityMap, banzaiv1beta1.BrokerIdLabelKey)
 		if err != nil {
 			return nil, nil, errors.WrapIfWithDetails(err,
 				"could not retrieve broker Id from broker capacity configuration",

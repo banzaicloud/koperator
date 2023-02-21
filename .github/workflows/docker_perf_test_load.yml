@@ -1,13 +1,10 @@
-name: Docker
+name: Docker / Performance test load
 on:
   push:
     branches:
       - master
     tags:
-      - "v?[0-9]+.[0-9]+.[0-9]+"
-      - "v?[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
-      - "v?[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+"
-#  pull_request:
+      - "koperator-performance-test-load/v?[0-9]+.[0-9]+.[0-9]+"
 env:
   PLATFORMS: linux/amd64
 jobs:
@@ -17,8 +14,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
       - name: Cache Docker layers
         uses: actions/cache@v3
         with:
@@ -26,6 +25,7 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ github.ref }}
           restore-keys: |
             ${{ runner.os }}-buildx-
+
       - name: Determine tag or commit
         uses: haya14busa/action-cond@v1
         id: refortag
@@ -33,11 +33,18 @@ jobs:
           cond: ${{ startsWith(github.ref, 'refs/tags/') }}
           if_true: ${{ github.ref }}
           if_false: latest
+
       - name: Determine image tag
         id: imagetag
         run: echo "value=${TAG_OR_BRANCH##*/}" >> $GITHUB_OUTPUT
         env:
           TAG_OR_BRANCH: ${{ steps.refortag.outputs.value }}
+
+      - name: Setup Docker metadata
+        id: setup-docker-metadata
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/banzaicloud/koperator-performance-test-load
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
@@ -45,11 +52,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
-      - name: Build kafka-operator
+
+      - name: Build koperator-performance-test-load
         uses: docker/build-push-action@v3
         with:
-          tags: ghcr.io/banzaicloud/kafka-operator:${{ steps.imagetag.outputs.value }}
-          file: Dockerfile
+          tags: ghcr.io/banzaicloud/koperator-performance-test-load:${{ steps.imagetag.outputs.value }}
+          file: docs/benchmarks/loadgens/Dockerfile
           platforms: ${{ env.PLATFORMS }}
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache

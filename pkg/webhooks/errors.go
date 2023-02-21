@@ -26,20 +26,36 @@ const (
 	invalidReplicationFactorErrMsg    = "replication factor is larger than the number of nodes in the kafka cluster"
 	outOfRangeReplicationFactorErrMsg = "replication factor must be larger than 0 (or set it to be -1 to use the broker's default)"
 	outOfRangePartitionsErrMsg        = "number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)"
-	removingStorageMsg                = "removing storage from a broker is not supported"
-	errorDuringValidationMsg          = "error during validation"
+	unsupportedRemovingStorageMsg     = "removing storage from a broker is not supported"
+
+	// errorDuringValidationMsg is added to infrastructure errors (e.g. failed to connect), but not to field validation errors
+	errorDuringValidationMsg = "error during validation"
 )
 
 func IsAdmissionCantConnect(err error) bool {
-	if apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectErrorMsg) {
-		return true
-	}
-	return false
+	return apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectErrorMsg)
 }
 
-func IsInvalidReplicationFactor(err error) bool {
-	if apierrors.IsInvalid(err) && strings.Contains(err.Error(), invalidReplicationFactorErrMsg) {
-		return true
-	}
-	return false
+func IsAdmissionCantConnectAPIServer(err error) bool {
+	return apierrors.IsInternalError(err) && strings.Contains(err.Error(), cantConnectAPIServerMsg)
+}
+
+func IsAdmissionInvalidReplicationFactor(err error) bool {
+	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), invalidReplicationFactorErrMsg)
+}
+
+func IsAdmissionOutOfRangeReplicationFactor(err error) bool {
+	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), outOfRangeReplicationFactorErrMsg)
+}
+
+func IsAdmissionOutOfRangePartitions(err error) bool {
+	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), outOfRangePartitionsErrMsg)
+}
+
+func IsAdmissionInvalidRemovingStorage(err error) bool {
+	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), unsupportedRemovingStorageMsg)
+}
+
+func IsAdmissionErrorDuringValidation(err error) bool {
+	return apierrors.IsInternalError(err) && strings.Contains(err.Error(), errorDuringValidationMsg)
 }
