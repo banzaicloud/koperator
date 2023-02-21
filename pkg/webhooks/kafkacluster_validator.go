@@ -39,7 +39,7 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	kafkaClusterOld := oldObj.(*banzaicloudv1beta1.KafkaCluster)
 	kafkaClusterNew := newObj.(*banzaicloudv1beta1.KafkaCluster)
 	log := s.Log.WithValues("name", kafkaClusterNew.GetName(), "namespace", kafkaClusterNew.GetNamespace())
-	fmt.Printf("\n\nmylog: Running ValidateUpdate()\n\n")
+
 	// check storage removal
 	fieldErr, err := checkBrokerStorageRemoval(&kafkaClusterOld.Spec, &kafkaClusterNew.Spec)
 	if err != nil {
@@ -50,8 +50,8 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 		allErrs = append(allErrs, fieldErr)
 	}
 
-	// check external listeners starting port
-	extListenerErrs := checkExternalListenerStartingPort(&kafkaClusterNew.Spec)
+	// check external listeners
+	extListenerErrs := checkExternalListeners(&kafkaClusterNew.Spec)
 	if extListenerErrs != nil {
 		allErrs = append(allErrs, extListenerErrs...)
 	}
@@ -59,7 +59,7 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	if len(allErrs) == 0 {
 		return nil
 	}
-	fmt.Printf("\n\nmylog: Got some field errors during ValidateUpdate()\n\n")
+
 	log.Info("rejected", "invalid field(s)", allErrs.ToAggregate().Error())
 	return apierrors.NewInvalid(
 		kafkaClusterNew.GroupVersionKind().GroupKind(),
@@ -71,10 +71,8 @@ func (s KafkaClusterValidator) ValidateCreate(ctx context.Context, obj runtime.O
 	kafkaCluster := obj.(*banzaicloudv1beta1.KafkaCluster)
 	log := s.Log.WithValues("name", kafkaCluster.GetName(), "namespace", kafkaCluster.GetNamespace())
 
-	fmt.Printf("\n\nmylog: Running ValidateCreate()\n\n")
-
-	// check external listeners starting port
-	extListenerErrs := checkExternalListenerStartingPort(&kafkaCluster.Spec)
+	// check external listeners
+	extListenerErrs := checkExternalListeners(&kafkaCluster.Spec)
 	if extListenerErrs != nil {
 		allErrs = append(allErrs, extListenerErrs...)
 	}
@@ -82,7 +80,7 @@ func (s KafkaClusterValidator) ValidateCreate(ctx context.Context, obj runtime.O
 	if len(allErrs) == 0 {
 		return nil
 	}
-	fmt.Printf("\n\nmylog: Got some field errors during ValidateCreate()\n\n")
+
 	log.Info("rejected", "invalid field(s)", allErrs.ToAggregate().Error())
 	return apierrors.NewInvalid(
 		kafkaCluster.GroupVersionKind().GroupKind(),
@@ -163,20 +161,56 @@ func getMissingMounthPathLocation(mounthPath string, kafkaClusterSpec *banzaiclo
 	return fromConfigGroup
 }
 
-// checkExternalListenerPort checks the generic sanity of the resulting external port (valid port number <65535)
-// ?? currently doesn't consider NodePort logic - is it even possible ??
-// ?? currently doesn't consider overlapping ports due to misconfiguration - is that even a thing ??
-func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
+// checkExternalListeners validates the spec.listenersConfig.externalListeners object
+func checkExternalListeners(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
 	// if there are no externalListeners, there is no need to perform the rest of the check in this function
 	if kafkaClusterSpec.ListenersConfig.ExternalListeners == nil {
 		return nil
 	}
 
-	fmt.Printf("\n\nmylog: Running checkExternalListenerStartingPort()\n\n")
-
-	const maxPort int32 = 65535
 	var allErrs field.ErrorList
 
+	// check values of externalStartingPort
+	//const maxPort int32 = 65535
+	//for i, extLstn := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
+	//	var errbrokerids []int32
+	//	for _, broker := range kafkaClusterSpec.Brokers {
+	//		if extLstn.ExternalStartingPort+broker.Id < 1 || extLstn.ExternalStartingPort+broker.Id > maxPort {
+	//			errbrokerids = append(errbrokerids, broker.Id)
+	//		}
+	//	}
+	//	if len(errbrokerids) > 0 {
+	//		errmsg := invalidExternalListenerPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate invalid port numbers (not between 1 and 65535) for brokers %v", extLstn.Name, errbrokerids)
+	//		fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extLstn.ExternalStartingPort, errmsg)
+	//		allErrs = append(allErrs, fldErr)
+	//	}
+	//}
+
+	// check values of containerPort
+	//var containerPorts = make(map[int32]int)
+	//for _, extLstn := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
+	//	containerPorts[extLstn.ContainerPort] += 1
+	//}
+	//for i, extLstn := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
+	//	if containerPorts[extLstn.ContainerPort] > 1 {
+	//		fldErr := field.Duplicate(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("containerPort"), extLstn.ContainerPort)
+	//		allErrs = append(allErrs, fldErr)
+	//	}
+	//}
+
+	// check values of externalStartingPort
+	allErrs = append(allErrs, checkExternalListenerStartingPort(kafkaClusterSpec)...)
+
+	// check values of containerPort
+	allErrs = append(allErrs, checkExternalListenerContainerPort(kafkaClusterSpec.ListenersConfig.ExternalListeners)...)
+
+	return allErrs
+}
+
+// checkExternalListenerStartingPort checks the generic sanity of the resulting external port (valid port number <65535)
+func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
+	var allErrs field.ErrorList
+	const maxPort int32 = 65535
 	for i, extLstn := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
 		var errbrokerids []int32
 		for _, broker := range kafkaClusterSpec.Brokers {
@@ -190,6 +224,21 @@ func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 			allErrs = append(allErrs, fldErr)
 		}
 	}
+	return allErrs
+}
 
+// checkExternalListenerContainerPort checks for duplicate containerPort numbers which would subsequently generate an error when creating a Service
+func checkExternalListenerContainerPort(externalListeners []banzaicloudv1beta1.ExternalListenerConfig) field.ErrorList {
+	var allErrs field.ErrorList
+	var containerPorts = make(map[int32]int)
+	for _, extLstn := range externalListeners {
+		containerPorts[extLstn.ContainerPort] += 1
+	}
+	for i, extLstn := range externalListeners {
+		if containerPorts[extLstn.ContainerPort] > 1 {
+			fldErr := field.Duplicate(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("containerPort"), extLstn.ContainerPort)
+			allErrs = append(allErrs, fldErr)
+		}
+	}
 	return allErrs
 }

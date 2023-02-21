@@ -499,19 +499,19 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 			testName: "valid-2-brokers-2-externalListeners",
 			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
-					{Id: int32(900)},
-					{Id: int32(901)},
-					{Id: int32(902)},
+					{Id: 900},
+					{Id: 901},
+					{Id: 902},
 				},
 				ListenersConfig: v1beta1.ListenersConfig{
 					ExternalListeners: []v1beta1.ExternalListenerConfig{
 						{
-							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external1"},
-							ExternalStartingPort: int32(19090),
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "test-external1"},
+							ExternalStartingPort: 19090,
 						},
 						{
-							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external2"},
-							ExternalStartingPort: int32(29090),
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "test-external2"},
+							ExternalStartingPort: 29090,
 						},
 					},
 				},
@@ -524,19 +524,19 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 			testName: "invalid-2-brokers-2-huge-externalListeners",
 			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
-					{Id: int32(900)},
-					{Id: int32(901)},
-					{Id: int32(902)},
+					{Id: 900},
+					{Id: 901},
+					{Id: 902},
 				},
 				ListenersConfig: v1beta1.ListenersConfig{
 					ExternalListeners: []v1beta1.ExternalListenerConfig{
 						{
-							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external1"},
-							ExternalStartingPort: int32(79090),
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "test-external1"},
+							ExternalStartingPort: 79090,
 						},
 						{
-							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external2"},
-							ExternalStartingPort: int32(89090),
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "test-external2"},
+							ExternalStartingPort: 89090,
 						},
 					},
 				},
@@ -550,19 +550,19 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 			testName: "partially-invalid-2-brokers-2-atlimit-externalListeners",
 			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
-					{Id: int32(0)},
-					{Id: int32(11)},
-					{Id: int32(102)},
+					{Id: 0},
+					{Id: 11},
+					{Id: 102},
 				},
 				ListenersConfig: v1beta1.ListenersConfig{
 					ExternalListeners: []v1beta1.ExternalListenerConfig{
 						{
-							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external1"},
-							ExternalStartingPort: int32(65535),
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "test-external1"},
+							ExternalStartingPort: 65535,
 						},
 						{
-							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external2"},
-							ExternalStartingPort: int32(65434),
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "test-external2"},
+							ExternalStartingPort: 65434,
 						},
 					},
 				},
@@ -594,13 +594,13 @@ func TestCheckExternalListenerStartingPort_errorstring(t *testing.T) {
 			testName: "invalid-ports",
 			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
-					{Id: int32(1)},
+					{Id: 1},
 				},
 				ListenersConfig: v1beta1.ListenersConfig{
 					ExternalListeners: []v1beta1.ExternalListenerConfig{
 						{
-							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "external1"},
-							ExternalStartingPort: int32(65535),
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "test-external1"},
+							ExternalStartingPort: 65535,
 						},
 					},
 				},
@@ -614,6 +614,53 @@ func TestCheckExternalListenerStartingPort_errorstring(t *testing.T) {
 				if !strings.Contains(fldErr.Error(), invalidExternalListenerPortErrMsg) {
 					t.Errorf("Error %q does not contain the sentinel error string %q", fldErr, invalidExternalListenerPortErrMsg)
 				}
+			}
+		})
+	}
+}
+
+func TestCheckExternalListenerContainerPort(t *testing.T) {
+	testCases := []struct {
+		testName          string
+		externalListeners []v1beta1.ExternalListenerConfig
+		isValid           bool
+	}{
+		{
+			testName: "different_values",
+			externalListeners: []v1beta1.ExternalListenerConfig{
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external1", ContainerPort: 9094},
+				},
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2", ContainerPort: 9095},
+				},
+			},
+			isValid: true,
+		},
+		{
+			testName: "duplicate_value",
+			externalListeners: []v1beta1.ExternalListenerConfig{
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external1", ContainerPort: 9094},
+				},
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2", ContainerPort: 9094},
+				},
+				{
+					CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2", ContainerPort: 9096},
+				},
+			},
+			isValid: false,
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			got := checkExternalListenerContainerPort(testCase.externalListeners)
+			switch {
+			case testCase.isValid && got != nil:
+				t.Errorf("Message: %s, testName: %s", got.ToAggregate().Error(), testCase.testName)
+			case !testCase.isValid && got == nil:
+				t.Errorf("Message: %s, testName: %s", got.ToAggregate().Error(), testCase.testName)
 			}
 		})
 	}
