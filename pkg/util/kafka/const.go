@@ -14,17 +14,8 @@
 
 package kafka
 
-const (
-	// AllBrokerServiceTemplate template for Kafka all broker service
-	AllBrokerServiceTemplate = "%s-all-broker"
-	// HeadlessServiceTemplate template for Kafka headless service
-	HeadlessServiceTemplate = "%s-headless"
-	// NodePortServiceTemplate template for Kafka nodeport service
-	NodePortServiceTemplate = "%s-%d-%s"
-
-	//ConfigPropertyName name in the ConfigMap's Data field for the broker configuration
-	ConfigPropertyName = "broker-config"
-)
+// ConfigPropertyName name in the ConfigMap's Data field for the broker configuration
+const ConfigPropertyName = "broker-config"
 
 // used for Kafka configurations
 const (
