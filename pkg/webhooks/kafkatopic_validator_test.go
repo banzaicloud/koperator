@@ -32,6 +32,7 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/util"
+	"github.com/go-logr/logr"
 )
 
 func newMockCluster() *v1beta1.KafkaCluster {
@@ -218,7 +219,7 @@ func TestValidateTopic(t *testing.T) {
 	}
 
 	// Test non-existent kafka cluster
-	fieldErrorList, err := kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
+	fieldErrorList, err := kafkaTopicValidator.validateKafkaTopic(context.Background(), logr.Discard(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -239,7 +240,7 @@ func TestValidateTopic(t *testing.T) {
 	topic.Spec.Partitions = 2
 
 	// Test kafka topic with invalid replication factor
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), logr.Discard(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -253,7 +254,7 @@ func TestValidateTopic(t *testing.T) {
 	// test topic marked for deletion
 	now := metav1.Now()
 	topic.SetDeletionTimestamp(&now)
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), logr.Discard(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -266,7 +267,7 @@ func TestValidateTopic(t *testing.T) {
 	// test cluster marked for deletion
 	cluster.SetDeletionTimestamp(&now)
 
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), logr.Discard(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -281,7 +282,7 @@ func TestValidateTopic(t *testing.T) {
 	}
 
 	// test no rejection reasons
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), logr.Discard(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -293,7 +294,7 @@ func TestValidateTopic(t *testing.T) {
 
 	// Replication factor larger than num brokers
 	topic.Spec.ReplicationFactor = 2
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), logr.Discard(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
@@ -316,11 +317,11 @@ func TestValidateTopic(t *testing.T) {
 
 	// partition decrease attempt
 	topic.Spec.Partitions = 1
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), logr.Discard(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}
-	// TODO BUG
+
 	if len(fieldErrorList) != 1 {
 		t.Error("Expected not allowed due to partition decrease, got allowed")
 	} else if !strings.Contains(fieldErrorList.ToAggregate().Error(), "kafka does not support decreasing partition count on an existing") {
@@ -330,7 +331,7 @@ func TestValidateTopic(t *testing.T) {
 	// replication factor change attempt
 	topic.Spec.Partitions = 2
 	topic.Spec.ReplicationFactor = 2
-	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), topic)
+	fieldErrorList, err = kafkaTopicValidator.validateKafkaTopic(context.Background(), logr.Discard(), topic)
 	if err != nil {
 		t.Errorf("err should be nil, got: %s", err)
 	}

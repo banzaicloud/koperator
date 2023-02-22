@@ -63,22 +63,23 @@ func (s KafkaTopicValidator) ValidateDelete(ctx context.Context, obj runtime.Obj
 
 func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) error {
 	kafkaTopic := obj.(*banzaicloudv1alpha1.KafkaTopic)
-	s.Log = s.Log.WithValues("name", kafkaTopic.GetName(), "namespace", kafkaTopic.GetNamespace())
-	fieldErrs, err := s.validateKafkaTopic(ctx, kafkaTopic)
+	log := s.Log.WithValues("name", kafkaTopic.GetName(), "namespace", kafkaTopic.GetNamespace())
+
+	fieldErrs, err := s.validateKafkaTopic(ctx, log, kafkaTopic)
 	if err != nil {
-		s.Log.Error(err, errorDuringValidationMsg)
+		log.Error(err, errorDuringValidationMsg)
 		return apierrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
 	}
 	if len(fieldErrs) == 0 {
 		return nil
 	}
-	s.Log.Info("rejected", "invalid field(s)", fieldErrs.ToAggregate().Error())
+	log.Info("rejected", "invalid field(s)", fieldErrs.ToAggregate().Error())
 	return apierrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 }
 
-func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *banzaicloudv1alpha1.KafkaTopic) (field.ErrorList, error) {
+func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, log logr.Logger, topic *banzaicloudv1alpha1.KafkaTopic) (field.ErrorList, error) {
 	var allErrs field.ErrorList
 	var logMsg string
 	// First check if the kafkatopic is valid
@@ -106,7 +107,7 @@ func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *ban
 			return nil, errors.Wrap(err, cantConnectAPIServerMsg)
 		}
 		if k8sutil.IsMarkedForDeletion(topic.ObjectMeta) {
-			s.Log.Info("Deleted as a result of a cluster deletion")
+			log.Info("Deleted as a result of a cluster deletion")
 			return nil, nil
 		}
 		logMsg = fmt.Sprintf("kafkaCluster '%s' in the namespace '%s' does not exist", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace)
@@ -116,7 +117,7 @@ func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, topic *ban
 	}
 	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
 		// Let this through, it's a delete topic request from a parent cluster being deleted
-		s.Log.Info("Cluster is going down for deletion, assuming a delete topic request")
+		log.Info("Cluster is going down for deletion, assuming a delete topic request")
 		return nil, nil
 	}
 
@@ -172,22 +173,23 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 				if manager, ok := topic.GetAnnotations()[TopicManagedByAnnotationKey]; !ok || strings.ToLower(manager) != TopicManagedByKoperatorAnnotationValue {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("name"), topic.Spec.Name,
 						fmt.Sprintf(`topic "%s" already exists on kafka cluster and it is not managed by Koperator,
-					when you want to be managed by Koperator to be able to modify its configuration through KafkaTopic CR,
-					add this "%s: %s" annotation for this KafkaTopic CR`, topic.Spec.Name, TopicManagedByAnnotationKey, TopicManagedByKoperatorAnnotationValue)))
+					if you want it to be managed by Koperator making you able to modify its configuration through a KafkaTopic CR,
+					add this "%s: %s" annotation to this KafkaTopic CR`, topic.Spec.Name, TopicManagedByAnnotationKey, TopicManagedByKoperatorAnnotationValue)))
 				}
-				// Comparing KafkaTopic configuration with the Kafka topic
+				// Comparing KafkaTopic configuration with the existing
 				if existing.NumPartitions != topic.Spec.Partitions {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("partitions"), topic.Spec.Partitions,
-						fmt.Sprintf(`initial KafkaTopic partition number must be the same as the already exist kafka topic has  (given: %v present: %v)`, topic.Spec.Partitions, existing.NumPartitions)))
+						fmt.Sprintf(`initial KafkaTopic partition number must be the same as what the existing kafka topic has  (given: %v present: %v)`, topic.Spec.Partitions, existing.NumPartitions)))
 				}
 				if existing.ReplicationFactor != int16(topic.Spec.ReplicationFactor) {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("replicationfactor"), topic.Spec.ReplicationFactor,
-						fmt.Sprintf(`initial KafkaTopic replication factor must be the same as the already exist kafka topic has (given: %v present: %v)`, topic.Spec.ReplicationFactor, existing.ReplicationFactor)))
+						fmt.Sprintf(`initial KafkaTopic replication factor must be the same as what the existing kafka topic has (given: %v present: %v)`, topic.Spec.ReplicationFactor, existing.ReplicationFactor)))
 				}
 
 				if diff := cmp.Diff(existing.ConfigEntries, util.MapStringStringPointer(topic.Spec.Config), cmpopts.EquateEmpty()); diff != "" {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("config"), topic.Spec.Partitions,
-						fmt.Sprintf(`initial KafkaTopic configuration must be the same as the already exist kafka topic configuration difference: %s`, diff)))
+						fmt.Sprintf(`initial KafkaTopic configuration must be the same as what the existing kafka topic configuration.
+						Difference: %s`, diff)))
 				}
 
 				if len(allErrs) > 0 {
