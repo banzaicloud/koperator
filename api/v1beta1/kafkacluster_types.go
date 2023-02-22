@@ -571,8 +571,11 @@ type CommonListenerSpec struct {
 	// +kubebuilder:validation:Enum=required;requested;none
 	SSLClientAuth SSLClientAuthentication `json:"sslClientAuth,omitempty"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
-	Name          string `json:"name"`
-	ContainerPort int32  `json:"containerPort"`
+	Name string `json:"name"`
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:ExclusiveMinimum=true
+	// +kubebuilder:validation:Maximum=65535
+	ContainerPort int32 `json:"containerPort"`
 }
 
 func (c *CommonListenerSpec) GetServerSSLCertSecretName() string {

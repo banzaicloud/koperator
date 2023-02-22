@@ -19607,7 +19607,10 @@ spec:
                           - defaultIngressConfig
                           type: object
                         containerPort:
+                          exclusiveMinimum: true
                           format: int32
+                          maximum: 65535
+                          minimum: 0
                           type: integer
                         externalStartingPort:
                           exclusiveMinimum: true
@@ -19700,7 +19703,10 @@ spec:
                         config for Kafka
                       properties:
                         containerPort:
+                          exclusiveMinimum: true
                           format: int32
+                          maximum: 65535
+                          minimum: 0
                           type: integer
                         name:
                           pattern: ^[a-z0-9\-]+
