@@ -584,6 +584,7 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 	}
 }
 
+// This test enforces the use of the dedicated sentinel error string in the checkExternalListenerStartingPort
 func TestCheckExternalListenerStartingPort_errorstring(t *testing.T) {
 	testCases := []struct {
 		testName         string
@@ -611,8 +612,8 @@ func TestCheckExternalListenerStartingPort_errorstring(t *testing.T) {
 		t.Run(testCase.testName, func(t *testing.T) {
 			got := checkExternalListenerStartingPort(&testCase.kafkaClusterSpec)
 			for _, fldErr := range got {
-				if !strings.Contains(fldErr.Error(), invalidExternalListenerPortErrMsg) {
-					t.Errorf("Error %q does not contain the sentinel error string %q", fldErr, invalidExternalListenerPortErrMsg)
+				if !strings.Contains(fldErr.Error(), invalidExternalListenerStartingPortErrMsg) {
+					t.Errorf("Error %q does not contain the sentinel error string %q", fldErr, invalidExternalListenerStartingPortErrMsg)
 				}
 			}
 		})

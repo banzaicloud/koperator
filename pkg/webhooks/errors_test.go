@@ -175,7 +175,7 @@ func TestIsAdmissionInvalidExternalListenerPort(t *testing.T) {
 		{
 			testName: "field.Invalid_externalListeners.[0]",
 			fieldErrs: append(field.ErrorList{}, field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(0).Child("externalStartingPort"), int32(79090),
-				invalidExternalListenerPortErrMsg+": "+fmt.Sprintf("ExternalListener '%s' would generate invalid port numbers (not between 1 and 65535) for brokers %v", "test-external1", []int32{0, 1, 2}))),
+				invalidExternalListenerStartingPortErrMsg+": "+fmt.Sprintf("ExternalListener '%s' would generate invalid port numbers (not between 1 and 65535) for brokers %v", "test-external1", []int32{0, 1, 2}))),
 			want: true,
 		},
 		{

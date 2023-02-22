@@ -163,40 +163,12 @@ func getMissingMounthPathLocation(mounthPath string, kafkaClusterSpec *banzaiclo
 
 // checkExternalListeners validates the spec.listenersConfig.externalListeners object
 func checkExternalListeners(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
-	// if there are no externalListeners, there is no need to perform the rest of the check in this function
+	// if there are no externalListeners, there is no need to perform the rest of the checks in this function
 	if kafkaClusterSpec.ListenersConfig.ExternalListeners == nil {
 		return nil
 	}
 
 	var allErrs field.ErrorList
-
-	// check values of externalStartingPort
-	//const maxPort int32 = 65535
-	//for i, extLstn := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
-	//	var errbrokerids []int32
-	//	for _, broker := range kafkaClusterSpec.Brokers {
-	//		if extLstn.ExternalStartingPort+broker.Id < 1 || extLstn.ExternalStartingPort+broker.Id > maxPort {
-	//			errbrokerids = append(errbrokerids, broker.Id)
-	//		}
-	//	}
-	//	if len(errbrokerids) > 0 {
-	//		errmsg := invalidExternalListenerPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate invalid port numbers (not between 1 and 65535) for brokers %v", extLstn.Name, errbrokerids)
-	//		fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extLstn.ExternalStartingPort, errmsg)
-	//		allErrs = append(allErrs, fldErr)
-	//	}
-	//}
-
-	// check values of containerPort
-	//var containerPorts = make(map[int32]int)
-	//for _, extLstn := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
-	//	containerPorts[extLstn.ContainerPort] += 1
-	//}
-	//for i, extLstn := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
-	//	if containerPorts[extLstn.ContainerPort] > 1 {
-	//		fldErr := field.Duplicate(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("containerPort"), extLstn.ContainerPort)
-	//		allErrs = append(allErrs, fldErr)
-	//	}
-	//}
 
 	// check values of externalStartingPort
 	allErrs = append(allErrs, checkExternalListenerStartingPort(kafkaClusterSpec)...)
@@ -219,7 +191,7 @@ func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 			}
 		}
 		if len(errbrokerids) > 0 {
-			errmsg := invalidExternalListenerPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate invalid port numbers (not between 1 and 65535) for brokers %v", extLstn.Name, errbrokerids)
+			errmsg := invalidExternalListenerStartingPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate invalid port numbers (not between 1 and 65535) for brokers %v", extLstn.Name, errbrokerids)
 			fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extLstn.ExternalStartingPort, errmsg)
 			allErrs = append(allErrs, fldErr)
 		}
