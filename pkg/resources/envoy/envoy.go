@@ -61,22 +61,22 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				if err != nil {
 					return err
 				}
-				var externalListernerResources []resources.ResourceWithLogAndExternalListenerSpecificInfos
-				externalListernerResources = append(externalListernerResources,
+				var externalListenerResources []resources.ResourceWithLogAndExternalListenerSpecificInfos
+				externalListenerResources = append(externalListenerResources,
 					r.service,
 					r.configMap,
 					r.deployment,
 				)
 
 				if r.KafkaCluster.Spec.EnvoyConfig.GetDistruptionBudget().DisruptionBudget.Create {
-					externalListernerResources = append(externalListernerResources, r.podDisruptionBudget)
+					externalListenerResources = append(externalListenerResources, r.podDisruptionBudget)
 				}
 				for name, ingressConfig := range ingressConfigs {
 					if !util.IsIngressConfigInUse(name, defaultControllerName, r.KafkaCluster, log) {
 						continue
 					}
 
-					for _, res := range externalListernerResources {
+					for _, res := range externalListenerResources {
 						o := res(log, eListener, ingressConfig, name, defaultControllerName)
 						err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
 						if err != nil {
