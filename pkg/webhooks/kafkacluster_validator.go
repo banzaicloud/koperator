@@ -50,10 +50,10 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 		allErrs = append(allErrs, fieldErr)
 	}
 
-	// check external listeners
-	extListenerErrs := checkExternalListeners(&kafkaClusterNew.Spec)
-	if extListenerErrs != nil {
-		allErrs = append(allErrs, extListenerErrs...)
+	// check internal and external listeners
+	listenerErrs := checkListeners(&kafkaClusterNew.Spec)
+	if listenerErrs != nil {
+		allErrs = append(allErrs, listenerErrs...)
 	}
 
 	if len(allErrs) == 0 {
@@ -72,9 +72,9 @@ func (s KafkaClusterValidator) ValidateCreate(ctx context.Context, obj runtime.O
 	log := s.Log.WithValues("name", kafkaCluster.GetName(), "namespace", kafkaCluster.GetNamespace())
 
 	// check external listeners
-	extListenerErrs := checkExternalListeners(&kafkaCluster.Spec)
-	if extListenerErrs != nil {
-		allErrs = append(allErrs, extListenerErrs...)
+	listenerErrs := checkListeners(&kafkaCluster.Spec)
+	if listenerErrs != nil {
+		allErrs = append(allErrs, listenerErrs...)
 	}
 
 	if len(allErrs) == 0 {
@@ -161,26 +161,52 @@ func getMissingMounthPathLocation(mounthPath string, kafkaClusterSpec *banzaiclo
 	return fromConfigGroup
 }
 
-// checkExternalListeners validates the spec.listenersConfig.externalListeners object
-func checkExternalListeners(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
+// checkListeners validates the spec.listenersConfig object
+func checkListeners(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// check values of containerPort
+	allErrs = append(allErrs, checkUniqueListenerContainerPort(kafkaClusterSpec.ListenersConfig)...)
+
+	// check values of externalStartingPort
+	allErrs = append(allErrs, checkExternalListenerStartingPort(kafkaClusterSpec)...)
+
+	return allErrs
+}
+
+// checkUniqueListenerContainerPort checks for duplicate containerPort numbers across both internal and external listeners
+// which would subsequently generate a "Duplicate value" error when creating a Service which accumulates all these ports.
+// The first time a port number is found will not be reported as duplicate; only subsequent instances using that port are.
+// (this is done to keep in tune with the way the K8s Service would report the "Duplicate value" error which ignores the first instance)
+func checkUniqueListenerContainerPort(listeners banzaicloudv1beta1.ListenersConfig) field.ErrorList {
+	var allErrs field.ErrorList
+	var containerPorts = make(map[int32]int)
+
+	for i, intLstnr := range listeners.InternalListeners {
+		containerPorts[intLstnr.ContainerPort] += 1
+		if containerPorts[intLstnr.ContainerPort] > 1 {
+			fldErr := field.Duplicate(field.NewPath("spec").Child("listenersConfig").Child("internalListeners").Index(i).Child("containerPort"), intLstnr.ContainerPort)
+			allErrs = append(allErrs, fldErr)
+		}
+	}
+	for i, extLstnr := range listeners.ExternalListeners {
+		containerPorts[extLstnr.ContainerPort] += 1
+		if containerPorts[extLstnr.ContainerPort] > 1 {
+			fldErr := field.Duplicate(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("containerPort"), extLstnr.ContainerPort)
+			allErrs = append(allErrs, fldErr)
+		}
+	}
+
+	return allErrs
+}
+
+// checkExternalListenerStartingPort checks the generic sanity of the resulting external port (valid number between 1 and 65535)
+func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
 	// if there are no externalListeners, there is no need to perform the rest of the checks in this function
 	if kafkaClusterSpec.ListenersConfig.ExternalListeners == nil {
 		return nil
 	}
 
-	var allErrs field.ErrorList
-
-	// check values of externalStartingPort
-	allErrs = append(allErrs, checkExternalListenerStartingPort(kafkaClusterSpec)...)
-
-	// check values of containerPort
-	allErrs = append(allErrs, checkExternalListenerContainerPort(kafkaClusterSpec.ListenersConfig.ExternalListeners)...)
-
-	return allErrs
-}
-
-// checkExternalListenerStartingPort checks the generic sanity of the resulting external port (valid port number <65535)
-func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
 	var allErrs field.ErrorList
 	const maxPort int32 = 65535
 	for i, extLstn := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
@@ -193,22 +219,6 @@ func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 		if len(errbrokerids) > 0 {
 			errmsg := invalidExternalListenerStartingPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate invalid port numbers (not between 1 and 65535) for brokers %v", extLstn.Name, errbrokerids)
 			fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extLstn.ExternalStartingPort, errmsg)
-			allErrs = append(allErrs, fldErr)
-		}
-	}
-	return allErrs
-}
-
-// checkExternalListenerContainerPort checks for duplicate containerPort numbers which would subsequently generate an error when creating a Service
-func checkExternalListenerContainerPort(externalListeners []banzaicloudv1beta1.ExternalListenerConfig) field.ErrorList {
-	var allErrs field.ErrorList
-	var containerPorts = make(map[int32]int)
-	for _, extLstn := range externalListeners {
-		containerPorts[extLstn.ContainerPort] += 1
-	}
-	for i, extLstn := range externalListeners {
-		if containerPorts[extLstn.ContainerPort] > 1 {
-			fldErr := field.Duplicate(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("containerPort"), extLstn.ContainerPort)
 			allErrs = append(allErrs, fldErr)
 		}
 	}

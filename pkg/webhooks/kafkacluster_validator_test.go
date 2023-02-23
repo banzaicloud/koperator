@@ -620,35 +620,74 @@ func TestCheckExternalListenerStartingPort_errorstring(t *testing.T) {
 	}
 }
 
-func TestCheckExternalListenerContainerPort(t *testing.T) {
+func TestCheckUniqueListenerContainerPort(t *testing.T) {
 	testCases := []struct {
-		testName          string
-		externalListeners []v1beta1.ExternalListenerConfig
-		isValid           bool
+		testName  string
+		listeners v1beta1.ListenersConfig
+		isValid   bool
 	}{
 		{
-			testName: "different_values",
-			externalListeners: []v1beta1.ExternalListenerConfig{
-				{
-					CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external1", ContainerPort: 9094},
+			testName: "unique_values",
+			listeners: v1beta1.ListenersConfig{
+				InternalListeners: []v1beta1.InternalListenerConfig{
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-internal1", ContainerPort: 29092},
+					},
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-internal2", ContainerPort: 29093},
+					},
 				},
-				{
-					CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2", ContainerPort: 9095},
+				ExternalListeners: []v1beta1.ExternalListenerConfig{
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external1", ContainerPort: 9094},
+					},
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2", ContainerPort: 9095},
+					},
 				},
 			},
 			isValid: true,
 		},
 		{
-			testName: "duplicate_value",
-			externalListeners: []v1beta1.ExternalListenerConfig{
-				{
-					CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external1", ContainerPort: 9094},
+			testName: "non-unique_values_inside_internalListener",
+			listeners: v1beta1.ListenersConfig{
+				InternalListeners: []v1beta1.InternalListenerConfig{
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-internal1", ContainerPort: 29092},
+					},
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-internal2", ContainerPort: 29092},
+					},
 				},
-				{
-					CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2", ContainerPort: 9094},
+			},
+			isValid: false,
+		},
+		{
+			testName: "non-unique_values_inside_externalListener",
+			listeners: v1beta1.ListenersConfig{
+				ExternalListeners: []v1beta1.ExternalListenerConfig{
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external1", ContainerPort: 9094},
+					},
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2", ContainerPort: 9094},
+					},
 				},
-				{
-					CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2", ContainerPort: 9096},
+			},
+			isValid: false,
+		},
+		{
+			testName: "non-unique_values_across_listener_types",
+			listeners: v1beta1.ListenersConfig{
+				InternalListeners: []v1beta1.InternalListenerConfig{
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-internal1", ContainerPort: 39098},
+					},
+				},
+				ExternalListeners: []v1beta1.ExternalListenerConfig{
+					{
+						CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external1", ContainerPort: 39098},
+					},
 				},
 			},
 			isValid: false,
@@ -656,7 +695,7 @@ func TestCheckExternalListenerContainerPort(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			got := checkExternalListenerContainerPort(testCase.externalListeners)
+			got := checkUniqueListenerContainerPort(testCase.listeners)
 			switch {
 			case testCase.isValid && got != nil:
 				t.Errorf("Message: %s, testName: %s", got.ToAggregate().Error(), testCase.testName)
