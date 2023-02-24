@@ -172,7 +172,7 @@ zookeeper.connect=example.zk:2181/`,
 			zkAddresses:               []string{"example.zk:2181"},
 			clusterWideConfig:         ``,
 			perBrokerConfig:           ``,
-			perBrokerReadOnlyConfig:   ``,
+			perBrokerReadOnlyConfig:   `reserved.broker.max.id:10000`,
 			advertisedListenerAddress: `kafka-0.kafka.svc.cluster.local:9092`,
 			listenerType:              "plaintext",
 			expectedConfig: `advertised.listeners=INTERNAL://kafka-0.kafka.svc.cluster.local:9092
@@ -183,7 +183,8 @@ inter.broker.listener.name=INTERNAL
 listener.security.protocol.map=INTERNAL:PLAINTEXT
 listeners=INTERNAL://:9092
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
-zookeeper.connect=example.zk:2181/kafka`,
+zookeeper.connect=example.zk:2181/kafka
+reserved.broker.max.id=10000`,
 		},
 		{
 			testName:                  "basicConfigWithSimpleZkPath",
