@@ -173,22 +173,22 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 				if manager, ok := topic.GetAnnotations()[TopicManagedByAnnotationKey]; !ok || strings.ToLower(manager) != TopicManagedByKoperatorAnnotationValue {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("name"), topic.Spec.Name,
 						fmt.Sprintf(`topic "%s" already exists on kafka cluster and it is not managed by Koperator,
-					if you want it to be managed by Koperator making you able to modify its configuration through a KafkaTopic CR,
+					if you want it to be managed by Koperator so you can modify its configurations through a KafkaTopic CR,,
 					add this "%s: %s" annotation to this KafkaTopic CR`, topic.Spec.Name, TopicManagedByAnnotationKey, TopicManagedByKoperatorAnnotationValue)))
 				}
 				// Comparing KafkaTopic configuration with the existing
 				if existing.NumPartitions != topic.Spec.Partitions {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("partitions"), topic.Spec.Partitions,
-						fmt.Sprintf(`initial KafkaTopic partition number must be the same as what the existing kafka topic has  (given: %v present: %v)`, topic.Spec.Partitions, existing.NumPartitions)))
+						fmt.Sprintf(`When creating KafkaTopic CR for existing topic, initially its partition number must be the same as what the existing kafka topic has (given: %v present: %v)`, topic.Spec.Partitions, existing.NumPartitions)))
 				}
 				if existing.ReplicationFactor != int16(topic.Spec.ReplicationFactor) {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("replicationfactor"), topic.Spec.ReplicationFactor,
-						fmt.Sprintf(`initial KafkaTopic replication factor must be the same as what the existing kafka topic has (given: %v present: %v)`, topic.Spec.ReplicationFactor, existing.ReplicationFactor)))
+						fmt.Sprintf(`When creating KafkaTopic CR for existing topic, initially its replication factor must be the same as what the existing kafka topic has (given: %v present: %v)`, topic.Spec.ReplicationFactor, existing.ReplicationFactor)))
 				}
 
 				if diff := cmp.Diff(existing.ConfigEntries, util.MapStringStringPointer(topic.Spec.Config), cmpopts.EquateEmpty()); diff != "" {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("config"), topic.Spec.Partitions,
-						fmt.Sprintf(`initial KafkaTopic configuration must be the same as what the existing kafka topic configuration.
+						fmt.Sprintf(`When creating KafkaTopic CR for existing topic, initially its configuration must be the same as the existing kafka topic configuration.
 						Difference: %s`, diff)))
 				}
 

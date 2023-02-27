@@ -28,11 +28,12 @@ import (
 
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/go-logr/logr"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/util"
-	"github.com/go-logr/logr"
 )
 
 func newMockCluster() *v1beta1.KafkaCluster {

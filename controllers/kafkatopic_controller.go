@@ -41,10 +41,10 @@ import (
 var topicFinalizer = "finalizer.kafkatopics.kafka.banzaicloud.io"
 
 func isTopicManagedByKoperator(topic metav1.Object) bool {
-	if managedByAnnotation, ok := topic.GetAnnotations()[webhooks.TopicManagedByAnnotationKey]; !ok {
+	if managedByAnnotation, hasManagedByAnnotation := topic.GetAnnotations()[webhooks.TopicManagedByAnnotationKey]; hasManagedByAnnotation {
 		return strings.ToLower(managedByAnnotation) == webhooks.TopicManagedByKoperatorAnnotationValue
 	}
-	return false
+	return true
 }
 
 // SetupKafkaTopicWithManager registers kafka topic controller with manager
@@ -133,7 +133,7 @@ func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.
 
 	// No need to do anything when the kafka topic is not managed by Koperator
 	if !isTopicManagedByKoperator(instance) {
-		reqLogger.Info(fmt.Sprintf("topic '%s' is not managed by %s it is managed by '%s' ==> nothing to reconcile here", instance.Spec.Name, webhooks.TopicManagedByKoperatorAnnotationValue, instance.GetAnnotations()[webhooks.TopicManagedByAnnotationKey]))
+		reqLogger.Info(fmt.Sprintf("topic '%s' is not managed by %s it is managed by '%s' ==> nothing to reconcile here", instance.Spec.Name, webhooks.TopicManagedByKoperatorAnnotationValue, managedByStatus))
 		return reconciled()
 	}
 
