@@ -3909,9 +3909,10 @@ spec:
                       type: object
                     nodePortNodeAddressType:
                       description: When "hostNameOverride" and brokerConfig.nodePortExternalIP
-                        are empty and NodePort access method is selected the NodePortNodeAdddressType
-                        defines the external listener address that shall be used in
-                        the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
+                        are empty and NodePort access method is selected for an external
+                        listener the NodePortNodeAdddressType defines the Kafka broker's
+                        Kubernetes node's address type that shall be used in the advertised.listeners
+                        property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
                         The NodePortNodeAddressType's values can be Hostname, ExternalIP,
                         InternalIP, InternalDNS,ExternalDNS
                       enum:
@@ -10050,9 +10051,10 @@ spec:
                           type: object
                         nodePortNodeAddressType:
                           description: When "hostNameOverride" and brokerConfig.nodePortExternalIP
-                            are empty and NodePort access method is selected the NodePortNodeAdddressType
-                            defines the external listener address that shall be used
-                            in the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
+                            are empty and NodePort access method is selected for an
+                            external listener the NodePortNodeAdddressType defines
+                            the Kafka broker's Kubernetes node's address type that
+                            shall be used in the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
                             The NodePortNodeAddressType's values can be Hostname,
                             ExternalIP, InternalIP, InternalDNS,ExternalDNS
                           enum:
