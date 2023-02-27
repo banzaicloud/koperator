@@ -521,7 +521,6 @@ type ExternalListenerConfig struct {
 	CommonListenerSpec     `json:",inline"`
 	IngressServiceSettings `json:",inline"`
 	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:ExclusiveMinimum=true
 	// +kubebuilder:validation:Maximum=65535
 	ExternalStartingPort int32 `json:"externalStartingPort"`
 	// configuring AnyCastPort allows kafka cluster access without specifying the exact broker

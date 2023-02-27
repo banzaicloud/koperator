@@ -19450,7 +19450,6 @@ spec:
                           minimum: 0
                           type: integer
                         externalStartingPort:
-                          exclusiveMinimum: true
                           format: int32
                           maximum: 65535
                           minimum: 0
