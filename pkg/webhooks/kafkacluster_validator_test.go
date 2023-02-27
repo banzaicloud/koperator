@@ -496,7 +496,7 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 	}{
 		{
 			// In this test case, all resulting external port numbers should be valid
-			testName: "valid-2-brokers-2-externalListeners",
+			testName: "valid config: 3 brokers with 2 externalListeners",
 			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
 					{Id: 900},
@@ -521,7 +521,7 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 		{
 			// In this test case, both externalListeners have an externalStartinPort that is already >65535
 			// so both should generate field.Error's for all brokers/brokerIDs
-			testName: "invalid-2-brokers-2-huge-externalListeners",
+			testName: "invalid config: 3 brokers with 2 out-of-range externalListeners",
 			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
 					{Id: 900},
@@ -547,7 +547,7 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 			// In this test case:
 			// - external1 should be invalid for brokers [11, 102] but not [0] (sum is not >65535)
 			// - external2 should be invalid for brokers [102] but not [0, 11]
-			testName: "partially-invalid-2-brokers-2-atlimit-externalListeners",
+			testName: "invalid config: 3 brokers with 2 at-the-limit externalListeners",
 			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
 					{Id: 0},
@@ -592,7 +592,7 @@ func TestCheckExternalListenerStartingPort_errorstring(t *testing.T) {
 	}{
 		{
 			// In this test case, the resulting field.ErrorList should have 1 element
-			testName: "invalid-ports",
+			testName: "out of range computed external port",
 			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{
 					{Id: 1},
@@ -627,7 +627,7 @@ func TestCheckUniqueListenerContainerPort(t *testing.T) {
 		isValid   bool
 	}{
 		{
-			testName: "unique_values",
+			testName: "unique values",
 			listeners: v1beta1.ListenersConfig{
 				InternalListeners: []v1beta1.InternalListenerConfig{
 					{
@@ -649,7 +649,7 @@ func TestCheckUniqueListenerContainerPort(t *testing.T) {
 			isValid: true,
 		},
 		{
-			testName: "non-unique_values_inside_internalListener",
+			testName: "non-unique containerPorts with only internalListeners",
 			listeners: v1beta1.ListenersConfig{
 				InternalListeners: []v1beta1.InternalListenerConfig{
 					{
@@ -663,7 +663,7 @@ func TestCheckUniqueListenerContainerPort(t *testing.T) {
 			isValid: false,
 		},
 		{
-			testName: "non-unique_values_inside_externalListener",
+			testName: "non-unique containerPorts with only externalListeners",
 			listeners: v1beta1.ListenersConfig{
 				ExternalListeners: []v1beta1.ExternalListenerConfig{
 					{
@@ -677,7 +677,7 @@ func TestCheckUniqueListenerContainerPort(t *testing.T) {
 			isValid: false,
 		},
 		{
-			testName: "non-unique_values_across_listener_types",
+			testName: "non-unique containerPorts across both listener types",
 			listeners: v1beta1.ListenersConfig{
 				InternalListeners: []v1beta1.InternalListenerConfig{
 					{
