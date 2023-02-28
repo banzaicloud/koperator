@@ -1270,7 +1270,7 @@ func (r *Reconciler) getK8sNodeIP(nodeName string, nodeAddressType string) (stri
 		return val, nil
 	}
 
-	return "", fmt.Errorf("Could not find the node (%s)'s (%s) address", nodeName, nodeAddressType)
+	return "", fmt.Errorf("could not find the node (%s)'s (%s) address", nodeName, nodeAddressType)
 }
 
 // determineControllerId returns the ID of the controller broker of the current cluster
