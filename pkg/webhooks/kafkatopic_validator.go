@@ -173,7 +173,7 @@ func (s *KafkaTopicValidator) checkKafka(ctx context.Context, topic *banzaicloud
 				if manager, ok := topic.GetAnnotations()[TopicManagedByAnnotationKey]; !ok || strings.ToLower(manager) != TopicManagedByKoperatorAnnotationValue {
 					allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("name"), topic.Spec.Name,
 						fmt.Sprintf(`topic "%s" already exists on kafka cluster and it is not managed by Koperator,
-					if you want it to be managed by Koperator so you can modify its configurations through a KafkaTopic CR,,
+					if you want it to be managed by Koperator so you can modify its configurations through a KafkaTopic CR,
 					add this "%s: %s" annotation to this KafkaTopic CR`, topic.Spec.Name, TopicManagedByAnnotationKey, TopicManagedByKoperatorAnnotationValue)))
 				}
 				// Comparing KafkaTopic configuration with the existing
