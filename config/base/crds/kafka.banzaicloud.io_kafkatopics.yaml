@@ -76,9 +76,9 @@ spec:
               managedBy:
                 description: 'ManagedBy describes who is the manager of the Kafka
                   topic. When its value is not "koperator" then modifications to the
-                  topic configurations of the KafkaTopic CR will be unaffected on
-                  the Kafka topic. Manager of the Kafka topic can be changed by adding
-                  the "managedBy: <manager>" annotation to the KafkaTopic CR.'
+                  topic configurations of the KafkaTopic CR will not be propagated
+                  to the Kafka topic. Manager of the Kafka topic can be changed by
+                  adding the "managedBy: <manager>" annotation to the KafkaTopic CR.'
                 type: string
               state:
                 description: TopicState defines the state of a KafkaTopic

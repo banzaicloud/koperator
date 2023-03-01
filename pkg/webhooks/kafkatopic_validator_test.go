@@ -188,7 +188,7 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 					ClusterRef:        v1alpha1.ClusterReference{},
 				},
 			},
-			expectedErrors: []string{"configuration difference"},
+			expectedErrors: []string{"its configuration must be"},
 		},
 	}
 
