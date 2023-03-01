@@ -1075,6 +1075,45 @@ func isDesiredStorageValueInvalid(desired, current *corev1.PersistentVolumeClaim
 	return desired.Spec.Resources.Requests.Storage().Value() < current.Spec.Resources.Requests.Storage().Value()
 }
 
+func (r *Reconciler) getBrokerHost(log logr.Logger, defaultHost string, broker v1beta1.Broker, eListener v1beta1.ExternalListenerConfig) (string, error) {
+	brokerHost := defaultHost
+	portNumber := eListener.ExternalStartingPort + broker.Id
+
+	if eListener.GetAccessMethod() != corev1.ServiceTypeLoadBalancer {
+		bConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
+		if err != nil {
+			return "", err
+		}
+		if eListener.ExternalStartingPort == 0 {
+			portNumber, err = r.getK8sAssignedNodeport(log, eListener.Name, broker.Id)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		if externalIP, ok := bConfig.NodePortExternalIP[eListener.Name]; ok && externalIP != "" {
+			// https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
+			// if specific external IP is set for the NodePort service incoming traffic will be received on Service port
+			// and not nodeport
+			portNumber = eListener.ContainerPort
+		}
+		if brokerHost == "" {
+			if bConfig.NodePortExternalIP[eListener.Name] == "" {
+				brokerHost, err = r.getK8sAssignedNodeAddress(broker.Id, string(bConfig.NodePortNodeAddressType))
+				if err != nil {
+					log.Error(err, fmt.Sprintf("could not get the (%s) address of the broker's (ID: %d) node for external listener (%s) configuration",
+						bConfig.NodePortNodeAddressType, broker.Id, eListener.Name))
+				}
+			} else {
+				brokerHost = bConfig.NodePortExternalIP[eListener.Name]
+			}
+		} else {
+			brokerHost = fmt.Sprintf("%s-%d-%s.%s%s", r.KafkaCluster.Name, broker.Id, eListener.Name, r.KafkaCluster.Namespace, brokerHost)
+		}
+	}
+	return fmt.Sprintf("%s:%d", brokerHost, portNumber), nil
+}
+
 func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string]v1beta1.ListenerStatusList, error) {
 	extListenerStatuses := make(map[string]v1beta1.ListenerStatusList, len(r.KafkaCluster.Spec.ListenersConfig.ExternalListeners))
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
@@ -1138,34 +1177,13 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 				}
 				listenerStatusList = append(listenerStatusList, listenerStatus)
 			}
+
 			for _, broker := range r.KafkaCluster.Spec.Brokers {
-				brokerHost := host
-				portNumber := eListener.ExternalStartingPort + broker.Id
-
-				if eListener.GetAccessMethod() != corev1.ServiceTypeLoadBalancer {
-					bConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
-					if err != nil {
-						return nil, err
-					}
-					if eListener.ExternalStartingPort == 0 {
-						portNumber, err = r.getK8sAssignedNodeport(log, eListener.Name, broker.Id)
-						if err != nil {
-							return nil, err
-						}
-					}
-
-					if externalIP, ok := bConfig.NodePortExternalIP[eListener.Name]; ok && externalIP != "" {
-						// https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
-						// if specific external IP is set for the NodePort service incoming traffic will be received on Service port
-						// and not nodeport
-						portNumber = eListener.ContainerPort
-					}
-					if brokerHost == "" {
-						brokerHost = bConfig.NodePortExternalIP[eListener.Name]
-					} else {
-						brokerHost = fmt.Sprintf("%s-%d-%s.%s%s", r.KafkaCluster.Name, broker.Id, eListener.Name, r.KafkaCluster.Namespace, brokerHost)
-					}
+				brokerHostPort, err := r.getBrokerHost(log, host, broker, eListener)
+				if err != nil {
+					return nil, errors.WrapIfWithDetails(err, "could not get brokerHost for external listener status", "brokerID", broker.Id)
 				}
+
 				brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
 				if err != nil {
 					return nil, err
@@ -1173,7 +1191,7 @@ func (r *Reconciler) createExternalListenerStatuses(log logr.Logger) (map[string
 				if util.ShouldIncludeBroker(brokerConfig, r.KafkaCluster.Status, int(broker.Id), defaultControllerName, iConfigName) {
 					listenerStatus := v1beta1.ListenerStatus{
 						Name:    fmt.Sprintf("broker-%d", broker.Id),
-						Address: fmt.Sprintf("%s:%d", brokerHost, portNumber),
+						Address: brokerHostPort,
 					}
 					listenerStatusList = append(listenerStatusList, listenerStatus)
 				}
@@ -1215,6 +1233,44 @@ func (r *Reconciler) getK8sAssignedNodeport(log logr.Logger, eListenerName strin
 			errors.New("nodeport port number is not allocated"), "nodeport number is still 0")
 	}
 	return nodePort, nil
+}
+
+func (r *Reconciler) getK8sAssignedNodeAddress(brokerId int32, nodeAddressType string) (string, error) {
+	podList := &corev1.PodList{}
+	if err := r.Client.List(context.TODO(), podList,
+		client.InNamespace(r.KafkaCluster.Namespace),
+		client.MatchingLabels(apiutil.MergeLabels(apiutil.LabelsForKafka(r.KafkaCluster.Name), map[string]string{v1beta1.BrokerIdLabelKey: strconv.Itoa(int(brokerId))})),
+	); err != nil {
+		return "", err
+	}
+
+	switch {
+	case len(podList.Items) == 0:
+		return "", fmt.Errorf("could not find pod with matching brokerId: %d in namespace '%s'", brokerId, r.KafkaCluster.Namespace)
+	case len(podList.Items) > 1:
+		return "", fmt.Errorf("multiple pods found with brokerId: %d in namespace '%s'", brokerId, r.KafkaCluster.Namespace)
+	default:
+		return r.getK8sNodeIP(podList.Items[0].Spec.NodeName, nodeAddressType)
+	}
+}
+
+func (r *Reconciler) getK8sNodeIP(nodeName string, nodeAddressType string) (string, error) {
+	node := &corev1.Node{}
+	clientNamespacedName := types.NamespacedName{Name: nodeName, Namespace: r.KafkaCluster.Namespace}
+	if err := r.Client.Get(context.TODO(), clientNamespacedName, node); err != nil {
+		return "", err
+	}
+
+	addressMap := make(map[string]string)
+	for _, address := range node.Status.Addresses {
+		addressMap[string(address.Type)] = address.Address
+	}
+
+	if val, ok := addressMap[nodeAddressType]; ok && val != "" {
+		return val, nil
+	}
+
+	return "", fmt.Errorf("could not find the node (%s)'s (%s) address", nodeName, nodeAddressType)
 }
 
 // determineControllerId returns the ID of the controller broker of the current cluster
