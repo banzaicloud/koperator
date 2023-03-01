@@ -159,7 +159,7 @@ func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.
 
 	// set topic status as created
 	if instance.Status.State != v1alpha1.TopicStateCreated {
-		instance.Status = v1alpha1.KafkaTopicStatus{State: v1alpha1.TopicStateCreated}
+		instance.Status.State = v1alpha1.TopicStateCreated
 		if err := r.Client.Status().Update(ctx, instance); err != nil {
 			return requeueWithError(reqLogger, "failed to update kafkatopic status", err)
 		}
