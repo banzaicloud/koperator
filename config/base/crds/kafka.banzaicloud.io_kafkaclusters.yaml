@@ -3750,8 +3750,8 @@ spec:
                         listener the NodePortNodeAdddressType defines the Kafka broker's
                         Kubernetes node's address type that shall be used in the advertised.listeners
                         property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
-                        The NodePortNodeAddressType's values can be Hostname, ExternalIP,
-                        InternalIP, InternalDNS,ExternalDNS
+                        The NodePortNodeAddressType's possible values can be Hostname,
+                        ExternalIP, InternalIP, InternalDNS,ExternalDNS
                       enum:
                       - Hostname
                       - ExternalIP
@@ -9892,7 +9892,7 @@ spec:
                             external listener the NodePortNodeAdddressType defines
                             the Kafka broker's Kubernetes node's address type that
                             shall be used in the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
-                            The NodePortNodeAddressType's values can be Hostname,
+                            The NodePortNodeAddressType's possible values can be Hostname,
                             ExternalIP, InternalIP, InternalDNS,ExternalDNS
                           enum:
                           - Hostname

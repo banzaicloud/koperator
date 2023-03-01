@@ -1,6 +1,6 @@
 module github.com/banzaicloud/koperator
 
-go 1.19
+go 1.18
 
 require (
 	emperror.dev/errors v0.8.1
@@ -10,7 +10,7 @@ require (
 	github.com/banzaicloud/istio-client-go v0.0.17
 	github.com/banzaicloud/istio-operator/api/v2 v2.15.1
 	github.com/banzaicloud/k8s-objectmatcher v1.8.0
-	github.com/banzaicloud/koperator/api v0.23.0
+	github.com/banzaicloud/koperator/api v0.23.2
 	github.com/banzaicloud/koperator/properties v0.4.1
 	github.com/cert-manager/cert-manager v1.9.1
 	github.com/cisco-open/cluster-registry-controller/api v0.2.5

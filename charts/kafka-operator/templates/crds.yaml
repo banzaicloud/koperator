@@ -3913,8 +3913,8 @@ spec:
                         listener the NodePortNodeAdddressType defines the Kafka broker's
                         Kubernetes node's address type that shall be used in the advertised.listeners
                         property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
-                        The NodePortNodeAddressType's values can be Hostname, ExternalIP,
-                        InternalIP, InternalDNS,ExternalDNS
+                        The NodePortNodeAddressType's possible values can be Hostname,
+                        ExternalIP, InternalIP, InternalDNS,ExternalDNS
                       enum:
                       - Hostname
                       - ExternalIP
@@ -10055,7 +10055,7 @@ spec:
                             external listener the NodePortNodeAdddressType defines
                             the Kafka broker's Kubernetes node's address type that
                             shall be used in the advertised.listeners property. https://kubernetes.io/docs/concepts/architecture/nodes/#addresses
-                            The NodePortNodeAddressType's values can be Hostname,
+                            The NodePortNodeAddressType's possible values can be Hostname,
                             ExternalIP, InternalIP, InternalDNS,ExternalDNS
                           enum:
                           - Hostname
@@ -20129,10 +20129,18 @@ spec:
           status:
             description: KafkaTopicStatus defines the observed state of KafkaTopic
             properties:
+              managedBy:
+                description: 'ManagedBy describes who is the manager of the Kafka
+                  topic. When its value is not "koperator" then modifications to the
+                  topic configurations of the KafkaTopic CR will not be propagated
+                  to the Kafka topic. Manager of the Kafka topic can be changed by
+                  adding the "managedBy: <manager>" annotation to the KafkaTopic CR.'
+                type: string
               state:
                 description: TopicState defines the state of a KafkaTopic
                 type: string
             required:
+            - managedBy
             - state
             type: object
         type: object

@@ -80,7 +80,7 @@ install-kustomize:
 	fi
 
 # Run tests
-test: generate fmt vet bin/setup-envtest
+test: generate fmt vet manifests bin/setup-envtest
 	cd api && go test ./...
 	bin/setup-envtest use -p env ${ENVTEST_K8S_VERSION} > bin/envtest.sh \
 		&& source bin/envtest.sh; \
