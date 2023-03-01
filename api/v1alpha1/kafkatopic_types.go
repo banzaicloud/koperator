@@ -40,7 +40,11 @@ type KafkaTopicSpec struct {
 // KafkaTopicStatus defines the observed state of KafkaTopic
 // +k8s:openapi-gen=true
 type KafkaTopicStatus struct {
-	State TopicState `json:"state"`
+	// ManagedBy describes who is the manager of the Kafka topic.
+	// When its value is not "koperator" then modifications to the topic configurations of the KafkaTopic CR will not be propagated to the Kafka topic.
+	// Manager of the Kafka topic can be changed by adding the "managedBy: <manager>" annotation to the KafkaTopic CR.
+	ManagedBy string     `json:"managedBy"`
+	State     TopicState `json:"state"`
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-kafka-banzaicloud-io-v1alpha1-kafkatopic,mutating=false,failurePolicy=fail,groups=kafka.banzaicloud.io,resources=kafkatopics,versions=v1alpha1,name=kafkatopics.kafka.banzaicloud.io,sideEffects=None,admissionReviewVersions=v1
