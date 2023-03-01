@@ -189,6 +189,12 @@ spec:
         # which has type per-broker
         # priorityClassName can be used to set the broker pod's priority
         # priorityClassName: "high-priority"
+        
+        # When "hostNameOverride" and brokerConfig.nodePortExternalIP are empty and NodePort access method is selected for external listener
+        # nodePortNodeAdddressType defines the Kafka broker's Kubernetes node's address type that shall be used in the advertised.listeners property
+        # when nodeport is used for an external listener.
+        # its values can be Hostname, ExternalIP, InternalIP, InternalDNS,ExternalDNS 
+        #nodePortNodeAddressType: "ExternalIP"
         config: |
           sasl.enabled.mechanisms=PLAIN
         # serviceAccountName specifies the serviceAccount used for this specific broker
