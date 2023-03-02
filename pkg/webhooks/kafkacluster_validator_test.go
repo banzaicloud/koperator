@@ -593,7 +593,7 @@ func TestCheckUniqueListenerContainerPort(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
 			got := checkUniqueListenerContainerPort(testCase.listeners)
-			require.ElementsMatch(t, testCase.expected, got)
+			require.Equal(t, testCase.expected, got)
 		})
 	}
 }
@@ -686,7 +686,7 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
 			got := checkExternalListenerStartingPort(&testCase.kafkaClusterSpec)
-			require.ElementsMatch(t, testCase.expected, got)
+			require.Equal(t, testCase.expected, got)
 		})
 	}
 }
