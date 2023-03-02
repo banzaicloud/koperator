@@ -529,6 +529,9 @@ type ExternalListenerConfig struct {
 	IngressServiceSettings `json:",inline"`
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=65535
+	// externalStartingPort is added to each broker ID to get the port number that will be used for external access to the broker.
+	// The choice of broker ID and externalStartingPort must satisfy 0 < broker ID + externalStartingPort <= 65535
+	// If accessMethod is Nodeport and externalStartingPort is set to 0 then the broker IDs are not added and the Nodeport port numbers will be chosen automatically by the K8s Service controller
 	ExternalStartingPort int32 `json:"externalStartingPort"`
 	// configuring AnyCastPort allows kafka cluster access without specifying the exact broker
 	AnyCastPort *int32 `json:"anyCastPort,omitempty"`
