@@ -162,7 +162,7 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 			testName: "topic partition and replication is different and not managedBy koperator",
 			kafkaTopic: v1alpha1.KafkaTopic{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{TopicManagedByAnnotationKey: TopicManagedByKoperatorAnnotationValue},
+					Annotations: map[string]string{TopicManagedByAnnotationKey: "other"},
 				},
 				Spec: v1alpha1.KafkaTopicSpec{
 					Name:              "test-topic",
@@ -193,6 +193,7 @@ func TestCheckKafkaTopicExist(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
+		testCase := testCase
 		t.Run(testCase.testName, func(t *testing.T) {
 			t.Parallel()
 			fieldErrorList, err := kafkaTopicValidator.checkKafka(context.Background(), &testCase.kafkaTopic, cluster)
