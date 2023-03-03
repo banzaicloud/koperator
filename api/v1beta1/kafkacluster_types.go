@@ -527,7 +527,12 @@ type IngressServiceSettings struct {
 type ExternalListenerConfig struct {
 	CommonListenerSpec     `json:",inline"`
 	IngressServiceSettings `json:",inline"`
-	ExternalStartingPort   int32 `json:"externalStartingPort"`
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=65535
+	// externalStartingPort is added to each broker ID to get the port number that will be used for external access to the broker.
+	// The choice of broker ID and externalStartingPort must satisfy 0 < broker ID + externalStartingPort <= 65535
+	// If accessMethod is Nodeport and externalStartingPort is set to 0 then the broker IDs are not added and the Nodeport port numbers will be chosen automatically by the K8s Service controller
+	ExternalStartingPort int32 `json:"externalStartingPort"`
 	// configuring AnyCastPort allows kafka cluster access without specifying the exact broker
 	AnyCastPort *int32 `json:"anyCastPort,omitempty"`
 	// +kubebuilder:validation:Enum=LoadBalancer;NodePort
@@ -575,8 +580,11 @@ type CommonListenerSpec struct {
 	// +kubebuilder:validation:Enum=required;requested;none
 	SSLClientAuth SSLClientAuthentication `json:"sslClientAuth,omitempty"`
 	// +kubebuilder:validation:Pattern=^[a-z0-9\-]+
-	Name          string `json:"name"`
-	ContainerPort int32  `json:"containerPort"`
+	Name string `json:"name"`
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:ExclusiveMinimum=true
+	// +kubebuilder:validation:Maximum=65535
+	ContainerPort int32 `json:"containerPort"`
 }
 
 func (c *CommonListenerSpec) GetServerSSLCertSecretName() string {
@@ -621,7 +629,7 @@ type ListenerStatus struct {
 // +kubebuilder:printcolumn:JSONPath=".status.rollingUpgradeStatus.lastSuccess",name="Last successful upgrade",type="string"
 // +kubebuilder:printcolumn:JSONPath=".status.rollingUpgradeStatus.errorCount",name="Upgrade error count",type="string"
 // +kubebuilder:printcolumn:JSONPath=".metadata.creationTimestamp",name="Age",type="date"
-// +kubebuilder:webhook:verbs=update,path=/validate-kafka-banzaicloud-io-v1beta1-kafkacluster,mutating=false,failurePolicy=fail,groups=kafka.banzaicloud.io,resources=kafkaclusters,versions=v1beta1,name=kafkaclusters.kafka.banzaicloud.io,sideEffects=None,admissionReviewVersions=v1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-kafka-banzaicloud-io-v1beta1-kafkacluster,mutating=false,failurePolicy=fail,groups=kafka.banzaicloud.io,resources=kafkaclusters,versions=v1beta1,name=kafkaclusters.kafka.banzaicloud.io,sideEffects=None,admissionReviewVersions=v1
 
 // KafkaCluster is the Schema for the kafkaclusters API
 type KafkaCluster struct {

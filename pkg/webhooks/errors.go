@@ -21,12 +21,13 @@ import (
 )
 
 const (
-	cantConnectErrorMsg               = "failed to connect to kafka cluster"
-	cantConnectAPIServerMsg           = "failed to connect to Kubernetes API server"
-	invalidReplicationFactorErrMsg    = "replication factor is larger than the number of nodes in the kafka cluster"
-	outOfRangeReplicationFactorErrMsg = "replication factor must be larger than 0 (or set it to be -1 to use the broker's default)"
-	outOfRangePartitionsErrMsg        = "number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)"
-	unsupportedRemovingStorageMsg     = "removing storage from a broker is not supported"
+	cantConnectErrorMsg                       = "failed to connect to kafka cluster"
+	cantConnectAPIServerMsg                   = "failed to connect to Kubernetes API server"
+	invalidReplicationFactorErrMsg            = "replication factor is larger than the number of nodes in the kafka cluster"
+	outOfRangeReplicationFactorErrMsg         = "replication factor must be larger than 0 (or set it to be -1 to use the broker's default)"
+	outOfRangePartitionsErrMsg                = "number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)"
+	unsupportedRemovingStorageMsg             = "removing storage from a broker is not supported"
+	invalidExternalListenerStartingPortErrMsg = "invalid external listener starting port number"
 
 	// errorDuringValidationMsg is added to infrastructure errors (e.g. failed to connect), but not to field validation errors
 	errorDuringValidationMsg = "error during validation"
@@ -54,6 +55,10 @@ func IsAdmissionOutOfRangePartitions(err error) bool {
 
 func IsAdmissionInvalidRemovingStorage(err error) bool {
 	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), unsupportedRemovingStorageMsg)
+}
+
+func IsAdmissionInvalidExternalListenerPort(err error) bool {
+	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), invalidExternalListenerStartingPortErrMsg)
 }
 
 func IsAdmissionErrorDuringValidation(err error) bool {

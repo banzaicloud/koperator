@@ -19637,10 +19637,23 @@ spec:
                           - defaultIngressConfig
                           type: object
                         containerPort:
+                          exclusiveMinimum: true
                           format: int32
+                          maximum: 65535
+                          minimum: 0
                           type: integer
                         externalStartingPort:
+                          description: externalStartingPort is added to each broker
+                            ID to get the port number that will be used for external
+                            access to the broker. The choice of broker ID and externalStartingPort
+                            must satisfy 0 < broker ID + externalStartingPort <= 65535
+                            If accessMethod is Nodeport and externalStartingPort is
+                            set to 0 then the broker IDs are not added and the Nodeport
+                            port numbers will be chosen automatically by the K8s Service
+                            controller
                           format: int32
+                          maximum: 65535
+                          minimum: 0
                           type: integer
                         externalTrafficPolicy:
                           description: externalTrafficPolicy denotes if this Service
@@ -19727,7 +19740,10 @@ spec:
                         config for Kafka
                       properties:
                         containerPort:
+                          exclusiveMinimum: true
                           format: int32
+                          maximum: 65535
+                          minimum: 0
                           type: integer
                         name:
                           pattern: ^[a-z0-9\-]+
