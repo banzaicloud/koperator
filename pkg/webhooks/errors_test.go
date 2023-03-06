@@ -46,7 +46,7 @@ func TestIsAdmissionConnectionError(t *testing.T) {
 			want:     false,
 		},
 		{
-			testName: "incorrect error type with correct message",
+			testName: "incorrect error type with correct message component",
 			err:      apierrors.NewBadRequest(cantConnectErrorMsg),
 			want:     false,
 		},
@@ -57,24 +57,6 @@ func TestIsAdmissionConnectionError(t *testing.T) {
 			require.Equal(t, tc.want, got)
 		})
 	}
-
-	err := apierrors.NewInternalError(errors.Wrap(errors.New("..."), cantConnectErrorMsg))
-	require.True(t, IsAdmissionCantConnect(err))
-	//if !IsAdmissionCantConnect(err) {
-	//	t.Error("Expected is connection error to be true, got false")
-	//}
-
-	err = apierrors.NewServiceUnavailable("some other reason")
-	require.False(t, IsAdmissionCantConnect(err))
-	//if IsAdmissionCantConnect(err) {
-	//	t.Error("Expected is connection error to be false, got true")
-	//}
-
-	err = apierrors.NewBadRequest(cantConnectErrorMsg)
-	require.False(t, IsAdmissionCantConnect(err))
-	//if IsAdmissionCantConnect(err) {
-	//	t.Error("Expected is connection error to be false, got true")
-	//}
 }
 
 func TestIsInvalidReplicationFactor(t *testing.T) {
@@ -86,21 +68,12 @@ func TestIsInvalidReplicationFactor(t *testing.T) {
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 	require.True(t, IsAdmissionInvalidReplicationFactor(err))
-	//if !IsAdmissionInvalidReplicationFactor(err) {
-	//	t.Error("Expected is invalid replication error to be true, got false")
-	//}
 
 	err = apierrors.NewServiceUnavailable("some other reason")
 	require.False(t, IsAdmissionInvalidReplicationFactor(err))
-	//if IsAdmissionInvalidReplicationFactor(err) {
-	//	t.Error("Expected is invalid replication error to be false, got true")
-	//}
 
 	err = apierrors.NewServiceUnavailable(invalidReplicationFactorErrMsg)
 	require.False(t, IsAdmissionInvalidReplicationFactor(err))
-	//if IsAdmissionInvalidReplicationFactor(err) {
-	//	t.Error("Expected is invalid replication error to be false, got true")
-	//}
 }
 
 func TestIsAdmissionCantConnectAPIServer(t *testing.T) {
