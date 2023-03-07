@@ -30,20 +30,32 @@ import (
 )
 
 func TestIsAdmissionConnectionError(t *testing.T) {
-	err := apierrors.NewInternalError(errors.Wrap(errors.New("..."), cantConnectErrorMsg))
-
-	if !IsAdmissionCantConnect(err) {
-		t.Error("Expected is connection error to be true, got false")
+	testCases := []struct {
+		testName string
+		err      error
+		want     bool
+	}{
+		{
+			testName: "correct error type and message",
+			err:      apierrors.NewInternalError(errors.Wrap(errors.New("..."), cantConnectErrorMsg)),
+			want:     true,
+		},
+		{
+			testName: "incorrect both error type and message",
+			err:      apierrors.NewServiceUnavailable("some other reason"),
+			want:     false,
+		},
+		{
+			testName: "incorrect error type with correct message component",
+			err:      apierrors.NewBadRequest(cantConnectErrorMsg),
+			want:     false,
+		},
 	}
-
-	err = apierrors.NewServiceUnavailable("some other reason")
-	if IsAdmissionCantConnect(err) {
-		t.Error("Expected is connection error to be false, got true")
-	}
-
-	err = apierrors.NewBadRequest(cantConnectErrorMsg)
-	if IsAdmissionCantConnect(err) {
-		t.Error("Expected is connection error to be false, got true")
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			got := IsAdmissionCantConnect(tc.err)
+			require.Equal(t, tc.want, got)
+		})
 	}
 }
 
@@ -55,20 +67,13 @@ func TestIsInvalidReplicationFactor(t *testing.T) {
 	err := apierrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
-
-	if !IsAdmissionInvalidReplicationFactor(err) {
-		t.Error("Expected is invalid replication error to be true, got false")
-	}
+	require.True(t, IsAdmissionInvalidReplicationFactor(err))
 
 	err = apierrors.NewServiceUnavailable("some other reason")
-	if IsAdmissionInvalidReplicationFactor(err) {
-		t.Error("Expected is invalid replication error to be false, got true")
-	}
+	require.False(t, IsAdmissionInvalidReplicationFactor(err))
 
 	err = apierrors.NewServiceUnavailable(invalidReplicationFactorErrMsg)
-	if IsAdmissionInvalidReplicationFactor(err) {
-		t.Error("Expected is invalid replication error to be false, got true")
-	}
+	require.False(t, IsAdmissionInvalidReplicationFactor(err))
 }
 
 func TestIsAdmissionCantConnectAPIServer(t *testing.T) {
@@ -91,9 +96,8 @@ func TestIsAdmissionCantConnectAPIServer(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			if got := IsAdmissionCantConnectAPIServer(tc.err); got != tc.want {
-				t.Errorf("Check connection to API Server error message. Expected: %t ; Got: %t", tc.want, got)
-			}
+			got := IsAdmissionCantConnectAPIServer(tc.err)
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -101,27 +105,25 @@ func TestIsAdmissionCantConnectAPIServer(t *testing.T) {
 func TestIsAdmissionOutOfRangeReplicationFactor(t *testing.T) {
 	kafkaTopic := banzaicloudv1alpha1.KafkaTopic{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaTopic"}}
 	var fieldErrs field.ErrorList
-	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("replicationFactor"), "-2", outOfRangeReplicationFactorErrMsg))
+	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("replicationFactor"), int32(-2), outOfRangeReplicationFactorErrMsg))
 	err := apierrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 
-	if ok := IsAdmissionOutOfRangeReplicationFactor(err); !ok {
-		t.Errorf("Check Out of Range ReplicationFactor error message. Expected: %t ; Got: %t", true, ok)
-	}
+	got := IsAdmissionOutOfRangeReplicationFactor(err)
+	require.True(t, got)
 }
 
 func TestIsAdmissionOutOfRangePartitions(t *testing.T) {
 	kafkaTopic := banzaicloudv1alpha1.KafkaTopic{ObjectMeta: metav1.ObjectMeta{Name: "test-KafkaTopic"}}
 	var fieldErrs field.ErrorList
-	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("partitions"), "-2", outOfRangePartitionsErrMsg))
+	fieldErrs = append(fieldErrs, field.Invalid(field.NewPath("spec").Child("partitions"), int32(-2), outOfRangePartitionsErrMsg))
 	err := apierrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 
-	if ok := IsAdmissionOutOfRangePartitions(err); !ok {
-		t.Errorf("Check Out of Range Partitions error message. Expected: %t ; Got: %t", true, ok)
-	}
+	got := IsAdmissionOutOfRangePartitions(err)
+	require.True(t, got)
 }
 
 func TestIsAdmissionInvalidRemovingStorage(t *testing.T) {
@@ -160,9 +162,8 @@ func TestIsAdmissionInvalidRemovingStorage(t *testing.T) {
 				kafkaCluster.GetObjectKind().GroupVersionKind().GroupKind(),
 				kafkaCluster.Name, tc.fieldErrs)
 
-			if got := IsAdmissionInvalidRemovingStorage(err); got != tc.want {
-				t.Errorf("Check Storage Removal Error message. Expected: %t ; Got: %t", tc.want, got)
-			}
+			got := IsAdmissionInvalidRemovingStorage(err)
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -221,9 +222,8 @@ func TestIsAdmissionErrorDuringValidation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			if got := IsAdmissionErrorDuringValidation(tc.err); got != tc.want {
-				t.Errorf("Check overall Error During Validation error message. Expected: %t ; Got: %t", tc.want, got)
-			}
+			got := IsAdmissionErrorDuringValidation(tc.err)
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
