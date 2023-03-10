@@ -1,6 +1,9 @@
 SHELL = /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+BIN_DIR := $(PROJECT_DIR)/bin
+
 # Image URL to use all building/pushing image targets
 TAG ?= $(shell git describe --tags --abbrev=0 --match 'v[0-9].*[0-9].*[0-9]' 2>/dev/null )
 IMG ?= ghcr.io/banzaicloud/kafka-operator:$(TAG)
@@ -13,8 +16,8 @@ RELEASE_MSG ?= "operator release"
 
 REL_TAG = $(shell ./scripts/increment_version.sh -${RELEASE_TYPE} ${TAG})
 
-GOLANGCI_VERSION = 1.50.1
-LICENSEI_VERSION = 0.6.1
+GOLANGCI_VERSION = 1.51.2
+LICENSEI_VERSION = 0.8.0
 GOPROXY=https://proxy.golang.org
 
 CONTROLLER_GEN_VERSION = v0.9.2
@@ -34,6 +37,9 @@ GOBIN=$(shell go env GOBIN)
 endif
 
 export PATH := $(PWD)/bin:$(PATH)
+
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 all: test manager
 
@@ -67,7 +73,6 @@ bin/licensei-${LICENSEI_VERSION}:
 .PHONY: license-check
 license-check: bin/licensei ## Run license check
 	bin/licensei check
-	./scripts/check-header.sh
 
 .PHONY: license-cache
 license-cache: bin/licensei ## Generate license cache
@@ -188,3 +193,34 @@ update-go-deps:
 		go mod tidy \
 		) \
 	done
+
+ADDLICENSE_VERSION := 1.1.1
+
+bin/addlicense: $(BIN_DIR)/addlicense-$(ADDLICENSE_VERSION)
+	@ln -sf addlicense-$(ADDLICENSE_VERSION) $(BIN_DIR)/addlicense
+
+$(BIN_DIR)/addlicense-$(ADDLICENSE_VERSION):
+	@mkdir -p $(BIN_DIR)
+	@GOBIN=$(BIN_DIR) go install github.com/google/addlicense@v$(ADDLICENSE_VERSION)
+	@mv $(BIN_DIR)/addlicense $(BIN_DIR)/addlicense-$(ADDLICENSE_VERSION)
+
+ADDLICENSE_COPYRIGHT_HOLDER := Cisco Systems, Inc. and/or its affiliates
+ADDLICENSE_SOURCE_DIRS := api controllers internal pkg properties
+ADDLICENSE_OPTS_IGNORE := -ignore '**/*.yml' -ignore '**/*.yaml' -ignore '**/*.xml'
+
+.PHONY: license-header-check
+license-header-check: bin/addlicense ## Find missing license header in source code files
+	@bin/addlicense \
+		-c "$(ADDLICENSE_COPYRIGHT_HOLDER)" \
+		-check \
+		-s \
+		$(ADDLICENSE_OPTS_IGNORE) \
+		$(ADDLICENSE_SOURCE_DIRS)
+
+.PHONY: license-header-fix
+license-header-fix: bin/addlicense ## Fix missing license header in source code files
+	@bin/addlicense \
+		-c "$(ADDLICENSE_COPYRIGHT_HOLDER)" \
+		-s \
+		$(ADDLICENSE_OPTS_IGNORE) \
+		$(ADDLICENSE_SOURCE_DIRS)
