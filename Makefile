@@ -1,6 +1,9 @@
 SHELL = /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+BIN_DIR := $(PROJECT_DIR)/bin
+
 # Image URL to use all building/pushing image targets
 TAG ?= $(shell git describe --tags --abbrev=0 --match 'v[0-9].*[0-9].*[0-9]' 2>/dev/null )
 IMG ?= ghcr.io/banzaicloud/kafka-operator:$(TAG)
@@ -191,3 +194,34 @@ update-go-deps:
 		go mod tidy \
 		) \
 	done
+
+ADDLICENSE_VERSION := 1.1.1
+
+bin/addlicense: $(BIN_DIR)/addlicense-$(ADDLICENSE_VERSION)
+	@ln -sf addlicense-$(ADDLICENSE_VERSION) $(BIN_DIR)/addlicense
+
+$(BIN_DIR)/addlicense-$(ADDLICENSE_VERSION):
+	@mkdir -p $(BIN_DIR)
+	@GOBIN=$(BIN_DIR) go install github.com/google/addlicense@v$(ADDLICENSE_VERSION)
+	@mv $(BIN_DIR)/addlicense $(BIN_DIR)/addlicense-$(ADDLICENSE_VERSION)
+
+ADDLICENSE_COPYRIGHT_HOLDER := Cisco Systems, Inc. and/or its affiliates
+ADDLICENSE_SOURCE_DIRS := api controllers internal pkg properties
+ADDLICENSE_OPTS_IGNORE := -ignore '**/*.yml' -ignore '**/*.yaml' -ignore '**/*.xml'
+
+.PHONY: license-header-check
+license-header-check: bin/addlicense ## Find missing license header in source code files
+	@bin/addlicense \
+		-c "$(ADDLICENSE_COPYRIGHT_HOLDER)" \
+		-check \
+		-s \
+		$(ADDLICENSE_OPTS_IGNORE) \
+		$(ADDLICENSE_SOURCE_DIRS)
+
+.PHONY: license-header-fix
+license-header-fix: bin/addlicense ## Fix missing license header in source code files
+	@bin/addlicense \
+		-c "$(ADDLICENSE_COPYRIGHT_HOLDER)" \
+		-s \
+		$(ADDLICENSE_OPTS_IGNORE) \
+		$(ADDLICENSE_SOURCE_DIRS)
