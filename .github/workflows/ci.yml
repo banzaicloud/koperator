@@ -42,6 +42,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: make license-check
 
+      - name: Check license header
+        env:
+          GOTEMPLATE_DEBUG: true
+          GOTEMPLATE_INTERNAL_LOG_LEVEL: debug
+          GOTEMPLATE_TEMPLATE_LOG_LEVEL: debug
+        run: make license-header-check
+
       - name: Build
         run: |
           make generate

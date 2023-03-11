@@ -3,6 +3,7 @@ SHELL = /bin/bash
 
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 BIN_DIR := $(PROJECT_DIR)/bin
+BOILERPLATE_DIR := $(PROJECT_DIR)/hack/boilerplate
 
 # Image URL to use all building/pushing image targets
 TAG ?= $(shell git describe --tags --abbrev=0 --match 'v[0-9].*[0-9].*[0-9]' 2>/dev/null )
@@ -143,8 +144,8 @@ vet:
 	cd properties && go vet ./...
 
 # Generate code
-generate: bin/controller-gen
-	cd api && $(CONTROLLER_GEN) object:headerFile=./../hack/boilerplate.go.txt paths="./..."
+generate: bin/controller-gen gen-license-header ## Generate source code for APIs, Mocks, etc
+	cd api && $(CONTROLLER_GEN) object:headerFile=$(BOILERPLATE_DIR)/header.go.generated.txt paths="./..."
 
 # Build the docker image
 docker-build:
@@ -204,23 +205,38 @@ $(BIN_DIR)/addlicense-$(ADDLICENSE_VERSION):
 	@GOBIN=$(BIN_DIR) go install github.com/google/addlicense@v$(ADDLICENSE_VERSION)
 	@mv $(BIN_DIR)/addlicense $(BIN_DIR)/addlicense-$(ADDLICENSE_VERSION)
 
-ADDLICENSE_COPYRIGHT_HOLDER := Cisco Systems, Inc. and/or its affiliates
-ADDLICENSE_SOURCE_DIRS := api controllers internal pkg properties
+ADDLICENSE_SOURCE_DIRS := api controllers internal pkg properties scripts
 ADDLICENSE_OPTS_IGNORE := -ignore '**/*.yml' -ignore '**/*.yaml' -ignore '**/*.xml'
 
 .PHONY: license-header-check
-license-header-check: bin/addlicense ## Find missing license header in source code files
-	@bin/addlicense \
-		-c "$(ADDLICENSE_COPYRIGHT_HOLDER)" \
+license-header-check: gen-license-header bin/addlicense ## Find missing license header in source code files
+	bin/addlicense \
 		-check \
-		-s \
+		-f $(BOILERPLATE_DIR)/header.generated.txt \
 		$(ADDLICENSE_OPTS_IGNORE) \
 		$(ADDLICENSE_SOURCE_DIRS)
 
 .PHONY: license-header-fix
-license-header-fix: bin/addlicense ## Fix missing license header in source code files
-	@bin/addlicense \
-		-c "$(ADDLICENSE_COPYRIGHT_HOLDER)" \
-		-s \
+license-header-fix: gen-license-header bin/addlicense ## Fix missing license header in source code files
+	bin/addlicense \
+		-f $(BOILERPLATE_DIR)/header.generated.txt \
 		$(ADDLICENSE_OPTS_IGNORE) \
 		$(ADDLICENSE_SOURCE_DIRS)
+
+GOTEMPLATE_VERSION := 3.7.3
+
+bin/gotemplate: $(BIN_DIR)/gotemplate-$(GOTEMPLATE_VERSION)
+	@ln -sf gotemplate-$(GOTEMPLATE_VERSION) $(BIN_DIR)/gotemplate
+
+$(BIN_DIR)/gotemplate-$(GOTEMPLATE_VERSION):
+	@mkdir -p $(BIN_DIR)
+	@GOBIN=$(BIN_DIR) go install github.com/coveooss/gotemplate/v3@v$(GOTEMPLATE_VERSION)
+	@mv $(BIN_DIR)/gotemplate $(BIN_DIR)/gotemplate-$(GOTEMPLATE_VERSION)
+
+.PHONY: gen-license-header
+gen-license-header: bin/gotemplate ## Generate license header used in source code files
+	GOTEMPLATE_NO_STDIN=true \
+	$(BIN_DIR)/gotemplate run \
+		--follow-symlinks \
+		--import="$(BOILERPLATE_DIR)/vars.yml" \
+		--source="$(BOILERPLATE_DIR)"
