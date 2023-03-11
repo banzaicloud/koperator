@@ -26,6 +26,8 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/banzaicloud/koperator/controllers/tests/mocks"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -315,9 +317,9 @@ func generateCruiseControlOperation(name, namespace, kafkaRef string) v1alpha1.C
 		Spec: v1alpha1.CruiseControlOperationSpec{},
 	}
 }
-func getScaleMock2() *scale.MockCruiseControlScaler {
+func getScaleMock2() *mocks.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
-	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
+	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
 
 	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
@@ -338,9 +340,9 @@ func getScaleMock2() *scale.MockCruiseControlScaler {
 	}), nil).Times(1)
 	return scaleMock
 }
-func getScaleMock1() *scale.MockCruiseControlScaler {
+func getScaleMock1() *mocks.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
-	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
+	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
 
 	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
@@ -362,9 +364,9 @@ func getScaleMock1() *scale.MockCruiseControlScaler {
 	return scaleMock
 }
 
-func getScaleMock3() *scale.MockCruiseControlScaler {
+func getScaleMock3() *mocks.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
-	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
+	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
 
 	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
@@ -396,9 +398,9 @@ func getScaleMock3() *scale.MockCruiseControlScaler {
 	return scaleMock
 }
 
-func getScaleMock4() *scale.MockCruiseControlScaler {
+func getScaleMock4() *mocks.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
-	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
+	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
 
 	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
@@ -424,9 +426,9 @@ func getScaleMock4() *scale.MockCruiseControlScaler {
 	return scaleMock
 }
 
-func getScaleMock5() *scale.MockCruiseControlScaler {
+func getScaleMock5() *mocks.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
-	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
+	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
 	scaleMock.EXPECT().IsUp().Return(true).AnyTimes()
 
 	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{

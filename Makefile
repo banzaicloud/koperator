@@ -240,3 +240,22 @@ gen-license-header: bin/gotemplate ## Generate license header used in source cod
 		--follow-symlinks \
 		--import="$(BOILERPLATE_DIR)/vars.yml" \
 		--source="$(BOILERPLATE_DIR)"
+
+
+MOCKGEN_VERSION := 1.6.0
+
+bin/mockgen: $(BIN_DIR)/mockgen-$(MOCKGEN_VERSION)
+	@ln -sf mockgen-$(MOCKGEN_VERSION) $(BIN_DIR)/mockgen
+
+$(BIN_DIR)/mockgen-$(MOCKGEN_VERSION):
+	@mkdir -p $(BIN_DIR)
+	@GOBIN=$(BIN_DIR) go install github.com/golang/mock/mockgen@v$(MOCKGEN_VERSION)
+	@mv $(BIN_DIR)/mockgen $(BIN_DIR)/mockgen-$(MOCKGEN_VERSION)
+
+.PHONY: mock-generate
+mock-generate: bin/mockgen
+	$(BIN_DIR)/mockgen \
+		-copyright_file $(BOILERPLATE_DIR)/header.generated.txt \
+		-source pkg/scale/types.go \
+		-destination controllers/tests/mocks/scale.go \
+		-package mocks

@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	istioclientv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	istioclientv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 
 	istioOperatorApi "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 

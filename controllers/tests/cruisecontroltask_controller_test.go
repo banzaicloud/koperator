@@ -25,6 +25,8 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/banzaicloud/koperator/controllers/tests/mocks"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -451,17 +453,17 @@ func NewMockScaleFactory(mock scale.CruiseControlScaler) func(ctx context.Contex
 	}
 }
 
-func getScaleMockCCTask1() *scale.MockCruiseControlScaler {
+func getScaleMockCCTask1() *mocks.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
-	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
+	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
 	availableBrokers := []string{"1", "2", "3"}
 	scaleMock.EXPECT().BrokersWithState(gomock.All()).Return(availableBrokers, nil).AnyTimes()
 	return scaleMock
 }
 
-func getScaleMockCCTask2(onlineLogDirs []string) *scale.MockCruiseControlScaler {
+func getScaleMockCCTask2(onlineLogDirs []string) *mocks.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
-	scaleMock := scale.NewMockCruiseControlScaler(mockCtrl)
+	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
 	availableBrokers := []string{"1", "2", "3"}
 	scaleMock.EXPECT().BrokersWithState(gomock.All()).Return(availableBrokers, nil).AnyTimes()
 
