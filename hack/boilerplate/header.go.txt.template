@@ -1,0 +1,10 @@
+/*
+Copyright {{ date "2006" now }} {{ .copyright.owner }}
+
+{{ .license.content }}
+@-if(.spdx.enabled)
+SPDX-FileCopyrightText: {{ date "2006" now }} {{ .copyright.owner }} <{{ .copyright.contact }}>
+
+SPDX-License-Identifier: {{ .license.id }}
+@-end
+*/
