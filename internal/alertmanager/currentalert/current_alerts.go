@@ -15,6 +15,7 @@
 package currentalert
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -29,7 +30,7 @@ type CurrentAlerts interface {
 	AlertGC(AlertState) error
 	DeleteAlert(model.Fingerprint) error
 	ListAlerts() map[model.Fingerprint]*currentAlertStruct
-	HandleAlert(model.Fingerprint, client.Client, int, logr.Logger) (*currentAlertStruct, error)
+	HandleAlert(context.Context, model.Fingerprint, client.Client, int, logr.Logger) (*currentAlertStruct, error)
 	GetRollingUpgradeAlertCount() int
 	IgnoreCCStatusCheck(bool)
 }
@@ -116,7 +117,7 @@ func (a *currentAlerts) AlertGC(alert AlertState) error {
 	return nil
 }
 
-func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Client, rollingUpgradeAlertCount int, log logr.Logger) (*currentAlertStruct, error) {
+func (a *currentAlerts) HandleAlert(ctx context.Context, alertFp model.Fingerprint, client client.Client, rollingUpgradeAlertCount int, log logr.Logger) (*currentAlertStruct, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	if _, ok := a.alerts[alertFp]; !ok {
@@ -134,7 +135,7 @@ func (a *currentAlerts) HandleAlert(alertFp model.Fingerprint, client client.Cli
 		// - alert has to be skipped because of broker upscale/downscale limits
 		// - unknown command is presented
 		// on every other case examineAlert will throw an error
-		alertProcessed, err := e.examineAlert(rollingUpgradeAlertCount)
+		alertProcessed, err := e.examineAlert(ctx, rollingUpgradeAlertCount)
 		if err != nil {
 			return nil, err
 		}

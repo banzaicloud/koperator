@@ -457,7 +457,7 @@ func getScaleMockCCTask1() *mocks.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
 	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
 	availableBrokers := []string{"1", "2", "3"}
-	scaleMock.EXPECT().BrokersWithState(gomock.All()).Return(availableBrokers, nil).AnyTimes()
+	scaleMock.EXPECT().BrokersWithState(gomock.Any(), gomock.All()).Return(availableBrokers, nil).AnyTimes()
 	return scaleMock
 }
 
@@ -465,7 +465,7 @@ func getScaleMockCCTask2(onlineLogDirs []string) *mocks.MockCruiseControlScaler 
 	mockCtrl := gomock.NewController(GinkgoT())
 	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
 	availableBrokers := []string{"1", "2", "3"}
-	scaleMock.EXPECT().BrokersWithState(gomock.All()).Return(availableBrokers, nil).AnyTimes()
+	scaleMock.EXPECT().BrokersWithState(gomock.Any(), gomock.All()).Return(availableBrokers, nil).AnyTimes()
 
 	logDirs := make(map[scale.LogDirState][]string)
 	logDirsBrokerRet := make(map[string]map[scale.LogDirState][]string)
@@ -473,6 +473,6 @@ func getScaleMockCCTask2(onlineLogDirs []string) *mocks.MockCruiseControlScaler 
 	logDirs[scale.LogDirStateOnline] = onlineLogDirs
 	logDirsBrokerRet["0"] = logDirs
 	logDirsBrokerRet["1"] = logDirs
-	scaleMock.EXPECT().LogDirsByBroker().Return(logDirsBrokerRet, nil).AnyTimes()
+	scaleMock.EXPECT().LogDirsByBroker(gomock.Any()).Return(logDirsBrokerRet, nil).AnyTimes()
 	return scaleMock
 }

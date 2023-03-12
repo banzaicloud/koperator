@@ -56,7 +56,7 @@ func (a *HTTPController) reciveAlert(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "reading request body failed", http.StatusInternalServerError)
 			return
 		}
-		err = alertReciever(a.Logger, alert, a.Client)
+		err = alertReciever(r.Context(), a.Logger, alert, a.Client)
 		if err != nil {
 			http.Error(w, "alert receiver error", http.StatusBadRequest)
 			return

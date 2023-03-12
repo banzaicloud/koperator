@@ -210,7 +210,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 
 	// Handle Pod delete
-	err := r.reconcileKafkaPodDelete(log)
+	err := r.reconcileKafkaPodDelete(ctx, log)
 	if err != nil {
 		return errors.WrapIf(err, "failed to reconcile resource")
 	}
@@ -402,7 +402,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	return nil
 }
 
-func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
+func (r *Reconciler) reconcileKafkaPodDelete(ctx context.Context, log logr.Logger) error {
 	podList := &corev1.PodList{}
 	err := r.Client.List(context.TODO(), podList,
 		client.InNamespace(r.KafkaCluster.Namespace),
@@ -446,7 +446,7 @@ func (r *Reconciler) reconcileKafkaPodDelete(log logr.Logger) error {
 				scale.KafkaBrokerDemoted,
 				scale.KafkaBrokerBadDisks,
 			}
-			availableBrokers, err := cc.BrokersWithState(brokerStates...)
+			availableBrokers, err := cc.BrokersWithState(ctx, brokerStates...)
 			if err != nil {
 				log.Error(err, "failed to get the list of available brokers from Cruise Control")
 				return errorfactory.New(errorfactory.CruiseControlNotReady{}, err,

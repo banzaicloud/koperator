@@ -129,14 +129,14 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			break
 		}
 
-		unavailableBrokers, err := getUnavailableBrokers(scaler, brokerIDs)
+		unavailableBrokers, err := getUnavailableBrokers(ctx, scaler, brokerIDs)
 		if err != nil {
 			log.Error(err, "could not get unavailable brokers for upscale")
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 		if len(unavailableBrokers) > 0 {
 			log.Info("requeue as broker(s) are not ready for upscale", "brokerIDs", unavailableBrokers)
-			// This requeue is not necessary because the cruisecontrloperation controller retries the errored task
+			// This requeue is not necessary because the cruisecontroloperation controller retries the errored task
 			// but in this case there will be GracefulUpscaleCompletedWithError status in the kafkaCluster's status.
 			// To avoid that requeue is here until brokers come up.
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
@@ -175,7 +175,7 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			brokerIDs = append(brokerIDs, task.BrokerID)
 		}
 
-		unavailableBrokerIDs, err := checkBrokerLogDirsAvailability(scaler, tasksAndStates)
+		unavailableBrokerIDs, err := checkBrokerLogDirsAvailability(ctx, scaler, tasksAndStates)
 		if err != nil {
 			log.Error(err, "failed to get unavailable brokers at rebalance")
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
@@ -233,8 +233,8 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 	return reconciled()
 }
 
-func checkBrokerLogDirsAvailability(scaler scale.CruiseControlScaler, tasksAndStates *CruiseControlTasksAndStates) (unavailableBrokerIDs []string, err error) {
-	logDirsByBroker, err := scaler.LogDirsByBroker()
+func checkBrokerLogDirsAvailability(ctx context.Context, scaler scale.CruiseControlScaler, tasksAndStates *CruiseControlTasksAndStates) (unavailableBrokerIDs []string, err error) {
+	logDirsByBroker, err := scaler.LogDirsByBroker(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get list of volumes per broker from Cruise Control")
 	}
@@ -256,10 +256,10 @@ func checkBrokerLogDirsAvailability(scaler scale.CruiseControlScaler, tasksAndSt
 	return unavailableBrokerIDs, nil
 }
 
-func getUnavailableBrokers(scaler scale.CruiseControlScaler, brokerIDs []string) ([]string, error) {
+func getUnavailableBrokers(ctx context.Context, scaler scale.CruiseControlScaler, brokerIDs []string) ([]string, error) {
 	states := []scale.KafkaBrokerState{scale.KafkaBrokerAlive, scale.KafkaBrokerNew}
 	// This can result NullPointerException when the capacity calculation is missing for a broker in the cruisecontrol configmap
-	availableBrokers, err := scaler.BrokersWithState(states...)
+	availableBrokers, err := scaler.BrokersWithState(ctx, states...)
 	if err != nil {
 		return nil, errors.WrapIff(err, "failed to retrieve list of available brokers from Cruise Control")
 	}

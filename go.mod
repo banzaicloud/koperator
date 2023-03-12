@@ -6,7 +6,7 @@ require (
 	emperror.dev/errors v0.8.1
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/Shopify/sarama v1.36.0
-	github.com/banzaicloud/go-cruise-control v0.2.0
+	github.com/banzaicloud/go-cruise-control v0.4.0
 	github.com/banzaicloud/istio-client-go v0.0.17
 	github.com/banzaicloud/istio-operator/api/v2 v2.15.1
 	github.com/banzaicloud/k8s-objectmatcher v1.8.0
@@ -18,8 +18,8 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v1.2.3
 	github.com/imdario/mergo v0.3.13
-	github.com/onsi/ginkgo/v2 v2.5.0
-	github.com/onsi/gomega v1.24.0
+	github.com/onsi/ginkgo/v2 v2.8.4
+	github.com/onsi/gomega v1.27.2
 	github.com/pavlo-v-chernykh/keystore-go/v4 v4.4.0
 	github.com/prometheus/common v0.37.0
 	github.com/stretchr/testify v1.8.0
@@ -33,6 +33,12 @@ require (
 	k8s.io/apimachinery v0.25.0
 	k8s.io/client-go v0.25.0
 	sigs.k8s.io/controller-runtime v0.13.0
+)
+
+require (
+	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
+	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 )
 
 require (

@@ -160,7 +160,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 			},
 		},
 	}
-	//Create Namespace first
+	// Create Namespace first
 	ensureCreated(t, kafkaNamespace, mgr)
 
 	ensureCreated(t, kafkaCluster, mgr)
@@ -213,7 +213,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 	}
 
 	testRollingUpgradeErrorCount := 5
-	currAlert, err := alerts1.HandleAlert(testAlert1.FingerPrint, c, testRollingUpgradeErrorCount, log)
+	currAlert, err := alerts1.HandleAlert(ctx, testAlert1.FingerPrint, c, testRollingUpgradeErrorCount, log)
 	if err != nil {
 		t.Error("Hanlde alert failed a1 with error", err)
 	}
@@ -259,7 +259,7 @@ func TestGetCurrentAlerts(t *testing.T) {
 		t.Error("2222 alert wasn't deleted")
 	}
 
-	_, err = alerts3.HandleAlert(model.Fingerprint(2222), c, 0, log)
+	_, err = alerts3.HandleAlert(ctx, model.Fingerprint(2222), c, 0, log)
 	expected := "alert doesn't exist"
 	if err == nil || err.Error() != expected {
 		t.Error("alert with 2222 isn't the expected", err)
