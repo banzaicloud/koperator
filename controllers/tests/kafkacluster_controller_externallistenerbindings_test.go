@@ -29,14 +29,14 @@ import (
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
-func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
+func expectDefaultBrokerSettingsForExternalListenerBinding(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
 	// Check Brokers
 	for _, broker := range kafkaCluster.Spec.Brokers {
 		broker := broker
 		// expect ConfigMap
 		configMap := corev1.ConfigMap{}
-		Eventually(func() error {
-			return k8sClient.Get(context.Background(), types.NamespacedName{
+		Eventually(ctx, func() error {
+			return k8sClient.Get(ctx, types.NamespacedName{
 				Namespace: kafkaCluster.Namespace,
 				Name:      fmt.Sprintf("%s-config-%d", kafkaCluster.Name, broker.Id),
 			}, &configMap)
@@ -60,8 +60,8 @@ func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1
 		Expect(listenerSecMap.Value()).To(Equal("INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:PLAINTEXT"))
 		// check service
 		service := corev1.Service{}
-		Eventually(func() error {
-			return k8sClient.Get(context.Background(), types.NamespacedName{
+		Eventually(ctx, func() error {
+			return k8sClient.Get(ctx, types.NamespacedName{
 				Namespace: kafkaCluster.Namespace,
 				Name:      fmt.Sprintf("%s-%d", kafkaCluster.Name, broker.Id),
 			}, &service)
@@ -99,10 +99,10 @@ func expectDefaultBrokerSettingsForExternalListenerBinding(kafkaCluster *v1beta1
 	}
 }
 
-func expectBrokerConfigmapForAz1ExternalListener(kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
+func expectBrokerConfigmapForAz1ExternalListener(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
 	configMap := corev1.ConfigMap{}
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-config-%d", kafkaCluster.Name, 0),
 		}, &configMap)
@@ -116,10 +116,10 @@ func expectBrokerConfigmapForAz1ExternalListener(kafkaCluster *v1beta1.KafkaClus
 		randomGenTestNumber, 0, randomGenTestNumber, randomGenTestNumber, 0, randomGenTestNumber, 19090)))
 }
 
-func expectBrokerConfigmapForAz2ExternalListener(kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
+func expectBrokerConfigmapForAz2ExternalListener(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
 	configMap := corev1.ConfigMap{}
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-config-%d", kafkaCluster.Name, 1),
 		}, &configMap)
@@ -133,8 +133,8 @@ func expectBrokerConfigmapForAz2ExternalListener(kafkaCluster *v1beta1.KafkaClus
 		randomGenTestNumber, 1, randomGenTestNumber, randomGenTestNumber, 1, randomGenTestNumber, 19091)))
 
 	configMap = corev1.ConfigMap{}
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-config-%d", kafkaCluster.Name, 2),
 		}, &configMap)

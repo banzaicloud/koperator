@@ -15,7 +15,6 @@
 package tests
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -55,30 +54,30 @@ var _ = Describe("KafkaTopic", func() {
 		kafkaCluster = createMinimalKafkaClusterCR(fmt.Sprintf("kafkacluster-%v", count), namespace)
 	})
 
-	JustBeforeEach(func() {
+	JustBeforeEach(func(ctx SpecContext) {
 		By("creating namespace " + namespace)
-		err := k8sClient.Create(context.TODO(), namespaceObj)
+		err := k8sClient.Create(ctx, namespaceObj)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err = k8sClient.Create(context.TODO(), kafkaCluster)
+		err = k8sClient.Create(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
-		waitForClusterRunningState(kafkaCluster, namespace)
+		waitForClusterRunningState(ctx, kafkaCluster, namespace)
 	})
 
-	JustAfterEach(func() {
+	JustAfterEach(func(ctx SpecContext) {
 		resetMockKafkaClient(kafkaCluster)
 
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err := k8sClient.Delete(context.TODO(), kafkaCluster)
+		err := k8sClient.Delete(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
 		kafkaCluster = nil
 	})
 
 	When("the topic does not exist", func() {
-		It("creates properly", func() {
+		It("creates properly", func(ctx SpecContext) {
 			topicName := "test-topic"
 			crTopicName := fmt.Sprintf("kafkatopic-%v", count)
 			topic := v1alpha1.KafkaTopic{
@@ -101,12 +100,12 @@ var _ = Describe("KafkaTopic", func() {
 				},
 			}
 
-			err := k8sClient.Create(context.TODO(), &topic)
+			err := k8sClient.Create(ctx, &topic)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(func() (v1alpha1.TopicState, error) {
+			Eventually(ctx, func() (v1alpha1.TopicState, error) {
 				topic := v1alpha1.KafkaTopic{}
-				err := k8sClient.Get(context.Background(), types.NamespacedName{
+				err := k8sClient.Get(ctx, types.NamespacedName{
 					Namespace: kafkaCluster.Namespace,
 					Name:      crTopicName,
 				}, &topic)
@@ -128,13 +127,13 @@ var _ = Describe("KafkaTopic", func() {
 				},
 			}))
 
-			err = k8sClient.Get(context.TODO(), types.NamespacedName{
+			err = k8sClient.Get(ctx, types.NamespacedName{
 				Name:      topic.Name,
 				Namespace: topic.Namespace,
 			}, &topic)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = k8sClient.Delete(context.TODO(), &topic)
+			err = k8sClient.Delete(ctx, &topic)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -156,7 +155,7 @@ var _ = Describe("KafkaTopic", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("creates properly", func() {
+		It("creates properly", func(ctx SpecContext) {
 			crTopicName := fmt.Sprintf("kafkatopic-%v", count)
 
 			topic := v1alpha1.KafkaTopic{
@@ -179,12 +178,12 @@ var _ = Describe("KafkaTopic", func() {
 				},
 			}
 
-			err := k8sClient.Create(context.TODO(), &topic)
+			err := k8sClient.Create(ctx, &topic)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(func() (v1alpha1.TopicState, error) {
+			Eventually(ctx, func() (v1alpha1.TopicState, error) {
 				topic := v1alpha1.KafkaTopic{}
-				err := k8sClient.Get(context.Background(), types.NamespacedName{
+				err := k8sClient.Get(ctx, types.NamespacedName{
 					Namespace: kafkaCluster.Namespace,
 					Name:      crTopicName,
 				}, &topic)
@@ -205,13 +204,13 @@ var _ = Describe("KafkaTopic", func() {
 				},
 			}))
 
-			err = k8sClient.Get(context.TODO(), types.NamespacedName{
+			err = k8sClient.Get(ctx, types.NamespacedName{
 				Name:      topic.Name,
 				Namespace: topic.Namespace,
 			}, &topic)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = k8sClient.Delete(context.TODO(), &topic)
+			err = k8sClient.Delete(ctx, &topic)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})

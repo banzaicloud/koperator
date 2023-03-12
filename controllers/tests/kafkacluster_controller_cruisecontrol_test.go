@@ -33,16 +33,16 @@ import (
 	"github.com/banzaicloud/koperator/pkg/util"
 )
 
-func expectCruiseControl(kafkaCluster *v1beta1.KafkaCluster) {
-	expectCruiseControlTopic(kafkaCluster)
-	expectCruiseControlService(kafkaCluster)
-	expectCruiseControlConfigMap(kafkaCluster)
-	expectCruiseControlDeployment(kafkaCluster)
+func expectCruiseControl(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
+	expectCruiseControlTopic(ctx, kafkaCluster)
+	expectCruiseControlService(ctx, kafkaCluster)
+	expectCruiseControlConfigMap(ctx, kafkaCluster)
+	expectCruiseControlDeployment(ctx, kafkaCluster)
 }
 
-func expectCruiseControlTopic(kafkaCluster *v1beta1.KafkaCluster) {
+func expectCruiseControlTopic(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	createdKafkaCluster := &v1beta1.KafkaCluster{}
-	err := k8sClient.Get(context.TODO(), types.NamespacedName{
+	err := k8sClient.Get(ctx, types.NamespacedName{
 		Name:      kafkaCluster.Name,
 		Namespace: kafkaCluster.Namespace,
 	}, createdKafkaCluster)
@@ -50,9 +50,9 @@ func expectCruiseControlTopic(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(createdKafkaCluster.Status.CruiseControlTopicStatus).To(Equal(v1beta1.CruiseControlTopicReady))
 
 	topic := &v1alpha1.KafkaTopic{}
-	Eventually(func() error {
+	Eventually(ctx, func() error {
 		topicObjName := fmt.Sprintf("%s-cruise-control-topic", kafkaCluster.Name)
-		return k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: topicObjName}, topic)
+		return k8sClient.Get(ctx, types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: topicObjName}, topic)
 	}).Should(Succeed())
 
 	Expect(topic).NotTo(BeNil())
@@ -71,10 +71,10 @@ func expectCruiseControlTopic(kafkaCluster *v1beta1.KafkaCluster) {
 	}))
 }
 
-func expectCruiseControlService(kafkaCluster *v1beta1.KafkaCluster) {
+func expectCruiseControlService(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	service := &corev1.Service{}
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-cruisecontrol-svc", kafkaCluster.Name),
 		}, service)
@@ -100,10 +100,10 @@ func expectCruiseControlService(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.AppLabelKey, "cruisecontrol"))
 }
 
-func expectCruiseControlConfigMap(kafkaCluster *v1beta1.KafkaCluster) {
+func expectCruiseControlConfigMap(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	configMap := &corev1.ConfigMap{}
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-cruisecontrol-config", kafkaCluster.Name),
 		}, configMap)
@@ -223,11 +223,11 @@ rootLogger.appenderRef.kafkaCruiseControlAppender.ref=kafkaCruiseControlFile
 `))
 }
 
-func expectCruiseControlDeployment(kafkaCluster *v1beta1.KafkaCluster) {
+func expectCruiseControlDeployment(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	deployment := &appsv1.Deployment{}
 	deploymentName := fmt.Sprintf("%s-cruisecontrol", kafkaCluster.Name)
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      deploymentName,
 		}, deployment)
@@ -339,8 +339,8 @@ func expectCruiseControlDeployment(kafkaCluster *v1beta1.KafkaCluster) {
 
 	// Check config checksum annotations
 	configMap := &corev1.ConfigMap{}
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-cruisecontrol-config", kafkaCluster.Name),
 		}, configMap)

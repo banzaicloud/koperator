@@ -83,13 +83,13 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 		}
 	})
 
-	JustBeforeEach(func() {
+	JustBeforeEach(func(ctx SpecContext) {
 		By("creating namespace " + namespace)
-		err := k8sClient.Create(context.TODO(), namespaceObj)
+		err := k8sClient.Create(ctx, namespaceObj)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err = k8sClient.Create(context.TODO(), kafkaCluster)
+		err = k8sClient.Create(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
 		svcName := fmt.Sprintf("meshgateway-external-%s", kafkaCluster.Name)
@@ -109,18 +109,18 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 				},
 			},
 		}
-		err = k8sClient.Create(context.TODO(), &svcFromMeshGateway)
+		err = k8sClient.Create(ctx, &svcFromMeshGateway)
 		Expect(err).NotTo(HaveOccurred())
 		svcFromMeshGateway.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{Hostname: "ingress.test.host.com"}}
-		err = k8sClient.Status().Update(context.TODO(), &svcFromMeshGateway)
+		err = k8sClient.Status().Update(ctx, &svcFromMeshGateway)
 		Expect(err).NotTo(HaveOccurred())
 
-		waitForClusterRunningState(kafkaCluster, namespace)
+		waitForClusterRunningState(ctx, kafkaCluster, namespace)
 	})
 
-	JustAfterEach(func() {
+	JustAfterEach(func(ctx SpecContext) {
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err := k8sClient.Delete(context.TODO(), kafkaCluster)
+		err := k8sClient.Delete(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 		kafkaCluster = nil
 	})
@@ -130,10 +130,10 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			kafkaCluster.Spec.IngressController = istioingress.IngressControllerName
 		})
 
-		It("creates Istio ingress related objects", func() {
+		It("creates Istio ingress related objects", func(ctx SpecContext) {
 			var meshGateway istioOperatorApi.IstioMeshGateway
 			meshGatewayName := fmt.Sprintf("meshgateway-external-%s", kafkaCluster.Name)
-			Eventually(func() error {
+			Eventually(ctx, func() error {
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: meshGatewayName}, &meshGateway)
 				return err
 			}).Should(Succeed())
@@ -199,8 +199,8 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 
 			var gateway istioclientv1beta1.Gateway
 			gatewayName := fmt.Sprintf("%s-external-gateway", kafkaCluster.Name)
-			Eventually(func() error {
-				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: gatewayName}, &gateway)
+			Eventually(ctx, func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: gatewayName}, &gateway)
 				return err
 			}).Should(Succeed())
 
@@ -239,8 +239,8 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 
 			var virtualService istioclientv1beta1.VirtualService
 			virtualServiceName := fmt.Sprintf("%s-external-virtualservice", kafkaCluster.Name)
-			Eventually(func() error {
-				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: virtualServiceName}, &virtualService)
+			Eventually(ctx, func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: virtualServiceName}, &virtualService)
 				return err
 			}).Should(Succeed())
 
@@ -289,7 +289,7 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			}))
 
 			// expect kafkaCluster listener status
-			err = k8sClient.Get(context.TODO(), types.NamespacedName{
+			err = k8sClient.Get(ctx, types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
 			}, kafkaCluster)
@@ -345,8 +345,8 @@ var _ = Describe("KafkaClusterIstioIngressController", func() {
 			kafkaCluster.Spec.HeadlessServiceEnabled = true
 		})
 
-		It("does not add the all-broker service to the listener status", func() {
-			err := k8sClient.Get(context.TODO(), types.NamespacedName{
+		It("does not add the all-broker service to the listener status", func(ctx SpecContext) {
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
 			}, kafkaCluster)
@@ -459,38 +459,38 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 		kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az2"}}
 	})
 
-	JustBeforeEach(func() {
+	JustBeforeEach(func(ctx SpecContext) {
 		By("creating namespace " + namespace)
-		err := k8sClient.Create(context.TODO(), namespaceObj)
+		err := k8sClient.Create(ctx, namespaceObj)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err = k8sClient.Create(context.TODO(), kafkaCluster)
+		err = k8sClient.Create(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
-		createMeshGatewayService("external.az1.host.com",
+		createMeshGatewayService(ctx, "external.az1.host.com",
 			fmt.Sprintf("meshgateway-external-az1-%s", kafkaCluster.Name), namespace)
-		createMeshGatewayService("external.az2.host.com",
+		createMeshGatewayService(ctx, "external.az2.host.com",
 			fmt.Sprintf("meshgateway-external-az2-%s", kafkaCluster.Name), namespace)
 
-		waitForClusterRunningState(kafkaCluster, namespace)
+		waitForClusterRunningState(ctx, kafkaCluster, namespace)
 	})
 
-	JustAfterEach(func() {
+	JustAfterEach(func(ctx SpecContext) {
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err := k8sClient.Delete(context.TODO(), kafkaCluster)
+		err := k8sClient.Delete(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 		kafkaCluster = nil
 	})
 
 	When("Istio ingress controller is configured", func() {
 
-		It("creates Istio ingress related objects", func() {
+		It("creates Istio ingress related objects", func(ctx SpecContext) {
 			// Istio ingress Az1 related objects
 			var meshGateway istioOperatorApi.IstioMeshGateway
 			meshGatewayAz1Name := fmt.Sprintf("meshgateway-external-az1-%s", kafkaCluster.Name)
-			Eventually(func() error {
-				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: meshGatewayAz1Name}, &meshGateway)
+			Eventually(ctx, func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: meshGatewayAz1Name}, &meshGateway)
 				return err
 			}).Should(Succeed())
 
@@ -524,8 +524,8 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 
 			var gateway istioclientv1beta1.Gateway
 			gatewayName := fmt.Sprintf("%s-external-az1-gateway", kafkaCluster.Name)
-			Eventually(func() error {
-				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: gatewayName}, &gateway)
+			Eventually(ctx, func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: gatewayName}, &gateway)
 				return err
 			}).Should(Succeed())
 
@@ -557,8 +557,8 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 
 			var virtualService istioclientv1beta1.VirtualService
 			virtualServiceName := fmt.Sprintf("%s-external-az1-virtualservice", kafkaCluster.Name)
-			Eventually(func() error {
-				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: virtualServiceName}, &virtualService)
+			Eventually(ctx, func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: virtualServiceName}, &virtualService)
 				return err
 			}).Should(Succeed())
 
@@ -598,8 +598,8 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			}))
 			// Istio Ingress Az2 related objects
 			meshGatewayAz2Name := fmt.Sprintf("meshgateway-external-az2-%s", kafkaCluster.Name)
-			Eventually(func() error {
-				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: meshGatewayAz2Name}, &meshGateway)
+			Eventually(ctx, func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: meshGatewayAz2Name}, &meshGateway)
 				return err
 			}).Should(Succeed())
 
@@ -625,8 +625,8 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			Expect(cmp.Equal(meshGatewaySpec.Service.Ports[1], expectedPort, cmpopts.IgnoreUnexported(istioOperatorApi.ServicePort{}))).To(BeTrue())
 
 			gatewayName = fmt.Sprintf("%s-external-az2-gateway", kafkaCluster.Name)
-			Eventually(func() error {
-				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: gatewayName}, &gateway)
+			Eventually(ctx, func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: gatewayName}, &gateway)
 				return err
 			}).Should(Succeed())
 
@@ -658,8 +658,8 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 				}))
 
 			virtualServiceName = fmt.Sprintf("%s-external-az2-virtualservice", kafkaCluster.Name)
-			Eventually(func() error {
-				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: virtualServiceName}, &virtualService)
+			Eventually(ctx, func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: virtualServiceName}, &virtualService)
 				return err
 			}).Should(Succeed())
 
@@ -690,7 +690,7 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 			}))
 
 			// expect kafkaCluster listener status
-			err := k8sClient.Get(context.TODO(), types.NamespacedName{
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
 			}, kafkaCluster)
@@ -746,7 +746,7 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 	})
 })
 
-func createMeshGatewayService(extListenerName, extListenerServiceName, namespace string) {
+func createMeshGatewayService(ctx context.Context, extListenerName, extListenerServiceName, namespace string) {
 	svcFromMeshGateway := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      extListenerServiceName,
@@ -763,9 +763,9 @@ func createMeshGatewayService(extListenerName, extListenerServiceName, namespace
 			},
 		},
 	}
-	err := k8sClient.Create(context.TODO(), &svcFromMeshGateway)
+	err := k8sClient.Create(ctx, &svcFromMeshGateway)
 	Expect(err).NotTo(HaveOccurred())
 	svcFromMeshGateway.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{Hostname: extListenerName}}
-	err = k8sClient.Status().Update(context.TODO(), &svcFromMeshGateway)
+	err = k8sClient.Status().Update(ctx, &svcFromMeshGateway)
 	Expect(err).NotTo(HaveOccurred())
 }

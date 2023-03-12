@@ -81,12 +81,12 @@ func TestControllers(t *testing.T) {
 	RunSpecs(t, "Controller Suite")
 }
 
-var _ = BeforeSuite(func() {
+var _ = BeforeSuite(func(ctx SpecContext) {
 
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 
 	By("bootstrapping test environment")
-	stopTimeout, _ := time.ParseDuration("120s")
+	timeout := 2 * time.Minute
 	testEnv = &envtest.Environment{
 		ErrorIfCRDPathMissing: true,
 		CRDDirectoryPaths: []string{
@@ -94,7 +94,8 @@ var _ = BeforeSuite(func() {
 			filepath.Join("..", "..", "config", "test", "crd", "cert-manager"),
 			filepath.Join("..", "..", "config", "test", "crd", "istio"),
 		},
-		ControlPlaneStopTimeout:  stopTimeout,
+		ControlPlaneStartTimeout: timeout,
+		ControlPlaneStopTimeout:  timeout,
 		AttachControlPlaneOutput: false,
 	}
 
@@ -106,7 +107,7 @@ var _ = BeforeSuite(func() {
 		cfg, err = testEnv.Start()
 		close(done)
 	}()
-	Eventually(done).WithTimeout(time.Minute).Should(BeClosed())
+	Eventually(done).WithContext(ctx).WithTimeout(timeout).Should(BeClosed())
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
@@ -221,7 +222,6 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).ToNot(BeNil())
 
 	crd := &apiv1.CustomResourceDefinition{}
-	ctx := context.Background()
 
 	err = k8sClient.Get(ctx, types.NamespacedName{Name: "kafkaclusters.kafka.banzaicloud.io"}, crd)
 	Expect(err).NotTo(HaveOccurred())

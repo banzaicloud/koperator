@@ -15,7 +15,6 @@
 package tests
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -61,28 +60,28 @@ var _ = Describe("KafkaTopic", func() {
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 	})
 
-	JustBeforeEach(func() {
+	JustBeforeEach(func(ctx SpecContext) {
 		By("creating namespace " + namespace)
-		err := k8sClient.Create(context.TODO(), namespaceObj)
+		err := k8sClient.Create(ctx, namespaceObj)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err = k8sClient.Create(context.TODO(), kafkaCluster)
+		err = k8sClient.Create(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
-		waitForClusterRunningState(kafkaCluster, namespace)
+		waitForClusterRunningState(ctx, kafkaCluster, namespace)
 	})
 
-	JustAfterEach(func() {
+	JustAfterEach(func(ctx SpecContext) {
 		resetMockKafkaClient(kafkaCluster)
 
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err := k8sClient.Delete(context.TODO(), kafkaCluster)
+		err := k8sClient.Delete(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 		kafkaCluster = nil
 	})
 
-	It("generates topic grants correctly", func() {
+	It("generates topic grants correctly", func(ctx SpecContext) {
 		userCRName := fmt.Sprintf("kafkauser-%v", count)
 		user := v1alpha1.KafkaUser{
 			ObjectMeta: metav1.ObjectMeta{
@@ -110,12 +109,12 @@ var _ = Describe("KafkaTopic", func() {
 			},
 		}
 
-		err := k8sClient.Create(context.TODO(), &user)
+		err := k8sClient.Create(ctx, &user)
 		Expect(err).NotTo(HaveOccurred())
 
-		Eventually(func() (v1alpha1.UserState, error) {
+		Eventually(ctx, func() (v1alpha1.UserState, error) {
 			user := v1alpha1.KafkaUser{}
-			err := k8sClient.Get(context.Background(), types.NamespacedName{
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Namespace: kafkaCluster.Namespace,
 				Name:      userCRName,
 			}, &user)
@@ -126,7 +125,7 @@ var _ = Describe("KafkaTopic", func() {
 		}, 5*time.Second, 100*time.Millisecond).Should(Equal(v1alpha1.UserStateCreated))
 
 		// check label on user
-		err = k8sClient.Get(context.Background(), types.NamespacedName{
+		err = k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      userCRName,
 		}, &user)
@@ -221,7 +220,7 @@ var _ = Describe("KafkaTopic", func() {
 			"User:CN=kafkauser-1,Topic,LITERAL,test-topic-2,Write,Allow,*",
 		))
 	})
-	It("k8s csr and belonging secret correctly", func() {
+	It("k8s csr and belonging secret correctly", func(ctx SpecContext) {
 		userCRName := fmt.Sprintf("kafkauser-%v", count)
 		user := v1alpha1.KafkaUser{
 			ObjectMeta: metav1.ObjectMeta{
@@ -241,12 +240,12 @@ var _ = Describe("KafkaTopic", func() {
 				},
 			},
 		}
-		err := k8sClient.Create(context.Background(), &user)
+		err := k8sClient.Create(ctx, &user)
 		Expect(err).NotTo(HaveOccurred())
 
 		secret := &corev1.Secret{}
-		Eventually(func() map[string]string {
-			err := k8sClient.Get(context.Background(), types.NamespacedName{
+		Eventually(ctx, func() map[string]string {
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      user.Spec.SecretName,
 				Namespace: user.Namespace}, secret)
 			if !apierrors.IsNotFound(err) {
@@ -257,8 +256,8 @@ var _ = Describe("KafkaTopic", func() {
 
 		csrName := secret.Annotations[k8scsrpki.DependingCsrAnnotation]
 		csr := &certsigningreqv1.CertificateSigningRequest{}
-		Eventually(func() error {
-			err := k8sClient.Get(context.Background(), types.NamespacedName{
+		Eventually(ctx, func() error {
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      csrName,
 				Namespace: user.Namespace}, csr)
 			if err != nil {
@@ -271,11 +270,11 @@ var _ = Describe("KafkaTopic", func() {
 			Type:   certsigningreqv1.CertificateApproved,
 			Status: "True",
 		})
-		csr, err = csrClient.CertificateSigningRequests().UpdateApproval(context.Background(), csr.Name, csr, metav1.UpdateOptions{})
+		csr, err = csrClient.CertificateSigningRequests().UpdateApproval(ctx, csr.Name, csr, metav1.UpdateOptions{})
 		Expect(err).NotTo(HaveOccurred())
 
-		Eventually(func() error {
-			err := k8sClient.Get(context.Background(), types.NamespacedName{
+		Eventually(ctx, func() error {
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      csrName,
 				Namespace: user.Namespace}, csr)
 			if err != nil {
@@ -329,11 +328,11 @@ a2XtH5jFl9AhECz2vjTCDWnAicihyI7IQvz2OWAWhrlj1hX1MVGKbJxmzzgKXD0L
 x0eepFeUNacaeg7O1ftIrzNlYsSLi2Qm+tnu7odyxafZ65GJ9lcSLUqXuNDCrNOl
 1KqnZqPj4ZdS6obB0ep879Z865k7OH0GFgTd7k+UcMPcjEkcFPLPNEI=
 -----END CERTIFICATE-----`)
-		csr, err = csrClient.CertificateSigningRequests().UpdateStatus(context.Background(), csr, metav1.UpdateOptions{})
+		csr, err = csrClient.CertificateSigningRequests().UpdateStatus(ctx, csr, metav1.UpdateOptions{})
 		Expect(err).NotTo(HaveOccurred())
 
-		Eventually(func() map[string][]byte {
-			err := k8sClient.Get(context.Background(), types.NamespacedName{
+		Eventually(ctx, func() map[string][]byte {
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      user.Spec.SecretName,
 				Namespace: user.Namespace}, secret)
 			if !apierrors.IsNotFound(err) {
@@ -342,7 +341,7 @@ x0eepFeUNacaeg7O1ftIrzNlYsSLi2Qm+tnu7odyxafZ65GJ9lcSLUqXuNDCrNOl
 			return secret.Data
 		}, 5*time.Second, 100*time.Millisecond).Should(HaveLen(6))
 
-		err = k8sClient.Get(context.Background(), types.NamespacedName{
+		err = k8sClient.Get(ctx, types.NamespacedName{
 			Name:      user.Spec.SecretName,
 			Namespace: user.Namespace}, secret)
 		Expect(err).NotTo(HaveOccurred())
@@ -350,9 +349,9 @@ x0eepFeUNacaeg7O1ftIrzNlYsSLi2Qm+tnu7odyxafZ65GJ9lcSLUqXuNDCrNOl
 			Expect(len(data)).ShouldNot(BeZero())
 		}
 
-		Eventually(func() (v1alpha1.UserState, error) {
+		Eventually(ctx, func() (v1alpha1.UserState, error) {
 			user := v1alpha1.KafkaUser{}
-			err := k8sClient.Get(context.Background(), types.NamespacedName{
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Namespace: kafkaCluster.Namespace,
 				Name:      userCRName,
 			}, &user)

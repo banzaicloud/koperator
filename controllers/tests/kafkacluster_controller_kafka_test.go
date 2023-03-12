@@ -33,27 +33,27 @@ import (
 	"github.com/banzaicloud/koperator/pkg/util"
 )
 
-func expectKafka(kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
-	expectKafkaAllBrokerService(kafkaCluster)
-	expectKafkaPDB(kafkaCluster)
-	expectKafkaPVC(kafkaCluster)
+func expectKafka(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
+	expectKafkaAllBrokerService(ctx, kafkaCluster)
+	expectKafkaPDB(ctx, kafkaCluster)
+	expectKafkaPVC(ctx, kafkaCluster)
 
 	for _, broker := range kafkaCluster.Spec.Brokers {
-		expectKafkaBrokerConfigmap(kafkaCluster, broker, randomGenTestNumber)
-		expectKafkaBrokerService(kafkaCluster, broker)
-		expectKafkaBrokerPod(kafkaCluster, broker)
+		expectKafkaBrokerConfigmap(ctx, kafkaCluster, broker, randomGenTestNumber)
+		expectKafkaBrokerService(ctx, kafkaCluster, broker)
+		expectKafkaBrokerPod(ctx, kafkaCluster, broker)
 	}
 
-	expectKafkaCRStatus(kafkaCluster)
+	expectKafkaCRStatus(ctx, kafkaCluster)
 
 	// TODO test reconcile PKI?
 	// TODO test reconcileKafkaPodDelete
 }
 
-func expectKafkaAllBrokerService(kafkaCluster *v1beta1.KafkaCluster) {
+func expectKafkaAllBrokerService(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	service := &corev1.Service{}
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-all-broker", kafkaCluster.Name),
 		}, service)
@@ -87,9 +87,9 @@ func expectKafkaAllBrokerService(kafkaCluster *v1beta1.KafkaCluster) {
 		}))
 }
 
-func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster) {
+func expectKafkaPDB(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	// get current CR
-	err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: kafkaCluster.Namespace}, kafkaCluster)
+	err := k8sClient.Get(ctx, types.NamespacedName{Name: kafkaCluster.Name, Namespace: kafkaCluster.Namespace}, kafkaCluster)
 	Expect(err).NotTo(HaveOccurred())
 
 	// set PDB and reset status
@@ -100,16 +100,16 @@ func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster) {
 	kafkaCluster.Status = v1beta1.KafkaClusterStatus{}
 
 	// update CR
-	err = k8sClient.Update(context.TODO(), kafkaCluster)
+	err = k8sClient.Update(ctx, kafkaCluster)
 	Expect(err).NotTo(HaveOccurred())
 
 	// wait until reconcile finishes
-	waitForClusterRunningState(kafkaCluster, kafkaCluster.Namespace)
+	waitForClusterRunningState(ctx, kafkaCluster, kafkaCluster.Namespace)
 
 	// get created PDB
 	pdb := policyv1.PodDisruptionBudget{}
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-pdb", kafkaCluster.Name),
 		}, &pdb)
@@ -124,11 +124,11 @@ func expectKafkaPDB(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(pdb.Spec.Selector.MatchLabels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 }
 
-func expectKafkaPVC(kafkaCluster *v1beta1.KafkaCluster) {
+func expectKafkaPVC(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	// get PVCs
 	pvcs := corev1.PersistentVolumeClaimList{}
-	Eventually(func() error {
-		return k8sClient.List(context.Background(), &pvcs,
+	Eventually(ctx, func() error {
+		return k8sClient.List(ctx, &pvcs,
 			client.ListOption(client.InNamespace(kafkaCluster.Namespace)),
 			client.ListOption(client.MatchingLabels(map[string]string{v1beta1.AppLabelKey: "kafka", v1beta1.KafkaCRLabelKey: kafkaCluster.Name})))
 	}).Should(Succeed())
@@ -149,10 +149,10 @@ func expectKafkaPVC(kafkaCluster *v1beta1.KafkaCluster) {
 	}
 }
 
-func expectKafkaBrokerConfigmap(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Broker, randomGenTestNumber uint64) {
+func expectKafkaBrokerConfigmap(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Broker, randomGenTestNumber uint64) {
 	configMap := corev1.ConfigMap{}
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-config-%d", kafkaCluster.Name, broker.Id),
 		}, &configMap)
@@ -178,10 +178,10 @@ zookeeper.connect=/
 	// assert log4j?
 }
 
-func expectKafkaBrokerService(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Broker) {
+func expectKafkaBrokerService(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Broker) {
 	service := corev1.Service{}
-	Eventually(func() error {
-		return k8sClient.Get(context.Background(), types.NamespacedName{
+	Eventually(ctx, func() error {
+		return k8sClient.Get(ctx, types.NamespacedName{
 			Namespace: kafkaCluster.Namespace,
 			Name:      fmt.Sprintf("%s-%d", kafkaCluster.Name, broker.Id),
 		}, &service)
@@ -223,10 +223,10 @@ func expectKafkaBrokerService(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1
 	Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 }
 
-func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Broker) {
+func expectKafkaBrokerPod(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Broker) {
 	podList := corev1.PodList{}
-	Eventually(func() ([]corev1.Pod, error) {
-		err := k8sClient.List(context.Background(), &podList,
+	Eventually(ctx, func() ([]corev1.Pod, error) {
+		err := k8sClient.List(ctx, &podList,
 			client.ListOption(client.InNamespace(kafkaCluster.Namespace)),
 			client.ListOption(client.MatchingLabels(map[string]string{v1beta1.AppLabelKey: "kafka", v1beta1.KafkaCRLabelKey: kafkaCluster.Name, v1beta1.BrokerIdLabelKey: strconv.Itoa(int(broker.Id))})))
 		return podList.Items, err
@@ -408,8 +408,8 @@ func expectKafkaBrokerPod(kafkaCluster *v1beta1.KafkaCluster, broker v1beta1.Bro
 	// expect some other fields
 }
 
-func expectKafkaCRStatus(kafkaCluster *v1beta1.KafkaCluster) {
-	err := k8sClient.Get(context.TODO(), types.NamespacedName{
+func expectKafkaCRStatus(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
+	err := k8sClient.Get(ctx, types.NamespacedName{
 		Name:      kafkaCluster.Name,
 		Namespace: kafkaCluster.Namespace,
 	}, kafkaCluster)
