@@ -133,7 +133,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return requeueWithError(log, "failed to lookup referenced kafka cluster", err)
 	}
 
-	//Adding finalizer
+	// Adding finalizer
 	if err := r.addFinalizer(ctx, currentCCOperation); err != nil {
 		return requeueWithError(log, "failed to add finalizer to CruiseControlOperation", err)
 	}
@@ -144,7 +144,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	}
 
 	// Checking Cruise Control health
-	status, err := r.scaler.Status()
+	status, err := r.scaler.Status(ctx)
 	if err != nil {
 		log.Error(err, "could not get Cruise Control status")
 		return requeueAfter(defaultRequeueIntervalInSeconds)
@@ -178,7 +178,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return requeueAfter(defaultRequeueIntervalInSeconds)
 	}
 
-	//When the task is not in execution we can remove the finalizer
+	// When the task is not in execution we can remove the finalizer
 	if isFinalizerNeeded(currentCCOperation) && !currentCCOperation.IsCurrentTaskRunning() {
 		controllerutil.RemoveFinalizer(currentCCOperation, ccOperationFinalizerGroup)
 		if err := r.Update(ctx, currentCCOperation); err != nil {
@@ -211,7 +211,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 
 	log.Info("executing Cruise Control task", "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
 	// Executing operation
-	cruseControlTaskResult, err := r.executeOperation(ccOperationExecution)
+	cruseControlTaskResult, err := r.executeOperation(ctx, ccOperationExecution)
 
 	if err != nil {
 		log.Error(err, "Cruise Control task execution got an error", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
@@ -255,18 +255,18 @@ func (r *CruiseControlOperationReconciler) addFinalizer(ctx context.Context, cur
 	return nil
 }
 
-func (r *CruiseControlOperationReconciler) executeOperation(ccOperationExecution *banzaiv1alpha1.CruiseControlOperation) (*scale.Result, error) {
+func (r *CruiseControlOperationReconciler) executeOperation(ctx context.Context, ccOperationExecution *banzaiv1alpha1.CruiseControlOperation) (*scale.Result, error) {
 	var cruseControlTaskResult *scale.Result
 	var err error
 	switch ccOperationExecution.CurrentTaskOperation() {
 	case banzaiv1alpha1.OperationAddBroker:
-		cruseControlTaskResult, err = r.scaler.AddBrokersWithParams(ccOperationExecution.CurrentTaskParameters())
+		cruseControlTaskResult, err = r.scaler.AddBrokersWithParams(ctx, ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationRemoveBroker:
-		cruseControlTaskResult, err = r.scaler.RemoveBrokersWithParams(ccOperationExecution.CurrentTaskParameters())
+		cruseControlTaskResult, err = r.scaler.RemoveBrokersWithParams(ctx, ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationRebalance:
-		cruseControlTaskResult, err = r.scaler.RebalanceWithParams(ccOperationExecution.CurrentTaskParameters())
+		cruseControlTaskResult, err = r.scaler.RebalanceWithParams(ctx, ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationStopExecution:
-		cruseControlTaskResult, err = r.scaler.StopExecution()
+		cruseControlTaskResult, err = r.scaler.StopExecution(ctx)
 	default:
 		err = errors.NewWithDetails("Cruise Control operation not supported", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
 	}
@@ -440,7 +440,7 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 		ccOperationsCopy = append(ccOperationsCopy, ccOperation.DeepCopy())
 	}
 
-	tasks, err := r.scaler.UserTasks(userTaskIDs...)
+	tasks, err := r.scaler.UserTasks(ctx, userTaskIDs...)
 	if err != nil {
 		return errors.WrapIff(err, "could not get user tasks from Cruise Control API")
 	}

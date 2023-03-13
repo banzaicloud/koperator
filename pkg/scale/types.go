@@ -15,6 +15,8 @@
 package scale
 
 import (
+	"context"
+
 	"github.com/banzaicloud/go-cruise-control/pkg/api"
 	"github.com/banzaicloud/go-cruise-control/pkg/types"
 
@@ -22,23 +24,23 @@ import (
 )
 
 type CruiseControlScaler interface {
-	IsReady() bool
-	Status() (CruiseControlStatus, error)
-	UserTasks(taskIDs ...string) ([]*Result, error)
-	IsUp() bool
-	AddBrokers(brokerIDs ...string) (*Result, error)
-	AddBrokersWithParams(params map[string]string) (*Result, error)
-	RemoveBrokersWithParams(params map[string]string) (*Result, error)
-	RebalanceWithParams(params map[string]string) (*Result, error)
-	StopExecution() (*Result, error)
-	RemoveBrokers(brokerIDs ...string) (*Result, error)
-	RebalanceDisks(brokerIDs ...string) (*Result, error)
-	BrokersWithState(states ...KafkaBrokerState) ([]string, error)
-	KafkaClusterState() (*types.KafkaClusterState, error)
-	PartitionReplicasByBroker() (map[string]int32, error)
-	BrokerWithLeastPartitionReplicas() (string, error)
-	LogDirsByBroker() (map[string]map[LogDirState][]string, error)
-	KafkaClusterLoad() (*api.KafkaClusterLoadResponse, error)
+	IsReady(ctx context.Context) bool
+	Status(ctx context.Context) (CruiseControlStatus, error)
+	UserTasks(ctx context.Context, taskIDs ...string) ([]*Result, error)
+	IsUp(ctx context.Context) bool
+	AddBrokers(ctx context.Context, brokerIDs ...string) (*Result, error)
+	AddBrokersWithParams(ctx context.Context, params map[string]string) (*Result, error)
+	RemoveBrokersWithParams(ctx context.Context, params map[string]string) (*Result, error)
+	RebalanceWithParams(ctx context.Context, params map[string]string) (*Result, error)
+	StopExecution(ctx context.Context) (*Result, error)
+	RemoveBrokers(ctx context.Context, brokerIDs ...string) (*Result, error)
+	RebalanceDisks(ctx context.Context, brokerIDs ...string) (*Result, error)
+	BrokersWithState(ctx context.Context, states ...KafkaBrokerState) ([]string, error)
+	KafkaClusterState(ctx context.Context) (*types.KafkaClusterState, error)
+	PartitionReplicasByBroker(ctx context.Context) (map[string]int32, error)
+	BrokerWithLeastPartitionReplicas(ctx context.Context) (string, error)
+	LogDirsByBroker(ctx context.Context) (map[string]map[LogDirState][]string, error)
+	KafkaClusterLoad(ctx context.Context) (*api.KafkaClusterLoadResponse, error)
 }
 
 type Result struct {

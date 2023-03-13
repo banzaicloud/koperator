@@ -599,6 +599,8 @@ func Test_upScale(t *testing.T) {
 
 func Test_downScale(t *testing.T) {
 	testClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
 
 	testCases := []struct {
 		testName        string
@@ -665,7 +667,7 @@ func Test_downScale(t *testing.T) {
 				}
 			}()
 
-			if err := downScale(logr.Discard(), test.alert.Labels, testClient); err != nil {
+			if err := downScale(ctx, logr.Discard(), test.alert.Labels, testClient); err != nil {
 				t.Error(err)
 				return
 			}

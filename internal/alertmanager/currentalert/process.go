@@ -87,7 +87,7 @@ func (e *examiner) getKafkaCr() (*v1beta1.KafkaCluster, error) {
 	return cr, nil
 }
 
-func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
+func (e *examiner) examineAlert(ctx context.Context, rollingUpgradeAlertCount int) (bool, error) {
 	cr, err := e.getKafkaCr()
 	if err != nil {
 		return false, err
@@ -115,10 +115,10 @@ func (e *examiner) examineAlert(rollingUpgradeAlertCount int) (bool, error) {
 		}
 	}
 
-	return e.processAlert(ds)
+	return e.processAlert(ctx, ds)
 }
 
-func (e *examiner) processAlert(ds disableScaling) (bool, error) {
+func (e *examiner) processAlert(ctx context.Context, ds disableScaling) (bool, error) {
 	switch e.Alert.Annotations["command"] {
 	case AddPvcCommand:
 		validators := AlertValidators{newAddPvcValidator(e.Alert)}
@@ -151,7 +151,7 @@ func (e *examiner) processAlert(ds disableScaling) (bool, error) {
 			e.Log.Info("downscale is skipped due to downscale limit")
 			return false, nil
 		}
-		err := downScale(e.Log, e.Alert.Labels, e.Client)
+		err := downScale(ctx, e.Log, e.Alert.Labels, e.Client)
 		if err != nil {
 			return false, err
 		}
@@ -293,7 +293,7 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 	return nil
 }
 
-func downScale(log logr.Logger, labels model.LabelSet, client client.Client) error {
+func downScale(ctx context.Context, log logr.Logger, labels model.LabelSet, client client.Client) error {
 	cr, err := k8sutil.GetCr(string(labels[v1beta1.KafkaCRLabelKey]), string(labels["namespace"]), client)
 	if err != nil {
 		return err
@@ -321,7 +321,7 @@ func downScale(log logr.Logger, labels model.LabelSet, client client.Client) err
 			return errors.WrapIfWithDetails(err, "failed to initialize Cruise Control Scaler",
 				"cruise control url", cruiseControlURL)
 		}
-		brokerID, err = cc.BrokerWithLeastPartitionReplicas()
+		brokerID, err = cc.BrokerWithLeastPartitionReplicas(ctx)
 		if err != nil {
 			return err
 		}

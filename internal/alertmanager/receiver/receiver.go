@@ -15,6 +15,7 @@
 package receiver
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-logr/logr"
@@ -24,13 +25,13 @@ import (
 	"github.com/banzaicloud/koperator/internal/alertmanager/dispatcher"
 )
 
-func alertReciever(log logr.Logger, alert []byte, client client.Client) error {
+func alertReciever(ctx context.Context, log logr.Logger, alert []byte, client client.Client) error {
 	promAlerts := make([]model.Alert, 0)
 	err := json.Unmarshal(alert, &promAlerts)
 	if err != nil {
 		return err
 	}
 
-	dispatcher.Dispatcher(promAlerts, log, client)
+	dispatcher.Dispatcher(ctx, promAlerts, log, client)
 	return nil
 }

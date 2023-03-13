@@ -88,15 +88,14 @@ install-kustomize:
 # Run tests
 test: generate fmt vet manifests bin/setup-envtest
 	cd api && go test ./...
-	bin/setup-envtest use -p env ${ENVTEST_K8S_VERSION} > bin/envtest.sh \
-		&& source bin/envtest.sh; \
-		go test ./... \
-			-coverprofile cover.out \
-			-v \
-			-failfast \
-			-test.v \
-			-test.paniconexit0 \
-			-timeout 1h
+	KUBEBUILDER_ASSETS=$$($(BIN_DIR)/setup-envtest --print path --bin-dir $(BIN_DIR) use $(ENVTEST_K8S_VERSION)) \
+	go test ./... \
+		-coverprofile cover.out \
+		-v \
+		-failfast \
+		-test.v \
+		-test.paniconexit0 \
+		-timeout 1h
 	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
 # Build manager binary
@@ -165,15 +164,17 @@ bin/controller-gen-$(CONTROLLER_GEN_VERSION):
 	mv bin/controller-gen bin/controller-gen-$(CONTROLLER_GEN_VERSION)
 
 # find or download setup-envtest
-bin/setup-envtest:
-	@ if ! test -x $(PWD)/bin/setup-envtest; then \
-		set -ex ;\
-		SETUP_ENVTEST_TMP_DIR=$$(mktemp -d) ;\
-		cd $$SETUP_ENVTEST_TMP_DIR ;\
-		go mod init tmp ;\
-		GOBIN=$(PWD)/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest ;\
-		rm -rf $$SETUP_ENVTEST_TMP_DIR ;\
-	fi
+
+# https://github.com/kubernetes-sigs/controller-runtime/commits/main/tools/setup-envtest
+SETUP_ENVTEST_VERSION := d4f1e822ca11e9ff149bf2d9b5285f375334eba5
+
+bin/setup-envtest: $(BIN_DIR)/setup-envtest-$(SETUP_ENVTEST_VERSION) ## Install setup-envtest CLI
+	@ln -sf setup-envtest-$(SETUP_ENVTEST_VERSION) $(BIN_DIR)/setup-envtest
+
+$(BIN_DIR)/setup-envtest-$(SETUP_ENVTEST_VERSION):
+	@mkdir -p $(BIN_DIR)
+	@GOBIN=$(BIN_DIR) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(SETUP_ENVTEST_VERSION)
+	@mv $(BIN_DIR)/setup-envtest $(BIN_DIR)/setup-envtest-$(SETUP_ENVTEST_VERSION)
 
 check_release:
 	@echo "A new tag (${REL_TAG}) will be pushed to Github, and a new Docker image will be released. Are you sure? [y/N] " && read ans && [ $${ans:-N} == y ]

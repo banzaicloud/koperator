@@ -85,7 +85,7 @@ func createNewDefaultCruiseControlScaler(ctx context.Context, serverURL string) 
 		UserAgent: "koperator",
 	}
 
-	cruisecontrol, err := client.NewClient(ctx, cfg)
+	cruisecontrol, err := client.NewClient(cfg)
 	if err != nil {
 		log.Error(err, "creating Cruise Control client failed")
 		return nil, err
@@ -104,10 +104,10 @@ type cruiseControlScaler struct {
 }
 
 // Status returns a CruiseControlStatus describing the internal state of Cruise Control.
-func (cc *cruiseControlScaler) Status() (CruiseControlStatus, error) {
+func (cc *cruiseControlScaler) Status(ctx context.Context) (CruiseControlStatus, error) {
 	req := api.StateRequestWithDefaults()
 	req.Verbose = true
-	resp, err := cc.client.State(req)
+	resp, err := cc.client.State(ctx, req)
 	if err != nil {
 		return CruiseControlStatus{}, err
 	}
@@ -134,8 +134,8 @@ func (cc *cruiseControlScaler) Status() (CruiseControlStatus, error) {
 }
 
 // IsReady returns true if the Analyzer and Monitor components of Cruise Control are in ready state.
-func (cc *cruiseControlScaler) IsReady() bool {
-	status, err := cc.Status()
+func (cc *cruiseControlScaler) IsReady(ctx context.Context) bool {
+	status, err := cc.Status(ctx)
 	if err != nil {
 		cc.log.Error(err, "could not get Cruise Control status")
 		return false
@@ -151,18 +151,18 @@ func (cc *cruiseControlScaler) IsReady() bool {
 }
 
 // IsUp returns true if Cruise Control is online.
-func (cc *cruiseControlScaler) IsUp() bool {
-	_, err := cc.client.State(api.StateRequestWithDefaults())
+func (cc *cruiseControlScaler) IsUp(ctx context.Context) bool {
+	_, err := cc.client.State(ctx, api.StateRequestWithDefaults())
 	return err == nil
 }
 
 // UserTasks returns list of Result describing User Tasks from Cruise Control for the provided task IDs.
-func (cc *cruiseControlScaler) UserTasks(taskIDs ...string) ([]*Result, error) {
+func (cc *cruiseControlScaler) UserTasks(ctx context.Context, taskIDs ...string) ([]*Result, error) {
 	req := &api.UserTasksRequest{
 		UserTaskIDs: taskIDs,
 	}
 
-	resp, err := cc.client.UserTasks(req)
+	resp, err := cc.client.UserTasks(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func parseBrokerIDtoSlice(brokerid string) ([]int32, error) {
 // AddBrokersWithParams requests Cruise Control to add the list of provided brokers to the Kafka cluster
 // by reassigning partition replicas to them. The broker list and operation properties can be added
 // with the use of the params argument.
-func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*Result, error) {
+func (cc *cruiseControlScaler) AddBrokersWithParams(ctx context.Context, params map[string]string) (*Result, error) {
 	addBrokerReq := &api.AddBrokerRequest{
 		AllowCapacityEstimation: true,
 		DataFrom:                types.ProposalDataSourceValidWindows,
@@ -229,7 +229,7 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 		}
 	}
 
-	addBrokerResp, err := cc.client.AddBroker(addBrokerReq)
+	addBrokerResp, err := cc.client.AddBroker(ctx, addBrokerReq)
 	if err != nil {
 		return &Result{
 			TaskID:             addBrokerResp.TaskID,
@@ -252,9 +252,9 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(params map[string]string) (*
 }
 
 // StopExecution requests Cruise Control to stop running operation gracefully
-func (cc *cruiseControlScaler) StopExecution() (*Result, error) {
-	stopReq := api.StopProposalExecutionRequest{}
-	stopResp, err := cc.client.StopProposalExecution(&stopReq)
+func (cc *cruiseControlScaler) StopExecution(ctx context.Context) (*Result, error) {
+	stopReq := &api.StopProposalExecutionRequest{}
+	stopResp, err := cc.client.StopProposalExecution(ctx, stopReq)
 	if err != nil {
 		return &Result{
 			TaskID:             stopResp.TaskID,
@@ -273,7 +273,7 @@ func (cc *cruiseControlScaler) StopExecution() (*Result, error) {
 	}, nil
 }
 
-func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string) (*Result, error) {
+func (cc *cruiseControlScaler) RemoveBrokersWithParams(ctx context.Context, params map[string]string) (*Result, error) {
 	rmBrokerReq := &api.RemoveBrokerRequest{
 		AllowCapacityEstimation: true,
 		DataFrom:                types.ProposalDataSourceValidWindows,
@@ -306,7 +306,7 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string)
 		}
 	}
 
-	rmBrokerResp, err := cc.client.RemoveBroker(rmBrokerReq)
+	rmBrokerResp, err := cc.client.RemoveBroker(ctx, rmBrokerReq)
 	if err != nil {
 		return &Result{
 			TaskID:             rmBrokerResp.TaskID,
@@ -331,7 +331,7 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(params map[string]string)
 // AddBrokers requests Cruise Control to add the list of provided brokers to the Kafka cluster
 // by reassigning partition replicas to them.
 // Request returns an error if not all brokers are available in Cruise Control.
-func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) {
+func (cc *cruiseControlScaler) AddBrokers(ctx context.Context, brokerIDs ...string) (*Result, error) {
 	if len(brokerIDs) == 0 {
 		return nil, errors.New("no broker id(s) provided for add brokers request")
 	}
@@ -343,7 +343,7 @@ func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) 
 	}
 
 	states := []KafkaBrokerState{KafkaBrokerAlive, KafkaBrokerNew}
-	availableBrokers, err := cc.BrokersWithState(states...)
+	availableBrokers, err := cc.BrokersWithState(ctx, states...)
 	if err != nil {
 		cc.log.Error(err, "failed to retrieve list of available brokers from Cruise Control")
 		return nil, err
@@ -368,7 +368,7 @@ func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) 
 		DataFrom:                types.ProposalDataSourceValidWindows,
 		UseReadyDefaultGoals:    true,
 	}
-	addBrokerResp, err := cc.client.AddBroker(addBrokerReq)
+	addBrokerResp, err := cc.client.AddBroker(ctx, addBrokerReq)
 	if err != nil {
 		return &Result{
 			TaskID:             addBrokerResp.TaskID,
@@ -391,13 +391,13 @@ func (cc *cruiseControlScaler) AddBrokers(brokerIDs ...string) (*Result, error) 
 
 // RemoveBrokers requests Cruise Control to move partition replicase off from the provided brokers.
 // The broker list and operation properties can be added with the use of the params argument.
-func (cc *cruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*Result, error) {
+func (cc *cruiseControlScaler) RemoveBrokers(ctx context.Context, brokerIDs ...string) (*Result, error) {
 	if len(brokerIDs) == 0 {
 		return nil, errors.New("no broker id(s) provided for remove brokers request")
 	}
 
 	clusterStateReq := api.KafkaClusterStateRequestWithDefaults()
-	clusterStateResp, err := cc.client.KafkaClusterState(clusterStateReq)
+	clusterStateResp, err := cc.client.KafkaClusterState(ctx, clusterStateReq)
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +432,7 @@ func (cc *cruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*Result, erro
 		DataFrom:                types.ProposalDataSourceValidWindows,
 		UseReadyDefaultGoals:    true,
 	}
-	rmBrokerResp, err := cc.client.RemoveBroker(rmBrokerReq)
+	rmBrokerResp, err := cc.client.RemoveBroker(ctx, rmBrokerReq)
 
 	if err != nil {
 		return &Result{
@@ -454,7 +454,7 @@ func (cc *cruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*Result, erro
 	}, nil
 }
 
-func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*Result, error) {
+func (cc *cruiseControlScaler) RebalanceWithParams(ctx context.Context, params map[string]string) (*Result, error) {
 	rebalanceReq := &api.RebalanceRequest{
 		AllowCapacityEstimation: true,
 		DataFrom:                types.ProposalDataSourceValidWindows,
@@ -494,7 +494,7 @@ func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*R
 		}
 	}
 
-	rebalanceResp, err := cc.client.Rebalance(rebalanceReq)
+	rebalanceResp, err := cc.client.Rebalance(ctx, rebalanceReq)
 	if err != nil {
 		return &Result{
 			TaskID:             rebalanceResp.TaskID,
@@ -516,8 +516,8 @@ func (cc *cruiseControlScaler) RebalanceWithParams(params map[string]string) (*R
 	}, nil
 }
 
-func (cc *cruiseControlScaler) KafkaClusterLoad() (*api.KafkaClusterLoadResponse, error) {
-	clusterLoadResp, err := cc.client.KafkaClusterLoad(api.KafkaClusterLoadRequestWithDefaults())
+func (cc *cruiseControlScaler) KafkaClusterLoad(ctx context.Context) (*api.KafkaClusterLoadResponse, error) {
+	clusterLoadResp, err := cc.client.KafkaClusterLoad(ctx, api.KafkaClusterLoadRequestWithDefaults())
 	if err != nil {
 		return nil, err
 	}
@@ -525,8 +525,8 @@ func (cc *cruiseControlScaler) KafkaClusterLoad() (*api.KafkaClusterLoadResponse
 }
 
 // RebalanceDisks performs a disk rebalance via Cruise Control for the provided list of brokers.
-func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, error) {
-	clusterLoadResp, err := cc.client.KafkaClusterLoad(api.KafkaClusterLoadRequestWithDefaults())
+func (cc *cruiseControlScaler) RebalanceDisks(ctx context.Context, brokerIDs ...string) (*Result, error) {
+	clusterLoadResp, err := cc.client.KafkaClusterLoad(ctx, api.KafkaClusterLoadRequestWithDefaults())
 	if err != nil {
 		return nil, err
 	}
@@ -558,7 +558,7 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, err
 		UseReadyDefaultGoals:          true,
 		ExcludeRecentlyRemovedBrokers: true,
 	}
-	rebalanceResp, err := cc.client.Rebalance(rebalanceReq)
+	rebalanceResp, err := cc.client.Rebalance(ctx, rebalanceReq)
 	if err != nil {
 		return &Result{
 			TaskID:             rebalanceResp.TaskID,
@@ -581,8 +581,8 @@ func (cc *cruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*Result, err
 
 // BrokersWithState returns a list of IDs for Kafka brokers which are available in Cruise Control
 // and have one of the expected states.
-func (cc *cruiseControlScaler) BrokersWithState(states ...KafkaBrokerState) ([]string, error) {
-	resp, err := cc.client.KafkaClusterLoad(api.KafkaClusterLoadRequestWithDefaults())
+func (cc *cruiseControlScaler) BrokersWithState(ctx context.Context, states ...KafkaBrokerState) ([]string, error) {
+	resp, err := cc.client.KafkaClusterLoad(ctx, api.KafkaClusterLoadRequestWithDefaults())
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), nullPointerExceptionErrString):
@@ -609,19 +609,19 @@ func (cc *cruiseControlScaler) BrokersWithState(states ...KafkaBrokerState) ([]s
 }
 
 // KafkaClusterState returns the state of the Kafka cluster
-func (cc *cruiseControlScaler) KafkaClusterState() (*types.KafkaClusterState, error) {
+func (cc *cruiseControlScaler) KafkaClusterState(ctx context.Context) (*types.KafkaClusterState, error) {
 	clusterStateReq := api.KafkaClusterStateRequestWithDefaults()
-	clusterStateResp, err := cc.client.KafkaClusterState(clusterStateReq)
+	clusterStateResp, err := cc.client.KafkaClusterState(ctx, clusterStateReq)
 	if err != nil {
 		return nil, err
 	}
 	return clusterStateResp.Result, nil
 }
 
-// PartitionReplicasByBroker returns the number of partition replicas for every broker in the Kafka cluster.
-func (cc *cruiseControlScaler) PartitionLeadersReplicasByBroker() (brokerIDReplicaCounts map[string]int32, brokerIDLeaderCounts map[string]int32, err error) {
+// PartitionLeadersReplicasByBroker returns the number of partition replicas for every broker in the Kafka cluster.
+func (cc *cruiseControlScaler) PartitionLeadersReplicasByBroker(ctx context.Context) (brokerIDReplicaCounts map[string]int32, brokerIDLeaderCounts map[string]int32, err error) {
 	clusterStateReq := api.KafkaClusterStateRequestWithDefaults()
-	clusterStateResp, err := cc.client.KafkaClusterState(clusterStateReq)
+	clusterStateResp, err := cc.client.KafkaClusterState(ctx, clusterStateReq)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -629,10 +629,10 @@ func (cc *cruiseControlScaler) PartitionLeadersReplicasByBroker() (brokerIDRepli
 }
 
 // BrokerWithLeastPartitionReplicas returns the ID of the broker which host the least partition replicas.
-func (cc *cruiseControlScaler) BrokerWithLeastPartitionReplicas() (string, error) {
+func (cc *cruiseControlScaler) BrokerWithLeastPartitionReplicas(ctx context.Context) (string, error) {
 	var brokerWithLeastPartitionReplicas string
 
-	brokerPartitions, err := cc.PartitionReplicasByBroker()
+	brokerPartitions, err := cc.PartitionReplicasByBroker(ctx)
 	if err != nil {
 		cc.log.Error(err, "could not retrieve partition map for brokers")
 		return brokerWithLeastPartitionReplicas, err
@@ -649,8 +649,8 @@ func (cc *cruiseControlScaler) BrokerWithLeastPartitionReplicas() (string, error
 }
 
 // LogDirsByBroker returns the ID of the broker which host the least partition replicas.
-func (cc *cruiseControlScaler) LogDirsByBroker() (map[string]map[LogDirState][]string, error) {
-	resp, err := cc.client.KafkaClusterState(api.KafkaClusterStateRequestWithDefaults())
+func (cc *cruiseControlScaler) LogDirsByBroker(ctx context.Context) (map[string]map[LogDirState][]string, error) {
+	resp, err := cc.client.KafkaClusterState(ctx, api.KafkaClusterStateRequestWithDefaults())
 	if err != nil {
 		cc.log.Error(err, "getting Kafka cluster state from Cruise Control returned an error")
 		return nil, err

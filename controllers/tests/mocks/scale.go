@@ -20,13 +20,13 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
-
-	gomock "github.com/golang/mock/gomock"
 
 	api "github.com/banzaicloud/go-cruise-control/pkg/api"
 	types "github.com/banzaicloud/go-cruise-control/pkg/types"
 	scale "github.com/banzaicloud/koperator/pkg/scale"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockCruiseControlScaler is a mock of CruiseControlScaler interface.
@@ -53,9 +53,9 @@ func (m *MockCruiseControlScaler) EXPECT() *MockCruiseControlScalerMockRecorder 
 }
 
 // AddBrokers mocks base method.
-func (m *MockCruiseControlScaler) AddBrokers(brokerIDs ...string) (*scale.Result, error) {
+func (m *MockCruiseControlScaler) AddBrokers(ctx context.Context, brokerIDs ...string) (*scale.Result, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{}
+	varargs := []interface{}{ctx}
 	for _, a := range brokerIDs {
 		varargs = append(varargs, a)
 	}
@@ -66,45 +66,46 @@ func (m *MockCruiseControlScaler) AddBrokers(brokerIDs ...string) (*scale.Result
 }
 
 // AddBrokers indicates an expected call of AddBrokers.
-func (mr *MockCruiseControlScalerMockRecorder) AddBrokers(brokerIDs ...interface{}) *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) AddBrokers(ctx interface{}, brokerIDs ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBrokers", reflect.TypeOf((*MockCruiseControlScaler)(nil).AddBrokers), brokerIDs...)
+	varargs := append([]interface{}{ctx}, brokerIDs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBrokers", reflect.TypeOf((*MockCruiseControlScaler)(nil).AddBrokers), varargs...)
 }
 
 // AddBrokersWithParams mocks base method.
-func (m *MockCruiseControlScaler) AddBrokersWithParams(params map[string]string) (*scale.Result, error) {
+func (m *MockCruiseControlScaler) AddBrokersWithParams(ctx context.Context, params map[string]string) (*scale.Result, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddBrokersWithParams", params)
+	ret := m.ctrl.Call(m, "AddBrokersWithParams", ctx, params)
 	ret0, _ := ret[0].(*scale.Result)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AddBrokersWithParams indicates an expected call of AddBrokersWithParams.
-func (mr *MockCruiseControlScalerMockRecorder) AddBrokersWithParams(params interface{}) *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) AddBrokersWithParams(ctx, params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBrokersWithParams", reflect.TypeOf((*MockCruiseControlScaler)(nil).AddBrokersWithParams), params)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBrokersWithParams", reflect.TypeOf((*MockCruiseControlScaler)(nil).AddBrokersWithParams), ctx, params)
 }
 
 // BrokerWithLeastPartitionReplicas mocks base method.
-func (m *MockCruiseControlScaler) BrokerWithLeastPartitionReplicas() (string, error) {
+func (m *MockCruiseControlScaler) BrokerWithLeastPartitionReplicas(ctx context.Context) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BrokerWithLeastPartitionReplicas")
+	ret := m.ctrl.Call(m, "BrokerWithLeastPartitionReplicas", ctx)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // BrokerWithLeastPartitionReplicas indicates an expected call of BrokerWithLeastPartitionReplicas.
-func (mr *MockCruiseControlScalerMockRecorder) BrokerWithLeastPartitionReplicas() *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) BrokerWithLeastPartitionReplicas(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BrokerWithLeastPartitionReplicas", reflect.TypeOf((*MockCruiseControlScaler)(nil).BrokerWithLeastPartitionReplicas))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BrokerWithLeastPartitionReplicas", reflect.TypeOf((*MockCruiseControlScaler)(nil).BrokerWithLeastPartitionReplicas), ctx)
 }
 
 // BrokersWithState mocks base method.
-func (m *MockCruiseControlScaler) BrokersWithState(states ...scale.KafkaBrokerState) ([]string, error) {
+func (m *MockCruiseControlScaler) BrokersWithState(ctx context.Context, states ...scale.KafkaBrokerState) ([]string, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{}
+	varargs := []interface{}{ctx}
 	for _, a := range states {
 		varargs = append(varargs, a)
 	}
@@ -115,103 +116,104 @@ func (m *MockCruiseControlScaler) BrokersWithState(states ...scale.KafkaBrokerSt
 }
 
 // BrokersWithState indicates an expected call of BrokersWithState.
-func (mr *MockCruiseControlScalerMockRecorder) BrokersWithState(states ...interface{}) *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) BrokersWithState(ctx interface{}, states ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BrokersWithState", reflect.TypeOf((*MockCruiseControlScaler)(nil).BrokersWithState), states...)
+	varargs := append([]interface{}{ctx}, states...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BrokersWithState", reflect.TypeOf((*MockCruiseControlScaler)(nil).BrokersWithState), varargs...)
 }
 
 // IsReady mocks base method.
-func (m *MockCruiseControlScaler) IsReady() bool {
+func (m *MockCruiseControlScaler) IsReady(ctx context.Context) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsReady")
+	ret := m.ctrl.Call(m, "IsReady", ctx)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // IsReady indicates an expected call of IsReady.
-func (mr *MockCruiseControlScalerMockRecorder) IsReady() *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) IsReady(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReady", reflect.TypeOf((*MockCruiseControlScaler)(nil).IsReady))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReady", reflect.TypeOf((*MockCruiseControlScaler)(nil).IsReady), ctx)
 }
 
 // IsUp mocks base method.
-func (m *MockCruiseControlScaler) IsUp() bool {
+func (m *MockCruiseControlScaler) IsUp(ctx context.Context) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsUp")
+	ret := m.ctrl.Call(m, "IsUp", ctx)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // IsUp indicates an expected call of IsUp.
-func (mr *MockCruiseControlScalerMockRecorder) IsUp() *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) IsUp(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsUp", reflect.TypeOf((*MockCruiseControlScaler)(nil).IsUp))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsUp", reflect.TypeOf((*MockCruiseControlScaler)(nil).IsUp), ctx)
 }
 
 // KafkaClusterLoad mocks base method.
-func (m *MockCruiseControlScaler) KafkaClusterLoad() (*api.KafkaClusterLoadResponse, error) {
+func (m *MockCruiseControlScaler) KafkaClusterLoad(ctx context.Context) (*api.KafkaClusterLoadResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "KafkaClusterLoad")
+	ret := m.ctrl.Call(m, "KafkaClusterLoad", ctx)
 	ret0, _ := ret[0].(*api.KafkaClusterLoadResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // KafkaClusterLoad indicates an expected call of KafkaClusterLoad.
-func (mr *MockCruiseControlScalerMockRecorder) KafkaClusterLoad() *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) KafkaClusterLoad(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KafkaClusterLoad", reflect.TypeOf((*MockCruiseControlScaler)(nil).KafkaClusterLoad))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KafkaClusterLoad", reflect.TypeOf((*MockCruiseControlScaler)(nil).KafkaClusterLoad), ctx)
 }
 
 // KafkaClusterState mocks base method.
-func (m *MockCruiseControlScaler) KafkaClusterState() (*types.KafkaClusterState, error) {
+func (m *MockCruiseControlScaler) KafkaClusterState(ctx context.Context) (*types.KafkaClusterState, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "KafkaClusterState")
+	ret := m.ctrl.Call(m, "KafkaClusterState", ctx)
 	ret0, _ := ret[0].(*types.KafkaClusterState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // KafkaClusterState indicates an expected call of KafkaClusterState.
-func (mr *MockCruiseControlScalerMockRecorder) KafkaClusterState() *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) KafkaClusterState(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KafkaClusterState", reflect.TypeOf((*MockCruiseControlScaler)(nil).KafkaClusterState))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KafkaClusterState", reflect.TypeOf((*MockCruiseControlScaler)(nil).KafkaClusterState), ctx)
 }
 
 // LogDirsByBroker mocks base method.
-func (m *MockCruiseControlScaler) LogDirsByBroker() (map[string]map[scale.LogDirState][]string, error) {
+func (m *MockCruiseControlScaler) LogDirsByBroker(ctx context.Context) (map[string]map[scale.LogDirState][]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LogDirsByBroker")
+	ret := m.ctrl.Call(m, "LogDirsByBroker", ctx)
 	ret0, _ := ret[0].(map[string]map[scale.LogDirState][]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LogDirsByBroker indicates an expected call of LogDirsByBroker.
-func (mr *MockCruiseControlScalerMockRecorder) LogDirsByBroker() *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) LogDirsByBroker(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LogDirsByBroker", reflect.TypeOf((*MockCruiseControlScaler)(nil).LogDirsByBroker))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LogDirsByBroker", reflect.TypeOf((*MockCruiseControlScaler)(nil).LogDirsByBroker), ctx)
 }
 
 // PartitionReplicasByBroker mocks base method.
-func (m *MockCruiseControlScaler) PartitionReplicasByBroker() (map[string]int32, error) {
+func (m *MockCruiseControlScaler) PartitionReplicasByBroker(ctx context.Context) (map[string]int32, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PartitionReplicasByBroker")
+	ret := m.ctrl.Call(m, "PartitionReplicasByBroker", ctx)
 	ret0, _ := ret[0].(map[string]int32)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PartitionReplicasByBroker indicates an expected call of PartitionReplicasByBroker.
-func (mr *MockCruiseControlScalerMockRecorder) PartitionReplicasByBroker() *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) PartitionReplicasByBroker(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartitionReplicasByBroker", reflect.TypeOf((*MockCruiseControlScaler)(nil).PartitionReplicasByBroker))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartitionReplicasByBroker", reflect.TypeOf((*MockCruiseControlScaler)(nil).PartitionReplicasByBroker), ctx)
 }
 
 // RebalanceDisks mocks base method.
-func (m *MockCruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*scale.Result, error) {
+func (m *MockCruiseControlScaler) RebalanceDisks(ctx context.Context, brokerIDs ...string) (*scale.Result, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{}
+	varargs := []interface{}{ctx}
 	for _, a := range brokerIDs {
 		varargs = append(varargs, a)
 	}
@@ -222,30 +224,31 @@ func (m *MockCruiseControlScaler) RebalanceDisks(brokerIDs ...string) (*scale.Re
 }
 
 // RebalanceDisks indicates an expected call of RebalanceDisks.
-func (mr *MockCruiseControlScalerMockRecorder) RebalanceDisks(brokerIDs ...interface{}) *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) RebalanceDisks(ctx interface{}, brokerIDs ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RebalanceDisks", reflect.TypeOf((*MockCruiseControlScaler)(nil).RebalanceDisks), brokerIDs...)
+	varargs := append([]interface{}{ctx}, brokerIDs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RebalanceDisks", reflect.TypeOf((*MockCruiseControlScaler)(nil).RebalanceDisks), varargs...)
 }
 
 // RebalanceWithParams mocks base method.
-func (m *MockCruiseControlScaler) RebalanceWithParams(params map[string]string) (*scale.Result, error) {
+func (m *MockCruiseControlScaler) RebalanceWithParams(ctx context.Context, params map[string]string) (*scale.Result, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RebalanceWithParams", params)
+	ret := m.ctrl.Call(m, "RebalanceWithParams", ctx, params)
 	ret0, _ := ret[0].(*scale.Result)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RebalanceWithParams indicates an expected call of RebalanceWithParams.
-func (mr *MockCruiseControlScalerMockRecorder) RebalanceWithParams(params interface{}) *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) RebalanceWithParams(ctx, params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RebalanceWithParams", reflect.TypeOf((*MockCruiseControlScaler)(nil).RebalanceWithParams), params)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RebalanceWithParams", reflect.TypeOf((*MockCruiseControlScaler)(nil).RebalanceWithParams), ctx, params)
 }
 
 // RemoveBrokers mocks base method.
-func (m *MockCruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*scale.Result, error) {
+func (m *MockCruiseControlScaler) RemoveBrokers(ctx context.Context, brokerIDs ...string) (*scale.Result, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{}
+	varargs := []interface{}{ctx}
 	for _, a := range brokerIDs {
 		varargs = append(varargs, a)
 	}
@@ -256,60 +259,61 @@ func (m *MockCruiseControlScaler) RemoveBrokers(brokerIDs ...string) (*scale.Res
 }
 
 // RemoveBrokers indicates an expected call of RemoveBrokers.
-func (mr *MockCruiseControlScalerMockRecorder) RemoveBrokers(brokerIDs ...interface{}) *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) RemoveBrokers(ctx interface{}, brokerIDs ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveBrokers", reflect.TypeOf((*MockCruiseControlScaler)(nil).RemoveBrokers), brokerIDs...)
+	varargs := append([]interface{}{ctx}, brokerIDs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveBrokers", reflect.TypeOf((*MockCruiseControlScaler)(nil).RemoveBrokers), varargs...)
 }
 
 // RemoveBrokersWithParams mocks base method.
-func (m *MockCruiseControlScaler) RemoveBrokersWithParams(params map[string]string) (*scale.Result, error) {
+func (m *MockCruiseControlScaler) RemoveBrokersWithParams(ctx context.Context, params map[string]string) (*scale.Result, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveBrokersWithParams", params)
+	ret := m.ctrl.Call(m, "RemoveBrokersWithParams", ctx, params)
 	ret0, _ := ret[0].(*scale.Result)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RemoveBrokersWithParams indicates an expected call of RemoveBrokersWithParams.
-func (mr *MockCruiseControlScalerMockRecorder) RemoveBrokersWithParams(params interface{}) *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) RemoveBrokersWithParams(ctx, params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveBrokersWithParams", reflect.TypeOf((*MockCruiseControlScaler)(nil).RemoveBrokersWithParams), params)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveBrokersWithParams", reflect.TypeOf((*MockCruiseControlScaler)(nil).RemoveBrokersWithParams), ctx, params)
 }
 
 // Status mocks base method.
-func (m *MockCruiseControlScaler) Status() (scale.CruiseControlStatus, error) {
+func (m *MockCruiseControlScaler) Status(ctx context.Context) (scale.CruiseControlStatus, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Status")
+	ret := m.ctrl.Call(m, "Status", ctx)
 	ret0, _ := ret[0].(scale.CruiseControlStatus)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Status indicates an expected call of Status.
-func (mr *MockCruiseControlScalerMockRecorder) Status() *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) Status(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*MockCruiseControlScaler)(nil).Status))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*MockCruiseControlScaler)(nil).Status), ctx)
 }
 
 // StopExecution mocks base method.
-func (m *MockCruiseControlScaler) StopExecution() (*scale.Result, error) {
+func (m *MockCruiseControlScaler) StopExecution(ctx context.Context) (*scale.Result, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StopExecution")
+	ret := m.ctrl.Call(m, "StopExecution", ctx)
 	ret0, _ := ret[0].(*scale.Result)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StopExecution indicates an expected call of StopExecution.
-func (mr *MockCruiseControlScalerMockRecorder) StopExecution() *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) StopExecution(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopExecution", reflect.TypeOf((*MockCruiseControlScaler)(nil).StopExecution))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopExecution", reflect.TypeOf((*MockCruiseControlScaler)(nil).StopExecution), ctx)
 }
 
 // UserTasks mocks base method.
-func (m *MockCruiseControlScaler) UserTasks(taskIDs ...string) ([]*scale.Result, error) {
+func (m *MockCruiseControlScaler) UserTasks(ctx context.Context, taskIDs ...string) ([]*scale.Result, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{}
+	varargs := []interface{}{ctx}
 	for _, a := range taskIDs {
 		varargs = append(varargs, a)
 	}
@@ -320,7 +324,8 @@ func (m *MockCruiseControlScaler) UserTasks(taskIDs ...string) ([]*scale.Result,
 }
 
 // UserTasks indicates an expected call of UserTasks.
-func (mr *MockCruiseControlScalerMockRecorder) UserTasks(taskIDs ...interface{}) *gomock.Call {
+func (mr *MockCruiseControlScalerMockRecorder) UserTasks(ctx interface{}, taskIDs ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserTasks", reflect.TypeOf((*MockCruiseControlScaler)(nil).UserTasks), taskIDs...)
+	varargs := append([]interface{}{ctx}, taskIDs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserTasks", reflect.TypeOf((*MockCruiseControlScaler)(nil).UserTasks), varargs...)
 }

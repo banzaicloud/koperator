@@ -15,6 +15,8 @@
 package dispatcher
 
 import (
+	"context"
+
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,7 +25,7 @@ import (
 )
 
 // Dispatcher calls actors based on alert annotations
-func Dispatcher(promAlerts []model.Alert, log logr.Logger, client client.Client) {
+func Dispatcher(ctx context.Context, promAlerts []model.Alert, log logr.Logger, client client.Client) {
 	storedAlerts := currentalert.GetCurrentAlerts()
 	for _, promAlert := range alertFilter(promAlerts) {
 		store := currentalert.AlertState{
@@ -41,7 +43,7 @@ func Dispatcher(promAlerts []model.Alert, log logr.Logger, client client.Client)
 	rollingUpgradeAlertCount := storedAlerts.GetRollingUpgradeAlertCount()
 	for key, value := range storedAlerts.ListAlerts() {
 		log.Info("Stored Alert", "key", key, "status", value.Status, "labels", value.Labels, "annotations", value.Annotations, "processed", value.Processed)
-		_, err := storedAlerts.HandleAlert(key, client, rollingUpgradeAlertCount, log)
+		_, err := storedAlerts.HandleAlert(ctx, key, client, rollingUpgradeAlertCount, log)
 		if err != nil {
 			log.Error(err, "failed to handle alert", "fingerprint", key)
 		}
