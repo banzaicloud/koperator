@@ -60,13 +60,13 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		kafkaCluster = createMinimalKafkaClusterCR(kafkaClusterCRName, namespace)
 	})
 
-	JustBeforeEach(func() {
+	JustBeforeEach(func(ctx SpecContext) {
 		By("creating namespace " + namespace)
-		err := k8sClient.Create(context.Background(), namespaceObj)
+		err := k8sClient.Create(ctx, namespaceObj)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err = k8sClient.Create(context.Background(), kafkaCluster)
+		err = k8sClient.Create(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
 	})
@@ -76,23 +76,23 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		}
 	})
 	When("there is an add_broker operation for execution", Serial, func() {
-		JustBeforeEach(func() {
+		JustBeforeEach(func(ctx SpecContext) {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock1())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
-			err := k8sClient.Create(context.Background(), &operation)
+			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
 				Operation: v1alpha1.OperationAddBroker,
 			}
-			err = k8sClient.Status().Update(context.Background(), &operation)
+			err = k8sClient.Status().Update(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 		})
-		It("should execute the task and the task later will be completed", func() {
-			Eventually(func() v1beta1.CruiseControlUserTaskState {
+		It("should execute the task and the task later will be completed", func(ctx SpecContext) {
+			Eventually(ctx, func() v1beta1.CruiseControlUserTaskState {
 				operation := v1alpha1.CruiseControlOperation{}
-				err := k8sClient.Get(context.Background(), client.ObjectKey{
+				err := k8sClient.Get(ctx, client.ObjectKey{
 					Namespace: kafkaCluster.Namespace,
 					Name:      opName1,
 				}, &operation)
@@ -104,22 +104,22 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		})
 	})
 	When("add_broker operation is finished with completedWithError and 30s has not elapsed", Serial, func() {
-		JustBeforeEach(func() {
+		JustBeforeEach(func(ctx SpecContext) {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock2())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
-			err := k8sClient.Create(context.Background(), &operation)
+			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
 				Operation: v1alpha1.OperationAddBroker,
 			}
-			err = k8sClient.Status().Update(context.Background(), &operation)
+			err = k8sClient.Status().Update(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 		})
-		It("should not retry the failed task", func() {
-			Eventually(func() bool {
+		It("should not retry the failed task", func(ctx SpecContext) {
+			Eventually(ctx, func() bool {
 				operation := v1alpha1.CruiseControlOperation{}
-				err := k8sClient.Get(context.Background(), client.ObjectKey{
+				err := k8sClient.Get(ctx, client.ObjectKey{
 					Namespace: kafkaCluster.Namespace,
 					Name:      opName1,
 				}, &operation)
@@ -131,10 +131,10 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		})
 	})
 	When("add_broker operation is finished with completedWithError and 30s has elapsed", Serial, func() {
-		JustBeforeEach(func() {
+		JustBeforeEach(func(ctx SpecContext) {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock5())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
-			err := k8sClient.Create(context.Background(), &operation)
+			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
 				ID:        "12345",
@@ -142,13 +142,13 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				State:     v1beta1.CruiseControlTaskCompletedWithError,
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 			}
-			err = k8sClient.Status().Update(context.Background(), &operation)
+			err = k8sClient.Status().Update(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 		})
-		It("should retry the failed task", func() {
-			Eventually(func() bool {
+		It("should retry the failed task", func(ctx SpecContext) {
+			Eventually(ctx, func() bool {
 				operation := v1alpha1.CruiseControlOperation{}
-				err := k8sClient.Get(context.Background(), client.ObjectKey{
+				err := k8sClient.Get(ctx, client.ObjectKey{
 					Namespace: kafkaCluster.Namespace,
 					Name:      opName1,
 				}, &operation)
@@ -160,33 +160,33 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		})
 	})
 	When("there is an errored remove_broker and an add_broker operation", Serial, func() {
-		JustBeforeEach(func() {
+		JustBeforeEach(func(ctx SpecContext) {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock3())
 			// First operation will get completedWithError
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
-			err := k8sClient.Create(context.Background(), &operation)
+			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
 				Operation: v1alpha1.OperationRemoveBroker,
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 			}
-			err = k8sClient.Status().Update(context.Background(), &operation)
+			err = k8sClient.Status().Update(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 			// Creating other operation
 			operation = generateCruiseControlOperation(opName2, namespace, kafkaCluster.GetName())
-			err = k8sClient.Create(context.Background(), &operation)
+			err = k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
 				Operation: v1alpha1.OperationAddBroker,
 			}
-			err = k8sClient.Status().Update(context.Background(), &operation)
+			err = k8sClient.Status().Update(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 		})
-		It("should not retry the errored task but should execute the add_broker", func() {
-			Eventually(func() bool {
+		It("should not retry the errored task but should execute the add_broker", func(ctx SpecContext) {
+			Eventually(ctx, func() bool {
 				operation1 := v1alpha1.CruiseControlOperation{}
-				err := k8sClient.Get(context.Background(), client.ObjectKey{
+				err := k8sClient.Get(ctx, client.ObjectKey{
 					Namespace: kafkaCluster.Namespace,
 					Name:      opName1,
 				}, &operation1)
@@ -194,7 +194,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 				operation2 := v1alpha1.CruiseControlOperation{}
-				err = k8sClient.Get(context.Background(), client.ObjectKey{
+				err = k8sClient.Get(ctx, client.ObjectKey{
 					Namespace: kafkaCluster.Namespace,
 					Name:      opName2,
 				}, &operation2)
@@ -207,11 +207,11 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		})
 	})
 	When("there is a new remove_broker and an errored remove_broker operation with pause annotation", Serial, func() {
-		JustBeforeEach(func() {
+		JustBeforeEach(func(ctx SpecContext) {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Labels["pause"] = "true"
-			err := k8sClient.Create(context.Background(), &operation)
+			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
@@ -220,22 +220,22 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				State:     v1beta1.CruiseControlTaskCompletedWithError,
 				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
 			}
-			err = k8sClient.Status().Update(context.Background(), &operation)
+			err = k8sClient.Status().Update(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 			// Creating the second operation
 			operation = generateCruiseControlOperation(opName2, namespace, kafkaCluster.GetName())
-			err = k8sClient.Create(context.Background(), &operation)
+			err = k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
 				Operation: v1alpha1.OperationRemoveBroker,
 			}
-			err = k8sClient.Status().Update(context.Background(), &operation)
+			err = k8sClient.Status().Update(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 		})
-		It("should execute new remove_broker operation and should not retry the other one with pause annotation", func() {
-			Eventually(func() bool {
+		It("should execute new remove_broker operation and should not retry the other one with pause annotation", func(ctx SpecContext) {
+			Eventually(ctx, func() bool {
 				operation1 := v1alpha1.CruiseControlOperation{}
-				err := k8sClient.Get(context.Background(), client.ObjectKey{
+				err := k8sClient.Get(ctx, client.ObjectKey{
 					Namespace: kafkaCluster.Namespace,
 					Name:      opName1,
 				}, &operation1)
@@ -243,7 +243,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 				operation2 := v1alpha1.CruiseControlOperation{}
-				err = k8sClient.Get(context.Background(), client.ObjectKey{
+				err = k8sClient.Get(ctx, client.ObjectKey{
 					Namespace: kafkaCluster.Namespace,
 					Name:      opName2,
 				}, &operation2)
@@ -256,12 +256,12 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		})
 	})
 	When("there is a new remove_broker and an errored remove_broker operation with ignore ErrorPolicy", Serial, func() {
-		JustBeforeEach(func() {
+		JustBeforeEach(func(ctx SpecContext) {
 			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4())
 			// Creating first operation
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Spec.ErrorPolicy = v1alpha1.ErrorPolicyIgnore
-			err := k8sClient.Create(context.Background(), &operation)
+			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
@@ -270,22 +270,22 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 				Operation: v1alpha1.OperationRemoveBroker,
 				State:     v1beta1.CruiseControlTaskCompletedWithError,
 			}
-			err = k8sClient.Status().Update(context.Background(), &operation)
+			err = k8sClient.Status().Update(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 			// Creating the second operation
 			operation = generateCruiseControlOperation(opName2, namespace, kafkaCluster.GetName())
-			err = k8sClient.Create(context.Background(), &operation)
+			err = k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
 				Operation: v1alpha1.OperationRemoveBroker,
 			}
-			err = k8sClient.Status().Update(context.Background(), &operation)
+			err = k8sClient.Status().Update(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
 		})
-		It("should execute the new remove_broker operation and should not execute the errored one", func() {
-			Eventually(func() bool {
+		It("should execute the new remove_broker operation and should not execute the errored one", func(ctx SpecContext) {
+			Eventually(ctx, func() bool {
 				operation1 := v1alpha1.CruiseControlOperation{}
-				err := k8sClient.Get(context.Background(), client.ObjectKey{
+				err := k8sClient.Get(ctx, client.ObjectKey{
 					Namespace: kafkaCluster.Namespace,
 					Name:      opName1,
 				}, &operation1)
@@ -293,7 +293,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 					return false
 				}
 				operation2 := v1alpha1.CruiseControlOperation{}
-				err = k8sClient.Get(context.Background(), client.ObjectKey{
+				err = k8sClient.Get(ctx, client.ObjectKey{
 					Namespace: kafkaCluster.Namespace,
 					Name:      opName2,
 				}, &operation2)

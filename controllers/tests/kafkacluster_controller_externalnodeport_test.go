@@ -15,7 +15,6 @@
 package tests
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 
@@ -76,21 +75,21 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 
 	})
 
-	JustBeforeEach(func() {
+	JustBeforeEach(func(ctx SpecContext) {
 		By("creating namespace " + namespace)
-		err := k8sClient.Create(context.TODO(), namespaceObj)
+		err := k8sClient.Create(ctx, namespaceObj)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err = k8sClient.Create(context.TODO(), kafkaCluster)
+		err = k8sClient.Create(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
-		waitForClusterRunningState(kafkaCluster, namespace)
+		waitForClusterRunningState(ctx, kafkaCluster, namespace)
 	})
 
-	JustAfterEach(func() {
+	JustAfterEach(func(ctx SpecContext) {
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
-		err := k8sClient.Delete(context.TODO(), kafkaCluster)
+		err := k8sClient.Delete(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 		kafkaCluster = nil
 	})
@@ -145,11 +144,11 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 			}
 		})
 
-		It("reconciles the service successfully", func() {
+		It("reconciles the service successfully", func(ctx SpecContext) {
 			var svc corev1.Service
 			svcName := fmt.Sprintf("%s-0-test", kafkaClusterCRName)
-			Eventually(func() error {
-				err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: svcName}, &svc)
+			Eventually(ctx, func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: svcName}, &svc)
 				return err
 			}).Should(Succeed())
 
@@ -181,7 +180,7 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 			}))
 
 			// check status
-			err := k8sClient.Get(context.TODO(), types.NamespacedName{
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
 			}, kafkaCluster)
@@ -246,8 +245,8 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 			}
 		})
 
-		It("reconciles the status successfully", func() {
-			err := k8sClient.Get(context.TODO(), types.NamespacedName{
+		It("reconciles the status successfully", func(ctx SpecContext) {
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
 			}, kafkaCluster)
@@ -311,8 +310,8 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 			}
 		})
 
-		It("reconciles the status successfully", func() {
-			err := k8sClient.Get(context.TODO(), types.NamespacedName{
+		It("reconciles the status successfully", func(ctx SpecContext) {
+			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
 			}, kafkaCluster)
@@ -322,7 +321,7 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 
 			for _, broker := range kafkaCluster.Spec.Brokers {
 				service := &corev1.Service{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{
+				err := k8sClient.Get(ctx, types.NamespacedName{
 					Name:      fmt.Sprintf(kafka.NodePortServiceTemplate, kafkaCluster.GetName(), broker.Id, "test"),
 					Namespace: kafkaCluster.GetNamespace(),
 				}, service)

@@ -129,8 +129,8 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 	}
 }
 
-func waitForClusterRunningState(kafkaCluster *v1beta1.KafkaCluster, namespace string) {
-	ctx, cancel := context.WithCancel(context.Background())
+func waitForClusterRunningState(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, namespace string) {
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	ch := make(chan struct{}, 1)
@@ -146,7 +146,7 @@ func waitForClusterRunningState(kafkaCluster *v1beta1.KafkaCluster, namespace st
 				return
 			default:
 				createdKafkaCluster := &v1beta1.KafkaCluster{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, createdKafkaCluster)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: kafkaCluster.Name, Namespace: namespace}, createdKafkaCluster)
 				if err != nil || createdKafkaCluster.Status.State != v1beta1.KafkaClusterRunning {
 					consecutiveRunningState = 0
 					continue

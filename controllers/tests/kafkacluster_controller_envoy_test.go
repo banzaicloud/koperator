@@ -38,11 +38,11 @@ func expectEnvoyIngressAnnotations(annotations map[string]string) {
 	Expect(annotations).To(HaveKeyWithValue("envoy-annotation-key", "envoy-annotation-value"))
 }
 
-func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
+func expectEnvoyLoadBalancer(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
 	var loadBalancer corev1.Service
 	lbName := fmt.Sprintf("envoy-loadbalancer-%s-%s", eListenerTemplate, kafkaCluster.Name)
-	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
+	Eventually(ctx, func() error {
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
 		return err
 	}).Should(Succeed())
 
@@ -79,11 +79,11 @@ func expectEnvoyLoadBalancer(kafkaCluster *v1beta1.KafkaCluster, eListenerTempla
 	Expect(loadBalancer.Spec.Ports[5].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
 }
 
-func expectEnvoyConfigMap(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
+func expectEnvoyConfigMap(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
 	var configMap corev1.ConfigMap
 	configMapName := fmt.Sprintf("envoy-config-%s-%s", eListenerTemplate, kafkaCluster.Name)
-	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: configMapName}, &configMap)
+	Eventually(ctx, func() error {
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: configMapName}, &configMap)
 		return err
 	}).Should(Succeed())
 
@@ -295,11 +295,11 @@ staticResources:
 	Expect(configMap.Data["envoy.yaml"]).To(Equal(expected))
 }
 
-func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
+func expectEnvoyDeployment(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-%s-%s", eListenerTemplate, kafkaCluster.Name)
-	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: deploymentName}, &deployment)
+	Eventually(ctx, func() error {
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: deploymentName}, &deployment)
 		return err
 	}).Should(Succeed())
 
@@ -366,19 +366,19 @@ func expectEnvoyDeployment(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate
 	}))
 }
 
-func expectEnvoy(kafkaCluster *v1beta1.KafkaCluster, eListenerTemplates []string) {
+func expectEnvoy(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, eListenerTemplates []string) {
 	for _, eListenerName := range eListenerTemplates {
-		expectEnvoyLoadBalancer(kafkaCluster, eListenerName)
-		expectEnvoyConfigMap(kafkaCluster, eListenerName)
-		expectEnvoyDeployment(kafkaCluster, eListenerName)
+		expectEnvoyLoadBalancer(ctx, kafkaCluster, eListenerName)
+		expectEnvoyConfigMap(ctx, kafkaCluster, eListenerName)
+		expectEnvoyDeployment(ctx, kafkaCluster, eListenerName)
 	}
 }
 
-func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
+func expectEnvoyWithConfigAz1(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	var loadBalancer corev1.Service
 	lbName := fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaCluster.Name)
-	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
+	Eventually(ctx, func() error {
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
 		return err
 	}).Should(Succeed())
 	Expect(loadBalancer.Spec.Ports).To(HaveLen(4))
@@ -405,8 +405,8 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-az1-%s", kafkaCluster.Name)
-	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: deploymentName}, &deployment)
+	Eventually(ctx, func() error {
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: deploymentName}, &deployment)
 		return err
 	}).Should(Succeed())
 	templateSpec := deployment.Spec.Template.Spec
@@ -437,8 +437,8 @@ func expectEnvoyWithConfigAz1(kafkaCluster *v1beta1.KafkaCluster) {
 
 	var configMap corev1.ConfigMap
 	configMapName := fmt.Sprintf("envoy-config-test-az1-%s", kafkaCluster.Name)
-	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: configMapName}, &configMap)
+	Eventually(ctx, func() error {
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: configMapName}, &configMap)
 		return err
 	}).Should(Succeed())
 	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
@@ -580,11 +580,11 @@ staticResources:
 	Expect(configMap.Data["envoy.yaml"]).To(Equal(expected))
 }
 
-func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
+func expectEnvoyWithConfigAz2(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	var loadBalancer corev1.Service
 	lbName := fmt.Sprintf("envoy-loadbalancer-test-az2-%s", kafkaCluster.Name)
-	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
+	Eventually(ctx, func() error {
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: lbName}, &loadBalancer)
 		return err
 	}).Should(Succeed())
 	Expect(loadBalancer.Spec.Ports).To(HaveLen(5))
@@ -615,8 +615,8 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-az2-%s", kafkaCluster.Name)
-	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: deploymentName}, &deployment)
+	Eventually(ctx, func() error {
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: deploymentName}, &deployment)
 		return err
 	}).Should(Succeed())
 	templateSpec := deployment.Spec.Template.Spec
@@ -652,8 +652,8 @@ func expectEnvoyWithConfigAz2(kafkaCluster *v1beta1.KafkaCluster) {
 
 	var configMap corev1.ConfigMap
 	configMapName := fmt.Sprintf("envoy-config-test-az2-%s", kafkaCluster.Name)
-	Eventually(func() error {
-		err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: configMapName}, &configMap)
+	Eventually(ctx, func() error {
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: kafkaCluster.Namespace, Name: configMapName}, &configMap)
 		return err
 	}).Should(Succeed())
 	Expect(configMap.Data).To(HaveKey("envoy.yaml"))
