@@ -12537,6 +12537,11 @@ spec:
                     type: object
                   cruiseControlEndpoint:
                     type: string
+                  cruiseControlLabels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to be applied to CruiseControl pod
+                    type: object
                   cruiseControlOperationSpec:
                     description: CruiseControlOperationSpec specifies the configuration
                       of the CruiseControlOperation handling
@@ -16832,6 +16837,12 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     type: array
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels defines the labels placed on the
+                      envoy ingress controller deployment
+                    type: object
                   loadBalancerIP:
                     description: LoadBalancerIP can be used to specify an exact IP
                       for the LoadBalancer service
