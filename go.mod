@@ -20,7 +20,7 @@ require (
 	github.com/imdario/mergo v0.3.13
 	github.com/onsi/ginkgo/v2 v2.8.4
 	github.com/onsi/gomega v1.27.2
-	github.com/pavlo-v-chernykh/keystore-go/v4 v4.4.0
+	github.com/pavlo-v-chernykh/keystore-go/v4 v4.4.1
 	github.com/prometheus/common v0.37.0
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.23.0
