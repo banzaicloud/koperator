@@ -24,6 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -118,6 +119,11 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					Version: appsv1.SchemeGroupVersion.Version,
 					Group:   appsv1.SchemeGroupVersion.Group,
 					Kind:    reflect.TypeOf(appsv1.Deployment{}).Name(),
+				},
+				{
+					Version: policyv1.SchemeGroupVersion.Version,
+					Group:   policyv1.SchemeGroupVersion.Group,
+					Kind:    reflect.TypeOf(policyv1.PodDisruptionBudget{}).Name(),
 				},
 			}
 			var envoyResources unstructured.UnstructuredList
