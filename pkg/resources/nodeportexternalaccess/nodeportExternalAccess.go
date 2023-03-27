@@ -69,7 +69,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				} else {
 					// Cleaning up unused nodeport services
 					if err := r.Delete(context.Background(), service.(client.Object)); client.IgnoreNotFound(err) != nil {
-						return errors.Wrap(err, "error happened when removing unused nodeport services")
+						return errors.Wrap(err, "error when removing unused nodeport services")
 					}
 				}
 			}

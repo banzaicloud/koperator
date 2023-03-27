@@ -47,13 +47,13 @@ const (
 	gatewayNameTemplateWithScope    = "%s-%s-%s-gateway"
 	virtualServiceTemplate          = "%s-%s-virtualservice"
 	virtualServiceTemplateWithScope = "%s-%s-%s-virtualservice"
-	eListenerLabelNameKey           = "eListenerName"
+	externalListenerLabelNameKey    = "eListenerName"
 )
 
 // labelsForIstioIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
 func labelsForIstioIngress(crName, eLName, istioRevision string) map[string]string {
-	return utils.MergeLabels(labelsForIstioIngressWithoutEListenerName(crName, istioRevision), map[string]string{eListenerLabelNameKey: eLName})
+	return utils.MergeLabels(labelsForIstioIngressWithoutEListenerName(crName, istioRevision), map[string]string{externalListenerLabelNameKey: eLName})
 }
 
 func labelsForIstioIngressWithoutEListenerName(crName, istioRevision string) map[string]string {
@@ -115,7 +115,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				}
 			}
 		} else {
-			// Cleaning up unused istio resources when ingress controller is not istioingress or eListener access method is not LoadBalancer
+			// Cleaning up unused istio resources when ingress controller is not istioingress or externalListener access method is not LoadBalancer
 			deletionCounter := 0
 			ctx := context.Background()
 			istioResourcesGVK := []schema.GroupVersionKind{
@@ -141,17 +141,17 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 				if err := r.List(ctx, &istioResources, client.InNamespace(r.KafkaCluster.GetNamespace()),
 					client.MatchingLabels(labelsForIstioIngressWithoutEListenerName(r.KafkaCluster.Name, ""))); err != nil && !apimeta.IsNoMatchError(err) {
-					return errors.Wrap(err, "error happened when getting list of istio ingress resources for deletion")
+					return errors.Wrap(err, "error when getting list of istio ingress resources for deletion")
 				}
 
 				for _, removeObject := range istioResources.Items {
-					if !strings.Contains(removeObject.GetLabels()[eListenerLabelNameKey], eListener.Name) ||
+					if !strings.Contains(removeObject.GetLabels()[externalListenerLabelNameKey], eListener.Name) ||
 						util.ObjectManagedByClusterRegistry(&removeObject) ||
 						!removeObject.GetDeletionTimestamp().IsZero() {
 						continue
 					}
 					if err := r.Delete(ctx, &removeObject); client.IgnoreNotFound(err) != nil {
-						return errors.Wrap(err, "error happened when removing istio ingress resources")
+						return errors.Wrap(err, "error when removing istio ingress resources")
 					}
 					deletionCounter++
 				}

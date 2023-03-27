@@ -101,7 +101,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				}
 			}
 		} else {
-			// Cleaning up unused envoy resources when ingress controller is not envoy or eListener access method is not LoadBalancer
+			// Cleaning up unused envoy resources when ingress controller is not envoy or externalListener access method is not LoadBalancer
 			deletionCounter := 0
 			ctx := context.Background()
 			envoyResourcesGVK := []schema.GroupVersionKind{
@@ -132,7 +132,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 				if err := r.List(ctx, &envoyResources, client.InNamespace(r.KafkaCluster.GetNamespace()),
 					client.MatchingLabels(labelsForEnvoyIngressWithoutEListenerName(r.KafkaCluster.Name))); err != nil {
-					return errors.Wrap(err, "error happened when getting list of envoy ingress resources for deletion")
+					return errors.Wrap(err, "error when getting list of envoy ingress resources for deletion")
 				}
 
 				for _, removeObject := range envoyResources.Items {
@@ -142,7 +142,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 						continue
 					}
 					if err := r.Delete(ctx, &removeObject); client.IgnoreNotFound(err) != nil {
-						return errors.Wrap(err, "error happened when removing envoy ingress resources")
+						return errors.Wrap(err, "error when removing envoy ingress resources")
 					}
 					deletionCounter++
 				}
