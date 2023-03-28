@@ -37,14 +37,10 @@ import (
 	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
 )
 
-const (
-	eListenerLabelNameKey = "eListenerName"
-)
-
 // labelsForEnvoyIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
 func labelsForEnvoyIngress(crName, eLName string) map[string]string {
-	return apiutil.MergeLabels(labelsForEnvoyIngressWithoutEListenerName(crName), map[string]string{eListenerLabelNameKey: eLName})
+	return apiutil.MergeLabels(labelsForEnvoyIngressWithoutEListenerName(crName), map[string]string{util.ExternalListenerLabelNameKey: eLName})
 }
 
 func labelsForEnvoyIngressWithoutEListenerName(crName string) map[string]string {
@@ -136,7 +132,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				}
 
 				for _, removeObject := range envoyResources.Items {
-					if !strings.Contains(removeObject.GetLabels()[eListenerLabelNameKey], eListener.Name) ||
+					if !strings.Contains(removeObject.GetLabels()[util.ExternalListenerLabelNameKey], eListener.Name) ||
 						util.ObjectManagedByClusterRegistry(&removeObject) ||
 						!removeObject.GetDeletionTimestamp().IsZero() {
 						continue

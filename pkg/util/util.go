@@ -58,9 +58,10 @@ import (
 )
 
 const (
-	symbolSet                  = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-	IngressConfigGlobalName    = "globalConfig"
-	EListenerLabelNameTemplate = "%s-%s"
+	symbolSet                         = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	IngressConfigGlobalName           = "globalConfig"
+	ExternalListenerLabelNameTemplate = "%s-%s"
+	ExternalListenerLabelNameKey      = "eListenerName"
 )
 
 // IntstrPointer generate IntOrString pointer from int
@@ -236,7 +237,7 @@ func ConstructEListenerLabelName(ingressConfigName, eListenerName string) string
 		return eListenerName
 	}
 
-	return fmt.Sprintf(EListenerLabelNameTemplate, eListenerName, ingressConfigName)
+	return fmt.Sprintf(ExternalListenerLabelNameTemplate, eListenerName, ingressConfigName)
 }
 
 // ShouldIncludeBroker returns true if the broker should be included as a resource on external listener resources

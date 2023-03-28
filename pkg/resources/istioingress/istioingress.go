@@ -47,13 +47,12 @@ const (
 	gatewayNameTemplateWithScope    = "%s-%s-%s-gateway"
 	virtualServiceTemplate          = "%s-%s-virtualservice"
 	virtualServiceTemplateWithScope = "%s-%s-%s-virtualservice"
-	externalListenerLabelNameKey    = "eListenerName"
 )
 
 // labelsForIstioIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
 func labelsForIstioIngress(crName, eLName, istioRevision string) map[string]string {
-	return utils.MergeLabels(labelsForIstioIngressWithoutEListenerName(crName, istioRevision), map[string]string{externalListenerLabelNameKey: eLName})
+	return utils.MergeLabels(labelsForIstioIngressWithoutEListenerName(crName, istioRevision), map[string]string{util.ExternalListenerLabelNameKey: eLName})
 }
 
 func labelsForIstioIngressWithoutEListenerName(crName, istioRevision string) map[string]string {
@@ -145,7 +144,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				}
 
 				for _, removeObject := range istioResources.Items {
-					if !strings.Contains(removeObject.GetLabels()[externalListenerLabelNameKey], eListener.Name) ||
+					if !strings.Contains(removeObject.GetLabels()[util.ExternalListenerLabelNameKey], eListener.Name) ||
 						util.ObjectManagedByClusterRegistry(&removeObject) ||
 						!removeObject.GetDeletionTimestamp().IsZero() {
 						continue
