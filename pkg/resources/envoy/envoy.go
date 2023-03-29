@@ -96,58 +96,56 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					}
 				}
 			}
-		} else {
-			if r.KafkaCluster.Spec.RemoveUnusedIngressResources {
-				// Cleaning up unused envoy resources when ingress controller is not envoy or externalListener access method is not LoadBalancer
-				deletionCounter := 0
-				ctx := context.Background()
-				envoyResourcesGVK := []schema.GroupVersionKind{
-					{
-						Version: corev1.SchemeGroupVersion.Version,
-						Group:   corev1.SchemeGroupVersion.Group,
-						Kind:    reflect.TypeOf(corev1.Service{}).Name(),
-					},
-					{
-						Version: corev1.SchemeGroupVersion.Version,
-						Group:   corev1.SchemeGroupVersion.Group,
-						Kind:    reflect.TypeOf(corev1.ConfigMap{}).Name(),
-					},
-					{
-						Version: appsv1.SchemeGroupVersion.Version,
-						Group:   appsv1.SchemeGroupVersion.Group,
-						Kind:    reflect.TypeOf(appsv1.Deployment{}).Name(),
-					},
-					{
-						Version: policyv1.SchemeGroupVersion.Version,
-						Group:   policyv1.SchemeGroupVersion.Group,
-						Kind:    reflect.TypeOf(policyv1.PodDisruptionBudget{}).Name(),
-					},
-				}
-				var envoyResources unstructured.UnstructuredList
-				for _, gvk := range envoyResourcesGVK {
-					envoyResources.SetGroupVersionKind(gvk)
+		} else if r.KafkaCluster.Spec.RemoveUnusedIngressResources {
+			// Cleaning up unused envoy resources when ingress controller is not envoy or externalListener access method is not LoadBalancer
+			deletionCounter := 0
+			ctx := context.Background()
+			envoyResourcesGVK := []schema.GroupVersionKind{
+				{
+					Version: corev1.SchemeGroupVersion.Version,
+					Group:   corev1.SchemeGroupVersion.Group,
+					Kind:    reflect.TypeOf(corev1.Service{}).Name(),
+				},
+				{
+					Version: corev1.SchemeGroupVersion.Version,
+					Group:   corev1.SchemeGroupVersion.Group,
+					Kind:    reflect.TypeOf(corev1.ConfigMap{}).Name(),
+				},
+				{
+					Version: appsv1.SchemeGroupVersion.Version,
+					Group:   appsv1.SchemeGroupVersion.Group,
+					Kind:    reflect.TypeOf(appsv1.Deployment{}).Name(),
+				},
+				{
+					Version: policyv1.SchemeGroupVersion.Version,
+					Group:   policyv1.SchemeGroupVersion.Group,
+					Kind:    reflect.TypeOf(policyv1.PodDisruptionBudget{}).Name(),
+				},
+			}
+			var envoyResources unstructured.UnstructuredList
+			for _, gvk := range envoyResourcesGVK {
+				envoyResources.SetGroupVersionKind(gvk)
 
-					if err := r.List(ctx, &envoyResources, client.InNamespace(r.KafkaCluster.GetNamespace()),
-						client.MatchingLabels(labelsForEnvoyIngressWithoutEListenerName(r.KafkaCluster.Name))); err != nil {
-						return errors.Wrap(err, "error when getting list of envoy ingress resources for deletion")
-					}
+				if err := r.List(ctx, &envoyResources, client.InNamespace(r.KafkaCluster.GetNamespace()),
+					client.MatchingLabels(labelsForEnvoyIngressWithoutEListenerName(r.KafkaCluster.Name))); err != nil {
+					return errors.Wrap(err, "error when getting list of envoy ingress resources for deletion")
+				}
 
-					for _, removeObject := range envoyResources.Items {
-						if !strings.Contains(removeObject.GetLabels()[util.ExternalListenerLabelNameKey], eListener.Name) ||
-							util.ObjectManagedByClusterRegistry(&removeObject) ||
-							!removeObject.GetDeletionTimestamp().IsZero() {
-							continue
-						}
-						if err := r.Delete(ctx, &removeObject); client.IgnoreNotFound(err) != nil {
-							return errors.Wrap(err, "error when removing envoy ingress resources")
-						}
-						log.V(1).Info(fmt.Sprintf("Deleted envoy ingress '%s' resource '%s' for externalListener '%s'", gvk.Kind, removeObject.GetName(), eListener.Name))
-						deletionCounter++
+				for _, removeObject := range envoyResources.Items {
+					if !strings.Contains(removeObject.GetLabels()[util.ExternalListenerLabelNameKey], eListener.Name) ||
+						util.ObjectManagedByClusterRegistry(&removeObject) ||
+						!removeObject.GetDeletionTimestamp().IsZero() {
+						continue
 					}
+					if err := r.Delete(ctx, &removeObject); client.IgnoreNotFound(err) != nil {
+						return errors.Wrap(err, "error when removing envoy ingress resources")
+					}
+					log.V(1).Info(fmt.Sprintf("Deleted envoy ingress '%s' resource '%s' for externalListener '%s'", gvk.Kind, removeObject.GetName(), eListener.Name))
+					deletionCounter++
 				}
-				if deletionCounter > 0 {
-					log.Info(fmt.Sprintf("Removed '%d' resources for envoy ingress", deletionCounter))
-				}
+			}
+			if deletionCounter > 0 {
+				log.Info(fmt.Sprintf("Removed '%d' resources for envoy ingress", deletionCounter))
 			}
 		}
 	}
