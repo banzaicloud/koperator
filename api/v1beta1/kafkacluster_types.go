@@ -84,13 +84,18 @@ type KafkaClusterSpec struct {
 	IstioControlPlane *IstioControlPlaneReference `json:"istioControlPlane,omitempty"`
 	// If true OneBrokerPerNode ensures that each kafka broker will be placed on a different node unless a custom
 	// Affinity definition overrides this behavior
-	OneBrokerPerNode    bool                `json:"oneBrokerPerNode"`
-	PropagateLabels     bool                `json:"propagateLabels,omitempty"`
-	CruiseControlConfig CruiseControlConfig `json:"cruiseControlConfig"`
-	EnvoyConfig         EnvoyConfig         `json:"envoyConfig,omitempty"`
-	MonitoringConfig    MonitoringConfig    `json:"monitoringConfig,omitempty"`
-	AlertManagerConfig  *AlertManagerConfig `json:"alertManagerConfig,omitempty"`
-	IstioIngressConfig  IstioIngressConfig  `json:"istioIngressConfig,omitempty"`
+	OneBrokerPerNode bool `json:"oneBrokerPerNode"`
+	// RemoveUnusedIngressResources when true, the unnecessary resources from the previous ingress state will be removed.
+	// when false, they will be kept so the Kafka cluster remains available for those Kafka clients which are still using the previous ingress setting.
+	// +kubebuilder:default=false
+	// +optional
+	RemoveUnusedIngressResources bool                `json:"removeUnusedIngressResources,omitempty"`
+	PropagateLabels              bool                `json:"propagateLabels,omitempty"`
+	CruiseControlConfig          CruiseControlConfig `json:"cruiseControlConfig"`
+	EnvoyConfig                  EnvoyConfig         `json:"envoyConfig,omitempty"`
+	MonitoringConfig             MonitoringConfig    `json:"monitoringConfig,omitempty"`
+	AlertManagerConfig           *AlertManagerConfig `json:"alertManagerConfig,omitempty"`
+	IstioIngressConfig           IstioIngressConfig  `json:"istioIngressConfig,omitempty"`
 	// Envs defines environment variables for Kafka broker Pods.
 	// Adding the "+" prefix to the name prepends the value to that environment variable instead of overwriting it.
 	// Add the "+" suffix to append.

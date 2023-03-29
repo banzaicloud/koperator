@@ -19706,6 +19706,14 @@ spec:
                 type: object
               readOnlyConfig:
                 type: string
+              removeUnusedIngressResources:
+                default: false
+                description: RemoveUnusedIngressResources when true, the unnecessary
+                  resources from the previous ingress state will be removed. when
+                  false, they will be kept so the Kafka cluster remains available
+                  for those Kafka clients which are still using the previous ingress
+                  setting.
+                type: boolean
               rollingUpgradeConfig:
                 description: RollingUpgradeConfig defines the desired config of the
                   RollingUpgrade
