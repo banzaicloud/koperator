@@ -152,6 +152,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					if err := r.Delete(ctx, &removeObject); client.IgnoreNotFound(err) != nil {
 						return errors.Wrap(err, "error when removing istio ingress resources")
 					}
+					log.V(1).Info(fmt.Sprintf("Deleted istio ingress '%s' resource '%s' for externalListener '%s'", gvk.Kind, removeObject.GetName(), eListener.Name))
 					deletionCounter++
 				}
 			}

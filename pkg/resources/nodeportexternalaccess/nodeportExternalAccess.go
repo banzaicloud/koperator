@@ -16,6 +16,7 @@ package nodeportexternalaccess
 
 import (
 	"context"
+	"fmt"
 
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
@@ -68,9 +69,11 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 					}
 				} else {
 					// Cleaning up unused nodeport services
-					if err := r.Delete(context.Background(), service.(client.Object)); client.IgnoreNotFound(err) != nil {
+					removeService := service.(client.Object)
+					if err := r.Delete(context.Background(), removeService); client.IgnoreNotFound(err) != nil {
 						return errors.Wrap(err, "error when removing unused nodeport services")
 					}
+					log.V(1).Info(fmt.Sprintf("Deleted nodePort service '%s' for external listener '%s'", removeService.GetName(), eListener.Name))
 				}
 			}
 		}
