@@ -114,50 +114,52 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				}
 			}
 		} else {
-			// Cleaning up unused istio resources when ingress controller is not istioingress or externalListener access method is not LoadBalancer
-			deletionCounter := 0
-			ctx := context.Background()
-			istioResourcesGVK := []schema.GroupVersionKind{
-				{
-					Version: istioOperatorApi.GroupVersion.Version,
-					Group:   istioOperatorApi.GroupVersion.Group,
-					Kind:    reflect.TypeOf(istioOperatorApi.IstioMeshGateway{}).Name(),
-				},
-				{
-					Version: istioclientv1beta1.SchemeGroupVersion.Version,
-					Group:   istioclientv1beta1.SchemeGroupVersion.Group,
-					Kind:    reflect.TypeOf(istioclientv1beta1.Gateway{}).Name(),
-				},
-				{
-					Version: istioclientv1beta1.SchemeGroupVersion.Version,
-					Group:   istioclientv1beta1.SchemeGroupVersion.Group,
-					Kind:    reflect.TypeOf(istioclientv1beta1.VirtualService{}).Name(),
-				},
-			}
-			var istioResources unstructured.UnstructuredList
-			for _, gvk := range istioResourcesGVK {
-				istioResources.SetGroupVersionKind(gvk)
-
-				if err := r.List(ctx, &istioResources, client.InNamespace(r.KafkaCluster.GetNamespace()),
-					client.MatchingLabels(labelsForIstioIngressWithoutEListenerName(r.KafkaCluster.Name, ""))); err != nil && !apimeta.IsNoMatchError(err) {
-					return errors.Wrap(err, "error when getting list of istio ingress resources for deletion")
+			if r.KafkaCluster.Spec.RemoveUnusedIngressResources {
+				// Cleaning up unused istio resources when ingress controller is not istioingress or externalListener access method is not LoadBalancer
+				deletionCounter := 0
+				ctx := context.Background()
+				istioResourcesGVK := []schema.GroupVersionKind{
+					{
+						Version: istioOperatorApi.GroupVersion.Version,
+						Group:   istioOperatorApi.GroupVersion.Group,
+						Kind:    reflect.TypeOf(istioOperatorApi.IstioMeshGateway{}).Name(),
+					},
+					{
+						Version: istioclientv1beta1.SchemeGroupVersion.Version,
+						Group:   istioclientv1beta1.SchemeGroupVersion.Group,
+						Kind:    reflect.TypeOf(istioclientv1beta1.Gateway{}).Name(),
+					},
+					{
+						Version: istioclientv1beta1.SchemeGroupVersion.Version,
+						Group:   istioclientv1beta1.SchemeGroupVersion.Group,
+						Kind:    reflect.TypeOf(istioclientv1beta1.VirtualService{}).Name(),
+					},
 				}
+				var istioResources unstructured.UnstructuredList
+				for _, gvk := range istioResourcesGVK {
+					istioResources.SetGroupVersionKind(gvk)
 
-				for _, removeObject := range istioResources.Items {
-					if !strings.Contains(removeObject.GetLabels()[util.ExternalListenerLabelNameKey], eListener.Name) ||
-						util.ObjectManagedByClusterRegistry(&removeObject) ||
-						!removeObject.GetDeletionTimestamp().IsZero() {
-						continue
+					if err := r.List(ctx, &istioResources, client.InNamespace(r.KafkaCluster.GetNamespace()),
+						client.MatchingLabels(labelsForIstioIngressWithoutEListenerName(r.KafkaCluster.Name, ""))); err != nil && !apimeta.IsNoMatchError(err) {
+						return errors.Wrap(err, "error when getting list of istio ingress resources for deletion")
 					}
-					if err := r.Delete(ctx, &removeObject); client.IgnoreNotFound(err) != nil {
-						return errors.Wrap(err, "error when removing istio ingress resources")
+
+					for _, removeObject := range istioResources.Items {
+						if !strings.Contains(removeObject.GetLabels()[util.ExternalListenerLabelNameKey], eListener.Name) ||
+							util.ObjectManagedByClusterRegistry(&removeObject) ||
+							!removeObject.GetDeletionTimestamp().IsZero() {
+							continue
+						}
+						if err := r.Delete(ctx, &removeObject); client.IgnoreNotFound(err) != nil {
+							return errors.Wrap(err, "error when removing istio ingress resources")
+						}
+						log.V(1).Info(fmt.Sprintf("Deleted istio ingress '%s' resource '%s' for externalListener '%s'", gvk.Kind, removeObject.GetName(), eListener.Name))
+						deletionCounter++
 					}
-					log.V(1).Info(fmt.Sprintf("Deleted istio ingress '%s' resource '%s' for externalListener '%s'", gvk.Kind, removeObject.GetName(), eListener.Name))
-					deletionCounter++
 				}
-			}
-			if deletionCounter > 0 {
-				log.Info(fmt.Sprintf("Removed '%d' resources for istio ingress", deletionCounter))
+				if deletionCounter > 0 {
+					log.Info(fmt.Sprintf("Removed '%d' resources for istio ingress", deletionCounter))
+				}
 			}
 		}
 	}

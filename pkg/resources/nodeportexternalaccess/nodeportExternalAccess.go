@@ -68,12 +68,14 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 						return err
 					}
 				} else {
-					// Cleaning up unused nodeport services
-					removeService := service.(client.Object)
-					if err := r.Delete(context.Background(), removeService); client.IgnoreNotFound(err) != nil {
-						return errors.Wrap(err, "error when removing unused nodeport services")
+					if r.KafkaCluster.Spec.RemoveUnusedIngressResources {
+						// Cleaning up unused nodeport services
+						removeService := service.(client.Object)
+						if err := r.Delete(context.Background(), removeService); client.IgnoreNotFound(err) != nil {
+							return errors.Wrap(err, "error when removing unused nodeport services")
+						}
+						log.V(1).Info(fmt.Sprintf("Deleted nodePort service '%s' for external listener '%s'", removeService.GetName(), eListener.Name))
 					}
-					log.V(1).Info(fmt.Sprintf("Deleted nodePort service '%s' for external listener '%s'", removeService.GetName(), eListener.Name))
 				}
 			}
 		}
