@@ -15,6 +15,10 @@
 package nodeportexternalaccess
 
 import (
+	"context"
+	"fmt"
+
+	"emperror.dev/errors"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,16 +54,26 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log.V(1).Info("Reconciling")
 	if r.KafkaCluster.Spec.ListenersConfig.ExternalListeners != nil {
 		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-			if eListener.GetAccessMethod() == corev1.ServiceTypeNodePort {
-				for _, broker := range r.KafkaCluster.Spec.Brokers {
-					brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
+			for _, broker := range r.KafkaCluster.Spec.Brokers {
+				brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
+				if err != nil {
+					return err
+				}
+
+				service := r.service(log, broker.Id, brokerConfig, eListener)
+
+				if eListener.GetAccessMethod() == corev1.ServiceTypeNodePort {
+					err = k8sutil.Reconcile(log, r.Client, service, r.KafkaCluster)
 					if err != nil {
 						return err
 					}
-					err = k8sutil.Reconcile(log, r.Client, r.service(log, broker.Id, brokerConfig, eListener), r.KafkaCluster)
-					if err != nil {
-						return err
+				} else if r.KafkaCluster.Spec.RemoveUnusedIngressResources {
+					// Cleaning up unused nodeport services
+					removeService := service.(client.Object)
+					if err := r.Delete(context.Background(), removeService); client.IgnoreNotFound(err) != nil {
+						return errors.Wrap(err, "error when removing unused nodeport services")
 					}
+					log.V(1).Info(fmt.Sprintf("Deleted nodePort service '%s' for external listener '%s'", removeService.GetName(), eListener.Name))
 				}
 			}
 		}

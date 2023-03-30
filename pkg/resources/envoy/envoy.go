@@ -15,22 +15,36 @@
 package envoy
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	"context"
+	"fmt"
+	"reflect"
+	"strings"
 
+	"emperror.dev/errors"
+	"github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	apiutil "github.com/banzaicloud/koperator/api/util"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
 	"github.com/banzaicloud/koperator/pkg/resources"
 	"github.com/banzaicloud/koperator/pkg/util"
 	envoyutils "github.com/banzaicloud/koperator/pkg/util/envoy"
-
-	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // labelsForEnvoyIngress returns the labels for selecting the resources
 // belonging to the given kafka CR name.
 func labelsForEnvoyIngress(crName, eLName string) map[string]string {
-	return map[string]string{v1beta1.AppLabelKey: "envoyingress", "eListenerName": eLName, v1beta1.KafkaCRLabelKey: crName}
+	return apiutil.MergeLabels(labelsForEnvoyIngressWithoutEListenerName(crName), map[string]string{util.ExternalListenerLabelNameKey: eLName})
+}
+
+func labelsForEnvoyIngressWithoutEListenerName(crName string) map[string]string {
+	return map[string]string{v1beta1.AppLabelKey: "envoyingress", v1beta1.KafkaCRLabelKey: crName}
 }
 
 // Reconciler implements the Component Reconciler
@@ -53,41 +67,88 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", envoyutils.ComponentName)
 
 	log.V(1).Info("Reconciling")
+	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		if r.KafkaCluster.Spec.GetIngressController() == envoyutils.IngressControllerName && eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
+			ingressConfigs, defaultControllerName, err := util.GetIngressConfigs(r.KafkaCluster.Spec, eListener)
+			if err != nil {
+				return err
+			}
+			var externalListenerResources []resources.ResourceWithLogAndExternalListenerSpecificInfos
+			externalListenerResources = append(externalListenerResources,
+				r.service,
+				r.configMap,
+				r.deployment,
+			)
 
-	if r.KafkaCluster.Spec.GetIngressController() == envoyutils.IngressControllerName {
-		for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-			if eListener.GetAccessMethod() == corev1.ServiceTypeLoadBalancer {
-				ingressConfigs, defaultControllerName, err := util.GetIngressConfigs(r.KafkaCluster.Spec, eListener)
-				if err != nil {
-					return err
+			if r.KafkaCluster.Spec.EnvoyConfig.GetDistruptionBudget().DisruptionBudget.Create {
+				externalListenerResources = append(externalListenerResources, r.podDisruptionBudget)
+			}
+			for name, ingressConfig := range ingressConfigs {
+				if !util.IsIngressConfigInUse(name, defaultControllerName, r.KafkaCluster, log) {
+					continue
 				}
-				var externalListenerResources []resources.ResourceWithLogAndExternalListenerSpecificInfos
-				externalListenerResources = append(externalListenerResources,
-					r.service,
-					r.configMap,
-					r.deployment,
-				)
 
-				if r.KafkaCluster.Spec.EnvoyConfig.GetDistruptionBudget().DisruptionBudget.Create {
-					externalListenerResources = append(externalListenerResources, r.podDisruptionBudget)
-				}
-				for name, ingressConfig := range ingressConfigs {
-					if !util.IsIngressConfigInUse(name, defaultControllerName, r.KafkaCluster, log) {
-						continue
-					}
-
-					for _, res := range externalListenerResources {
-						o := res(log, eListener, ingressConfig, name, defaultControllerName)
-						err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
-						if err != nil {
-							return err
-						}
+				for _, res := range externalListenerResources {
+					o := res(log, eListener, ingressConfig, name, defaultControllerName)
+					err := k8sutil.Reconcile(log, r.Client, o, r.KafkaCluster)
+					if err != nil {
+						return err
 					}
 				}
 			}
+		} else if r.KafkaCluster.Spec.RemoveUnusedIngressResources {
+			// Cleaning up unused envoy resources when ingress controller is not envoy or externalListener access method is not LoadBalancer
+			deletionCounter := 0
+			ctx := context.Background()
+			envoyResourcesGVK := []schema.GroupVersionKind{
+				{
+					Version: corev1.SchemeGroupVersion.Version,
+					Group:   corev1.SchemeGroupVersion.Group,
+					Kind:    reflect.TypeOf(corev1.Service{}).Name(),
+				},
+				{
+					Version: corev1.SchemeGroupVersion.Version,
+					Group:   corev1.SchemeGroupVersion.Group,
+					Kind:    reflect.TypeOf(corev1.ConfigMap{}).Name(),
+				},
+				{
+					Version: appsv1.SchemeGroupVersion.Version,
+					Group:   appsv1.SchemeGroupVersion.Group,
+					Kind:    reflect.TypeOf(appsv1.Deployment{}).Name(),
+				},
+				{
+					Version: policyv1.SchemeGroupVersion.Version,
+					Group:   policyv1.SchemeGroupVersion.Group,
+					Kind:    reflect.TypeOf(policyv1.PodDisruptionBudget{}).Name(),
+				},
+			}
+			var envoyResources unstructured.UnstructuredList
+			for _, gvk := range envoyResourcesGVK {
+				envoyResources.SetGroupVersionKind(gvk)
+
+				if err := r.List(ctx, &envoyResources, client.InNamespace(r.KafkaCluster.GetNamespace()),
+					client.MatchingLabels(labelsForEnvoyIngressWithoutEListenerName(r.KafkaCluster.Name))); err != nil {
+					return errors.Wrap(err, "error when getting list of envoy ingress resources for deletion")
+				}
+
+				for _, removeObject := range envoyResources.Items {
+					if !strings.Contains(removeObject.GetLabels()[util.ExternalListenerLabelNameKey], eListener.Name) ||
+						util.ObjectManagedByClusterRegistry(&removeObject) ||
+						!removeObject.GetDeletionTimestamp().IsZero() {
+						continue
+					}
+					if err := r.Delete(ctx, &removeObject); client.IgnoreNotFound(err) != nil {
+						return errors.Wrap(err, "error when removing envoy ingress resources")
+					}
+					log.V(1).Info(fmt.Sprintf("Deleted envoy ingress '%s' resource '%s' for externalListener '%s'", gvk.Kind, removeObject.GetName(), eListener.Name))
+					deletionCounter++
+				}
+			}
+			if deletionCounter > 0 {
+				log.Info(fmt.Sprintf("Removed '%d' resources for envoy ingress", deletionCounter))
+			}
 		}
 	}
-
 	log.V(1).Info("Reconciled")
 
 	return nil
