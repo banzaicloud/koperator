@@ -361,6 +361,10 @@ type EnvoyConfig struct {
 	// EnableHealthCheckHttp10 is a toggle for adding HTTP1.0 support to Envoy health-check, default false
 	// +optional
 	EnableHealthCheckHttp10 bool `json:"enableHealthCheckHttp10,omitempty"`
+
+	// PodSecurityContext holds pod-level security attributes and common container
+	// settings for the Envoy pods.
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 }
 
 // EnvoyCommandLineArgs defines envoy command line arguments
@@ -848,6 +852,15 @@ func (eConfig *EnvoyConfig) GetAffinity() *corev1.Affinity {
 // GetTopologySpreadConstaints returns the Affinity config for envoy
 func (eConfig *EnvoyConfig) GetTopologySpreadConstaints() []corev1.TopologySpreadConstraint {
 	return eConfig.TopologySpreadConstraints
+}
+
+// GetPodSecurityContext returns the security context for the envoy deployment podspec.
+func (eConfig *EnvoyConfig) GetPodSecurityContext() *corev1.PodSecurityContext {
+	if eConfig == nil {
+		return nil
+	}
+
+	return eConfig.PodSecurityContext
 }
 
 // GetPriorityClassName returns the priority class name for envoy
