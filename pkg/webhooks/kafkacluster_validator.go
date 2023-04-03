@@ -17,6 +17,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"emperror.dev/errors"
 	"golang.org/x/exp/slices"
@@ -28,6 +29,7 @@ import (
 
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/util"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
 type KafkaClusterValidator struct {
@@ -73,6 +75,17 @@ func (s KafkaClusterValidator) ValidateCreate(ctx context.Context, obj runtime.O
 	if listenerErrs != nil {
 		allErrs = append(allErrs, listenerErrs...)
 	}
+
+	//Mihai
+	reservedBrokerMaxIdErrs, err := checkReservedBrokerMaxId(kafkaCluster)
+	if err != nil {
+		log.Error(err, errorDuringValidationMsg)
+		return apierrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
+	}
+	if reservedBrokerMaxIdErrs != nil {
+		allErrs = append(allErrs, reservedBrokerMaxIdErrs...)
+	}
+	//end
 
 	if len(allErrs) == 0 {
 		return nil
@@ -219,3 +232,76 @@ func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 	}
 	return allErrs
 }
+
+// Mihai
+func checkReservedBrokerMaxId(kafkaCluster *banzaicloudv1beta1.KafkaCluster) (field.ErrorList, error) {
+	var allErrs field.ErrorList
+	for i := range kafkaCluster.Spec.Brokers {
+		broker := &kafkaCluster.Spec.Brokers[i]
+		brokerReadOnlyStringConfig, err := broker.GetBrokerReadOnlyConfig(kafkaCluster.Spec)
+		if err != nil {
+			fmt.Printf("checkReservedMaxBrokerId - error while getting the string readOnlyConfig for broker id %d: %v\n", broker.Id, err)
+			return allErrs, errors.WrapIf(err, fmt.Sprintf("could not get readOnlyConfig for broker with id %d", broker.Id))
+		}
+		brokerReadOnlyConfig, err := properties.NewFromString(brokerReadOnlyStringConfig)
+		if err != nil {
+			fmt.Printf("checkReservedMaxBrokerId - error while coverting readOnlyConfig from string to struct for broker with id %d: %v\n", broker.Id, err)
+			return allErrs, errors.WrapIf(err, fmt.Sprintf("could not parse readOnlyConfig strings for properties for broker with id %d", broker.Id))
+		}
+		// Debug info
+		//msg := fmt.Sprintf("Broker id %d has the following MERGED readOnlyConfig:\n%+v", broker.Id, brokerReadOnlyConfig)
+		//fldErr := field.Invalid(field.NewPath("spec").Child("brokers").Index(i).Child("id"), broker.Id, msg)
+		//allErrs = append(allErrs, fldErr)
+		// Run check
+		const defaultReservedMaxBrokerId = 1000
+		var reservedBrokerMaxId int32 = defaultReservedMaxBrokerId
+		reservedMaxBrokerIdProperty, ok := brokerReadOnlyConfig.Get("reserved.broker.max.id")
+		if ok {
+			maxIdInt, err := strconv.Atoi(reservedMaxBrokerIdProperty.Value())
+			if err != nil {
+				fmt.Printf("checkReservedMaxBrokerId - error while converting reserved.broker.max.id value from string to int: reservedBrokerMaxId=%v, err=%v", reservedMaxBrokerIdProperty, err)
+				return allErrs, errors.WrapIf(err, fmt.Sprintf("could not convert %s value from string to int for broker with id %d", reservedMaxBrokerIdProperty.String(), broker.Id))
+			}
+			reservedBrokerMaxId = int32(maxIdInt)
+		}
+		if broker.Id > reservedBrokerMaxId {
+			fldErr := field.Invalid(field.NewPath("spec").Child("brokers").Index(i).Child("id"), broker.Id, fmt.Sprintf("broker Id %d exceeds reserved.broker.max.id(%d)", broker.Id, reservedBrokerMaxId))
+			allErrs = append(allErrs, fldErr)
+		}
+
+		var tmpfldErr *field.Error
+		val, ok := brokerReadOnlyConfig.Get("reserved.broker.max.id")
+		tmpfldErr = field.Invalid(field.NewPath("spec").Child("readOnlyConfig"), "properties.Get", fmt.Sprintf("brokerReadOnlyConfig.Get(\"reserved.broker.max.id\")={%v and %t}", val, ok))
+		allErrs = append(allErrs, tmpfldErr)
+	}
+	return allErrs, nil
+}
+
+// Mihai - mostly copied from pkg/resources/kafka/configmap.go then modified
+/* func getBrokerReadOnlyConfig(id int32, kafkaCluster *banzaicloudv1beta1.KafkaCluster) (*properties.Properties, error) {
+	// Parse cluster-wide readonly configuration
+	finalBrokerConfig, err := properties.NewFromString(kafkaCluster.Spec.ReadOnlyConfig)
+	if err != nil {
+		return nil, errors.WrapIf(err, "failed to parse readonly cluster configuration")
+	}
+
+	// Parse readonly broker configuration
+	var parsedReadOnlyBrokerConfig *properties.Properties
+	// Find configuration for broker with id
+	for _, broker := range kafkaCluster.Spec.Brokers {
+		if broker.Id == id {
+			parsedReadOnlyBrokerConfig, err = properties.NewFromString(broker.ReadOnlyConfig)
+			if err != nil {
+				return nil, errors.WrapIf(err, fmt.Sprintf("failed to parse readonly broker configuration for broker with id: %d", id))
+			}
+			break
+		}
+	}
+
+	// Merge cluster-wide configuration into broker-level configuration
+	if parsedReadOnlyBrokerConfig != nil {
+		finalBrokerConfig.Merge(parsedReadOnlyBrokerConfig)
+	}
+
+	return finalBrokerConfig, nil
+} */

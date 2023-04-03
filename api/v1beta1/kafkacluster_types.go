@@ -31,6 +31,7 @@ import (
 
 	"github.com/banzaicloud/koperator/api/assets"
 	"github.com/banzaicloud/koperator/api/util"
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -1069,6 +1070,35 @@ func (mConfig *MonitoringConfig) GetCCJMXExporterConfig() string {
 		return mConfig.CCJMXExporterConfig
 	}
 	return assets.CruiseControlJmxExporterYaml
+}
+
+// Mihai - adapted from pkg/resources/kafka/configmap.go
+func (b *Broker) GetBrokerReadOnlyConfig(kafkaClusterSpec KafkaClusterSpec) (string, error) {
+	// Parse cluster-wide readonly configuration
+	finalBrokerConfig, err := properties.NewFromString(kafkaClusterSpec.ReadOnlyConfig)
+	if err != nil {
+		return "", errors.WrapIf(err, "failed to parse readonly cluster configuration")
+	}
+
+	// Parse readonly broker configuration
+	var parsedReadOnlyBrokerConfig *properties.Properties
+	// Find configuration for broker with id
+	for _, broker := range kafkaClusterSpec.Brokers {
+		if broker.Id == b.Id {
+			parsedReadOnlyBrokerConfig, err = properties.NewFromString(broker.ReadOnlyConfig)
+			if err != nil {
+				return "", errors.WrapIf(err, fmt.Sprintf("failed to parse readonly broker configuration for broker with id: %d", b.Id))
+			}
+			break
+		}
+	}
+
+	// Merge cluster-wide configuration into broker-level configuration
+	if parsedReadOnlyBrokerConfig != nil {
+		finalBrokerConfig.Merge(parsedReadOnlyBrokerConfig)
+	}
+
+	return finalBrokerConfig.String(), nil
 }
 
 // GetBrokerConfig composes the brokerConfig for a given broker using the broker's config group
