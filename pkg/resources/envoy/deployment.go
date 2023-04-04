@@ -117,6 +117,7 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 							Resources:    *ingressConfig.EnvoyConfig.GetResources(),
 						},
 					},
+					SecurityContext:   ingressConfig.EnvoyConfig.GetPodSecurityContext(),
 					Volumes:           volumes,
 					PriorityClassName: ingressConfig.EnvoyConfig.GetPriorityClassName(),
 				},
