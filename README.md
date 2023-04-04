@@ -38,8 +38,6 @@ Some of the main features of **Koperator** are:
 - advanced topic and user management via Kubernetes Custom Resources
 - Cruise Control task management via Kubernetes Custom Resources
 
-![Koperator architecture](docs/img/kafka-operator-arch.png)
-
 ## Architecture
 
 Kafka is a stateful application. The first piece of the puzzle is the Broker, which is a simple server capable of creating/forming a cluster with other Brokers. Every Broker has his own unique configuration which differs slightly from all others - the most relevant of which is the unique broker ID.
@@ -69,6 +67,8 @@ With the Koperator you can:
 - use multiple Persistent Volumes for each Broker
 
 Read on to understand more about our design motivations and some of the [scenarios](https://docs.calisti.app/sdm/koperator/scenarios/) which were driving us to create Koperator.
+
+![Koperator architecture](docs/img/kafka-operator-arch.png)
 
 ## Quick start
 
