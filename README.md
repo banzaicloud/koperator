@@ -25,7 +25,7 @@
 Koperator is an open-source operator that automates the provisioning, management, and autoscaling of Apache Kafka clusters on Kubernetes. 
 Unlike other solutions that rely on StatefulSets, Koperator has been built with a unique architecture that provides greater flexibility and functionality for managing Apache Kafka. This architecture allows for fine-grained configuration and management of individual brokers.
 
-Some of the main features of **Koperator** are:
+Some of the main features of Koperator are:
 
 - the provisioning of secure and production ready Kafka clusters
 - fine grained broker-by-broker configuration support
@@ -139,64 +139,10 @@ helm repo update
 helm install kafka-operator --namespace=kafka --create-namespace banzaicloud-stable/kafka-operator
 ```
 
-4. Create the Kafka cluster using the `KafkaCluster` custom resource. You can find various examples for the custom resource in the Koperator repository.
+4. Create the Kafka cluster using the `KafkaCluster` custom resource. The quick start uses a minimal custom resource, but there are other examples in the same directory.
 
 ```
-kubectl create --namespace kafka -f - <<EOF
-apiVersion: kafka.banzaicloud.io/v1beta1
-kind: KafkaCluster
-metadata:
-  labels:
-    controller-tools.k8s.io: "1.0"
-  name: kafka
-spec:
-  monitoringConfig:
-    jmxImage: "ghcr.io/banzaicloud/jmx-javaagent:0.16.1"
-  headlessServiceEnabled: true
-  zkAddresses:
-    - "zookeeper-client.zookeeper:2181"
-  propagateLabels: false
-  oneBrokerPerNode: false
-  clusterImage: "ghcr.io/banzaicloud/kafka:2.13-3.1.0"
-  readOnlyConfig: |
-    auto.create.topics.enable=false
-    cruise.control.metrics.topic.auto.create=true
-    cruise.control.metrics.topic.num.partitions=1
-    cruise.control.metrics.topic.replication.factor=2
-  brokerConfigGroups:
-    default:
-      storageConfigs:
-        - mountPath: "/kafka-logs"
-          pvcSpec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 10Gi
-      brokerAnnotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "9020"
-  brokers:
-    - id: 0
-      brokerConfigGroup: "default"
-    - id: 1
-      brokerConfigGroup: "default"
-    - id: 2
-      brokerConfigGroup: "default"
-  rollingUpgradeConfig:
-    failureThreshold: 1
-  listenersConfig:
-    internalListeners:
-      - type: "plaintext"
-        name: "internal"
-        containerPort: 29092
-        usedForInnerBrokerCommunication: true
-      - type: "plaintext"
-        name: "controller"
-        containerPort: 29093
-        usedForInnerBrokerCommunication: false
-        usedForControllerCommunication: true
-EOF
+kubectl create -n kafka -f https://raw.githubusercontent.com/banzaicloud/koperator/master/config/samples/simplekafkacluster.yaml
 ```
 
 5. Verify that the Kafka cluster has been created.
@@ -209,6 +155,44 @@ kafka-1-swps9                             1/1     Running   0          15m
 kafka-2-lppzr                             1/1     Running   0          15m
 kafka-cruisecontrol-fb659b84b-7cwpn       1/1     Running   0          15m
 kafka-operator-operator-8bb75c7fb-7w4lh   2/2     Running   0          17m
+```
+
+### Test Kafka cluster
+
+To test the Kafka cluster let's create a topic and send some messages.
+
+1. You can use the `KafkaTopic` CRD to create a topic called `my-topic`:
+
+```
+kubectl create -n kafka -f - <<EOF
+apiVersion: kafka.banzaicloud.io/v1alpha1
+kind: KafkaTopic
+metadata:
+    name: my-topic
+spec:
+    clusterRef:
+        name: kafka
+    name: my-topic
+    partitions: 1
+    replicationFactor: 1
+    config:
+        "retention.ms": "604800000"
+        "cleanup.policy": "delete"
+EOF
+```
+
+2. You can use the following commands to send and receive messages within a Kubernetes cluster when SSL encryption is disabled for Kafka.
+
+To produce messages run this command and type your test messages:
+
+```
+kubectl -n kafka run kafka-producer -it --image=ghcr.io/banzaicloud/kafka:2.13-3.1.0 --rm=true --restart=Never -- /opt/kafka/bin/kafka-console-producer.sh --bootstrap-server kafka-headless:29092 --topic my-topic
+```
+
+To receive messages:
+
+```
+kubectl -n kafka run kafka-consumer -it --image=ghcr.io/banzaicloud/kafka:2.13-3.1.0 --rm=true --restart=Never -- /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server kafka-headless:29092 --topic my-topic --from-beginning
 ```
 
 ## Documentation
