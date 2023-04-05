@@ -271,19 +271,19 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 
 					modifiableConfig.PvcSpec.Resources.Requests["storage"] = size
 
-					// When the storage is in brokerConfigGroup we don't resize the storage there because in that case
-					// all of those brokers that are using this brokerConfigGroup its storage would be resized.
-					// We add the storage into the broker.BrokerConfig.StorageConfigs in this way only that broker pvc will be resized.
+					// When the storage is in a brokerConfigGroup we don't resize the storage there because in that case
+					// all of the brokers that are using this brokerConfigGroup would have their storages resized.
+					// We add the storage into the broker.BrokerConfig.StorageConfigs in this way only the PVC belonging to that specific broker will be resized.
 					if broker.BrokerConfig == nil {
 						broker.BrokerConfig = &v1beta1.BrokerConfig{}
-					} else {
-						idx := slices.IndexFunc(broker.BrokerConfig.StorageConfigs, func(c v1beta1.StorageConfig) bool { return c.MountPath == pvc.Annotations["mountPath"] })
-						if idx == -1 {
-							broker.BrokerConfig.StorageConfigs = append(broker.BrokerConfig.StorageConfigs, *modifiableConfig)
-						} else {
-							broker.BrokerConfig.StorageConfigs[idx] = *modifiableConfig
-						}
 					}
+					idx := slices.IndexFunc(broker.BrokerConfig.StorageConfigs, func(c v1beta1.StorageConfig) bool { return c.MountPath == pvc.Annotations["mountPath"] })
+					if idx == -1 {
+						broker.BrokerConfig.StorageConfigs = append(broker.BrokerConfig.StorageConfigs, *modifiableConfig)
+					} else {
+						broker.BrokerConfig.StorageConfigs[idx] = *modifiableConfig
+					}
+
 				}
 			}
 			cr.Spec.Brokers[i].BrokerConfig = broker.BrokerConfig
