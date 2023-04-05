@@ -283,7 +283,6 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 					} else {
 						broker.BrokerConfig.StorageConfigs[idx] = *modifiableConfig
 					}
-
 				}
 			}
 			cr.Spec.Brokers[i].BrokerConfig = broker.BrokerConfig
