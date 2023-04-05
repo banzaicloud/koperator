@@ -385,7 +385,7 @@ func mergeSuperUsersPropertyValue(source *properties.Properties, target *propert
 func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
 	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
 	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) string {
-	finalBrokerConfig := getBrokerReadOnlyConfig(id, r.KafkaCluster, log)
+	finalBrokerConfig := GetBrokerReadOnlyConfig(id, r.KafkaCluster, log)
 
 	// Get operator generated configuration
 	opGenConf := r.getConfigProperties(brokerConfig, id, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
@@ -408,7 +408,7 @@ func (r Reconciler) generateBrokerConfig(id int32, brokerConfig *v1beta1.BrokerC
 }
 
 // TODO move this into api in the future (adamantal)
-func getBrokerReadOnlyConfig(id int32, kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) *properties.Properties {
+func GetBrokerReadOnlyConfig(id int32, kafkaCluster *v1beta1.KafkaCluster, log logr.Logger) *properties.Properties {
 	// Parse cluster-wide readonly configuration
 	finalBrokerConfig, err := properties.NewFromString(kafkaCluster.Spec.ReadOnlyConfig)
 	if err != nil {
