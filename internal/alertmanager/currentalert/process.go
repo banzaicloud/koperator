@@ -23,6 +23,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
+	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
@@ -262,7 +263,7 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 
 			storageConfigs := brokerConfig.StorageConfigs
 
-			for n, c := range storageConfigs {
+			for _, c := range storageConfigs {
 				modifiableConfig := c.DeepCopy()
 				if modifiableConfig.MountPath == pvc.Annotations["mountPath"] {
 					size := *modifiableConfig.PvcSpec.Resources.Requests.Storage()
@@ -270,12 +271,17 @@ func resizePvc(log logr.Logger, labels model.LabelSet, annotiations model.LabelS
 
 					modifiableConfig.PvcSpec.Resources.Requests["storage"] = size
 
+					// When the storage is in a brokerConfigGroup we don't resize the storage there because in that case
+					// all of the brokers that are using this brokerConfigGroup would have their storages resized.
+					// We add the storage into the broker.BrokerConfig.StorageConfigs in this way only the PVC belonging to that specific broker will be resized.
 					if broker.BrokerConfig == nil {
-						broker.BrokerConfig = &v1beta1.BrokerConfig{
-							StorageConfigs: []v1beta1.StorageConfig{*modifiableConfig},
-						}
+						broker.BrokerConfig = &v1beta1.BrokerConfig{}
+					}
+					idx := slices.IndexFunc(broker.BrokerConfig.StorageConfigs, func(c v1beta1.StorageConfig) bool { return c.MountPath == pvc.Annotations["mountPath"] })
+					if idx == -1 {
+						broker.BrokerConfig.StorageConfigs = append(broker.BrokerConfig.StorageConfigs, *modifiableConfig)
 					} else {
-						broker.BrokerConfig.StorageConfigs[n] = *modifiableConfig
+						broker.BrokerConfig.StorageConfigs[idx] = *modifiableConfig
 					}
 				}
 			}
