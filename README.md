@@ -27,64 +27,46 @@ Unlike other solutions that rely on StatefulSets, Koperator has been built with 
 
 Some of the main features of Koperator are:
 
-- the provisioning of secure and production ready Kafka clusters
-- fine grained broker-by-broker configuration support
+- the provisioning of secure and production-ready Kafka clusters
+- fine-grained broker-by-broker configuration support
 - advanced and highly configurable external access
 - graceful Kafka cluster scaling and rebalancing
 - detailed Prometheus metrics
 - encrypted communication using SSL
-- automatic reaction and self healing based on alerts using [Cruise Control](https://github.com/linkedin/cruise-control)
+- automatic reaction and self-healing based on alerts using [Cruise Control](https://github.com/linkedin/cruise-control)
 - graceful rolling upgrades
 - advanced topic and user management via Kubernetes Custom Resources
 - Cruise Control task management via Kubernetes Custom Resources
 
 ## Architecture
 
-Kafka is a stateful application. The first piece of the puzzle is the Broker, which is a simple server capable of creating/forming a cluster with other Brokers. Every Broker has his own unique configuration which differs slightly from all others - the most relevant of which is the unique broker ID.
+Kafka is a stateful application, and the Kafka Broker is a server that can create and form a cluster with other Brokers. Each Broker has its own unique configuration, the most important of which is the unique broker ID.
 
-All Kafka on Kubernetes operators use [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/) to create a Kafka Cluster.
+Most Kubernetes operators that manage Kafka rely on [`StatefulSets`](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/) to create a Kafka Cluster.
+While StatefulSets provide unique Broker IDs generated during Pod startup, networking between brokers with headless services, and unique Persistent Volumes for Brokers, they have a few restrictions. For example, Broker configurations cannot be modified independently, and a specific Broker cannot be removed from the cluster - a StatefulSet always removes the most recently created Broker. Furthermore, multiple, different Persistent Volumes cannot be used for each Broker.
 
-How does this look from the perspective of Apache Kafka?
+*Koperator takes a different approach by using simple `Pods`, `ConfigMaps`, and `PersistentVolumeClaims` instead of `StatefulSets`. These resources allow us to build an Operator that is better suited to manage Apache Kafka.*
+With Koperator, you can modify the configuration of unique Brokers, remove specific Brokers from clusters, and use multiple Persistent Volumes for each Broker.
 
-With StatefulSet we get:
-
-- unique Broker IDs generated during Pod startup
-- networking between brokers with headless services
-- unique Persistent Volumes for Brokers
-
-Using StatefulSet we lose:
-
-- the ability to modify the configuration of unique Brokers
-- to remove a specific Broker from a cluster (StatefulSet always removes the most recently created Broker)
-- to use multiple, different Persistent Volumes for each Broker
-
-*Koperator uses simple Pods, ConfigMaps, and PersistentVolumeClaims, instead of StatefulSet. Using these resources allows us to build an Operator which is better suited to manage Apache Kafka.*
-
-With the Koperator you can:
-
-- modify the configuration of unique Brokers
-- remove specific Brokers from clusters
-- use multiple Persistent Volumes for each Broker
-
-Read on to understand more about our design motivations and some of the [scenarios](https://docs.calisti.app/sdm/koperator/scenarios/) which were driving us to create Koperator.
+If you want to learn more about our design motivations and the scenarios that drove us to create Koperator, please continue reading on our documentation page [here](https://docs.calisti.app/sdm/koperator/scenarios/).
 
 ![Koperator architecture](docs/img/kafka-operator-arch.png)
 
 ## Quick start
 
-This quick start guides through the process of deploying Koperator on an existing Kubernetes cluster and the provisioning of a Kafka cluster using its custom resources.
+This quick start guide will walk you through the process of deploying Koperator on an existing Kubernetes cluster and provisioning a Kafka cluster using its custom resources.
 
 ### Prerequisites
 
-A Kubernetes cluster (with a suggested minimum of 6 vCPUs and 8 GB RAM) is needed to complete this guide. The cluster can run locally via Kind or Minikube.
+To complete this guide, you will need a Kubernetes cluster (with a suggested minimum of 6 vCPUs and 8 GB RAM). You can run the cluster locally using Kind or Minikube.
 
-> The quick start will get you a functioning Kafka cluster on Kubernetes, but it won't guide you through the installation of Prometheus and cert-manager, that are needed for some of the more advanced functionality.
+> The quick start will help you set up a functioning Kafka cluster on Kubernetes. However, it does not include guidance on the installation of Prometheus and cert-manager, which are necessary for some of the more advanced functionality.
 
 #### Install ZooKeeper
 
 The version of Kafka that is installed by the operator requires Apache ZooKeeper. You'll need to deploy a ZooKeeper cluster if you don’t already have one.
 
-1. Install ZooKeeper using the [Pravega’s Zookeeper Operator](https://github.com/pravega/zookeeper-operator).
+1. Install ZooKeeper using [Pravega’s Zookeeper Operator](https://github.com/pravega/zookeeper-operator).
 
 ```
 helm repo add pravega https://charts.pravega.io
@@ -120,7 +102,7 @@ zookeeper-operator-54444dbd9d-2tccj   1/1     Running   0          28m
 
 You can deploy Koperator using a Helm chart. Complete the following steps.
 
-1. Install the Koperator CustomResourceDefinition resources (adjust the version number to the Koperator release you want to install). This is performed in a separate step to allow you to uninstall and reinstall Koperator without deleting your installed custom resources.
+1. Install the Koperator `CustomResourceDefinition` resources (adjust the version number to the Koperator release you want to install). This is performed in a separate step to allow you to uninstall and reinstall Koperator without deleting your already installed custom resources.
 
 ```
 kubectl create --validate=false -f https://github.com/banzaicloud/koperator/releases/download/v0.23.1/kafka-operator.crds.yaml
@@ -133,7 +115,7 @@ helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
 helm repo update
 ```
 
-3. Install Koperator into the kafka namespace:
+3. Install Koperator into the `kafka` namespace:
 
 ```
 helm install kafka-operator --namespace=kafka --create-namespace banzaicloud-stable/kafka-operator
@@ -181,15 +163,15 @@ spec:
 EOF
 ```
 
-2. You can use the following commands to send and receive messages within a Kubernetes cluster when SSL encryption is disabled for Kafka.
+2. If SSL encryption is disabled for Kafka, you can use the following commands to send and receive messages within a Kubernetes cluster.
 
-To produce messages run this command and type your test messages:
+To send messages, run this command and type your test messages:
 
 ```
 kubectl -n kafka run kafka-producer -it --image=ghcr.io/banzaicloud/kafka:2.13-3.1.0 --rm=true --restart=Never -- /opt/kafka/bin/kafka-console-producer.sh --bootstrap-server kafka-headless:29092 --topic my-topic
 ```
 
-To receive messages:
+To receive messages, run the following command:
 
 ```
 kubectl -n kafka run kafka-consumer -it --image=ghcr.io/banzaicloud/kafka:2.13-3.1.0 --rm=true --restart=Never -- /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server kafka-headless:29092 --topic my-topic --from-beginning
@@ -197,24 +179,14 @@ kubectl -n kafka run kafka-consumer -it --image=ghcr.io/banzaicloud/kafka:2.13-3
 
 ## Documentation
 
-The detailed documentation of the Koperator project is available in the [Cisco Calisti documentation](https://docs.calisti.app/sdm/koperator/).
+For detailed documentation on the Koperator project, please visit the [Cisco Calisti documentation](https://docs.calisti.app/sdm/koperator/).
 
-## Support
+## Issues and contributions
 
-### Community support
+We use GitHub to track issues and accept contributions.
+If you would like to raise an issue or open a pull request, please refer to our [contribution guide](./CONTRIBUTING.md).
 
-If you encounter problems while using Koperator that the documentation does not address, [open an issue](https://github.com/banzaicloud/koperator/issues) or talk to us on the Banzai Cloud Slack channel [#kafka-operator](https://banzaicloud.com/invite-slack/).
-
-## Contributing
-
-If you find this project useful, help us:
-
-- Support the development of this project and star this repo! :star:
-- If you use Koperator in a production environment, add yourself to the list of production [adopters](https://github.com/banzaicloud/koperator/blob/master/ADOPTERS.md).:metal: <br>
-- Help new users with issues they may encounter :muscle:
-- Send a pull request with your new features and bug fixes :rocket:
-
-When you are opening a PR to Koperator the first time we will require you to sign a standard CLA. Check out the [developer docs](docs/developer.md).
+If you use Koperator in a production environment, we encourage you to add yourself to the list of production [adopters](https://github.com/banzaicloud/koperator/blob/master/ADOPTERS.md).
 
 ## License
 
