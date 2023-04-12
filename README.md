@@ -75,7 +75,7 @@ helm install zookeeper-operator --repo https://charts.pravega.io --namespace=zoo
 2. Create a ZooKeeper cluster.
 
 ```
-kubectl create --namespace zookeeper -f - <<EOF
+kubectl create -f - <<EOF
 apiVersion: zookeeper.pravega.io/v1beta1
 kind: ZookeeperCluster
 metadata:
@@ -83,6 +83,8 @@ metadata:
     namespace: zookeeper
 spec:
     replicas: 1
+    persistence:
+        reclaimPolicy: Delete
 EOF
 ```
 
