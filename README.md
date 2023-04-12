@@ -108,26 +108,19 @@ You can deploy Koperator using a Helm chart. Complete the following steps.
 kubectl create --validate=false -f https://github.com/banzaicloud/koperator/releases/download/v0.24.1/kafka-operator.crds.yaml
 ```
 
-2. Add the following repository to Helm.
+2. Install Koperator into the `kafka` namespace:
 
 ```
-helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com/
-helm repo update
+helm install kafka-operator --repo https://kubernetes-charts.banzaicloud.com/ --namespace=kafka --create-namespace banzaicloud-stable/kafka-operator
 ```
 
-3. Install Koperator into the `kafka` namespace:
-
-```
-helm install kafka-operator --namespace=kafka --create-namespace banzaicloud-stable/kafka-operator
-```
-
-4. Create the Kafka cluster using the `KafkaCluster` custom resource. The quick start uses a minimal custom resource, but there are other examples in the same directory.
+3. Create the Kafka cluster using the `KafkaCluster` custom resource. The quick start uses a minimal custom resource, but there are other examples in the same directory.
 
 ```
 kubectl create -n kafka -f https://raw.githubusercontent.com/banzaicloud/koperator/master/config/samples/simplekafkacluster.yaml
 ```
 
-5. Verify that the Kafka cluster has been created.
+4. Verify that the Kafka cluster has been created.
 
 ```
 > kubectl get pods -n kafka
