@@ -1,1 +1,0 @@
-The documentation of the Koperator project is available at the [Banzai Cloud Documentation Page](https://banzaicloud.com/docs/supertubes/kafka-operator/scenarios/).

@@ -1,33 +1,27 @@
-| Q               | A      |
-| --------------- | ------ |
-| Bug fix?        | no/yes |
-| New feature?    | no/yes |
-| API breaks?     | no/yes |
-| Deprecations?   | no/yes |
-| Related tickets | fixes #X, partially #Y, mentioned in #Z |
-| License         | Apache 2.0 |
+## Description
 
+Please provide a meaningful description of what this change will do, or is for. Bonus points for including links to
+related issues, other PRs, or technical references.
 
-### What's in this PR?
-<!-- Explain the contents of the PR. Give an overview about the implementation, which decisions were made and why. -->
+Note that by _not_ including a description, you are asking reviewers to do extra work to understand the context of this
+change, which may lead to your PR taking much longer to review, or result in it not being reviewed at all.
 
+## Type of Change
 
-### Why?
-<!-- Which problem does the PR fix? (Please remove this section if you linked an issue above) -->
+- [ ] Bug Fix
+- [ ] New Feature
+- [ ] Breaking Change
+- [ ] Refactor
+- [ ] Documentation
+- [ ] Other (please describe)
 
+## Checklist
 
-### Additional context
-<!-- Additional information we should know about (eg. edge cases, steps you followed to test the implementation) (Please remove this section if you don't need it) -->
-
-
-### Checklist
-<!-- Place an '[x]' (no spaces) in all applicable fields. Please remove unrelated fields. -->
-
-- [ ] Implementation tested
-- [ ] Error handling code meets the [guideline](https://github.com/banzaicloud/developer-guide/blob/master/docs/coding-style/error-handling-guide.md)
-- [ ] Logging code meets the guideline
-- [ ] User guide and development docs updated (if needed)
-
-### To Do
-<!-- (Please remove this section if you don't need it.) -->
-- [ ] If the PR is not complete but you want to discuss the approach, list what remains to be done here
+<!-- TODO: Update the link below to point to your project's contributing guidelines -->
+- [ ] I have read the [contributing guidelines](../CONTRIBUTING.md)
+- [ ] Existing issues have been referenced (where applicable)
+- [ ] I have verified this change is not present in other open pull requests
+- [ ] Functionality is documented
+- [ ] All code style checks pass
+- [ ] New code contribution is covered by automated tests
+- [ ] All new and existing tests pass
