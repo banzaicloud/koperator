@@ -143,7 +143,7 @@ kafka-operator-operator-8bb75c7fb-7w4lh   2/2     Running   0          17m
 
 To test the Kafka cluster let's create a topic and send some messages.
 
-1. You can use the `KafkaTopic` CRD to create a topic called `my-topic`:
+1. You can use the `KafkaTopic` CR to create a topic called `my-topic`:
 
 ```
 kubectl create -n kafka -f - <<EOF
