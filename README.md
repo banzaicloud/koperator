@@ -111,7 +111,7 @@ kubectl create --validate=false -f https://github.com/banzaicloud/koperator/rele
 2. Install Koperator into the `kafka` namespace:
 
 ```
-helm install kafka-operator --repo https://kubernetes-charts.banzaicloud.com/ --namespace=kafka --create-namespace banzaicloud-stable/kafka-operator
+helm install kafka-operator --repo https://kubernetes-charts.banzaicloud.com/ --namespace=kafka --create-namespace kafka-operator
 ```
 
 3. Create the Kafka cluster using the `KafkaCluster` custom resource. The quick start uses a minimal custom resource, but there are other examples in the same directory.
