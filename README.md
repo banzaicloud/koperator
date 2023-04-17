@@ -69,7 +69,7 @@ The version of Kafka that is installed by the operator requires Apache ZooKeeper
 1. Install ZooKeeper using [Pravega’s Zookeeper Operator](https://github.com/pravega/zookeeper-operator).
 
 ```
-helm install zookeeper-operator --repo https://charts.pravega.io --namespace=zookeeper --create-namespace pravega/zookeeper-operator
+helm install zookeeper-operator --repo https://charts.pravega.io --namespace=zookeeper --create-namespace zookeeper-operator
 ```
 
 2. Create a ZooKeeper cluster.
