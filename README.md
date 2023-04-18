@@ -69,7 +69,7 @@ The version of Kafka that is installed by the operator requires Apache ZooKeeper
 1. Install ZooKeeper using [Pravega’s Zookeeper Operator](https://github.com/pravega/zookeeper-operator).
 
 ```
-helm install zookeeper-operator --repo https://charts.pravega.io --namespace=zookeeper --create-namespace zookeeper-operator
+helm install zookeeper-operator --repo https://charts.pravega.io zookeeper-operator --namespace=zookeeper --create-namespace
 ```
 
 2. Create a ZooKeeper cluster.
@@ -111,7 +111,7 @@ kubectl create --validate=false -f https://github.com/banzaicloud/koperator/rele
 2. Install Koperator into the `kafka` namespace:
 
 ```
-helm install kafka-operator --repo https://kubernetes-charts.banzaicloud.com/ --namespace=kafka --create-namespace kafka-operator
+helm install kafka-operator --repo https://kubernetes-charts.banzaicloud.com/ kafka-operator --namespace=kafka --create-namespace
 ```
 
 3. Create the Kafka cluster using the `KafkaCluster` custom resource. The quick start uses a minimal custom resource, but there are other examples in the same directory.
