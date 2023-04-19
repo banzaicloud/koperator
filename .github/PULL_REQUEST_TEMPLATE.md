@@ -7,7 +7,7 @@ Note that by _not_ including a description, you are asking reviewers to do extra
 change, which may lead to your PR taking much longer to review, or result in it not being reviewed at all.
 
 ## Type of Change
-
+<!-- Place an '[x]' (no spaces) in all applicable fields. Please remove unrelated fields. -->
 - [ ] Bug Fix
 - [ ] New Feature
 - [ ] Breaking Change
@@ -16,8 +16,7 @@ change, which may lead to your PR taking much longer to review, or result in it 
 - [ ] Other (please describe)
 
 ## Checklist
-
-<!-- TODO: Update the link below to point to your project's contributing guidelines -->
+<!-- Place an '[x]' (no spaces) in all applicable fields. Please remove unrelated fields. -->
 - [ ] I have read the [contributing guidelines](../CONTRIBUTING.md)
 - [ ] Existing issues have been referenced (where applicable)
 - [ ] I have verified this change is not present in other open pull requests
