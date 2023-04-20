@@ -74,7 +74,6 @@ func (r *Reconciler) deployment(podAnnotations map[string]string) runtime.Object
 					ImagePullSecrets:              r.KafkaCluster.Spec.CruiseControlConfig.GetImagePullSecrets(),
 					Tolerations:                   r.KafkaCluster.Spec.CruiseControlConfig.GetTolerations(),
 					NodeSelector:                  r.KafkaCluster.Spec.CruiseControlConfig.GetNodeSelector(),
-					Affinity:                      r.KafkaCluster.Spec.CruiseControlConfig.GetAffinity(),
 					TerminationGracePeriodSeconds: util.Int64Pointer(30),
 					InitContainers: append(initContainers, []corev1.Container{
 						{
