@@ -296,6 +296,11 @@ func (in *CruiseControlConfig) DeepCopyInto(out *CruiseControlConfig) {
 		*out = new(TopicConfig)
 		**out = **in
 	}
+	if in.Affinity != nil {
+		in, out := &in.Affinity, &out.Affinity
+		*out = new(v1.Affinity)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.CruiseControlAnnotations != nil {
 		in, out := &in.CruiseControlAnnotations, &out.CruiseControlAnnotations
 		*out = make(map[string]string, len(*in))
@@ -497,6 +502,11 @@ func (in *EnvoyConfig) DeepCopyInto(out *EnvoyConfig) {
 		in, out := &in.CommandLineArgs, &out.CommandLineArgs
 		*out = new(EnvoyCommandLineArgs)
 		**out = **in
+	}
+	if in.PodSecurityContext != nil {
+		in, out := &in.PodSecurityContext, &out.PodSecurityContext
+		*out = new(v1.PodSecurityContext)
+		(*in).DeepCopyInto(*out)
 	}
 }
 

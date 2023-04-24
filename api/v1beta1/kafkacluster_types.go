@@ -267,6 +267,7 @@ type CruiseControlConfig struct {
 	Log4jConfig                string                        `json:"log4jConfig,omitempty"`
 	Image                      string                        `json:"image,omitempty"`
 	TopicConfig                *TopicConfig                  `json:"topicConfig,omitempty"`
+	Affinity                   *corev1.Affinity              `json:"affinity,omitempty"`
 	//  Annotations to be applied to CruiseControl pod
 	// +optional
 	CruiseControlAnnotations map[string]string `json:"cruiseControlAnnotations,omitempty"`
@@ -837,6 +838,11 @@ func (bConfig *BrokerConfig) GetTerminationGracePeriod() int64 {
 // GetNodeSelector returns the node selector for cruise control
 func (cConfig *CruiseControlConfig) GetNodeSelector() map[string]string {
 	return cConfig.NodeSelector
+}
+
+// GetAffinity returns the Affinity config for cruise control
+func (cConfig *CruiseControlConfig) GetAffinity() *corev1.Affinity {
+	return cConfig.Affinity
 }
 
 // GetNodeSelector returns the node selector for envoy
