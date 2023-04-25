@@ -245,6 +245,9 @@ func expectCruiseControlDeployment(ctx context.Context, kafkaCluster *v1beta1.Ka
 	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlConfig.json"))
 	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlLogConfig.json"))
 
+	Expect(deployment.Spec.Template.Spec.Affinity).NotTo(BeNil())
+	Expect(deployment.Spec.Template.Spec.Affinity.PodAntiAffinity).NotTo(BeNil())
+
 	// init container
 	Expect(deployment.Spec.Template.Spec.InitContainers).To(HaveLen(1))
 	initContainer := deployment.Spec.Template.Spec.InitContainers[0]
