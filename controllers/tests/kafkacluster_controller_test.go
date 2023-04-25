@@ -61,23 +61,12 @@ var _ = Describe("KafkaCluster", func() {
 			Config:                   "some.config=value",
 			CruiseControlAnnotations: map[string]string{"test-cc-ann": "test-cc-ann-val"},
 			Affinity: &corev1.Affinity{
-				NodeAffinity: &corev1.NodeAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-						NodeSelectorTerms: []corev1.NodeSelectorTerm{
-							{
-								MatchFields: []corev1.NodeSelectorRequirement{
-									{Key: "fruit", Operator: "in", Values: []string{"apple"}},
-								},
-							},
-						},
-					},
-					PreferredDuringSchedulingIgnoredDuringExecution: nil,
-				},
+				NodeAffinity: nil,
 				PodAntiAffinity: &corev1.PodAntiAffinity{
 					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 						{
-							LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "kafka", "kafka_cr": "kafka_broker"}},
-							Namespaces:    nil,
+							LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "kafka"}},
+							Namespaces:    []string{namespace},
 							TopologyKey:   "kubernetes.io/hostname",
 						},
 					},
