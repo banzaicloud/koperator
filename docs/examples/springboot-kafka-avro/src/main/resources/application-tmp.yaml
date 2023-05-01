@@ -7,15 +7,9 @@ server:
 spring:
   kafka:
     bootstrap-servers:
-      - <external Kafka loadbalancerIP>:29092
+      - kafka-all-broker.kafka.svc.cluster.local:29092
     properties:
-      schema.registry.url: http://<external Schema Registry loadbalancerIP>:8081
-      ssl.keystore.location: /var/tmp/tls.jks
-      ssl.keystore.password: "3T0AWG68Dr9ZMYbW"
-      ssl.truststore.location: /var/tmp/tls.jks
-      ssl.truststore.password: "3T0AWG68Dr9ZMYbW"
-      security.protocol: SSL
-      ssl.endpoint.identification.algorithm: ""
+      schema.registry.url: http://schema-registry-svc-kafka.kafka.svc.cluster.local:8081
     consumer:
       group-id: group_id
       auto-offset-reset: latest

@@ -8,8 +8,15 @@ RUN mvn -f /usr/src/myapp/pom.xml dependency:resolve dependency:resolve-plugins
 COPY src /usr/src/myapp/src
 RUN mvn -f /usr/src/myapp/pom.xml clean package -DskipTests
 
+COPY keystore.jks /var/tmp/keystore.jks
+COPY truststore.jks /var/tmp/truststore.jks
+
 # The final image should have minimal layers
 FROM openjdk:11-jre-slim
 RUN apt-get update && apt-get install curl -y
 COPY --from=build /usr/src/myapp/target/kafka-avro-0.0.1-SNAPSHOT.jar app.jar
+
+COPY keystore.jks /var/tmp/keystore.jks
+COPY truststore.jks /var/tmp/truststore.jks
+
 ENTRYPOINT java -jar app.jar
