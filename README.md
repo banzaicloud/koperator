@@ -186,7 +186,7 @@ If you use Koperator in a production environment, we encourage you to add yourse
 Find us on [Slack](https://join.slack.com/t/emergingtechcommunity/shared_invite/zt-1u3g8c3if-eZT5nJqzOX7BzWlVX7wQ1Q) for more fun about Kafka on Kubernetes!
 
 <a href="https://github.com/banzaicloud/koperator/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=banzaicloud/koperator" />
+  <img src="https://contrib.rocks/image?repo=banzaicloud/koperator&max=30" />
 </a>
 
 ## License
