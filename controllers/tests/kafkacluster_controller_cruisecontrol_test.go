@@ -25,6 +25,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -244,6 +245,22 @@ func expectCruiseControlDeployment(ctx context.Context, kafkaCluster *v1beta1.Ka
 	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlClusterConfig.json"))
 	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlConfig.json"))
 	Expect(deployment.Spec.Template.Annotations).To(HaveKey("cruiseControlLogConfig.json"))
+
+	expectedCCAffinity := &corev1.Affinity{
+		NodeAffinity: nil,
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "kafka"}},
+					Namespaces:    []string{kafkaCluster.Namespace},
+					TopologyKey:   "kubernetes.io/hostname",
+				},
+			},
+			PreferredDuringSchedulingIgnoredDuringExecution: nil,
+		},
+	}
+
+	Expect(deployment.Spec.Template.Spec.Affinity).Should(Equal(expectedCCAffinity))
 
 	// init container
 	Expect(deployment.Spec.Template.Spec.InitContainers).To(HaveLen(1))
