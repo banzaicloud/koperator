@@ -9,14 +9,13 @@ spring:
     bootstrap-servers:
       - ae5e4016cd51847fa8603c5478678d91-1161352389.us-east-1.elb.amazonaws.com:29092
     properties:
-      schema.registry.url: http://add883f11b8a241559d3dde1e89c6072-1796406275.us-east-1.elb.amazonaws.com:8081
+      schema.registry.url: http://a9ec9aafbe29c4406b884d1084d8e69b-575838169.us-east-1.elb.amazonaws.com:8081
       ssl.keystore.location: /var/tmp/keystore.jks
-      ssl.keystore.password: "V2RlQVk1RGpaMEd5aEVlZQ=="
+      ssl.keystore.password: "waGhDLvPTGnMNzHd"
       ssl.truststore.location: /var/tmp/truststore.jks
-      ssl.truststore.password: "V2RlQVk1RGpaMEd5aEVlZQ=="
-      security.protocol: SSL
+      ssl.truststore.password: "waGhDLvPTGnMNzHd"
       ssl.endpoint.identification.algorithm: ""
-      ssl.client.auth: required
+      security.protocol: SSL
     consumer:
       group-id: group_id
       auto-offset-reset: latest
