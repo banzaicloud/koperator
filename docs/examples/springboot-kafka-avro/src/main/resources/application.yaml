@@ -9,11 +9,11 @@ spring:
     bootstrap-servers:
       - ae5e4016cd51847fa8603c5478678d91-1161352389.us-east-1.elb.amazonaws.com:29092
     properties:
-      schema.registry.url: http://a9ec9aafbe29c4406b884d1084d8e69b-575838169.us-east-1.elb.amazonaws.com:8081
+      schema.registry.url: http://a4ff6e648e7be40838e8237d4206bcaf-1066256756.us-east-1.elb.amazonaws.com:8081
       ssl.keystore.location: /var/tmp/keystore.jks
-      ssl.keystore.password: "waGhDLvPTGnMNzHd"
+      ssl.keystore.password: "xOaxDJas0oBmoiKC"
       ssl.truststore.location: /var/tmp/truststore.jks
-      ssl.truststore.password: "waGhDLvPTGnMNzHd"
+      ssl.truststore.password: "xOaxDJas0oBmoiKC"
       ssl.endpoint.identification.algorithm: ""
       security.protocol: SSL
     consumer:
