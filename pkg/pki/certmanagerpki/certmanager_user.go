@@ -145,7 +145,7 @@ func (c *certManager) getUserSecret(ctx context.Context, user *v1alpha1.KafkaUse
 // clusterCertificateForUser generates a Certificate object for a KafkaUser
 func (c *certManager) clusterCertificateForUser(
 	user *v1alpha1.KafkaUser, clusterDomain string) *certv1.Certificate {
-	caName, caKind := c.getCA(user)
+	caName, caKind, caGroup := c.getCA(user)
 	cert := &certv1.Certificate{
 		ObjectMeta: templates.ObjectMetaWithKafkaUserOwnerAndWithoutLabels(user.GetName(), user),
 		Spec: certv1.CertificateSpec{
@@ -157,8 +157,9 @@ func (c *certManager) clusterCertificateForUser(
 			URIs:       []string{fmt.Sprintf(spiffeIdTemplate, clusterDomain, user.GetNamespace(), user.GetName())},
 			Usages:     []certv1.KeyUsage{certv1.UsageClientAuth, certv1.UsageServerAuth},
 			IssuerRef: certmeta.ObjectReference{
-				Name: caName,
-				Kind: caKind,
+				Name:  caName,
+				Kind:  caKind,
+				Group: caGroup,
 			},
 		},
 	}
@@ -182,7 +183,7 @@ func (c *certManager) clusterCertificateForUser(
 }
 
 // getCA returns the CA name/kind for the KafkaCluster
-func (c *certManager) getCA(user *v1alpha1.KafkaUser) (caName, caKind string) {
+func (c *certManager) getCA(user *v1alpha1.KafkaUser) (caName, caKind, caGroup string) {
 	var issuerRef *certmeta.ObjectReference
 	if user.Spec.PKIBackendSpec != nil {
 		issuerRef = user.Spec.PKIBackendSpec.IssuerRef
@@ -192,10 +193,12 @@ func (c *certManager) getCA(user *v1alpha1.KafkaUser) (caName, caKind string) {
 	if issuerRef != nil {
 		caName = issuerRef.Name
 		caKind = issuerRef.Kind
+		caGroup = issuerRef.Group
 	} else {
 		caKind = certv1.ClusterIssuerKind
 		caName = fmt.Sprintf(pkicommon.BrokerClusterIssuerTemplate,
 			c.cluster.Namespace, c.cluster.Name)
+		caGroup = certv1.SchemeGroupVersion.Group
 	}
 	//Check if the new cluster issuer with namespaced name exists if not fall back to original one
 	var issuer *certv1.ClusterIssuer
