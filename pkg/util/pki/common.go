@@ -203,6 +203,42 @@ func BrokerUserForCluster(cluster *v1beta1.KafkaCluster, extListenerStatuses map
 	}
 }
 
+// BrokerUserForClusterWithPKIBackendSpec returns a KafkaUser CR with PKIBackendSpec included for the broker certificates in a KafkaCluster
+func BrokerUserForClusterWithPKIBackendSpec(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) *v1alpha1.KafkaUser {
+	additionalHosts := make([]string, 0, len(extListenerStatuses))
+	for _, listenerStatus := range extListenerStatuses {
+		for _, status := range listenerStatus {
+			host := strings.Split(status.Address, ":")[0]
+			additionalHosts = append(additionalHosts, host)
+		}
+	}
+	additionalHosts = sortAndDedupe(additionalHosts)
+	sslConfig := cluster.Spec.ListenersConfig.SSLSecrets
+	var pkiBackend string
+	if sslConfig.PKIBackend != "" {
+		pkiBackend = string(sslConfig.PKIBackend)
+	} else {
+		pkiBackend = string(v1beta1.PKIBackendCertManager)
+	}
+	return &v1alpha1.KafkaUser{
+		ObjectMeta: templates.ObjectMeta(EnsureValidCommonNameLen(GetCommonName(cluster)), LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster),
+		Spec: v1alpha1.KafkaUserSpec{
+			SecretName: fmt.Sprintf(BrokerServerCertTemplate, cluster.Name),
+			DNSNames:   append(GetInternalDNSNames(cluster), additionalHosts...),
+			IncludeJKS: true,
+			ClusterRef: v1alpha1.ClusterReference{
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
+			},
+			PKIBackendSpec: &v1alpha1.PKIBackendSpec{
+				// Not checking IssuerRef for nil as it is checked in caller function kafkapki
+				IssuerRef:  sslConfig.IssuerRef,
+				PKIBackend: pkiBackend,
+			},
+		},
+	}
+}
+
 func sortAndDedupe(hosts []string) []string {
 	sort.Strings(hosts)
 
@@ -231,6 +267,36 @@ func ControllerUserForCluster(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser
 			ClusterRef: v1alpha1.ClusterReference{
 				Name:      cluster.Name,
 				Namespace: cluster.Namespace,
+			},
+		},
+	}
+}
+
+// ControllerUserForClusterWithPKIBackendSpec returns a KafkaUser CR with PKIBackendSpec included for the controller/cc certificates in a KafkaCluster
+func ControllerUserForClusterWithPKIBackendSpec(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaUser {
+	sslConfig := cluster.Spec.ListenersConfig.SSLSecrets
+	var pkiBackend string
+	if sslConfig.PKIBackend != "" {
+		pkiBackend = string(sslConfig.PKIBackend)
+	} else {
+		pkiBackend = string(v1beta1.PKIBackendCertManager)
+	}
+	return &v1alpha1.KafkaUser{
+		ObjectMeta: templates.ObjectMeta(EnsureValidCommonNameLen(fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name), cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain())),
+			LabelsForKafkaPKI(cluster.Name, cluster.Namespace),
+			cluster,
+		),
+		Spec: v1alpha1.KafkaUserSpec{
+			SecretName: fmt.Sprintf(BrokerControllerTemplate, cluster.Name),
+			IncludeJKS: true,
+			ClusterRef: v1alpha1.ClusterReference{
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
+			},
+			PKIBackendSpec: &v1alpha1.PKIBackendSpec{
+				// Not checking IssuerRef for nil as it is checked in caller function kafkapki
+				IssuerRef:  sslConfig.IssuerRef,
+				PKIBackend: pkiBackend,
 			},
 		},
 	}

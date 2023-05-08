@@ -19,6 +19,8 @@ import (
 	"reflect"
 	"testing"
 
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
@@ -154,6 +156,45 @@ func TestBrokerUserForCluster(t *testing.T) {
 	}
 }
 
+func TestBrokerUserForClusterWithSSLSecret(t *testing.T) {
+	cluster := testCluster(t)
+	cluster.Spec.ListenersConfig.SSLSecrets = &v1beta1.SSLSecrets{
+		IssuerRef: &cmmeta.ObjectReference{
+			Name:  "test",
+			Kind:  "testKind",
+			Group: "testGroup",
+		},
+		PKIBackend: v1beta1.PKIBackendCertManager,
+	}
+	user := BrokerUserForClusterWithPKIBackendSpec(cluster, make(map[string]v1beta1.ListenerStatusList))
+
+	expected := &v1alpha1.KafkaUser{
+		ObjectMeta: templates.ObjectMeta(GetCommonName(cluster),
+			LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster),
+		Spec: v1alpha1.KafkaUserSpec{
+			SecretName: fmt.Sprintf(BrokerServerCertTemplate, cluster.Name),
+			DNSNames:   GetInternalDNSNames(cluster),
+			IncludeJKS: true,
+			ClusterRef: v1alpha1.ClusterReference{
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
+			},
+			PKIBackendSpec: &v1alpha1.PKIBackendSpec{
+				IssuerRef: &cmmeta.ObjectReference{
+					Name:  "test",
+					Kind:  "testKind",
+					Group: "testGroup",
+				},
+				PKIBackend: "cert-manager",
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(user, expected) {
+		t.Errorf("Expected %+v\nGot %+v", expected, user)
+	}
+}
+
 func TestControllerUserForCluster(t *testing.T) {
 	cluster := testCluster(t)
 	user := ControllerUserForCluster(cluster)
@@ -170,6 +211,47 @@ func TestControllerUserForCluster(t *testing.T) {
 			ClusterRef: v1alpha1.ClusterReference{
 				Name:      cluster.Name,
 				Namespace: cluster.Namespace,
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(user, expected) {
+		t.Errorf("Expected %+v\nGot %+v", expected, user)
+	}
+}
+
+func TestControllerUserForClusterWithSSLSecret(t *testing.T) {
+	cluster := testCluster(t)
+	cluster.Spec.ListenersConfig.SSLSecrets = &v1beta1.SSLSecrets{
+		IssuerRef: &cmmeta.ObjectReference{
+			Name:  "test",
+			Kind:  "testKind",
+			Group: "testGroup",
+		},
+		PKIBackend: v1beta1.PKIBackendCertManager,
+	}
+	user := ControllerUserForClusterWithPKIBackendSpec(cluster)
+
+	expected := &v1alpha1.KafkaUser{
+		ObjectMeta: templates.ObjectMeta(
+			fmt.Sprintf(BrokerControllerFQDNTemplate, fmt.Sprintf(BrokerControllerTemplate, cluster.Name),
+				cluster.Namespace, cluster.Spec.GetKubernetesClusterDomain()),
+			LabelsForKafkaPKI(cluster.Name, cluster.Namespace), cluster,
+		),
+		Spec: v1alpha1.KafkaUserSpec{
+			SecretName: fmt.Sprintf(BrokerControllerTemplate, cluster.Name),
+			IncludeJKS: true,
+			ClusterRef: v1alpha1.ClusterReference{
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
+			},
+			PKIBackendSpec: &v1alpha1.PKIBackendSpec{
+				IssuerRef: &cmmeta.ObjectReference{
+					Name:  "test",
+					Kind:  "testKind",
+					Group: "testGroup",
+				},
+				PKIBackend: "cert-manager",
 			},
 		},
 	}

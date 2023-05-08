@@ -22,6 +22,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
@@ -84,6 +86,20 @@ func TestReconcileUserCertificate(t *testing.T) {
 		t.Error("could not update test secret")
 	}
 	if _, err := manager.ReconcileUserCertificate(ctx, newMockUser(), scheme.Scheme, clusterDomain); err != nil {
+		t.Error("Expected no error, got:", err)
+	}
+
+	// Test IssuerRef case
+	user := newMockUser()
+	user.Spec.PKIBackendSpec = &v1alpha1.PKIBackendSpec{
+		IssuerRef: &cmmeta.ObjectReference{
+			Name:  "test",
+			Kind:  "testKind",
+			Group: "testGroup",
+		},
+	}
+
+	if _, err := manager.ReconcileUserCertificate(ctx, user, scheme.Scheme, clusterDomain); err != nil {
 		t.Error("Expected no error, got:", err)
 	}
 

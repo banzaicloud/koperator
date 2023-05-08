@@ -121,9 +121,9 @@ func userProvidedIssuerPKI(cluster *v1beta1.KafkaCluster, extListenerStatuses ma
 	// No need to generate self-signed certs and issuers because the issuer is provided by user
 	return []runtime.Object{
 		// Broker "user"
-		pkicommon.BrokerUserForCluster(cluster, extListenerStatuses),
+		pkicommon.BrokerUserForClusterWithPKIBackendSpec(cluster, extListenerStatuses),
 		// Operator user
-		pkicommon.ControllerUserForCluster(cluster),
+		pkicommon.ControllerUserForClusterWithPKIBackendSpec(cluster),
 	}
 }
 
