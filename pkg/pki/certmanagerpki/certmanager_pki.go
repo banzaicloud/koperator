@@ -110,14 +110,14 @@ func (c *certManager) kafkapki(ctx context.Context, extListenerStatuses map[stri
 	sslConfig := c.cluster.Spec.ListenersConfig.SSLSecrets
 	if sslConfig.Create {
 		if sslConfig.IssuerRef == nil {
-			return fullPKI(c.cluster, extListenerStatuses), nil
+			return generatedCAForPKICertManager(c.cluster, extListenerStatuses), nil
 		}
-		return userProvidedIssuerPKI(c.cluster, extListenerStatuses), nil
+		return userProvidedPKIBackend(c.cluster, extListenerStatuses), nil
 	}
-	return userProvidedPKI(ctx, c.client, c.cluster, extListenerStatuses)
+	return userProvidedCAforPKICertManager(ctx, c.client, c.cluster, extListenerStatuses)
 }
 
-func userProvidedIssuerPKI(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) []runtime.Object {
+func userProvidedPKIBackend(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) []runtime.Object {
 	// No need to generate self-signed certs and issuers because the issuer is provided by user
 	return []runtime.Object{
 		// Broker "user"
@@ -127,7 +127,7 @@ func userProvidedIssuerPKI(cluster *v1beta1.KafkaCluster, extListenerStatuses ma
 	}
 }
 
-func fullPKI(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) []runtime.Object {
+func generatedCAForPKICertManager(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) []runtime.Object {
 	return []runtime.Object{
 		// A self-signer for the CA Certificate
 		selfSignerForCluster(cluster),
@@ -143,7 +143,7 @@ func fullPKI(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1bet
 	}
 }
 
-func userProvidedPKI(
+func userProvidedCAforPKICertManager(
 	ctx context.Context, client client.Client,
 	cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) ([]runtime.Object, error) {
 	// If we aren't creating the secrets we need a cluster issuer made from the provided secret
