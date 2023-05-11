@@ -198,8 +198,8 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 	if instance.Spec.GetIfCertShouldBeCreated() {
 		// Avoid panic if the user wants to create a kafka user but the cluster is in plaintext mode
 		if cluster.Spec.ListenersConfig.SSLSecrets == nil && instance.Spec.PKIBackendSpec == nil {
-			// we should never see this scenario due to the KafkaUser validation webhook
-			// the only edge case is when cluster.Spec.ListenersConfig.SSLSecrets is set to nil during operator upgrade
+			// normally we should never see this scenario due to the KafkaUser validation webhook
+			// the only edge case is when cluster.Spec.ListenersConfig.SSLSecrets is set to nil at the beginning of this Reconcile flow
 			return requeueWithError(reqLogger, "could not create kafka user since user specific PKI not configured", errors.New("failed to create kafka user"))
 		}
 
