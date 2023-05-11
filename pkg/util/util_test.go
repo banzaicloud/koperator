@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 
@@ -684,5 +685,19 @@ cruise.control.metrics.reporter.kubernetes.mode=true`,
 		if !reflect.DeepEqual(test.broker, broker) {
 			t.Errorf("Expected: %v  Got: %v", test.broker, broker)
 		}
+	}
+}
+
+func TestGetClusterRefNamespace(t *testing.T) {
+	const testNamespace = "test-namespace"
+	ref := v1alpha1.ClusterReference{
+		Name: "test-cluster",
+	}
+	if refNS := GetClusterRefNamespace(testNamespace, ref); refNS != testNamespace {
+		t.Error("Expected to get 'test-namespace', got:", refNS)
+	}
+	ref.Namespace = "another-namespace"
+	if refNS := GetClusterRefNamespace(testNamespace, ref); refNS != "another-namespace" {
+		t.Error("Expected to get 'another-namespace', got:", refNS)
 	}
 }

@@ -179,7 +179,7 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 	}
 
 	// Get the referenced kafkacluster
-	clusterNamespace := getClusterRefNamespace(instance.Namespace, instance.Spec.ClusterRef)
+	clusterNamespace := util.GetClusterRefNamespace(instance.Namespace, instance.Spec.ClusterRef)
 	var cluster *v1beta1.KafkaCluster
 	if cluster, err = k8sutil.LookupKafkaCluster(ctx, r.Client, instance.Spec.ClusterRef.Name, clusterNamespace); err != nil {
 		// This shouldn't trigger anymore, but leaving it here as a safetybelt
@@ -196,11 +196,6 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 	var kafkaUser string
 
 	if instance.Spec.GetIfCertShouldBeCreated() {
-		// Avoid panic if the user wants to create a kafka user but the cluster is in plaintext mode
-		// TODO: refactor this and use webhook to validate if the cluster is eligible to create a kafka user
-		if cluster.Spec.ListenersConfig.SSLSecrets == nil && instance.Spec.PKIBackendSpec == nil {
-			return requeueWithError(reqLogger, "could not create kafka user since user specific PKI not configured", errors.New("failed to create kafka user"))
-		}
 		var backend v1beta1.PKIBackend
 		if instance.Spec.PKIBackendSpec != nil {
 			backend = v1beta1.PKIBackend(instance.Spec.PKIBackendSpec.PKIBackend)

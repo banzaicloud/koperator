@@ -72,6 +72,27 @@ webhooks:
     resources:
     - kafkaclusters
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ $caCrt }}
+    service:
+      name: "{{ include "kafka-operator.fullname" . }}-operator"
+      namespace: {{ .Release.Namespace }}
+      path: /validate-kafka-banzaicloud-io-v1alpha1-kafkauser
+  failurePolicy: Fail
+  name: kafkausers.kafka.banzaicloud.io
+  rules:
+  - apiGroups:
+    - kafka.banzaicloud.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - kafkausers
+  sideEffects: None
 ---
 apiVersion: v1
 kind: Secret

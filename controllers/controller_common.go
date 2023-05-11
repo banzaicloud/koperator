@@ -27,7 +27,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
@@ -60,17 +59,6 @@ func requeueWithError(logger logr.Logger, msg string, err error) (ctrl.Result, e
 // to the controller manager
 func reconciled() (ctrl.Result, error) {
 	return ctrl.Result{}, nil
-}
-
-// getClusterRefNamespace returns the expected namespace for a kafka cluster
-// referenced by a user/topic CR. It takes the namespace of the CR as the first
-// argument and the reference itself as the second.
-func getClusterRefNamespace(ns string, ref v1alpha1.ClusterReference) string {
-	clusterNamespace := ref.Namespace
-	if clusterNamespace == "" {
-		return ns
-	}
-	return clusterNamespace
 }
 
 // clusterLabelString returns the label value for a cluster reference
