@@ -100,8 +100,8 @@ github.com/banzaicloud/istio-operator/api/v2 v2.15.1 h1:BZg8COvoOJtfx/dgN7KpoOnc
 github.com/banzaicloud/istio-operator/api/v2 v2.15.1/go.mod h1:5qCpwWlIfxiLvBfTvT2mD2wp5RlFCDEt8Xql4sYPNBc=
 github.com/banzaicloud/k8s-objectmatcher v1.8.0 h1:Nugn25elKtPMTA2br+JgHNeSQ04sc05MDPmpJnd1N2A=
 github.com/banzaicloud/k8s-objectmatcher v1.8.0/go.mod h1:p2LSNAjlECf07fbhDyebTkPUIYnU05G+WfGgkTmgeMg=
-github.com/banzaicloud/koperator/api v0.26.0 h1:fQhByPO3IWY+EGhlh5ZSyBMeLhOYTz3lsXkbKHWRmvo=
-github.com/banzaicloud/koperator/api v0.26.0/go.mod h1:qvpewvjdELAnfO70vg9397CXZ4K4uHxpiWtf5fhKSrQ=
+github.com/banzaicloud/koperator/api v0.27.0 h1:/wRNznSdiBH0HxiYbBygfHFY4dyYZ2WnDAHbPOYXlSQ=
+github.com/banzaicloud/koperator/api v0.27.0/go.mod h1:qvpewvjdELAnfO70vg9397CXZ4K4uHxpiWtf5fhKSrQ=
 github.com/banzaicloud/koperator/properties v0.4.1 h1:SB2QgXlcK1Dc7Z1rg65PJifErDa8OQnoWCCJgmC7SGc=
 github.com/banzaicloud/koperator/properties v0.4.1/go.mod h1:TcL+llxuhW3UeQtVEDYEXGouFLF2P+LuZZVudSb6jyA=
 github.com/banzaicloud/operator-tools v0.28.0 h1:GSfc0qZr6zo7WrNxdgWZE1LcTChPU8QFYOTDirYVtIM=
