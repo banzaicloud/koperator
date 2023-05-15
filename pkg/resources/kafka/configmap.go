@@ -15,16 +15,12 @@
 package kafka
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strings"
 
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 
@@ -111,28 +107,11 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 		log.Error(err, fmt.Sprintf("setting '%s' in broker configuration resulted an error", kafkautils.KafkaConfigBrokerId))
 	}
 
-	// This logic prevents the removal of the mountPath from the broker configmap
-	brokerConfigMapName := fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id)
-	var brokerConfigMapOld v1.ConfigMap
-	err = r.Client.Get(context.Background(), client.ObjectKey{Name: brokerConfigMapName, Namespace: r.KafkaCluster.GetNamespace()}, &brokerConfigMapOld)
-	if err != nil && !apierrors.IsNotFound(err) {
-		log.Error(err, "getting broker configmap from the Kubernetes API server resulted an error")
-	}
-
-	mountPathsOld, err := getMountPathsFromBrokerConfigMap(&brokerConfigMapOld)
-	if err != nil {
-		log.Error(err, "could not get mountPaths from broker configmap", v1beta1.BrokerIdLabelKey, id)
-	}
-	mountPathsNew := generateStorageConfig(bConfig.StorageConfigs)
-	mountPathsMerged, isMountPathRemoved := mergeMountPaths(mountPathsOld, mountPathsNew)
-
-	if isMountPathRemoved {
-		log.Error(errors.New("removed storage is found in the KafkaCluster CR"), "removing storage from broker is not supported", v1beta1.BrokerIdLabelKey, id, "mountPaths", mountPathsOld, "mountPaths in kafkaCluster CR ", mountPathsNew)
-	}
-
-	if len(mountPathsMerged) != 0 {
-		if err := config.Set(kafkautils.KafkaConfigBrokerLogDirectory, strings.Join(mountPathsMerged, ",")); err != nil {
-			log.Error(err, fmt.Sprintf("setting '%s' in broker configuration resulted an error", kafkautils.KafkaConfigBrokerLogDirectory))
+	// Storage configuration
+	storageConf := generateStorageConfig(bConfig.StorageConfigs)
+	if len(storageConf) > 0 {
+		if err := config.Set(kafkautils.KafkaConfigBrokerLogDirectory, storageConf); err != nil {
+			log.Error(err, "setting log.dirs in broker configuration resulted an error")
 		}
 	}
 

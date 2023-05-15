@@ -84,6 +84,21 @@ func TestSortOperations(t *testing.T) {
 				createCCRetryExecutionOperation(timeNow, "3", v1alpha1.OperationRebalance),
 			},
 		},
+		{
+			testName: "mixed with remove disks",
+			ccOperations: []*v1alpha1.CruiseControlOperation{
+				createCCRetryExecutionOperation(timeNow, "1", v1alpha1.OperationAddBroker),
+				createCCRetryExecutionOperation(timeNow, "4", v1alpha1.OperationRebalance),
+				createCCRetryExecutionOperation(timeNow.Add(2*time.Second), "3", v1alpha1.OperationRemoveDisks),
+				createCCRetryExecutionOperation(timeNow.Add(time.Second), "2", v1alpha1.OperationRemoveBroker),
+			},
+			expectedOutput: []*v1alpha1.CruiseControlOperation{
+				createCCRetryExecutionOperation(timeNow, "1", v1alpha1.OperationAddBroker),
+				createCCRetryExecutionOperation(timeNow.Add(time.Second), "2", v1alpha1.OperationRemoveBroker),
+				createCCRetryExecutionOperation(timeNow.Add(2*time.Second), "3", v1alpha1.OperationRemoveDisks),
+				createCCRetryExecutionOperation(timeNow, "4", v1alpha1.OperationRebalance),
+			},
+		},
 	}
 	for _, testCase := range testCases {
 		sortedCCOperations := sortOperations(testCase.ccOperations)

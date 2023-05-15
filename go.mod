@@ -25,7 +25,7 @@ require (
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/mock v0.2.0
 	go.uber.org/zap v1.24.0
-	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/inf.v0 v0.9.1
 	gotest.tools v2.2.0+incompatible
@@ -137,6 +137,7 @@ require (
 )
 
 replace (
+	github.com/banzaicloud/go-cruise-control => github.com/adobe/go-cruise-control v0.6.0-adbe
 	github.com/banzaicloud/koperator/api => ./api
 	github.com/banzaicloud/koperator/properties => ./properties
 	github.com/gogo/protobuf => github.com/waynz0r/protobuf v1.3.3-0.20210811122234-64636cae0910

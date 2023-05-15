@@ -41,7 +41,7 @@ func (t *CruiseControlTask) IsRequired() bool {
 	switch t.Operation {
 	case koperatorv1alpha1.OperationAddBroker, koperatorv1alpha1.OperationRemoveBroker:
 		return t.BrokerState.IsRequiredState()
-	case koperatorv1alpha1.OperationRebalance:
+	case koperatorv1alpha1.OperationRebalance, koperatorv1alpha1.OperationRemoveDisks:
 		return t.VolumeState.IsRequiredState()
 	}
 	return false
@@ -61,7 +61,7 @@ func (t *CruiseControlTask) Apply(instance *koperatorv1beta1.KafkaCluster) {
 			state.GracefulActionState.CruiseControlOperationReference = t.CruiseControlOperationReference
 			instance.Status.BrokersState[t.BrokerID] = state
 		}
-	case koperatorv1alpha1.OperationRebalance:
+	case koperatorv1alpha1.OperationRebalance, koperatorv1alpha1.OperationRemoveDisks:
 		if state, ok := instance.Status.BrokersState[t.BrokerID]; ok {
 			if volState, ok := state.GracefulActionState.VolumeStates[t.Volume]; ok {
 				volState.CruiseControlVolumeState = t.VolumeState
@@ -88,10 +88,14 @@ func (t *CruiseControlTask) SetStateScheduled() {
 		t.BrokerState = koperatorv1beta1.GracefulDownscaleScheduled
 	case koperatorv1alpha1.OperationRebalance:
 		t.VolumeState = koperatorv1beta1.GracefulDiskRebalanceScheduled
+	case koperatorv1alpha1.OperationRemoveDisks:
+		t.VolumeState = koperatorv1beta1.GracefulDiskRemovalScheduled
 	}
 }
 
 // FromResult takes a scale.Result instance returned by scale.CruiseControlScaler and updates its own state accordingly.
+//
+//nolint:gocyclo
 func (t *CruiseControlTask) FromResult(operation *koperatorv1alpha1.CruiseControlOperation) {
 	if t == nil {
 		return
@@ -133,6 +137,24 @@ func (t *CruiseControlTask) FromResult(operation *koperatorv1alpha1.CruiseContro
 			t.BrokerState = koperatorv1beta1.GracefulDownscaleCompletedWithError
 		case operation.CurrentTaskState() == "":
 			t.BrokerState = koperatorv1beta1.GracefulDownscaleScheduled
+		}
+
+	case koperatorv1alpha1.OperationRemoveDisks:
+		switch {
+		case operation == nil:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRemovalSucceeded
+		case operation.IsErrorPolicyIgnore() && operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRemovalSucceeded
+		case operation.IsPaused() && operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRemovalPaused
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskActive, operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskInExecution:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRemovalRunning
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompleted:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRemovalSucceeded
+		case operation.CurrentTaskState() == koperatorv1beta1.CruiseControlTaskCompletedWithError:
+			t.VolumeState = koperatorv1beta1.GracefulDiskRemovalCompletedWithError
+		case operation.CurrentTaskState() == "":
+			t.VolumeState = koperatorv1beta1.GracefulDiskRemovalScheduled
 		}
 
 	case koperatorv1alpha1.OperationRebalance:
