@@ -34,6 +34,7 @@ type CruiseControlScaler interface {
 	RebalanceWithParams(ctx context.Context, params map[string]string) (*Result, error)
 	StopExecution(ctx context.Context) (*Result, error)
 	RemoveBrokers(ctx context.Context, brokerIDs ...string) (*Result, error)
+	RemoveDisksWithParams(ctx context.Context, params map[string]string) (*Result, error)
 	RebalanceDisks(ctx context.Context, brokerIDs ...string) (*Result, error)
 	BrokersWithState(ctx context.Context, states ...KafkaBrokerState) ([]string, error)
 	KafkaClusterState(ctx context.Context) (*types.KafkaClusterState, error)

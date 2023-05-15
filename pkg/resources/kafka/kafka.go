@@ -549,7 +549,7 @@ func (r *Reconciler) reconcileKafkaPodDelete(ctx context.Context, log logr.Logge
 					log.V(1).Info("pvc for broker deleted", "pvc name", volume.PersistentVolumeClaim.ClaimName, v1beta1.BrokerIdLabelKey, broker.Labels[v1beta1.BrokerIdLabelKey])
 				}
 			}
-			err = k8sutil.DeleteStatus(r.Client, broker.Labels[v1beta1.BrokerIdLabelKey], r.KafkaCluster, log)
+			err = k8sutil.DeleteBrokerStatus(r.Client, broker.Labels[v1beta1.BrokerIdLabelKey], r.KafkaCluster, log)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "could not delete status for broker", "id", broker.Labels[v1beta1.BrokerIdLabelKey])
 			}
@@ -958,9 +958,11 @@ func (r *Reconciler) isPodTainted(log logr.Logger, pod *corev1.Pod) bool {
 	return selector.Matches(labels.Set(pod.Labels))
 }
 
+//nolint:funlen
 func (r *Reconciler) reconcileKafkaPvc(ctx context.Context, log logr.Logger, brokersDesiredPvcs map[string][]*corev1.PersistentVolumeClaim) error {
 	brokersVolumesState := make(map[string]map[string]v1beta1.VolumeState)
 	var brokerIds []string
+	waitForDiskRemovalToFinish := false
 
 	for brokerId, desiredPvcs := range brokersDesiredPvcs {
 		desiredType := reflect.TypeOf(&corev1.PersistentVolumeClaim{})
@@ -976,6 +978,67 @@ func (r *Reconciler) reconcileKafkaPvc(ctx context.Context, log logr.Logger, bro
 		)
 
 		log = log.WithValues("kind", desiredType)
+
+		err := r.Client.List(ctx, pvcList,
+			client.InNamespace(r.KafkaCluster.GetNamespace()), matchingLabels)
+		if err != nil {
+			return errorfactory.New(errorfactory.APIFailure{}, err, "getting resource failed", "kind", desiredType)
+		}
+
+		// Handle disk removal
+		if len(pvcList.Items) > len(desiredPvcs) {
+			for _, pvc := range pvcList.Items {
+				foundInDesired := false
+				existingMountPath := pvc.Annotations["mountPath"]
+
+				for _, desiredPvc := range desiredPvcs {
+					desiredMountPath := desiredPvc.Annotations["mountPath"]
+
+					if existingMountPath == desiredMountPath {
+						foundInDesired = true
+						break
+					}
+				}
+
+				if foundInDesired {
+					continue
+				}
+
+				mountPathToRemove := existingMountPath
+				if brokerState, ok := r.KafkaCluster.Status.BrokersState[brokerId]; ok {
+					volumeStateStatus, found := brokerState.GracefulActionState.VolumeStates[mountPathToRemove]
+					if !found {
+						// If the state is not found, it means that the disk removal was done according to the disk removal succeeded branch
+						log.Info("Disk removal was completed, waiting for Rolling Upgrade to remove PVC", "brokerId", brokerId, "mountPath", mountPathToRemove)
+						continue
+					}
+
+					// Check the volume state
+					ccVolumeState := volumeStateStatus.CruiseControlVolumeState
+					switch {
+					case ccVolumeState.IsDiskRemovalSucceeded():
+						if err := r.Client.Delete(ctx, &pvc); err != nil {
+							return errorfactory.New(errorfactory.APIFailure{}, err, "deleting resource failed", "kind", desiredType)
+						}
+						log.Info("resource deleted")
+						err = k8sutil.DeleteVolumeStatus(r.Client, brokerId, mountPathToRemove, r.KafkaCluster, log)
+						if err != nil {
+							return errors.WrapIfWithDetails(err, "could not delete volume status for broker volume", "brokerId", brokerId, "mountPath", mountPathToRemove)
+						}
+					case ccVolumeState.IsDiskRemoval():
+						log.Info("Graceful disk removal is in progress", "brokerId", brokerId, "mountPath", mountPathToRemove)
+						waitForDiskRemovalToFinish = true
+					case ccVolumeState.IsDiskRebalance():
+						log.Info("Graceful disk rebalance is in progress, waiting to mark disk for removal", "brokerId", brokerId, "mountPath", mountPathToRemove)
+						waitForDiskRemovalToFinish = true
+					default:
+						brokerVolumesState[mountPathToRemove] = v1beta1.VolumeState{CruiseControlVolumeState: v1beta1.GracefulDiskRemovalRequired}
+						log.Info("Marked the volume for removal", "brokerId", brokerId, "mountPath", mountPathToRemove)
+						waitForDiskRemovalToFinish = true
+					}
+				}
+			}
+		}
 
 		for _, desiredPvc := range desiredPvcs {
 			currentPvc := desiredPvc.DeepCopy()
@@ -1007,8 +1070,10 @@ func (r *Reconciler) reconcileKafkaPvc(ctx context.Context, log logr.Logger, bro
 					alreadyCreated = true
 					// Checking pvc state, if bounded, so the broker has already restarted and the CC GracefulDiskRebalance has not happened yet,
 					// then we make it happening with status update.
-					if _, ok := r.KafkaCluster.Status.BrokersState[brokerId].GracefulActionState.VolumeStates[mountPath]; !ok &&
-						currentPvc.Status.Phase == corev1.ClaimBound {
+					// If disk removal was set, and the disk was added back, we also need to mark the volume for rebalance
+					volumeState, found := r.KafkaCluster.Status.BrokersState[brokerId].GracefulActionState.VolumeStates[mountPath]
+					if currentPvc.Status.Phase == corev1.ClaimBound &&
+						(!found || volumeState.CruiseControlVolumeState.IsDiskRemoval()) {
 						brokerVolumesState[mountPath] = v1beta1.VolumeState{CruiseControlVolumeState: v1beta1.GracefulDiskRebalanceRequired}
 					}
 					break
@@ -1063,6 +1128,10 @@ func (r *Reconciler) reconcileKafkaPvc(ctx context.Context, log logr.Logger, bro
 		}
 	}
 
+	if waitForDiskRemovalToFinish {
+		return errorfactory.New(errorfactory.CruiseControlTaskRunning{}, errors.New("Disk removal pending"), "Disk removal pending")
+	}
+
 	return nil
 }
 
@@ -1076,10 +1145,10 @@ func GetBrokersWithPendingOrRunningCCTask(kafkaCluster *v1beta1.KafkaCluster) []
 				(state.GracefulActionState.CruiseControlOperationReference != nil && state.GracefulActionState.CruiseControlState.IsRunningState()) {
 				brokerIDs = append(brokerIDs, kafkaCluster.Spec.Brokers[i].Id)
 			} else {
-				// Check if the volumes are rebalancing
+				// Check if the volumes are rebalancing or removing
 				for _, volumeState := range state.GracefulActionState.VolumeStates {
-					if volumeState.CruiseControlVolumeState == v1beta1.GracefulDiskRebalanceRequired ||
-						(volumeState.CruiseControlOperationReference != nil && volumeState.CruiseControlVolumeState.IsRunningState()) {
+					ccVolumeState := volumeState.CruiseControlVolumeState
+					if ccVolumeState.IsDiskRemoval() || ccVolumeState.IsDiskRebalance() {
 						brokerIDs = append(brokerIDs, kafkaCluster.Spec.Brokers[i].Id)
 					}
 				}

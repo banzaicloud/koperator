@@ -44,8 +44,8 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		namespaceObj       *corev1.Namespace
 		kafkaClusterCRName string
 		kafkaCluster       *v1beta1.KafkaCluster
-		opName1            string = "operation1"
-		opName2            string = "operation2"
+		opName1            = "operation1"
+		opName2            = "operation2"
 	)
 	BeforeEach(func() {
 		atomic.AddUint64(&count, 1)
@@ -305,6 +305,60 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
+	When("there is an errored remove_disks and a rebalance disks operation for the same broker", Serial, func() {
+		JustBeforeEach(func() {
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock6())
+			// Remove_disk operation - errored
+			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
+			err := k8sClient.Create(context.Background(), &operation)
+			Expect(err).NotTo(HaveOccurred())
+
+			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
+				Operation: v1alpha1.OperationRemoveDisks,
+				Finished:  &metav1.Time{Time: time.Now().Add(-time.Second*v1alpha1.DefaultRetryBackOffDurationSec - 10)},
+				Parameters: map[string]string{
+					scale.ParamBrokerIDAndLogDirs: "101-logdir1",
+				},
+			}
+			err = k8sClient.Status().Update(context.Background(), &operation)
+			Expect(err).NotTo(HaveOccurred())
+			// Rebalance operation
+			operation = generateCruiseControlOperation(opName2, namespace, kafkaCluster.GetName())
+			err = k8sClient.Create(context.Background(), &operation)
+			Expect(err).NotTo(HaveOccurred())
+			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
+				Operation: v1alpha1.OperationRebalance,
+				Parameters: map[string]string{
+					scale.ParamDestbrokerIDs: "101,102",
+				},
+			}
+			err = k8sClient.Status().Update(context.Background(), &operation)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("should mark the removed disk task as paused and should execute the rebalance", func() {
+			Eventually(func() bool {
+				removeDisksOp := v1alpha1.CruiseControlOperation{}
+				err := k8sClient.Get(context.Background(), client.ObjectKey{
+					Namespace: kafkaCluster.Namespace,
+					Name:      opName1,
+				}, &removeDisksOp)
+				if err != nil {
+					return false
+				}
+				rebalanceOp := v1alpha1.CruiseControlOperation{}
+				err = k8sClient.Get(context.Background(), client.ObjectKey{
+					Namespace: kafkaCluster.Namespace,
+					Name:      opName2,
+				}, &rebalanceOp)
+				if err != nil {
+					return false
+				}
+
+				return rebalanceOp.CurrentTaskState() == v1beta1.CruiseControlTaskCompleted &&
+					removeDisksOp.GetLabels()[v1alpha1.PauseLabel] == v1alpha1.True
+			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
+		})
+	})
 })
 
 func generateCruiseControlOperation(name, namespace, kafkaRef string) v1alpha1.CruiseControlOperation {
@@ -453,6 +507,37 @@ func getScaleMock5() *mocks.MockCruiseControlScaler {
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
 		State:     v1beta1.CruiseControlTaskActive,
 	}), nil).Times(1)
+	return scaleMock
+}
+
+func getScaleMock6() *mocks.MockCruiseControlScaler {
+	mockCtrl := gomock.NewController(GinkgoT())
+	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
+	scaleMock.EXPECT().IsUp(gomock.Any()).Return(true).AnyTimes()
+
+	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
+		TaskID:    "12345",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
+		State:     v1beta1.CruiseControlTaskCompletedWithError,
+	})}
+	scaleMock.EXPECT().UserTasks(gomock.Any(), gomock.Any()).Return(userTaskResult, nil).AnyTimes()
+	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.CruiseControlStatus{
+		ExecutorReady: true,
+		MonitorReady:  true,
+		AnalyzerReady: true,
+	}, nil).AnyTimes()
+	scaleMock.EXPECT().RebalanceWithParams(gomock.Any(), gomock.All()).Return(scaleResultPointer(scale.Result{
+		TaskID:    "12346",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
+		State:     v1beta1.CruiseControlTaskCompleted,
+	}), nil).Times(1)
+
+	scaleMock.EXPECT().RemoveDisksWithParams(gomock.Any(), gomock.All()).Return(scaleResultPointer(scale.Result{
+		TaskID:    "12345",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
+		State:     v1beta1.CruiseControlTaskCompletedWithError,
+	}), nil).AnyTimes()
+
 	return scaleMock
 }
 

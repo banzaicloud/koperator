@@ -48,6 +48,7 @@ const (
 	DefaultRequeueAfterTimeInSec = 20
 	BrokerCapacityDisk           = "DISK"
 	BrokerCapacity               = "capacity"
+	True                         = "true"
 )
 
 // CruiseControlTaskReconciler reconciles a kafka cluster object
@@ -62,6 +63,7 @@ type CruiseControlTaskReconciler struct {
 
 // +kubebuilder:rbac:groups=kafka.banzaicloud.io,resources=kafkaclusters/status,verbs=get;update;patch
 
+//nolint:funlen,gocyclo
 func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	log := logr.FromContextOrDiscard(ctx)
 
@@ -168,6 +170,55 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 
 		removeTask.SetCruiseControlOperationRef(cruiseControlOpRef)
 		removeTask.SetStateScheduled()
+
+	case tasksAndStates.NumActiveTasksByOp(banzaiv1alpha1.OperationRemoveDisks) > 0:
+		brokerLogDirsToRemove := make(map[string][]string)
+		logDirsByBroker, err := scaler.LogDirsByBroker(ctx)
+		if err != nil {
+			return requeueWithError(log, "failed to get list of brokerIdsToLogDirs per broker from Cruise Control", err)
+		}
+
+		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationRemoveDisks) {
+			if task == nil {
+				continue
+			}
+
+			brokerID := task.BrokerID
+			volume := task.Volume
+			if _, ok := brokerLogDirsToRemove[brokerID]; !ok {
+				brokerLogDirsToRemove[brokerID] = []string{}
+			}
+
+			found := false
+			if onlineDirs, ok := logDirsByBroker[brokerID][scale.LogDirStateOnline]; ok {
+				for _, dir := range onlineDirs {
+					if strings.HasPrefix(strings.TrimSpace(dir), strings.TrimSpace(volume)) {
+						brokerLogDirsToRemove[brokerID] = append(brokerLogDirsToRemove[brokerID], dir)
+						found = true
+						break
+					}
+				}
+			}
+
+			if !found {
+				return requeueWithError(log, fmt.Sprintf("volume %s not found for broker %s in CC online log dirs", volume, brokerID), errors.New("log dir not found"))
+			}
+		}
+
+		// create the cruise control operation
+		cruiseControlOpRef, err := r.removeDisks(ctx, instance, operationTTLSecondsAfterFinished, brokerLogDirsToRemove)
+		if err != nil {
+			return requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for disk removal has failed, brokerID and brokerIdsToLogDirs: %s", brokerLogDirsToRemove), err)
+		}
+
+		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationRemoveDisks) {
+			if task == nil {
+				continue
+			}
+
+			task.SetCruiseControlOperationRef(cruiseControlOpRef)
+			task.SetStateScheduled()
+		}
 
 	case tasksAndStates.NumActiveTasksByOp(banzaiv1alpha1.OperationRebalance) > 0:
 		brokerIDs := make([]string, 0)
@@ -280,25 +331,31 @@ func getUnavailableBrokers(ctx context.Context, scaler scale.CruiseControlScaler
 }
 
 func (r *CruiseControlTaskReconciler) addBrokers(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, ttlSecondsAfterFinished *int, bokerIDs []string) (corev1.LocalObjectReference, error) {
-	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationAddBroker, bokerIDs, false)
+	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationAddBroker, bokerIDs, false, nil)
 }
 
 func (r *CruiseControlTaskReconciler) removeBroker(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, ttlSecondsAfterFinished *int, brokerID string) (corev1.LocalObjectReference, error) {
-	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationRemoveBroker, []string{brokerID}, false)
+	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationRemoveBroker, []string{brokerID}, false, nil)
+}
+
+func (r *CruiseControlTaskReconciler) removeDisks(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, ttlSecondsAfterFinished *int, brokerIdsToRemovedLogDirs map[string][]string) (corev1.LocalObjectReference, error) {
+	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationRemoveDisks, nil, false, brokerIdsToRemovedLogDirs)
 }
 
 func (r *CruiseControlTaskReconciler) rebalanceDisks(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster, ttlSecondsAfterFinished *int, bokerIDs []string, isJBOD bool) (corev1.LocalObjectReference, error) {
-	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationRebalance, bokerIDs, isJBOD)
+	return r.createCCOperation(ctx, kafkaCluster, banzaiv1alpha1.ErrorPolicyRetry, ttlSecondsAfterFinished, banzaiv1alpha1.OperationRebalance, bokerIDs, isJBOD, nil)
 }
 
+//nolint:unparam
 func (r *CruiseControlTaskReconciler) createCCOperation(
 	ctx context.Context,
 	kafkaCluster *banzaiv1beta1.KafkaCluster,
 	errorPolicy banzaiv1alpha1.ErrorPolicyType,
 	ttlSecondsAfterFinished *int,
 	operationType banzaiv1alpha1.CruiseControlTaskOperation,
-	bokerIDs []string,
+	brokerIDs []string,
 	isJBOD bool,
+	logDirsByBrokerID map[string][]string,
 ) (corev1.LocalObjectReference, error) {
 	operation := &banzaiv1alpha1.CruiseControlOperation{
 		ObjectMeta: metav1.ObjectMeta{
@@ -323,20 +380,32 @@ func (r *CruiseControlTaskReconciler) createCCOperation(
 	}
 
 	operation.Status.CurrentTask = &banzaiv1alpha1.CruiseControlTask{
-		Operation: operationType,
-		Parameters: map[string]string{
-			"exclude_recently_demoted_brokers": "true",
-			"exclude_recently_removed_brokers": "true",
-		},
+		Operation:  operationType,
+		Parameters: make(map[string]string),
 	}
 
-	if operationType == banzaiv1alpha1.OperationRebalance {
-		operation.Status.CurrentTask.Parameters["destination_broker_ids"] = strings.Join(bokerIDs, ",")
+	if operationType != banzaiv1alpha1.OperationRemoveDisks {
+		operation.Status.CurrentTask.Parameters[scale.ParamExcludeDemoted] = True
+		operation.Status.CurrentTask.Parameters[scale.ParamExcludeRemoved] = True
+	}
+
+	switch {
+	case operationType == banzaiv1alpha1.OperationRebalance:
+		operation.Status.CurrentTask.Parameters[scale.ParamDestbrokerIDs] = strings.Join(brokerIDs, ",")
 		if isJBOD {
-			operation.Status.CurrentTask.Parameters["rebalance_disk"] = "true"
+			operation.Status.CurrentTask.Parameters[scale.ParamRebalanceDisk] = True
 		}
-	} else {
-		operation.Status.CurrentTask.Parameters["brokerid"] = strings.Join(bokerIDs, ",")
+	case operationType == banzaiv1alpha1.OperationRemoveDisks:
+		pairs := make([]string, 0, len(logDirsByBrokerID))
+		for brokerID, logDirs := range logDirsByBrokerID {
+			for _, logDir := range logDirs {
+				pair := fmt.Sprintf("%s-%s", brokerID, logDir)
+				pairs = append(pairs, pair)
+			}
+		}
+		operation.Status.CurrentTask.Parameters[scale.ParamBrokerIDAndLogDirs] = strings.Join(pairs, ",")
+	default:
+		operation.Status.CurrentTask.Parameters[scale.ParamBrokerID] = strings.Join(brokerIDs, ",")
 	}
 
 	if err := r.Status().Update(ctx, operation); err != nil {
@@ -517,12 +586,23 @@ func getActiveTasksFromCluster(instance *banzaiv1beta1.KafkaCluster) *CruiseCont
 		}
 
 		for mountPath, volumeState := range brokerStatus.GracefulActionState.VolumeStates {
-			if volumeState.CruiseControlVolumeState.IsActive() {
+			switch {
+			case volumeState.CruiseControlVolumeState.IsDiskRebalance():
 				t := &CruiseControlTask{
 					BrokerID:                        brokerId,
 					Volume:                          mountPath,
 					VolumeState:                     volumeState.CruiseControlVolumeState,
 					Operation:                       banzaiv1alpha1.OperationRebalance,
+					CruiseControlOperationReference: volumeState.CruiseControlOperationReference,
+				}
+				tasksAndStates.Add(t)
+
+			case volumeState.CruiseControlVolumeState.IsDiskRemoval():
+				t := &CruiseControlTask{
+					BrokerID:                        brokerId,
+					Volume:                          mountPath,
+					VolumeState:                     volumeState.CruiseControlVolumeState,
+					Operation:                       banzaiv1alpha1.OperationRemoveDisks,
 					CruiseControlOperationReference: volumeState.CruiseControlOperationReference,
 				}
 				tasksAndStates.Add(t)

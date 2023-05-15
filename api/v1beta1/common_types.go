@@ -66,24 +66,39 @@ type PKIBackend string
 // CruiseControlVolumeState holds information about the state of volume rebalance
 type CruiseControlVolumeState string
 
-// IsRunningState returns true if CruiseControlVolumeState indicates
-// that the CC operation is scheduled and in-progress
-func (s CruiseControlVolumeState) IsRunningState() bool {
+// IsDiskRebalanceRunning returns true if CruiseControlVolumeState indicates
+// that the CC rebalance disk operation is scheduled and in-progress
+func (s CruiseControlVolumeState) IsDiskRebalanceRunning() bool {
 	return s == GracefulDiskRebalanceRunning ||
 		s == GracefulDiskRebalanceCompletedWithError ||
 		s == GracefulDiskRebalancePaused ||
 		s == GracefulDiskRebalanceScheduled
 }
 
-// IsRequiredState returns true if CruiseControlVolumeState is in GracefulDiskRebalanceRequired state
-func (s CruiseControlVolumeState) IsRequiredState() bool {
-	return s == GracefulDiskRebalanceRequired
+// IsDiskRemovalRunning returns true if CruiseControlVolumeState indicates
+// that the CC remove disks operation is scheduled and in-progress
+func (s CruiseControlVolumeState) IsDiskRemovalRunning() bool {
+	return s == GracefulDiskRemovalRunning ||
+		s == GracefulDiskRemovalCompletedWithError ||
+		s == GracefulDiskRemovalPaused ||
+		s == GracefulDiskRemovalScheduled
 }
 
-// IsActive returns true if CruiseControlVolumeState is in active state
+// IsRequiredState returns true if CruiseControlVolumeState is in GracefulDiskRebalanceRequired state or GracefulDiskRemovalRequired state
+func (s CruiseControlVolumeState) IsRequiredState() bool {
+	return s == GracefulDiskRebalanceRequired ||
+		s == GracefulDiskRemovalRequired
+}
+
+// IsDiskRebalance returns true if CruiseControlVolumeState is in disk rebalance state
 // the controller needs to take care of.
-func (s CruiseControlVolumeState) IsActive() bool {
-	return s.IsRunningState() || s == GracefulDiskRebalanceRequired
+func (s CruiseControlVolumeState) IsDiskRebalance() bool {
+	return s.IsDiskRebalanceRunning() || s == GracefulDiskRebalanceRequired
+}
+
+// IsDiskRemoval returns true if CruiseControlVolumeState is in disk removal state
+func (s CruiseControlVolumeState) IsDiskRemoval() bool {
+	return s.IsDiskRemovalRunning() || s == GracefulDiskRemovalRequired
 }
 
 // IsUpscale returns true if CruiseControlState in GracefulUpscale* state.
@@ -138,9 +153,14 @@ func (r CruiseControlState) IsSucceeded() bool {
 		r == GracefulUpscaleSucceeded
 }
 
-// IsSucceeded returns true if CruiseControlVolumeState is succeeded
-func (r CruiseControlVolumeState) IsSucceeded() bool {
+// IsDiskRebalanceSucceeded returns true if CruiseControlVolumeState is disk rebalance succeeded
+func (r CruiseControlVolumeState) IsDiskRebalanceSucceeded() bool {
 	return r == GracefulDiskRebalanceSucceeded
+}
+
+// IsDiskRemovalSucceeded returns true if CruiseControlVolumeState is disk removal succeeded
+func (r CruiseControlVolumeState) IsDiskRemovalSucceeded() bool {
+	return r == GracefulDiskRemovalSucceeded
 }
 
 // IsSSL determines if the receiver is using SSL
@@ -254,6 +274,20 @@ const (
 	GracefulDownscaleCompletedWithError CruiseControlState = "GracefulDownscaleCompletedWithError"
 	// GracefulDownscalePaused states that the broker downscale task is completed with an error and it will not be retried, it is paused. In this case further downscale tasks can be executed
 	GracefulDownscalePaused CruiseControlState = "GracefulDownscalePaused"
+
+	// Disk removal cruise control states
+	// GracefulDiskRemovalRequired states that the broker volume needs to be removed
+	GracefulDiskRemovalRequired CruiseControlVolumeState = "GracefulDiskRemovalRequired"
+	// GracefulDiskRemovalRunning states that for the broker volume a CC disk removal is in progress
+	GracefulDiskRemovalRunning CruiseControlVolumeState = "GracefulDiskRemovalRunning"
+	// GracefulDiskRemovalSucceeded states that the for the broker volume removal has succeeded
+	GracefulDiskRemovalSucceeded CruiseControlVolumeState = "GracefulDiskRemovalSucceeded"
+	// GracefulDiskRemovalScheduled states that the broker volume removal CCOperation is created and the task is waiting for execution
+	GracefulDiskRemovalScheduled CruiseControlVolumeState = "GracefulDiskRemovalScheduled"
+	// GracefulDiskRemovalCompletedWithError states that the broker volume removal task completed with an error
+	GracefulDiskRemovalCompletedWithError CruiseControlVolumeState = "GracefulDiskRemovalCompletedWithError"
+	// GracefulDiskRemovalPaused states that the broker volume removal task is completed with an error and it will not be retried, it is paused
+	GracefulDiskRemovalPaused CruiseControlVolumeState = "GracefulDiskRemovalPaused"
 
 	// Disk rebalance cruise control states
 	// GracefulDiskRebalanceRequired states that the broker volume needs a CC disk rebalance

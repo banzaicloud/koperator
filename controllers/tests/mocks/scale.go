@@ -52,6 +52,21 @@ func (m *MockCruiseControlScaler) EXPECT() *MockCruiseControlScalerMockRecorder 
 	return m.recorder
 }
 
+// RemoveDisksWithParams mocks base method.
+func (m *MockCruiseControlScaler) RemoveDisksWithParams(ctx context.Context, params map[string]string) (*scale.Result, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveDisksWithParams", ctx, params)
+	ret0, _ := ret[0].(*scale.Result)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RemoveDisksWithParams indicates an expected call of RemoveDisksWithParams.
+func (mr *MockCruiseControlScalerMockRecorder) RemoveDisksWithParams(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveDisksWithParams", reflect.TypeOf((*MockCruiseControlScaler)(nil).RemoveDisksWithParams), ctx, params)
+}
+
 // AddBrokers mocks base method.
 func (m *MockCruiseControlScaler) AddBrokers(ctx context.Context, brokerIDs ...string) (*scale.Result, error) {
 	m.ctrl.T.Helper()

@@ -52,8 +52,9 @@ const (
 var (
 	defaultRequeueIntervalInSeconds = 10
 	executionPriorityMap            = map[banzaiv1alpha1.CruiseControlTaskOperation]int{
-		banzaiv1alpha1.OperationAddBroker:    2,
-		banzaiv1alpha1.OperationRemoveBroker: 1,
+		banzaiv1alpha1.OperationAddBroker:    3,
+		banzaiv1alpha1.OperationRemoveBroker: 2,
+		banzaiv1alpha1.OperationRemoveDisks:  1,
 		banzaiv1alpha1.OperationRebalance:    0,
 	}
 	missingCCResErr = errors.New("missing Cruise Control user task result")
@@ -197,7 +198,11 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return reconciled()
 	}
 
-	ccOperationExecution := selectOperationForExecution(ccOperationQueueMap)
+	ccOperationExecution, err := r.selectOperationForExecution(ccOperationQueueMap)
+	if err != nil {
+		log.Error(err, "requeue event as selecting operation for execution failed")
+		return requeueAfter(defaultRequeueIntervalInSeconds)
+	}
 	// There is nothing to be executed for now, requeue
 	if ccOperationExecution == nil {
 		return requeueAfter(defaultRequeueIntervalInSeconds)
@@ -265,6 +270,8 @@ func (r *CruiseControlOperationReconciler) executeOperation(ctx context.Context,
 		cruseControlTaskResult, err = r.scaler.RemoveBrokersWithParams(ctx, ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationRebalance:
 		cruseControlTaskResult, err = r.scaler.RebalanceWithParams(ctx, ccOperationExecution.CurrentTaskParameters())
+	case banzaiv1alpha1.OperationRemoveDisks:
+		cruseControlTaskResult, err = r.scaler.RemoveDisksWithParams(ctx, ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationStopExecution:
 		cruseControlTaskResult, err = r.scaler.StopExecution(ctx)
 	default:
@@ -300,29 +307,56 @@ func sortOperations(ccOperations []*banzaiv1alpha1.CruiseControlOperation) map[s
 	return ccOperationQueueMap
 }
 
-func selectOperationForExecution(ccOperationQueueMap map[string][]*banzaiv1alpha1.CruiseControlOperation) *banzaiv1alpha1.CruiseControlOperation {
-	// SELECTING OPERATION FOR EXECUTION
-	var ccOperationExecution *banzaiv1alpha1.CruiseControlOperation
+// selectOperationForExecution selects the next operation to be executed
+func (r *CruiseControlOperationReconciler) selectOperationForExecution(ccOperationQueueMap map[string][]*banzaiv1alpha1.CruiseControlOperation) (*banzaiv1alpha1.CruiseControlOperation, error) {
 	// First prio: execute the finalize task
-	switch {
-	case len(ccOperationQueueMap[ccOperationForStopExecution]) > 0:
-		ccOperationExecution = ccOperationQueueMap[ccOperationForStopExecution][0]
-		ccOperationExecution.CurrentTask().Operation = banzaiv1alpha1.OperationStopExecution
-	// Second prio: execute add_broker operation
-	case len(ccOperationQueueMap[ccOperationFirstExecution]) > 0 && ccOperationQueueMap[ccOperationFirstExecution][0].CurrentTaskOperation() == banzaiv1alpha1.OperationAddBroker:
-		ccOperationExecution = ccOperationQueueMap[ccOperationFirstExecution][0]
-	// Third prio: execute failed task
-	case len(ccOperationQueueMap[ccOperationRetryExecution]) > 0:
-		// When the default backoff duration elapsed we retry
-		if ccOperationQueueMap[ccOperationRetryExecution][0].IsReadyForRetryExecution() {
-			ccOperationExecution = ccOperationQueueMap[ccOperationRetryExecution][0]
-		}
-	// Forth prio: execute the first element in the FirstExecutionQueue which is ordered by operation type and k8s creation timestamp
-	case len(ccOperationQueueMap[ccOperationFirstExecution]) > 0:
-		ccOperationExecution = ccOperationQueueMap[ccOperationFirstExecution][0]
+	if op := getFirstOperation(ccOperationQueueMap, ccOperationForStopExecution); op != nil {
+		op.CurrentTask().Operation = banzaiv1alpha1.OperationStopExecution
+		return op, nil
 	}
 
-	return ccOperationExecution
+	// Second prio: execute add_broker operation
+	if op := getFirstOperation(ccOperationQueueMap, ccOperationFirstExecution); op != nil &&
+		op.CurrentTaskOperation() == banzaiv1alpha1.OperationAddBroker {
+		return op, nil
+	}
+
+	// Third prio: execute failed task
+	if op := getFirstOperation(ccOperationQueueMap, ccOperationRetryExecution); op != nil {
+		// If there is a failed remove_disks task and there is a rebalance_disks task in the queue, we execute the rebalance_disks task
+		// This could only happen if the user tried to delete a disk, and later rolled back the change
+		if op.CurrentTaskOperation() == banzaiv1alpha1.OperationRemoveDisks {
+			for _, opFirstExecution := range ccOperationQueueMap[ccOperationFirstExecution] {
+				if opFirstExecution.CurrentTaskOperation() == banzaiv1alpha1.OperationRebalance {
+					// Mark the remove disk operation as paused, so it is not retried
+					op.Labels[banzaiv1alpha1.PauseLabel] = True
+					err := r.Client.Update(context.TODO(), op)
+					if err != nil {
+						return nil, errors.WrapIfWithDetails(err, "failed to update Cruise Control operation", "name", op.Name, "namespace", op.Namespace)
+					}
+
+					// Execute the rebalance disks operation
+					return opFirstExecution, nil
+				}
+			}
+		}
+
+		// When the default backoff duration elapsed we retry
+		if op.IsReadyForRetryExecution() {
+			return op, nil
+		}
+	}
+
+	// Fourth prio: execute the first element in the FirstExecutionQueue which is ordered by operation type and k8s creation timestamp
+	return getFirstOperation(ccOperationQueueMap, ccOperationFirstExecution), nil
+}
+
+// getFirstOperation returns the first operation in the given queue
+func getFirstOperation(ccOperationQueueMap map[string][]*banzaiv1alpha1.CruiseControlOperation, key string) *banzaiv1alpha1.CruiseControlOperation {
+	if len(ccOperationQueueMap[key]) > 0 {
+		return ccOperationQueueMap[key][0]
+	}
+	return nil
 }
 
 // SetupCruiseControlWithManager registers cruise control controller to the manager

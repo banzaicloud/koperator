@@ -29,6 +29,9 @@ const (
 	ErrorPolicyRetry ErrorPolicyType = "retry"
 	// DefaultRetryBackOffDurationSec defines the time between retries of the failed tasks.
 	DefaultRetryBackOffDurationSec = 30
+	// PauseLabel defines the label key for pausing Cruise Control operations.
+	PauseLabel = "pause"
+	True       = "true"
 )
 
 //+kubebuilder:object:root=true
@@ -184,7 +187,7 @@ func (o *CruiseControlOperation) IsDone() bool {
 }
 
 func (o *CruiseControlOperation) IsPaused() bool {
-	return o.GetLabels()["pause"] == "true"
+	return o.GetLabels()[PauseLabel] == True
 }
 
 func (o *CruiseControlOperation) IsErrorPolicyIgnore() bool {
@@ -221,5 +224,8 @@ func (o *CruiseControlOperation) IsCurrentTaskFinished() bool {
 
 func (o *CruiseControlOperation) IsCurrentTaskOperationValid() bool {
 	return o.CurrentTaskOperation() == OperationAddBroker ||
-		o.CurrentTaskOperation() == OperationRebalance || o.CurrentTaskOperation() == OperationRemoveBroker || o.CurrentTaskOperation() == OperationStopExecution
+		o.CurrentTaskOperation() == OperationRebalance ||
+		o.CurrentTaskOperation() == OperationRemoveBroker ||
+		o.CurrentTaskOperation() == OperationStopExecution ||
+		o.CurrentTaskOperation() == OperationRemoveDisks
 }

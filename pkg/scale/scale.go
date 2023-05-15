@@ -35,11 +35,12 @@ import (
 const (
 	// Constants for the Cruise Control operations parameters
 	// Check for more details: https://github.com/linkedin/cruise-control/wiki/REST-APIs
-	paramBrokerID       = "brokerid"
-	paramExcludeDemoted = "exclude_recently_demoted_brokers"
-	paramExcludeRemoved = "exclude_recently_removed_brokers"
-	paramDestbrokerIDs  = "destination_broker_ids"
-	paramRebalanceDisk  = "rebalance_disk"
+	ParamBrokerID           = "brokerid"
+	ParamExcludeDemoted     = "exclude_recently_demoted_brokers"
+	ParamExcludeRemoved     = "exclude_recently_removed_brokers"
+	ParamDestbrokerIDs      = "destination_broker_ids"
+	ParamRebalanceDisk      = "rebalance_disk"
+	ParamBrokerIDAndLogDirs = "brokerid_and_logdirs"
 	// Cruise Control API returns NullPointerException when a broker storage capacity calculations are missing
 	// from the Cruise Control configurations
 	nullPointerExceptionErrString = "NullPointerException"
@@ -50,20 +51,23 @@ const (
 var (
 	newCruiseControlScaler   = createNewDefaultCruiseControlScaler
 	addBrokerSupportedParams = map[string]struct{}{
-		paramBrokerID:       {},
-		paramExcludeDemoted: {},
-		paramExcludeRemoved: {},
+		ParamBrokerID:       {},
+		ParamExcludeDemoted: {},
+		ParamExcludeRemoved: {},
 	}
 	removeBrokerSupportedParams = map[string]struct{}{
-		paramBrokerID:       {},
-		paramExcludeDemoted: {},
-		paramExcludeRemoved: {},
+		ParamBrokerID:       {},
+		ParamExcludeDemoted: {},
+		ParamExcludeRemoved: {},
 	}
 	rebalanceSupportedParams = map[string]struct{}{
-		paramDestbrokerIDs:  {},
-		paramRebalanceDisk:  {},
-		paramExcludeDemoted: {},
-		paramExcludeRemoved: {},
+		ParamDestbrokerIDs:  {},
+		ParamRebalanceDisk:  {},
+		ParamExcludeDemoted: {},
+		ParamExcludeRemoved: {},
+	}
+	removeDisksSupportedParams = map[string]struct{}{
+		ParamBrokerIDAndLogDirs: {},
 	}
 )
 
@@ -205,19 +209,19 @@ func (cc *cruiseControlScaler) AddBrokersWithParams(ctx context.Context, params 
 	for param, pvalue := range params {
 		if _, ok := addBrokerSupportedParams[param]; ok {
 			switch param {
-			case paramBrokerID:
+			case ParamBrokerID:
 				ret, err := parseBrokerIDtoSlice(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				addBrokerReq.BrokerIDs = ret
-			case paramExcludeDemoted:
+			case ParamExcludeDemoted:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				addBrokerReq.ExcludeRecentlyDemotedBrokers = ret
-			case paramExcludeRemoved:
+			case ParamExcludeRemoved:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
@@ -282,19 +286,19 @@ func (cc *cruiseControlScaler) RemoveBrokersWithParams(ctx context.Context, para
 	for param, pvalue := range params {
 		if _, ok := removeBrokerSupportedParams[param]; ok {
 			switch param {
-			case paramBrokerID:
+			case ParamBrokerID:
 				ret, err := parseBrokerIDtoSlice(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rmBrokerReq.BrokerIDs = ret
-			case paramExcludeDemoted:
+			case ParamExcludeDemoted:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rmBrokerReq.ExcludeRecentlyDemotedBrokers = ret
-			case paramExcludeRemoved:
+			case ParamExcludeRemoved:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
@@ -464,25 +468,25 @@ func (cc *cruiseControlScaler) RebalanceWithParams(ctx context.Context, params m
 	for param, pvalue := range params {
 		if _, ok := rebalanceSupportedParams[param]; ok {
 			switch param {
-			case paramDestbrokerIDs:
+			case ParamDestbrokerIDs:
 				ret, err := parseBrokerIDtoSlice(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rebalanceReq.DestinationBrokerIDs = ret
-			case paramRebalanceDisk:
+			case ParamRebalanceDisk:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rebalanceReq.RebalanceDisk = ret
-			case paramExcludeDemoted:
+			case ParamExcludeDemoted:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
 				}
 				rebalanceReq.ExcludeRecentlyDemotedBrokers = ret
-			case paramExcludeRemoved:
+			case ParamExcludeRemoved:
 				ret, err := strconv.ParseBool(pvalue)
 				if err != nil {
 					return nil, err
@@ -514,6 +518,81 @@ func (cc *cruiseControlScaler) RebalanceWithParams(ctx context.Context, params m
 		Result:             rebalanceResp.Result,
 		State:              v1beta1.CruiseControlTaskActive,
 	}, nil
+}
+
+func (cc *cruiseControlScaler) RemoveDisksWithParams(ctx context.Context, params map[string]string) (*Result, error) {
+	removeReq := &api.RemoveDisksRequest{}
+
+	for param, pvalue := range params {
+		if _, ok := removeDisksSupportedParams[param]; ok {
+			switch param {
+			case ParamBrokerIDAndLogDirs:
+				ret, err := parseBrokerIDsAndLogDirsToMap(pvalue)
+				if err != nil {
+					return nil, err
+				}
+				removeReq.BrokerIDAndLogDirs = ret
+			default:
+				return nil, fmt.Errorf("unsupported %s parameter: %s, supported parameters: %s", v1alpha1.OperationRemoveDisks, param, removeDisksSupportedParams)
+			}
+		}
+	}
+
+	if len(removeReq.BrokerIDAndLogDirs) == 0 {
+		return &Result{
+			State: v1beta1.CruiseControlTaskCompleted,
+		}, nil
+	}
+
+	removeResp, err := cc.client.RemoveDisks(ctx, removeReq)
+	if err != nil {
+		return &Result{
+			TaskID:             removeResp.TaskID,
+			StartedAt:          removeResp.Date,
+			ResponseStatusCode: removeResp.StatusCode,
+			RequestURL:         removeResp.RequestURL,
+			State:              v1beta1.CruiseControlTaskCompletedWithError,
+			Err:                err,
+		}, err
+	}
+
+	return &Result{
+		TaskID:             removeResp.TaskID,
+		StartedAt:          removeResp.Date,
+		ResponseStatusCode: removeResp.StatusCode,
+		RequestURL:         removeResp.RequestURL,
+		Result:             removeResp.Result,
+		State:              v1beta1.CruiseControlTaskActive,
+	}, nil
+}
+
+func parseBrokerIDsAndLogDirsToMap(brokerIDsAndLogDirs string) (map[int32][]string, error) {
+	// brokerIDsAndLogDirs format: brokerID1-logDir1,brokerID2-logDir2,brokerID1-logDir3
+	brokerIDLogDirMap := make(map[int32][]string)
+
+	if len(brokerIDsAndLogDirs) == 0 {
+		return brokerIDLogDirMap, nil
+	}
+
+	pairs := strings.Split(brokerIDsAndLogDirs, ",")
+	for _, pair := range pairs {
+		components := strings.SplitN(pair, "-", 2)
+		if len(components) != 2 {
+			return nil, errors.New("invalid format for brokerIDsAndLogDirs")
+		}
+
+		brokerID, err := strconv.ParseInt(components[0], 10, 32)
+		if err != nil {
+			return nil, errors.New("invalid broker ID")
+		}
+
+		logDir := components[1]
+
+		// Add logDir to the corresponding brokerID's list
+		brokerIDLogDirMap[int32(brokerID)] = append(brokerIDLogDirMap[int32(brokerID)], logDir)
+	}
+
+	return brokerIDLogDirMap, nil
 }
 
 func (cc *cruiseControlScaler) KafkaClusterLoad(ctx context.Context) (*api.KafkaClusterLoadResponse, error) {
