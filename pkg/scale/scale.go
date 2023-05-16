@@ -16,17 +16,17 @@ package scale
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/go-logr/logr"
-
 	"github.com/banzaicloud/go-cruise-control/pkg/api"
 	"github.com/banzaicloud/go-cruise-control/pkg/client"
 	"github.com/banzaicloud/go-cruise-control/pkg/types"
+	"github.com/go-logr/logr"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
@@ -107,18 +107,102 @@ type cruiseControlScaler struct {
 	client *client.Client
 }
 
-// Status returns a CruiseControlStatus describing the internal state of Cruise Control.
-func (cc *cruiseControlScaler) Status(ctx context.Context) (CruiseControlStatus, error) {
+// Status returns a StatusTaskResult describing the internal state of Cruise Control.
+func (cc *cruiseControlScaler) Status(ctx context.Context) (StatusTaskResult, error) {
 	req := api.StateRequestWithDefaults()
 	req.Verbose = true
 	resp, err := cc.client.State(ctx, req)
 	if err != nil {
-		return CruiseControlStatus{}, err
+		return StatusTaskResult{}, err
 	}
 
+	// if the execution takes too much time, then Cruise Control converts the request into async
+	// and returns the taskID
+	if resp.Result == nil {
+		return StatusTaskResult{
+			TaskResult: &Result{
+				TaskID:             resp.TaskID,
+				StartedAt:          resp.Date,
+				ResponseStatusCode: resp.StatusCode,
+				RequestURL:         resp.RequestURL,
+				State:              v1beta1.CruiseControlTaskActive,
+			},
+		}, nil
+	}
+
+	status := convert(resp.Result)
+
+	return StatusTaskResult{
+		TaskResult: &Result{
+			TaskID:             resp.TaskID,
+			StartedAt:          resp.Date,
+			ResponseStatusCode: resp.StatusCode,
+			RequestURL:         resp.RequestURL,
+			State:              v1beta1.CruiseControlTaskActive,
+		},
+		Status: &status,
+	}, nil
+}
+
+// StatusTask returns the latest state of the Status Cruise Control task.
+func (cc *cruiseControlScaler) StatusTask(ctx context.Context, taskID string) (StatusTaskResult, error) {
+	req := &api.UserTasksRequest{
+		UserTaskIDs:         []string{taskID},
+		FetchCompletedTasks: true,
+	}
+
+	resp, err := cc.client.UserTasks(ctx, req)
+	if err != nil {
+		return StatusTaskResult{}, err
+	}
+
+	//CC no longer has the info about the task, mark it as completed with error
+	if len(resp.Result.UserTasks) == 0 {
+		return StatusTaskResult{
+			TaskResult: &Result{
+				TaskID: taskID,
+				State:  v1beta1.CruiseControlTaskCompletedWithError,
+			},
+		}, nil
+	}
+
+	if len(resp.Result.UserTasks) != 1 {
+		return StatusTaskResult{}, fmt.Errorf("could not get the Cruise Control state, expected the response for 1 task (%s), but got %d responses", taskID, len(resp.Result.UserTasks))
+	}
+
+	taskInfo := resp.Result.UserTasks[0]
+	status := taskInfo.Status
+	if status == types.UserTaskStatusCompleted {
+		result := &types.StateResult{}
+		if err = json.Unmarshal([]byte(taskInfo.OriginalResponse), result); err != nil {
+			return StatusTaskResult{}, err
+		}
+
+		status := convert(result)
+
+		return StatusTaskResult{
+			TaskResult: &Result{
+				TaskID:    taskInfo.UserTaskID,
+				StartedAt: taskInfo.StartMs.UTC().String(),
+				State:     v1beta1.CruiseControlUserTaskState(taskInfo.Status.String()),
+			},
+			Status: &status,
+		}, nil
+	}
+
+	return StatusTaskResult{
+		TaskResult: &Result{
+			TaskID:    taskInfo.UserTaskID,
+			StartedAt: taskInfo.StartMs.UTC().String(),
+			State:     v1beta1.CruiseControlUserTaskState(taskInfo.Status.String()),
+		},
+	}, nil
+}
+
+func convert(result *types.StateResult) CruiseControlStatus {
 	goalsReady := true
-	if len(resp.Result.AnalyzerState.GoalReadiness) > 0 {
-		for _, goal := range resp.Result.AnalyzerState.GoalReadiness {
+	if len(result.AnalyzerState.GoalReadiness) > 0 {
+		for _, goal := range result.AnalyzerState.GoalReadiness {
 			if goal.Status != types.GoalReadinessStatusReady {
 				goalsReady = false
 				break
@@ -126,32 +210,33 @@ func (cc *cruiseControlScaler) Status(ctx context.Context) (CruiseControlStatus,
 		}
 	}
 
-	return CruiseControlStatus{
-		MonitorReady:       resp.Result.MonitorState.State == types.MonitorStateRunning,
-		ExecutorReady:      resp.Result.ExecutorState.State == types.ExecutorStateTypeNoTaskInProgress,
-		AnalyzerReady:      resp.Result.AnalyzerState.IsProposalReady && goalsReady,
-		ProposalReady:      resp.Result.AnalyzerState.IsProposalReady,
+	status := CruiseControlStatus{
+		MonitorReady:       result.MonitorState.State == types.MonitorStateRunning,
+		ExecutorReady:      result.ExecutorState.State == types.ExecutorStateTypeNoTaskInProgress,
+		AnalyzerReady:      result.AnalyzerState.IsProposalReady && goalsReady,
+		ProposalReady:      result.AnalyzerState.IsProposalReady,
 		GoalsReady:         goalsReady,
-		MonitoredWindows:   resp.Result.MonitorState.NumMonitoredWindows,
-		MonitoringCoverage: resp.Result.MonitorState.MonitoringCoveragePercentage,
-	}, nil
+		MonitoredWindows:   result.MonitorState.NumMonitoredWindows,
+		MonitoringCoverage: result.MonitorState.MonitoringCoveragePercentage,
+	}
+	return status
 }
 
 // IsReady returns true if the Analyzer and Monitor components of Cruise Control are in ready state.
 func (cc *cruiseControlScaler) IsReady(ctx context.Context) bool {
 	status, err := cc.Status(ctx)
-	if err != nil {
+	if err != nil || status.Status == nil {
 		cc.log.Error(err, "could not get Cruise Control status")
 		return false
 	}
 	cc.log.Info("cruise control readiness",
-		"analyzer", status.AnalyzerReady,
-		"monitor", status.MonitorReady,
-		"executor", status.ExecutorReady,
-		"goals ready", status.GoalsReady,
-		"monitored windows", status.MonitoredWindows,
-		"monitoring coverage percentage", status.MonitoringCoverage)
-	return status.IsReady()
+		"analyzer", status.Status.AnalyzerReady,
+		"monitor", status.Status.MonitorReady,
+		"executor", status.Status.ExecutorReady,
+		"goals ready", status.Status.GoalsReady,
+		"monitored windows", status.Status.MonitoredWindows,
+		"monitoring coverage percentage", status.Status.MonitoringCoverage)
+	return status.Status.IsReady()
 }
 
 // IsUp returns true if Cruise Control is online.

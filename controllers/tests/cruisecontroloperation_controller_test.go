@@ -359,6 +359,34 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue())
 		})
 	})
+	When("Cruise Control makes the Status operation async", Serial, func() {
+		JustBeforeEach(func(ctx SpecContext) {
+			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock7())
+			operation := generateCruiseControlOperation("add-broker-operation", namespace, kafkaCluster.GetName())
+			err := k8sClient.Create(ctx, &operation)
+			Expect(err).NotTo(HaveOccurred())
+
+			operation.Status.CurrentTask = &v1alpha1.CruiseControlTask{
+				Operation: v1alpha1.OperationAddBroker,
+				ID:        "11111",
+			}
+			err = k8sClient.Status().Update(ctx, &operation)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("should create status CruiseControlOperation and retry", func(ctx SpecContext) {
+			Eventually(ctx, func() v1beta1.CruiseControlUserTaskState {
+				operation := v1alpha1.CruiseControlOperation{}
+				err := k8sClient.Get(ctx, client.ObjectKey{
+					Namespace: kafkaCluster.Namespace,
+					Name:      "add-broker-operation",
+				}, &operation)
+				if err != nil {
+					return ""
+				}
+				return operation.CurrentTaskState()
+			}, 15*time.Second, 500*time.Millisecond).Should(Equal(v1beta1.CruiseControlTaskCompleted))
+		})
+	})
 })
 
 func generateCruiseControlOperation(name, namespace, kafkaRef string) v1alpha1.CruiseControlOperation {
@@ -382,11 +410,12 @@ func getScaleMock2() *mocks.MockCruiseControlScaler {
 		State:     v1beta1.CruiseControlTaskCompletedWithError,
 	})}
 	scaleMock.EXPECT().UserTasks(gomock.Any(), gomock.Any()).Return(userTaskResult, nil).AnyTimes()
-	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.CruiseControlStatus{
-		ExecutorReady: true,
-		MonitorReady:  true,
-		AnalyzerReady: true,
-	}, nil).AnyTimes()
+	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.StatusTaskResult{
+		Status: &scale.CruiseControlStatus{
+			ExecutorReady: true,
+			MonitorReady:  true,
+			AnalyzerReady: true,
+		}}, nil).AnyTimes()
 	scaleMock.EXPECT().AddBrokersWithParams(gomock.Any(), gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
@@ -405,11 +434,12 @@ func getScaleMock1() *mocks.MockCruiseControlScaler {
 		State:     v1beta1.CruiseControlTaskCompleted,
 	})}
 	scaleMock.EXPECT().UserTasks(gomock.Any(), gomock.Any()).Return(userTaskResult, nil).AnyTimes()
-	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.CruiseControlStatus{
-		ExecutorReady: true,
-		MonitorReady:  true,
-		AnalyzerReady: true,
-	}, nil).AnyTimes()
+	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.StatusTaskResult{
+		Status: &scale.CruiseControlStatus{
+			ExecutorReady: true,
+			MonitorReady:  true,
+			AnalyzerReady: true,
+		}}, nil).AnyTimes()
 	scaleMock.EXPECT().AddBrokersWithParams(gomock.Any(), gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
@@ -433,11 +463,12 @@ func getScaleMock3() *mocks.MockCruiseControlScaler {
 		State:     v1beta1.CruiseControlTaskCompleted,
 	})}
 	scaleMock.EXPECT().UserTasks(gomock.Any(), gomock.Any()).Return(userTaskResult, nil).AnyTimes()
-	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.CruiseControlStatus{
-		ExecutorReady: true,
-		MonitorReady:  true,
-		AnalyzerReady: true,
-	}, nil).AnyTimes()
+	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.StatusTaskResult{
+		Status: &scale.CruiseControlStatus{
+			ExecutorReady: true,
+			MonitorReady:  true,
+			AnalyzerReady: true,
+		}}, nil).AnyTimes()
 	scaleMock.EXPECT().RemoveBrokersWithParams(gomock.Any(), gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
@@ -467,11 +498,12 @@ func getScaleMock4() *mocks.MockCruiseControlScaler {
 		State:     v1beta1.CruiseControlTaskCompletedWithError,
 	})}
 	scaleMock.EXPECT().UserTasks(gomock.Any(), gomock.Any()).Return(userTaskResult, nil).AnyTimes()
-	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.CruiseControlStatus{
-		ExecutorReady: true,
-		MonitorReady:  true,
-		AnalyzerReady: true,
-	}, nil).AnyTimes()
+	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.StatusTaskResult{
+		Status: &scale.CruiseControlStatus{
+			ExecutorReady: true,
+			MonitorReady:  true,
+			AnalyzerReady: true,
+		}}, nil).AnyTimes()
 	scaleMock.EXPECT().RemoveBrokersWithParams(gomock.Any(), gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "1",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
@@ -497,11 +529,12 @@ func getScaleMock5() *mocks.MockCruiseControlScaler {
 	})}
 	first := scaleMock.EXPECT().UserTasks(gomock.Any(), gomock.Any()).Return(userTaskResult, nil).Times(1)
 	scaleMock.EXPECT().UserTasks(gomock.Any(), gomock.Any()).Return(userTaskResult2, nil).After(first).AnyTimes()
-	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.CruiseControlStatus{
-		ExecutorReady: true,
-		MonitorReady:  true,
-		AnalyzerReady: true,
-	}, nil).AnyTimes()
+	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.StatusTaskResult{
+		Status: &scale.CruiseControlStatus{
+			ExecutorReady: true,
+			MonitorReady:  true,
+			AnalyzerReady: true,
+		}}, nil).AnyTimes()
 	scaleMock.EXPECT().AddBrokersWithParams(gomock.Any(), gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12345",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
@@ -521,11 +554,12 @@ func getScaleMock6() *mocks.MockCruiseControlScaler {
 		State:     v1beta1.CruiseControlTaskCompletedWithError,
 	})}
 	scaleMock.EXPECT().UserTasks(gomock.Any(), gomock.Any()).Return(userTaskResult, nil).AnyTimes()
-	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.CruiseControlStatus{
-		ExecutorReady: true,
-		MonitorReady:  true,
-		AnalyzerReady: true,
-	}, nil).AnyTimes()
+	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.StatusTaskResult{
+		Status: &scale.CruiseControlStatus{
+			ExecutorReady: true,
+			MonitorReady:  true,
+			AnalyzerReady: true,
+		}}, nil).AnyTimes()
 	scaleMock.EXPECT().RebalanceWithParams(gomock.Any(), gomock.All()).Return(scaleResultPointer(scale.Result{
 		TaskID:    "12346",
 		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
@@ -538,6 +572,39 @@ func getScaleMock6() *mocks.MockCruiseControlScaler {
 		State:     v1beta1.CruiseControlTaskCompletedWithError,
 	}), nil).AnyTimes()
 
+	return scaleMock
+}
+
+func getScaleMock7() *mocks.MockCruiseControlScaler {
+	mockCtrl := gomock.NewController(GinkgoT())
+	scaleMock := mocks.NewMockCruiseControlScaler(mockCtrl)
+	scaleMock.EXPECT().IsUp(gomock.Any()).Return(true).AnyTimes()
+
+	startTime := metav1.Now().Format(time.RFC1123)
+	scaleMock.EXPECT().Status(gomock.Any()).Return(scale.StatusTaskResult{
+		TaskResult: &scale.Result{
+			TaskID:    "22222",
+			StartedAt: startTime,
+			State:     v1beta1.CruiseControlTaskActive,
+		}}, nil).AnyTimes()
+	scaleMock.EXPECT().StatusTask(gomock.Any(), "22222").Return(scale.StatusTaskResult{
+		TaskResult: &scale.Result{
+			TaskID:    "22222",
+			StartedAt: startTime,
+			State:     v1beta1.CruiseControlTaskCompleted,
+		},
+		Status: &scale.CruiseControlStatus{
+			ExecutorReady: true,
+			MonitorReady:  true,
+			AnalyzerReady: true,
+		}}, nil).AnyTimes()
+
+	userTaskResult := []*scale.Result{scaleResultPointer(scale.Result{
+		TaskID:    "11111",
+		StartedAt: "Sat, 27 Aug 2022 12:22:21 GMT",
+		State:     v1beta1.CruiseControlTaskCompleted,
+	})}
+	scaleMock.EXPECT().UserTasks(gomock.Any(), gomock.Any()).Return(userTaskResult, nil).AnyTimes()
 	return scaleMock
 }
 

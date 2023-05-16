@@ -25,7 +25,8 @@ import (
 
 type CruiseControlScaler interface {
 	IsReady(ctx context.Context) bool
-	Status(ctx context.Context) (CruiseControlStatus, error)
+	Status(ctx context.Context) (StatusTaskResult, error)
+	StatusTask(ctx context.Context, taskId string) (StatusTaskResult, error)
 	UserTasks(ctx context.Context, taskIDs ...string) ([]*Result, error)
 	IsUp(ctx context.Context) bool
 	AddBrokers(ctx context.Context, brokerIDs ...string) (*Result, error)
@@ -60,6 +61,11 @@ const (
 	LogDirStateOnline LogDirState = iota
 	LogDirStateOffline
 )
+
+type StatusTaskResult struct {
+	TaskResult *Result
+	Status     *CruiseControlStatus
+}
 
 // CruiseControlStatus struct is used to describe internal state of Cruise Control.
 type CruiseControlStatus struct {

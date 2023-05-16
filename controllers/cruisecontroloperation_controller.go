@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"time"
 
 	"emperror.dev/errors"
@@ -34,6 +35,7 @@ import (
 
 	"github.com/banzaicloud/go-cruise-control/pkg/types"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
 	banzaiv1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 	banzaiv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/scale"
@@ -41,12 +43,13 @@ import (
 )
 
 const (
-	defaultFailedTasksHistoryMaxLength = 50
-	ccOperationFinalizerGroup          = "finalizer.cruisecontroloperations.kafka.banzaicloud.io"
-	ccOperationForStopExecution        = "ccOperationStopExecution"
-	ccOperationFirstExecution          = "ccOperationFirstExecution"
-	ccOperationRetryExecution          = "ccOperationRetryExecution"
-	ccOperationInProgress              = "ccOperationInProgress"
+	defaultFailedTasksHistoryMaxLength             = 50
+	ccOperationFinalizerGroup                      = "finalizer.cruisecontroloperations.kafka.banzaicloud.io"
+	ccOperationForStopExecution                    = "ccOperationStopExecution"
+	ccOperationFirstExecution                      = "ccOperationFirstExecution"
+	ccOperationRetryExecution                      = "ccOperationRetryExecution"
+	ccOperationInProgress                          = "ccOperationInProgress"
+	defaultCruiseControlStatusOperationMaxDuration = time.Duration(5) * time.Minute
 )
 
 var (
@@ -98,6 +101,12 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 		return reconciled()
 	}
 
+	// Skip reconciliation for Cruise Control Status operation
+	if currentCCOperation.CurrentTaskOperation() == banzaiv1alpha1.OperationStatus {
+		log.V(1).Info("skipping reconciliation for Cruise Control Status operation")
+		return reconciled()
+	}
+
 	// When the task is done we can remove the finalizer instantly thus we can return fast here.
 	if isFinalizerNeeded(currentCCOperation) && currentCCOperation.IsDone() {
 		controllerutil.RemoveFinalizer(currentCCOperation, ccOperationFinalizerGroup)
@@ -145,7 +154,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	}
 
 	// Checking Cruise Control health
-	status, err := r.scaler.Status(ctx)
+	status, err := r.getStatus(ctx, log, kafkaCluster, kafkaClusterRef, ccOperationListClusterWide)
 	if err != nil {
 		log.Error(err, "could not get Cruise Control status")
 		return requeueAfter(defaultRequeueIntervalInSeconds)
@@ -274,6 +283,8 @@ func (r *CruiseControlOperationReconciler) executeOperation(ctx context.Context,
 		cruseControlTaskResult, err = r.scaler.RemoveDisksWithParams(ctx, ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationStopExecution:
 		cruseControlTaskResult, err = r.scaler.StopExecution(ctx)
+	case banzaiv1alpha1.OperationStatus:
+		err = errors.NewWithDetails("Cruise Control operation not supported", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
 	default:
 		err = errors.NewWithDetails("Cruise Control operation not supported", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
 	}
@@ -500,6 +511,121 @@ func (r *CruiseControlOperationReconciler) updateCurrentTasks(ctx context.Contex
 		}
 	}
 	return nil
+}
+
+// getStatus returns the internal state of Cruise Control.
+//
+// The logic is the following:
+//   - If the Cruise Control makes the Status request sync, then the result will be returned.
+//   - If the Cruise Control makes the Status request async, then a new Status CruiseControlOperation
+//     will be created and an error will be returned to indicate that Cruise Control is not ready yet.
+//   - If there is already a Status CruiseControlOperation in progress, then it will be updated and
+//     the result will be returned.
+func (r *CruiseControlOperationReconciler) getStatus(
+	ctx context.Context,
+	log logr.Logger,
+	kafkaCluster *banzaiv1beta1.KafkaCluster,
+	kafkaClusterRef client.ObjectKey,
+	ccOperationListClusterWide banzaiv1alpha1.CruiseControlOperationList,
+) (scale.CruiseControlStatus, error) {
+	var statusOperation *banzaiv1alpha1.CruiseControlOperation
+	for i := range ccOperationListClusterWide.Items {
+		ccOperation := &ccOperationListClusterWide.Items[i]
+		// ignoring the error here to continue processing the operations,
+		// even if the user does not provide a KafkaClusterRef label on the CCOperation then the ref will be an empty object (not nil) and the filter will skip it.
+		ref, _ := kafkaClusterReference(ccOperation)
+		if ref.Name == kafkaClusterRef.Name && ref.Namespace == kafkaClusterRef.Namespace && ccOperation.Status.CurrentTask != nil &&
+			ccOperation.Status.CurrentTask.Operation == banzaiv1alpha1.OperationStatus && ccOperation.IsCurrentTaskRunning() {
+			statusOperation = ccOperation
+			break
+		}
+	}
+
+	if statusOperation != nil {
+		res, err := r.scaler.StatusTask(ctx, statusOperation.CurrentTaskID())
+		if err != nil {
+			return scale.CruiseControlStatus{}, errors.WrapIfWithDetails(err, "could not get the latest state of Status CruiseControlOperation", "name", statusOperation.GetName(), "namespace", statusOperation.GetNamespace())
+		}
+		if err := updateResult(log, res.TaskResult, statusOperation, false); err != nil {
+			return scale.CruiseControlStatus{}, errors.WrapIfWithDetails(err, "could not update the state of Status CruiseControlOperation", "name", statusOperation.GetName(), "namespace", statusOperation.GetNamespace())
+		}
+
+		err = r.Status().Update(ctx, statusOperation)
+		if err != nil {
+			return scale.CruiseControlStatus{}, errors.WrapIfWithDetails(err, "could not update the state of Status CruiseControlOperation", "name", statusOperation.GetName(), "namespace", statusOperation.GetNamespace())
+		}
+
+		if statusOperation.CurrentTask().Finished != nil &&
+			statusOperation.CurrentTask().Finished.Time.Sub(statusOperation.CurrentTask().Started.Time) > defaultCruiseControlStatusOperationMaxDuration {
+			return scale.CruiseControlStatus{}, errors.New("the Cruise Control status operation took too long to finish")
+		}
+
+		if res.Status == nil {
+			return scale.CruiseControlStatus{}, errors.New("could not get Cruise Control status")
+		}
+
+		return *res.Status, nil
+	}
+
+	res, err := r.scaler.Status(ctx)
+	if err != nil {
+		return scale.CruiseControlStatus{}, errors.WrapIfWithDetails(err, "could not get Cruise Control status")
+	}
+
+	if res.Status == nil {
+		operationTTLSecondsAfterFinished := kafkaCluster.Spec.CruiseControlConfig.CruiseControlOperationSpec.GetTTLSecondsAfterFinished()
+		operation, err := r.createCCOperation(ctx, kafkaCluster, operationTTLSecondsAfterFinished, banzaiv1alpha1.OperationStatus)
+		if err != nil {
+			return scale.CruiseControlStatus{}, errors.WrapIfWithDetails(err, "could not create a new Status CruiseControlOperation")
+		}
+		if err = updateResult(log, res.TaskResult, operation, true); err != nil {
+			return scale.CruiseControlStatus{}, errors.WrapIfWithDetails(err, "could not update the state of Status CruiseControlOperation", "name", statusOperation.GetName(), "namespace", statusOperation.GetNamespace())
+		}
+		err = r.Status().Update(ctx, operation)
+		if err != nil {
+			return scale.CruiseControlStatus{}, errors.WrapIfWithDetails(err, "could not update the state of Status CruiseControlOperation", "name", statusOperation.GetName(), "namespace", statusOperation.GetNamespace())
+		}
+
+		return scale.CruiseControlStatus{}, errors.New("could not get Cruise Control status, the operation is still in progress")
+	}
+
+	return *res.Status, nil
+}
+
+func (r *CruiseControlOperationReconciler) createCCOperation(
+	ctx context.Context,
+	kafkaCluster *banzaiv1beta1.KafkaCluster,
+	ttlSecondsAfterFinished *int,
+	operationType banzaiv1alpha1.CruiseControlTaskOperation,
+) (*banzaiv1alpha1.CruiseControlOperation, error) {
+	operation := &banzaiv1alpha1.CruiseControlOperation{
+		ObjectMeta: v1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-%s-", kafkaCluster.Name, strings.ReplaceAll(string(operationType), "_", "")),
+			Namespace:    kafkaCluster.Namespace,
+			Labels:       apiutil.LabelsForKafka(kafkaCluster.Name),
+		},
+	}
+
+	if ttlSecondsAfterFinished != nil {
+		operation.Spec.TTLSecondsAfterFinished = ttlSecondsAfterFinished
+	}
+
+	if err := controllerutil.SetControllerReference(kafkaCluster, operation, r.Scheme); err != nil {
+		return nil, err
+	}
+	if err := r.Client.Create(ctx, operation); err != nil {
+		return nil, err
+	}
+
+	operation.Status.CurrentTask = &banzaiv1alpha1.CruiseControlTask{
+		Operation: operationType,
+	}
+
+	if err := r.Status().Update(ctx, operation); err != nil {
+		return nil, err
+	}
+
+	return operation, nil
 }
 
 func isWaitingForFinalization(ccOperation *banzaiv1alpha1.CruiseControlOperation) bool {
