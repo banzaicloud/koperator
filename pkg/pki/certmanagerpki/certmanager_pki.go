@@ -112,18 +112,18 @@ func (c *certManager) kafkapki(ctx context.Context, extListenerStatuses map[stri
 		if sslConfig.IssuerRef == nil {
 			return generatedCAForPKICertManager(c.cluster, extListenerStatuses), nil
 		}
-		return userProvidedPKIBackend(c.cluster, extListenerStatuses), nil
+		return userProvidedIssuerforPKICertManager(c.cluster, extListenerStatuses), nil
 	}
 	return userProvidedCAforPKICertManager(ctx, c.client, c.cluster, extListenerStatuses)
 }
 
-func userProvidedPKIBackend(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) []runtime.Object {
+func userProvidedIssuerforPKICertManager(cluster *v1beta1.KafkaCluster, extListenerStatuses map[string]v1beta1.ListenerStatusList) []runtime.Object {
 	// No need to generate self-signed certs and issuers because the issuer is provided by user
 	return []runtime.Object{
 		// Broker "user"
-		pkicommon.BrokerUserForClusterWithPKIBackendSpec(cluster, extListenerStatuses),
+		pkicommon.BrokerUserForCluster(cluster, extListenerStatuses),
 		// Operator user
-		pkicommon.ControllerUserForClusterWithPKIBackendSpec(cluster),
+		pkicommon.ControllerUserForCluster(cluster),
 	}
 }
 
