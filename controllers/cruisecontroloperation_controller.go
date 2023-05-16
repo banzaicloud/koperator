@@ -154,7 +154,7 @@ func (r *CruiseControlOperationReconciler) Reconcile(ctx context.Context, reques
 	}
 
 	// Checking Cruise Control health
-	status, err := r.getStatus(ctx, log, kafkaCluster, ccOperationListClusterWide)
+	status, err := r.getStatus(ctx, log, kafkaCluster, kafkaClusterRef, ccOperationListClusterWide)
 	if err != nil {
 		log.Error(err, "could not get Cruise Control status")
 		return requeueAfter(defaultRequeueIntervalInSeconds)
@@ -525,6 +525,7 @@ func (r *CruiseControlOperationReconciler) getStatus(
 	ctx context.Context,
 	log logr.Logger,
 	kafkaCluster *banzaiv1beta1.KafkaCluster,
+	kafkaClusterRef client.ObjectKey,
 	ccOperationListClusterWide banzaiv1alpha1.CruiseControlOperationList,
 ) (scale.CruiseControlStatus, error) {
 	var statusOperation *banzaiv1alpha1.CruiseControlOperation
@@ -533,8 +534,8 @@ func (r *CruiseControlOperationReconciler) getStatus(
 		// ignoring the error here to continue processing the operations,
 		// even if the user does not provide a KafkaClusterRef label on the CCOperation then the ref will be an empty object (not nil) and the filter will skip it.
 		ref, _ := kafkaClusterReference(ccOperation)
-		if ref.Name == kafkaCluster.Name && ref.Namespace == kafkaCluster.Namespace &&
-			ccOperation.CurrentTaskOperation() == banzaiv1alpha1.OperationStatus && ccOperation.IsCurrentTaskRunning() {
+		if ref.Name == kafkaClusterRef.Name && ref.Namespace == kafkaClusterRef.Namespace && ccOperation.Status.CurrentTask != nil &&
+			ccOperation.Status.CurrentTask.Operation == banzaiv1alpha1.OperationStatus && ccOperation.IsCurrentTaskRunning() {
 			statusOperation = ccOperation
 			break
 		}
