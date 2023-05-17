@@ -27,6 +27,7 @@ import (
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/resources/templates"
 	"github.com/banzaicloud/koperator/pkg/webhooks"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
@@ -34,6 +35,7 @@ import (
 
 const (
 	ccMetricTopicAutoCreate             = "cruise.control.metrics.topic.auto.create"
+	ccMetricPropertyTopicName           = "cruise.control.metrics.topic"
 	cruiseControlTopicFormat            = "%s-cruise-control-topic"
 	cruiseControlTopicName              = "__CruiseControlMetrics"
 	cruiseControlTopicPartitions        = 12
@@ -86,6 +88,28 @@ func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log lo
 			log.Info("CruiseControl topic has been created by CruiseControl")
 			return nil
 		}
+	}
+	// Handle that case when the topic is created by CC but later cruise.control.metrics.topic.auto.create config removed from readOnlyConfig,
+	// or its value changed to false. In that case we dont need to create CC Metrics topic
+	broker, close, err := kafkaclient.NewFromCluster(client, cluster)
+	if err != nil {
+		return err
+	}
+	defer close()
+
+	// Check the override of the CC metrics topic name
+	ccTopicName := cruiseControlTopicName
+	if ccTopicNameProp, present := readOnlyConfigProperties.Get(ccMetricPropertyTopicName); present {
+		if ccTopicNameOverride := ccTopicNameProp.Value(); ccTopicNameOverride != "" {
+			ccTopicName = ccTopicNameOverride
+		}
+	}
+
+	if topic, err := broker.GetTopic(ccTopicName); err != nil {
+		return errorfactory.New(errorfactory.ResourceNotReady{}, err, fmt.Sprintf("failed to get kafka topic: %s", ccTopicName))
+	} else if topic != nil {
+		log.Info("CruiseControl topic has been created by CruiseControl")
+		return nil
 	}
 
 	existing := &v1alpha1.KafkaTopic{}
