@@ -260,3 +260,8 @@ mock-generate: bin/mockgen
 		-source pkg/scale/types.go \
 		-destination controllers/tests/mocks/scale.go \
 		-package mocks
+	$(BIN_DIR)/mockgen \
+	    -copyright_file $(BOILERPLATE_DIR)/header.generated.txt \
+	    -package mocks \
+		-destination pkg/resources/kafka/mocks/Client.go \
+		sigs.k8s.io/controller-runtime/pkg/client Client
