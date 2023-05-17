@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/onsi/gomega"
 	"gotest.tools/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -35,9 +36,13 @@ func TestReconciler_pvc(t *testing.T) {
 			Namespace: "kafka",
 		},
 	}
+
+	mockCtrl := gomock.NewController(t)
+	mockClient := mocks.NewMockClient(mockCtrl)
+
 	r := Reconciler{
 		Reconciler: resources.Reconciler{
-			Client:       new(mocks.Client),
+			Client:       mockClient,
 			KafkaCluster: kafkaCluster,
 		},
 	}

@@ -20,12 +20,11 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
+	"github.com/golang/mock/gomock"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kafkautils "github.com/banzaicloud/koperator/pkg/util/kafka"
-
-	"github.com/stretchr/testify/mock"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/resources"
@@ -609,13 +608,14 @@ zookeeper.connect=example.zk:2181/`,
 	}
 
 	t.Parallel()
+	mockCtrl := gomock.NewController(t)
 
 	for _, test := range tests {
 		test := test
 
 		t.Run(test.testName, func(t *testing.T) {
-			mockClient := new(mocks.Client)
-			mockClient.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1.ConfigMap")).Return(nil)
+			mockClient := mocks.NewMockClient(mockCtrl)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			r := Reconciler{
 				Reconciler: resources.Reconciler{
 					Client: mockClient,
