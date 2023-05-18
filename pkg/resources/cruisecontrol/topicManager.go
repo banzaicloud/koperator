@@ -73,7 +73,7 @@ func newCruiseControlTopic(cluster *v1beta1.KafkaCluster) *v1alpha1.KafkaTopic {
 	}
 }
 
-func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log logr.Logger) error {
+func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, kafkaClientProvider kafkaclient.Provider, log logr.Logger) error {
 	readOnlyConfigProperties, err := properties.NewFromString(cluster.Spec.ReadOnlyConfig)
 	if err != nil {
 		return errors.WrapIf(err, "could not parse broker config")
@@ -91,7 +91,7 @@ func generateCCTopic(cluster *v1beta1.KafkaCluster, client client.Client, log lo
 	}
 	// Handle that case when the topic is created by CC but later cruise.control.metrics.topic.auto.create config removed from readOnlyConfig,
 	// or its value changed to false. In that case we dont need to create CC Metrics topic
-	broker, close, err := kafkaclient.NewFromCluster(client, cluster)
+	broker, close, err := kafkaClientProvider.NewFromCluster(client, cluster)
 	if err != nil {
 		return err
 	}

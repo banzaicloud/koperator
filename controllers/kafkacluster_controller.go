@@ -119,7 +119,7 @@ func (r *KafkaClusterReconciler) Reconcile(ctx context.Context, request ctrl.Req
 		kafkamonitoring.New(r.Client, instance),
 		cruisecontrolmonitoring.New(r.Client, instance),
 		kafka.New(r.Client, r.DirectClient, instance, r.KafkaClientProvider),
-		cruisecontrol.New(r.Client, instance),
+		cruisecontrol.New(r.Client, instance, r.KafkaClientProvider),
 	}
 
 	for _, rec := range reconcilers {

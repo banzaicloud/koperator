@@ -29,6 +29,7 @@ import (
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
+	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 	"github.com/banzaicloud/koperator/pkg/resources"
 	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
@@ -54,6 +55,7 @@ type CapacityConfigAnnotation string
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
+	KafkaClientProvider kafkaclient.Provider
 }
 
 func ccLabelSelector(kafkaCluster string) map[string]string {
@@ -64,12 +66,13 @@ func ccLabelSelector(kafkaCluster string) map[string]string {
 }
 
 // New creates a new reconciler for CC
-func New(client client.Client, cluster *v1beta1.KafkaCluster) *Reconciler {
+func New(client client.Client, cluster *v1beta1.KafkaCluster, KafkaClientProvider kafkaclient.Provider) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
 			Client:       client,
 			KafkaCluster: cluster,
 		},
+		KafkaClientProvider: KafkaClientProvider,
 	}
 }
 
@@ -90,7 +93,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	}
 
 	if r.KafkaCluster.Spec.CruiseControlConfig.CruiseControlEndpoint == "" {
-		genErr := generateCCTopic(r.KafkaCluster, r.Client, log.WithName("generateCCTopic"))
+		genErr := generateCCTopic(r.KafkaCluster, r.Client, r.KafkaClientProvider, log.WithName("generateCCTopic"))
 		if genErr != nil {
 			updateErr := k8sutil.UpdateCRStatus(r.Client, r.KafkaCluster, v1beta1.CruiseControlTopicNotReady, log)
 			return errors.Combine(genErr, updateErr)
