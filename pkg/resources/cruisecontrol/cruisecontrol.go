@@ -66,13 +66,13 @@ func ccLabelSelector(kafkaCluster string) map[string]string {
 }
 
 // New creates a new reconciler for CC
-func New(client client.Client, cluster *v1beta1.KafkaCluster, KafkaClientProvider kafkaclient.Provider) *Reconciler {
+func New(client client.Client, cluster *v1beta1.KafkaCluster, kafkaClientProvider kafkaclient.Provider) *Reconciler {
 	return &Reconciler{
 		Reconciler: resources.Reconciler{
 			Client:       client,
 			KafkaCluster: cluster,
 		},
-		KafkaClientProvider: KafkaClientProvider,
+		KafkaClientProvider: kafkaClientProvider,
 	}
 }
 
