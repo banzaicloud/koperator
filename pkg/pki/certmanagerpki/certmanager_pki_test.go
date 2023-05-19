@@ -22,6 +22,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
@@ -124,6 +126,21 @@ func TestReconcilePKI(t *testing.T) {
 	if err := manager.client.Create(ctx, newCASecret()); err != nil {
 		t.Error("error during CA secret creation", reflect.TypeOf(err))
 	}
+	if err := manager.ReconcilePKI(ctx, make(map[string]v1beta1.ListenerStatusList)); err != nil {
+		t.Error("Expected successful reconcile, got:", err)
+	}
+
+	// Testing IssuerRef case
+	cluster.Spec.ListenersConfig.SSLSecrets.IssuerRef = &cmmeta.ObjectReference{
+		Name:  "test",
+		Kind:  "testKind",
+		Group: "testGroup",
+	}
+	manager, err = newMock(cluster)
+	if err != nil {
+		t.Error("Expected no error during initialization, got:", err)
+	}
+
 	if err := manager.ReconcilePKI(ctx, make(map[string]v1beta1.ListenerStatusList)); err != nil {
 		t.Error("Expected successful reconcile, got:", err)
 	}

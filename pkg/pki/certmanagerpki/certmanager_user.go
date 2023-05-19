@@ -182,7 +182,7 @@ func (c *certManager) clusterCertificateForUser(
 	return cert
 }
 
-// getCA returns the CA name/kind for the KafkaCluster
+// getCA returns the CA name/kind/group for the KafkaCluster
 func (c *certManager) getCA(user *v1alpha1.KafkaUser) (caName, caKind, caGroup string) {
 	var issuerRef *certmeta.ObjectReference
 	if user.Spec.PKIBackendSpec != nil {
