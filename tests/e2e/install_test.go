@@ -15,38 +15,24 @@
 package e2e
 
 import (
-	"testing"
-
 	"github.com/gruntwork-io/terratest/modules/k8s"
-	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestKoperator(t *testing.T) {
-	RegisterFailHandler(Fail) // Note: Ginkgo - Gomega connector.
-	RunSpecs(t, "Koperator end to end test suite")
-}
-
-var _ = BeforeSuite(func() {
-	By("Acquiring K8s cluster")
+var _ = When("Installing Koperator", func() {
 	var kubeconfigPath string
 	var kubecontextName string
 
-	By("Acquiring K8s config and context", func() {
+	It("Acquiring K8s config and context", func() {
 		var err error
 		kubeconfigPath, kubecontextName, err = currentEnvK8sContext()
+
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	By("Listing kube-system pods", func() {
-		pods := k8s.ListPods(
-			ginkgo.GinkgoT(),
-			k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kube-system"),
-			v1.ListOptions{},
-		)
-
-		Expect(len(pods)).To(Not(BeZero()))
-	})
+	requireInstallingCertManager(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"), "v1.11.0")
+	requireInstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "0.2.14")
+	requireInstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"), "42.0.1")
+	requireInstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), "v0.24.1")
 })
