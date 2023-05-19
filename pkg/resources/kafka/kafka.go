@@ -877,14 +877,9 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			if err != nil {
 				return errors.WrapIf(err, "failed to reconcile resource")
 			}
-			for _, pod := range podList.Items {
-				pod := pod
-				if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {
-					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating"), "rolling upgrade in progress")
-				}
-				if k8sutil.IsPodContainsPendingContainer(&pod) {
-					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still creating"), "rolling upgrade in progress")
-				}
+			terminatingOrPendingPods := getPodsInTerminatingOrPendingState(podList.Items)
+			if len(terminatingOrPendingPods) > 0 {
+				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating or creating"), "rolling upgrade in progress")
 			}
 
 			errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
@@ -941,6 +936,19 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 	}
 	log.Info("broker pod deleted", "pod", currentPod.GetName(), v1beta1.BrokerIdLabelKey, currentPod.Labels[v1beta1.BrokerIdLabelKey])
 	return nil
+}
+
+func getPodsInTerminatingOrPendingState(items []corev1.Pod) []corev1.Pod {
+	var pods []corev1.Pod
+	for _, pod := range items {
+		if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {
+			pods = append(pods, pod)
+		}
+		if k8sutil.IsPodContainsPendingContainer(&pod) {
+			pods = append(pods, pod)
+		}
+	}
+	return pods
 }
 
 // Checks for match between pod labels and TaintedBrokersSelector
