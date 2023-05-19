@@ -877,11 +877,19 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			if err != nil {
 				return errors.WrapIf(err, "failed to reconcile resource")
 			}
-			// todo: should be configurable
+			// todo: maxParallelPodRestartCount should be configurable
 			maxParallelPodRestartCount := 1
 			terminatingOrPendingPods := getPodsInTerminatingOrPendingState(podList.Items)
 			if len(terminatingOrPendingPods) >= maxParallelPodRestartCount {
 				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New(strconv.Itoa(maxParallelPodRestartCount)+" pod(s) is still terminating or creating"), "rolling upgrade in progress")
+			}
+			// todo: azLabel should be configurable
+			azLabel := "topology.kubernetes.io/zone"
+			currentPodAz := currentPod.Spec.NodeSelector[azLabel]
+			for _, terminatingOrPendingPod := range terminatingOrPendingPods {
+				if currentPodAz == terminatingOrPendingPod.Spec.NodeSelector[azLabel] {
+					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod from another AZ is still terminating or creating"), "rolling upgrade in progress")
+				}
 			}
 
 			errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
