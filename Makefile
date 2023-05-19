@@ -98,6 +98,12 @@ test: generate fmt vet manifests bin/setup-envtest
 		-timeout 1h
 	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
+# Run e2e tests
+test-e2e:
+	go test github.com/banzaicloud/koperator/tests/e2e \
+		-v \
+		-timeout 5m
+
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/manager main.go
