@@ -20921,7 +20921,6 @@ spec:
                           the PKIManager
                         enum:
                         - cert-manager
-                        - k8s-csr
                         type: string
                       tlsSecretName:
                         type: string

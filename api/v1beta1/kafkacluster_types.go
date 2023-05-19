@@ -488,7 +488,7 @@ type SSLSecrets struct {
 	JKSPasswordName string                  `json:"jksPasswordName,omitempty"`
 	Create          bool                    `json:"create,omitempty"`
 	IssuerRef       *cmmeta.ObjectReference `json:"issuerRef,omitempty"`
-	// +kubebuilder:validation:Enum={"cert-manager","k8s-csr"}
+	// +kubebuilder:validation:Enum={"cert-manager"}
 	PKIBackend PKIBackend `json:"pkiBackend,omitempty"`
 }
 
