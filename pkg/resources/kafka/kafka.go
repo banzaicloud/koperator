@@ -877,9 +877,11 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			if err != nil {
 				return errors.WrapIf(err, "failed to reconcile resource")
 			}
+			// todo: should be configurable
+			maxParallelPodRestartCount := 1
 			terminatingOrPendingPods := getPodsInTerminatingOrPendingState(podList.Items)
-			if len(terminatingOrPendingPods) > 0 {
-				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating or creating"), "rolling upgrade in progress")
+			if len(terminatingOrPendingPods) >= maxParallelPodRestartCount {
+				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New(strconv.Itoa(maxParallelPodRestartCount)+" pod(s) is still terminating or creating"), "rolling upgrade in progress")
 			}
 
 			errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
