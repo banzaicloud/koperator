@@ -121,7 +121,7 @@ func (cc *cruiseControlScaler) Status(ctx context.Context) (StatusTaskResult, er
 				StartedAt:          resp.Date,
 				ResponseStatusCode: resp.StatusCode,
 				RequestURL:         resp.RequestURL,
-				State:              v1beta1.CruiseControlTaskActive,
+				State:              v1beta1.CruiseControlTaskInExecution,
 			},
 		}, nil
 	}
@@ -134,7 +134,7 @@ func (cc *cruiseControlScaler) Status(ctx context.Context) (StatusTaskResult, er
 			StartedAt:          resp.Date,
 			ResponseStatusCode: resp.StatusCode,
 			RequestURL:         resp.RequestURL,
-			State:              v1beta1.CruiseControlTaskActive,
+			State:              v1beta1.CruiseControlTaskCompleted,
 		},
 		Status: &status,
 	}, nil
