@@ -54,7 +54,7 @@ type HelmRelease struct {
 func installHelmChart(
 	kubectlOptions *k8s.KubectlOptions,
 	helmRepository string,
-	helmChartName string,
+	helmChartNameOrLocalPath string,
 	helmChartVersion string,
 	helmReleaseName string,
 	setValues map[string]string,
@@ -62,15 +62,18 @@ func installHelmChart(
 	By(
 		fmt.Sprintf(
 			"Installing Helm chart %s from %s with version %s by name %s",
-			helmChartName, helmRepository, helmChartVersion, helmReleaseName,
+			helmChartNameOrLocalPath, helmRepository, helmChartVersion, helmReleaseName,
 		),
 	)
 
 	fixedArguments := []string{
-		"--repo", helmRepository,
 		"--create-namespace",
 		"--atomic",
 		"--debug",
+	}
+
+	if helmRepository != "" {
+		fixedArguments = append([]string{"--repo", helmRepository}, fixedArguments...)
 	}
 
 	helm.Install(
@@ -83,7 +86,7 @@ func installHelmChart(
 				"install": fixedArguments,
 			},
 		},
-		helmChartName,
+		helmChartNameOrLocalPath,
 		helmReleaseName,
 	)
 }
@@ -96,7 +99,7 @@ func installHelmChart(
 func installHelmChartIfDoesNotExist(
 	kubectlOptions *k8s.KubectlOptions,
 	helmRepository string,
-	helmChartName string,
+	helmChartNameOrLocalPath string,
 	helmChartVersion string,
 	helmReleaseName string,
 	setValues map[string]string,
@@ -113,7 +116,14 @@ func installHelmChartIfDoesNotExist(
 		return
 	}
 
-	installHelmChart(kubectlOptions, helmRepository, helmChartName, helmChartVersion, helmReleaseName, setValues)
+	installHelmChart(
+		kubectlOptions,
+		helmRepository,
+		helmChartNameOrLocalPath,
+		helmChartVersion,
+		helmReleaseName,
+		setValues,
+	)
 }
 
 // listHelmReleases returns a slice of Helm releases retrieved from the cluster
