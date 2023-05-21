@@ -23,6 +23,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -32,7 +33,7 @@ import (
 
 // requireApplyingKoperatorCRDs deploys the koperator CRDs and checks their
 // existence afterwards.
-func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorVersion string) {
+func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version) {
 	It("Applying koperator CRDs", func() {
 		By(fmt.Sprintf("Retrieving Koperator CRDs (to work around too long CRD) with version %s ", koperatorVersion))
 		// Note: had to go lower because none of apply, create, replace works
@@ -40,19 +41,37 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 		// handle the size, create is not idempotent, replace is only idempotent
 		// if the resources are existing already). Tried dropping the
 		// descriptions in the CRDs, but still too large
-		httpClient := new(http.Client)
-		httpClient.Timeout = 5 * time.Second
+		var rawKoperatorCRDsManifest []byte
+		var err error
 
-		response, err := httpClient.Get("https://github.com/banzaicloud/koperator/releases/download/" + koperatorVersion + "/kafka-operator.crds.yaml")
-		if response != nil {
-			defer func() { _ = response.Body.Close() }()
+		switch koperatorVersion {
+		case LocalVersion:
+			rawKoperatorCRDsManifest = []byte(helm.RenderTemplate(
+				GinkgoT(),
+				&helm.Options{
+					SetValues: map[string]string{
+						"crd.enabled": "true",
+					},
+				},
+				"../../charts/kafka-operator",
+				"dummy",
+				[]string{"templates/crds.yaml"},
+			))
+		default:
+			httpClient := new(http.Client)
+			httpClient.Timeout = 5 * time.Second
+
+			response, err := httpClient.Get("https://github.com/banzaicloud/koperator/releases/download/" + koperatorVersion + "/kafka-operator.crds.yaml")
+			if response != nil {
+				defer func() { _ = response.Body.Close() }()
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			rawKoperatorCRDsManifest, err = io.ReadAll(response.Body)
+
+			Expect(err).NotTo(HaveOccurred())
 		}
-
-		Expect(err).NotTo(HaveOccurred())
-
-		rawKoperatorCRDsManifest, err := io.ReadAll(response.Body)
-
-		Expect(err).NotTo(HaveOccurred())
 
 		rawKoperatorCRDs := bytes.Split(rawKoperatorCRDsManifest, []byte("\n---\n"))
 		for rawKoperatorCRDIndex, rawKoperatorCRD := range rawKoperatorCRDs {
@@ -75,7 +94,7 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 
 				createOrReplaceK8sResourcesFromManifest(kubectlOptions, "crd", koperatorCRD.GetName(), tempFile, false)
 			} else {
-				By("Applying cert-manager CRDs with version " + koperatorVersion)
+				By("Applying koperator CRDs with version " + koperatorVersion)
 				applyK8sResourceManifest(kubectlOptions, tempFile)
 			}
 		}
@@ -93,7 +112,7 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 
 // requireInstallingKoperator deploys koperator CRDs and Helm chart and checks
 // the success of those operations.
-func requireInstallingKoperator(kubectlOptions *k8s.KubectlOptions, koperatorVersion string) {
+func requireInstallingKoperator(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version) {
 	When("Installing koperator", func() {
 		requireApplyingKoperatorCRDs(kubectlOptions, koperatorVersion)
 		requireInstallingKoperatorHelmChartIfDoesNotExist(kubectlOptions, koperatorVersion)
@@ -104,17 +123,22 @@ func requireInstallingKoperator(kubectlOptions *k8s.KubectlOptions, koperatorVer
 // release and installs it if it's not present.
 func requireInstallingKoperatorHelmChartIfDoesNotExist(
 	kubectlOptions *k8s.KubectlOptions,
-	koperatorVersion string,
+	koperatorVersion Version,
 ) {
 	It("Installing koperator Helm chart", func() {
-		installHelmChartIfDoesNotExist(
-			kubectlOptions,
-			"https://kubernetes-charts.banzaicloud.com",
-			"kafka-operator",
-			koperatorVersion,
-			"kafka-operator",
-			nil,
-		)
+		switch koperatorVersion {
+		case LocalVersion:
+			installHelmChartIfDoesNotExist(kubectlOptions, "", "../../charts/kafka-operator", "", "kafka-operator", nil)
+		default:
+			installHelmChartIfDoesNotExist(
+				kubectlOptions,
+				"https://kubernetes-charts.banzaicloud.com",
+				"kafka-operator",
+				koperatorVersion,
+				"kafka-operator",
+				nil,
+			)
+		}
 
 		By("Verifying koperator pods")
 		requireRunningPods(kubectlOptions, "app.kubernetes.io/name", "kafka-operator")

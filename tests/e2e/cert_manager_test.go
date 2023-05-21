@@ -21,7 +21,7 @@ import (
 
 // requireApplyingCertManagerCRDs deploys the cert-manager CRDs and checks
 // their existence afterwards.
-func requireApplyingCertManagerCRDs(kubectlOptions *k8s.KubectlOptions, certManagerVersion string) {
+func requireApplyingCertManagerCRDs(kubectlOptions *k8s.KubectlOptions, certManagerVersion Version) {
 	It("Applying cert-manager CRDs", func() {
 		By("Applying cert-manager CRDs with version " + certManagerVersion)
 		applyK8sResourceManifest(
@@ -44,7 +44,7 @@ func requireApplyingCertManagerCRDs(kubectlOptions *k8s.KubectlOptions, certMana
 
 // requireInstallingCertManager deploys cert-manager CRDs and Helm chart and
 // checks the success of those operations.
-func requireInstallingCertManager(kubectlOptions *k8s.KubectlOptions, certManagerVersion string) {
+func requireInstallingCertManager(kubectlOptions *k8s.KubectlOptions, certManagerVersion Version) {
 	When("Installing cert-manager", func() {
 		requireApplyingCertManagerCRDs(kubectlOptions, certManagerVersion)
 		requireInstallingCertManagerHelmChartIfDoesNotExist(kubectlOptions, certManagerVersion)
