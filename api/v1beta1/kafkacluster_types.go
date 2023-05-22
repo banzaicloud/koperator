@@ -138,6 +138,9 @@ type RollingUpgradeConfig struct {
 	// distinct broker replicas with either offline replicas or out of sync replicas and the number of alerts triggered by
 	// alerts with 'rollingupgrade'
 	FailureThreshold int `json:"failureThreshold"`
+	// todo: add docs
+	ParallelBrokerRestarts           *int   `json:"parallelBrokerRestarts,omitempty"`
+	ParallelBrokerRestartsMatchLabel string `json:"parallelBrokerRestartsMatchLabel,omitempty"`
 }
 
 // DisruptionBudget defines the configuration for PodDisruptionBudget where the workload is managed by the kafka-operator

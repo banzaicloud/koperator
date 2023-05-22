@@ -877,14 +877,20 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			if err != nil {
 				return errors.WrapIf(err, "failed to reconcile resource")
 			}
-			// todo: maxParallelPodRestartCount should be configurable
-			maxParallelPodRestartCount := 1
-			terminatingOrPendingPods := getPodsInTerminatingOrPendingState(podList.Items)
-			if len(terminatingOrPendingPods) >= maxParallelPodRestartCount {
-				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New(strconv.Itoa(maxParallelPodRestartCount)+" pod(s) is still terminating or creating"), "rolling upgrade in progress")
+			// Check if we support multiple broker restarts, otherwise restart only 1 broker at once
+			maxParallelBrokerRestartCount := 1
+			if r.KafkaCluster.Spec.RollingUpgradeConfig.ParallelBrokerRestarts != nil {
+				maxParallelBrokerRestartCount = *r.KafkaCluster.Spec.RollingUpgradeConfig.ParallelBrokerRestarts
 			}
-			// todo: azLabel should be configurable
+			terminatingOrPendingPods := getPodsInTerminatingOrPendingState(podList.Items)
+			if len(terminatingOrPendingPods) >= maxParallelBrokerRestartCount {
+				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New(strconv.Itoa(maxParallelBrokerRestartCount)+" pod(s) is still terminating or creating"), "rolling upgrade in progress")
+			}
+			// If we support multiple broker restarts, restart only brokers from the same AZ
 			azLabel := "topology.kubernetes.io/zone"
+			if r.KafkaCluster.Spec.RollingUpgradeConfig.ParallelBrokerRestartsMatchLabel != "" {
+				azLabel = r.KafkaCluster.Spec.RollingUpgradeConfig.ParallelBrokerRestartsMatchLabel
+			}
 			currentPodAz := currentPod.Spec.NodeSelector[azLabel]
 			for _, terminatingOrPendingPod := range terminatingOrPendingPods {
 				if currentPodAz == terminatingOrPendingPod.Spec.NodeSelector[azLabel] {
