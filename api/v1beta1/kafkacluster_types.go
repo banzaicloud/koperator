@@ -138,8 +138,15 @@ type RollingUpgradeConfig struct {
 	// distinct broker replicas with either offline replicas or out of sync replicas and the number of alerts triggered by
 	// alerts with 'rollingupgrade'
 	FailureThreshold int `json:"failureThreshold"`
-	// todo: add docs
-	ParallelBrokerRestarts           *int   `json:"parallelBrokerRestarts,omitempty"`
+
+	// todo: add fields below to YAML specs too
+	// ParallelPodRestarts controls how many pods can be restarted in parallel during a rolling upgrade
+	// +optional
+	ParallelBrokerRestarts *int `json:"parallelBrokerRestarts,omitempty"`
+	// ParallelPodRestartsMatchLabel specifies the node selector label whose value filters brokers
+	// that can be restarted in parallel during a rolling upgrade. By default, it is set to "topology.kubernetes.io/zone",
+	// which means that only brokers in the same availability zone can be restarted in parallel.
+	// +optional
 	ParallelBrokerRestartsMatchLabel string `json:"parallelBrokerRestartsMatchLabel,omitempty"`
 }
 
