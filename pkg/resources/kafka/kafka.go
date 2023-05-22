@@ -893,7 +893,7 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			}
 			currentPodAz := currentPod.Spec.NodeSelector[azLabel]
 			for _, terminatingOrPendingPod := range terminatingOrPendingPods {
-				if currentPodAz == terminatingOrPendingPod.Spec.NodeSelector[azLabel] {
+				if currentPodAz != terminatingOrPendingPod.Spec.NodeSelector[azLabel] {
 					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod from another AZ is still terminating or creating"), "rolling upgrade in progress")
 				}
 			}
