@@ -877,6 +877,9 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			if err != nil {
 				return errors.WrapIf(err, "failed to reconcile resource")
 			}
+			if len(podList.Items) < len(r.KafkaCluster.Spec.Brokers) {
+				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod count differs from brokers spec"), "rolling upgrade in progress")
+			}
 			// Check if we support multiple broker restarts, otherwise restart only 1 broker at once
 			maxParallelBrokerRestartCount := 1
 			if r.KafkaCluster.Spec.RollingUpgradeConfig.ParallelBrokerRestarts != nil {
