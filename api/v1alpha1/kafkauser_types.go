@@ -33,6 +33,8 @@ type KafkaUserSpec struct {
 	IncludeJKS     bool              `json:"includeJKS,omitempty"`
 	CreateCert     *bool             `json:"createCert,omitempty"`
 	PKIBackendSpec *PKIBackendSpec   `json:"pkiBackendSpec,omitempty"`
+	// Duration defines the duration of the validity of the generated certificate for user
+	Duration *metav1.Duration `json:"duration,omitempty"`
 }
 
 type PKIBackendSpec struct {

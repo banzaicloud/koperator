@@ -22029,6 +22029,10 @@ spec:
                 items:
                   type: string
                 type: array
+              duration:
+                description: Duration defines the duration of the validity of the
+                  generated certificate for user
+                type: string
               includeJKS:
                 type: boolean
               pkiBackendSpec:
