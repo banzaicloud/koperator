@@ -139,15 +139,13 @@ type RollingUpgradeConfig struct {
 	// alerts with 'rollingupgrade'
 	FailureThreshold int `json:"failureThreshold"`
 
-	// todo: add fields below to YAML specs too
-	// ParallelPodRestarts controls how many pods can be restarted in parallel during a rolling upgrade
+	// ConcurrentBrokerRestartsAllowed controls how many brokers can be restarted in parallel during a rolling upgrade. If
+	// it is set to a value greater than 1, the operator will restart up to that amount of brokers in parallel, if the
+	// brokers are within the same AZ (as specified by "broker.rack" in broker read-only configs). Since using Kafka broker
+	// racks spreads out the replicas, we know that restarting multiple brokers in the same rack will not cause more than 1
+	// replica per topic-partition to be unavailable at the same time. This is a safe way to speed up the rolling upgrade.
 	// +optional
-	ParallelBrokerRestarts *int `json:"parallelBrokerRestarts,omitempty"`
-	// ParallelPodRestartsMatchLabel specifies the node selector label whose value filters brokers
-	// that can be restarted in parallel during a rolling upgrade. By default, it is set to "topology.kubernetes.io/zone",
-	// which means that only brokers in the same availability zone can be restarted in parallel.
-	// +optional
-	ParallelBrokerRestartsMatchLabel string `json:"parallelBrokerRestartsMatchLabel,omitempty"`
+	ConcurrentBrokerRestartsAllowed int `json:"parallelBrokerRestarts,omitempty"`
 }
 
 // DisruptionBudget defines the configuration for PodDisruptionBudget where the workload is managed by the kafka-operator

@@ -15,6 +15,7 @@
 package kafkaclient
 
 import (
+	"github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
@@ -44,4 +45,14 @@ func NewDefaultProvider() Provider {
 
 func (dp *defaultProvider) NewFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, func(), error) {
 	return NewFromCluster(client, cluster)
+}
+
+// MockerProvider is a Testify mock for providing Kafka clients that can be mocks too
+type MockedProvider struct {
+	mock.Mock
+}
+
+func (m *MockedProvider) NewFromCluster(client client.Client, cluster *v1beta1.KafkaCluster) (KafkaClient, func(), error) {
+	args := m.Called(client, cluster)
+	return args.Get(0).(KafkaClient), args.Get(1).(func()), args.Error(2)
 }
