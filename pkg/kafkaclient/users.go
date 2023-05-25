@@ -68,9 +68,13 @@ func (k *kafkaClient) ListUserACLs() ([]sarama.ResourceAcls, error) {
 }
 
 // DeleteUserACLs removes all ACLs for a given user
-func (k *kafkaClient) DeleteUserACLs(dn string) (err error) {
+func (k *kafkaClient) DeleteUserACLs(dn string, patternType v1alpha1.KafkaPatternType) (err error) {
+	aclPatternType := AclPatternTypeMapping(patternType)
 	matches, err := k.admin.DeleteACL(sarama.AclFilter{
-		Principal: &dn,
+		Principal:                 &dn,
+		ResourcePatternTypeFilter: aclPatternType,
+		Operation:                 sarama.AclOperationDelete,
+		ResourceType:              sarama.AclResourceTopic,
 	}, false)
 	if err != nil {
 		return
