@@ -49,6 +49,10 @@ func newMockCluster() *v1beta1.KafkaCluster {
 
 func newMockTopic() *v1alpha1.KafkaTopic {
 	return &v1alpha1.KafkaTopic{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "KafkaTopic",
+			APIVersion: "v1alpha1",
+		},
 		ObjectMeta: metav1.ObjectMeta{Name: "test-topic", Namespace: "test-namespace"},
 		Spec: v1alpha1.KafkaTopicSpec{
 			Name:              "test-topic",
@@ -66,7 +70,19 @@ func newMockClients(cluster *v1beta1.KafkaCluster) (runtimeClient.WithWatch, kaf
 	scheme := runtime.NewScheme()
 	_ = v1beta1.AddToScheme(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	// Partially replicating the effects of AddKafkaTopicIndexers() from koperator/pkg/k8sutil/cache.go
+	// for the controller-runtime/pkg/client/fake.Client used in the test.
+	// We need this if we want to do Get/List operations with field selectors as options. See https://github.com/kubernetes-sigs/controller-runtime/pull/2025.
+	// Currently we do such an operation in kafkatopic_validator.go in checkExistingKafkaTopicCRs() using "spec.name".
+	nameIndexFunc := func(obj runtimeClient.Object) []string {
+		return []string{obj.(*v1alpha1.KafkaTopic).Spec.Name}
+	}
+	client := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithIndex(&v1alpha1.KafkaTopic{}, "spec.name", nameIndexFunc).
+		Build()
+
 	kafkaClient, _, _ := kafkaclient.NewMockFromCluster(client, cluster)
 	returnMockedKafkaClient := func(client runtimeClient.Client, cluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func(), error) {
 		return kafkaClient, func() { kafkaClient.Close() }, nil
