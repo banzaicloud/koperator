@@ -18,10 +18,8 @@ import (
 	"context"
 	"reflect"
 	"testing"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
@@ -30,8 +28,6 @@ import (
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
 )
-
-const testDuration = time.Hour * 1
 
 func newMockUser() *v1alpha1.KafkaUser {
 	user := &v1alpha1.KafkaUser{}
@@ -102,14 +98,6 @@ func TestReconcileUserCertificate(t *testing.T) {
 			Group: "testGroup",
 		},
 	}
-
-	if _, err := manager.ReconcileUserCertificate(ctx, user, scheme.Scheme, clusterDomain); err != nil {
-		t.Error("Expected no error, got:", err)
-	}
-
-	// Test cert duration case
-	user = newMockUser()
-	user.Spec.Duration = &v1.Duration{Duration: testDuration}
 
 	if _, err := manager.ReconcileUserCertificate(ctx, user, scheme.Scheme, clusterDomain); err != nil {
 		t.Error("Expected no error, got:", err)

@@ -241,7 +241,7 @@ func generateUserSecret(key []byte, secretName, namespace string) *corev1.Secret
 }
 
 func generateCSRResource(csr []byte, name, namespace, signerName string,
-	annotation map[string]string) *certsigningreqv1.CertificateSigningRequest {
+	expirationSeconds int32, annotation map[string]string) *certsigningreqv1.CertificateSigningRequest {
 	owner := types.NamespacedName{Namespace: namespace, Name: name}
 	return &certsigningreqv1.CertificateSigningRequest{
 		ObjectMeta: metav1.ObjectMeta{
@@ -250,9 +250,10 @@ func generateCSRResource(csr []byte, name, namespace, signerName string,
 				map[string]string{pkicommon.KafkaUserAnnotationName: owner.String(), IncludeFullChainAnnotation: "true"}),
 		},
 		Spec: certsigningreqv1.CertificateSigningRequestSpec{
-			Request:    csr,
-			SignerName: signerName,
-			Usages:     []certsigningreqv1.KeyUsage{certsigningreqv1.UsageServerAuth, certsigningreqv1.UsageClientAuth},
+			Request:           csr,
+			SignerName:        signerName,
+			Usages:            []certsigningreqv1.KeyUsage{certsigningreqv1.UsageServerAuth, certsigningreqv1.UsageClientAuth},
+			ExpirationSeconds: &expirationSeconds,
 		},
 	}
 }
@@ -272,7 +273,7 @@ func (c *k8sCSR) generateAndCreateCSR(ctx context.Context, clientkey []byte, use
 	}
 	log.Info("Generating k8s csr object")
 	signingReq := generateCSRResource(csr, user.GetName(), user.GetNamespace(),
-		user.Spec.PKIBackendSpec.SignerName, user.Spec.GetAnnotations())
+		user.Spec.PKIBackendSpec.SignerName, user.Spec.GetExpirationSeconds(), user.Spec.GetAnnotations())
 	log.Info("Creating k8s csr object")
 	if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(signingReq); err != nil {
 		return nil, errors.WrapIf(err, "could not apply last state to annotation")
