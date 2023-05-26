@@ -75,6 +75,7 @@ func (k *kafkaClient) DeleteUserACLs(dn string, patternType v1alpha1.KafkaPatter
 		ResourcePatternTypeFilter: aclPatternType,
 		Operation:                 sarama.AclOperationDelete,
 		ResourceType:              sarama.AclResourceTopic,
+		PermissionType:            sarama.AclPermissionAny,
 	}, false)
 	if err != nil {
 		return
