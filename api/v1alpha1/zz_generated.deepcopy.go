@@ -22,8 +22,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	metav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -377,9 +376,9 @@ func (in *KafkaUserSpec) DeepCopyInto(out *KafkaUserSpec) {
 		*out = new(PKIBackendSpec)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Duration != nil {
-		in, out := &in.Duration, &out.Duration
-		*out = new(v1.Duration)
+	if in.ExpirationSeconds != nil {
+		in, out := &in.ExpirationSeconds, &out.ExpirationSeconds
+		*out = new(int32)
 		**out = **in
 	}
 }
@@ -419,7 +418,7 @@ func (in *PKIBackendSpec) DeepCopyInto(out *PKIBackendSpec) {
 	*out = *in
 	if in.IssuerRef != nil {
 		in, out := &in.IssuerRef, &out.IssuerRef
-		*out = new(metav1.ObjectReference)
+		*out = new(v1.ObjectReference)
 		**out = **in
 	}
 }

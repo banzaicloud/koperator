@@ -33,8 +33,12 @@ type KafkaUserSpec struct {
 	IncludeJKS     bool              `json:"includeJKS,omitempty"`
 	CreateCert     *bool             `json:"createCert,omitempty"`
 	PKIBackendSpec *PKIBackendSpec   `json:"pkiBackendSpec,omitempty"`
-	// Duration defines the duration of the validity of the generated certificate for user
-	Duration *metav1.Duration `json:"duration,omitempty"`
+	// expirationSeconds is the requested duration of validity of the issued certificate.
+	// The minimum valid value for expirationSeconds is 3600 i.e. 1h.
+	// When it is not specified the default validation duration is 90 days
+	// +optional
+	// +kubebuilder:validation:Minimum=3600
+	ExpirationSeconds *int32 `json:"expirationSeconds,omitempty"`
 }
 
 type PKIBackendSpec struct {
@@ -97,4 +101,11 @@ func (spec *KafkaUserSpec) GetIfCertShouldBeCreated() bool {
 // GetAnnotations returns Annotations to use for certificate or certificate signing request object
 func (spec *KafkaUserSpec) GetAnnotations() map[string]string {
 	return util.CloneMap(spec.Annotations)
+}
+
+func (spec *KafkaUserSpec) GetExpirationSeconds() int32 {
+	if spec.ExpirationSeconds == nil {
+		return 90 * 24 * 3600
+	}
+	return *spec.ExpirationSeconds
 }
