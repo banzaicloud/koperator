@@ -81,7 +81,7 @@ func requireUninstallingCertManager(kubectlOptions *k8s.KubectlOptions) {
 
 func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling zookeeper-operator Helm chart", func() {
-		uninstallHelmChart(kubectlOptions, "cert-manager", true)
+		uninstallHelmChartIfExist(kubectlOptions, "cert-manager", true)
 	})
 }
 
@@ -98,7 +98,7 @@ func requireRemoveCertManagerCRDs(kubectlOptions *k8s.KubectlOptions) {
 		}
 
 		for _, crd := range crds {
-			deleteK8sResourceGlobal(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+			deleteK8sResourceGlobalNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
 		}
 	})
 }

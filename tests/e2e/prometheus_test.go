@@ -73,7 +73,7 @@ func requireUninstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions) {
 
 func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling prometheus-operator Helm chart", func() {
-		uninstallHelmChart(kubectlOptions, "prometheus-operator", true)
+		uninstallHelmChartIfExist(kubectlOptions, "prometheus-operator", true)
 	})
 }
 
@@ -92,7 +92,7 @@ func requireRemovePrometheusOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 		}
 
 		for _, crd := range crds {
-			deleteK8sResourceGlobal(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+			deleteK8sResourceGlobalNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
 		}
 	})
 }

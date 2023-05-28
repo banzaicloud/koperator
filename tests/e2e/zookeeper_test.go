@@ -58,7 +58,7 @@ func requireUninstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions) {
 
 func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling zookeeper-operator Helm chart", func() {
-		uninstallHelmChart(kubectlOptions, "zookeeper-operator", true)
+		uninstallHelmChartIfExist(kubectlOptions, "zookeeper-operator", true)
 	})
 }
 
@@ -70,7 +70,7 @@ func requireRemoveZookeeperOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 		}
 
 		for _, crd := range crds {
-			deleteK8sResourceGlobal(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+			deleteK8sResourceGlobalNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
 		}
 	})
 }

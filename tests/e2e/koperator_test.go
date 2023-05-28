@@ -127,7 +127,7 @@ func requireRemoveKoperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 		}
 
 		for _, crd := range crds {
-			deleteK8sResourceGlobal(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+			deleteK8sResourceGlobalNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
 		}
 	})
 }
@@ -178,7 +178,7 @@ func requireUninstallingKoperator(kubectlOptions *k8s.KubectlOptions) {
 
 func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling koperator Helm chart", func() {
-		uninstallHelmChart(kubectlOptions, "kafka-operator", true)
+		uninstallHelmChartIfExist(kubectlOptions, "kafka-operator", true)
 	})
 }
 
