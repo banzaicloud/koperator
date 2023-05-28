@@ -233,7 +233,7 @@ func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, 
 	By(fmt.Sprintf("Get K8S resources: %s", resourceKind))
 
 	goTemplateOutputArg := `-o=go-template='{{range .items}}{{.kind}}{{"@"}}{{.metadata.name}}{{if .metadata.namespace}}{{":"}}{{.metadata.namespace}}{{"\n"}}{{end}}{{end}}'`
-	args := append([]string{"get", strings.Join(resourceKind, ",")})
+	args := []string{"get", strings.Join(resourceKind, ",")}
 	args = append(args, extraArgs...)
 	args = append(args, goTemplateOutputArg)
 
@@ -245,11 +245,12 @@ func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, 
 
 	Expect(err).NotTo(HaveOccurred())
 
+	output = strings.Trim(output, "'")
 	if output == "" {
 		return nil
 	}
 
-	output = strings.Trim(output, "'")
-	outputSlice := strings.Split(output, "\n")
-	return outputSlice[:len(outputSlice)-1]
+	output = strings.TrimRight(output, "\n")
+	resources := strings.Split(output, "\n")
+	return resources
 }

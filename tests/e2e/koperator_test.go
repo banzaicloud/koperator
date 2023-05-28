@@ -195,6 +195,6 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Kafka cluster resource cleanup")
 			return getK8sResources(kubectlOptions, []string{"all"}, "--selector=kafka_cr=kafka")
-		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(Equal([]string{}))
+		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
 	})
 }
