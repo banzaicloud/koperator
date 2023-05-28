@@ -28,6 +28,59 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+func deleteK8sResourceOpts(
+	kubectlOptions *k8s.KubectlOptions,
+	extraArgs []string,
+	globalResource,
+	noErr bool,
+	kind string,
+	names ...string) {
+	logMsg := fmt.Sprintf("Deleting k8s resource: kind: '%s' name(s): '%s'", kind, names)
+
+	if kubectlOptions.Namespace != "" {
+		logMsg = fmt.Sprintf("%s namespace: '%s'", logMsg, kubectlOptions.Namespace)
+	}
+
+	By(logMsg)
+
+	args := extraArgs
+
+	args = append(args, "delete", kind)
+	args = append(args, names...)
+
+	kubectlNamespace := kubectlOptions.Namespace
+	if globalResource {
+		kubectlOptions.Namespace = ""
+	}
+	_, err := k8s.RunKubectlAndGetOutputE(
+		GinkgoT(),
+		kubectlOptions,
+		args...,
+	)
+
+	kubectlOptions.Namespace = kubectlNamespace
+
+	if !noErr {
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+func deleteK8sResourceGlobalNoErr(kubectlOptions *k8s.KubectlOptions, extraArgs []string, kind string, names ...string) {
+	deleteK8sResourceOpts(kubectlOptions, extraArgs, true, true, kind, names...)
+}
+
+func deleteK8sResourceGlobal(kubectlOptions *k8s.KubectlOptions, extraArgs []string, kind string, names ...string) {
+	deleteK8sResourceOpts(kubectlOptions, extraArgs, true, false, kind, names...)
+}
+
+func deleteK8sResource(kubectlOptions *k8s.KubectlOptions, extraArgs []string, kind string, names ...string) {
+	deleteK8sResourceOpts(kubectlOptions, extraArgs, false, false, kind, names...)
+}
+
+func deleteK8sResourceNoErr(kubectlOptions *k8s.KubectlOptions, extraArgs []string, kind string, names ...string) {
+	deleteK8sResourceOpts(kubectlOptions, extraArgs, false, true, kind, names...)
+}
+
 // applyK8sResourceManifests applies the specified manifest to the provided
 // kubectl context and namespace.
 func applyK8sResourceManifest(kubectlOptions *k8s.KubectlOptions, manifestPath string) {
@@ -171,4 +224,32 @@ func requireRunningPods(kubectlOptions *k8s.KubectlOptions, matchingLabelKey str
 		Expect(pod.GetLabels()[matchingLabelKey]).To(BeElementOf(podNamesAsInterfaces...))
 		Expect(pod.Status.Phase).To(BeEquivalentTo("Running"))
 	}
+}
+
+// getK8sResources gets the specified K8S resources from the specified kubectl context and
+// namespace optionally. Extra arguments can be any of the kubectl get flag arguments.
+// Returns a slice where the elements are in kind@name:namespace format.
+func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, extraArgs ...string) []string {
+	By(fmt.Sprintf("Get K8S resources: %s", resourceKind))
+
+	goTemplateOutputArg := `-o=go-template='{{range .items}}{{.kind}}{{"@"}}{{.metadata.name}}{{if .metadata.namespace}}{{":"}}{{.metadata.namespace}}{{"\n"}}{{end}}{{end}}'`
+	args := append([]string{"get", strings.Join(resourceKind, ",")})
+	args = append(args, extraArgs...)
+	args = append(args, goTemplateOutputArg)
+
+	output, err := k8s.RunKubectlAndGetOutputE(
+		GinkgoT(),
+		kubectlOptions,
+		args...,
+	)
+
+	Expect(err).NotTo(HaveOccurred())
+
+	if output == "" {
+		return nil
+	}
+
+	output = strings.Trim(output, "'")
+	outputSlice := strings.Split(output, "\n")
+	return outputSlice[:len(outputSlice)-1]
 }

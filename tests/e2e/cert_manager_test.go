@@ -71,3 +71,34 @@ func requireInstallingCertManagerHelmChartIfDoesNotExist(
 		requireRunningPods(kubectlOptions, "app.kubernetes.io/name", "cert-manager", "cainjector", "webhook")
 	})
 }
+
+func requireUninstallingCertManager(kubectlOptions *k8s.KubectlOptions) {
+	When("Uninstalling zookeeper-operator", Ordered, func() {
+		requireUninstallingCertManagerHelmChart(kubectlOptions)
+		requireRemoveCertManagerCRDs(kubectlOptions)
+	})
+}
+
+func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions) {
+	It("Uninstalling zookeeper-operator Helm chart", func() {
+		uninstallHelmChart(kubectlOptions, "cert-manager", true)
+	})
+}
+
+// requireRemoveKoperatorCRDs deletes the cert-manager CRDs
+func requireRemoveCertManagerCRDs(kubectlOptions *k8s.KubectlOptions) {
+	It("Removing cert-manager CRDs", func() {
+		crds := []string{
+			"certificaterequests.cert-manager.io",
+			"certificates.cert-manager.io",
+			"challenges.acme.cert-manager.io",
+			"clusterissuers.cert-manager.io",
+			"issuers.cert-manager.io",
+			"orders.acme.cert-manager.io",
+		}
+
+		for _, crd := range crds {
+			deleteK8sResourceGlobal(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+		}
+	})
+}

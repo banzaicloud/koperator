@@ -16,6 +16,7 @@ package e2e
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -29,6 +30,11 @@ import (
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/yaml"
+)
+
+const (
+	defaultDeletionTimeout             = "10s"
+	kafkaClusterResourceCleanupTimeout = 30 * time.Second
 )
 
 // requireApplyingKoperatorCRDs deploys the koperator CRDs and checks their
@@ -110,6 +116,22 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 	})
 }
 
+// requireRemoveKoperatorCRDs deletes the koperator CRDs
+func requireRemoveKoperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
+	It("Removing koperator CRDs", func() {
+		crds := []string{
+			"kafkatopics.kafka.banzaicloud.io",
+			"kafkaclusters.kafka.banzaicloud.io",
+			"kafkausers.kafka.banzaicloud.io",
+			"cruisecontroloperations.kafka.banzaicloud.io",
+		}
+
+		for _, crd := range crds {
+			deleteK8sResourceGlobal(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+		}
+	})
+}
+
 // requireInstallingKoperator deploys koperator CRDs and Helm chart and checks
 // the success of those operations.
 func requireInstallingKoperator(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version) {
@@ -142,5 +164,37 @@ func requireInstallingKoperatorHelmChartIfDoesNotExist(
 
 		By("Verifying koperator pods")
 		requireRunningPods(kubectlOptions, "app.kubernetes.io/name", "kafka-operator")
+	})
+}
+
+// requireInstallingKoperator deploys koperator CRDs and Helm chart and checks
+// the success of those operations.
+func requireUninstallingKoperator(kubectlOptions *k8s.KubectlOptions) {
+	When("Uninstalling Koperator", Ordered, func() {
+		requireUninstallingKoperatorHelmChart(kubectlOptions)
+		requireRemoveKoperatorCRDs(kubectlOptions)
+	})
+}
+
+func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
+	It("Uninstalling koperator Helm chart", func() {
+		uninstallHelmChart(kubectlOptions, "kafka-operator", true)
+	})
+}
+
+func requireUninstallKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
+	When("Uninstalling Kafka cluster", Ordered, func() {
+		requireDeleteKafkaCluster(kubectlOptions)
+
+	})
+}
+
+func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
+	It("Delete Kafka cluster custom resource", func() {
+		deleteK8sResourceNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "kafkacluster", "kafka")
+		Eventually(context.Background(), func() []string {
+			By("Verifying the Kafka cluster cleanup")
+			return getK8sResources(kubectlOptions, []string{"all"}, "--selector=kafka_cr=kafka")
+		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(Equal([]string{}))
 	})
 }

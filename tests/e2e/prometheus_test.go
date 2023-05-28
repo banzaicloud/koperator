@@ -63,3 +63,36 @@ func requireInstallingPrometheusOperatorHelmChartIfDoesNotExist(
 		requireRunningPods(kubectlOptions, "app", "kube-prometheus-stack-operator")
 	})
 }
+
+func requireUninstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions) {
+	When("Uninstalling prometheus-operator", Ordered, func() {
+		requireUninstallingPrometheusOperatorHelmChart(kubectlOptions)
+		requireRemovePrometheusOperatorCRDs(kubectlOptions)
+	})
+}
+
+func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
+	It("Uninstalling prometheus-operator Helm chart", func() {
+		uninstallHelmChart(kubectlOptions, "prometheus-operator", true)
+	})
+}
+
+// requireRemoveKoperatorCRDs deletes the prometheus-operator CRDs
+func requireRemovePrometheusOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
+	It("Removing prometheus-operator CRDs", func() {
+		crds := []string{
+			"alertmanagerconfigs.monitoring.coreos.com",
+			"alertmanagers.monitoring.coreos.com",
+			"probes.monitoring.coreos.com",
+			"prometheuses.monitoring.coreos.com",
+			"prometheusrules.monitoring.coreos.com",
+			"servicemonitors.monitoring.coreos.com",
+			"thanosrulers.monitoring.coreos.com",
+			"podmonitors.monitoring.coreos.com",
+		}
+
+		for _, crd := range crds {
+			deleteK8sResourceGlobal(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+		}
+	})
+}

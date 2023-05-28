@@ -48,3 +48,29 @@ func requireInstallingZookeeperOperatorHelmChartIfDoesNotExist(
 		requireRunningPods(kubectlOptions, "name", "zookeeper-operator")
 	})
 }
+
+func requireUninstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions) {
+	When("Uninstalling zookeeper-operator", Ordered, func() {
+		requireUninstallingZookeeperOperatorHelmChart(kubectlOptions)
+		// requireRemoveZookeeperOperatorCRDs(kubectlOptions)
+	})
+}
+
+func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
+	It("Uninstalling zookeeper-operator Helm chart", func() {
+		uninstallHelmChart(kubectlOptions, "zookeeper-operator", true)
+	})
+}
+
+// requireRemoveZookeeperOperatorCRDs deletes the zookeeper-operator CRDs
+func requireRemoveZookeeperOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
+	It("Removing zookeeper-operator CRDs", func() {
+		crds := []string{
+			"zookeeperclusters.zookeeper.pravega.io",
+		}
+
+		for _, crd := range crds {
+			deleteK8sResourceGlobal(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+		}
+	})
+}
