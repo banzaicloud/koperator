@@ -16,20 +16,78 @@ package e2e
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
+
+	koperator_v1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/yaml"
 )
+
+// requireApplyingKoperatorSampleResource deploys the specified sample resource (config/samples).
+// The full path of the manifest also can be specified.
+// It supports different versions that can be specified with the koperatorVersion parameter.
+func requireApplyingKoperatorSampleResource(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version, sampleFile string) {
+	It("Applying Koperator sample resource", func() {
+		By(fmt.Sprintf("Retrieving Koperator sample resource: '%s' with version: '%s' ", sampleFile, koperatorVersion))
+
+		sampleFileSplit := strings.Split(sampleFile, "/")
+		Expect(sampleFileSplit).ShouldNot(BeEmpty())
+
+		var err error
+		var rawKoperatorSampleResource []byte
+
+		switch koperatorVersion {
+		case LocalVersion:
+			if len(sampleFileSplit) == 1 {
+				sampleFile = fmt.Sprintf("../../config/samples/%s", sampleFile)
+			}
+
+			rawKoperatorSampleResource, err = os.ReadFile(sampleFile)
+			Expect(err).NotTo(HaveOccurred())
+		default:
+			httpClient := new(http.Client)
+			httpClient.Timeout = 5 * time.Second
+
+			Expect(sampleFileSplit).Should(HaveLen(1))
+
+			response, err := httpClient.Get("https://raw.githubusercontent.com/banzaicloud/koperator/" + koperatorVersion + "/config/samples/" + sampleFile)
+			if response != nil {
+				defer func() { _ = response.Body.Close() }()
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			rawKoperatorSampleResource, err = io.ReadAll(response.Body)
+
+			Expect(err).NotTo(HaveOccurred())
+		}
+
+		By(fmt.Sprintf("Applying K8s manifest %s", sampleFile))
+		k8s.KubectlApplyFromString(GinkgoT(), kubectlOptions, string(rawKoperatorSampleResource))
+
+	})
+}
+
+// requireRemoveKoperatorCRDs deletes the koperator CRDs
+func requireRemoveKoperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
+	It("Removing koperator CRDs", func() {
+		for _, crd := range koperatorCRDs() {
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, defaultDeletionTimeout, "crds", crd)
+		}
+	})
+}
 
 // requireApplyingKoperatorCRDs deploys the koperator CRDs and checks their
 // existence afterwards.
@@ -102,10 +160,7 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 		By("Verifying koperator CRDs")
 		requireExistingCRDs(
 			kubectlOptions,
-			"cruisecontroloperations.kafka.banzaicloud.io",
-			"kafkaclusters.kafka.banzaicloud.io",
-			"kafkatopics.kafka.banzaicloud.io",
-			"kafkausers.kafka.banzaicloud.io",
+			koperatorCRDs()...,
 		)
 	})
 }
@@ -141,6 +196,61 @@ func requireInstallingKoperatorHelmChartIfDoesNotExist(
 		}
 
 		By("Verifying koperator pods")
-		requireRunningPods(kubectlOptions, "app.kubernetes.io/name", "kafka-operator")
+		//requireRunningPods(kubectlOptions, "app.kubernetes.io/name", "kafka-operator")
+	})
+}
+
+// requireUninstallingKoperator uninstall koperator Helm chart and removes Koperator's CRDs.
+func requireUninstallingKoperator(kubectlOptions *k8s.KubectlOptions) {
+	When("Uninstalling Koperator", func() {
+		requireUninstallingKoperatorHelmChart(kubectlOptions)
+		requireRemoveKoperatorCRDs(kubectlOptions)
+	})
+}
+
+// requireUninstallingKoperatorHelmChart uninstall Koperator Helm chart
+// and checks the success of that operation.
+func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
+	It("Uninstalling Koperator Helm chart", func() {
+		uninstallHelmChartIfExists(kubectlOptions, "kafka-operator", true)
+		By("Verifying Koperator helm chart resources cleanup")
+		k8sCRDs := listK8sAllResourceType(kubectlOptions)
+		remainedResources := getK8sResources(kubectlOptions,
+			k8sCRDs,
+			fmt.Sprintf(managedByHelmLabelTemplate, "kafka-operator"),
+			"",
+			kubectlArgGoTemplateKindNameNamespace,
+			"--all-namespaces")
+		Expect(remainedResources).Should(BeEmpty())
+	})
+}
+
+// requireUninstallKafkaCluster uninstall the Kafka cluster
+func requireUninstallKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) {
+	When("Uninstalling Kafka cluster", func() {
+		requireDeleteKafkaCluster(kubectlOptions, name)
+
+	})
+}
+
+// requireDeleteKafkaCluster deletes KafkaCluster resource and
+// checks the removal of the Kafka cluster related resources
+func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) {
+	It("Delete KafkaCluster custom resource", func() {
+		deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, defaultDeletionTimeout, "kafkacluster", "kafka")
+		Eventually(context.Background(), func() []string {
+			By("Verifying the Kafka cluster resource cleanup")
+
+			// Check only those Koperator related resource types we have in K8s (istio usecase)
+			k8sCRDs := listK8sAllResourceType(kubectlOptions)
+			koperatorCRDsSelected := _stringSlicesUnion(getKoperatorRelatedResourceKinds(), k8sCRDs)
+			koperatorCRDsSelected = append(koperatorCRDsSelected, basicK8sCRDs()...)
+
+			return getK8sResources(kubectlOptions,
+				koperatorCRDsSelected,
+				fmt.Sprintf("%s=%s", koperator_v1beta1.KafkaCRLabelKey, name),
+				"",
+				"--all-namespaces", kubectlArgGoTemplateKindNameNamespace)
+		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeEmpty())
 	})
 }

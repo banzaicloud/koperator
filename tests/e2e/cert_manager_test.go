@@ -15,8 +15,11 @@
 package e2e
 
 import (
+	"fmt"
+
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // requireApplyingCertManagerCRDs deploys the cert-manager CRDs and checks
@@ -51,7 +54,7 @@ func requireInstallingCertManager(kubectlOptions *k8s.KubectlOptions, certManage
 	})
 }
 
-// requireDeployingCertManagerHelmChart checks the existence of the cert-manager
+// requireInstallingCertManagerHelmChartIfDoesNotExist checks the existence of the cert-manager
 // Helm release and installs it if it's not present.
 func requireInstallingCertManagerHelmChartIfDoesNotExist(
 	kubectlOptions *k8s.KubectlOptions,
@@ -69,5 +72,44 @@ func requireInstallingCertManagerHelmChartIfDoesNotExist(
 
 		By("Verifying cert-manager pods")
 		requireRunningPods(kubectlOptions, "app.kubernetes.io/name", "cert-manager", "cainjector", "webhook")
+	})
+}
+
+// requireUninstallingCertManager uninstall Cert-manager Helm chart and
+// remove CRDs.
+func requireUninstallingCertManager(kubectlOptions *k8s.KubectlOptions) {
+	When("Uninstalling zookeeper-operator", func() {
+		requireUninstallingCertManagerHelmChart(kubectlOptions)
+		requireRemoveCertManagerCRDs(kubectlOptions)
+	})
+}
+
+// requireUninstallingCertManagerHelmChart uninstalls cert-manager helm chart
+// and checks the success of that operation.
+func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions) {
+	It("Uninstalling Cert-manager Helm chart", func() {
+		uninstallHelmChartIfExists(kubectlOptions, "cert-manager", true)
+		By("Verifying Cert-manager helm chart resources cleanup")
+
+		certManagerK8sResources := basicK8sCRDs()
+		certManagerK8sResources = append(certManagerK8sResources, certManagerCRDs()...)
+
+		remainedResources := getK8sResources(kubectlOptions,
+			certManagerK8sResources,
+			fmt.Sprintf(managedByHelmLabelTemplate, "cert-manager"),
+			"",
+			kubectlArgGoTemplateKindNameNamespace,
+			"--all-namespaces")
+		Expect(remainedResources).Should(BeEmpty())
+	})
+
+}
+
+// requireRemoveKoperatorCRDs deletes the cert-manager CRDs
+func requireRemoveCertManagerCRDs(kubectlOptions *k8s.KubectlOptions) {
+	It("Removing cert-manager CRDs", func() {
+		for _, crd := range certManagerCRDs() {
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, defaultDeletionTimeout, "crds", crd)
+		}
 	})
 }

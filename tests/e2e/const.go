@@ -14,6 +14,8 @@
 
 package e2e
 
+import "time"
+
 // HelmDescriptors.
 var (
 	// certManagerHelmDescriptor describes the cert-manager Helm component.
@@ -103,6 +105,111 @@ var (
 type Version = string
 
 const (
+
 	// LocalVersion means using the files in the local repository snapshot.
 	LocalVersion Version = "local"
+
+	kubectlNotFoundErrorMsg = "NotFound"
+
+	kubectlArgGoTemplateName                              = `-o=go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`
+	kubectlArgGoTemplateKindNameNamespace                 = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
+	kubectlArgGoTemplateInternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.internalListeners}}{{$key}}{{"\n"}}{{end}}`
+	kubectlArgGoTemplateInternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.internalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
+	// kubectlArgGoTemplateExternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.externallListeners}}{{$key}}{{"\n"}}{{end}}`
+	// kubectlArgGoTemplateExternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.externalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
+
+	kafkaKind                  = "kafkaclusters.kafka.banzaicloud.io"
+	kafkaClusterName           = "kafka"
+	testTopicName              = "topic-icp"
+	kcatPodName                = "kcat"
+	zookeeperKind              = "zookeeperclusters.zookeeper.pravega.io"
+	zookeeperClusterName       = "zookeeper-server"
+	managedByHelmLabelTemplate = "app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=%s"
+
+	defaultDeletionTimeout                 = 20 * time.Second
+	defaultPodReadinessWaitTime            = 10 * time.Second
+	defaultTopicCreationWaitTime           = 10 * time.Second
+	kafkaClusterResourceCleanupTimeout     = 30 * time.Second
+	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
+	externalConsumerTimeout                = 5 * time.Second
+	externalProducerTimeout                = 5 * time.Second
+
+	kcatPodTemplate    = "templates/kcat.yaml.tmpl"
+	kafkaTopicTemplate = "templates/topic.yaml.tmpl"
 )
+
+func basicK8sCRDs() []string {
+	return []string{
+		"pods",
+		"services",
+		"deployments.apps",
+		"daemonset.apps",
+		"replicasets.apps",
+		"statefulsets.apps",
+		"secrets",
+		"serviceaccounts",
+		"configmaps",
+		"mutatingwebhookconfigurations.admissionregistration.k8s.io",
+		"validatingwebhookconfigurations.admissionregistration.k8s.io",
+		"jobs.batch",
+		"cronjobs.batch",
+		"poddisruptionbudgets.policy",
+		"podsecuritypolicies.policy",
+		"persistentvolumeclaims",
+		"persistentvolumes",
+	}
+}
+
+func certManagerCRDs() []string {
+	return []string{
+		"certificaterequests.cert-manager.io",
+		"certificates.cert-manager.io",
+		"challenges.acme.cert-manager.io",
+		"clusterissuers.cert-manager.io",
+		"issuers.cert-manager.io",
+		"orders.acme.cert-manager.io",
+	}
+}
+
+func prometheusCRDs() []string {
+	return []string{
+		"alertmanagerconfigs.monitoring.coreos.com",
+		"alertmanagers.monitoring.coreos.com",
+		"probes.monitoring.coreos.com",
+		"prometheuses.monitoring.coreos.com",
+		"prometheusrules.monitoring.coreos.com",
+		"servicemonitors.monitoring.coreos.com",
+		"thanosrulers.monitoring.coreos.com",
+		"podmonitors.monitoring.coreos.com",
+	}
+}
+
+func zookeeperCRDs() []string {
+	return []string{
+		"zookeeperclusters.zookeeper.pravega.io",
+	}
+}
+
+func koperatorCRDs() []string {
+	return []string{
+		"kafkatopics.kafka.banzaicloud.io",
+		"kafkaclusters.kafka.banzaicloud.io",
+		"kafkausers.kafka.banzaicloud.io",
+		"cruisecontroloperations.kafka.banzaicloud.io",
+	}
+}
+
+func getKoperatorRelatedResourceKinds() []string {
+	return []string{
+		"nodepoollabelsets.labels.banzaicloud.io",
+		"kafkatopics.kafka.banzaicloud.io",
+		"kafkaclusters.kafka.banzaicloud.io",
+		"kafkausers.kafka.banzaicloud.io",
+		"cruisecontroloperations.kafka.banzaicloud.io",
+		"istiomeshgateways.servicemesh.cisco.com",
+		"virtualservices.networking.istio.io",
+		"gateways.networking.istio.io",
+		"clusterissuers.cert-manager.io",
+		"servicemonitors.monitoring.coreos.com",
+	}
+}

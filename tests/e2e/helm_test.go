@@ -15,13 +15,13 @@
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/yaml"
 )
 
 // HelmReleaseStatus describes the possible states of a Helm release.
@@ -136,13 +136,13 @@ func listHelmReleases(kubectlOptions *k8s.KubectlOptions) []*HelmRelease {
 			KubectlOptions: kubectlOptions,
 		},
 		"list",
-		"--output", "yaml",
+		"--output", "json",
 	)
 
 	Expect(err).NotTo(HaveOccurred())
 
 	var releases []*HelmRelease
-	err = yaml.Unmarshal([]byte(output), &releases)
+	err = json.Unmarshal([]byte(output), &releases)
 
 	Expect(err).NotTo(HaveOccurred())
 
@@ -164,4 +164,66 @@ func lookUpInstalledHelmReleaseByName(kubectlOptions *k8s.KubectlOptions, helmRe
 	}
 
 	return nil, false
+}
+
+// uninstallHelmChart uninstall Helm chart from the specified kubectl context and
+// namespace using the specified helm release name. When purge is true, it removes records
+// and make that name free to be reused for another installation.
+// Extra arguments can be any of the helm CLI uninstall flag arguments.
+func uninstallHelmChart(
+	kubectlOptions *k8s.KubectlOptions,
+	helmReleaseName string,
+	purge bool,
+	extraArgs ...string,
+) {
+	By(
+		fmt.Sprintf(
+			"uninstalling Helm chart by name %s",
+			helmReleaseName,
+		),
+	)
+
+	fixedArguments := []string{
+		"--debug",
+	}
+
+	extraArgs = append(extraArgs, fixedArguments...)
+
+	helm.Delete(
+		GinkgoT(),
+		&helm.Options{
+			KubectlOptions: kubectlOptions,
+			ExtraArgs: map[string][]string{
+				"delete": extraArgs,
+			},
+		},
+		helmReleaseName,
+		purge,
+	)
+}
+
+// uninstallHelmChartIfExists checks whether the specified named Helm release exists in
+// the provided kubectl context and namespace, logs it if it does and returns or
+// alternatively uninstall the Helm chart from the specified kubectl context and
+// namespace using the release name, extra arguments can be any of the helm
+// CLI install flag arguments.
+func uninstallHelmChartIfExists(
+	kubectlOptions *k8s.KubectlOptions,
+	helmReleaseName string,
+	purge bool,
+	extraArgs ...string,
+) {
+	By(fmt.Sprintf("Checking for existing Helm release names %s", helmReleaseName))
+	_, isInstalled := lookUpInstalledHelmReleaseByName(kubectlOptions, helmReleaseName)
+
+	if !isInstalled {
+		By(fmt.Sprintf(
+			"skipping the uninstallation of %s, because the Helm release is not present.",
+			helmReleaseName,
+		))
+
+		return
+	}
+
+	uninstallHelmChart(kubectlOptions, helmReleaseName, purge, extraArgs...)
 }
