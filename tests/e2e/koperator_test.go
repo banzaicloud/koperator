@@ -190,10 +190,10 @@ func requireUninstallKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 }
 
 func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
-	It("Delete Kafka cluster custom resource", func() {
+	It("Delete KafkaCluster custom resource", func() {
 		deleteK8sResourceNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "kafkacluster", "kafka")
 		Eventually(context.Background(), func() []string {
-			By("Verifying the Kafka cluster cleanup")
+			By("Verifying the Kafka cluster resource cleanup")
 			return getK8sResources(kubectlOptions, []string{"all"}, "--selector=kafka_cr=kafka")
 		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(Equal([]string{}))
 	})

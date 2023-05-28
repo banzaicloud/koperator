@@ -32,7 +32,7 @@ var _ = When("Installing Koperator", Ordered, func() {
 	})
 
 	requireInstallingCertManager(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"), "v1.11.0")
-	//requireInstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "0.2.14")
+	requireInstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "0.2.14")
 	requireInstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"), "42.0.1")
 	requireInstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), LocalVersion)
 	// -----------------------------------------------------------------------------------------------------------
