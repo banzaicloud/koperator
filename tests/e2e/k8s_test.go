@@ -38,12 +38,13 @@ const (
 
 func deleteK8sResourceOpts(
 	kubectlOptions *k8s.KubectlOptions,
-	extraArgs []string,
 	globalResource,
 	noErr bool,
+	timeout string,
 	kind string,
-	names ...string) {
-	logMsg := fmt.Sprintf("Deleting k8s resource: kind: '%s' name(s): '%s'", kind, names)
+	name string,
+	extraArgs ...string) {
+	logMsg := fmt.Sprintf("Deleting k8s resource: kind: '%s' name(s): '%s'", kind, name)
 
 	if kubectlOptions.Namespace != "" {
 		logMsg = fmt.Sprintf("%s namespace: '%s'", logMsg, kubectlOptions.Namespace)
@@ -52,9 +53,13 @@ func deleteK8sResourceOpts(
 	By(logMsg)
 
 	args := extraArgs
+	args = append(args, "delete", kind, name)
 
-	args = append(args, "delete", kind)
-	args = append(args, names...)
+	if timeout == "" {
+		timeout = defaultDeletionTimeout
+	}
+	args = append(args, fmt.Sprintf("--timeout=%s", timeout))
+	args = append(args, extraArgs...)
 
 	kubectlNamespace := kubectlOptions.Namespace
 	if globalResource {
@@ -73,20 +78,20 @@ func deleteK8sResourceOpts(
 	}
 }
 
-func deleteK8sResourceGlobalNoErr(kubectlOptions *k8s.KubectlOptions, extraArgs []string, kind string, names ...string) {
-	deleteK8sResourceOpts(kubectlOptions, extraArgs, true, true, kind, names...)
+func deleteK8sResourceGlobalNoErr(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
+	deleteK8sResourceOpts(kubectlOptions, true, true, timeout, kind, name, extraArgs...)
 }
 
-func deleteK8sResourceGlobal(kubectlOptions *k8s.KubectlOptions, extraArgs []string, kind string, names ...string) {
-	deleteK8sResourceOpts(kubectlOptions, extraArgs, true, false, kind, names...)
+func deleteK8sResourceGlobal(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
+	deleteK8sResourceOpts(kubectlOptions, true, false, timeout, kind, name, extraArgs...)
 }
 
-func deleteK8sResource(kubectlOptions *k8s.KubectlOptions, extraArgs []string, kind string, names ...string) {
-	deleteK8sResourceOpts(kubectlOptions, extraArgs, false, false, kind, names...)
+func deleteK8sResource(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
+	deleteK8sResourceOpts(kubectlOptions, false, false, timeout, kind, name, extraArgs...)
 }
 
-func deleteK8sResourceNoErr(kubectlOptions *k8s.KubectlOptions, extraArgs []string, kind string, names ...string) {
-	deleteK8sResourceOpts(kubectlOptions, extraArgs, false, true, kind, names...)
+func deleteK8sResourceNoErr(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
+	deleteK8sResourceOpts(kubectlOptions, false, true, timeout, kind, name, extraArgs...)
 }
 
 // applyK8sResourceManifests applies the specified manifest to the provided
@@ -283,7 +288,7 @@ func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, 
 }
 
 func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, waitFor, timeout string, extraArgs ...string) {
-	By("Waiting K8s resource(s)' condition to fulfil")
+	By(fmt.Sprintf("Waiting K8s resource(s)' condition: '%s' to fulfil", waitFor))
 	args := []string{
 		"wait",
 		resourceKind,

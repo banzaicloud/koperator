@@ -115,7 +115,7 @@ func requireRemoveKoperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 		}
 
 		for _, crd := range crds {
-			deleteK8sResourceGlobalNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
 		}
 	})
 }
@@ -266,7 +266,7 @@ func requireUninstallKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 
 func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 	It("Delete KafkaCluster custom resource", func() {
-		deleteK8sResourceNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "kafkacluster", "kafka")
+		deleteK8sResourceNoErr(kubectlOptions, "", "kafkacluster", "kafka")
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Kafka cluster resource cleanup")
 			return getK8sResources(kubectlOptions,

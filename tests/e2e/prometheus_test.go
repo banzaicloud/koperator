@@ -92,7 +92,7 @@ func requireRemovePrometheusOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 		}
 
 		for _, crd := range crds {
-			deleteK8sResourceGlobalNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
 		}
 	})
 }

@@ -52,7 +52,7 @@ func requireDeployingKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName st
 				"Namespace": kubectlOptions.Namespace,
 			},
 		)
-		waitK8sResourceCondition(kubectlOptions, "kafkatopic", "jsonpath={.status.state}=created", "5s", topicName)
+		waitK8sResourceCondition(kubectlOptions, "kafkatopic", "jsonpath={.status.state}=created", "10s", topicName)
 	})
 
 }

@@ -15,8 +15,6 @@
 package e2e
 
 import (
-	"fmt"
-
 	"github.com/gruntwork-io/terratest/modules/k8s"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -72,7 +70,7 @@ func requireRemoveZookeeperOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 		}
 
 		for _, crd := range crds {
-			deleteK8sResourceGlobalNoErr(kubectlOptions, []string{fmt.Sprintf("--timeout=%s", defaultDeletionTimeout)}, "crds", crd)
+			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
 		}
 	})
 }
