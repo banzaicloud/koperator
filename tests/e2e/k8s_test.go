@@ -15,12 +15,15 @@
 package e2e
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path"
 	"strings"
+	"text/template"
 
 	"emperror.dev/errors"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -91,6 +94,26 @@ func deleteK8sResourceNoErr(kubectlOptions *k8s.KubectlOptions, extraArgs []stri
 func applyK8sResourceManifest(kubectlOptions *k8s.KubectlOptions, manifestPath string) {
 	By(fmt.Sprintf("Applying k8s manifest %s", manifestPath))
 	k8s.KubectlApply(GinkgoT(), kubectlOptions, manifestPath)
+}
+
+// applyK8sResourceManifestFromString applies the specified manifest in string format to the provided
+// kubectl context and namespace.
+func applyK8sResourceManifestFromString(kubectlOptions *k8s.KubectlOptions, manifest string) {
+	By(fmt.Sprintf("Applying k8s manifest\n%s", manifest))
+	k8s.KubectlApplyFromString(GinkgoT(), kubectlOptions, manifest)
+}
+
+// applyK8sResourceFromTemplate generates manifest from the specified go-template based on values
+// and applies the specified manifest to the provided kubectl context and namespace.
+func applyK8sResourceFromTemplate(kubectlOptions *k8s.KubectlOptions, templateFile string, values map[string]interface{}) {
+	By(fmt.Sprintf("Generating K8s manifest from template %s", templateFile))
+	var manifest bytes.Buffer
+	rawTemplate, err := os.ReadFile(templateFile)
+	Expect(err).NotTo(HaveOccurred())
+	t := template.Must(template.New("template").Funcs(sprig.TxtFuncMap()).Parse(string(rawTemplate)))
+	err = t.Execute(&manifest, values)
+	Expect(err).NotTo(HaveOccurred())
+	applyK8sResourceManifestFromString(kubectlOptions, manifest.String())
 }
 
 // createK8sResourcesFromManifest creates Kubernetes resources from the
@@ -257,4 +280,23 @@ func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, 
 	resources := strings.Split(output, "\n")
 
 	return resources
+}
+
+func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, waitFor, timeout string, extraArgs ...string) {
+	By("Waiting K8s resource(s)' condition to fulfil")
+	args := []string{
+		"wait",
+		resourceKind,
+		fmt.Sprintf("--for=%s", waitFor),
+		fmt.Sprintf("--timeout=%s", timeout),
+	}
+	args = append(args, extraArgs...)
+
+	_, err := k8s.RunKubectlAndGetOutputE(
+		GinkgoT(),
+		kubectlOptions,
+		args...,
+	)
+
+	Expect(err).NotTo(HaveOccurred())
 }

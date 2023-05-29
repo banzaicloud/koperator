@@ -31,15 +31,16 @@ var _ = When("Installing Koperator", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	requireInstallingCertManager(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"), "v1.11.0")
-	requireInstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "0.2.14")
-	requireInstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"), "42.0.1")
-	requireInstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), LocalVersion)
-	// -----------------------------------------------------------------------------------------------------------
-	requireUninstallKafkaCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
-	// -----------------------------------------------------------------------------------------------------------
-	requireUninstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
-	requireUninstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"))
-	requireUninstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"))
-	requireUninstallingCertManager(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"))
+	// requireInstallingCertManager(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"), "v1.11.0")
+	// requireInstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "0.2.14")
+	// requireInstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"), "42.0.1")
+	//requireInstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), LocalVersion)
+	// // -----------------------------------------------------------------------------------------------------------
+	//requireUninstallKafkaCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
+	// // -----------------------------------------------------------------------------------------------------------
+	//requireUninstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
+	// requireUninstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"))
+	// requireUninstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"))
+	// requireUninstallingCertManager(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"))
+	requireInternalProducerConsumer(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
 })

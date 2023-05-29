@@ -22,14 +22,16 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	koperator_v1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -57,6 +59,66 @@ var (
 		"servicemonitors.monitoring.coreos.com",
 	}
 )
+
+// requireApplyingKoperatorCRDs deploys the koperator CRDs and checks their
+// existence afterwards.
+func requireApplyingKoperatorSampleResource(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version, sampleFile string) {
+	It("Applying Koperator sample resource", func() {
+		By(fmt.Sprintf("Retrieving Koperator sample resource: '%s' with version: '%s' ", sampleFile, koperatorVersion))
+
+		sampleFileSplit := strings.Split(sampleFile, "/")
+		Expect(sampleFileSplit).ShouldNot(HaveLen(0))
+
+		var err error
+		var rawKoperatorSampleResource []byte
+
+		switch koperatorVersion {
+		case LocalVersion:
+			if len(sampleFileSplit) == 1 {
+				sampleFile = fmt.Sprintf("../../config/samples/%s", sampleFile)
+			}
+
+			rawKoperatorSampleResource, err = os.ReadFile(sampleFile)
+			Expect(err).NotTo(HaveOccurred())
+		default:
+			httpClient := new(http.Client)
+			httpClient.Timeout = 5 * time.Second
+
+			Expect(sampleFileSplit).Should(HaveLen(1))
+
+			response, err := httpClient.Get("https://raw.githubusercontent.com/banzaicloud/koperator/" + koperatorVersion + "/config/samples/" + sampleFile)
+			if response != nil {
+				defer func() { _ = response.Body.Close() }()
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			rawKoperatorSampleResource, err = io.ReadAll(response.Body)
+
+			Expect(err).NotTo(HaveOccurred())
+		}
+
+		By(fmt.Sprintf("Applying K8s manifest %s", sampleFile))
+		k8s.KubectlApplyFromString(GinkgoT(), kubectlOptions, string(rawKoperatorSampleResource))
+
+	})
+}
+
+// requireRemoveKoperatorCRDs deletes the koperator CRDs
+func requireRemoveKoperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
+	It("Removing koperator CRDs", func() {
+		crds := []string{
+			"kafkatopics.kafka.banzaicloud.io",
+			"kafkaclusters.kafka.banzaicloud.io",
+			"kafkausers.kafka.banzaicloud.io",
+			"cruisecontroloperations.kafka.banzaicloud.io",
+		}
+
+		for _, crd := range crds {
+			deleteK8sResourceGlobalNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
+		}
+	})
+}
 
 // requireApplyingKoperatorCRDs deploys the koperator CRDs and checks their
 // existence afterwards.
@@ -134,22 +196,6 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 			"kafkatopics.kafka.banzaicloud.io",
 			"kafkausers.kafka.banzaicloud.io",
 		)
-	})
-}
-
-// requireRemoveKoperatorCRDs deletes the koperator CRDs
-func requireRemoveKoperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
-	It("Removing koperator CRDs", func() {
-		crds := []string{
-			"kafkatopics.kafka.banzaicloud.io",
-			"kafkaclusters.kafka.banzaicloud.io",
-			"kafkausers.kafka.banzaicloud.io",
-			"cruisecontroloperations.kafka.banzaicloud.io",
-		}
-
-		for _, crd := range crds {
-			deleteK8sResourceGlobalNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "crds", crd)
-		}
 	})
 }
 
