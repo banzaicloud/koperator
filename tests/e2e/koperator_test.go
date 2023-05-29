@@ -24,6 +24,7 @@ import (
 	"path"
 	"time"
 
+	koperator_v1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
@@ -35,6 +36,26 @@ import (
 const (
 	defaultDeletionTimeout             = "10s"
 	kafkaClusterResourceCleanupTimeout = 30 * time.Second
+)
+
+var (
+	koperatorRelatedResourceKinds = []string{
+		"pod",
+		"service",
+		"deployment",
+		"pvc",
+		"pv",
+		"kafkausers.kafka.banzaicloud.io",
+		"kafkatopics.kafka.banzaicloud.io",
+		"kafkaclusters.kafka.banzaicloud.io",
+		"cruisecontroloperations.kafka.banzaicloud.io",
+		"nodepoollabelsets.labels.banzaicloud.io",
+		// "istiomeshgateways.servicemesh.cisco.com",
+		// "virtualservices.networking.istio.io",
+		// "gateways.networking.istio.io",
+		"clusterissuers.cert-manager.io",
+		"servicemonitors.monitoring.coreos.com",
+	}
 )
 
 // requireApplyingKoperatorCRDs deploys the koperator CRDs and checks their
@@ -177,8 +198,16 @@ func requireUninstallingKoperator(kubectlOptions *k8s.KubectlOptions) {
 }
 
 func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
-	It("Uninstalling koperator Helm chart", func() {
+	It("Uninstalling Koperator Helm chart", func() {
 		uninstallHelmChartIfExist(kubectlOptions, "kafka-operator", true)
+		By("Verifying Koperator helm chart resources cleanup")
+		crds := getK8sResources(kubectlOptions, []string{"crds"}, kubectlArgGoTemplateName)
+		remainedRes := getK8sResources(kubectlOptions,
+			crds,
+			kubectlArgGoTemplateKindNameNamespace,
+			"--selector=app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=kafka-operator",
+			"--all-namespaces")
+		Expect(remainedRes).Should(BeNil())
 	})
 }
 
@@ -194,7 +223,11 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 		deleteK8sResourceNoErr(kubectlOptions, []string{"--timeout=" + defaultDeletionTimeout}, "kafkacluster", "kafka")
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Kafka cluster resource cleanup")
-			return getK8sResources(kubectlOptions, []string{"all"}, "--selector=kafka_cr=kafka")
+			return getK8sResources(kubectlOptions,
+				koperatorRelatedResourceKinds,
+				kubectlArgGoTemplateKindNameNamespace,
+				"--selector="+koperator_v1beta1.KafkaCRLabelKey+"=kafka",
+				"--all-namespaces")
 		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
 	})
 }

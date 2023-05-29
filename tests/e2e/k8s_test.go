@@ -28,6 +28,11 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	kubectlArgGoTemplateName              = `-o=go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`
+	kubectlArgGoTemplateKindNameNamespace = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
+)
+
 func deleteK8sResourceOpts(
 	kubectlOptions *k8s.KubectlOptions,
 	extraArgs []string,
@@ -228,14 +233,12 @@ func requireRunningPods(kubectlOptions *k8s.KubectlOptions, matchingLabelKey str
 
 // getK8sResources gets the specified K8S resources from the specified kubectl context and
 // namespace optionally. Extra arguments can be any of the kubectl get flag arguments.
-// Returns a slice where the elements are in kind@name:namespace format.
+// Returns a slice of the returned elements. Separator between elements must be newline.
 func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, extraArgs ...string) []string {
 	By(fmt.Sprintf("Get K8S resources: %s", resourceKind))
 
-	goTemplateOutputArg := `-o=go-template='{{range .items}}{{.kind}}{{"@"}}{{.metadata.name}}{{if .metadata.namespace}}{{":"}}{{.metadata.namespace}}{{"\n"}}{{end}}{{end}}'`
 	args := []string{"get", strings.Join(resourceKind, ",")}
 	args = append(args, extraArgs...)
-	args = append(args, goTemplateOutputArg)
 
 	output, err := k8s.RunKubectlAndGetOutputE(
 		GinkgoT(),
@@ -252,5 +255,6 @@ func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, 
 
 	output = strings.TrimRight(output, "\n")
 	resources := strings.Split(output, "\n")
+
 	return resources
 }
