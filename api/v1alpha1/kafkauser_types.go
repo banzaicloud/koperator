@@ -17,6 +17,7 @@ package v1alpha1
 import (
 	"github.com/banzaicloud/koperator/api/util"
 
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -105,7 +106,7 @@ func (spec *KafkaUserSpec) GetAnnotations() map[string]string {
 
 func (spec *KafkaUserSpec) GetExpirationSeconds() int32 {
 	if spec.ExpirationSeconds == nil {
-		return 90 * 24 * 3600
+		return int32(certmanagerv1.DefaultCertificateDuration.Seconds())
 	}
 	return *spec.ExpirationSeconds
 }
