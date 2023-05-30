@@ -15,9 +15,12 @@
 package e2e
 
 import (
+	"context"
+
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 func requireInternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
@@ -25,6 +28,7 @@ func requireInternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
 		requireDeployingKcatPod(kubectlOptions, "kcat")
 		requireDeployingKafkaTopic(kubectlOptions, "topic-icp")
 		requireInternalProducingConsumingMessage(kubectlOptions, "kcat", "topic-icp")
+		//requireDeleteKafkaTopic()
 	})
 }
 
@@ -91,5 +95,50 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 		)
 		Expect(err).NotTo(HaveOccurred())
 
+	})
+}
+
+func requireExternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
+	When("Internally produce and consume message to Kafka cluster", Ordered, func() {
+		//	requireDeployingKafkaTopic(kubectlOptions, "topic-icp")
+		requireExternalProducingConsumingMessage(kubectlOptions, "topic-icp", "a293a4e8347fe40408529348014d1887-1887576550.eu-north-1.elb.amazonaws.com:19090")
+		//requireDeleteKafkaTopic()
+	})
+}
+
+func requireExternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, topicName string, externalAddresses ...string) {
+	It("Producing and consuming messages", func() {
+		message := []byte("bar")
+		// One client can both produce and consume!
+		// Consuming can either be direct (no consumer group), or through a group. Below, we use a group.
+		cl, err := kgo.NewClient(
+			kgo.SeedBrokers(externalAddresses...),
+			//kgo.ConsumerGroup("my-group-identifier"),
+			kgo.ConsumeTopics(topicName),
+		)
+		Expect(err).NotTo(HaveOccurred())
+		defer cl.Close()
+
+		ctx := context.Background()
+		record := &kgo.Record{Topic: topicName, Value: message}
+
+		err = cl.ProduceSync(ctx, record).FirstErr()
+		Expect(err).NotTo(HaveOccurred())
+
+		fetches := cl.PollFetches(ctx)
+		errs := fetches.Errors()
+		Expect(errs).Should(HaveLen(0))
+
+		// We can iterate through a record iterator...
+		foundMessage := false
+		iter := fetches.RecordIter()
+		for !iter.Done() {
+			record := iter.Next()
+			if string(record.Value) == string(message) {
+				foundMessage = true
+				break
+			}
+			Expect(foundMessage).Should(BeTrue())
+		}
 	})
 }
