@@ -1,0 +1,9 @@
+apiVersion: zookeeper.pravega.io/v1beta1
+kind: ZookeeperCluster
+metadata:
+    name: zookeeper-server
+    namespace: zookeeper
+spec:
+    replicas: 1
+    persistence:
+        reclaimPolicy: Delete

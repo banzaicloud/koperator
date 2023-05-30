@@ -20,16 +20,57 @@ import (
 	"time"
 
 	"github.com/gruntwork-io/terratest/modules/k8s"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
+const (
+	zookeeperKind        = "zookeeperclusters.zookeeper.pravega.io"
+	zookeeperClusterName = "zookeeper-server"
+)
+
+// createZookeeperClusterIfDoesNotExist creates a zookeeper cluster if
+// there isn't a preexisting one
+func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, path string) {
+	By("Checking existing ZookeeperClusters")
+	err := checkExistenceOfK8sCR(kubectlOptions, zookeeperKind, zookeeperClusterName)
+
+	if err == nil {
+		fmt.Printf("Zookeeper cluster %s already exists", zookeeperClusterName)
+	} else {
+		By("Deploying the sample ZookeeperCluster")
+		createK8sResourcesFromManifest(kubectlOptions, path, false)
+	}
+
+	return
+}
+
+// requireCreatingZookeeperCluster creates a zookeeper cluster and
+// checks the success of that operation.
+func requireCreatingZookeeperCluster(kubectlOptions *k8s.KubectlOptions, path string) {
+	It("Creating a Zookeeper cluster", func() {
+		createZookeeperClusterIfDoesNotExist(kubectlOptions, path)
+		By("Verifying Zookeeper cluster and it's pods")
+		Eventually(func() bool {
+			zookeeperObject := getResource(kubectlOptions, zookeeperKind, zookeeperClusterName)
+			value, found, err := unstructured.NestedInt64(zookeeperObject, "status", "readyReplicas")
+			if err == nil && found == true && value == 1 {
+				return true
+			}
+			return false
+		}, maxWaitResourceDuration, waitResourcePollingPeriod).Should(BeTrue(), "Timeout waiting for Zookeeper cluster to be ready")
+
+		//requireRunningPods(kubectlOptions, "statefulset.kubernetes.io/pod-name", "zookeeper-server-0")
+	})
+}
+
 // requireInstallingZookeeperOperator deploys zookeeper-operator Helm chart and
 // checks the success of that operation.
-func requireInstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions, certManagerVersion string) {
+func requireInstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions, zookeeperOperatorVersion string) {
 	When("Installing zookeeper-operator", func() {
-		requireInstallingZookeeperOperatorHelmChartIfDoesNotExist(kubectlOptions, certManagerVersion)
+		requireInstallingZookeeperOperatorHelmChartIfDoesNotExist(kubectlOptions, zookeeperOperatorVersion)
 	})
 }
 

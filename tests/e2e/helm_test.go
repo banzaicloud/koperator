@@ -17,6 +17,7 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
@@ -140,6 +141,11 @@ func listHelmReleases(kubectlOptions *k8s.KubectlOptions) []*HelmRelease {
 	)
 
 	Expect(err).NotTo(HaveOccurred())
+
+	fmt.Println("OUTPUT: " + output)
+	if strings.Contains(output, "[]") {
+		return nil
+	}
 
 	var releases []*HelmRelease
 	err = json.Unmarshal([]byte(output), &releases)
