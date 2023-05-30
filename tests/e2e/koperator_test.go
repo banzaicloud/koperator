@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sort"
 	"strings"
 	"time"
 
@@ -48,19 +49,19 @@ var (
 		"cruisecontroloperations.kafka.banzaicloud.io",
 	}
 	koperatorRelatedResourceKinds = []string{
-		"pod",
-		"service",
-		"deployment",
-		"pvc",
-		"pv",
+		"pods",
+		"services",
+		"deployments.apps",
+		"persistentvolumeclaims",
+		"persistentvolumes",
 		"nodepoollabelsets.labels.banzaicloud.io",
 		"kafkatopics.kafka.banzaicloud.io",
 		"kafkaclusters.kafka.banzaicloud.io",
 		"kafkausers.kafka.banzaicloud.io",
 		"cruisecontroloperations.kafka.banzaicloud.io",
-		// "istiomeshgateways.servicemesh.cisco.com",
-		// "virtualservices.networking.istio.io",
-		// "gateways.networking.istio.io",
+		"istiomeshgateways.servicemesh.cisco.com",
+		"virtualservices.networking.istio.io",
+		"gateways.networking.istio.io",
 		"clusterissuers.cert-manager.io",
 		"servicemonitors.monitoring.coreos.com",
 	}
@@ -246,9 +247,9 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling Koperator Helm chart", func() {
 		uninstallHelmChartIfExist(kubectlOptions, "kafka-operator", true)
 		By("Verifying Koperator helm chart resources cleanup")
-		crds := getK8sResources(kubectlOptions, []string{"crds"}, "", "", kubectlArgGoTemplateName)
+		k8sCRDs := listK8sAllResourceType(kubectlOptions)
 		remainedRes := getK8sResources(kubectlOptions,
-			crds,
+			k8sCRDs,
 			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=kafka-operator",
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
@@ -269,13 +270,34 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 		deleteK8sResourceNoErr(kubectlOptions, "", "kafkacluster", "kafka")
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Kafka cluster resource cleanup")
-			//crds := getK8sResources(kubectlOptions, []string{"crds"}, "", "", kubectlArgGoTemplateName)
-
+			k8sCRDs := listK8sAllResourceType(kubectlOptions)
+			koperatorCRDsSelected := _stringSlicesUnion(koperatorRelatedResourceKinds, k8sCRDs)
 			return getK8sResources(kubectlOptions,
-				koperatorRelatedResourceKinds,
+				koperatorCRDsSelected,
 				fmt.Sprintf("%s=kafka", koperator_v1beta1.KafkaCRLabelKey),
 				"",
 				"--all-namespaces", kubectlArgGoTemplateKindNameNamespace)
 		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
 	})
+}
+
+func _stringSlicesUnion(sliceA, sliceB []string) []string {
+	sort.Slice(sliceA, func(i int, j int) bool {
+		return sliceA[i] < sliceA[j]
+	})
+	sort.Slice(sliceB, func(i int, j int) bool {
+		return sliceB[i] < sliceB[j]
+	})
+
+	var union []string
+	for i := range sliceB {
+		for j := range sliceA {
+			if sliceB[i] < sliceA[j] {
+				break
+			} else if sliceB[i] == sliceA[j] {
+				union = append(union, sliceB[i])
+			}
+		}
+	}
+	return union
 }

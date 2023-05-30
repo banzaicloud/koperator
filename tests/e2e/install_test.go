@@ -36,12 +36,12 @@ var _ = When("Installing Koperator", Ordered, func() {
 	// requireInstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"), "42.0.1")
 	//requireInstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), LocalVersion)
 	// // -----------------------------------------------------------------------------------------------------------
-	// requireUninstallKafkaCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
+	requireUninstallKafkaCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
 	// // -----------------------------------------------------------------------------------------------------------
 	//requireUninstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
 	//requireUninstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"))
 	// requireUninstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"))
 	// requireUninstallingCertManager(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"))
 	//requireInternalProducerConsumer(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
-	requireExternalProducerConsumer(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
+	// requireExternalProducerConsumer(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
 })

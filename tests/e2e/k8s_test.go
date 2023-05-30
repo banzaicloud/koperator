@@ -213,6 +213,21 @@ func listK8sCRDs(kubectlOptions *k8s.KubectlOptions, crdNames ...string) []strin
 	return strings.Split(output, "\n")
 }
 
+func listK8sAllResourceType(kubectlOptions *k8s.KubectlOptions) []string {
+	By("Listing available K8s resource types")
+
+	args := []string{"api-resources", "--verbs=list", "-o", "name"}
+	output, err := k8s.RunKubectlAndGetOutputE(
+		GinkgoT(),
+		kubectlOptions,
+		args...,
+	)
+
+	Expect(err).NotTo(HaveOccurred())
+
+	return strings.Split(output, "\n")
+}
+
 // replaceK8sResourcesFromManifest replaces existing Kubernetes resources from
 // the specified manifest to the provided kubectl context and namespace.
 func replaceK8sResourcesFromManifest(kubectlOptions *k8s.KubectlOptions, manifestPath string, shouldBeValidated bool) {
@@ -314,7 +329,7 @@ func _kubectlArgExtender(args []string, logMsg, selector, names, namespace strin
 	if selector != "" {
 		logMsg = fmt.Sprintf("%s selector: '%s'", logMsg, selector)
 		args = append(args, fmt.Sprintf("--selector=%s", selector))
-	} else {
+	} else if names != "" {
 		logMsg = fmt.Sprintf("%s name(s): '%s'", logMsg, names)
 		args = append(args, names)
 	}
