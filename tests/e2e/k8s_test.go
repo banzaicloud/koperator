@@ -313,7 +313,7 @@ func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, 
 func _kubectlArgExtender(args []string, logMsg, selector, names, namespace string, extraArgs []string) (string, []string) {
 	if selector != "" {
 		logMsg = fmt.Sprintf("%s selector: '%s'", logMsg, selector)
-		args = append(args, "--selector=", selector)
+		args = append(args, fmt.Sprintf("--selector=%s", selector))
 	} else {
 		logMsg = fmt.Sprintf("%s name(s): '%s'", logMsg, names)
 		args = append(args, names)
