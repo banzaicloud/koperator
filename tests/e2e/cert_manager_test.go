@@ -19,6 +19,17 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
+var (
+	certManagerCRDs = []string{
+		"certificaterequests.cert-manager.io",
+		"certificates.cert-manager.io",
+		"challenges.acme.cert-manager.io",
+		"clusterissuers.cert-manager.io",
+		"issuers.cert-manager.io",
+		"orders.acme.cert-manager.io",
+	}
+)
+
 // requireApplyingCertManagerCRDs deploys the cert-manager CRDs and checks
 // their existence afterwards.
 func requireApplyingCertManagerCRDs(kubectlOptions *k8s.KubectlOptions, certManagerVersion Version) {
@@ -88,16 +99,7 @@ func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions)
 // requireRemoveKoperatorCRDs deletes the cert-manager CRDs
 func requireRemoveCertManagerCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing cert-manager CRDs", func() {
-		crds := []string{
-			"certificaterequests.cert-manager.io",
-			"certificates.cert-manager.io",
-			"challenges.acme.cert-manager.io",
-			"clusterissuers.cert-manager.io",
-			"issuers.cert-manager.io",
-			"orders.acme.cert-manager.io",
-		}
-
-		for _, crd := range crds {
+		for _, crd := range certManagerCRDs {
 			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
 		}
 	})

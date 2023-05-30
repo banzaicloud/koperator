@@ -20,6 +20,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
+var (
+	zookeeperCRDs = []string{
+		"zookeeperclusters.zookeeper.pravega.io",
+	}
+)
+
 // requireInstallingZookeeperOperator deploys zookeeper-operator Helm chart and
 // checks the success of that operation.
 func requireInstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions, certManagerVersion string) {
@@ -65,11 +71,7 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOp
 // requireRemoveZookeeperOperatorCRDs deletes the zookeeper-operator CRDs
 func requireRemoveZookeeperOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing zookeeper-operator CRDs", func() {
-		crds := []string{
-			"zookeeperclusters.zookeeper.pravega.io",
-		}
-
-		for _, crd := range crds {
+		for _, crd := range zookeeperCRDs {
 			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
 		}
 	})

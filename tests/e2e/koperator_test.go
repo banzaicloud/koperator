@@ -41,17 +41,23 @@ const (
 )
 
 var (
+	koperatorCRDs = []string{
+		"kafkatopics.kafka.banzaicloud.io",
+		"kafkaclusters.kafka.banzaicloud.io",
+		"kafkausers.kafka.banzaicloud.io",
+		"cruisecontroloperations.kafka.banzaicloud.io",
+	}
 	koperatorRelatedResourceKinds = []string{
 		"pod",
 		"service",
 		"deployment",
 		"pvc",
 		"pv",
-		"kafkausers.kafka.banzaicloud.io",
+		"nodepoollabelsets.labels.banzaicloud.io",
 		"kafkatopics.kafka.banzaicloud.io",
 		"kafkaclusters.kafka.banzaicloud.io",
+		"kafkausers.kafka.banzaicloud.io",
 		"cruisecontroloperations.kafka.banzaicloud.io",
-		"nodepoollabelsets.labels.banzaicloud.io",
 		// "istiomeshgateways.servicemesh.cisco.com",
 		// "virtualservices.networking.istio.io",
 		// "gateways.networking.istio.io",
@@ -107,14 +113,7 @@ func requireApplyingKoperatorSampleResource(kubectlOptions *k8s.KubectlOptions, 
 // requireRemoveKoperatorCRDs deletes the koperator CRDs
 func requireRemoveKoperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing koperator CRDs", func() {
-		crds := []string{
-			"kafkatopics.kafka.banzaicloud.io",
-			"kafkaclusters.kafka.banzaicloud.io",
-			"kafkausers.kafka.banzaicloud.io",
-			"cruisecontroloperations.kafka.banzaicloud.io",
-		}
-
-		for _, crd := range crds {
+		for _, crd := range koperatorCRDs {
 			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
 		}
 	})
@@ -270,6 +269,8 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 		deleteK8sResourceNoErr(kubectlOptions, "", "kafkacluster", "kafka")
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Kafka cluster resource cleanup")
+			//crds := getK8sResources(kubectlOptions, []string{"crds"}, "", "", kubectlArgGoTemplateName)
+
 			return getK8sResources(kubectlOptions,
 				koperatorRelatedResourceKinds,
 				kubectlArgGoTemplateKindNameNamespace,
