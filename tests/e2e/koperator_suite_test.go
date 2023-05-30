@@ -16,12 +16,18 @@ package e2e
 
 import (
 	"testing"
+	"time"
 
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	maxWaitResourceDuration   = 5 * time.Minute
+	waitResourcePollingPeriod = 10 * time.Second
 )
 
 func TestKoperator(t *testing.T) {

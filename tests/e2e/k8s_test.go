@@ -28,6 +28,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
 )
 
@@ -154,6 +155,7 @@ func createK8sResourcesFromManifest(kubectlOptions *k8s.KubectlOptions, manifest
 		GinkgoT(),
 		kubectlOptions,
 		"create",
+		"-n", kubectlOptions.Namespace,
 		fmt.Sprintf("--validate=%t", shouldBeValidated),
 		"--filename", manifestPath,
 	)
@@ -217,6 +219,31 @@ func currentEnvK8sContext() (kubeconfigPath string, kubecontextName string, err 
 	}
 
 	return kubeconfigPath, kubecontext, nil
+}
+
+// getResource tries to get the specified resource and returns it if it's found
+func getResource(
+	kubectlOptions *k8s.KubectlOptions,
+	resourceKind string,
+	resourceName string,
+) map[string]interface{} {
+	rawResource, err := k8s.RunKubectlAndGetOutputE(
+		GinkgoT(),
+		kubectlOptions,
+		"get",
+		resourceKind,
+		resourceName,
+		"-o", "yaml",
+	)
+
+	Expect(err).NotTo(HaveOccurred())
+
+	var resource unstructured.Unstructured
+	err = yaml.Unmarshal([]byte(rawResource), &resource)
+
+	Expect(err).NotTo(HaveOccurred())
+
+	return resource.Object
 }
 
 // listK8sCRDs lists the available CRDs from the specified kubectl context and
