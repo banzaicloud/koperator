@@ -247,11 +247,12 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling Koperator Helm chart", func() {
 		uninstallHelmChartIfExist(kubectlOptions, "kafka-operator", true)
 		By("Verifying Koperator helm chart resources cleanup")
-		crds := getK8sResources(kubectlOptions, []string{"crds"}, kubectlArgGoTemplateName)
+		crds := getK8sResources(kubectlOptions, []string{"crds"}, "", "", kubectlArgGoTemplateName)
 		remainedRes := getK8sResources(kubectlOptions,
 			crds,
 			kubectlArgGoTemplateKindNameNamespace,
-			"--selector=app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=kafka-operator",
+			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=kafka-operator",
+			"",
 			"--all-namespaces")
 		Expect(remainedRes).Should(BeNil())
 	})
@@ -272,7 +273,7 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 			return getK8sResources(kubectlOptions,
 				koperatorRelatedResourceKinds,
 				kubectlArgGoTemplateKindNameNamespace,
-				"--selector="+koperator_v1beta1.KafkaCRLabelKey+"=kafka",
+				fmt.Sprintf("%s=kafka", koperator_v1beta1.KafkaCRLabelKey),
 				"--all-namespaces")
 		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
 	})

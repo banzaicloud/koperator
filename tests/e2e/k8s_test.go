@@ -42,29 +42,27 @@ func deleteK8sResourceOpts(
 	noErr bool,
 	timeout string,
 	kind string,
+	selector string,
 	name string,
 	extraArgs ...string) {
-	logMsg := fmt.Sprintf("Deleting k8s resource: kind: '%s' name(s): '%s'", kind, name)
-
-	if kubectlOptions.Namespace != "" {
-		logMsg = fmt.Sprintf("%s namespace: '%s'", logMsg, kubectlOptions.Namespace)
-	}
-
-	By(logMsg)
 
 	args := extraArgs
-	args = append(args, "delete", kind, name)
+	args = append(args, "delete", kind)
 
 	if timeout == "" {
 		timeout = defaultDeletionTimeout
 	}
 	args = append(args, fmt.Sprintf("--timeout=%s", timeout))
-	args = append(args, extraArgs...)
-
 	kubectlNamespace := kubectlOptions.Namespace
+
 	if globalResource {
 		kubectlOptions.Namespace = ""
 	}
+
+	logMsg := fmt.Sprintf("Deleting k8s resource: kind: '%s' ", kind)
+	logMsg, args = _kubectlArgExtender(args, logMsg, selector, name, kubectlOptions.Namespace, extraArgs)
+	By(logMsg)
+
 	_, err := k8s.RunKubectlAndGetOutputE(
 		GinkgoT(),
 		kubectlOptions,
@@ -79,19 +77,19 @@ func deleteK8sResourceOpts(
 }
 
 func deleteK8sResourceGlobalNoErr(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
-	deleteK8sResourceOpts(kubectlOptions, true, true, timeout, kind, name, extraArgs...)
+	deleteK8sResourceOpts(kubectlOptions, true, true, timeout, kind, "", name, extraArgs...)
 }
 
 func deleteK8sResourceGlobal(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
-	deleteK8sResourceOpts(kubectlOptions, true, false, timeout, kind, name, extraArgs...)
+	deleteK8sResourceOpts(kubectlOptions, true, false, timeout, kind, "", name, extraArgs...)
 }
 
 func deleteK8sResource(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
-	deleteK8sResourceOpts(kubectlOptions, false, false, timeout, kind, name, extraArgs...)
+	deleteK8sResourceOpts(kubectlOptions, false, false, timeout, kind, "", name, extraArgs...)
 }
 
 func deleteK8sResourceNoErr(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
-	deleteK8sResourceOpts(kubectlOptions, false, true, timeout, kind, name, extraArgs...)
+	deleteK8sResourceOpts(kubectlOptions, false, true, timeout, kind, "", name, extraArgs...)
 }
 
 // applyK8sResourceManifests applies the specified manifest to the provided
@@ -262,10 +260,14 @@ func requireRunningPods(kubectlOptions *k8s.KubectlOptions, matchingLabelKey str
 // getK8sResources gets the specified K8S resources from the specified kubectl context and
 // namespace optionally. Extra arguments can be any of the kubectl get flag arguments.
 // Returns a slice of the returned elements. Separator between elements must be newline.
-func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, extraArgs ...string) []string {
-	By(fmt.Sprintf("Get K8S resources: %s", resourceKind))
+func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, selector string, names string, extraArgs ...string) []string {
+	logMsg := fmt.Sprintf("Get K8S resources: '%s'", resourceKind)
 
 	args := []string{"get", strings.Join(resourceKind, ",")}
+	logMsg, args = _kubectlArgExtender(args, logMsg, selector, names, kubectlOptions.Namespace, extraArgs)
+
+	By(logMsg)
+
 	args = append(args, extraArgs...)
 
 	output, err := k8s.RunKubectlAndGetOutputE(
@@ -287,15 +289,17 @@ func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, 
 	return resources
 }
 
-func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, waitFor, timeout string, extraArgs ...string) {
-	By(fmt.Sprintf("Waiting K8s resource(s)' condition: '%s' to fulfil", waitFor))
+func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, waitFor, timeout string, selector string, names string, extraArgs ...string) {
+	logMsg := fmt.Sprintf("Waiting K8s resource(s)' condition: '%s' to fulfil", waitFor)
 	args := []string{
 		"wait",
 		resourceKind,
 		fmt.Sprintf("--for=%s", waitFor),
 		fmt.Sprintf("--timeout=%s", timeout),
 	}
-	args = append(args, extraArgs...)
+
+	logMsg, args = _kubectlArgExtender(args, logMsg, selector, names, kubectlOptions.Namespace, extraArgs)
+	By(logMsg)
 
 	_, err := k8s.RunKubectlAndGetOutputE(
 		GinkgoT(),
@@ -304,4 +308,21 @@ func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, 
 	)
 
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func _kubectlArgExtender(args []string, logMsg, selector, names, namespace string, extraArgs []string) (string, []string) {
+	if selector != "" {
+		logMsg = fmt.Sprintf("%s selector: '%s'", logMsg, selector)
+		args = append(args, "--selector=", selector)
+	} else {
+		logMsg = fmt.Sprintf("%s name(s): '%s'", logMsg, names)
+		args = append(args, names)
+	}
+	if namespace != "" {
+		logMsg = fmt.Sprintf("%s namespace: '%s'", logMsg, namespace)
+	}
+	if len(extraArgs) != 0 {
+		logMsg = fmt.Sprintf("%s extraArgs: '%s'", logMsg, extraArgs)
+	}
+	return logMsg, args
 }

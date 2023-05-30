@@ -31,13 +31,13 @@ func requireInternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
 func requireDeployingKcatPod(kubectlOptions *k8s.KubectlOptions, podName string) {
 	It("Deploying Kcat Pod", func() {
 		applyK8sResourceFromTemplate(kubectlOptions,
-			"templates/kcat.tpl",
+			"templates/kcat.yaml.tmpl",
 			map[string]interface{}{
 				"Name":      "kcat",
 				"Namespace": kubectlOptions.Namespace,
 			},
 		)
-		waitK8sResourceCondition(kubectlOptions, "pods", "condition=Ready", "5s", "kcat")
+		waitK8sResourceCondition(kubectlOptions, "pods", "condition=Ready", "5s", "", "kcat")
 	})
 
 }
@@ -45,14 +45,14 @@ func requireDeployingKcatPod(kubectlOptions *k8s.KubectlOptions, podName string)
 func requireDeployingKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName string) {
 	It("Deploying KafkaTopic CR", func() {
 		applyK8sResourceFromTemplate(kubectlOptions,
-			"templates/topic.tpl",
+			"templates/topic.yaml.tmpl",
 			map[string]interface{}{
 				"Name":      topicName,
 				"TopicName": topicName,
 				"Namespace": kubectlOptions.Namespace,
 			},
 		)
-		waitK8sResourceCondition(kubectlOptions, "kafkatopic", "jsonpath={.status.state}=created", "10s", topicName)
+		waitK8sResourceCondition(kubectlOptions, "kafkatopic", "jsonpath={.status.state}=created", "10s", "", topicName)
 	})
 
 }
