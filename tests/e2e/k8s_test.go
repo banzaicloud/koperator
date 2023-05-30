@@ -376,6 +376,5 @@ func _kubectlArgExtender(args []string, logMsg, selector, names, namespace strin
 	if len(extraArgs) != 0 {
 		logMsg = fmt.Sprintf("%s extraArgs: '%s'", logMsg, extraArgs)
 	}
-	fmt.Println(args)
 	return logMsg, args
 }

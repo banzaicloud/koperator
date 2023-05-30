@@ -33,7 +33,7 @@ const (
 // there isn't a preexisting one
 func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, path string) {
 	By("Checking existing ZookeeperClusters")
-	err := checkExistenceOfK8sCR(kubectlOptions, zookeeperKind, zookeeperClusterName)
+	err := checkExistenceOfK8sResource(kubectlOptions, zookeeperKind, zookeeperClusterName)
 
 	if err == nil {
 		fmt.Printf("Zookeeper cluster %s already exists", zookeeperClusterName)
@@ -50,7 +50,7 @@ func requireCreatingZookeeperCluster(kubectlOptions *k8s.KubectlOptions, path st
 	It("Creating a Zookeeper cluster", func() {
 		createZookeeperClusterIfDoesNotExist(kubectlOptions, path)
 		By("Verifying Zookeeper cluster and it's pods")
-		waitK8sResourceCondition(kubectlOptions, zookeeperCRDs[0], "jsonpath={'.status.readyReplicas'}=1", "10s", "", zookeeperClusterName)
+		waitK8sResourceCondition(kubectlOptions, zookeeperCRDs[0], "jsonpath={.status.readyReplicas}=1", "240s", "", zookeeperClusterName)
 		// TODO: Can't really get this to work right now, might have to create a new function or update this one a bit
 		//requireRunningPods(kubectlOptions, "statefulset.kubernetes.io/pod-name", "zookeeper-server-0")
 	})
