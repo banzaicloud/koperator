@@ -20,10 +20,8 @@ import (
 	"time"
 
 	"github.com/gruntwork-io/terratest/modules/k8s"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 const (
@@ -43,7 +41,6 @@ func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, pa
 		By("Deploying the sample ZookeeperCluster")
 		createK8sResourcesFromManifest(kubectlOptions, path, false)
 	}
-
 	return
 }
 
@@ -53,15 +50,8 @@ func requireCreatingZookeeperCluster(kubectlOptions *k8s.KubectlOptions, path st
 	It("Creating a Zookeeper cluster", func() {
 		createZookeeperClusterIfDoesNotExist(kubectlOptions, path)
 		By("Verifying Zookeeper cluster and it's pods")
-		Eventually(func() bool {
-			zookeeperObject := getResource(kubectlOptions, zookeeperKind, zookeeperClusterName)
-			value, found, err := unstructured.NestedInt64(zookeeperObject, "status", "readyReplicas")
-			if err == nil && found == true && value == 1 {
-				return true
-			}
-			return false
-		}, maxWaitResourceDuration, waitResourcePollingPeriod).Should(BeTrue(), "Timeout waiting for Zookeeper cluster to be ready")
-
+		waitK8sResourceCondition(kubectlOptions, zookeeperCRDs[0], "jsonpath={'.status.readyReplicas'}=1", "10s", "", zookeeperClusterName)
+		// TODO: Can't really get this to work right now, might have to create a new function or update this one a bit
 		//requireRunningPods(kubectlOptions, "statefulset.kubernetes.io/pod-name", "zookeeper-server-0")
 	})
 }

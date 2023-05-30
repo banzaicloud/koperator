@@ -28,7 +28,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
 )
 
@@ -221,31 +220,6 @@ func currentEnvK8sContext() (kubeconfigPath string, kubecontextName string, err 
 	return kubeconfigPath, kubecontext, nil
 }
 
-// getResource tries to get the specified resource and returns it if it's found
-func getResource(
-	kubectlOptions *k8s.KubectlOptions,
-	resourceKind string,
-	resourceName string,
-) map[string]interface{} {
-	rawResource, err := k8s.RunKubectlAndGetOutputE(
-		GinkgoT(),
-		kubectlOptions,
-		"get",
-		resourceKind,
-		resourceName,
-		"-o", "yaml",
-	)
-
-	Expect(err).NotTo(HaveOccurred())
-
-	var resource unstructured.Unstructured
-	err = yaml.Unmarshal([]byte(rawResource), &resource)
-
-	Expect(err).NotTo(HaveOccurred())
-
-	return resource.Object
-}
-
 // listK8sCRDs lists the available CRDs from the specified kubectl context and
 // namespace optionally filtering for the specified CRD names.
 func listK8sCRDs(kubectlOptions *k8s.KubectlOptions, crdNames ...string) []string {
@@ -386,4 +360,22 @@ func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, 
 	)
 
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func _kubectlArgExtender(args []string, logMsg, selector, names, namespace string, extraArgs []string) (string, []string) {
+	if selector != "" {
+		logMsg = fmt.Sprintf("%s selector: '%s'", logMsg, selector)
+		args = append(args, fmt.Sprintf("--selector=%s", selector))
+	} else if names != "" {
+		logMsg = fmt.Sprintf("%s name(s): '%s'", logMsg, names)
+		args = append(args, names)
+	}
+	if namespace != "" {
+		logMsg = fmt.Sprintf("%s namespace: '%s'", logMsg, namespace)
+	}
+	if len(extraArgs) != 0 {
+		logMsg = fmt.Sprintf("%s extraArgs: '%s'", logMsg, extraArgs)
+	}
+	fmt.Println(args)
+	return logMsg, args
 }
