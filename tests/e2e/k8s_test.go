@@ -360,20 +360,3 @@ func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, 
 
 	Expect(err).NotTo(HaveOccurred())
 }
-
-func _kubectlArgExtender(args []string, logMsg, selector, names, namespace string, extraArgs []string) (string, []string) {
-	if selector != "" {
-		logMsg = fmt.Sprintf("%s selector: '%s'", logMsg, selector)
-		args = append(args, fmt.Sprintf("--selector=%s", selector))
-	} else if names != "" {
-		logMsg = fmt.Sprintf("%s name(s): '%s'", logMsg, names)
-		args = append(args, names)
-	}
-	if namespace != "" {
-		logMsg = fmt.Sprintf("%s namespace: '%s'", logMsg, namespace)
-	}
-	if len(extraArgs) != 0 {
-		logMsg = fmt.Sprintf("%s extraArgs: '%s'", logMsg, extraArgs)
-	}
-	return logMsg, args
-}
