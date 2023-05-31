@@ -36,7 +36,7 @@ func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, pa
 	err := checkExistenceOfK8sResource(kubectlOptions, zookeeperKind, zookeeperClusterName)
 
 	if err == nil {
-		fmt.Printf("Zookeeper cluster %s already exists\n", zookeeperClusterName)
+		By(fmt.Sprintf("Zookeeper cluster %s already exists\n", zookeeperClusterName))
 	} else {
 		By("Deploying the sample ZookeeperCluster")
 		createK8sResourcesFromManifest(kubectlOptions, path, false)

@@ -142,7 +142,7 @@ func checkExistenceOfK8sResource(
 	resourceKind string,
 	resourceName string,
 ) error {
-	By(fmt.Sprintf("Checking the existence of resource %s", resourceName))
+	By(fmt.Sprintf("Checking the existence of resource %s in namespace %s (kind: %s)", resourceName, kubectlOptions.Namespace, resourceKind))
 	return k8s.RunKubectlE(GinkgoT(), kubectlOptions, "get", resourceKind, resourceName)
 }
 
