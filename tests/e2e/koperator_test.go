@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"sort"
 	"strings"
 	"time"
 
@@ -191,10 +190,7 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 		By("Verifying koperator CRDs")
 		requireExistingCRDs(
 			kubectlOptions,
-			"cruisecontroloperations.kafka.banzaicloud.io",
-			"kafkaclusters.kafka.banzaicloud.io",
-			"kafkatopics.kafka.banzaicloud.io",
-			"kafkausers.kafka.banzaicloud.io",
+			koperatorCRDs...,
 		)
 	})
 }
@@ -270,8 +266,10 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 		deleteK8sResourceNoErr(kubectlOptions, "", "kafkacluster", "kafka")
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Kafka cluster resource cleanup")
+
 			k8sCRDs := listK8sAllResourceType(kubectlOptions)
 			koperatorCRDsSelected := _stringSlicesUnion(koperatorRelatedResourceKinds, k8sCRDs)
+
 			return getK8sResources(kubectlOptions,
 				koperatorCRDsSelected,
 				fmt.Sprintf("%s=kafka", koperator_v1beta1.KafkaCRLabelKey),
@@ -279,25 +277,4 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 				"--all-namespaces", kubectlArgGoTemplateKindNameNamespace)
 		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
 	})
-}
-
-func _stringSlicesUnion(sliceA, sliceB []string) []string {
-	sort.Slice(sliceA, func(i int, j int) bool {
-		return sliceA[i] < sliceA[j]
-	})
-	sort.Slice(sliceB, func(i int, j int) bool {
-		return sliceB[i] < sliceB[j]
-	})
-
-	var union []string
-	for i := range sliceB {
-		for j := range sliceA {
-			if sliceB[i] < sliceA[j] {
-				break
-			} else if sliceB[i] == sliceA[j] {
-				union = append(union, sliceB[i])
-			}
-		}
-	}
-	return union
 }
