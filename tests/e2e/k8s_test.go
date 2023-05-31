@@ -310,7 +310,14 @@ func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, 
 	}
 
 	output = strings.TrimRight(output, "\n")
-	resources := strings.Split(output, "\n")
+	outputSlice := strings.Split(output, "\n")
+	var resources []string
+
+	for i := range outputSlice {
+		if !strings.Contains(outputSlice[i], "Warning:") {
+			resources = append(resources, outputSlice[i])
+		}
+	}
 
 	return resources
 }
