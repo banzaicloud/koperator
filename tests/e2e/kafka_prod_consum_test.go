@@ -62,8 +62,14 @@ func requireDeployingKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName st
 
 }
 
+func requireDeleteKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName string) {
+	It("Deleting KafkaTopic CR", func() {
+		deleteK8sResource(kubectlOptions, "", topicName, topicName)
+	})
+}
+
 func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, internalAddress, kcatPodName, topicName string) {
-	It(fmt.Sprintf("Producing and consuming messages (kafkaAddr: '%' topicName: '%s", internalAddress, topicName), func() {
+	It(fmt.Sprintf("Producing and consuming messages (kafkaAddr: '%s' topicName: '%s", internalAddress, topicName), func() {
 		By("Producing message")
 		kubectlNamespace := kubectlOptions.Namespace
 		kubectlOptions.Namespace = ""
@@ -84,7 +90,7 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Consuming message")
-		_, err = k8s.RunKubectlAndGetOutputE(GinkgoT(),
+		consumedMessage, err := k8s.RunKubectlAndGetOutputE(GinkgoT(),
 			kubectlOptions,
 			"exec",
 			"kcat",
@@ -98,7 +104,10 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 			"-e",
 			"-C",
 		)
+
 		Expect(err).NotTo(HaveOccurred())
+		Expect(consumedMessage).Should(ContainSubstring("root:x:0:0:root:/root:/bin/ash"))
+
 		kubectlOptions.Namespace = kubectlNamespace
 	})
 }
@@ -107,12 +116,12 @@ func requireExternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
 	When("Internally produce and consume message to Kafka cluster", Ordered, func() {
 		requireDeployingKafkaTopic(kubectlOptions, "topic-icp")
 		requireExternalProducingConsumingMessage(kubectlOptions, "topic-icp", "a293a4e8347fe40408529348014d1887-1887576550.eu-north-1.elb.amazonaws.com:19090")
-		//requireDeleteKafkaTopic()
+		requireDeleteKafkaTopic(kubectlOptions, "topic-icp")
 	})
 }
 
 func requireExternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, topicName string, externalAddresses ...string) {
-	It(fmt.Sprintf("Producing and consuming messages (kafkaAddr: '%' topicName: '%s", externalAddresses, topicName), func() {
+	It(fmt.Sprintf("Producing and consuming messages (kafkaAddr: '%s' topicName: '%s", externalAddresses, topicName), func() {
 		By("Producing message")
 		message := []byte("bar")
 		// One client can both produce and consume!

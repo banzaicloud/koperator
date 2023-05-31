@@ -36,8 +36,9 @@ import (
 )
 
 const (
-	defaultDeletionTimeout             = "10s"
-	kafkaClusterResourceCleanupTimeout = 30 * time.Second
+	defaultDeletionTimeout                 = "10s"
+	kafkaClusterResourceCleanupTimeout     = 30 * time.Second
+	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
 )
 
 var (
@@ -254,14 +255,39 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	})
 }
 
-func requireUninstallKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
+func requireUninstallKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) {
 	When("Uninstalling Kafka cluster", Ordered, func() {
-		requireDeleteKafkaCluster(kubectlOptions)
+		requireDeleteKafkaCluster(kubectlOptions, name)
 
 	})
 }
 
-func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
+func requireUninstallZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
+	When("Uninstalling Zookeeper cluster", Ordered, func() {
+		requireDeleteZookeeperCluster(kubectlOptions, name)
+
+	})
+}
+
+func requireDeleteZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
+	It("Delete ZookeeperCluster custom resource", func() {
+		deleteK8sResourceNoErr(kubectlOptions, "", "zookeeperclusters.zookeeper.pravega.io", name)
+		Eventually(context.Background(), func() []string {
+			By("Verifying the Zookeeper cluster resource cleanup")
+
+			k8sCRDs := listK8sAllResourceType(kubectlOptions)
+			koperatorCRDsSelected := _stringSlicesUnion(koperatorRelatedResourceKinds, k8sCRDs)
+
+			return getK8sResources(kubectlOptions,
+				koperatorCRDsSelected,
+				fmt.Sprintf("app=%s", name),
+				"",
+				"--all-namespaces", kubectlArgGoTemplateKindNameNamespace)
+		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
+	})
+}
+
+func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) {
 	It("Delete KafkaCluster custom resource", func() {
 		deleteK8sResourceNoErr(kubectlOptions, "", "kafkacluster", "kafka")
 		Eventually(context.Background(), func() []string {
@@ -272,7 +298,7 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions) {
 
 			return getK8sResources(kubectlOptions,
 				koperatorCRDsSelected,
-				fmt.Sprintf("%s=kafka", koperator_v1beta1.KafkaCRLabelKey),
+				fmt.Sprintf("%s=%s", koperator_v1beta1.KafkaCRLabelKey, name),
 				"",
 				"--all-namespaces", kubectlArgGoTemplateKindNameNamespace)
 		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
