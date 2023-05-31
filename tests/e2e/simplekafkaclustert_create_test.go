@@ -21,7 +21,7 @@ import (
 )
 
 // TODO: Ordered makes tests fast-failing which I'm not quite sure we want to do, otherwise the execution order is messed up
-var _ = When("Creating a simple kafka cluster", Ordered, func() {
+var _ = When("Creating a simple kafka cluster", Ordered, ContinueOnFailure, func() {
 	var kubeconfigPath string
 	var kubecontextName string
 

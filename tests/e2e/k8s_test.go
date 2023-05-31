@@ -154,7 +154,6 @@ func createK8sResourcesFromManifest(kubectlOptions *k8s.KubectlOptions, manifest
 		GinkgoT(),
 		kubectlOptions,
 		"create",
-		"-n", kubectlOptions.Namespace,
 		fmt.Sprintf("--validate=%t", shouldBeValidated),
 		"--filename", manifestPath,
 	)
