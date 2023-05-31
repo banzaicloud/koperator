@@ -16,6 +16,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
@@ -27,7 +28,7 @@ func requireInternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
 	When("Internally produce and consume message to Kafka cluster", Ordered, func() {
 		requireDeployingKcatPod(kubectlOptions, "kcat")
 		requireDeployingKafkaTopic(kubectlOptions, "topic-icp")
-		requireInternalProducingConsumingMessage(kubectlOptions, "kcat", "topic-icp")
+		requireInternalProducingConsumingMessage(kubectlOptions, "kafka-headless:29092", "kcat", "topic-icp")
 		//requireDeleteKafkaTopic()
 	})
 }
@@ -61,8 +62,10 @@ func requireDeployingKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName st
 
 }
 
-func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, kcatPodName, topicName string) {
-	It("Producing and consuming messages", func() {
+func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, internalAddress, kcatPodName, topicName string) {
+	It(fmt.Sprintf("Producing and consuming messages (kafkaAddr: '%' topicName: '%s", internalAddress, topicName), func() {
+		By("Producing message")
+		kubectlNamespace := kubectlOptions.Namespace
 		kubectlOptions.Namespace = ""
 		_, err := k8s.RunKubectlAndGetOutputE(GinkgoT(),
 			kubectlOptions,
@@ -72,13 +75,15 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 			"/usr/bin/kcat",
 			"-L",
 			"-b",
-			"kafka-headless:29092",
+			internalAddress,
 			"-t",
 			topicName,
 			"-P",
 			"/etc/passwd",
 		)
 		Expect(err).NotTo(HaveOccurred())
+
+		By("Consuming message")
 		_, err = k8s.RunKubectlAndGetOutputE(GinkgoT(),
 			kubectlOptions,
 			"exec",
@@ -87,27 +92,28 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 			"/usr/bin/kcat",
 			"-L",
 			"-b",
-			"kafka-headless:29092",
+			internalAddress,
 			"-t",
 			topicName,
 			"-e",
 			"-C",
 		)
 		Expect(err).NotTo(HaveOccurred())
-
+		kubectlOptions.Namespace = kubectlNamespace
 	})
 }
 
 func requireExternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
 	When("Internally produce and consume message to Kafka cluster", Ordered, func() {
-		//	requireDeployingKafkaTopic(kubectlOptions, "topic-icp")
+		requireDeployingKafkaTopic(kubectlOptions, "topic-icp")
 		requireExternalProducingConsumingMessage(kubectlOptions, "topic-icp", "a293a4e8347fe40408529348014d1887-1887576550.eu-north-1.elb.amazonaws.com:19090")
 		//requireDeleteKafkaTopic()
 	})
 }
 
 func requireExternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, topicName string, externalAddresses ...string) {
-	It("Producing and consuming messages", func() {
+	It(fmt.Sprintf("Producing and consuming messages (kafkaAddr: '%' topicName: '%s", externalAddresses, topicName), func() {
+		By("Producing message")
 		message := []byte("bar")
 		// One client can both produce and consume!
 		// Consuming can either be direct (no consumer group), or through a group. Below, we use a group.
@@ -125,20 +131,24 @@ func requireExternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 		err = cl.ProduceSync(ctx, record).FirstErr()
 		Expect(err).NotTo(HaveOccurred())
 
+		By("Consuming message")
 		fetches := cl.PollFetches(ctx)
 		errs := fetches.Errors()
 		Expect(errs).Should(HaveLen(0))
 
 		// We can iterate through a record iterator...
 		foundMessage := false
+
 		iter := fetches.RecordIter()
 		for !iter.Done() {
-			record := iter.Next()
-			if string(record.Value) == string(message) {
+			consumedRecord := iter.Next()
+			if string(consumedRecord.Value) == string(message) {
 				foundMessage = true
 				break
 			}
-			Expect(foundMessage).Should(BeTrue())
 		}
+
+		By("Comparing produced and consumed message")
+		Expect(foundMessage).Should(BeTrue())
 	})
 }
