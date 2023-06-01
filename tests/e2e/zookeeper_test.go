@@ -15,15 +15,13 @@
 package e2e
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"github.com/gruntwork-io/terratest/modules/k8s"
 
 	. "github.com/onsi/ginkgo/v2"
-)
-
-var (
-	zookeeperCRDs = []string{
-		"zookeeperclusters.zookeeper.pravega.io",
-	}
 )
 
 // requireInstallingZookeeperOperator deploys zookeeper-operator Helm chart and
@@ -71,8 +69,41 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOp
 // requireRemoveZookeeperOperatorCRDs deletes the zookeeper-operator CRDs
 func requireRemoveZookeeperOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing zookeeper-operator CRDs", func() {
-		for _, crd := range zookeeperCRDs {
+		for _, crd := range zookeeperCRDs() {
 			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
 		}
+	})
+}
+
+func requireZookeeperClusterReady(kubectlOptions *k8s.KubectlOptions) {
+	It("Verifying Zookeeper cluster health", func() {
+		By("Verifying the Zookeeper cluster resource")
+		waitK8sResourceCondition(kubectlOptions, zookeeperCRDs()[0], "jsonpath={.status.readyReplicas}=1", "240s", "", zookeeperClusterName)
+		By("Verifying the Zookeeper cluster's pods")
+		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", "60s", "app="+zookeeperClusterName, zookeeperClusterName)
+	})
+}
+
+func requireUninstallZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
+	When("Uninstalling Zookeeper cluster", Ordered, func() {
+		requireDeleteZookeeperCluster(kubectlOptions, name)
+
+	})
+}
+
+func requireDeleteZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
+	It("Delete ZookeeperCluster custom resource", func() {
+		deleteK8sResourceNoErr(kubectlOptions, "", "zookeeperclusters.zookeeper.pravega.io", name)
+		Eventually(context.Background(), func() []string {
+			By("Verifying the Zookeeper cluster resource cleanup")
+
+			zookeeperK8sResources := append(basicK8sCRDs(), zookeeperCRDs()...)
+
+			return getK8sResources(kubectlOptions,
+				zookeeperK8sResources,
+				fmt.Sprintf("app=%s", name),
+				"",
+				"--all-namespaces", kubectlArgGoTemplateKindNameNamespace)
+		}, zookeeperClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
 	})
 }

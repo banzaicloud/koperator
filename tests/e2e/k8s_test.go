@@ -31,11 +31,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	kubectlArgGoTemplateName              = `-o=go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`
-	kubectlArgGoTemplateKindNameNamespace = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
-)
-
 func deleteK8sResourceOpts(
 	kubectlOptions *k8s.KubectlOptions,
 	globalResource,

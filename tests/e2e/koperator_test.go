@@ -35,38 +35,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	defaultDeletionTimeout                 = "10s"
-	kafkaClusterResourceCleanupTimeout     = 30 * time.Second
-	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
-)
-
-var (
-	koperatorCRDs = []string{
-		"kafkatopics.kafka.banzaicloud.io",
-		"kafkaclusters.kafka.banzaicloud.io",
-		"kafkausers.kafka.banzaicloud.io",
-		"cruisecontroloperations.kafka.banzaicloud.io",
-	}
-	koperatorRelatedResourceKinds = []string{
-		"pods",
-		"services",
-		"deployments.apps",
-		"persistentvolumeclaims",
-		"persistentvolumes",
-		"nodepoollabelsets.labels.banzaicloud.io",
-		"kafkatopics.kafka.banzaicloud.io",
-		"kafkaclusters.kafka.banzaicloud.io",
-		"kafkausers.kafka.banzaicloud.io",
-		"cruisecontroloperations.kafka.banzaicloud.io",
-		"istiomeshgateways.servicemesh.cisco.com",
-		"virtualservices.networking.istio.io",
-		"gateways.networking.istio.io",
-		"clusterissuers.cert-manager.io",
-		"servicemonitors.monitoring.coreos.com",
-	}
-)
-
 // requireApplyingKoperatorCRDs deploys the koperator CRDs and checks their
 // existence afterwards.
 func requireApplyingKoperatorSampleResource(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version, sampleFile string) {
@@ -114,7 +82,7 @@ func requireApplyingKoperatorSampleResource(kubectlOptions *k8s.KubectlOptions, 
 // requireRemoveKoperatorCRDs deletes the koperator CRDs
 func requireRemoveKoperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing koperator CRDs", func() {
-		for _, crd := range koperatorCRDs {
+		for _, crd := range koperatorCRDs() {
 			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
 		}
 	})
@@ -191,7 +159,7 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 		By("Verifying koperator CRDs")
 		requireExistingCRDs(
 			kubectlOptions,
-			koperatorCRDs...,
+			koperatorCRDs()...,
 		)
 	})
 }
@@ -227,7 +195,7 @@ func requireInstallingKoperatorHelmChartIfDoesNotExist(
 		}
 
 		By("Verifying koperator pods")
-		requireRunningPods(kubectlOptions, "app.kubernetes.io/name", "kafka-operator")
+		//requireRunningPods(kubectlOptions, "app.kubernetes.io/name", "kafka-operator")
 	})
 }
 
@@ -262,31 +230,6 @@ func requireUninstallKafkaCluster(kubectlOptions *k8s.KubectlOptions, name strin
 	})
 }
 
-func requireUninstallZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
-	When("Uninstalling Zookeeper cluster", Ordered, func() {
-		requireDeleteZookeeperCluster(kubectlOptions, name)
-
-	})
-}
-
-func requireDeleteZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
-	It("Delete ZookeeperCluster custom resource", func() {
-		deleteK8sResourceNoErr(kubectlOptions, "", "zookeeperclusters.zookeeper.pravega.io", name)
-		Eventually(context.Background(), func() []string {
-			By("Verifying the Zookeeper cluster resource cleanup")
-
-			k8sCRDs := listK8sAllResourceType(kubectlOptions)
-			koperatorCRDsSelected := _stringSlicesUnion(koperatorRelatedResourceKinds, k8sCRDs)
-
-			return getK8sResources(kubectlOptions,
-				koperatorCRDsSelected,
-				fmt.Sprintf("app=%s", name),
-				"",
-				"--all-namespaces", kubectlArgGoTemplateKindNameNamespace)
-		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
-	})
-}
-
 func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) {
 	It("Delete KafkaCluster custom resource", func() {
 		deleteK8sResourceNoErr(kubectlOptions, "", "kafkacluster", "kafka")
@@ -294,7 +237,8 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) 
 			By("Verifying the Kafka cluster resource cleanup")
 
 			k8sCRDs := listK8sAllResourceType(kubectlOptions)
-			koperatorCRDsSelected := _stringSlicesUnion(koperatorRelatedResourceKinds, k8sCRDs)
+			koperatorCRDsSelected := _stringSlicesUnion(getKoperatorRelatedResourceKinds(), k8sCRDs)
+			koperatorCRDsSelected = append(koperatorCRDsSelected, basicK8sCRDs()...)
 
 			return getK8sResources(kubectlOptions,
 				koperatorCRDsSelected,

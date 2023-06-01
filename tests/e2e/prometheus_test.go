@@ -20,19 +20,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-var (
-	prometheusCRDs = []string{
-		"alertmanagerconfigs.monitoring.coreos.com",
-		"alertmanagers.monitoring.coreos.com",
-		"probes.monitoring.coreos.com",
-		"prometheuses.monitoring.coreos.com",
-		"prometheusrules.monitoring.coreos.com",
-		"servicemonitors.monitoring.coreos.com",
-		"thanosrulers.monitoring.coreos.com",
-		"podmonitors.monitoring.coreos.com",
-	}
-)
-
 // requireInstallingPrometheusOperator deploys prometheus-operator Helm chart
 // and checks the success of that operation.
 func requireInstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions, prometheusOperatorVersion Version) {
@@ -93,7 +80,7 @@ func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions *k8s.KubectlO
 // requireRemoveKoperatorCRDs deletes the prometheus-operator CRDs
 func requireRemovePrometheusOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing prometheus-operator CRDs", func() {
-		for _, crd := range prometheusCRDs {
+		for _, crd := range prometheusCRDs() {
 			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
 		}
 	})
