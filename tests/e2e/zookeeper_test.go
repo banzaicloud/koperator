@@ -118,9 +118,9 @@ func requireRemoveZookeeperOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 func requireZookeeperClusterReady(kubectlOptions *k8s.KubectlOptions) {
 	It("Verifying Zookeeper cluster health", func() {
 		By("Verifying the Zookeeper cluster resource")
-		waitK8sResourceCondition(kubectlOptions, zookeeperCRDs()[0], "jsonpath={.status.readyReplicas}=1", "240s", "", zookeeperClusterName)
+		waitK8sResourceCondition(kubectlOptions, zookeeperCRDs()[0], "jsonpath={.status.readyReplicas}=1", zookeeperClusterCreateTimeout, "", zookeeperClusterName)
 		By("Verifying the Zookeeper cluster's pods")
-		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", "60s", "app="+zookeeperClusterName, zookeeperClusterName)
+		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultConditionTimeout, "app="+zookeeperClusterName, zookeeperClusterName)
 	})
 }
 

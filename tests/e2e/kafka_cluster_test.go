@@ -56,17 +56,17 @@ func requireCreatingKafkaCluster(kubectlOptions *k8s.KubectlOptions, koperatorVe
 func requireKafkaClusterReady(kubectlOptions *k8s.KubectlOptions) {
 	It("Verifying Kafka cluster health", func() {
 		By("Verifying the Kafka cluster resource")
-		waitK8sResourceCondition(kubectlOptions, kafkaKind, fmt.Sprintf("jsonpath={.status.state}=%s", string(v1beta1.KafkaClusterRunning)), "500s", "", kafkaClusterName)
+		waitK8sResourceCondition(kubectlOptions, kafkaKind, fmt.Sprintf("jsonpath={.status.state}=%s", string(v1beta1.KafkaClusterRunning)), kafkaClusterCreateTimeout, "", kafkaClusterName)
 		By("Verifying the CruiseControl pod")
 		Eventually(context.Background(), func() bool {
 			resources := getK8sResources(kubectlOptions, []string{"pod"}, "kafka_cr="+kafkaClusterName+",app=cruisecontrol", kafkaClusterName+"-cruisecontrol")
 			if len(resources) > 1 {
-				waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", "60s", "kafka_cr="+kafkaClusterName+",app=cruisecontrol", kafkaClusterName+"-cruisecontrol")
+				waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultConditionTimeout, "kafka_cr="+kafkaClusterName+",app=cruisecontrol", kafkaClusterName+"-cruisecontrol")
 				return true
 			}
 			return false
 		}, kafkaClusterResourceCleanupTimeout, 3*time.Second).Should(BeTrue())
 		By("Verifying all Kafka pods")
-		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", "60s", "kafka_cr="+kafkaClusterName, kafkaClusterName)
+		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultConditionTimeout, "kafka_cr="+kafkaClusterName, kafkaClusterName)
 	})
 }
