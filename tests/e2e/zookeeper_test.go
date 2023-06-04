@@ -54,6 +54,8 @@ func requireInstallingZookeeperOperatorHelmChartIfDoesNotExist(
 	})
 }
 
+// requireUninstallingZookeeperOperator uninstall Zookeeper-operator Helm chart
+// and remove CRDs.
 func requireUninstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions) {
 	When("Uninstalling zookeeper-operator", Ordered, func() {
 		requireUninstallingZookeeperOperatorHelmChart(kubectlOptions)
@@ -61,9 +63,20 @@ func requireUninstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions) {
 	})
 }
 
+// requireUninstallingZookeeperOperatorHelmChart uninstall Zookeeper-operator Helm chart
+// and checks the success of that operation.
 func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling zookeeper-operator Helm chart", func() {
 		uninstallHelmChartIfExist(kubectlOptions, "zookeeper-operator", true)
+		By("Verifying Zookeeper-operator helm chart resources cleanup")
+		k8sCRDs := listK8sAllResourceType(kubectlOptions)
+		remainedRes := getK8sResources(kubectlOptions,
+			k8sCRDs,
+			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=zookeeper-operator",
+			"",
+			kubectlArgGoTemplateKindNameNamespace,
+			"--all-namespaces")
+		Expect(remainedRes).Should(BeNil())
 	})
 }
 
@@ -71,7 +84,7 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOp
 func requireRemoveZookeeperOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing zookeeper-operator CRDs", func() {
 		for _, crd := range zookeeperCRDs() {
-			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", "crds", crd)
 		}
 	})
 }
@@ -85,6 +98,7 @@ func requireZookeeperClusterReady(kubectlOptions *k8s.KubectlOptions) {
 	})
 }
 
+// requireUninstallZookeeperCluster uninstall the Zookeeper cluster
 func requireUninstallZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
 	When("Uninstalling Zookeeper cluster", Ordered, func() {
 		requireDeleteZookeeperCluster(kubectlOptions, name)
@@ -92,9 +106,10 @@ func requireUninstallZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name s
 	})
 }
 
+// requireDeleteZookeeperCluster deletes the ZookeeperCluster CR and verify the corresponding resources cleanup
 func requireDeleteZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
 	It("Delete ZookeeperCluster custom resource", func() {
-		deleteK8sResourceNoErr(kubectlOptions, "", "zookeeperclusters.zookeeper.pravega.io", name)
+		deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", zookeeperKind, name)
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Zookeeper cluster resource cleanup")
 

@@ -18,6 +18,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // requireInstallingPrometheusOperator deploys prometheus-operator Helm chart
@@ -64,6 +65,8 @@ func requireInstallingPrometheusOperatorHelmChartIfDoesNotExist(
 	})
 }
 
+// requireUninstallingPrometheusOperator uninstall prometheus-operator Helm chart and
+// remove CRDs.
 func requireUninstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions) {
 	When("Uninstalling prometheus-operator", Ordered, func() {
 		requireUninstallingPrometheusOperatorHelmChart(kubectlOptions)
@@ -71,17 +74,28 @@ func requireUninstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions) {
 	})
 }
 
+// requireUninstallingPrometheusOperatorHelmChart uninstall prometheus-operator Helm chart
+// and checks the success of that operation.
 func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
-	It("Uninstalling prometheus-operator Helm chart", func() {
+	It("Uninstalling Prometheus-operator Helm chart", func() {
 		uninstallHelmChartIfExist(kubectlOptions, "prometheus-operator", true)
+		By("Verifying Prometheus-operator helm chart resources cleanup")
+		k8sCRDs := listK8sAllResourceType(kubectlOptions)
+		remainedRes := getK8sResources(kubectlOptions,
+			k8sCRDs,
+			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=prometheus-operator",
+			"",
+			kubectlArgGoTemplateKindNameNamespace,
+			"--all-namespaces")
+		Expect(remainedRes).Should(BeNil())
 	})
 }
 
-// requireRemoveKoperatorCRDs deletes the prometheus-operator CRDs
+// requireRemovePrometheusOperatorCRDs deletes the Prometheus-operator CRDs
 func requireRemovePrometheusOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing prometheus-operator CRDs", func() {
 		for _, crd := range prometheusCRDs() {
-			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", "crds", crd)
 		}
 	})
 }

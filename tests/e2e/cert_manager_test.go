@@ -17,6 +17,7 @@ package e2e
 import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // requireApplyingCertManagerCRDs deploys the cert-manager CRDs and checks
@@ -51,7 +52,7 @@ func requireInstallingCertManager(kubectlOptions *k8s.KubectlOptions, certManage
 	})
 }
 
-// requireDeployingCertManagerHelmChart checks the existence of the cert-manager
+// requireInstallingCertManagerHelmChartIfDoesNotExist checks the existence of the cert-manager
 // Helm release and installs it if it's not present.
 func requireInstallingCertManagerHelmChartIfDoesNotExist(
 	kubectlOptions *k8s.KubectlOptions,
@@ -72,6 +73,8 @@ func requireInstallingCertManagerHelmChartIfDoesNotExist(
 	})
 }
 
+// requireUninstallingCertManager uninstall Cert-manager Helm chart and
+// remove CRDs.
 func requireUninstallingCertManager(kubectlOptions *k8s.KubectlOptions) {
 	When("Uninstalling zookeeper-operator", Ordered, func() {
 		requireUninstallingCertManagerHelmChart(kubectlOptions)
@@ -79,17 +82,29 @@ func requireUninstallingCertManager(kubectlOptions *k8s.KubectlOptions) {
 	})
 }
 
+// requireUninstallingCertManagerHelmChart uninstalls cert-manager helm chart
+// and checks the success of that operation.
 func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling zookeeper-operator Helm chart", func() {
 		uninstallHelmChartIfExist(kubectlOptions, "cert-manager", true)
+		By("Verifying Cert-manager helm chart resources cleanup")
+		k8sCRDs := listK8sAllResourceType(kubectlOptions)
+		remainedRes := getK8sResources(kubectlOptions,
+			k8sCRDs,
+			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=cert-manager",
+			"",
+			kubectlArgGoTemplateKindNameNamespace,
+			"--all-namespaces")
+		Expect(remainedRes).Should(BeNil())
 	})
+
 }
 
 // requireRemoveKoperatorCRDs deletes the cert-manager CRDs
 func requireRemoveCertManagerCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing cert-manager CRDs", func() {
 		for _, crd := range certManagerCRDs() {
-			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", "crds", crd)
 		}
 	})
 }

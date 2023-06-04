@@ -17,6 +17,7 @@ package e2e
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // Returns the union of the slices from argument.
@@ -60,4 +61,16 @@ func _kubectlArgExtender(args []string, logMsg, selector, names, namespace strin
 		logMsg = fmt.Sprintf("%s extraArgs: '%s'", logMsg, extraArgs)
 	}
 	return logMsg, args
+}
+
+// _kubectlRemoveWarning removes those elements from the outputSlice parameter which contains kubectl warning message.
+func _kubectlRemoveWarnings(outputSlice []string) []string {
+	// Remove warning message pollution from the output
+	result := make([]string, 0, len(outputSlice))
+	for i := range outputSlice {
+		if !strings.Contains(outputSlice[i], "Warning:") {
+			result = append(result, outputSlice[i])
+		}
+	}
+	return result
 }

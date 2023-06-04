@@ -31,10 +31,15 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+// deleteK8sResourceOpts deletes K8s resources based on the kind and name or kind and selector.
+// When noErrNotFound is true then the deletion is passed in case when the resource is not found.
+// Timeout parameter specifies the timeout for the deletion.
+// globalResource parameter indicates that the resource is global,
+// extraArgs can be an of the kubectl arguments.
 func deleteK8sResourceOpts(
 	kubectlOptions *k8s.KubectlOptions,
 	globalResource,
-	noErr bool,
+	noErrNotFound bool,
 	timeout string,
 	kind string,
 	selector string,
@@ -66,24 +71,40 @@ func deleteK8sResourceOpts(
 
 	kubectlOptions.Namespace = kubectlNamespace
 
-	if !noErr {
+	if noErrNotFound && strings.Contains(err.Error(), kubectlNotFoundErrorMsg) {
+		By("Resource not found error")
+	} else {
 		Expect(err).NotTo(HaveOccurred())
 	}
 }
 
-func deleteK8sResourceGlobalNoErr(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
+// deleteK8sResourceGlobalNoErrNotFound deletes K8s global resources based on the kind and name or kind and selector.
+// Deletion is passed in case when the resource is not found.
+// Timeout parameter specifies the timeout for the deletion.
+// extraArgs can be an of the kubectl arguments.
+func deleteK8sResourceGlobalNoErrNotFound(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
 	deleteK8sResourceOpts(kubectlOptions, true, true, timeout, kind, "", name, extraArgs...)
 }
 
+// deleteK8sResourceGlobal deletes K8s resources based on the kind and name or kind and selector.
+// Timeout parameter specifies the timeout for the deletion.
+// extraArgs can be an of the kubectl arguments.
 func deleteK8sResourceGlobal(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
 	deleteK8sResourceOpts(kubectlOptions, true, false, timeout, kind, "", name, extraArgs...)
 }
 
+// deleteK8sResource deletes K8s resources based on the kind and name or kind and selector.
+// Timeout parameter specifies the timeout for the deletion.
+// extraArgs can be an of the kubectl arguments.
 func deleteK8sResource(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
 	deleteK8sResourceOpts(kubectlOptions, false, false, timeout, kind, "", name, extraArgs...)
 }
 
-func deleteK8sResourceNoErr(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
+// deleteK8sResourceNoErrNotFound deletes K8s resources based on the kind and name or kind and selector.
+// Deletion is passed in case when the resource is not found.
+// Timeout parameter specifies the timeout for the deletion.
+// extraArgs can be an of the kubectl arguments.
+func deleteK8sResourceNoErrNotFound(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
 	deleteK8sResourceOpts(kubectlOptions, false, true, timeout, kind, "", name, extraArgs...)
 }
 
@@ -219,6 +240,7 @@ func listK8sCRDs(kubectlOptions *k8s.KubectlOptions, crdNames ...string) []strin
 	return strings.Split(output, "\n")
 }
 
+// listK8sAllResourceType lists all of the available resource type on the K8s cluster
 func listK8sAllResourceType(kubectlOptions *k8s.KubectlOptions) []string {
 	By("Listing available K8s resource types")
 
@@ -306,19 +328,20 @@ func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, 
 
 	output = strings.TrimRight(output, "\n")
 	outputSlice := strings.Split(output, "\n")
-	var resources []string
 
-	for i := range outputSlice {
-		if !strings.Contains(outputSlice[i], "Warning:") {
-			resources = append(resources, outputSlice[i])
-		}
-	}
+	// Remove warning message pollution from the output
 
-	return resources
+	return _kubectlRemoveWarnings(outputSlice)
 }
 
+// waitK8sResourceCondition waits until the condition is met or the timeout is elapsed for the selected K8s resource(s)
+// extraArgs can be any of the kubectl arguments
 func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, waitFor, timeout string, selector string, names string, extraArgs ...string) {
+	// To specify timeout is mandatory, because there is no good default value because varying conditions
+	Expect(timeout).ShouldNot(BeEmpty())
+
 	logMsg := fmt.Sprintf("Waiting K8s resource(s)' condition: '%s' to fulfil", waitFor)
+
 	args := []string{
 		"wait",
 		resourceKind,

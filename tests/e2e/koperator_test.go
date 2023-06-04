@@ -35,8 +35,9 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// requireApplyingKoperatorCRDs deploys the koperator CRDs and checks their
-// existence afterwards.
+// requireApplyingKoperatorSampleResource deploys the specified sample resource (config/samples).
+// The full path of the manifest also can be specified.
+// It supports different versions that can be specified with the koperatorVersion parameter.
 func requireApplyingKoperatorSampleResource(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version, sampleFile string) {
 	It("Applying Koperator sample resource", func() {
 		By(fmt.Sprintf("Retrieving Koperator sample resource: '%s' with version: '%s' ", sampleFile, koperatorVersion))
@@ -83,7 +84,7 @@ func requireApplyingKoperatorSampleResource(kubectlOptions *k8s.KubectlOptions, 
 func requireRemoveKoperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing koperator CRDs", func() {
 		for _, crd := range koperatorCRDs() {
-			deleteK8sResourceGlobalNoErr(kubectlOptions, "", "crds", crd)
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", "crds", crd)
 		}
 	})
 }
@@ -199,7 +200,7 @@ func requireInstallingKoperatorHelmChartIfDoesNotExist(
 	})
 }
 
-// requireInstallingKoperator deploys koperator CRDs and Helm chart and checks
+// requireUninstallingKoperator uninstall koperator Helm chart and removes Koperator's CRDs
 // the success of those operations.
 func requireUninstallingKoperator(kubectlOptions *k8s.KubectlOptions) {
 	When("Uninstalling Koperator", Ordered, func() {
@@ -208,6 +209,8 @@ func requireUninstallingKoperator(kubectlOptions *k8s.KubectlOptions) {
 	})
 }
 
+// requireUninstallingKoperatorHelmChart uninstall Koperator Helm chart
+// and checks the success of that operation.
 func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling Koperator Helm chart", func() {
 		uninstallHelmChartIfExist(kubectlOptions, "kafka-operator", true)
@@ -215,7 +218,7 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 		k8sCRDs := listK8sAllResourceType(kubectlOptions)
 		remainedRes := getK8sResources(kubectlOptions,
 			k8sCRDs,
-			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=kafka-operator",
+			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=kafka-operator",
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
@@ -223,6 +226,7 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	})
 }
 
+// requireUninstallKafkaCluster uninstall the Kafka cluster
 func requireUninstallKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) {
 	When("Uninstalling Kafka cluster", Ordered, func() {
 		requireDeleteKafkaCluster(kubectlOptions, name)
@@ -230,9 +234,11 @@ func requireUninstallKafkaCluster(kubectlOptions *k8s.KubectlOptions, name strin
 	})
 }
 
+// requireDeleteKafkaCluster deletes KafkaCluster resource and
+// checks the removal of the Kafka cluster related resources
 func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) {
 	It("Delete KafkaCluster custom resource", func() {
-		deleteK8sResourceNoErr(kubectlOptions, "", "kafkacluster", "kafka")
+		deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", "kafkacluster", "kafka")
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Kafka cluster resource cleanup")
 
