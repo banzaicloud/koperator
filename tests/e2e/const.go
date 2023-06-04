@@ -25,10 +25,13 @@ const (
 
 	kubectlNotFoundErrorMsg = "NotFound"
 
-	kubectlArgGoTemplateName                              = `-o=go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`
-	kubectlArgGoTemplateKindNameNamespace                 = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
-	kubectlArgGoTemplateInternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.internalListeners}}{{$key}}{{"\n"}}{{end}}`
-	kubectlArgGoTemplateInternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.internalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
+	kubectlArgGoTemplateName              = `-o=go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`
+	kubectlArgGoTemplateKindNameNamespace = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
+
+	kafkaKind        = "kafkaclusters.kafka.banzaicloud.io"
+	kafkaClusterName = "kafka"
+	testTopicName    = "topic-icp"
+	kcatPodName      = "kcat"
 
 	kafkaKind                  = "kafkaclusters.kafka.banzaicloud.io"
 	kafkaClusterName           = "kafka"
@@ -38,13 +41,16 @@ const (
 	zookeeperClusterName       = "zookeeper-server"
 	managedByHelmLabelTemplate = "app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=%s"
 
-	defaultDeletionTimeout                 = "20s"
+	defaultDeletionTimeout                 = "10s"
 	defaultPodReadinessWaitTime            = "10s"
 	defaultTopicCreationWaitTime           = "10s"
 	kafkaClusterResourceCleanupTimeout     = 30 * time.Second
 	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
 	externalConsumerTimeout                = 5 * time.Second
 	externalProducerTimeout                = 5 * time.Second
+
+	zookeeperKind        = "zookeeperclusters.zookeeper.pravega.io"
+	zookeeperClusterName = "zookeeper-server"
 
 	kcatPodTemplate    = "templates/kcat.yaml.tmpl"
 	kafkaTopicTemplate = "templates/topic.yaml.tmpl"

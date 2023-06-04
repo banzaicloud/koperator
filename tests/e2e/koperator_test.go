@@ -215,7 +215,7 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 		k8sCRDs := listK8sAllResourceType(kubectlOptions)
 		remainedRes := getK8sResources(kubectlOptions,
 			k8sCRDs,
-			fmt.Sprintf(managedByHelmLabelTemplate, "kafka-operator"),
+			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=kafka-operator",
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
