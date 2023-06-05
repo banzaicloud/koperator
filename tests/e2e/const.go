@@ -29,6 +29,8 @@ const (
 	kubectlArgGoTemplateKindNameNamespace                 = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
 	kubectlArgGoTemplateInternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.internalListeners}}{{$key}}{{"\n"}}{{end}}`
 	kubectlArgGoTemplateInternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.internalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
+	// kubectlArgGoTemplateExternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.externallListeners}}{{$key}}{{"\n"}}{{end}}`
+	// kubectlArgGoTemplateExternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.externalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
 
 	kafkaKind                  = "kafkaclusters.kafka.banzaicloud.io"
 	kafkaClusterName           = "kafka"
