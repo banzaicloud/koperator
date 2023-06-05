@@ -49,34 +49,4 @@ var _ = When("Installing Koperator", Ordered, func() {
 	// requireUninstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"))
 	// requireUninstallingCertManager(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"))
 	//requireExternalProducerConsumer(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
-	// When("A", func() {
-	// 	It("A teszt 1", func() {
-	// 		Expect(5).Should(Equal(5))
-	// 	})
-	// })
-	// When("A", func() {
-	// 	It("A teszt 2.1", func() {
-	// 		Expect(5).Should(Equal(5))
-	// 	})
-	// 	It("A teszt 2.2", func() {
-	// 		Expect(5).Should(Equal(5))
-	// 	})
-	// 	It("A teszt 2.3", func() {
-	// 		Expect(5).Should(Equal(5))
-	// 	})
-	// 	It("A teszt 2.4", func() {
-	// 		Expect(5).Should(Equal(5))
-	// 	})
-
-	// })
-	// When("A", func() {
-	// 	It("A teszt 3", func() {
-	// 		Expect(5).Should(Equal(5))
-	// 	})
-	// })
-	// When("A", func() {
-	// 	It("A teszt 4", func() {
-	// 		Expect(5).Should(Equal(5))
-	// 	})
-	// })
 })
