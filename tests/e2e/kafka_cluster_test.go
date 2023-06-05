@@ -61,12 +61,12 @@ func requireKafkaClusterReady(kubectlOptions *k8s.KubectlOptions) {
 		Eventually(context.Background(), func() bool {
 			resources := getK8sResources(kubectlOptions, []string{"pod"}, "kafka_cr="+kafkaClusterName+",app=cruisecontrol", kafkaClusterName+"-cruisecontrol")
 			if len(resources) > 1 {
-				waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultConditionTimeout, "kafka_cr="+kafkaClusterName+",app=cruisecontrol", kafkaClusterName+"-cruisecontrol")
+				waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", cruiseControlPodReadinessTimeout, "kafka_cr="+kafkaClusterName+",app=cruisecontrol", kafkaClusterName+"-cruisecontrol")
 				return true
 			}
 			return false
 		}, kafkaClusterResourceCleanupTimeout, 3*time.Second).Should(BeTrue())
 		By("Verifying all Kafka pods")
-		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultConditionTimeout, "kafka_cr="+kafkaClusterName, kafkaClusterName)
+		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultPodReadinessWaitTime, "kafka_cr="+kafkaClusterName, kafkaClusterName)
 	})
 }

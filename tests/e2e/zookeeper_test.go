@@ -22,6 +22,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // createZookeeperClusterIfDoesNotExist creates a zookeeper cluster if
@@ -119,7 +120,7 @@ func requireZookeeperClusterReady(kubectlOptions *k8s.KubectlOptions) {
 		By("Verifying the Zookeeper cluster resource")
 		waitK8sResourceCondition(kubectlOptions, zookeeperCRDs()[0], "jsonpath={.status.readyReplicas}=1", zookeeperClusterCreateTimeout, "", zookeeperClusterName)
 		By("Verifying the Zookeeper cluster's pods")
-		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultConditionTimeout, "app="+zookeeperClusterName, zookeeperClusterName)
+		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultPodReadinessWaitTime, "app="+zookeeperClusterName, zookeeperClusterName)
 	})
 }
 
