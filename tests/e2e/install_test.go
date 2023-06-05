@@ -35,14 +35,48 @@ var _ = When("Installing Koperator", Ordered, func() {
 	// requireInstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "0.2.14")
 	// requireInstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"), "42.0.1")
 	// requireInstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), LocalVersion)
+	// -----------------------------------------------------------------------------------------------------------
+	// requireCreatingZookeeperCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "../../config/samples/zookeeper_sample.yaml")
+	// requireCreatingKafkaCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), "local", "simplekafkacluster_ssl.yaml")
 	// // -----------------------------------------------------------------------------------------------------------
-	//requireUninstallKafkaCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), "kafka")
-	requireUninstallZookeeperCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "zookeeper-server")
+	requireInternalProducerConsumer(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
+	// // -----------------------------------------------------------------------------------------------------------
+	// requireUninstallKafkaCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), "kafka")
+	// requireUninstallZookeeperCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "zookeeper-server")
 	// // -----------------------------------------------------------------------------------------------------------
 	// requireUninstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
 	// requireUninstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"))
 	// requireUninstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"))
 	// requireUninstallingCertManager(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"))
-	requireInternalProducerConsumer(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
-	// requireExternalProducerConsumer(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
+	//requireExternalProducerConsumer(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
+	// When("A", func() {
+	// 	It("A teszt 1", func() {
+	// 		Expect(5).Should(Equal(5))
+	// 	})
+	// })
+	// When("A", func() {
+	// 	It("A teszt 2.1", func() {
+	// 		Expect(5).Should(Equal(5))
+	// 	})
+	// 	It("A teszt 2.2", func() {
+	// 		Expect(5).Should(Equal(5))
+	// 	})
+	// 	It("A teszt 2.3", func() {
+	// 		Expect(5).Should(Equal(5))
+	// 	})
+	// 	It("A teszt 2.4", func() {
+	// 		Expect(5).Should(Equal(5))
+	// 	})
+
+	// })
+	// When("A", func() {
+	// 	It("A teszt 3", func() {
+	// 		Expect(5).Should(Equal(5))
+	// 	})
+	// })
+	// When("A", func() {
+	// 	It("A teszt 4", func() {
+	// 		Expect(5).Should(Equal(5))
+	// 	})
+	// })
 })
