@@ -27,26 +27,32 @@ import (
 
 // createZookeeperClusterIfDoesNotExist creates a zookeeper cluster if
 // there isn't a preexisting one
-func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, path string) {
-	By("Checking existing ZookeeperClusters")
-	err := checkExistenceOfK8sResource(kubectlOptions, zookeeperKind, zookeeperClusterName)
+func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, zkClusterReplicaCount int) {
+	It("Deploying a Zookeeper cluster", func() {
+		By("Checking existing ZookeeperClusters")
+		err := checkExistenceOfK8sResource(kubectlOptions, zookeeperKind, zookeeperClusterName)
 
-	if err == nil {
-		By(fmt.Sprintf("Zookeeper cluster %s already exists\n", zookeeperClusterName))
-	} else {
-		By("Deploying the sample ZookeeperCluster")
-		createK8sResourcesFromManifest(kubectlOptions, path, false)
-	}
-	return
+		if err == nil {
+			By(fmt.Sprintf("Zookeeper cluster %s already exists\n", zookeeperClusterName))
+		} else {
+			By("Deploying the sample ZookeeperCluster")
+			applyK8sResourceFromTemplate(kubectlOptions,
+				zookeeperClusterTemplate,
+				map[string]interface{}{
+					"Name":      zookeeperClusterName,
+					"Namespace": kubectlOptions.Namespace,
+					"Replicas":  zkClusterReplicaCount,
+				},
+			)
+		}
+	})
 }
 
 // requireCreatingZookeeperCluster creates a zookeeper cluster and
 // checks the success of that operation.
-func requireCreatingZookeeperCluster(kubectlOptions *k8s.KubectlOptions, path string) {
-	When("Creating a Zookeeper cluster", func() {
-		It("Deploying a Zookeeper cluster", func() {
-			createZookeeperClusterIfDoesNotExist(kubectlOptions, path)
-		})
+func requireCreatingZookeeperCluster(kubectlOptions *k8s.KubectlOptions, zkClusterReplicaCount int) {
+	When("Creating a Zookeeper cluster", Ordered, func() {
+		createZookeeperClusterIfDoesNotExist(kubectlOptions, zkClusterReplicaCount)
 		requireZookeeperClusterReady(kubectlOptions)
 	})
 }
@@ -118,7 +124,7 @@ func requireRemoveZookeeperOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 func requireZookeeperClusterReady(kubectlOptions *k8s.KubectlOptions) {
 	It("Verifying Zookeeper cluster health", func() {
 		By("Verifying the Zookeeper cluster resource")
-		waitK8sResourceCondition(kubectlOptions, zookeeperCRDs()[0], "jsonpath={.status.readyReplicas}=1", zookeeperClusterCreateTimeout, "", zookeeperClusterName)
+		waitK8sResourceCondition(kubectlOptions, zookeeperKind, "jsonpath={.status.readyReplicas}=1", zookeeperClusterCreateTimeout, "", zookeeperClusterName)
 		By("Verifying the Zookeeper cluster's pods")
 		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultPodReadinessWaitTime, "app="+zookeeperClusterName, zookeeperClusterName)
 	})

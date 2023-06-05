@@ -41,17 +41,19 @@ const (
 	kafkaClusterCreateTimeout     = "500s"
 	zookeeperClusterCreateTimeout = "240s"
 
-	cruiseControlPodReadinessTimeout       = "60s"
+	cruiseControlPodReadinessTimeout       = "50s"
 	defaultDeletionTimeout                 = "20s"
 	defaultPodReadinessWaitTime            = "10s"
 	defaultTopicCreationWaitTime           = "10s"
+	kafkaClusterResourceReadinessTimeout   = 60 * time.Second
 	kafkaClusterResourceCleanupTimeout     = 30 * time.Second
 	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
 	externalConsumerTimeout                = 5 * time.Second
 	externalProducerTimeout                = 5 * time.Second
 
-	kcatPodTemplate    = "templates/kcat.yaml.tmpl"
-	kafkaTopicTemplate = "templates/topic.yaml.tmpl"
+	kcatPodTemplate          = "templates/kcat.yaml.tmpl"
+	kafkaTopicTemplate       = "templates/topic.yaml.tmpl"
+	zookeeperClusterTemplate = "templates/zookeeper_cluster.yaml.tmpl"
 )
 
 func basicK8sCRDs() []string {

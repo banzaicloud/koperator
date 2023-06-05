@@ -36,7 +36,7 @@ var _ = When("Creating a simple kafka cluster", Ordered, ContinueOnFailure, func
 	// requireInstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"), "42.0.1")
 	// requireInstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), LocalVersion)
 	// // -----------------------------------------------------------------------------------------------------------
-	// requireCreatingZookeeperCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "../../config/samples/zookeeper_sample.yaml")
+	// requireCreatingZookeeperCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), 1)
 	// requireCreatingKafkaCluster(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), "local", "simplekafkacluster.yaml")
 	// // -----------------------------------------------------------------------------------------------------------
 	// requireInternalProducerConsumer(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"))
