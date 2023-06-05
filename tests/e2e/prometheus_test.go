@@ -15,6 +15,8 @@
 package e2e
 
 import (
+	"fmt"
+
 	"github.com/gruntwork-io/terratest/modules/k8s"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -80,14 +82,17 @@ func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions *k8s.KubectlO
 	It("Uninstalling Prometheus-operator Helm chart", func() {
 		uninstallHelmChartIfExist(kubectlOptions, "prometheus-operator", true)
 		By("Verifying Prometheus-operator helm chart resources cleanup")
-		k8sCRDs := listK8sAllResourceType(kubectlOptions)
+
+		prometheusK8sResources := basicK8sCRDs()
+		prometheusK8sResources = append(prometheusK8sResources, prometheusCRDs()...)
+
 		remainedRes := getK8sResources(kubectlOptions,
-			k8sCRDs,
-			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=prometheus-operator",
+			prometheusK8sResources,
+			fmt.Sprintf(managedByHelmLabelTemplate, "prometheus-operator"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeNil())
+		Expect(remainedRes).Should(BeEmpty())
 	})
 }
 

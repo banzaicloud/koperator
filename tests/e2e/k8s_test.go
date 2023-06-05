@@ -71,8 +71,8 @@ func deleteK8sResourceOpts(
 
 	kubectlOptions.Namespace = kubectlNamespace
 
-	if noErrNotFound && strings.Contains(err.Error(), kubectlNotFoundErrorMsg) {
-		By("Resource not found error")
+	if _isNotFoundError(err) && noErrNotFound {
+		By("Resource not found")
 	} else {
 		Expect(err).NotTo(HaveOccurred())
 	}

@@ -85,7 +85,6 @@ func requireDeleteKcatPod(kubectlOptions *k8s.KubectlOptions, podName string) {
 
 // requireInternalProducingConsumingMessage produces and consuming messages internally through kcat pod
 // and make comparison between the produced and consumed messages.
-<<<<<<< HEAD
 // When internalAddress parameter is empty, it gets the internal address from the kafkaCluster CR status
 func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, internalAddress, kcatPodName, topicName string) {
 	It(fmt.Sprintf("Producing and consuming messages into topicName: '%s", topicName), func() {
@@ -108,15 +107,6 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 			Expect(internalListenerAddresses).ShouldNot(BeEmpty())
 
 			internalAddress = internalListenerAddresses[0]
-=======
-// When internalAddress is empty, it gets the the internal address from the kafkaCluster CR status
-func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, internalAddress, kcatPodName, topicName string) {
-	It(fmt.Sprintf("Producing and consuming messages into topicName: '%s", topicName), func() {
-		//TODO
-		if internalAddress == "" {
-			By("Getting Kafka cluster internal address")
-
->>>>>>> adeb639 (refactor 7)
 		}
 
 		By("Producing message")
