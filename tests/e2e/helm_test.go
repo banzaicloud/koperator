@@ -174,7 +174,7 @@ func uninstallHelmChart(
 	kubectlOptions *k8s.KubectlOptions,
 	helmReleaseName string,
 	purge bool,
-	additionalArgs ...string,
+	extraArgs ...string,
 ) {
 	By(
 		fmt.Sprintf(
@@ -187,14 +187,14 @@ func uninstallHelmChart(
 		"--debug",
 	}
 
-	additionalArgs = append(additionalArgs, fixedArguments...)
+	extraArgs = append(extraArgs, fixedArguments...)
 
 	helm.Delete(
 		GinkgoT(),
 		&helm.Options{
 			KubectlOptions: kubectlOptions,
 			ExtraArgs: map[string][]string{
-				"delete": additionalArgs,
+				"delete": extraArgs,
 			},
 		},
 		helmReleaseName,
@@ -211,9 +211,9 @@ func uninstallHelmChartIfExist(
 	kubectlOptions *k8s.KubectlOptions,
 	helmReleaseName string,
 	purge bool,
-	additionalArgs ...string,
+	extraArgs ...string,
 ) {
-	By(fmt.Sprintf("Checking for existing Helm release named %s", helmReleaseName))
+	By(fmt.Sprintf("Checking for existing Helm release names %s", helmReleaseName))
 	_, isInstalled := lookUpInstalledHelmReleaseByName(kubectlOptions, helmReleaseName)
 
 	if !isInstalled {
@@ -225,5 +225,5 @@ func uninstallHelmChartIfExist(
 		return
 	}
 
-	uninstallHelmChart(kubectlOptions, helmReleaseName, purge, additionalArgs...)
+	uninstallHelmChart(kubectlOptions, helmReleaseName, purge, extraArgs...)
 }
