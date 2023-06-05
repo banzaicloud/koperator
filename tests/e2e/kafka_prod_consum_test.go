@@ -32,7 +32,7 @@ func requireInternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
 	When("Internally produce and consume message to Kafka cluster", Ordered, func() {
 		requireDeployingKcatPod(kubectlOptions, kcatPodName)
 		requireDeployingKafkaTopic(kubectlOptions, testTopicName)
-		requireInternalProducingConsumingMessage(kubectlOptions, "kafka-headless:29092", kcatPodName, testTopicName)
+		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testTopicName)
 		requireDeleteKafkaTopic(kubectlOptions, testTopicName)
 		requireDeleteKcatPod(kubectlOptions, kcatPodName)
 	})

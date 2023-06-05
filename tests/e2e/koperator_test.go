@@ -39,42 +39,45 @@ import (
 // The full path of the manifest also can be specified.
 // It supports different versions that can be specified with the koperatorVersion parameter.
 func requireApplyingKoperatorSampleResource(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version, sampleFile string) {
-	By(fmt.Sprintf("Retrieving Koperator sample resource: '%s' with version: '%s' ", sampleFile, koperatorVersion))
+	It("Applying Koperator sample resource", func() {
+		By(fmt.Sprintf("Retrieving Koperator sample resource: '%s' with version: '%s' ", sampleFile, koperatorVersion))
 
-	sampleFileSplit := strings.Split(sampleFile, "/")
-	Expect(sampleFileSplit).ShouldNot(BeEmpty())
+		sampleFileSplit := strings.Split(sampleFile, "/")
+		Expect(sampleFileSplit).ShouldNot(BeEmpty())
 
-	var err error
-	var rawKoperatorSampleResource []byte
+		var err error
+		var rawKoperatorSampleResource []byte
 
-	switch koperatorVersion {
-	case LocalVersion:
-		if len(sampleFileSplit) == 1 {
-			sampleFile = fmt.Sprintf("../../config/samples/%s", sampleFile)
+		switch koperatorVersion {
+		case LocalVersion:
+			if len(sampleFileSplit) == 1 {
+				sampleFile = fmt.Sprintf("../../config/samples/%s", sampleFile)
+			}
+
+			rawKoperatorSampleResource, err = os.ReadFile(sampleFile)
+			Expect(err).NotTo(HaveOccurred())
+		default:
+			httpClient := new(http.Client)
+			httpClient.Timeout = 5 * time.Second
+
+			Expect(sampleFileSplit).Should(HaveLen(1))
+
+			response, err := httpClient.Get("https://raw.githubusercontent.com/banzaicloud/koperator/" + koperatorVersion + "/config/samples/" + sampleFile)
+			if response != nil {
+				defer func() { _ = response.Body.Close() }()
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			rawKoperatorSampleResource, err = io.ReadAll(response.Body)
+
+			Expect(err).NotTo(HaveOccurred())
 		}
 
-		rawKoperatorSampleResource, err = os.ReadFile(sampleFile)
-		Expect(err).NotTo(HaveOccurred())
-	default:
-		httpClient := new(http.Client)
-		httpClient.Timeout = 5 * time.Second
+		By(fmt.Sprintf("Applying K8s manifest %s", sampleFile))
+		k8s.KubectlApplyFromString(GinkgoT(), kubectlOptions, string(rawKoperatorSampleResource))
 
-		Expect(sampleFileSplit).Should(HaveLen(1))
-
-		response, err := httpClient.Get("https://raw.githubusercontent.com/banzaicloud/koperator/" + koperatorVersion + "/config/samples/" + sampleFile)
-		if response != nil {
-			defer func() { _ = response.Body.Close() }()
-		}
-
-		Expect(err).NotTo(HaveOccurred())
-
-		rawKoperatorSampleResource, err = io.ReadAll(response.Body)
-
-		Expect(err).NotTo(HaveOccurred())
-	}
-
-	By(fmt.Sprintf("Applying K8s manifest %s", sampleFile))
-	k8s.KubectlApplyFromString(GinkgoT(), kubectlOptions, string(rawKoperatorSampleResource))
+	})
 }
 
 // requireRemoveKoperatorCRDs deletes the koperator CRDs
