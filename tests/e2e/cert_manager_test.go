@@ -15,6 +15,8 @@
 package e2e
 
 import (
+	"fmt"
+
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -85,17 +87,20 @@ func requireUninstallingCertManager(kubectlOptions *k8s.KubectlOptions) {
 // requireUninstallingCertManagerHelmChart uninstalls cert-manager helm chart
 // and checks the success of that operation.
 func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions) {
-	It("Uninstalling zookeeper-operator Helm chart", func() {
+	It("Uninstalling Cert-manager Helm chart", func() {
 		uninstallHelmChartIfExist(kubectlOptions, "cert-manager", true)
 		By("Verifying Cert-manager helm chart resources cleanup")
-		k8sCRDs := listK8sAllResourceType(kubectlOptions)
+
+		certManagerK8sResources := basicK8sCRDs()
+		certManagerK8sResources = append(certManagerK8sResources, certManagerCRDs()...)
+
 		remainedRes := getK8sResources(kubectlOptions,
-			k8sCRDs,
-			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=cert-manager",
+			certManagerK8sResources,
+			fmt.Sprintf(managedByHelmLabelTemplate, "cert-manager"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeNil())
+		Expect(remainedRes).Should(BeEmpty())
 	})
 
 }

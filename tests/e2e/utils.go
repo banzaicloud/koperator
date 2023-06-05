@@ -74,3 +74,7 @@ func _kubectlRemoveWarnings(outputSlice []string) []string {
 	}
 	return result
 }
+
+func _isNotFoundError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), kubectlNotFoundErrorMsg)
+}

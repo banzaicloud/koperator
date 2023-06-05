@@ -72,11 +72,11 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOp
 		k8sCRDs := listK8sAllResourceType(kubectlOptions)
 		remainedRes := getK8sResources(kubectlOptions,
 			k8sCRDs,
-			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=zookeeper-operator",
+			fmt.Sprintf(managedByHelmLabelTemplate, "zookeeper-operator"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeNil())
+		Expect(remainedRes).Should(BeEmpty())
 	})
 }
 
@@ -113,13 +113,14 @@ func requireDeleteZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name stri
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Zookeeper cluster resource cleanup")
 
-			zookeeperK8sResources := append(basicK8sCRDs(), zookeeperCRDs()...)
+			zookeeperK8sResources := basicK8sCRDs()
+			zookeeperK8sResources = append(zookeeperK8sResources, zookeeperCRDs()...)
 
 			return getK8sResources(kubectlOptions,
 				zookeeperK8sResources,
 				fmt.Sprintf("app=%s", name),
 				"",
 				"--all-namespaces", kubectlArgGoTemplateKindNameNamespace)
-		}, zookeeperClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
+		}, zookeeperClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeEmpty())
 	})
 }

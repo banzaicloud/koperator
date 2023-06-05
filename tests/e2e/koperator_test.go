@@ -43,7 +43,7 @@ func requireApplyingKoperatorSampleResource(kubectlOptions *k8s.KubectlOptions, 
 		By(fmt.Sprintf("Retrieving Koperator sample resource: '%s' with version: '%s' ", sampleFile, koperatorVersion))
 
 		sampleFileSplit := strings.Split(sampleFile, "/")
-		Expect(sampleFileSplit).ShouldNot(HaveLen(0))
+		Expect(sampleFileSplit).ShouldNot(BeEmpty())
 
 		var err error
 		var rawKoperatorSampleResource []byte
@@ -218,11 +218,11 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 		k8sCRDs := listK8sAllResourceType(kubectlOptions)
 		remainedRes := getK8sResources(kubectlOptions,
 			k8sCRDs,
-			"app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=kafka-operator",
+			fmt.Sprintf(managedByHelmLabelTemplate, "kafka-operator"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeNil())
+		Expect(remainedRes).Should(BeEmpty())
 	})
 }
 
@@ -242,6 +242,7 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) 
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Kafka cluster resource cleanup")
 
+			// Check only those Koperator related resource types what have in K8s (istio usecase)
 			k8sCRDs := listK8sAllResourceType(kubectlOptions)
 			koperatorCRDsSelected := _stringSlicesUnion(getKoperatorRelatedResourceKinds(), k8sCRDs)
 			koperatorCRDsSelected = append(koperatorCRDsSelected, basicK8sCRDs()...)
@@ -251,6 +252,6 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) 
 				fmt.Sprintf("%s=%s", koperator_v1beta1.KafkaCRLabelKey, name),
 				"",
 				"--all-namespaces", kubectlArgGoTemplateKindNameNamespace)
-		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeNil())
+		}, kafkaClusterResourceCleanupTimeout, 3*time.Millisecond).Should(BeEmpty())
 	})
 }

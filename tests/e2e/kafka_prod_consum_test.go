@@ -32,7 +32,7 @@ func requireInternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
 	When("Internally produce and consume message to Kafka cluster", Ordered, func() {
 		requireDeployingKcatPod(kubectlOptions, kcatPodName)
 		requireDeployingKafkaTopic(kubectlOptions, testTopicName)
-		requireInternalProducingConsumingMessage(kubectlOptions, "kafka-headless:29092", kcatPodName, testTopicName)
+		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testTopicName)
 		requireDeleteKafkaTopic(kubectlOptions, testTopicName)
 		requireDeleteKcatPod(kubectlOptions, kcatPodName)
 	})
@@ -85,13 +85,28 @@ func requireDeleteKcatPod(kubectlOptions *k8s.KubectlOptions, podName string) {
 
 // requireInternalProducingConsumingMessage produces and consuming messages internally through kcat pod
 // and make comparison between the produced and consumed messages.
-// When internalAddress is empty, it gets the the internal address from the kafkaCluster CR status
+// When internalAddress parameter is empty, it gets the internal address from the kafkaCluster CR status
 func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, internalAddress, kcatPodName, topicName string) {
 	It(fmt.Sprintf("Producing and consuming messages into topicName: '%s", topicName), func() {
-		//TODO
 		if internalAddress == "" {
-			By("Getting Kafka cluster internal address")
+			By("Getting Kafka cluster internal addresses")
+			internalListenerNames := getK8sResources(kubectlOptions,
+				[]string{"kafkacluster"},
+				"",
+				kafkaClusterName,
+				kubectlArgGoTemplateInternalListenersName,
+			)
+			Expect(internalListenerNames).ShouldNot(BeEmpty())
 
+			internalListenerAddresses := getK8sResources(kubectlOptions,
+				[]string{"kafkacluster"},
+				"",
+				kafkaClusterName,
+				fmt.Sprintf(kubectlArgGoTemplateInternalListenerAddressesTemplate, internalListenerNames[0]),
+			)
+			Expect(internalListenerAddresses).ShouldNot(BeEmpty())
+
+			internalAddress = internalListenerAddresses[0]
 		}
 
 		By("Producing message")
@@ -99,6 +114,8 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 		// thus we need to specify by hand
 		kubectlNamespace := kubectlOptions.Namespace
 		kubectlOptions.Namespace = ""
+
+		currentTime := time.Now()
 		_, err := k8s.RunKubectlAndGetOutputE(GinkgoT(),
 			kubectlOptions,
 			"exec",
@@ -106,14 +123,9 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 			"-n",
 			kubectlNamespace,
 			"--",
-			"/usr/bin/kcat",
-			"-L",
-			"-b",
-			internalAddress,
-			"-t",
-			topicName,
-			"-P",
-			"/etc/passwd",
+			"/bin/sh",
+			"-c",
+			fmt.Sprintf("echo %s | kcat -L -b %s -t %s -P", currentTime.String(), internalAddress, topicName),
 		)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -136,7 +148,7 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 		)
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(consumedMessage).Should(ContainSubstring("root:x:0:0:root:/root:/bin/ash"))
+		Expect(consumedMessage).Should(ContainSubstring(currentTime.String()))
 
 		kubectlOptions.Namespace = kubectlNamespace
 	})
@@ -186,7 +198,7 @@ func requireExternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 		// Send fetch request for the Kafka cluster
 		fetches := cl.PollFetches(ctxConsumerTimeout)
 		errs := fetches.Errors()
-		Expect(errs).Should(HaveLen(0))
+		Expect(errs).Should(BeEmpty())
 
 		foundMessage := false
 		// We can iterate through a record iterator...
