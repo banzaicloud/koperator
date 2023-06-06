@@ -47,8 +47,7 @@ func deleteK8sResourceOpts(
 	name string,
 	extraArgs ...string) {
 
-	args := extraArgs
-	args = append(args, "delete", kind)
+	args := []string{"delete", kind}
 
 	args = append(args, fmt.Sprintf("--timeout=%s", timeout))
 	kubectlNamespace := kubectlOptions.Namespace
@@ -60,6 +59,8 @@ func deleteK8sResourceOpts(
 	logMsg := fmt.Sprintf("Deleting k8s resource: kind: '%s' ", kind)
 	logMsg, args = _kubectlArgExtender(args, logMsg, selector, name, kubectlOptions.Namespace, extraArgs)
 	By(logMsg)
+
+	args = append(args, extraArgs...)
 
 	_, err := k8s.RunKubectlAndGetOutputE(
 		GinkgoT(),

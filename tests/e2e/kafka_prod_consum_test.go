@@ -112,16 +112,13 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 		By("Producing message")
 		// When kubectl exec command is used the namespace flag cannot be at the beginning
 		// thus we need to specify by hand
-		kubectlNamespace := kubectlOptions.Namespace
-		kubectlOptions.Namespace = ""
-
 		currentTime := time.Now()
 		_, err := k8s.RunKubectlAndGetOutputE(GinkgoT(),
-			kubectlOptions,
+			k8s.NewKubectlOptions(kubectlOptions.ContextName, kubectlOptions.ConfigPath, ""),
 			"exec",
 			"kcat",
 			"-n",
-			kubectlNamespace,
+			kubectlOptions.Namespace,
 			"--",
 			"/bin/sh",
 			"-c",
@@ -131,11 +128,11 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 
 		By("Consuming message")
 		consumedMessage, err := k8s.RunKubectlAndGetOutputE(GinkgoT(),
-			kubectlOptions,
+			k8s.NewKubectlOptions(kubectlOptions.ContextName, kubectlOptions.ConfigPath, ""),
 			"exec",
 			"kcat",
 			"-n",
-			kubectlNamespace,
+			kubectlOptions.Namespace,
 			"--",
 			"/usr/bin/kcat",
 			"-L",
@@ -149,8 +146,6 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(consumedMessage).Should(ContainSubstring(currentTime.String()))
-
-		kubectlOptions.Namespace = kubectlNamespace
 	})
 }
 
