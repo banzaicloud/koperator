@@ -216,13 +216,13 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 		uninstallHelmChartIfExists(kubectlOptions, "kafka-operator", true)
 		By("Verifying Koperator helm chart resources cleanup")
 		k8sCRDs := listK8sAllResourceType(kubectlOptions)
-		remainedRes := getK8sResources(kubectlOptions,
+		remainedResources := getK8sResources(kubectlOptions,
 			k8sCRDs,
 			fmt.Sprintf(managedByHelmLabelTemplate, "kafka-operator"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeEmpty())
+		Expect(remainedResources).Should(BeEmpty())
 	})
 }
 
@@ -242,7 +242,7 @@ func requireDeleteKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) 
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Kafka cluster resource cleanup")
 
-			// Check only those Koperator related resource types what have in K8s (istio usecase)
+			// Check only those Koperator related resource types we have in K8s (istio usecase)
 			k8sCRDs := listK8sAllResourceType(kubectlOptions)
 			koperatorCRDsSelected := _stringSlicesUnion(getKoperatorRelatedResourceKinds(), k8sCRDs)
 			koperatorCRDsSelected = append(koperatorCRDsSelected, basicK8sCRDs()...)

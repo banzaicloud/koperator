@@ -94,13 +94,13 @@ func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions)
 		certManagerK8sResources := basicK8sCRDs()
 		certManagerK8sResources = append(certManagerK8sResources, certManagerCRDs()...)
 
-		remainedRes := getK8sResources(kubectlOptions,
+		remainedResources := getK8sResources(kubectlOptions,
 			certManagerK8sResources,
 			fmt.Sprintf(managedByHelmLabelTemplate, "cert-manager"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeEmpty())
+		Expect(remainedResources).Should(BeEmpty())
 	})
 
 }

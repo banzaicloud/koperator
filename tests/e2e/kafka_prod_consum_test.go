@@ -26,8 +26,8 @@ import (
 )
 
 // requireInternalProducerConsumer deploys a kcat pod and a kafkaTopic into the K8s cluster
-// and producing, consuming messages and make comparison between them.
-// After deletes the kafkaTopic and kcat pod
+// and produces, consumes messages and makes comparisons between them.
+// After deletes the kafkaTopic and kcat pod.
 func requireInternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
 	When("Internally produce and consume message to Kafka cluster", func() {
 		requireDeployingKcatPod(kubectlOptions, kcatPodName)
@@ -83,11 +83,11 @@ func requireDeleteKcatPod(kubectlOptions *k8s.KubectlOptions, podName string) {
 	})
 }
 
-// requireInternalProducingConsumingMessage produces and consuming messages internally through kcat pod
-// and make comparison between the produced and consumed messages.
+// requireInternalProducingConsumingMessage produces and consumes messages internally through a kcat pod
+// and makes comparisons between the produced and consumed messages.
 // When internalAddress parameter is empty, it gets the internal address from the kafkaCluster CR status
 func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, internalAddress, kcatPodName, topicName string) {
-	It(fmt.Sprintf("Producing and consuming messages into topicName: '%s", topicName), func() {
+	It(fmt.Sprintf("Producing and consuming messages to/from topicName: '%s", topicName), func() {
 		if internalAddress == "" {
 			By("Getting Kafka cluster internal addresses")
 			internalListenerNames := getK8sResources(kubectlOptions,
@@ -155,7 +155,7 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 }
 
 // requireExternalProducerConsumer deploys a kafkaTopic into the K8s cluster
-// and producing, consuming messages and make comparison between the produced and consumed messages.
+// and produces, consumes messages and makes comparison between the produced and consumed messages.
 func requireExternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
 	When("Internally produce and consume message to Kafka cluster", func() {
 		requireDeployingKafkaTopic(kubectlOptions, testTopicName)

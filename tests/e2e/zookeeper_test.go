@@ -70,13 +70,13 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOp
 		uninstallHelmChartIfExists(kubectlOptions, "zookeeper-operator", true)
 		By("Verifying Zookeeper-operator helm chart resources cleanup")
 		k8sCRDs := listK8sAllResourceType(kubectlOptions)
-		remainedRes := getK8sResources(kubectlOptions,
+		remainedResources := getK8sResources(kubectlOptions,
 			k8sCRDs,
 			fmt.Sprintf(managedByHelmLabelTemplate, "zookeeper-operator"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeEmpty())
+		Expect(remainedResources).Should(BeEmpty())
 	})
 }
 

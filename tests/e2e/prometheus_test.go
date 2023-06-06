@@ -86,13 +86,13 @@ func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions *k8s.KubectlO
 		prometheusK8sResources := basicK8sCRDs()
 		prometheusK8sResources = append(prometheusK8sResources, prometheusCRDs()...)
 
-		remainedRes := getK8sResources(kubectlOptions,
+		remainedResources := getK8sResources(kubectlOptions,
 			prometheusK8sResources,
 			fmt.Sprintf(managedByHelmLabelTemplate, "prometheus-operator"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeEmpty())
+		Expect(remainedResources).Should(BeEmpty())
 	})
 }
 
