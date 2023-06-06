@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = When("Installing Koperator", func() {
+var _ = When("Installing Koperator", Ordered, func() {
 	var kubeconfigPath string
 	var kubecontextName string
 

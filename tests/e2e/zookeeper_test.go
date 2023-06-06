@@ -23,7 +23,7 @@ import (
 // requireInstallingZookeeperOperator deploys zookeeper-operator Helm chart and
 // checks the success of that operation.
 func requireInstallingZookeeperOperator(kubectlOptions k8s.KubectlOptions, certManagerVersion string) {
-	When("Installing zookeeper-operator", func() {
+	When("Installing zookeeper-operator", Ordered, func() {
 		requireInstallingZookeeperOperatorHelmChart(kubectlOptions, certManagerVersion)
 	})
 }
