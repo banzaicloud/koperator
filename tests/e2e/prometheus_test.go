@@ -100,7 +100,7 @@ func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions *k8s.KubectlO
 func requireRemovePrometheusOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing prometheus-operator CRDs", func() {
 		for _, crd := range prometheusCRDs() {
-			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", "crds", crd)
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, defaultDeletionTimeout, "crds", crd)
 		}
 	})
 }

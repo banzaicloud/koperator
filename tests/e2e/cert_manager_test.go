@@ -109,7 +109,7 @@ func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions)
 func requireRemoveCertManagerCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing cert-manager CRDs", func() {
 		for _, crd := range certManagerCRDs() {
-			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", "crds", crd)
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, defaultDeletionTimeout, "crds", crd)
 		}
 	})
 }

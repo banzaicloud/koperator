@@ -72,14 +72,14 @@ func requireDeployingKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName st
 // requireDeleteKafkaTopic deletes kafkaTopic resource.
 func requireDeleteKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName string) {
 	It("Deleting KafkaTopic CR", func() {
-		deleteK8sResource(kubectlOptions, "", "kafkatopic", topicName)
+		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, "kafkatopic", topicName)
 	})
 }
 
 // requireDeleteKcatPod deletes kcat pod.
 func requireDeleteKcatPod(kubectlOptions *k8s.KubectlOptions, podName string) {
 	It("Deleting Kcat pod", func() {
-		deleteK8sResource(kubectlOptions, "", "pods", podName)
+		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, "pods", podName)
 	})
 }
 
