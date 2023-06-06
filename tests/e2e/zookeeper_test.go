@@ -57,7 +57,7 @@ func requireInstallingZookeeperOperatorHelmChartIfDoesNotExist(
 // requireUninstallingZookeeperOperator uninstall Zookeeper-operator Helm chart
 // and remove CRDs.
 func requireUninstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions) {
-	When("Uninstalling zookeeper-operator", Ordered, func() {
+	When("Uninstalling zookeeper-operator", func() {
 		requireUninstallingZookeeperOperatorHelmChart(kubectlOptions)
 		requireRemoveZookeeperOperatorCRDs(kubectlOptions)
 	})
@@ -91,7 +91,7 @@ func requireRemoveZookeeperOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 
 // requireUninstallZookeeperCluster uninstall the Zookeeper cluster
 func requireUninstallZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
-	When("Uninstalling Zookeeper cluster", Ordered, func() {
+	When("Uninstalling Zookeeper cluster", func() {
 		requireDeleteZookeeperCluster(kubectlOptions, name)
 
 	})

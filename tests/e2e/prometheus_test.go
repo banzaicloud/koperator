@@ -70,7 +70,7 @@ func requireInstallingPrometheusOperatorHelmChartIfDoesNotExist(
 // requireUninstallingPrometheusOperator uninstall prometheus-operator Helm chart and
 // remove CRDs.
 func requireUninstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions) {
-	When("Uninstalling prometheus-operator", Ordered, func() {
+	When("Uninstalling prometheus-operator", func() {
 		requireUninstallingPrometheusOperatorHelmChart(kubectlOptions)
 		requireRemovePrometheusOperatorCRDs(kubectlOptions)
 	})

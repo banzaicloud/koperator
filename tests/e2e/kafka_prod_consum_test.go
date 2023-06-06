@@ -29,7 +29,7 @@ import (
 // and producing, consuming messages and make comparison between them.
 // After deletes the kafkaTopic and kcat pod
 func requireInternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
-	When("Internally produce and consume message to Kafka cluster", Ordered, func() {
+	When("Internally produce and consume message to Kafka cluster", func() {
 		requireDeployingKcatPod(kubectlOptions, kcatPodName)
 		requireDeployingKafkaTopic(kubectlOptions, testTopicName)
 		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testTopicName)
@@ -157,7 +157,7 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 // requireExternalProducerConsumer deploys a kafkaTopic into the K8s cluster
 // and producing, consuming messages and make comparison between the produced and consumed messages.
 func requireExternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
-	When("Internally produce and consume message to Kafka cluster", Ordered, func() {
+	When("Internally produce and consume message to Kafka cluster", func() {
 		requireDeployingKafkaTopic(kubectlOptions, testTopicName)
 		// TODO: requireAvailableExternalKafkaAddress()
 		requireExternalProducingConsumingMessage(kubectlOptions, testTopicName, "a293a4e8347fe40408529348014d1887-1887576550.eu-north-1.elb.amazonaws.com:19090")

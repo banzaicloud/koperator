@@ -78,7 +78,7 @@ func requireInstallingCertManagerHelmChartIfDoesNotExist(
 // requireUninstallingCertManager uninstall Cert-manager Helm chart and
 // remove CRDs.
 func requireUninstallingCertManager(kubectlOptions *k8s.KubectlOptions) {
-	When("Uninstalling zookeeper-operator", Ordered, func() {
+	When("Uninstalling zookeeper-operator", func() {
 		requireUninstallingCertManagerHelmChart(kubectlOptions)
 		requireRemoveCertManagerCRDs(kubectlOptions)
 	})

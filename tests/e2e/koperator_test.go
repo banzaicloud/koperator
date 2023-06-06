@@ -203,7 +203,7 @@ func requireInstallingKoperatorHelmChartIfDoesNotExist(
 // requireUninstallingKoperator uninstall koperator Helm chart and removes Koperator's CRDs
 // the success of those operations.
 func requireUninstallingKoperator(kubectlOptions *k8s.KubectlOptions) {
-	When("Uninstalling Koperator", Ordered, func() {
+	When("Uninstalling Koperator", func() {
 		requireUninstallingKoperatorHelmChart(kubectlOptions)
 		requireRemoveKoperatorCRDs(kubectlOptions)
 	})
@@ -228,7 +228,7 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 
 // requireUninstallKafkaCluster uninstall the Kafka cluster
 func requireUninstallKafkaCluster(kubectlOptions *k8s.KubectlOptions, name string) {
-	When("Uninstalling Kafka cluster", Ordered, func() {
+	When("Uninstalling Kafka cluster", func() {
 		requireDeleteKafkaCluster(kubectlOptions, name)
 
 	})
