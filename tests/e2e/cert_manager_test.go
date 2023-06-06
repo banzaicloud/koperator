@@ -47,18 +47,18 @@ func requireApplyingCertManagerCRDs(kubectlOptions *k8s.KubectlOptions, certMana
 func requireInstallingCertManager(kubectlOptions *k8s.KubectlOptions, certManagerVersion Version) {
 	When("Installing cert-manager", func() {
 		requireApplyingCertManagerCRDs(kubectlOptions, certManagerVersion)
-		requireInstallingCertManagerHelmChartIfDoesNotExist(kubectlOptions, certManagerVersion)
+		requireInstallingCertManagerHelmChart(kubectlOptions, certManagerVersion)
 	})
 }
 
 // requireDeployingCertManagerHelmChart checks the existence of the cert-manager
 // Helm release and installs it if it's not present.
-func requireInstallingCertManagerHelmChartIfDoesNotExist(
+func requireInstallingCertManagerHelmChart(
 	kubectlOptions *k8s.KubectlOptions,
 	certManagerVersion string,
 ) {
 	It("Installing cert-manager Helm chart", func() {
-		installHelmChartIfDoesNotExist(
+		installHelmChart(
 			kubectlOptions,
 			"https://charts.jetstack.io",
 			"cert-manager",

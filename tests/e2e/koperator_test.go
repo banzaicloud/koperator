@@ -115,22 +115,22 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 func requireInstallingKoperator(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version) {
 	When("Installing koperator", func() {
 		requireApplyingKoperatorCRDs(kubectlOptions, koperatorVersion)
-		requireInstallingKoperatorHelmChartIfDoesNotExist(kubectlOptions, koperatorVersion)
+		requireInstallingKoperatorHelmChart(kubectlOptions, koperatorVersion)
 	})
 }
 
 // requireDeployingKoperatorHelmChart checks the existence of the koperator Helm
 // release and installs it if it's not present.
-func requireInstallingKoperatorHelmChartIfDoesNotExist(
+func requireInstallingKoperatorHelmChart(
 	kubectlOptions *k8s.KubectlOptions,
 	koperatorVersion Version,
 ) {
 	It("Installing koperator Helm chart", func() {
 		switch koperatorVersion {
 		case LocalVersion:
-			installHelmChartIfDoesNotExist(kubectlOptions, "", "../../charts/kafka-operator", "", "kafka-operator", nil)
+			installHelmChart(kubectlOptions, "", "../../charts/kafka-operator", "", "kafka-operator", nil)
 		default:
-			installHelmChartIfDoesNotExist(
+			installHelmChart(
 				kubectlOptions,
 				"https://kubernetes-charts.banzaicloud.com",
 				"kafka-operator",
