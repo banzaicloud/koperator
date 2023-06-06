@@ -60,6 +60,7 @@ func installHelmChart(
 	helmChartVersion string,
 	helmReleaseName string,
 	setValues map[string]string,
+	extraArguments ...string,
 ) {
 	By(fmt.Sprintf("Checking for existing Helm release named %s", helmReleaseName))
 	helmRelease, isInstalled := lookUpInstalledHelmReleaseByName(kubectlOptions, helmReleaseName)
@@ -97,7 +98,7 @@ func installHelmChart(
 			KubectlOptions: kubectlOptions,
 			Version:        helmChartVersion,
 			ExtraArgs: map[string][]string{
-				"install": fixedArguments,
+				"install": append(fixedArguments, extraArguments...),
 			},
 		},
 		helmChartNameOrLocalPath,
