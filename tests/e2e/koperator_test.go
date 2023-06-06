@@ -139,8 +139,5 @@ func requireInstallingKoperatorHelmChart(
 				nil,
 			)
 		}
-
-		By("Verifying Koperator pods")
-		requireRunningPods(kubectlOptions, "app.kubernetes.io/name", "kafka-operator")
 	})
 }

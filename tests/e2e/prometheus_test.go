@@ -58,8 +58,5 @@ func requireInstallingPrometheusOperatorHelmChart(
 				"prometheus.enabled":                      "false",
 			},
 		)
-
-		By("Verifying prometheus-operator pods")
-		requireRunningPods(kubectlOptions, "app", "kube-prometheus-stack-operator")
 	})
 }

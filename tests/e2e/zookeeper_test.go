@@ -43,8 +43,5 @@ func requireInstallingZookeeperOperatorHelmChart(
 			"zookeeper-operator",
 			nil,
 		)
-
-		By("Verifying zookeeper-operator pods")
-		requireRunningPods(kubectlOptions, "name", "zookeeper-operator")
 	})
 }

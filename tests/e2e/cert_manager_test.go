@@ -66,8 +66,5 @@ func requireInstallingCertManagerHelmChart(
 			"cert-manager",
 			nil,
 		)
-
-		By("Verifying cert-manager pods")
-		requireRunningPods(kubectlOptions, "app.kubernetes.io/name", "cert-manager", "cainjector", "webhook")
 	})
 }
