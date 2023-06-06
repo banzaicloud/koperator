@@ -100,9 +100,7 @@ test: generate fmt vet manifests bin/setup-envtest
 
 # Run e2e tests
 test-e2e:
-	go test github.com/banzaicloud/koperator/tests/e2e \
-		-v \
-		-timeout 5m
+	ginkgo run -v --trace --show-node-events tests/e2e
 
 # Build manager binary
 manager: generate fmt vet
