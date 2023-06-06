@@ -45,7 +45,7 @@ func createKafkaClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, kopera
 // requireCreatingKafkaCluster creates a Kafka cluster and
 // checks the success of that operation.
 func requireCreatingKafkaCluster(kubectlOptions *k8s.KubectlOptions, koperatorVersion string, sampleFile string) {
-	When("Creating a Kafka cluster", Ordered, func() {
+	When("Creating a Kafka cluster", func() {
 		createKafkaClusterIfDoesNotExist(kubectlOptions, koperatorVersion, sampleFile)
 		requireKafkaClusterReady(kubectlOptions)
 	})
@@ -65,6 +65,6 @@ func requireKafkaClusterReady(kubectlOptions *k8s.KubectlOptions) {
 			return false
 		}, kafkaClusterResourceReadinessTimeout, 3*time.Second).Should(BeTrue())
 		By("Verifying all Kafka pods")
-		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultPodReadinessWaitTime, "kafka_cr="+kafkaClusterName, kafkaClusterName)
+		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultPodReadinessWaitTime, "kafka_cr="+kafkaClusterName, "")
 	})
 }
