@@ -15,7 +15,6 @@
 package e2e
 
 import (
-	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -31,8 +30,8 @@ var _ = When("Installing Koperator", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	requireInstallingCertManager(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"), "v1.11.0")
-	requireInstallingZookeeperOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "0.2.14")
-	requireInstallingPrometheusOperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "prometheus"), "42.0.1")
-	requireInstallingKoperator(k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kafka"), LocalVersion)
+	requireInstallingCertManager(kubectlOptions(kubecontextName, kubeconfigPath, "cert-manager"), "v1.11.0")
+	requireInstallingZookeeperOperator(kubectlOptions(kubecontextName, kubeconfigPath, "zookeeper"), "0.2.14")
+	requireInstallingPrometheusOperator(kubectlOptions(kubecontextName, kubeconfigPath, "prometheus"), "42.0.1")
+	requireInstallingKoperator(kubectlOptions(kubecontextName, kubeconfigPath, "kafka"), LocalVersion)
 })

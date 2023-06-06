@@ -33,7 +33,7 @@ import (
 
 // requireApplyingKoperatorCRDs deploys the Koperator CRDs and checks their
 // existence afterwards.
-func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version) {
+func requireApplyingKoperatorCRDs(kubectlOptions k8s.KubectlOptions, koperatorVersion Version) {
 	It("Applying Koperator CRDs", func() {
 		By(fmt.Sprintf("Retrieving Koperator CRDs (to work around too long CRD) with version %s ", koperatorVersion))
 		// Note: had to go lower because none of apply, create, replace works
@@ -112,7 +112,7 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 
 // requireInstallingKoperator deploys koperator CRDs and Helm chart and checks
 // the success of those operations.
-func requireInstallingKoperator(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version) {
+func requireInstallingKoperator(kubectlOptions k8s.KubectlOptions, koperatorVersion Version) {
 	When("Installing Koperator", func() {
 		requireApplyingKoperatorCRDs(kubectlOptions, koperatorVersion)
 		requireInstallingKoperatorHelmChart(kubectlOptions, koperatorVersion)
@@ -121,10 +121,7 @@ func requireInstallingKoperator(kubectlOptions *k8s.KubectlOptions, koperatorVer
 
 // requireDeployingKoperatorHelmChart checks the existence of the Koperator Helm
 // release and installs it if it's not present.
-func requireInstallingKoperatorHelmChart(
-	kubectlOptions *k8s.KubectlOptions,
-	koperatorVersion Version,
-) {
+func requireInstallingKoperatorHelmChart(kubectlOptions k8s.KubectlOptions, koperatorVersion Version) {
 	It("Installing Koperator Helm chart", func() {
 		switch koperatorVersion {
 		case LocalVersion:

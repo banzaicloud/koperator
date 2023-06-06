@@ -22,7 +22,7 @@ import (
 
 // requireInstallingZookeeperOperator deploys zookeeper-operator Helm chart and
 // checks the success of that operation.
-func requireInstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions, certManagerVersion string) {
+func requireInstallingZookeeperOperator(kubectlOptions k8s.KubectlOptions, certManagerVersion string) {
 	When("Installing zookeeper-operator", func() {
 		requireInstallingZookeeperOperatorHelmChart(kubectlOptions, certManagerVersion)
 	})
@@ -30,10 +30,7 @@ func requireInstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions, cert
 
 // requireInstallingZookeeperOperatorHelmChart checks the existence of the cert-manager
 // Helm release and installs it if it's not present.
-func requireInstallingZookeeperOperatorHelmChart(
-	kubectlOptions *k8s.KubectlOptions,
-	zookeeperOperatorVersion string,
-) {
+func requireInstallingZookeeperOperatorHelmChart(kubectlOptions k8s.KubectlOptions, zookeeperOperatorVersion string) {
 	It("Installing zookeeper-operator Helm chart", func() {
 		installHelmChart(
 			kubectlOptions,

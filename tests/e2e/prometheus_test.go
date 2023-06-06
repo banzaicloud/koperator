@@ -22,7 +22,7 @@ import (
 
 // requireInstallingPrometheusOperator deploys prometheus-operator Helm chart
 // and checks the success of that operation.
-func requireInstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions, prometheusOperatorVersion Version) {
+func requireInstallingPrometheusOperator(kubectlOptions k8s.KubectlOptions, prometheusOperatorVersion Version) {
 	When("Installing prometheus-operator", func() {
 		requireInstallingPrometheusOperatorHelmChart(kubectlOptions, prometheusOperatorVersion)
 	})
@@ -31,7 +31,7 @@ func requireInstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions, pro
 // requireDeployingCertManagerHelmChart checks the existence of the cert-manager
 // Helm release and installs it if it's not present.
 func requireInstallingPrometheusOperatorHelmChart(
-	kubectlOptions *k8s.KubectlOptions,
+	kubectlOptions k8s.KubectlOptions,
 	prometheusOperatorVersion Version,
 ) {
 	It("Installing prometheus-operator Helm chart", func() {

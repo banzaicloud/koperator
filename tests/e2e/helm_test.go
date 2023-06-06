@@ -54,7 +54,7 @@ type HelmRelease struct {
 // namespace using the specified infos, extra arguments can be any of the helm
 // CLI install flag arguments, flag keys and values must be provided separately.
 func installHelmChart(
-	kubectlOptions *k8s.KubectlOptions,
+	kubectlOptions k8s.KubectlOptions,
 	helmRepository string,
 	helmChartNameOrLocalPath string,
 	helmChartVersion string,
@@ -95,7 +95,7 @@ func installHelmChart(
 		GinkgoT(),
 		&helm.Options{
 			SetValues:      setValues,
-			KubectlOptions: kubectlOptions,
+			KubectlOptions: &kubectlOptions,
 			Version:        helmChartVersion,
 			ExtraArgs: map[string][]string{
 				"install": append(fixedArguments, extraArguments...),
@@ -108,12 +108,12 @@ func installHelmChart(
 
 // listHelmReleases returns a slice of Helm releases retrieved from the cluster
 // using the specified kubectl context and namespace.
-func listHelmReleases(kubectlOptions *k8s.KubectlOptions) []*HelmRelease {
+func listHelmReleases(kubectlOptions k8s.KubectlOptions) []*HelmRelease {
 	By("Listing Helm releases")
 	output, err := helm.RunHelmCommandAndGetOutputE(
 		GinkgoT(),
 		&helm.Options{
-			KubectlOptions: kubectlOptions,
+			KubectlOptions: &kubectlOptions,
 		},
 		"list",
 		"--output", "json",
@@ -132,7 +132,7 @@ func listHelmReleases(kubectlOptions *k8s.KubectlOptions) []*HelmRelease {
 // lookUpInstalledHelmReleaseByName returns a Helm release and an indicator
 // whether the Helm release is installed to the specified kubectl context
 // and namespace by the provided Helm release name.
-func lookUpInstalledHelmReleaseByName(kubectlOptions *k8s.KubectlOptions, helmReleaseName string) (*HelmRelease, bool) {
+func lookUpInstalledHelmReleaseByName(kubectlOptions k8s.KubectlOptions, helmReleaseName string) (*HelmRelease, bool) {
 	releases := listHelmReleases(kubectlOptions)
 
 	for _, release := range releases {
