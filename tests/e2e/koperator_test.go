@@ -78,7 +78,7 @@ func requireApplyingKoperatorCRDs(kubectlOptions *k8s.KubectlOptions, koperatorV
 			rawKoperatorCRDs[rawKoperatorCRDIndex] = bytes.Trim(rawKoperatorCRD, "\n-")
 		}
 
-		allowedCRDByteCount := 262144
+		allowedCRDByteCount := 262144 // Note: K8s API server/kubectl limitation.
 		tempDir := os.TempDir()
 		tempFile := path.Join(tempDir, "manifest.yaml")
 		for _, rawKoperatorCRD := range rawKoperatorCRDs {
