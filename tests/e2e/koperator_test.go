@@ -213,7 +213,7 @@ func requireUninstallingKoperator(kubectlOptions *k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingKoperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling Koperator Helm chart", func() {
-		uninstallHelmChartIfExist(kubectlOptions, "kafka-operator", true)
+		uninstallHelmChartIfExists(kubectlOptions, "kafka-operator", true)
 		By("Verifying Koperator helm chart resources cleanup")
 		k8sCRDs := listK8sAllResourceType(kubectlOptions)
 		remainedRes := getK8sResources(kubectlOptions,

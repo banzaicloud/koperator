@@ -88,7 +88,7 @@ func requireUninstallingCertManager(kubectlOptions *k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling Cert-manager Helm chart", func() {
-		uninstallHelmChartIfExist(kubectlOptions, "cert-manager", true)
+		uninstallHelmChartIfExists(kubectlOptions, "cert-manager", true)
 		By("Verifying Cert-manager helm chart resources cleanup")
 
 		certManagerK8sResources := basicK8sCRDs()

@@ -80,7 +80,7 @@ func requireUninstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling Prometheus-operator Helm chart", func() {
-		uninstallHelmChartIfExist(kubectlOptions, "prometheus-operator", true)
+		uninstallHelmChartIfExists(kubectlOptions, "prometheus-operator", true)
 		By("Verifying Prometheus-operator helm chart resources cleanup")
 
 		prometheusK8sResources := basicK8sCRDs()

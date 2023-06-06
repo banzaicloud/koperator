@@ -67,7 +67,7 @@ func requireUninstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling zookeeper-operator Helm chart", func() {
-		uninstallHelmChartIfExist(kubectlOptions, "zookeeper-operator", true)
+		uninstallHelmChartIfExists(kubectlOptions, "zookeeper-operator", true)
 		By("Verifying Zookeeper-operator helm chart resources cleanup")
 		k8sCRDs := listK8sAllResourceType(kubectlOptions)
 		remainedRes := getK8sResources(kubectlOptions,
