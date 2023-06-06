@@ -15,13 +15,13 @@
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/yaml"
 )
 
 // HelmReleaseStatus describes the possible states of a Helm release.
@@ -116,13 +116,13 @@ func listHelmReleases(kubectlOptions *k8s.KubectlOptions) []*HelmRelease {
 			KubectlOptions: kubectlOptions,
 		},
 		"list",
-		"--output", "yaml",
+		"--output", "json",
 	)
 
 	Expect(err).NotTo(HaveOccurred())
 
 	var releases []*HelmRelease
-	err = yaml.Unmarshal([]byte(output), &releases)
+	err = json.Unmarshal([]byte(output), &releases)
 
 	Expect(err).NotTo(HaveOccurred())
 
