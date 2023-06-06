@@ -24,7 +24,6 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -159,22 +158,4 @@ func requireExistingCRDs(kubectlOptions k8s.KubectlOptions, crdNames ...string) 
 	}
 
 	Expect(crds).To(ContainElements(crdFullNames))
-}
-
-// requireRunningPods checks whether the specified pod names are existing in the
-// namespace and have a running status.
-func requireRunningPods(kubectlOptions k8s.KubectlOptions, matchingLabelKey string, podNames ...string) {
-	By(fmt.Sprintf("Verifying running pods for pod names %+v", podNames))
-	pods := k8s.ListPods(GinkgoT(), &kubectlOptions, v1.ListOptions{})
-
-	podNamesAsInterfaces := make([]interface{}, 0, len(podNames))
-	for _, podName := range podNames {
-		podNamesAsInterfaces = append(podNamesAsInterfaces, podName)
-	}
-
-	Expect(pods).To(HaveLen(len(podNames)))
-	for _, pod := range pods {
-		Expect(pod.GetLabels()[matchingLabelKey]).To(BeElementOf(podNamesAsInterfaces...))
-		Expect(pod.Status.Phase).To(BeEquivalentTo("Running"))
-	}
 }
