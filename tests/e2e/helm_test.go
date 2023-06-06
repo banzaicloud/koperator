@@ -48,7 +48,9 @@ type HelmRelease struct {
 	AppVersion  string            `json:"app_version" yaml:"app_version"`
 }
 
-// installHelmChart deploys a Helm chart to the specified kubectl context and
+// installHelmChart checks whether the specified named Helm release exists in
+// the provided kubectl context and namespace, logs it if it does and returns or
+// alternatively deploys a Helm chart to the specified kubectl context and
 // namespace using the specified infos, extra arguments can be any of the helm
 // CLI install flag arguments, flag keys and values must be provided separately.
 func installHelmChart(
@@ -59,6 +61,18 @@ func installHelmChart(
 	helmReleaseName string,
 	setValues map[string]string,
 ) {
+	By(fmt.Sprintf("Checking for existing Helm release named %s", helmReleaseName))
+	helmRelease, isInstalled := lookUpInstalledHelmReleaseByName(kubectlOptions, helmReleaseName)
+
+	if isInstalled {
+		By(fmt.Sprintf(
+			"Skipping the installation of %s, because the Helm release is already present: %+v",
+			helmReleaseName, helmRelease,
+		))
+
+		return
+	}
+
 	By(
 		fmt.Sprintf(
 			"Installing Helm chart %s from %s with version %s by name %s",
@@ -88,41 +102,6 @@ func installHelmChart(
 		},
 		helmChartNameOrLocalPath,
 		helmReleaseName,
-	)
-}
-
-// installHelmChart checks whether the specified named Helm release exists in
-// the provided kubectl context and namespace, logs it if it does and returns or
-// alternatively deploys the Helm chart to the specified kubectl context and
-// namespace using the specified infos, extra arguments can be any of the helm
-// CLI install flag arguments, flag keys and values must be provided separately.
-func installHelmChartIfDoesNotExist(
-	kubectlOptions *k8s.KubectlOptions,
-	helmRepository string,
-	helmChartNameOrLocalPath string,
-	helmChartVersion string,
-	helmReleaseName string,
-	setValues map[string]string,
-) {
-	By(fmt.Sprintf("Checking for existing Helm release named %s", helmReleaseName))
-	helmRelease, isInstalled := lookUpInstalledHelmReleaseByName(kubectlOptions, helmReleaseName)
-
-	if isInstalled {
-		By(fmt.Sprintf(
-			"Skipping the installation of %s, because the Helm release is already present: %+v",
-			helmReleaseName, helmRelease,
-		))
-
-		return
-	}
-
-	installHelmChart(
-		kubectlOptions,
-		helmRepository,
-		helmChartNameOrLocalPath,
-		helmChartVersion,
-		helmReleaseName,
-		setValues,
 	)
 }
 
