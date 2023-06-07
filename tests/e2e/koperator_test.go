@@ -39,7 +39,7 @@ import (
 // The full path of the manifest also can be specified.
 // It supports different versions that can be specified with the koperatorVersion parameter.
 func requireApplyingKoperatorSampleResource(kubectlOptions *k8s.KubectlOptions, koperatorVersion Version, sampleFile string) {
-	By(fmt.Sprintf("Retrieving Koperator sample resource: '%s' with version: '%s' ", sampleFile, koperatorVersion))
+	By(fmt.Sprintf("Retrieving Koperator sample resource: '%s' with version: '%s'", sampleFile, koperatorVersion))
 
 	sampleFileSplit := strings.Split(sampleFile, "/")
 	Expect(sampleFileSplit).ShouldNot(BeEmpty())
