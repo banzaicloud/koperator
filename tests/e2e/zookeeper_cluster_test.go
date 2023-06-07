@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// createZookeeperClusterIfDoesNotExist creates a zookeeperCluster if
+// createZookeeperClusterIfDoesNotExist creates a ZookeeperCluster if
 // there isn't a preexisting one
 func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, zkClusterReplicaCount int) {
 	It("Deploying a ZookeeperCluster", func() {
@@ -48,7 +48,7 @@ func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, zk
 	})
 }
 
-// requireCreatingZookeeperCluster creates a zookeeperCluster and
+// requireCreatingZookeeperCluster creates a ZookeeperCluster and
 // checks the success of that operation.
 func requireCreatingZookeeperCluster(kubectlOptions *k8s.KubectlOptions, zkClusterReplicaCount int) {
 	When("Creating a ZookeeperCluster", func() {
