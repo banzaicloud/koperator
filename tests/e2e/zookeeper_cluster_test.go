@@ -28,12 +28,12 @@ import (
 // createZookeeperClusterIfDoesNotExist creates a zookeeper cluster if
 // there isn't a preexisting one
 func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, zkClusterReplicaCount int) {
-	It("Deploying a Zookeeper cluster", func() {
+	It("Deploying a ZookeeperCluster", func() {
 		By("Checking existing ZookeeperClusters")
 		err := checkExistenceOfK8sResource(kubectlOptions, zookeeperKind, zookeeperClusterName)
 
 		if err == nil {
-			By(fmt.Sprintf("Zookeeper cluster %s already exists\n", zookeeperClusterName))
+			By(fmt.Sprintf("ZookeeperCluster %s already exists\n", zookeeperClusterName))
 		} else {
 			By("Deploying the sample ZookeeperCluster")
 			applyK8sResourceFromTemplate(kubectlOptions,
