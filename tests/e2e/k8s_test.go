@@ -336,9 +336,6 @@ func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, 
 // waitK8sResourceCondition waits until the condition is met or the timeout is elapsed for the selected K8s resource(s)
 // extraArgs can be any of the kubectl arguments
 func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, waitFor string, timeout time.Duration, selector string, names string, extraArgs ...string) {
-	// To specify timeout is mandatory, because there is no good default value because varying conditions
-	Expect(timeout).ShouldNot(BeEmpty())
-
 	logMsg := fmt.Sprintf("Waiting K8s resource(s)' condition: '%s' to fulfil", waitFor)
 
 	args := []string{
