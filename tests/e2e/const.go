@@ -18,21 +18,27 @@ package e2e
 var (
 	// certManagerHelmDescriptor describes the cert-manager Helm component.
 	certManagerHelmDescriptor = helmDescriptor{
-		Repository:                   "https://charts.jetstack.io",
-		ChartName:                    "cert-manager",
-		ChartVersion:                 "v1.11.0",
-		ReleaseName:                  "cert-manager",
-		Namespace:                    "cert-manager",
+		Repository:   "https://charts.jetstack.io",
+		ChartName:    "cert-manager",
+		ChartVersion: "v1.11.0",
+		ReleaseName:  "cert-manager",
+		Namespace:    "cert-manager",
+		SetValues: map[string]string{
+			"installCRDs": "true",
+		},
 		RemoteCRDPathVersionTemplate: "https://github.com/jetstack/cert-manager/releases/download/v%s/cert-manager.crds.yaml",
 	}
 
 	// koperatorLocalHelmDescriptor describes the Koperator Helm component with
 	// a local chart and version.
 	koperatorLocalHelmDescriptor = helmDescriptor{
-		Repository:       "../../charts/kafka-operator",
-		ChartVersion:     LocalVersion,
-		ReleaseName:      "kafka-operator",
-		Namespace:        "kafka",
+		Repository:   "../../charts/kafka-operator",
+		ChartVersion: LocalVersion,
+		ReleaseName:  "kafka-operator",
+		Namespace:    "kafka",
+		SetValues: map[string]string{
+			"crd.enabled": "true",
+		},
 		LocalCRDSubpaths: []string{"templates/crds.yaml"},
 		LocalCRDTemplateRenderValues: map[string]string{
 			"crd.enabled": "true",
@@ -42,11 +48,14 @@ var (
 	// koperatorLocalHelmDescriptor describes the Koperator Helm component with
 	// a remote latest chart and version.
 	koperatorRemoteLatestHelmDescriptor = helmDescriptor{ //nolint:unused // Note: intentional possibly needed in the future for upgrade test.
-		Repository:                   "https://kubernetes-charts.banzaicloud.com",
-		ChartName:                    "kafka-operator",
-		ChartVersion:                 "", // Note: empty string translates to latest final version.
-		ReleaseName:                  "kafka-operator",
-		Namespace:                    "kafka",
+		Repository:   "https://kubernetes-charts.banzaicloud.com",
+		ChartName:    "kafka-operator",
+		ChartVersion: "", // Note: empty string translates to latest final version.
+		ReleaseName:  "kafka-operator",
+		Namespace:    "kafka",
+		SetValues: map[string]string{
+			"crd.enabled": "true",
+		},
 		RemoteCRDPathVersionTemplate: "https://github.com/banzaicloud/koperator/releases/download/%s/kafka-operator.crds.yaml",
 	}
 
@@ -84,6 +93,9 @@ var (
 		ChartVersion: "0.2.14",
 		ReleaseName:  "zookeeper-operator",
 		Namespace:    "zookeeper",
+		SetValues: map[string]string{
+			"crd.create": "true",
+		},
 	}
 )
 

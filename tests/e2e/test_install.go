@@ -15,63 +15,44 @@
 package e2e
 
 import (
+	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = When("Installing Koperator", Ordered, func() {
-	var kubeconfigPath string
-	var kubecontextName string
+	var kubectlOptions k8s.KubectlOptions
+	var err error
 
 	It("Acquiring K8s config and context", func() {
-		var err error
-		kubeconfigPath, kubecontextName, err = currentEnvK8sContext()
-
+		kubectlOptions, err = kubectlOptionsForCurrentContext()
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	kubectlOptions := kubectlOptions(kubecontextName, kubeconfigPath, "")
-
 	When("Installing cert-manager", func() {
-		It("Installing cert-manager CRDs", func() {
-			certManagerCRDPath, err := certManagerHelmDescriptor.crdPath()
-			Expect(err).NotTo(HaveOccurred())
-
-			err = installK8sCRDs(kubectlOptions, certManagerCRDPath)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		It("Installing cert-manager Helm chart", func() {
-			err := certManagerHelmDescriptor.installHelmChart(kubectlOptions)
+			err = certManagerHelmDescriptor.installHelmChart(kubectlOptions)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	When("Installing zookeeper-operator", func() {
 		It("Installing zookeeper-operator Helm chart", func() {
-			err := zookeeperOperatorHelmDescriptor.installHelmChart(kubectlOptions)
+			err = zookeeperOperatorHelmDescriptor.installHelmChart(kubectlOptions)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	When("Installing prometheus-operator", func() {
 		It("Installing prometheus-operator Helm chart", func() {
-			err := prometheusOperatorHelmDescriptor.installHelmChart(kubectlOptions)
+			err = prometheusOperatorHelmDescriptor.installHelmChart(kubectlOptions)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	When("Installing Koperator", func() {
-		It("Installing Koperator CRDs", func() {
-			koperatorCRDPath, err := koperatorLocalHelmDescriptor.crdPath()
-			Expect(err).NotTo(HaveOccurred())
-
-			err = installK8sCRDs(kubectlOptions, koperatorCRDPath)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		It("Installing Koperator Helm chart", func() {
-			err := koperatorLocalHelmDescriptor.installHelmChart(kubectlOptions)
+			err = koperatorLocalHelmDescriptor.installHelmChart(kubectlOptions)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})

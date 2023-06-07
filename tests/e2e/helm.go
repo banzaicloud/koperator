@@ -46,7 +46,7 @@ type helmDescriptor struct {
 
 // crdPath returns the path of the CRD belonging to the Helm descriptor based on
 // the chart version and local/remote Helm chart.
-func (helmDescriptor *helmDescriptor) crdPath() (string, error) {
+func (helmDescriptor *helmDescriptor) crdPath() (string, error) { //nolint:unused // Note: this might come in handy for manual CRD operations such as too long CRDs.
 	if helmDescriptor == nil {
 		return "", errors.Errorf("invalid nil Helm descriptor")
 	}

@@ -44,7 +44,7 @@ const (
 
 // applyK8sResourceManifests applies the specified manifest to the provided
 // kubectl context and namespace.
-func applyK8sResourceManifest(kubectlOptions k8s.KubectlOptions, manifestPath string) {
+func applyK8sResourceManifest(kubectlOptions k8s.KubectlOptions, manifestPath string) { //nolint:unused // Note: this might come in handy for manual K8s resource operations.
 	By(fmt.Sprintf("Applying k8s manifest %s", manifestPath))
 	k8s.KubectlApply(GinkgoT(), &kubectlOptions, manifestPath)
 }
@@ -52,7 +52,7 @@ func applyK8sResourceManifest(kubectlOptions k8s.KubectlOptions, manifestPath st
 // createOrReplaceK8sResourcesFromManifest creates non-existent Kubernetes
 // resources or replaces existing ones from the specified manifest to the
 // provided kubectl context and namespace.
-func createOrReplaceK8sResourcesFromManifest(
+func createOrReplaceK8sResourcesFromManifest( //nolint:unused // Note: this might come in handy for manual K8s resource operations such as too long CRDs.
 	kubectlOptions k8s.KubectlOptions,
 	resourceKind string,
 	resourceName string,
@@ -125,7 +125,7 @@ func currentEnvK8sContext() (kubeconfigPath string, kubecontextName string, err 
 
 // getK8sCRD queries and returns the CRD of the specified CRD name from the
 // provided Kubernetes context.
-func getK8sCRD(kubectlOptions k8s.KubectlOptions, crdName string) ([]byte, error) {
+func getK8sCRD(kubectlOptions k8s.KubectlOptions, crdName string) ([]byte, error) { //nolint:unused // Note: this might come in handy for manual CRD operations.
 	if crdName == "" {
 		return nil, errors.Errorf("invalid empty CRD name")
 	}
@@ -158,7 +158,7 @@ func getK8sCRD(kubectlOptions k8s.KubectlOptions, crdName string) ([]byte, error
 // size, create is not idempotent, replace is only idempotent if the resources
 // are existing already). Tried dropping the descriptions in the CRDs, but still
 // too large.
-func installK8sCRD(kubectlOptions k8s.KubectlOptions, crd []byte, shouldBeValidated bool) error {
+func installK8sCRD(kubectlOptions k8s.KubectlOptions, crd []byte, shouldBeValidated bool) error { //nolint:unused // Note: this might come in handy for manual CRD installations.
 	tempPath, err := createTempFileFromBytes(crd, "", "", 0)
 	if err != nil {
 		return errors.WrapIf(err, "creating temporary file for CRD failed")
@@ -182,7 +182,7 @@ func installK8sCRD(kubectlOptions k8s.KubectlOptions, crd []byte, shouldBeValida
 // installK8sCRDs checks whether the CRDs specified with their manifest paths exist
 // with the same content, installs them if they are missing and errors if it
 // finds mismatching existing CRDs.
-func installK8sCRDs(kubectlOptions k8s.KubectlOptions, crdManifestPaths ...string) error {
+func installK8sCRDs(kubectlOptions k8s.KubectlOptions, crdManifestPaths ...string) error { //nolint:unused // Note: this might come in handy for manual CRD installations.
 	crds, err := k8sResourcesFromManifestPaths(crdManifestPaths...)
 	if err != nil {
 		return errors.WrapIfWithDetails(
@@ -270,7 +270,7 @@ func installK8sCRDs(kubectlOptions k8s.KubectlOptions, crdManifestPaths ...strin
 
 // k8sObjectFromResourceManifest returns the K8s object meta from the
 // specified resource manifest.
-func k8sObjectFromResourceManifest(resourceManifest []byte) (*unstructured.Unstructured, error) {
+func k8sObjectFromResourceManifest(resourceManifest []byte) (*unstructured.Unstructured, error) { //nolint:unused // Note: this might come in handy for manual K8s resource operations.
 	unstructured := new(unstructured.Unstructured)
 	err := yaml.Unmarshal(resourceManifest, &unstructured)
 	if err != nil {
@@ -287,7 +287,7 @@ func k8sObjectFromResourceManifest(resourceManifest []byte) (*unstructured.Unstr
 // k8sResourcesFromManifest splits the specified YAML manifest to separate resource
 // manifests based on the --- YAML node delimiter and also trims the results for
 // the delimiter and the leading or trailing whitespaces.
-func k8sResourcesFromManifest(manifest []byte) [][]byte {
+func k8sResourcesFromManifest(manifest []byte) [][]byte { //nolint:unused // Note: this might come in handy for manual K8s resource operations.
 	resources := bytes.Split(manifest, []byte("\n---\n"))
 	for resourceIndex, resource := range resources {
 		resources[resourceIndex] = bytes.Trim(resource, "\n-")
@@ -298,7 +298,7 @@ func k8sResourcesFromManifest(manifest []byte) [][]byte {
 
 // k8sResourcesFromManifestPaths returns the YAML resource manifests as raw data
 // found in the specified manifest paths.
-func k8sResourcesFromManifestPaths(manifestPaths ...string) ([][]byte, error) {
+func k8sResourcesFromManifestPaths(manifestPaths ...string) ([][]byte, error) { //nolint:unused // Note: this might come in handy for manual K8s resource operations.
 	resources := make([][]byte, 0, len(manifestPaths))
 	for _, manifestPath := range manifestPaths {
 		var manifest []byte
@@ -360,9 +360,20 @@ func kubectlOptions(kubecontextName, kubeconfigPath, namespace string) k8s.Kubec
 	return *k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, namespace)
 }
 
+// kubectlOptionsForCurrentContext returns a kubectlOptions object for the
+// current Kubernetes context or alternatively an error.
+func kubectlOptionsForCurrentContext() (k8s.KubectlOptions, error) {
+	kubeconfigPath, kubecontextName, err := currentEnvK8sContext()
+	if err != nil {
+		return k8s.KubectlOptions{}, errors.WrapIf(err, "retrieving current environment Kubernetes context failed")
+	}
+
+	return kubectlOptions(kubecontextName, kubeconfigPath, ""), nil
+}
+
 // listK8sCRDs lists the available CRDs from the specified kubectl context and
 // namespace optionally filtering for the specified CRD names.
-func listK8sCRDs(kubectlOptions k8s.KubectlOptions, crdNames ...string) ([]string, error) {
+func listK8sCRDs(kubectlOptions k8s.KubectlOptions, crdNames ...string) ([]string, error) { //nolint:unused // Note: this might come in handy for manual CRD operations.
 	if len(crdNames) == 0 {
 		By("Listing CRDs")
 	} else {

@@ -25,7 +25,7 @@ import (
 // specified content in the provided temporary directory and temporary file name
 // pattern using the given file mode override and returns the file path or
 // alternatively an error.
-func createTempFileFromBytes(
+func createTempFileFromBytes( //nolint:unused // Note: this might come in handy for manual file operations such as too long CRDs.
 	content []byte,
 	tempDirectoryOverride string,
 	tempFileNamePatternOverride string,
