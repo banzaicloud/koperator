@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// createZookeeperClusterIfDoesNotExist creates a zookeeper cluster if
+// createZookeeperClusterIfDoesNotExist creates a zookeeperCluster if
 // there isn't a preexisting one
 func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, zkClusterReplicaCount int) {
 	It("Deploying a ZookeeperCluster", func() {
@@ -48,27 +48,27 @@ func createZookeeperClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, zk
 	})
 }
 
-// requireCreatingZookeeperCluster creates a zookeeper cluster and
+// requireCreatingZookeeperCluster creates a zookeeperCluster and
 // checks the success of that operation.
 func requireCreatingZookeeperCluster(kubectlOptions *k8s.KubectlOptions, zkClusterReplicaCount int) {
-	When("Creating a Zookeeper cluster", func() {
+	When("Creating a ZookeeperCluster", func() {
 		createZookeeperClusterIfDoesNotExist(kubectlOptions, zkClusterReplicaCount)
 		requireZookeeperClusterReady(kubectlOptions)
 	})
 }
 
 func requireZookeeperClusterReady(kubectlOptions *k8s.KubectlOptions) {
-	It("Verifying Zookeeper cluster health", func() {
-		By("Verifying the Zookeeper cluster resource")
+	It("Verifying ZookeeperCluster health", func() {
+		By("Verifying the ZookeeperCluster resource")
 		waitK8sResourceCondition(kubectlOptions, zookeeperKind, "jsonpath={.status.readyReplicas}=1", zookeeperClusterCreateTimeout, "", zookeeperClusterName)
-		By("Verifying the Zookeeper cluster's pods")
+		By("Verifying the ZookeeperCluster's pods")
 		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultPodReadinessWaitTime, "app="+zookeeperClusterName, "")
 	})
 }
 
-// requireUninstallZookeeperCluster uninstall the Zookeeper cluster
+// requireUninstallZookeeperCluster uninstall the ZookeeperCluster
 func requireUninstallZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
-	When("Uninstalling Zookeeper cluster", func() {
+	When("Uninstalling ZookeeperCluster", func() {
 		requireDeleteZookeeperCluster(kubectlOptions, name)
 
 	})
@@ -79,7 +79,7 @@ func requireDeleteZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name stri
 	It("Delete ZookeeperCluster custom resource", func() {
 		deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, defaultDeletionTimeout, zookeeperKind, name)
 		Eventually(context.Background(), func() []string {
-			By("Verifying the Zookeeper cluster resource cleanup")
+			By("Verifying the ZookeeperCluster resource cleanup")
 
 			zookeeperK8sResources := basicK8sCRDs()
 			zookeeperK8sResources = append(zookeeperK8sResources, zookeeperCRDs()...)
