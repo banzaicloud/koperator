@@ -37,7 +37,7 @@ var _ = When("Installing Koperator", Ordered, func() {
 			certManagerCRDPath, err := certManagerHelmDescriptor.crdPath()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = installCRDs(kubectlOptions, certManagerCRDPath)
+			err = installK8sCRDs(kubectlOptions, certManagerCRDPath)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -66,7 +66,7 @@ var _ = When("Installing Koperator", Ordered, func() {
 			koperatorCRDPath, err := koperatorLocalHelmDescriptor.crdPath()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = installCRDs(kubectlOptions, koperatorCRDPath)
+			err = installK8sCRDs(kubectlOptions, koperatorCRDPath)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

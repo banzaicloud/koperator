@@ -178,6 +178,95 @@ func installK8sCRD(kubectlOptions k8s.KubectlOptions, crd []byte, shouldBeValida
 	return nil
 }
 
+// installK8sCRDs checks whether the CRDs specified with their manifest paths exist
+// with the same content, installs them if they are missing and errors if it
+// finds mismatching existing CRDs.
+func installK8sCRDs(kubectlOptions k8s.KubectlOptions, crdManifestPaths ...string) error {
+	crds, err := k8sResourcesFromManifestPaths(crdManifestPaths...)
+	if err != nil {
+		return errors.WrapIfWithDetails(
+			err,
+			"retrieving CRDs from manifest paths failed",
+			"crdManifestPaths", crdManifestPaths,
+		)
+	}
+
+	crdNames := make([]string, 0, len(crds))
+
+	for _, crd := range crds {
+		object, err := k8sObjectFromResourceManifest(crd)
+		if err != nil {
+			return errors.WrapIfWithDetails(
+				err,
+				"retrieving CRD object from resource manifest failed",
+				"crd", string(crd),
+			)
+		}
+
+		crdNames = append(crdNames, object.GetName())
+	}
+
+	clusterCRDNames, err := listK8sCRDs(kubectlOptions)
+	if err != nil {
+		return errors.WrapIf(err, "listing K8s CRDs failed")
+	}
+
+	for crdIndex, crd := range crds {
+		crdName := crdNames[crdIndex]
+
+		isFound := false
+		for _, clusterCRDName := range clusterCRDNames {
+			if clusterCRDName == crdNamePrefix+crdName {
+				isFound = true
+				break
+			}
+		}
+
+		if isFound {
+			clusterCRD, err := getK8sCRD(kubectlOptions, crdName)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "retrieving K8s CRD failed", "crdName", crdName)
+			}
+
+			By(fmt.Sprintf("Comparing existing and desired CRD %s", crdName))
+
+			typedClusterCRD := new(apiextensionsv1.CustomResourceDefinition)
+			err = yaml.Unmarshal(clusterCRD, typedClusterCRD)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "parsing K8s CRD failed", "clusterCRD", string(clusterCRD))
+			}
+
+			typedCRD := new(apiextensionsv1.CustomResourceDefinition)
+			err = yaml.Unmarshal(crd, typedCRD)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "parsing CRD failed", "crd", string(crd))
+			}
+
+			patchResult, err := patch.DefaultPatchMaker.Calculate(typedClusterCRD, typedCRD)
+			if err != nil {
+				return errors.WrapIfWithDetails(
+					err,
+					"calculating actual and desired CRD diff failed",
+					"clusterCRD", clusterCRD,
+					"crd", crd,
+				)
+			}
+
+			if !patchResult.IsEmpty() {
+				return errors.NewWithDetails("actual and desired CRDs mismatch", "patch", patchResult.String())
+			}
+		} else {
+			By(fmt.Sprintf("Installing CRD %s", crdName))
+			err := installK8sCRD(kubectlOptions, crd, false)
+			if err != nil {
+				return errors.WrapIfWithDetails(err, "installing CRD failed", "crd", crd)
+			}
+		}
+	}
+
+	return nil
+}
+
 // k8sObjectFromResourceManifest returns the K8s object meta from the
 // specified resource manifest.
 func k8sObjectFromResourceManifest(resourceManifest []byte) (*unstructured.Unstructured, error) {
@@ -303,93 +392,4 @@ func replaceK8sResourcesFromManifest(kubectlOptions k8s.KubectlOptions, manifest
 		fmt.Sprintf("--validate=%t", shouldBeValidated),
 		"--filename", manifestPath,
 	)
-}
-
-// installCRDs checks whether the CRDs specified with their manifest paths exist
-// with the same content, installs them if they are missing and errors if it
-// finds mismatching existing CRDs.
-func installCRDs(kubectlOptions k8s.KubectlOptions, crdManifestPaths ...string) error {
-	crds, err := k8sResourcesFromManifestPaths(crdManifestPaths...)
-	if err != nil {
-		return errors.WrapIfWithDetails(
-			err,
-			"retrieving CRDs from manifest paths failed",
-			"crdManifestPaths", crdManifestPaths,
-		)
-	}
-
-	crdNames := make([]string, 0, len(crds))
-
-	for _, crd := range crds {
-		object, err := k8sObjectFromResourceManifest(crd)
-		if err != nil {
-			return errors.WrapIfWithDetails(
-				err,
-				"retrieving CRD object from resource manifest failed",
-				"crd", string(crd),
-			)
-		}
-
-		crdNames = append(crdNames, object.GetName())
-	}
-
-	clusterCRDNames, err := listK8sCRDs(kubectlOptions)
-	if err != nil {
-		return errors.WrapIf(err, "listing K8s CRDs failed")
-	}
-
-	for crdIndex, crd := range crds {
-		crdName := crdNames[crdIndex]
-
-		isFound := false
-		for _, clusterCRDName := range clusterCRDNames {
-			if clusterCRDName == crdNamePrefix+crdName {
-				isFound = true
-				break
-			}
-		}
-
-		if isFound {
-			clusterCRD, err := getK8sCRD(kubectlOptions, crdName)
-			if err != nil {
-				return errors.WrapIfWithDetails(err, "retrieving K8s CRD failed", "crdName", crdName)
-			}
-
-			By(fmt.Sprintf("Comparing existing and desired CRD %s", crdName))
-
-			typedClusterCRD := new(apiextensionsv1.CustomResourceDefinition)
-			err = yaml.Unmarshal(clusterCRD, typedClusterCRD)
-			if err != nil {
-				return errors.WrapIfWithDetails(err, "parsing K8s CRD failed", "clusterCRD", string(clusterCRD))
-			}
-
-			typedCRD := new(apiextensionsv1.CustomResourceDefinition)
-			err = yaml.Unmarshal(crd, typedCRD)
-			if err != nil {
-				return errors.WrapIfWithDetails(err, "parsing CRD failed", "crd", string(crd))
-			}
-
-			patchResult, err := patch.DefaultPatchMaker.Calculate(typedClusterCRD, typedCRD)
-			if err != nil {
-				return errors.WrapIfWithDetails(
-					err,
-					"calculating actual and desired CRD diff failed",
-					"clusterCRD", clusterCRD,
-					"crd", crd,
-				)
-			}
-
-			if !patchResult.IsEmpty() {
-				return errors.NewWithDetails("actual and desired CRDs mismatch", "patch", patchResult.String())
-			}
-		} else {
-			By(fmt.Sprintf("Installing CRD %s", crdName))
-			err := installK8sCRD(kubectlOptions, crd, false)
-			if err != nil {
-				return errors.WrapIfWithDetails(err, "installing CRD failed", "crd", crd)
-			}
-		}
-	}
-
-	return nil
 }
