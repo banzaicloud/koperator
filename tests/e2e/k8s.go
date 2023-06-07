@@ -49,19 +49,6 @@ func applyK8sResourceManifest(kubectlOptions k8s.KubectlOptions, manifestPath st
 	k8s.KubectlApply(GinkgoT(), &kubectlOptions, manifestPath)
 }
 
-// createK8sResourcesFromManifest creates Kubernetes resources from the
-// specified manifest to the provided kubectl context and namespace.
-func createK8sResourcesFromManifest(kubectlOptions k8s.KubectlOptions, manifestPath string, shouldBeValidated bool) {
-	By(fmt.Sprintf("Creating k8s resources from manifest %s", manifestPath))
-	k8s.RunKubectl(
-		GinkgoT(),
-		&kubectlOptions,
-		"create",
-		fmt.Sprintf("--validate=%t", shouldBeValidated),
-		"--filename", manifestPath,
-	)
-}
-
 // createOrReplaceK8sResourcesFromManifest creates non-existent Kubernetes
 // resources or replaces existing ones from the specified manifest to the
 // provided kubectl context and namespace.
@@ -76,9 +63,23 @@ func createOrReplaceK8sResourcesFromManifest(
 	err := k8s.RunKubectlE(GinkgoT(), &kubectlOptions, "get", resourceKind, resourceName)
 
 	if err == nil {
-		replaceK8sResourcesFromManifest(kubectlOptions, resourceManifest, shouldBeValidated)
+		By(fmt.Sprintf("Replacing k8s resources from manifest %s", resourceManifest))
+		k8s.RunKubectl(
+			GinkgoT(),
+			&kubectlOptions,
+			"replace",
+			fmt.Sprintf("--validate=%t", shouldBeValidated),
+			"--filename", resourceManifest,
+		)
 	} else {
-		createK8sResourcesFromManifest(kubectlOptions, resourceManifest, shouldBeValidated)
+		By(fmt.Sprintf("Creating k8s resources from manifest %s", resourceManifest))
+		k8s.RunKubectl(
+			GinkgoT(),
+			&kubectlOptions,
+			"create",
+			fmt.Sprintf("--validate=%t", shouldBeValidated),
+			"--filename", resourceManifest,
+		)
 	}
 }
 
@@ -379,17 +380,4 @@ func listK8sCRDs(kubectlOptions k8s.KubectlOptions, crdNames ...string) ([]strin
 	}
 
 	return strings.Split(output, "\n"), nil
-}
-
-// replaceK8sResourcesFromManifest replaces existing Kubernetes resources from
-// the specified manifest to the provided kubectl context and namespace.
-func replaceK8sResourcesFromManifest(kubectlOptions k8s.KubectlOptions, manifestPath string, shouldBeValidated bool) {
-	By(fmt.Sprintf("Replacing k8s resources from manifest %s", manifestPath))
-	k8s.RunKubectl(
-		GinkgoT(),
-		&kubectlOptions,
-		"replace",
-		fmt.Sprintf("--validate=%t", shouldBeValidated),
-		"--filename", manifestPath,
-	)
 }
