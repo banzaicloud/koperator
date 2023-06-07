@@ -200,8 +200,7 @@ func requireInstallingKoperatorHelmChartIfDoesNotExist(
 	})
 }
 
-// requireUninstallingKoperator uninstall koperator Helm chart and removes Koperator's CRDs
-// the success of those operations.
+// requireUninstallingKoperator uninstall koperator Helm chart and removes Koperator's CRDs.
 func requireUninstallingKoperator(kubectlOptions *k8s.KubectlOptions) {
 	When("Uninstalling Koperator", func() {
 		requireUninstallingKoperatorHelmChart(kubectlOptions)
