@@ -29,6 +29,8 @@ const (
 	kubectlArgGoTemplateKindNameNamespace                 = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
 	kubectlArgGoTemplateInternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.internalListeners}}{{$key}}{{"\n"}}{{end}}`
 	kubectlArgGoTemplateInternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.internalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
+	// kubectlArgGoTemplateExternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.externallListeners}}{{$key}}{{"\n"}}{{end}}`
+	// kubectlArgGoTemplateExternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.externalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
 
 	kafkaKind                  = "kafkaclusters.kafka.banzaicloud.io"
 	kafkaClusterName           = "kafka"
@@ -38,14 +40,14 @@ const (
 	zookeeperClusterName       = "zookeeper-server"
 	managedByHelmLabelTemplate = "app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=%s"
 
-	kafkaClusterCreateTimeout     = "500s"
-	zookeeperClusterCreateTimeout = "240s"
+	kafkaClusterCreateTimeout     = 500 * time.Second
+	zookeeperClusterCreateTimeout = 4 * time.Minute
 
-	cruiseControlPodReadinessTimeout       = "50s"
-	defaultDeletionTimeout                 = "20s"
-	defaultPodReadinessWaitTime            = "10s"
-	defaultTopicCreationWaitTime           = "10s"
+	cruiseControlPodReadinessTimeout       = 50 * time.Second
 	kafkaClusterResourceReadinessTimeout   = 60 * time.Second
+	defaultDeletionTimeout                 = 20 * time.Second
+	defaultPodReadinessWaitTime            = 10 * time.Second
+	defaultTopicCreationWaitTime           = 10 * time.Second
 	kafkaClusterResourceCleanupTimeout     = 30 * time.Second
 	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
 	externalConsumerTimeout                = 5 * time.Second

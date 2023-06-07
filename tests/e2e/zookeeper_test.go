@@ -55,7 +55,7 @@ func requireInstallingZookeeperOperatorHelmChartIfDoesNotExist(
 // requireUninstallingZookeeperOperator uninstall Zookeeper-operator Helm chart
 // and remove CRDs.
 func requireUninstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions) {
-	When("Uninstalling zookeeper-operator", Ordered, func() {
+	When("Uninstalling zookeeper-operator", func() {
 		requireUninstallingZookeeperOperatorHelmChart(kubectlOptions)
 		requireRemoveZookeeperOperatorCRDs(kubectlOptions)
 	})
@@ -65,16 +65,16 @@ func requireUninstallingZookeeperOperator(kubectlOptions *k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling zookeeper-operator Helm chart", func() {
-		uninstallHelmChartIfExist(kubectlOptions, "zookeeper-operator", true)
+		uninstallHelmChartIfExists(kubectlOptions, "zookeeper-operator", true)
 		By("Verifying Zookeeper-operator helm chart resources cleanup")
 		k8sCRDs := listK8sAllResourceType(kubectlOptions)
-		remainedRes := getK8sResources(kubectlOptions,
+		remainedResources := getK8sResources(kubectlOptions,
 			k8sCRDs,
 			fmt.Sprintf(managedByHelmLabelTemplate, "zookeeper-operator"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeEmpty())
+		Expect(remainedResources).Should(BeEmpty())
 	})
 }
 
@@ -82,7 +82,7 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions *k8s.KubectlOp
 func requireRemoveZookeeperOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing zookeeper-operator CRDs", func() {
 		for _, crd := range zookeeperCRDs() {
-			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", "crds", crd)
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, defaultDeletionTimeout, "crds", crd)
 		}
 	})
 }

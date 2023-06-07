@@ -70,7 +70,7 @@ func requireInstallingPrometheusOperatorHelmChartIfDoesNotExist(
 // requireUninstallingPrometheusOperator uninstall prometheus-operator Helm chart and
 // remove CRDs.
 func requireUninstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions) {
-	When("Uninstalling prometheus-operator", Ordered, func() {
+	When("Uninstalling prometheus-operator", func() {
 		requireUninstallingPrometheusOperatorHelmChart(kubectlOptions)
 		requireRemovePrometheusOperatorCRDs(kubectlOptions)
 	})
@@ -80,19 +80,19 @@ func requireUninstallingPrometheusOperator(kubectlOptions *k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling Prometheus-operator Helm chart", func() {
-		uninstallHelmChartIfExist(kubectlOptions, "prometheus-operator", true)
+		uninstallHelmChartIfExists(kubectlOptions, "prometheus-operator", true)
 		By("Verifying Prometheus-operator helm chart resources cleanup")
 
 		prometheusK8sResources := basicK8sCRDs()
 		prometheusK8sResources = append(prometheusK8sResources, prometheusCRDs()...)
 
-		remainedRes := getK8sResources(kubectlOptions,
+		remainedResources := getK8sResources(kubectlOptions,
 			prometheusK8sResources,
 			fmt.Sprintf(managedByHelmLabelTemplate, "prometheus-operator"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeEmpty())
+		Expect(remainedResources).Should(BeEmpty())
 	})
 }
 
@@ -100,7 +100,7 @@ func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions *k8s.KubectlO
 func requireRemovePrometheusOperatorCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing prometheus-operator CRDs", func() {
 		for _, crd := range prometheusCRDs() {
-			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", "crds", crd)
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, defaultDeletionTimeout, "crds", crd)
 		}
 	})
 }

@@ -15,21 +15,19 @@
 package e2e
 
 import (
-	"context"
 	"fmt"
 	"time"
 
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 // requireInternalProducerConsumer deploys a kcat pod and a kafkaTopic into the K8s cluster
-// and producing, consuming messages and make comparison between them.
-// After deletes the kafkaTopic and kcat pod
+// and produces, consumes messages and makes comparisons between them.
+// After deletes the kafkaTopic and kcat pod.
 func requireInternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
-	When("Internally produce and consume message to Kafka cluster", Ordered, func() {
+	When("Internally produce and consume message to Kafka cluster", func() {
 		requireDeployingKcatPod(kubectlOptions, kcatPodName)
 		requireDeployingKafkaTopic(kubectlOptions, testTopicName)
 		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testTopicName)
@@ -72,22 +70,22 @@ func requireDeployingKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName st
 // requireDeleteKafkaTopic deletes kafkaTopic resource.
 func requireDeleteKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName string) {
 	It("Deleting KafkaTopic CR", func() {
-		deleteK8sResource(kubectlOptions, "", "kafkatopic", topicName)
+		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, "kafkatopic", topicName)
 	})
 }
 
 // requireDeleteKcatPod deletes kcat pod.
 func requireDeleteKcatPod(kubectlOptions *k8s.KubectlOptions, podName string) {
 	It("Deleting Kcat pod", func() {
-		deleteK8sResource(kubectlOptions, "", "pods", podName)
+		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, "pods", podName)
 	})
 }
 
-// requireInternalProducingConsumingMessage produces and consuming messages internally through kcat pod
-// and make comparison between the produced and consumed messages.
+// requireInternalProducingConsumingMessage produces and consumes messages internally through a kcat pod
+// and makes comparisons between the produced and consumed messages.
 // When internalAddress parameter is empty, it gets the internal address from the kafkaCluster CR status
 func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, internalAddress, kcatPodName, topicName string) {
-	It(fmt.Sprintf("Producing and consuming messages into topicName: '%s", topicName), func() {
+	It(fmt.Sprintf("Producing and consuming messages to/from topicName: '%s", topicName), func() {
 		if internalAddress == "" {
 			By("Getting Kafka cluster internal addresses")
 			internalListenerNames := getK8sResources(kubectlOptions,
@@ -112,16 +110,13 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 		By("Producing message")
 		// When kubectl exec command is used the namespace flag cannot be at the beginning
 		// thus we need to specify by hand
-		kubectlNamespace := kubectlOptions.Namespace
-		kubectlOptions.Namespace = ""
-
 		currentTime := time.Now()
 		_, err := k8s.RunKubectlAndGetOutputE(GinkgoT(),
-			kubectlOptions,
+			k8s.NewKubectlOptions(kubectlOptions.ContextName, kubectlOptions.ConfigPath, ""),
 			"exec",
 			"kcat",
 			"-n",
-			kubectlNamespace,
+			kubectlOptions.Namespace,
 			"--",
 			"/bin/sh",
 			"-c",
@@ -131,11 +126,11 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 
 		By("Consuming message")
 		consumedMessage, err := k8s.RunKubectlAndGetOutputE(GinkgoT(),
-			kubectlOptions,
+			k8s.NewKubectlOptions(kubectlOptions.ContextName, kubectlOptions.ConfigPath, ""),
 			"exec",
 			"kcat",
 			"-n",
-			kubectlNamespace,
+			kubectlOptions.Namespace,
 			"--",
 			"/usr/bin/kcat",
 			"-L",
@@ -149,69 +144,5 @@ func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(consumedMessage).Should(ContainSubstring(currentTime.String()))
-
-		kubectlOptions.Namespace = kubectlNamespace
-	})
-}
-
-// requireExternalProducerConsumer deploys a kafkaTopic into the K8s cluster
-// and producing, consuming messages and make comparison between the produced and consumed messages.
-func requireExternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
-	When("Internally produce and consume message to Kafka cluster", Ordered, func() {
-		requireDeployingKafkaTopic(kubectlOptions, testTopicName)
-		// TODO: requireAvailableExternalKafkaAddress()
-		requireExternalProducingConsumingMessage(kubectlOptions, testTopicName, "a293a4e8347fe40408529348014d1887-1887576550.eu-north-1.elb.amazonaws.com:19090")
-		requireDeleteKafkaTopic(kubectlOptions, testTopicName)
-	})
-}
-
-// requireExternalProducingConsumingMessage producing, consuming messages and make comparison between them.
-func requireExternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, topicName string, externalAddresses ...string) {
-	It(fmt.Sprintf("Producing and consuming messages (kafkaAddr: '%s' topicName: '%s", externalAddresses, topicName), func() {
-		By("Producing message")
-		message := time.Now().String()
-		// One client can both produce and consume!
-		// Consuming can either be direct (no consumer group), or through a group.
-		cl, err := kgo.NewClient(
-			kgo.SeedBrokers(externalAddresses...),
-			//kgo.ConsumerGroup("my-group-identifier"),
-			kgo.ConsumeTopics(topicName),
-		)
-		Expect(err).NotTo(HaveOccurred())
-		defer cl.Close()
-
-		ctx := context.Background()
-		ctxProducerTimeout, cancelCtxProducerTimeout := context.WithTimeout(ctx, externalProducerTimeout)
-		defer cancelCtxProducerTimeout()
-
-		record := &kgo.Record{Topic: topicName, Value: []byte(message)}
-
-		// Exists at the first error occurrence
-		err = cl.ProduceSync(ctxProducerTimeout, record).FirstErr()
-		Expect(err).NotTo(HaveOccurred())
-
-		By("Consuming message")
-
-		ctxConsumerTimeout, cancelCtxConsumerTimeout := context.WithTimeout(ctx, externalProducerTimeout)
-		defer cancelCtxConsumerTimeout()
-
-		// Send fetch request for the Kafka cluster
-		fetches := cl.PollFetches(ctxConsumerTimeout)
-		errs := fetches.Errors()
-		Expect(errs).Should(BeEmpty())
-
-		foundMessage := false
-		// We can iterate through a record iterator...
-		iter := fetches.RecordIter()
-		for !iter.Done() {
-			consumedRecord := iter.Next()
-			if string(consumedRecord.Value) == message {
-				foundMessage = true
-				break
-			}
-		}
-
-		By("Comparing produced and consumed message")
-		Expect(foundMessage).Should(BeTrue())
 	})
 }

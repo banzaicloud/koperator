@@ -77,7 +77,7 @@ func requireUninstallZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name s
 // requireDeleteZookeeperCluster deletes the ZookeeperCluster CR and verify the corresponding resources cleanup
 func requireDeleteZookeeperCluster(kubectlOptions *k8s.KubectlOptions, name string) {
 	It("Delete ZookeeperCluster custom resource", func() {
-		deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", zookeeperKind, name)
+		deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, defaultDeletionTimeout, zookeeperKind, name)
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Zookeeper cluster resource cleanup")
 

@@ -78,7 +78,7 @@ func requireInstallingCertManagerHelmChartIfDoesNotExist(
 // requireUninstallingCertManager uninstall Cert-manager Helm chart and
 // remove CRDs.
 func requireUninstallingCertManager(kubectlOptions *k8s.KubectlOptions) {
-	When("Uninstalling zookeeper-operator", Ordered, func() {
+	When("Uninstalling zookeeper-operator", func() {
 		requireUninstallingCertManagerHelmChart(kubectlOptions)
 		requireRemoveCertManagerCRDs(kubectlOptions)
 	})
@@ -88,19 +88,19 @@ func requireUninstallingCertManager(kubectlOptions *k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions) {
 	It("Uninstalling Cert-manager Helm chart", func() {
-		uninstallHelmChartIfExist(kubectlOptions, "cert-manager", true)
+		uninstallHelmChartIfExists(kubectlOptions, "cert-manager", true)
 		By("Verifying Cert-manager helm chart resources cleanup")
 
 		certManagerK8sResources := basicK8sCRDs()
 		certManagerK8sResources = append(certManagerK8sResources, certManagerCRDs()...)
 
-		remainedRes := getK8sResources(kubectlOptions,
+		remainedResources := getK8sResources(kubectlOptions,
 			certManagerK8sResources,
 			fmt.Sprintf(managedByHelmLabelTemplate, "cert-manager"),
 			"",
 			kubectlArgGoTemplateKindNameNamespace,
 			"--all-namespaces")
-		Expect(remainedRes).Should(BeEmpty())
+		Expect(remainedResources).Should(BeEmpty())
 	})
 
 }
@@ -109,7 +109,7 @@ func requireUninstallingCertManagerHelmChart(kubectlOptions *k8s.KubectlOptions)
 func requireRemoveCertManagerCRDs(kubectlOptions *k8s.KubectlOptions) {
 	It("Removing cert-manager CRDs", func() {
 		for _, crd := range certManagerCRDs() {
-			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, "", "crds", crd)
+			deleteK8sResourceGlobalNoErrNotFound(kubectlOptions, defaultDeletionTimeout, "crds", crd)
 		}
 	})
 }

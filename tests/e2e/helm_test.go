@@ -202,12 +202,12 @@ func uninstallHelmChart(
 	)
 }
 
-// uninstallHelmChartIfExist checks whether the specified named Helm release exists in
+// uninstallHelmChartIfExists checks whether the specified named Helm release exists in
 // the provided kubectl context and namespace, logs it if it does and returns or
 // alternatively uninstall the Helm chart from the specified kubectl context and
 // namespace using the release name, extra arguments can be any of the helm
 // CLI install flag arguments.
-func uninstallHelmChartIfExist(
+func uninstallHelmChartIfExists(
 	kubectlOptions *k8s.KubectlOptions,
 	helmReleaseName string,
 	purge bool,

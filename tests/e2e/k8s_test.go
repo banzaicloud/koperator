@@ -21,6 +21,7 @@ import (
 	"path"
 	"strings"
 	"text/template"
+	"time"
 
 	"emperror.dev/errors"
 	"github.com/Masterminds/sprig/v3"
@@ -33,25 +34,21 @@ import (
 
 // deleteK8sResourceOpts deletes K8s resources based on the kind and name or kind and selector.
 // When noErrNotFound is true then the deletion is passed in case when the resource is not found.
-// Timeout parameter specifies the timeout for the deletion.
+// timeout parameter specifies the timeout for the deletion.
 // globalResource parameter indicates that the resource is global,
-// extraArgs can be an of the kubectl arguments.
+// extraArgs can be any of the kubectl arguments.
 func deleteK8sResourceOpts(
 	kubectlOptions *k8s.KubectlOptions,
 	globalResource,
 	noErrNotFound bool,
-	timeout string,
+	timeout time.Duration,
 	kind string,
 	selector string,
 	name string,
 	extraArgs ...string) {
 
-	args := extraArgs
-	args = append(args, "delete", kind)
+	args := []string{"delete", kind}
 
-	if timeout == "" {
-		timeout = defaultDeletionTimeout
-	}
 	args = append(args, fmt.Sprintf("--timeout=%s", timeout))
 	kubectlNamespace := kubectlOptions.Namespace
 
@@ -62,6 +59,8 @@ func deleteK8sResourceOpts(
 	logMsg := fmt.Sprintf("Deleting k8s resource: kind: '%s' ", kind)
 	logMsg, args = _kubectlArgExtender(args, logMsg, selector, name, kubectlOptions.Namespace, extraArgs)
 	By(logMsg)
+
+	args = append(args, extraArgs...)
 
 	_, err := k8s.RunKubectlAndGetOutputE(
 		GinkgoT(),
@@ -79,32 +78,32 @@ func deleteK8sResourceOpts(
 }
 
 // deleteK8sResourceGlobalNoErrNotFound deletes K8s global resources based on the kind and name or kind and selector.
-// Deletion is passed in case when the resource is not found.
-// Timeout parameter specifies the timeout for the deletion.
-// extraArgs can be an of the kubectl arguments.
-func deleteK8sResourceGlobalNoErrNotFound(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
+// Deletion is passed in case the resource is not found.
+// timeout parameter specifies the timeout for the deletion.
+// extraArgs can be any of the kubectl arguments.
+func deleteK8sResourceGlobalNoErrNotFound(kubectlOptions *k8s.KubectlOptions, timeout time.Duration, kind string, name string, extraArgs ...string) {
 	deleteK8sResourceOpts(kubectlOptions, true, true, timeout, kind, "", name, extraArgs...)
 }
 
 // deleteK8sResourceGlobal deletes K8s resources based on the kind and name or kind and selector.
-// Timeout parameter specifies the timeout for the deletion.
-// extraArgs can be an of the kubectl arguments.
-func deleteK8sResourceGlobal(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
+// timeout parameter specifies the timeout for the deletion.
+// extraArgs can be any of the kubectl arguments.
+func deleteK8sResourceGlobal(kubectlOptions *k8s.KubectlOptions, timeout time.Duration, kind string, name string, extraArgs ...string) {
 	deleteK8sResourceOpts(kubectlOptions, true, false, timeout, kind, "", name, extraArgs...)
 }
 
 // deleteK8sResource deletes K8s resources based on the kind and name or kind and selector.
-// Timeout parameter specifies the timeout for the deletion.
-// extraArgs can be an of the kubectl arguments.
-func deleteK8sResource(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
+// timeout parameter specifies the timeout for the deletion.
+// extraArgs can be any of the kubectl arguments.
+func deleteK8sResource(kubectlOptions *k8s.KubectlOptions, timeout time.Duration, kind string, name string, extraArgs ...string) {
 	deleteK8sResourceOpts(kubectlOptions, false, false, timeout, kind, "", name, extraArgs...)
 }
 
 // deleteK8sResourceNoErrNotFound deletes K8s resources based on the kind and name or kind and selector.
-// Deletion is passed in case when the resource is not found.
-// Timeout parameter specifies the timeout for the deletion.
-// extraArgs can be an of the kubectl arguments.
-func deleteK8sResourceNoErrNotFound(kubectlOptions *k8s.KubectlOptions, timeout, kind string, name string, extraArgs ...string) {
+// Deletion is passed in case the resource is not found.
+// timeout parameter specifies the timeout for the deletion.
+// extraArgs can be any of the kubectl arguments.
+func deleteK8sResourceNoErrNotFound(kubectlOptions *k8s.KubectlOptions, timeout time.Duration, kind string, name string, extraArgs ...string) {
 	deleteK8sResourceOpts(kubectlOptions, false, true, timeout, kind, "", name, extraArgs...)
 }
 
@@ -336,10 +335,7 @@ func getK8sResources(kubectlOptions *k8s.KubectlOptions, resourceKind []string, 
 
 // waitK8sResourceCondition waits until the condition is met or the timeout is elapsed for the selected K8s resource(s)
 // extraArgs can be any of the kubectl arguments
-func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, waitFor, timeout string, selector string, names string, extraArgs ...string) {
-	// To specify timeout is mandatory, because there is no good default value because varying conditions
-	Expect(timeout).ShouldNot(BeEmpty())
-
+func waitK8sResourceCondition(kubectlOptions *k8s.KubectlOptions, resourceKind, waitFor string, timeout time.Duration, selector string, names string, extraArgs ...string) {
 	logMsg := fmt.Sprintf("Waiting K8s resource(s)' condition: '%s' to fulfil", waitFor)
 
 	args := []string{
