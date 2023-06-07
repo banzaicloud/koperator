@@ -26,15 +26,15 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// createKafkaClusterIfDoesNotExist creates a kafka cluster if
+// createKafkaClusterIfDoesNotExist creates a KafkaCluster if
 // there isn't a preexisting one
 func createKafkaClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, koperatorVersion string, sampleFile string) {
-	It("Deploying a Kafka cluster", func() {
-		By("Checking existing kafkaClusters")
+	It("Deploying a KafkaCluster", func() {
+		By("Checking existing KafkaClusters")
 		err := checkExistenceOfK8sResource(kubectlOptions, kafkaKind, kafkaClusterName)
 
 		if err == nil {
-			By(fmt.Sprintf("Kafka cluster %s already exists\n", kafkaClusterName))
+			By(fmt.Sprintf("KafkaCluster %s already exists\n", kafkaClusterName))
 		} else {
 			By("Deploying a KafkaCluster")
 			requireApplyingKoperatorSampleResource(kubectlOptions, koperatorVersion, sampleFile)
@@ -42,29 +42,29 @@ func createKafkaClusterIfDoesNotExist(kubectlOptions *k8s.KubectlOptions, kopera
 	})
 }
 
-// requireCreatingKafkaCluster creates a Kafka cluster and
+// requireCreatingKafkaCluster creates a KafkaCluster and
 // checks the success of that operation.
 func requireCreatingKafkaCluster(kubectlOptions *k8s.KubectlOptions, koperatorVersion string, sampleFile string) {
-	When("Creating a Kafka cluster", func() {
+	When("Creating a KafkaCluster", func() {
 		createKafkaClusterIfDoesNotExist(kubectlOptions, koperatorVersion, sampleFile)
 		requireKafkaClusterReady(kubectlOptions)
 	})
 }
 
 func requireKafkaClusterReady(kubectlOptions *k8s.KubectlOptions) {
-	It("Verifying Kafka cluster health", func() {
-		By("Verifying the Kafka cluster resource")
+	It("Verifying KafkaCluster health", func() {
+		By("Verifying the KafkaCluster state")
 		waitK8sResourceCondition(kubectlOptions, kafkaKind, fmt.Sprintf("jsonpath={.status.state}=%s", string(v1beta1.KafkaClusterRunning)), kafkaClusterCreateTimeout, "", kafkaClusterName)
 		By("Verifying the CruiseControl pod")
 		Eventually(context.Background(), func() bool {
-			resources := getK8sResources(kubectlOptions, []string{"pod"}, "kafka_cr="+kafkaClusterName+",app=cruisecontrol", "")
+			resources := getK8sResources(kubectlOptions, []string{"pod"}, v1beta1.KafkaCRLabelKey+"="+kafkaClusterName+",app=cruisecontrol", "")
 			if len(resources) > 1 {
-				waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", cruiseControlPodReadinessTimeout, "kafka_cr="+kafkaClusterName+",app=cruisecontrol", "")
+				waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", cruiseControlPodReadinessTimeout, v1beta1.KafkaCRLabelKey+"="+kafkaClusterName+",app=cruisecontrol", "")
 				return true
 			}
 			return false
 		}, kafkaClusterResourceReadinessTimeout, 3*time.Second).Should(BeTrue())
 		By("Verifying all Kafka pods")
-		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultPodReadinessWaitTime, "kafka_cr="+kafkaClusterName, "")
+		waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultPodReadinessWaitTime, v1beta1.KafkaCRLabelKey+"="+kafkaClusterName, "")
 	})
 }
