@@ -19,25 +19,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-// requireApplyingCertManagerCRDs deploys the cert-manager CRDs and checks
+// requireInstallingCertManagerCRDs deploys the cert-manager CRDs and checks
 // their existence afterwards.
-func requireApplyingCertManagerCRDs(kubectlOptions k8s.KubectlOptions, certManagerVersion Version) {
-	It("Applying cert-manager CRDs", func() {
-		By("Applying cert-manager CRDs with version " + certManagerVersion)
-		applyK8sResourceManifest(
+func requireInstallingCertManagerCRDs(kubectlOptions k8s.KubectlOptions, certManagerVersion Version) {
+	It("Installing cert-manager CRDs", func() {
+		requireInstallingCRDs(
 			kubectlOptions,
 			"https://github.com/jetstack/cert-manager/releases/download/"+certManagerVersion+"/cert-manager.crds.yaml",
-		)
-
-		By("Verifying cert-manager CRDs")
-		requireExistingCRDs(
-			kubectlOptions,
-			"certificaterequests.cert-manager.io",
-			"certificates.cert-manager.io",
-			"challenges.acme.cert-manager.io",
-			"clusterissuers.cert-manager.io",
-			"issuers.cert-manager.io",
-			"orders.acme.cert-manager.io",
 		)
 	})
 }
@@ -46,7 +34,7 @@ func requireApplyingCertManagerCRDs(kubectlOptions k8s.KubectlOptions, certManag
 // checks the success of those operations.
 func requireInstallingCertManager(kubectlOptions k8s.KubectlOptions, certManagerVersion Version) {
 	When("Installing cert-manager", Ordered, func() {
-		requireApplyingCertManagerCRDs(kubectlOptions, certManagerVersion)
+		requireInstallingCertManagerCRDs(kubectlOptions, certManagerVersion)
 		requireInstallingCertManagerHelmChart(kubectlOptions, certManagerVersion)
 	})
 }
