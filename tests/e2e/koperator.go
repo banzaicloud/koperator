@@ -56,7 +56,7 @@ func requireInstallingKoperatorCRDs(kubectlOptions k8s.KubectlOptions, koperator
 // requireInstallingKoperator deploys koperator CRDs and Helm chart and checks
 // the success of those operations.
 func requireInstallingKoperator(kubectlOptions k8s.KubectlOptions, koperatorVersion Version) {
-	When("Installing Koperator", Ordered, func() {
+	When("Installing Koperator", func() {
 		requireInstallingKoperatorCRDs(kubectlOptions, koperatorVersion)
 		requireInstallingKoperatorHelmChart(kubectlOptions, koperatorVersion)
 	})

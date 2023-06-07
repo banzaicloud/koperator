@@ -23,7 +23,7 @@ import (
 // requireInstallingPrometheusOperator deploys prometheus-operator Helm chart
 // and checks the success of that operation.
 func requireInstallingPrometheusOperator(kubectlOptions k8s.KubectlOptions, prometheusOperatorVersion Version) {
-	When("Installing prometheus-operator", Ordered, func() {
+	When("Installing prometheus-operator", func() {
 		requireInstallingPrometheusOperatorHelmChart(kubectlOptions, prometheusOperatorVersion)
 	})
 }

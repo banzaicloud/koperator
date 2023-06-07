@@ -33,7 +33,7 @@ func requireInstallingCertManagerCRDs(kubectlOptions k8s.KubectlOptions, certMan
 // requireInstallingCertManager deploys cert-manager CRDs and Helm chart and
 // checks the success of those operations.
 func requireInstallingCertManager(kubectlOptions k8s.KubectlOptions, certManagerVersion Version) {
-	When("Installing cert-manager", Ordered, func() {
+	When("Installing cert-manager", func() {
 		requireInstallingCertManagerCRDs(kubectlOptions, certManagerVersion)
 		requireInstallingCertManagerHelmChart(kubectlOptions, certManagerVersion)
 	})
