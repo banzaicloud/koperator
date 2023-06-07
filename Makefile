@@ -100,7 +100,7 @@ test: generate fmt vet manifests bin/setup-envtest
 
 # Run e2e tests
 test-e2e:
-	ginkgo run -v --trace --show-node-events tests/e2e
+	ginkgo run --tags e2e -v --trace --show-node-events tests/e2e
 
 # Build manager binary
 manager: generate fmt vet
