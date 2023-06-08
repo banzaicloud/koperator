@@ -42,3 +42,8 @@ testbin/*
 manager_image_patch.yaml
 
 .idea
+
+# Go workspace files, see https://github.com/banzaicloud/koperator/pull/978 for
+# the reasoning why we decided not to commit these.
+**/go.work
+**/go.work.sum
