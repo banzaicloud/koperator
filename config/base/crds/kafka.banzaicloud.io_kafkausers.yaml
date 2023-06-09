@@ -58,6 +58,14 @@ spec:
                 items:
                   type: string
                 type: array
+              expirationSeconds:
+                description: expirationSeconds is the requested duration of validity
+                  of the issued certificate. The minimum valid value for expirationSeconds
+                  is 3600 i.e. 1h. When it is not specified the default validation
+                  duration is 90 days
+                format: int32
+                minimum: 3600
+                type: integer
               includeJKS:
                 type: boolean
               pkiBackendSpec:
