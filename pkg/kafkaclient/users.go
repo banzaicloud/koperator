@@ -68,7 +68,10 @@ func (k *kafkaClient) ListUserACLs() ([]sarama.ResourceAcls, error) {
 }
 
 // DeleteUserACLs removes all ACLs for a given user
-func (k *kafkaClient) DeleteUserACLs(dn string, patternType v1alpha1.KafkaPatternType) (err error) {
+func (k *kafkaClient) DeleteUserACLs(dn string, patternType v1alpha1.KafkaPatternType) error {
+	if patternType == "" {
+		patternType = v1alpha1.KafkaPatternTypeDefault
+	}
 	aclPatternType := AclPatternTypeMapping(patternType)
 	matches, err := k.admin.DeleteACL(sarama.AclFilter{
 		Principal:                 &dn,
@@ -78,14 +81,14 @@ func (k *kafkaClient) DeleteUserACLs(dn string, patternType v1alpha1.KafkaPatter
 		PermissionType:            sarama.AclPermissionAny,
 	}, false)
 	if err != nil {
-		return
+		return err
 	}
 	for _, x := range matches {
 		if x.Err != sarama.ErrNoError {
 			return x.Err
 		}
 	}
-	return
+	return nil
 }
 
 func (k *kafkaClient) createReadACLs(dn string, topic string, patternType sarama.AclResourcePatternType) (err error) {
