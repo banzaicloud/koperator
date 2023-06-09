@@ -26,6 +26,7 @@ import (
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
+	"github.com/banzaicloud/koperator/pkg/util"
 	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
 )
 
@@ -98,6 +99,14 @@ func TestReconcileUserCertificate(t *testing.T) {
 			Group: "testGroup",
 		},
 	}
+
+	if _, err := manager.ReconcileUserCertificate(ctx, user, scheme.Scheme, clusterDomain); err != nil {
+		t.Error("Expected no error, got:", err)
+	}
+
+	// Test cert duration
+	user = newMockUser()
+	user.Spec.ExpirationSeconds = util.Int32Pointer(7200)
 
 	if _, err := manager.ReconcileUserCertificate(ctx, user, scheme.Scheme, clusterDomain); err != nil {
 		t.Error("Expected no error, got:", err)
