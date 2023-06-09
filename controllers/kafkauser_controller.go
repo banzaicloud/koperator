@@ -332,8 +332,10 @@ func (r *KafkaUserReconciler) checkFinalizers(ctx context.Context, cluster *v1be
 	var err error
 	if util.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
 		if len(instance.Spec.TopicGrants) > 0 {
-			if err = r.finalizeKafkaUserACLs(reqLogger, cluster, user); err != nil {
-				return requeueWithError(reqLogger, "failed to finalize kafkauser", err)
+			for _, topicGrant := range instance.Spec.TopicGrants {
+				if err = r.finalizeKafkaUserACLs(reqLogger, cluster, user, topicGrant.PatternType); err != nil {
+					return requeueWithError(reqLogger, "failed to finalize kafkauser", err)
+				}
 			}
 		}
 		// remove finalizer
@@ -350,7 +352,7 @@ func (r *KafkaUserReconciler) removeFinalizer(ctx context.Context, user *v1alpha
 	return err
 }
 
-func (r *KafkaUserReconciler) finalizeKafkaUserACLs(reqLogger logr.Logger, cluster *v1beta1.KafkaCluster, user string) error {
+func (r *KafkaUserReconciler) finalizeKafkaUserACLs(reqLogger logr.Logger, cluster *v1beta1.KafkaCluster, user string, patternType v1alpha1.KafkaPatternType) error {
 	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
 		reqLogger.Info("Cluster is being deleted, skipping ACL deletion")
 		return nil
@@ -362,7 +364,7 @@ func (r *KafkaUserReconciler) finalizeKafkaUserACLs(reqLogger logr.Logger, clust
 		return err
 	}
 	defer close()
-	if err = broker.DeleteUserACLs(user); err != nil {
+	if err = broker.DeleteUserACLs(user, patternType); err != nil {
 		return err
 	}
 	return nil
