@@ -307,7 +307,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("there is an errored remove_disks and a rebalance disks operation for the same broker", Serial, func() {
 		JustBeforeEach(func() {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock6())
+			cruiseControlOperationReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMock6())
 			// Remove_disk operation - errored
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(context.Background(), &operation)
@@ -361,7 +361,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("Cruise Control makes the Status operation async", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock7())
+			cruiseControlOperationReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMock7())
 			operation := generateCruiseControlOperation("add-broker-operation", namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
