@@ -38,6 +38,7 @@ require (
 require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 )
 
