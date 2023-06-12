@@ -401,7 +401,6 @@ func SetupKafkaClusterWithManager(mgr ctrl.Manager) *ctrl.Builder {
 func kafkaWatches(builder *ctrl.Builder) *ctrl.Builder {
 	return builder.
 		Owns(&corev1.Service{}).
-		Owns(&corev1.ConfigMap{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&corev1.Pod{})
@@ -410,13 +409,11 @@ func kafkaWatches(builder *ctrl.Builder) *ctrl.Builder {
 func envoyWatches(builder *ctrl.Builder) *ctrl.Builder {
 	return builder.
 		Owns(&corev1.Service{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.ConfigMap{})
+		Owns(&appsv1.Deployment{})
 }
 
 func cruiseControlWatches(builder *ctrl.Builder) *ctrl.Builder {
 	return builder.
 		Owns(&corev1.Service{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.ConfigMap{})
+		Owns(&appsv1.Deployment{})
 }
