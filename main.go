@@ -226,6 +226,7 @@ func main() {
 			setupLog.Error(err, "unable to create validating webhook", "Kind", "KafkaCluster")
 			os.Exit(1)
 		}
+
 		err = ctrl.NewWebhookManagedBy(mgr).For(&banzaicloudv1alpha1.KafkaTopic{}).
 			WithValidator(webhooks.KafkaTopicValidator{
 				Client:              mgr.GetClient(),
@@ -235,6 +236,17 @@ func main() {
 			Complete()
 		if err != nil {
 			setupLog.Error(err, "unable to create validating webhook", "Kind", "KafkaTopic")
+			os.Exit(1)
+		}
+
+		err = ctrl.NewWebhookManagedBy(mgr).For(&banzaicloudv1alpha1.KafkaUser{}).
+			WithValidator(webhooks.KafkaUserValidator{
+				Client: mgr.GetClient(),
+				Log:    mgr.GetLogger().WithName("webhooks").WithName("KafkaUser"),
+			}).
+			Complete()
+		if err != nil {
+			setupLog.Error(err, "unable to create validating webhook", "Kind", "KafkaUser")
 			os.Exit(1)
 		}
 	}

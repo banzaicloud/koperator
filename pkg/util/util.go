@@ -548,3 +548,14 @@ func RetryOnError(backoff wait.Backoff, fn func() error, isRetryableError func(e
 func RetryOnConflict(backoff wait.Backoff, fn func() error) error {
 	return RetryOnError(backoff, fn, apierrors.IsConflict)
 }
+
+// GetClusterRefNamespace returns the expected namespace for a kafka cluster
+// referenced by a user/topic CR. It takes the namespace of the CR as the first
+// argument and the reference itself as the second.
+func GetClusterRefNamespace(ns string, ref v1alpha1.ClusterReference) string {
+	clusterNamespace := ref.Namespace
+	if clusterNamespace == "" {
+		return ns
+	}
+	return clusterNamespace
+}

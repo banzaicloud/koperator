@@ -110,20 +110,20 @@ func (s *KafkaTopicValidator) validateKafkaTopic(ctx context.Context, log logr.L
 			log.Info("Deleted as a result of a cluster deletion")
 			return nil, nil
 		}
-		logMsg = fmt.Sprintf("kafkaCluster '%s' in the namespace '%s' does not exist", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace)
+		logMsg = fmt.Sprintf("KafkaCluster CR '%s' in the namespace '%s' does not exist", clusterName, clusterNamespace)
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("clusterRef").Child("name"), clusterName, logMsg))
 		// retrun is needed here because later this cluster is used for further checks but it is nil
 		return allErrs, nil
 	}
 	if k8sutil.IsMarkedForDeletion(cluster.ObjectMeta) {
 		// Let this through, it's a delete topic request from a parent cluster being deleted
-		log.Info("Cluster is going down for deletion, assuming a delete topic request")
+		log.Info("Referenced KafkaCluster CR is being deleted, assuming a delete topic request")
 		return nil, nil
 	}
 
 	if util.ObjectManagedByClusterRegistry(cluster) {
 		// referencing remote Kafka clusters is not allowed
-		logMsg = fmt.Sprintf("kafkaCluster '%s' in the namespace '%s' is a remote kafka cluster", topic.Spec.ClusterRef.Name, topic.Spec.ClusterRef.Namespace)
+		logMsg = fmt.Sprintf("KafkaCluster CR '%s' in the namespace '%s' is a remote resource", clusterName, clusterNamespace)
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("clusterRef").Child("name"), clusterName, logMsg))
 	}
 

@@ -25,7 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
@@ -65,20 +64,6 @@ func TestReconciled(t *testing.T) {
 	}
 	if res.Requeue {
 		t.Error("Expected requeue to be false, got true")
-	}
-}
-
-func TestGetClusterRefNamespace(t *testing.T) {
-	ns := testNamespace
-	ref := v1alpha1.ClusterReference{
-		Name: "test-cluster",
-	}
-	if refNS := getClusterRefNamespace(ns, ref); refNS != testNamespace {
-		t.Error("Expected to get 'test-namespace', got:", refNS)
-	}
-	ref.Namespace = "another-namespace"
-	if refNS := getClusterRefNamespace(ns, ref); refNS != "another-namespace" {
-		t.Error("Expected to get 'another-namespace', got:", refNS)
 	}
 }
 
