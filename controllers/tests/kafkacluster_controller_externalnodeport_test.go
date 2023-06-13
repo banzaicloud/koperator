@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
@@ -91,6 +92,8 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 		By("deleting Kafka cluster object " + kafkaCluster.Name + " in namespace " + namespace)
 		err := k8sClient.Delete(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
+		// deletes all nodeports in the test namespace, to ensure a clean sheet, as garbage collection does not work in envtest
+		Expect(deleteNodePorts(ctx, kafkaCluster)).Should(Succeed())
 		kafkaCluster = nil
 	})
 
@@ -370,3 +373,20 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 		})
 	})
 })
+
+func deleteNodePorts(ctx SpecContext, kafkaCluster *v1beta1.KafkaCluster) error {
+	var serviceList corev1.ServiceList
+	err := k8sClient.List(ctx, &serviceList, client.ListOption(client.InNamespace(kafkaCluster.Namespace)))
+	if err != nil {
+		return err
+	}
+	for _, service := range serviceList.Items {
+		if service.Spec.Type == corev1.ServiceTypeNodePort {
+			err = k8sClient.Delete(ctx, &service)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
