@@ -267,6 +267,8 @@ func (r *CruiseControlOperationReconciler) executeOperation(ctx context.Context,
 		cruseControlTaskResult, err = r.scaler.RebalanceWithParams(ctx, ccOperationExecution.CurrentTaskParameters())
 	case banzaiv1alpha1.OperationStopExecution:
 		cruseControlTaskResult, err = r.scaler.StopExecution(ctx)
+	case banzaiv1alpha1.OperationStatus:
+		err = errors.NewWithDetails("Cruise Control operation not supported", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
 	default:
 		err = errors.NewWithDetails("Cruise Control operation not supported", "name", ccOperationExecution.GetName(), "namespace", ccOperationExecution.GetNamespace(), "operation", ccOperationExecution.CurrentTaskOperation(), "parameters", ccOperationExecution.CurrentTaskParameters())
 	}

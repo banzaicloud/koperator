@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	emperror.dev/errors v0.8.1
-	github.com/onsi/gomega v1.27.7
+	github.com/onsi/gomega v1.27.8
 )
 
 require (

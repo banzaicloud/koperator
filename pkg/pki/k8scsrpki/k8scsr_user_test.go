@@ -35,6 +35,7 @@ import (
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/util"
 	"github.com/banzaicloud/koperator/pkg/util/cert"
 )
 
@@ -58,7 +59,8 @@ func createKafkaUser() *v1alpha1.KafkaUser {
 				PKIBackend: string(v1beta1.PKIBackendK8sCSR),
 				SignerName: "foo.bar/foobar",
 			},
-			DNSNames: []string{testDns},
+			DNSNames:          []string{testDns},
+			ExpirationSeconds: util.Int32Pointer(7200),
 		},
 	}
 }

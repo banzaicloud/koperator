@@ -17,3 +17,5 @@ spec:
     issuerRef:
       name: "ca-issuer"
       kind: "ClusterIssuer"
+      group: "cert-manager.io"
+  expirationSeconds: 7200
