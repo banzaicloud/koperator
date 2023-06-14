@@ -113,7 +113,7 @@ func generateExternalPorts(kc *v1beta1.KafkaCluster, brokerIds []int,
 		Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
 		Protocol:   string(corev1.ProtocolTCP),
 		Port:       externalListenerConfig.GetAnyCastPort(),
-		TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(int(externalListenerConfig.GetAnyCastPort()))},
+		TargetPort: &istioOperatorApi.IntOrString{IntOrString: intstr.FromInt(int(externalListenerConfig.GetIngressControllerTargetPort()))},
 	})
 
 	return generatedPorts
