@@ -69,7 +69,7 @@ func kubectlArgExtender(args []string, logMsg, selector, names, namespace string
 }
 
 // _kubectlRemoveWarning removes those elements from the outputSlice parameter which contains kubectl warning message.
-func _kubectlRemoveWarnings(outputSlice []string) []string {
+func kubectlRemoveWarnings(outputSlice []string) []string {
 	// Remove warning message pollution from the output
 	result := make([]string, 0, len(outputSlice))
 	for i := range outputSlice {

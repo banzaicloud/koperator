@@ -487,7 +487,7 @@ func listK8sAllResourceKind(kubectlOptions k8s.KubectlOptions) ([]string, error)
 		return nil, err
 	}
 
-	return _kubectlRemoveWarnings(strings.Split(output, "\n")), nil
+	return kubectlRemoveWarnings(strings.Split(output, "\n")), nil
 }
 
 // getK8sResources gets the specified K8S resources from the specified kubectl context and
@@ -521,7 +521,7 @@ func getK8sResources(kubectlOptions k8s.KubectlOptions, resourceKind []string, s
 
 	// Remove warning message pollution from the output
 
-	return _kubectlRemoveWarnings(outputSlice), nil
+	return kubectlRemoveWarnings(outputSlice), nil
 }
 
 // waitK8sResourceCondition waits until the condition is met or the timeout is elapsed for the selected K8s resource(s)
