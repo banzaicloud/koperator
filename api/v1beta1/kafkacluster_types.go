@@ -41,6 +41,10 @@ const (
 	DefaultServiceAccountName = "default"
 	// DefaultAnyCastPort kafka anycast port that can be used by clients for metadata queries
 	DefaultAnyCastPort = 29092
+	// DefaultIngressControllerTargetPort is the default container port for the ingress controller
+	DefaultIngressControllerTargetPort = 29092
+	// MaxWellKnownPort marks the largest well known port value in Unix-based systems
+	MaxWellKnownPort = 1024
 	// DefaultEnvoyHealthCheckPort envoy health check port
 	DefaultEnvoyHealthCheckPort = 8080
 	// DefaultEnvoyAdminPort envoy admin port
@@ -469,6 +473,15 @@ func (c ExternalListenerConfig) GetAnyCastPort() int32 {
 	return *c.AnyCastPort
 }
 
+// GetIngressControllerTargetPort returns the IngressControllerTargetPort if it is defined,
+// otherwise it returns the DefaultIngressControllerTargetPort value
+func (c ExternalListenerConfig) GetIngressControllerTargetPort() int32 {
+	if c.IngressControllerTargetPort == nil {
+		return DefaultIngressControllerTargetPort
+	}
+	return *c.IngressControllerTargetPort
+}
+
 // GetServiceAnnotations returns a copy of the ServiceAnnotations field.
 func (c IngressServiceSettings) GetServiceAnnotations() map[string]string {
 	return util.CloneMap(c.ServiceAnnotations)
@@ -544,7 +557,15 @@ type ExternalListenerConfig struct {
 	// If accessMethod is Nodeport and externalStartingPort is set to 0 then the broker IDs are not added and the Nodeport port numbers will be chosen automatically by the K8s Service controller
 	ExternalStartingPort int32 `json:"externalStartingPort"`
 	// configuring AnyCastPort allows kafka cluster access without specifying the exact broker
+	// If not defined, 29092 will be used for external clients to reach the kafka cluster
 	AnyCastPort *int32 `json:"anyCastPort,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=65535
+	// +optional
+	// IngressControllerTargetPort defines the container port that the ingress controller uses for handling external traffic.
+	// If defined, IngressControllerTargetPort should be >= 1024 when using IstioIngress as the ingress controller.
+	// If not defined, 29092 will be used as the default IngressControllerTargetPort value.
+	IngressControllerTargetPort *int32 `json:"ingressControllerTargetPort,omitempty"`
 	// +kubebuilder:validation:Enum=LoadBalancer;NodePort
 	// accessMethod defines the method which the external listener is exposed through.
 	// Two types are supported LoadBalancer and NodePort.
@@ -553,7 +574,7 @@ type ExternalListenerConfig struct {
 	// +optional
 	AccessMethod corev1.ServiceType `json:"accessMethod,omitempty"`
 	// Config allows to specify ingress controller configuration per external listener
-	// if set overrides the the default `KafkaClusterSpec.IstioIngressConfig` or `KafkaClusterSpec.EnvoyConfig` for this external listener.
+	// if set, it overrides the default `KafkaClusterSpec.IstioIngressConfig` or `KafkaClusterSpec.EnvoyConfig` for this external listener.
 	// +optional
 	Config *Config `json:"config,omitempty"`
 }
