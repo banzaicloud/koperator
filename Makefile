@@ -103,7 +103,7 @@ test-e2e:
 	go test github.com/banzaicloud/koperator/tests/e2e \
 		-v \
 		-timeout 15m \
-		--ginkgo.fail-fast \
+		-tags e2e \
 		--ginkgo.show-node-events \
 		--ginkgo.trace \
 		--ginkgo.v

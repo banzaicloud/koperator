@@ -25,7 +25,7 @@ const (
 )
 
 // Returns the union of the slices from argument.
-func _stringSlicesUnion(sliceA, sliceB []string) []string {
+func stringSlicesUnion(sliceA, sliceB []string) []string {
 	if len(sliceA) == 0 || len(sliceB) == 0 {
 		return nil
 	}
@@ -50,7 +50,7 @@ func _stringSlicesUnion(sliceA, sliceB []string) []string {
 	return union
 }
 
-func _kubectlArgExtender(args []string, logMsg, selector, names, namespace string, extraArgs []string) (string, []string) {
+func kubectlArgExtender(args []string, logMsg, selector, names, namespace string, extraArgs []string) (string, []string) {
 	if selector != "" {
 		logMsg = fmt.Sprintf("%s selector: '%s'", logMsg, selector)
 		args = append(args, fmt.Sprintf("--selector=%s", selector))
@@ -80,6 +80,6 @@ func _kubectlRemoveWarnings(outputSlice []string) []string {
 	return result
 }
 
-func _isNotFoundError(err error) bool {
+func isKubectlNotFoundError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), kubectlNotFoundErrorMsg)
 }

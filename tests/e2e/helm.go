@@ -74,7 +74,7 @@ func (helmDescriptor *helmDescriptor) crdPath() (string, error) { //nolint:unuse
 // installHelmChart checks whether the specified named Helm release exists in
 // the provided kubectl context and namespace, logs it if it does and returns or
 // alternatively deploys a Helm chart to the specified kubectl context and
-// namespace using the specified infos, extra arguments can be any of the helm
+// namespace using the specified info, extra arguments can be any of the helm
 // CLI install flag arguments, flag keys and values must be provided separately.
 func (helmDescriptor *helmDescriptor) installHelmChart(kubectlOptions k8s.KubectlOptions) error {
 	if helmDescriptor == nil {
@@ -340,7 +340,7 @@ func uninstallHelmChartIfExists(
 	purge bool,
 	extraArgs ...string,
 ) error {
-	By(fmt.Sprintf("Checking for existing Helm release names %s", helmReleaseName))
+	By(fmt.Sprintf("Checking for existing Helm release name %s", helmReleaseName))
 	_, isInstalled, err := lookUpInstalledHelmReleaseByName(kubectlOptions, helmReleaseName)
 	if err != nil {
 		return err

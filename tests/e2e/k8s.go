@@ -412,7 +412,7 @@ func deleteK8sResource(
 	args = append(args, fmt.Sprintf("--timeout=%s", timeout))
 
 	logMsg := fmt.Sprintf("Deleting k8s resource: kind: '%s' ", kind)
-	logMsg, args = _kubectlArgExtender(args, logMsg, selector, name, kubectlOptions.Namespace, extraArgs)
+	logMsg, args = kubectlArgExtender(args, logMsg, selector, name, kubectlOptions.Namespace, extraArgs)
 	By(logMsg)
 
 	_, err := k8s.RunKubectlAndGetOutputE(
@@ -430,7 +430,7 @@ func deleteK8sResource(
 // extraArgs can be any of the kubectl arguments.
 func deleteK8sResourceNoErrNotFound(kubectlOptions k8s.KubectlOptions, timeout time.Duration, kind string, name string, extraArgs ...string) error {
 	err := deleteK8sResource(kubectlOptions, timeout, kind, "", name, extraArgs...)
-	if _isNotFoundError(err) {
+	if isKubectlNotFoundError(err) {
 		By("Resource not found")
 		return nil
 	}
@@ -497,7 +497,7 @@ func getK8sResources(kubectlOptions k8s.KubectlOptions, resourceKind []string, s
 	logMsg := fmt.Sprintf("Get K8S resources: '%s'", resourceKind)
 
 	args := []string{"get", strings.Join(resourceKind, ",")}
-	logMsg, args = _kubectlArgExtender(args, logMsg, selector, names, kubectlOptions.Namespace, extraArgs)
+	logMsg, args = kubectlArgExtender(args, logMsg, selector, names, kubectlOptions.Namespace, extraArgs)
 	By(logMsg)
 
 	output, err := k8s.RunKubectlAndGetOutputE(
@@ -536,7 +536,7 @@ func waitK8sResourceCondition(kubectlOptions k8s.KubectlOptions, resourceKind, w
 		fmt.Sprintf("--timeout=%s", timeout),
 	}
 
-	logMsg, args = _kubectlArgExtender(args, logMsg, selector, names, kubectlOptions.Namespace, extraArgs)
+	logMsg, args = kubectlArgExtender(args, logMsg, selector, names, kubectlOptions.Namespace, extraArgs)
 	By(logMsg)
 
 	_, err := k8s.RunKubectlAndGetOutputE(
