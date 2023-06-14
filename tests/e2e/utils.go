@@ -20,6 +20,10 @@ import (
 	"strings"
 )
 
+const (
+	kubectlNotFoundErrorMsg = "NotFound"
+)
+
 // Returns the union of the slices from argument.
 func _stringSlicesUnion(sliceA, sliceB []string) []string {
 	if len(sliceA) == 0 || len(sliceB) == 0 {
@@ -59,6 +63,7 @@ func _kubectlArgExtender(args []string, logMsg, selector, names, namespace strin
 	}
 	if len(extraArgs) != 0 {
 		logMsg = fmt.Sprintf("%s extraArgs: '%s'", logMsg, extraArgs)
+		args = append(args, extraArgs...)
 	}
 	return logMsg, args
 }

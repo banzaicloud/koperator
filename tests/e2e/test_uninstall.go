@@ -20,8 +20,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func testInstall() bool {
-	return When("Installing Koperator and dependencies", Ordered, func() {
+func testUninstall() bool {
+	return When("Uninstalling Koperator and dependencies", Ordered, func() {
 		var kubectlOptions k8s.KubectlOptions
 		var err error
 
@@ -30,32 +30,26 @@ func testInstall() bool {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		When("Installing cert-manager", func() {
-			It("Installing cert-manager Helm chart", func() {
-				err = certManagerHelmDescriptor.installHelmChart(kubectlOptions)
-				Expect(err).NotTo(HaveOccurred())
-			})
+		requireUninstallingKoperator(k8s.KubectlOptions{
+			ContextName: kubectlOptions.ContextName,
+			ConfigPath:  kubectlOptions.ConfigPath,
+			Namespace:   koperatorLocalHelmDescriptor.Namespace,
+		})
+		requireUninstallingZookeeperOperator(k8s.KubectlOptions{
+			ContextName: kubectlOptions.ContextName,
+			ConfigPath:  kubectlOptions.ConfigPath,
+			Namespace:   zookeeperOperatorHelmDescriptor.Namespace,
+		})
+		requireUninstallingPrometheusOperator(k8s.KubectlOptions{
+			ContextName: kubectlOptions.ContextName,
+			ConfigPath:  kubectlOptions.ConfigPath,
+			Namespace:   prometheusOperatorHelmDescriptor.Namespace,
+		})
+		requireUninstallingCertManager(k8s.KubectlOptions{
+			ContextName: kubectlOptions.ContextName,
+			ConfigPath:  kubectlOptions.ConfigPath,
+			Namespace:   certManagerHelmDescriptor.Namespace,
 		})
 
-		When("Installing zookeeper-operator", func() {
-			It("Installing zookeeper-operator Helm chart", func() {
-				err = zookeeperOperatorHelmDescriptor.installHelmChart(kubectlOptions)
-				Expect(err).NotTo(HaveOccurred())
-			})
-		})
-
-		When("Installing prometheus-operator", func() {
-			It("Installing prometheus-operator Helm chart", func() {
-				err = prometheusOperatorHelmDescriptor.installHelmChart(kubectlOptions)
-				Expect(err).NotTo(HaveOccurred())
-			})
-		})
-
-		When("Installing Koperator", func() {
-			It("Installing Koperator Helm chart", func() {
-				err = koperatorLocalHelmDescriptor.installHelmChart(kubectlOptions)
-				Expect(err).NotTo(HaveOccurred())
-			})
-		})
 	})
 }

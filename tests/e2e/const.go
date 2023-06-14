@@ -109,8 +109,6 @@ const (
 	// LocalVersion means using the files in the local repository snapshot.
 	LocalVersion Version = "local"
 
-	kubectlNotFoundErrorMsg = "NotFound"
-
 	kubectlArgGoTemplateName                              = `-o=go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`
 	kubectlArgGoTemplateKindNameNamespace                 = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
 	kubectlArgGoTemplateInternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.internalListeners}}{{$key}}{{"\n"}}{{end}}`
@@ -118,9 +116,11 @@ const (
 	// kubectlArgGoTemplateExternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.externallListeners}}{{$key}}{{"\n"}}{{end}}`
 	// kubectlArgGoTemplateExternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.externalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
 
+	crdKind                    = "customresourcedefinitions.apiextensions.k8s.io"
 	kafkaKind                  = "kafkaclusters.kafka.banzaicloud.io"
+	kafkaTopicKind             = "kafkatopics.kafka.banzaicloud.io"
 	kafkaClusterName           = "kafka"
-	testTopicName              = "topic-icp"
+	testTopicName              = "topic-test"
 	kcatPodName                = "kcat"
 	zookeeperKind              = "zookeeperclusters.zookeeper.pravega.io"
 	zookeeperClusterName       = "zookeeper-server"
@@ -138,7 +138,7 @@ const (
 	kafkaTopicTemplate = "templates/topic.yaml.tmpl"
 )
 
-func basicK8sCRDs() []string {
+func basicK8sResourceKinds() []string {
 	return []string{
 		"pods",
 		"services",

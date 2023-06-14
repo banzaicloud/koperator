@@ -23,21 +23,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// requireInternalProducerConsumer deploys a kcat pod and a kafkaTopic into the K8s cluster
-// and produces, consumes messages and makes comparisons between them.
-// After deletes the kafkaTopic and kcat pod.
-func requireInternalProducerConsumer(kubectlOptions *k8s.KubectlOptions) {
-	When("Internally produce and consume message to Kafka cluster", func() {
-		requireDeployingKcatPod(kubectlOptions, kcatPodName)
-		requireDeployingKafkaTopic(kubectlOptions, testTopicName)
-		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testTopicName)
-		requireDeleteKafkaTopic(kubectlOptions, testTopicName)
-		requireDeleteKcatPod(kubectlOptions, kcatPodName)
-	})
-}
-
 // requireDeployingKcatPod deploys kcat pod form a template and checks the pod readiness
-func requireDeployingKcatPod(kubectlOptions *k8s.KubectlOptions, podName string) {
+func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string) {
 	It("Deploying Kcat Pod", func() {
 		applyK8sResourceFromTemplate(kubectlOptions,
 			kcatPodTemplate,
@@ -52,7 +39,7 @@ func requireDeployingKcatPod(kubectlOptions *k8s.KubectlOptions, podName string)
 }
 
 // requireDeployingKafkaTopic deploys a kafkaTopic resource from a template
-func requireDeployingKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName string) {
+func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName string) {
 	It("Deploying KafkaTopic CR", func() {
 		applyK8sResourceFromTemplate(kubectlOptions,
 			kafkaTopicTemplate,
@@ -62,46 +49,50 @@ func requireDeployingKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName st
 				"Namespace": kubectlOptions.Namespace,
 			},
 		)
-		waitK8sResourceCondition(kubectlOptions, "kafkatopic", "jsonpath={.status.state}=created", defaultTopicCreationWaitTime, "", topicName)
+		waitK8sResourceCondition(kubectlOptions, kafkaTopicKind, "jsonpath={.status.state}=created", defaultTopicCreationWaitTime, "", topicName)
 	})
 
 }
 
 // requireDeleteKafkaTopic deletes kafkaTopic resource.
-func requireDeleteKafkaTopic(kubectlOptions *k8s.KubectlOptions, topicName string) {
+func requireDeleteKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName string) {
 	It("Deleting KafkaTopic CR", func() {
-		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, "kafkatopic", topicName)
+		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, kafkaTopicKind, "", topicName)
 	})
 }
 
 // requireDeleteKcatPod deletes kcat pod.
-func requireDeleteKcatPod(kubectlOptions *k8s.KubectlOptions, podName string) {
+func requireDeleteKcatPod(kubectlOptions k8s.KubectlOptions, podName string) {
 	It("Deleting Kcat pod", func() {
-		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, "pods", podName)
+		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, "pods", "", podName)
 	})
 }
 
 // requireInternalProducingConsumingMessage produces and consumes messages internally through a kcat pod
 // and makes comparisons between the produced and consumed messages.
 // When internalAddress parameter is empty, it gets the internal address from the kafkaCluster CR status
-func requireInternalProducingConsumingMessage(kubectlOptions *k8s.KubectlOptions, internalAddress, kcatPodName, topicName string) {
+func requireInternalProducingConsumingMessage(kubectlOptions k8s.KubectlOptions, internalAddress, kcatPodName, topicName string) {
 	It(fmt.Sprintf("Producing and consuming messages to/from topicName: '%s", topicName), func() {
 		if internalAddress == "" {
 			By("Getting Kafka cluster internal addresses")
-			internalListenerNames := getK8sResources(kubectlOptions,
-				[]string{"kafkacluster"},
+			internalListenerNames, err := getK8sResources(kubectlOptions,
+				[]string{kafkaKind},
 				"",
 				kafkaClusterName,
 				kubectlArgGoTemplateInternalListenersName,
 			)
+
+			Expect(err).ShouldNot(HaveOccurred())
 			Expect(internalListenerNames).ShouldNot(BeEmpty())
 
-			internalListenerAddresses := getK8sResources(kubectlOptions,
-				[]string{"kafkacluster"},
+			internalListenerAddresses, err := getK8sResources(kubectlOptions,
+				[]string{kafkaKind},
 				"",
 				kafkaClusterName,
 				fmt.Sprintf(kubectlArgGoTemplateInternalListenerAddressesTemplate, internalListenerNames[0]),
 			)
+			Expect(err).ShouldNot(HaveOccurred())
+
 			Expect(internalListenerAddresses).ShouldNot(BeEmpty())
 
 			internalAddress = internalListenerAddresses[0]
