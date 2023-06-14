@@ -557,10 +557,18 @@ type ExternalListenerConfig struct {
 	// configuring AnyCastPort allows kafka cluster access without specifying the exact broker
 	// If not defined, 29092 will be used for external clients to reach the kafka cluster
 	AnyCastPort *int32 `json:"anyCastPort,omitempty"`
+<<<<<<< HEAD
 	// +kubebuilder:validation:Minimum=1024
 	// +kubebuilder:validation:Maximum=65535
 	// +optional
 	// IngressControllerTargetPort defines the container port that the ingress controller uses for handling external traffic.
+=======
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=65535
+	// +optional
+	// IngressControllerTargetPort defines the container port that the ingress controller uses for handling external traffic.
+	// If defined, IngressControllerTargetPort should be >= 1024 when using IstioIngress as the ingress controller.
+>>>>>>> 934237b (Add ingressControllerTargetPort to KafkaCluster API)
 	// If not defined, 29092 will be used as the default IngressControllerTargetPort value.
 	IngressControllerTargetPort *int32 `json:"ingressControllerTargetPort,omitempty"`
 	// +kubebuilder:validation:Enum=LoadBalancer;NodePort
