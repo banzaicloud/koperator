@@ -16,12 +16,15 @@ package webhooks
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
-
-	"github.com/banzaicloud/koperator/api/v1beta1"
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	"github.com/banzaicloud/koperator/api/v1beta1"
+	"github.com/banzaicloud/koperator/pkg/util"
+	"github.com/banzaicloud/koperator/pkg/util/istioingress"
 )
 
 // nolint: funlen
@@ -686,6 +689,86 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
 			got := checkExternalListenerStartingPort(&testCase.kafkaClusterSpec)
+			require.Equal(t, testCase.expected, got)
+		})
+	}
+}
+
+func TestCheckExternalListenerIngressControllerTargetPort(t *testing.T) {
+	testCases := []struct {
+		testName         string
+		kafkaClusterSpec v1beta1.KafkaClusterSpec
+		expected         field.ErrorList
+	}{
+		{
+			testName: "valid config: ingressControllerTargetPort is not defined",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external1"},
+						},
+						{
+							CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2"},
+						},
+					},
+				},
+			},
+			expected: nil,
+		},
+		{
+			testName: "valid config: ingressControllerTargetPort is defined and is valid for IstioIngress controller",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec:          v1beta1.CommonListenerSpec{Name: "test-external1"},
+							IngressControllerTargetPort: util.Int32Pointer(int32(v1beta1.MaxWellKnownPort + rand.Intn(65536-v1beta1.MaxWellKnownPort))),
+						},
+						{
+							CommonListenerSpec:          v1beta1.CommonListenerSpec{Name: "test-external2"},
+							IngressControllerTargetPort: util.Int32Pointer(int32(v1beta1.MaxWellKnownPort + rand.Intn(65536-v1beta1.MaxWellKnownPort))),
+						},
+					},
+				},
+			},
+			expected: nil,
+		},
+		{
+			testName: "invalid config: ingressControllerTargetPort is defined and is invalid for IstioIngress controller",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				IngressController: istioingress.IngressControllerName,
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec:          v1beta1.CommonListenerSpec{Name: "test-external1"},
+							IngressControllerTargetPort: util.Int32Pointer(1),
+						},
+						{
+							CommonListenerSpec:          v1beta1.CommonListenerSpec{Name: "test-external2"},
+							IngressControllerTargetPort: util.Int32Pointer(1023),
+						},
+					},
+				},
+			},
+			expected: append(field.ErrorList{},
+				field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(0).
+					Child("ingressControllerTargetPort"), int32(1),
+					invalidExternalListenerTargetPortErrMsg+": "+fmt.Sprintf(
+						"ExternalListener '%s' would use a well-known port number '%d'(<%d) as the ingress controller container port, and this is not permitted",
+						"test-external1", int32(1), v1beta1.MaxWellKnownPort)),
+				field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(1).
+					Child("ingressControllerTargetPort"), int32(1023),
+					invalidExternalListenerTargetPortErrMsg+": "+fmt.Sprintf(
+						"ExternalListener '%s' would use a well-known port number '%d'(<%d) as the ingress controller container port, and this is not permitted",
+						"test-external2", int32(1023), v1beta1.MaxWellKnownPort)),
+			),
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			got := checkExternalListenerIngressControllerTargetPort(&testCase.kafkaClusterSpec)
 			require.Equal(t, testCase.expected, got)
 		})
 	}

@@ -28,6 +28,7 @@ const (
 	outOfRangePartitionsErrMsg                = "number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)"
 	unsupportedRemovingStorageMsg             = "removing storage from a broker is not supported"
 	invalidExternalListenerStartingPortErrMsg = "invalid external listener starting port number"
+	invalidExternalListenerTargetPortErrMsg   = "invalid external listener ingress controller target port number"
 
 	// errorDuringValidationMsg is added to infrastructure errors (e.g. failed to connect), but not to field validation errors
 	errorDuringValidationMsg = "error during validation"
