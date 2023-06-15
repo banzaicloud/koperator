@@ -530,6 +530,11 @@ func (in *ExternalListenerConfig) DeepCopyInto(out *ExternalListenerConfig) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.IngressControllerTargetPort != nil {
+		in, out := &in.IngressControllerTargetPort, &out.IngressControllerTargetPort
+		*out = new(int32)
+		**out = **in
+	}
 	if in.Config != nil {
 		in, out := &in.Config, &out.Config
 		*out = new(Config)
