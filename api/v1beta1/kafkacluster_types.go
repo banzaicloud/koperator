@@ -43,8 +43,6 @@ const (
 	DefaultAnyCastPort = 29092
 	// DefaultIngressControllerTargetPort is the default container port for the ingress controller
 	DefaultIngressControllerTargetPort = 29092
-	// MaxWellKnownPort marks the largest well known port value in Unix-based systems
-	MaxWellKnownPort = 1024
 	// DefaultEnvoyHealthCheckPort envoy health check port
 	DefaultEnvoyHealthCheckPort = 8080
 	// DefaultEnvoyAdminPort envoy admin port
@@ -559,11 +557,10 @@ type ExternalListenerConfig struct {
 	// configuring AnyCastPort allows kafka cluster access without specifying the exact broker
 	// If not defined, 29092 will be used for external clients to reach the kafka cluster
 	AnyCastPort *int32 `json:"anyCastPort,omitempty"`
-	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Minimum=1024
 	// +kubebuilder:validation:Maximum=65535
 	// +optional
 	// IngressControllerTargetPort defines the container port that the ingress controller uses for handling external traffic.
-	// If defined, IngressControllerTargetPort should be >= 1024 when using IstioIngress as the ingress controller.
 	// If not defined, 29092 will be used as the default IngressControllerTargetPort value.
 	IngressControllerTargetPort *int32 `json:"ingressControllerTargetPort,omitempty"`
 	// +kubebuilder:validation:Enum=LoadBalancer;NodePort

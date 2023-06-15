@@ -21478,13 +21478,11 @@ spec:
                         ingressControllerTargetPort:
                           description: IngressControllerTargetPort defines the container
                             port that the ingress controller uses for handling external
-                            traffic. If defined, IngressControllerTargetPort should
-                            be >= 1024 when using IstioIngress as the ingress controller.
-                            If not defined, 29092 will be used as the default IngressControllerTargetPort
-                            value.
+                            traffic. If not defined, 29092 will be used as the default
+                            IngressControllerTargetPort value.
                           format: int32
                           maximum: 65535
-                          minimum: 0
+                          minimum: 1024
                           type: integer
                         name:
                           pattern: ^[a-z0-9\-]+
