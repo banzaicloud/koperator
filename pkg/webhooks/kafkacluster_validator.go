@@ -24,8 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/banzaicloud/koperator/pkg/util/istioingress"
-
 	"github.com/go-logr/logr"
 
 	banzaicloudv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
@@ -168,8 +166,6 @@ func checkInternalAndExternalListeners(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 
 	allErrs = append(allErrs, checkExternalListenerStartingPort(kafkaClusterSpec)...)
 
-	allErrs = append(allErrs, checkExternalListenerIngressControllerTargetPort(kafkaClusterSpec)...)
-
 	return allErrs
 }
 
@@ -218,26 +214,6 @@ func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 		if len(invalidBrokerIDs) > 0 {
 			errmsg := invalidExternalListenerStartingPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate external access port numbers (externalStartingPort + Broker ID) that are out of range (not between 1 and 65535) for brokers %v", extListener.Name, invalidBrokerIDs)
 			fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extListener.ExternalStartingPort, errmsg)
-			allErrs = append(allErrs, fldErr)
-		}
-	}
-	return allErrs
-}
-
-func checkExternalListenerIngressControllerTargetPort(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
-	// if there are no externalListeners, there is no need to perform the rest of the checks in this function
-	if kafkaClusterSpec.ListenersConfig.ExternalListeners == nil || kafkaClusterSpec.GetIngressController() != istioingress.IngressControllerName {
-		return nil
-	}
-
-	var allErrs field.ErrorList
-	for i, extListener := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
-		if extListener.GetIngressControllerTargetPort() < banzaicloudv1beta1.MaxWellKnownPort {
-			errmsg := invalidExternalListenerTargetPortErrMsg + ": " + fmt.Sprintf(
-				"ExternalListener '%s' would use a well-known port number '%d'(<%d) as the ingress controller container port, and this is not permitted",
-				extListener.Name, extListener.GetIngressControllerTargetPort(), banzaicloudv1beta1.MaxWellKnownPort)
-			fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(
-				i).Child("ingressControllerTargetPort"), *extListener.IngressControllerTargetPort, errmsg)
 			allErrs = append(allErrs, fldErr)
 		}
 	}
