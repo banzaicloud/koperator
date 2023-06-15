@@ -24,7 +24,7 @@ const (
 	kubectlNotFoundErrorMsg = "NotFound"
 )
 
-// Returns the union of the slices from argument.
+// stringSlicesUnion returns the union of the slices from argument.
 func stringSlicesUnion(sliceA, sliceB []string) []string {
 	if len(sliceA) == 0 || len(sliceB) == 0 {
 		return nil
@@ -50,6 +50,7 @@ func stringSlicesUnion(sliceA, sliceB []string) []string {
 	return union
 }
 
+// kubectlArgExtender extends the kubectl arguments and log message based on the parameters
 func kubectlArgExtender(args []string, logMsg, selector, names, namespace string, extraArgs []string) (string, []string) {
 	if selector != "" {
 		logMsg = fmt.Sprintf("%s selector: '%s'", logMsg, selector)
@@ -68,7 +69,7 @@ func kubectlArgExtender(args []string, logMsg, selector, names, namespace string
 	return logMsg, args
 }
 
-// _kubectlRemoveWarning removes those elements from the outputSlice parameter which contains kubectl warning message.
+// kubectlRemoveWarning removes those elements from the outputSlice parameter which contains kubectl warning message.
 func kubectlRemoveWarnings(outputSlice []string) []string {
 	// Remove warning message pollution from the output
 	result := make([]string, 0, len(outputSlice))
