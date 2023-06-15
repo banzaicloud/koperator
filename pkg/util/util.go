@@ -548,3 +548,7 @@ func RetryOnError(backoff wait.Backoff, fn func() error, isRetryableError func(e
 func RetryOnConflict(backoff wait.Backoff, fn func() error) error {
 	return RetryOnError(backoff, fn, apierrors.IsConflict)
 }
+
+func GetExternalPortForBroker(externalStartingPort, brokerId int32) int32 {
+	return externalStartingPort + brokerId
+}

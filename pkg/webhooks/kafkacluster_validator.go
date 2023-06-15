@@ -162,7 +162,19 @@ func getMissingMounthPathLocation(mounthPath string, kafkaClusterSpec *banzaiclo
 func checkInternalAndExternalListeners(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, checkUniqueListenerContainerPort(kafkaClusterSpec.ListenersConfig)...)
+	allErrs = append(allErrs, checkInternalListeners(kafkaClusterSpec)...)
+
+	allErrs = append(allErrs, checkExternalListeners(kafkaClusterSpec)...)
+
+	return allErrs
+}
+
+func checkInternalListeners(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
+	return checkUniqueListenerContainerPort(kafkaClusterSpec.ListenersConfig)
+}
+
+func checkExternalListeners(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
+	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, checkExternalListenerStartingPort(kafkaClusterSpec)...)
 
@@ -205,14 +217,30 @@ func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 	var allErrs field.ErrorList
 	const maxPort int32 = 65535
 	for i, extListener := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
-		var invalidBrokerIDs []int32
+		var outOfRangeBrokerIDs, collidingPortsBrokerIDs []int32
 		for _, broker := range kafkaClusterSpec.Brokers {
-			if extListener.ExternalStartingPort+broker.Id < 1 || extListener.ExternalStartingPort+broker.Id > maxPort {
-				invalidBrokerIDs = append(invalidBrokerIDs, broker.Id)
+			externalPort := util.GetExternalPortForBroker(extListener.ExternalStartingPort, broker.Id)
+			if externalPort < 1 || externalPort > maxPort {
+				outOfRangeBrokerIDs = append(outOfRangeBrokerIDs, broker.Id)
+			}
+
+			if kafkaClusterSpec.GetIngressController() == "envoy" {
+				if externalPort == kafkaClusterSpec.EnvoyConfig.GetEnvoyAdminPort() || externalPort == kafkaClusterSpec.EnvoyConfig.GetEnvoyHealthCheckPort() {
+					collidingPortsBrokerIDs = append(collidingPortsBrokerIDs, broker.Id)
+				}
 			}
 		}
-		if len(invalidBrokerIDs) > 0 {
-			errmsg := invalidExternalListenerStartingPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate external access port numbers (externalStartingPort + Broker ID) that are out of range (not between 1 and 65535) for brokers %v", extListener.Name, invalidBrokerIDs)
+		
+		if len(outOfRangeBrokerIDs) > 0 {
+			errmsg := invalidExternalListenerStartingPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate external access port numbers (externalStartingPort + Broker ID) that are out of range (not between 1 and 65535) for brokers %v", extListener.Name, outOfRangeBrokerIDs)
+			fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extListener.ExternalStartingPort, errmsg)
+			allErrs = append(allErrs, fldErr)
+		}
+
+		if len(collidingPortsBrokerIDs) > 0 {
+			errmsg := invalidExternalListenerStartingPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate external access port numbers ("+
+				"externalStartingPort + Broker ID) that are colliding with either the envoy admin port (default '%d') or the envoy health-check port (default '%d') for brokers %v",
+				extListener.Name, kafkaClusterSpec.EnvoyConfig.GetEnvoyAdminPort(), kafkaClusterSpec.EnvoyConfig.GetEnvoyHealthCheckPort(), collidingPortsBrokerIDs)
 			fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extListener.ExternalStartingPort, errmsg)
 			allErrs = append(allErrs, fldErr)
 		}

@@ -681,6 +681,34 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 						"test-external2", []int32{102})),
 			),
 		},
+		{
+			testName: "invalid config: brokers with in-range external port numbers, but they are colliding with the envoy ports",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				Brokers: []v1beta1.Broker{{Id: 0}, {Id: 11}, {Id: 102}},
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "test-external1"},
+							ExternalStartingPort: 8080,
+						},
+						{
+							CommonListenerSpec:   v1beta1.CommonListenerSpec{Name: "test-external2"},
+							ExternalStartingPort: 8070,
+						},
+					},
+				},
+			},
+			expected: append(field.ErrorList{},
+				field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(0).Child("externalStartingPort"), int32(8080),
+					invalidExternalListenerStartingPortErrMsg+": "+fmt.Sprintf("ExternalListener '%s' would generate external access port numbers ("+
+						"externalStartingPort + Broker ID) that are colliding with either the envoy admin port (default '%d') or the envoy health-check port (default '%d') for brokers %v",
+						"test-external1", int32(8081), int32(8080), []int32{0})),
+				field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(1).Child("externalStartingPort"), int32(8070),
+					invalidExternalListenerStartingPortErrMsg+": "+fmt.Sprintf("ExternalListener '%s' would generate external access port numbers ("+
+						"externalStartingPort + Broker ID) that are colliding with either the envoy admin port (default '%d') or the envoy health-check port (default '%d') for brokers %v",
+						"test-external2", int32(8081), int32(8080), []int32{11})),
+			),
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -688,5 +716,6 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 			got := checkExternalListenerStartingPort(&testCase.kafkaClusterSpec)
 			require.Equal(t, testCase.expected, got)
 		})
+
 	}
 }
