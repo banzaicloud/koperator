@@ -461,17 +461,6 @@ func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFil
 	return applyK8sResourceManifestFromString(kubectlOptions, manifest.String())
 }
 
-// checkExistenceOfK8sResource queries a Resource by it's kind, namespace and name and
-// returns the output of stderr
-func checkExistenceOfK8sResource(
-	kubectlOptions *k8s.KubectlOptions,
-	resourceKind string,
-	resourceName string,
-) error {
-	By(fmt.Sprintf("Checking the existence of resource %s", resourceName))
-	return k8s.RunKubectlE(GinkgoT(), kubectlOptions, "get", resourceKind, resourceName)
-}
-
 // listK8sResourceKinds lists all of the available resource kinds on the K8s cluster
 // with the apiGroupSelector parameter the result can be narrowed by the resource group.
 // extraArgs can be any kubectl api-resources parameter.
