@@ -21,6 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/banzaicloud/koperator/pkg/util"
+
 	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
@@ -682,7 +684,7 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 			),
 		},
 		{
-			testName: "invalid config: brokers with in-range external port numbers, but they are colliding with the envoy ports",
+			testName: "invalid config: brokers with in-range external port numbers, but they collide with the envoy ports",
 			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
 				Brokers: []v1beta1.Broker{{Id: 0}, {Id: 11}, {Id: 102}},
 				ListenersConfig: v1beta1.ListenersConfig{
@@ -701,12 +703,14 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 			expected: append(field.ErrorList{},
 				field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(0).Child("externalStartingPort"), int32(8080),
 					invalidExternalListenerStartingPortErrMsg+": "+fmt.Sprintf("ExternalListener '%s' would generate external access port numbers ("+
-						"externalStartingPort + Broker ID) that are colliding with either the envoy admin port (default '%d') or the envoy health-check port (default '%d') for brokers %v",
-						"test-external1", int32(8081), int32(8080), []int32{0})),
+						"externalStartingPort + Broker ID) that collide with either the envoy admin port ('%d'), the envoy health-check port ('%d'), "+
+						"or the ingressControllerTargetPort ('%d') for brokers %v",
+						"test-external1", int32(8081), int32(8080), int32(29092), []int32{0})),
 				field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(1).Child("externalStartingPort"), int32(8070),
 					invalidExternalListenerStartingPortErrMsg+": "+fmt.Sprintf("ExternalListener '%s' would generate external access port numbers ("+
-						"externalStartingPort + Broker ID) that are colliding with either the envoy admin port (default '%d') or the envoy health-check port (default '%d') for brokers %v",
-						"test-external2", int32(8081), int32(8080), []int32{11})),
+						"externalStartingPort + Broker ID) that collide with either the envoy admin port ('%d'), the envoy health-check port ('%d'), "+
+						"or the ingressControllerTargetPort ('%d') for brokers %v",
+						"test-external2", int32(8081), int32(8080), int32(29092), []int32{11})),
 			),
 		},
 	}
@@ -716,6 +720,114 @@ func TestCheckExternalListenerStartingPort(t *testing.T) {
 			got := checkExternalListenerStartingPort(&testCase.kafkaClusterSpec)
 			require.Equal(t, testCase.expected, got)
 		})
+	}
+}
 
+func TestCheckTargetPortsCollisionForEnvoy(t *testing.T) {
+	testCases := []struct {
+		testName         string
+		kafkaClusterSpec v1beta1.KafkaClusterSpec
+		expected         field.ErrorList
+	}{
+		{
+			testName: "valid config: envoy admin port, envoy health-check port, and ingress controller target port are not defined",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external1"},
+						},
+						{
+							CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2"},
+						},
+					},
+				},
+			},
+			expected: nil,
+		},
+		{
+			testName: "invalid config: user-specified envoy admin port collides with default envoy health-check port",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				EnvoyConfig: v1beta1.EnvoyConfig{
+					AdminPort: util.Int32Pointer(8080),
+				},
+			},
+			expected: append(field.ErrorList{},
+				field.Invalid(field.NewPath("spec").Child("envoyConfig").Child("adminPort"), int32(8080),
+					invalidContainerPortForIngressControllerErrMsg+": The envoy configuration uses an admin port number that collides with the health-check port number"),
+			),
+		},
+		{
+			testName: "invalid config: default envoy admin port collides with user-specified envoy health-check port",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				EnvoyConfig: v1beta1.EnvoyConfig{
+					HealthCheckPort: util.Int32Pointer(8081),
+				},
+			},
+			expected: append(field.ErrorList{},
+				field.Invalid(field.NewPath("spec").Child("envoyConfig").Child("adminPort"), int32(8081),
+					invalidContainerPortForIngressControllerErrMsg+": The envoy configuration uses an admin port number that collides with the health-check port number"),
+			),
+		},
+		{
+			testName: "invalid config: user-specified ingress controller target port collided with user-specified envoy admin port and default health-check port",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				EnvoyConfig: v1beta1.EnvoyConfig{
+					AdminPort: util.Int32Pointer(29000),
+				},
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec:          v1beta1.CommonListenerSpec{Name: "test-external1"},
+							IngressControllerTargetPort: util.Int32Pointer(29000),
+						},
+						{
+							CommonListenerSpec:          v1beta1.CommonListenerSpec{Name: "test-external2"},
+							IngressControllerTargetPort: util.Int32Pointer(8080),
+						},
+					},
+				},
+			},
+			expected: append(field.ErrorList{},
+				field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(0).Child("ingressControllerTargetPort"), int32(29000),
+					invalidContainerPortForIngressControllerErrMsg+": ExternalListener 'test-external1' uses an ingress controller target port number that collides with the envoy's admin port"),
+				field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(1).Child("ingressControllerTargetPort"), int32(8080),
+					invalidContainerPortForIngressControllerErrMsg+": ExternalListener 'test-external2' uses an ingress controller target port number that collides with the envoy's health-check"+
+						" port"),
+			),
+		},
+		{
+			testName: "invalid config: user-specified ingress controller target port collided with default envoy admin port and user-specified health-check port",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				EnvoyConfig: v1beta1.EnvoyConfig{
+					HealthCheckPort: util.Int32Pointer(19090),
+				},
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							CommonListenerSpec:          v1beta1.CommonListenerSpec{Name: "test-external1"},
+							IngressControllerTargetPort: util.Int32Pointer(19090),
+						},
+						{
+							CommonListenerSpec:          v1beta1.CommonListenerSpec{Name: "test-external2"},
+							IngressControllerTargetPort: util.Int32Pointer(8081),
+						},
+					},
+				},
+			},
+			expected: append(field.ErrorList{},
+				field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(0).Child("ingressControllerTargetPort"), int32(19090),
+					invalidContainerPortForIngressControllerErrMsg+": ExternalListener 'test-external1' uses an ingress controller target port number that collides with the envoy's health-check port"),
+				field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(1).Child("ingressControllerTargetPort"), int32(8081),
+					invalidContainerPortForIngressControllerErrMsg+": ExternalListener 'test-external2' uses an ingress controller target port number that collides with the envoy's admin port"),
+			),
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			got := checkTargetPortsCollisionForEnvoy(&testCase.kafkaClusterSpec)
+			require.Equal(t, testCase.expected, got)
+		})
 	}
 }

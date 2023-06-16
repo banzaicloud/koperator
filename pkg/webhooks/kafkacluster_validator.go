@@ -178,6 +178,8 @@ func checkExternalListeners(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpe
 
 	allErrs = append(allErrs, checkExternalListenerStartingPort(kafkaClusterSpec)...)
 
+	allErrs = append(allErrs, checkTargetPortsCollisionForEnvoy(kafkaClusterSpec)...)
+
 	return allErrs
 }
 
@@ -224,13 +226,17 @@ func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 				outOfRangeBrokerIDs = append(outOfRangeBrokerIDs, broker.Id)
 			}
 
+			if externalPort == extListener.GetIngressControllerTargetPort() {
+				collidingPortsBrokerIDs = append(collidingPortsBrokerIDs, broker.Id)
+			}
+
 			if kafkaClusterSpec.GetIngressController() == "envoy" {
 				if externalPort == kafkaClusterSpec.EnvoyConfig.GetEnvoyAdminPort() || externalPort == kafkaClusterSpec.EnvoyConfig.GetEnvoyHealthCheckPort() {
 					collidingPortsBrokerIDs = append(collidingPortsBrokerIDs, broker.Id)
 				}
 			}
 		}
-		
+
 		if len(outOfRangeBrokerIDs) > 0 {
 			errmsg := invalidExternalListenerStartingPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate external access port numbers (externalStartingPort + Broker ID) that are out of range (not between 1 and 65535) for brokers %v", extListener.Name, outOfRangeBrokerIDs)
 			fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extListener.ExternalStartingPort, errmsg)
@@ -239,11 +245,49 @@ func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 
 		if len(collidingPortsBrokerIDs) > 0 {
 			errmsg := invalidExternalListenerStartingPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate external access port numbers ("+
-				"externalStartingPort + Broker ID) that are colliding with either the envoy admin port (default '%d') or the envoy health-check port (default '%d') for brokers %v",
-				extListener.Name, kafkaClusterSpec.EnvoyConfig.GetEnvoyAdminPort(), kafkaClusterSpec.EnvoyConfig.GetEnvoyHealthCheckPort(), collidingPortsBrokerIDs)
+				"externalStartingPort + Broker ID) that collide with either the envoy admin port ('%d'), the envoy health-check port ('%d'), or the ingressControllerTargetPort ('%d') for brokers %v",
+				extListener.Name, kafkaClusterSpec.EnvoyConfig.GetEnvoyAdminPort(), kafkaClusterSpec.EnvoyConfig.GetEnvoyHealthCheckPort(), extListener.GetIngressControllerTargetPort(), collidingPortsBrokerIDs)
 			fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extListener.ExternalStartingPort, errmsg)
 			allErrs = append(allErrs, fldErr)
 		}
 	}
+	return allErrs
+}
+
+// checkTargetPortsCollisionForEnvoy checks if the IngressControllerTargetPort collides with the other container ports for envoy deployment
+func checkTargetPortsCollisionForEnvoy(kafkaClusterSpec *banzaicloudv1beta1.KafkaClusterSpec) field.ErrorList {
+	if kafkaClusterSpec.GetIngressController() != "envoy" {
+		return nil
+	}
+
+	var allErrs field.ErrorList
+
+	ap := kafkaClusterSpec.EnvoyConfig.GetEnvoyAdminPort()
+	hcp := kafkaClusterSpec.EnvoyConfig.GetEnvoyHealthCheckPort()
+
+	if ap == hcp {
+		errmsg := invalidContainerPortForIngressControllerErrMsg + ": The envoy configuration uses an admin port number that collides with the health-check port number"
+		fldErr := field.Invalid(field.NewPath("spec").Child("envoyConfig").Child("adminPort"), kafkaClusterSpec.EnvoyConfig.GetEnvoyAdminPort(), errmsg)
+		allErrs = append(allErrs, fldErr)
+	}
+
+	if kafkaClusterSpec.ListenersConfig.ExternalListeners != nil {
+		for i, extListener := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
+			if extListener.GetIngressControllerTargetPort() == ap {
+				errmsg := invalidContainerPortForIngressControllerErrMsg + ": " + fmt.Sprintf(
+					"ExternalListener '%s' uses an ingress controller target port number that collides with the envoy's admin port", extListener.Name)
+				fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("ingressControllerTargetPort"), extListener.GetIngressControllerTargetPort(), errmsg)
+				allErrs = append(allErrs, fldErr)
+			}
+
+			if extListener.GetIngressControllerTargetPort() == hcp {
+				errmsg := invalidContainerPortForIngressControllerErrMsg + ": " + fmt.Sprintf(
+					"ExternalListener '%s' uses an ingress controller target port number that collides with the envoy's health-check port", extListener.Name)
+				fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("ingressControllerTargetPort"), extListener.GetIngressControllerTargetPort(), errmsg)
+				allErrs = append(allErrs, fldErr)
+			}
+		}
+	}
+
 	return allErrs
 }
