@@ -33,7 +33,8 @@ func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string) 
 				"Namespace": kubectlOptions.Namespace,
 			},
 		)
-		waitK8sResourceCondition(kubectlOptions, "pods", "condition=Ready", defaultPodReadinessWaitTime, "", kcatPodName)
+		err := waitK8sResourceCondition(kubectlOptions, "pods", "condition=Ready", defaultPodReadinessWaitTime, "", kcatPodName)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 }
@@ -49,7 +50,8 @@ func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName str
 				"Namespace": kubectlOptions.Namespace,
 			},
 		)
-		waitK8sResourceCondition(kubectlOptions, kafkaTopicKind, "jsonpath={.status.state}=created", defaultTopicCreationWaitTime, "", topicName)
+		err := waitK8sResourceCondition(kubectlOptions, kafkaTopicKind, "jsonpath={.status.state}=created", defaultTopicCreationWaitTime, "", topicName)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 }
