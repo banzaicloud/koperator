@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/banzaicloud/koperator/pkg/util"
@@ -738,6 +739,25 @@ func TestCheckTargetPortsCollisionForEnvoy(t *testing.T) {
 							CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external1"},
 						},
 						{
+							CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2"},
+						},
+					},
+				},
+			},
+			expected: nil,
+		},
+		{
+			testName: "valid config: external listeners use non-LoadBalancer access method",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				ListenersConfig: v1beta1.ListenersConfig{
+					ExternalListeners: []v1beta1.ExternalListenerConfig{
+						{
+							AccessMethod:                corev1.ServiceTypeNodePort,
+							CommonListenerSpec:          v1beta1.CommonListenerSpec{Name: "test-external1"},
+							IngressControllerTargetPort: util.Int32Pointer(29000),
+						},
+						{
+							AccessMethod:       corev1.ServiceTypeNodePort,
 							CommonListenerSpec: v1beta1.CommonListenerSpec{Name: "test-external2"},
 						},
 					},

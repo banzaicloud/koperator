@@ -20,6 +20,7 @@ import (
 
 	"emperror.dev/errors"
 	"golang.org/x/exp/slices"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -273,6 +274,11 @@ func checkTargetPortsCollisionForEnvoy(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 
 	if kafkaClusterSpec.ListenersConfig.ExternalListeners != nil {
 		for i, extListener := range kafkaClusterSpec.ListenersConfig.ExternalListeners {
+			// the ingress controller target port only has impact while using LoadBalancer to access the Kafka cluster
+			if extListener.GetAccessMethod() != corev1.ServiceTypeLoadBalancer {
+				continue
+			}
+
 			if extListener.GetIngressControllerTargetPort() == ap {
 				errmsg := invalidContainerPortForIngressControllerErrMsg + ": " + fmt.Sprintf(
 					"ExternalListener '%s' uses an ingress controller target port number that collides with the envoy's admin port", extListener.Name)
