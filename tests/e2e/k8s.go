@@ -547,3 +547,38 @@ func waitK8sResourceCondition(kubectlOptions k8s.KubectlOptions, resourceKind, w
 
 	return err
 }
+
+// kubectlArgExtender extends the kubectl arguments and log message based on the parameters
+func kubectlArgExtender(args []string, logMsg, selector, names, namespace string, extraArgs []string) (string, []string) {
+	if selector != "" {
+		logMsg = fmt.Sprintf("%s selector: '%s'", logMsg, selector)
+		args = append(args, fmt.Sprintf("--selector=%s", selector))
+	} else if names != "" {
+		logMsg = fmt.Sprintf("%s name(s): '%s'", logMsg, names)
+		args = append(args, names)
+	}
+	if namespace != "" {
+		logMsg = fmt.Sprintf("%s namespace: '%s'", logMsg, namespace)
+	}
+	if len(extraArgs) != 0 {
+		logMsg = fmt.Sprintf("%s extraArgs: '%s'", logMsg, extraArgs)
+		args = append(args, extraArgs...)
+	}
+	return logMsg, args
+}
+
+// kubectlRemoveWarning removes those elements from the outputSlice parameter which contains kubectl warning message.
+func kubectlRemoveWarnings(outputSlice []string) []string {
+	// Remove warning message pollution from the output
+	result := make([]string, 0, len(outputSlice))
+	for i := range outputSlice {
+		if !strings.Contains(outputSlice[i], "Warning:") {
+			result = append(result, outputSlice[i])
+		}
+	}
+	return result
+}
+
+func isKubectlNotFoundError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), kubectlNotFoundErrorMsg)
+}

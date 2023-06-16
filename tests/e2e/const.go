@@ -136,6 +136,8 @@ const (
 
 	kcatPodTemplate    = "templates/kcat.yaml.tmpl"
 	kafkaTopicTemplate = "templates/topic.yaml.tmpl"
+
+	kubectlNotFoundErrorMsg = "NotFound"
 )
 
 func basicK8sResourceKinds() []string {

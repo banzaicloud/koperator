@@ -293,9 +293,9 @@ func lookUpInstalledHelmReleaseByName(
 	return nil, false, nil
 }
 
-// uninstallHelmChart uninstall Helm chart from the specified kubectl context and
+// uninstallHelmChart uninstalls a Helm chart from the specified kubectl context and
 // namespace using the specified helm release name. When purge is true, it removes records
-// and make that name free to be reused for another installation.
+// and makes that name free to be reused for another installation.
 // Extra arguments can be any of the helm CLI uninstall flag arguments.
 func uninstallHelmChart(
 	kubectlOptions k8s.KubectlOptions,
