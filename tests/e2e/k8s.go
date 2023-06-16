@@ -477,7 +477,7 @@ func checkExistenceOfK8sResource(
 // extraArgs can be any kubectl api-resources parameter.
 func listK8sResourceKinds(kubectlOptions k8s.KubectlOptions, apiGroupSelector string, extraArgs ...string) ([]string, error) {
 	logMsg := "Listing K8s resource kind"
-	args := []string{"api-resources", "--verbs=list", "-o", "name", "--sort-by", "name"}
+	args := []string{"api-resources", "--verbs", "list", "-output", "name", "--sort-by", "name"}
 
 	if apiGroupSelector != "" {
 		logMsg = fmt.Sprintf("%s group selector: %s", logMsg, apiGroupSelector)
