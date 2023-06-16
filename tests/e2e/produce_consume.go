@@ -39,30 +39,6 @@ func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string) 
 
 }
 
-// requireDeployingKafkaTopic deploys a kafkaTopic resource from a template
-func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName string) {
-	It("Deploying KafkaTopic CR", func() {
-		applyK8sResourceFromTemplate(kubectlOptions,
-			kafkaTopicTemplate,
-			map[string]interface{}{
-				"Name":      topicName,
-				"TopicName": topicName,
-				"Namespace": kubectlOptions.Namespace,
-			},
-		)
-		err := waitK8sResourceCondition(kubectlOptions, kafkaTopicKind, "jsonpath={.status.state}=created", defaultTopicCreationWaitTime, "", topicName)
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-}
-
-// requireDeleteKafkaTopic deletes kafkaTopic resource.
-func requireDeleteKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName string) {
-	It("Deleting KafkaTopic CR", func() {
-		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, kafkaTopicKind, "", topicName)
-	})
-}
-
 // requireDeleteKcatPod deletes kcat pod.
 func requireDeleteKcatPod(kubectlOptions k8s.KubectlOptions, podName string) {
 	It("Deleting Kcat pod", func() {
@@ -100,42 +76,13 @@ func requireInternalProducingConsumingMessage(kubectlOptions k8s.KubectlOptions,
 			internalAddress = internalListenerAddresses[0]
 		}
 
-		By("Producing message")
-		// When kubectl exec command is used the namespace flag cannot be at the beginning
-		// thus we need to specify by hand
 		currentTime := time.Now()
-		_, err := k8s.RunKubectlAndGetOutputE(GinkgoT(),
-			k8s.NewKubectlOptions(kubectlOptions.ContextName, kubectlOptions.ConfigPath, ""),
-			"exec",
-			"kcat",
-			"-n",
-			kubectlOptions.Namespace,
-			"--",
-			"/bin/sh",
-			"-c",
-			fmt.Sprintf("echo %s | kcat -L -b %s -t %s -P", currentTime.String(), internalAddress, topicName),
-		)
+		err := producingMessagesInternally(kubectlOptions, kcatPodName, internalAddress, topicName, currentTime.String())
 		Expect(err).NotTo(HaveOccurred())
 
-		By("Consuming message")
-		consumedMessage, err := k8s.RunKubectlAndGetOutputE(GinkgoT(),
-			k8s.NewKubectlOptions(kubectlOptions.ContextName, kubectlOptions.ConfigPath, ""),
-			"exec",
-			"kcat",
-			"-n",
-			kubectlOptions.Namespace,
-			"--",
-			"/usr/bin/kcat",
-			"-L",
-			"-b",
-			internalAddress,
-			"-t",
-			topicName,
-			"-e",
-			"-C",
-		)
+		consumedMessages, err := consumingMessagesInternally(kubectlOptions, kcatPodName, internalAddress, topicName)
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(consumedMessage).Should(ContainSubstring(currentTime.String()))
+		Expect(consumedMessages).Should(ContainSubstring(currentTime.String()))
 	})
 }
