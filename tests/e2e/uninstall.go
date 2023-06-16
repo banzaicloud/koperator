@@ -45,7 +45,7 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions k8s.KubectlOptions) {
 	It("Uninstalling Koperator Helm chart", func() {
 		uninstallHelmChartIfExists(kubectlOptions, koperatorLocalHelmDescriptor.ReleaseName, true)
 		By("Verifying Koperator helm chart resources cleanup")
-		k8sResourceKinds, err := listK8sAllResourceKind(kubectlOptions)
+		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		koperatorAvailableResourceKinds := stringSlicesUnion(koperatorCRDs(), k8sResourceKinds)
@@ -79,7 +79,7 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions k8s.KubectlOpt
 		uninstallHelmChartIfExists(kubectlOptions, zookeeperOperatorHelmDescriptor.ReleaseName, true)
 		By("Verifying Zookeeper-operator helm chart resources cleanup")
 
-		k8sResourceKinds, err := listK8sAllResourceKind(kubectlOptions)
+		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		zookeeperAvailableResourceKinds := stringSlicesUnion(zookeeperCRDs(), k8sResourceKinds)
@@ -122,7 +122,7 @@ func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions k8s.KubectlOp
 		uninstallHelmChartIfExists(kubectlOptions, "prometheus-operator", true)
 		By("Verifying Prometheus-operator helm chart resources cleanup")
 
-		k8sResourceKinds, err := listK8sAllResourceKind(kubectlOptions)
+		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		prometheusAvailableResourceKinds := stringSlicesUnion(prometheusCRDs(), k8sResourceKinds)
@@ -165,7 +165,7 @@ func requireUninstallingCertManagerHelmChart(kubectlOptions k8s.KubectlOptions) 
 		uninstallHelmChartIfExists(kubectlOptions, certManagerHelmDescriptor.ReleaseName, true)
 		By("Verifying Cert-manager helm chart resources cleanup")
 
-		k8sResourceKinds, err := listK8sAllResourceKind(kubectlOptions)
+		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		certManagerAvailableResourceKinds := stringSlicesUnion(certManagerCRDs(), k8sResourceKinds)

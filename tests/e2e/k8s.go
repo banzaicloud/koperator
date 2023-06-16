@@ -472,11 +472,20 @@ func checkExistenceOfK8sResource(
 	return k8s.RunKubectlE(GinkgoT(), kubectlOptions, "get", resourceKind, resourceName)
 }
 
-// listK8sAllResourceKind lists all of the available resource type on the K8s cluster
-func listK8sAllResourceKind(kubectlOptions k8s.KubectlOptions) ([]string, error) {
-	By("Listing available K8s resource kind")
+// listK8sResourceKinds lists all of the available resource kinds on the K8s cluster
+// with the apiGroupSelector parameter the result can be narrowed by the resource group.
+// extraArgs can be any kubectl api-resources parameter.
+func listK8sResourceKinds(kubectlOptions k8s.KubectlOptions, apiGroupSelector string, extraArgs ...string) ([]string, error) {
+	logMsg := "Listing K8s resource kind"
+	args := []string{"api-resources", "--verbs=list", "-o", "name", "--sort-by", "name"}
 
-	args := []string{"api-resources", "--verbs=list", "-o", "name"}
+	if apiGroupSelector != "" {
+		logMsg = fmt.Sprintf("%s group selector: %s", logMsg, apiGroupSelector)
+		args = append(args, "--api-group", apiGroupSelector)
+	}
+
+	args = append(args, extraArgs...)
+
 	output, err := k8s.RunKubectlAndGetOutputE(
 		GinkgoT(),
 		&kubectlOptions,

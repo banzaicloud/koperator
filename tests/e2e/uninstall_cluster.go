@@ -36,7 +36,7 @@ func requireDeleteKafkaCluster(kubectlOptions k8s.KubectlOptions, name string) {
 			By("Verifying the Kafka cluster resource cleanup")
 
 			// Check only those Koperator related resource types we have in K8s (istio usecase)
-			k8sResourceKinds, err := listK8sAllResourceKind(kubectlOptions)
+			k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 			Expect(err).ShouldNot(HaveOccurred())
 
 			koperatorAvailableResourceKinds := stringSlicesUnion(getKoperatorRelatedResourceKinds(), k8sResourceKinds)
