@@ -193,6 +193,64 @@ func (helmDescriptor *helmDescriptor) installHelmChart(kubectlOptions k8s.Kubect
 	return nil
 }
 
+// uninstallHelmChart checks whether the specified named Helm release exists in
+// the provided kubectl context and namespace, logs it if it does not and when noErrorNotFound is false then it returns error.
+// if the Helm chart present then it uninstalls it from the specified kubectl context
+// and namespace using the specified info, extra arguments can be any of the helm
+// CLI install flag arguments, flag keys and values must be provided separately.
+func (helmDescriptor *helmDescriptor) uninstallHelmChart(kubectlOptions k8s.KubectlOptions, noErrorNotFound bool) error {
+	if helmDescriptor == nil {
+		return errors.Errorf("invalid nil Helm descriptor")
+	}
+
+	kubectlOptions.Namespace = helmDescriptor.Namespace
+
+	By(fmt.Sprintf("Checking for existing Helm release named %s", helmDescriptor.ReleaseName))
+	_, isInstalled, err := lookUpInstalledHelmReleaseByName(kubectlOptions, helmDescriptor.ReleaseName)
+	if err != nil {
+		return errors.WrapIfWithDetails(
+			err,
+			"looking up Helm release failed",
+			"releaseName", helmDescriptor.ReleaseName,
+		)
+	}
+
+	if !isInstalled {
+		if !noErrorNotFound {
+			return errors.Errorf("Helm release: '%s' not found", helmDescriptor.ReleaseName)
+		}
+
+		By(fmt.Sprintf(
+			"skipping the uninstallation of %s, because the Helm release is not present.",
+			helmDescriptor.ReleaseName,
+		))
+		return nil
+	}
+	By(
+		fmt.Sprintf(
+			"uninstalling Helm chart by name %s",
+			helmDescriptor.ReleaseName,
+		),
+	)
+
+	fixedArguments := []string{
+		"--debug",
+	}
+	purge := true
+
+	return helm.DeleteE(
+		GinkgoT(),
+		&helm.Options{
+			KubectlOptions: &kubectlOptions,
+			ExtraArgs: map[string][]string{
+				"delete": append(fixedArguments, helmDescriptor.HelmExtraArguments["install"]...),
+			},
+		},
+		helmDescriptor.ReleaseName,
+		purge,
+	)
+}
+
 // IsRemote returns true when the Helm descriptor uses a remote chart path as
 // location. In any other case the repository is considered a remote Helm
 // repository URL.
@@ -291,69 +349,4 @@ func lookUpInstalledHelmReleaseByName(
 	}
 
 	return nil, false, nil
-}
-
-// uninstallHelmChart uninstalls a Helm chart from the specified kubectl context and
-// namespace using the specified helm release name. When purge is true, it removes records
-// and makes that name free to be reused for another installation.
-// Extra arguments can be any of the helm CLI uninstall flag arguments.
-func uninstallHelmChart(
-	kubectlOptions k8s.KubectlOptions,
-	helmReleaseName string,
-	purge bool,
-	extraArgs ...string,
-) error {
-	By(
-		fmt.Sprintf(
-			"uninstalling Helm chart by name %s",
-			helmReleaseName,
-		),
-	)
-
-	fixedArguments := []string{
-		"--debug",
-	}
-
-	extraArgs = append(extraArgs, fixedArguments...)
-
-	return helm.DeleteE(
-		GinkgoT(),
-		&helm.Options{
-			KubectlOptions: &kubectlOptions,
-			ExtraArgs: map[string][]string{
-				"delete": extraArgs,
-			},
-		},
-		helmReleaseName,
-		purge,
-	)
-}
-
-// uninstallHelmChartIfExists checks whether the specified named Helm release exists in
-// the provided kubectl context and namespace, logs it if it does and returns or
-// alternatively uninstall the Helm chart from the specified kubectl context and
-// namespace using the release name, extra arguments can be any of the helm
-// CLI install flag arguments.
-func uninstallHelmChartIfExists(
-	kubectlOptions k8s.KubectlOptions,
-	helmReleaseName string,
-	purge bool,
-	extraArgs ...string,
-) error {
-	By(fmt.Sprintf("Checking for existing Helm release name %s", helmReleaseName))
-	_, isInstalled, err := lookUpInstalledHelmReleaseByName(kubectlOptions, helmReleaseName)
-	if err != nil {
-		return err
-	}
-
-	if !isInstalled {
-		By(fmt.Sprintf(
-			"skipping the uninstallation of %s, because the Helm release is not present.",
-			helmReleaseName,
-		))
-
-		return nil
-	}
-
-	return uninstallHelmChart(kubectlOptions, helmReleaseName, purge, extraArgs...)
 }

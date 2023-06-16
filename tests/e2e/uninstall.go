@@ -43,7 +43,9 @@ func requireUninstallingKoperator(kubectlOptions k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingKoperatorHelmChart(kubectlOptions k8s.KubectlOptions) {
 	It("Uninstalling Koperator Helm chart", func() {
-		uninstallHelmChartIfExists(kubectlOptions, koperatorLocalHelmDescriptor.ReleaseName, true)
+		err := koperatorLocalHelmDescriptor.uninstallHelmChart(kubectlOptions, true)
+		Expect(err).NotTo(HaveOccurred())
+
 		By("Verifying Koperator helm chart resources cleanup")
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -76,7 +78,8 @@ func requireUninstallingZookeeperOperator(kubectlOptions k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions k8s.KubectlOptions) {
 	It("Uninstalling zookeeper-operator Helm chart", func() {
-		uninstallHelmChartIfExists(kubectlOptions, zookeeperOperatorHelmDescriptor.ReleaseName, true)
+		err := zookeeperOperatorHelmDescriptor.uninstallHelmChart(kubectlOptions, true)
+		Expect(err).NotTo(HaveOccurred())
 		By("Verifying Zookeeper-operator helm chart resources cleanup")
 
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
@@ -119,7 +122,9 @@ func requireUninstallingPrometheusOperator(kubectlOptions k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions k8s.KubectlOptions) {
 	It("Uninstalling Prometheus-operator Helm chart", func() {
-		uninstallHelmChartIfExists(kubectlOptions, "prometheus-operator", true)
+		err := prometheusOperatorHelmDescriptor.uninstallHelmChart(kubectlOptions, true)
+		Expect(err).NotTo(HaveOccurred())
+
 		By("Verifying Prometheus-operator helm chart resources cleanup")
 
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
@@ -162,7 +167,10 @@ func requireUninstallingCertManager(kubectlOptions k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingCertManagerHelmChart(kubectlOptions k8s.KubectlOptions) {
 	It("Uninstalling Cert-manager Helm chart", func() {
-		uninstallHelmChartIfExists(kubectlOptions, certManagerHelmDescriptor.ReleaseName, true)
+
+		err := certManagerHelmDescriptor.uninstallHelmChart(kubectlOptions, true)
+		Expect(err).NotTo(HaveOccurred())
+
 		By("Verifying Cert-manager helm chart resources cleanup")
 
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
