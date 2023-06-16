@@ -18,8 +18,8 @@ import (
 	"sort"
 )
 
-// stringSlicesUnion returns the union of the slices from argument.
-func stringSlicesUnion(sliceA, sliceB []string) []string {
+// stringSlicesInstersect returns the union of the slices from argument.
+func stringSlicesInstersect(sliceA, sliceB []string) []string {
 	if len(sliceA) == 0 || len(sliceB) == 0 {
 		return nil
 	}

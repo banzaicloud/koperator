@@ -39,7 +39,7 @@ func requireDeleteKafkaCluster(kubectlOptions k8s.KubectlOptions, name string) {
 			k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			koperatorAvailableResourceKinds := stringSlicesUnion(getKoperatorRelatedResourceKinds(), k8sResourceKinds)
+			koperatorAvailableResourceKinds := stringSlicesInstersect(getKoperatorRelatedResourceKinds(), k8sResourceKinds)
 			koperatorAvailableResourceKinds = append(koperatorAvailableResourceKinds, basicK8sResourceKinds()...)
 
 			resources, err := getK8sResources(kubectlOptions,

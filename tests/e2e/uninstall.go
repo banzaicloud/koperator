@@ -48,7 +48,7 @@ func requireUninstallingKoperatorHelmChart(kubectlOptions k8s.KubectlOptions) {
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		koperatorAvailableResourceKinds := stringSlicesUnion(koperatorCRDs(), k8sResourceKinds)
+		koperatorAvailableResourceKinds := stringSlicesInstersect(koperatorCRDs(), k8sResourceKinds)
 		koperatorAvailableResourceKinds = append(koperatorAvailableResourceKinds, basicK8sResourceKinds()...)
 
 		remainedResources, err := getK8sResources(kubectlOptions,
@@ -82,7 +82,7 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions k8s.KubectlOpt
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		zookeeperAvailableResourceKinds := stringSlicesUnion(zookeeperCRDs(), k8sResourceKinds)
+		zookeeperAvailableResourceKinds := stringSlicesInstersect(zookeeperCRDs(), k8sResourceKinds)
 		zookeeperAvailableResourceKinds = append(zookeeperAvailableResourceKinds, basicK8sResourceKinds()...)
 
 		remainedResources, err := getK8sResources(kubectlOptions,
@@ -125,7 +125,7 @@ func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions k8s.KubectlOp
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		prometheusAvailableResourceKinds := stringSlicesUnion(prometheusCRDs(), k8sResourceKinds)
+		prometheusAvailableResourceKinds := stringSlicesInstersect(prometheusCRDs(), k8sResourceKinds)
 		prometheusAvailableResourceKinds = append(prometheusAvailableResourceKinds, basicK8sResourceKinds()...)
 
 		remainedResources, err := getK8sResources(kubectlOptions,
@@ -168,7 +168,7 @@ func requireUninstallingCertManagerHelmChart(kubectlOptions k8s.KubectlOptions) 
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		certManagerAvailableResourceKinds := stringSlicesUnion(certManagerCRDs(), k8sResourceKinds)
+		certManagerAvailableResourceKinds := stringSlicesInstersect(certManagerCRDs(), k8sResourceKinds)
 		certManagerAvailableResourceKinds = append(certManagerAvailableResourceKinds, basicK8sResourceKinds()...)
 
 		remainedResources, err := getK8sResources(kubectlOptions,
