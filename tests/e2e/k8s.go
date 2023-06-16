@@ -396,7 +396,7 @@ func listK8sCRDs(kubectlOptions k8s.KubectlOptions, crdNames ...string) ([]strin
 }
 
 // deleteK8sResourceOpts deletes K8s resources based on the kind and name or kind and selector.
-// When noErrNotFound is true then the deletion is passed in case when the resource is not found.
+// It returns error in case when the resource is not found.
 // timeout parameter specifies the timeout for the deletion.
 // extraArgs can be any of the kubectl arguments.
 func deleteK8sResource(
@@ -431,7 +431,7 @@ func deleteK8sResource(
 func deleteK8sResourceNoErrNotFound(kubectlOptions k8s.KubectlOptions, timeout time.Duration, kind string, name string, extraArgs ...string) error {
 	err := deleteK8sResource(kubectlOptions, timeout, kind, "", name, extraArgs...)
 	if isKubectlNotFoundError(err) {
-		By("Resource not found")
+		By(fmt.Sprintf("K8s resource %s not found", name))
 		return nil
 	}
 	return err
