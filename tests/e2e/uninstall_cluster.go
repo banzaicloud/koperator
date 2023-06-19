@@ -39,7 +39,7 @@ func requireDeleteKafkaCluster(kubectlOptions k8s.KubectlOptions, name string) {
 			k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			koperatorAvailableResourceKinds := stringSlicesInstersect(getKoperatorRelatedResourceKinds(), k8sResourceKinds)
+			koperatorAvailableResourceKinds := stringSlicesInstersect(koperatorRelatedResourceKinds(), k8sResourceKinds)
 			koperatorAvailableResourceKinds = append(koperatorAvailableResourceKinds, basicK8sResourceKinds()...)
 
 			resources, err := getK8sResources(kubectlOptions,
@@ -62,7 +62,7 @@ func requireDeleteZookeeperCluster(kubectlOptions k8s.KubectlOptions, name strin
 			By("Verifying the Zookeeper cluster resource cleanup")
 
 			zookeeperK8sResources := basicK8sResourceKinds()
-			zookeeperK8sResources = append(zookeeperK8sResources, zookeeperCRDs()...)
+			zookeeperK8sResources = append(zookeeperK8sResources, dependencyCRDs.Zookeeper()...)
 
 			resources, err := getK8sResources(kubectlOptions,
 				zookeeperK8sResources,

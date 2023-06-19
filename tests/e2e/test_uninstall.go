@@ -25,9 +25,17 @@ func testUninstall() bool {
 		var kubectlOptions k8s.KubectlOptions
 		var err error
 
-		It("Acquiring K8s config and context", func() {
-			kubectlOptions, err = kubectlOptionsForCurrentContext()
-			Expect(err).NotTo(HaveOccurred())
+		When("Initializing", func() {
+			It("Acquiring K8s config and context", func() {
+				kubectlOptions, err = kubectlOptionsForCurrentContext()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("Setting globals", func() {
+				err := dependencyCRDs.Initialize(kubectlOptions)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
 		})
 
 		requireUninstallingKoperator(k8s.KubectlOptions{

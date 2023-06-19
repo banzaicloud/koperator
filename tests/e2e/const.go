@@ -16,94 +16,6 @@ package e2e
 
 import "time"
 
-// HelmDescriptors.
-var (
-	// certManagerHelmDescriptor describes the cert-manager Helm component.
-	certManagerHelmDescriptor = helmDescriptor{
-		Repository:   "https://charts.jetstack.io",
-		ChartName:    "cert-manager",
-		ChartVersion: "v1.11.0",
-		ReleaseName:  "cert-manager",
-		Namespace:    "cert-manager",
-		SetValues: map[string]string{
-			"installCRDs": "true",
-		},
-		RemoteCRDPathVersionTemplate: "https://github.com/jetstack/cert-manager/releases/download/v%s/cert-manager.crds.yaml",
-	}
-
-	// koperatorLocalHelmDescriptor describes the Koperator Helm component with
-	// a local chart and version.
-	koperatorLocalHelmDescriptor = helmDescriptor{
-		Repository:   "../../charts/kafka-operator",
-		ChartVersion: LocalVersion,
-		ReleaseName:  "kafka-operator",
-		Namespace:    "kafka",
-		SetValues: map[string]string{
-			"crd.enabled": "true",
-		},
-		LocalCRDSubpaths: []string{"templates/crds.yaml"},
-		LocalCRDTemplateRenderValues: map[string]string{
-			"crd.enabled": "true",
-		},
-	}
-
-	// koperatorLocalHelmDescriptor describes the Koperator Helm component with
-	// a remote latest chart and version.
-	koperatorRemoteLatestHelmDescriptor = helmDescriptor{ //nolint:unused // Note: intentional possibly needed in the future for upgrade test.
-		Repository:   "https://kubernetes-charts.banzaicloud.com",
-		ChartName:    "kafka-operator",
-		ChartVersion: "", // Note: empty string translates to latest final version.
-		ReleaseName:  "kafka-operator",
-		Namespace:    "kafka",
-		SetValues: map[string]string{
-			"crd.enabled": "true",
-		},
-		RemoteCRDPathVersionTemplate: "https://github.com/banzaicloud/koperator/releases/download/%s/kafka-operator.crds.yaml",
-	}
-
-	// prometheusOperatorHelmDescriptor describes the prometheus-operator Helm
-	// component.
-	prometheusOperatorHelmDescriptor = helmDescriptor{
-		Repository:   "https://prometheus-community.github.io/helm-charts",
-		ChartName:    "kube-prometheus-stack",
-		ChartVersion: "42.0.1",
-		ReleaseName:  "prometheus-operator",
-		Namespace:    "prometheus",
-		SetValues: map[string]string{
-			"prometheusOperator.createCustomResource": "true",
-			"defaultRules.enabled":                    "false",
-			"alertmanager.enabled":                    "false",
-			"grafana.enabled":                         "false",
-			"kubeApiServer.enabled":                   "false",
-			"kubelet.enabled":                         "false",
-			"kubeControllerManager.enabled":           "false",
-			"coreDNS.enabled":                         "false",
-			"kubeEtcd.enabled":                        "false",
-			"kubeScheduler.enabled":                   "false",
-			"kubeProxy.enabled":                       "false",
-			"kubeStateMetrics.enabled":                "false",
-			"nodeExporter.enabled":                    "false",
-			"prometheus.enabled":                      "false",
-		},
-	}
-
-	// zookeeperOperatorHelmDescriptor describes the zookeeper-operator Helm
-	// component.
-	zookeeperOperatorHelmDescriptor = helmDescriptor{
-		Repository:   "https://charts.pravega.io",
-		ChartName:    "zookeeper-operator",
-		ChartVersion: "0.2.14",
-		ReleaseName:  "zookeeper-operator",
-		Namespace:    "zookeeper",
-		SetValues: map[string]string{
-			"crd.create": "true",
-		},
-	}
-)
-
-// Versions.
-type Version = string
-
 const (
 
 	// LocalVersion means using the files in the local repository snapshot.
@@ -140,6 +52,14 @@ const (
 	kubectlNotFoundErrorMsg = "NotFound"
 )
 
+func apiGroupKoperatorDependencies() map[string]string {
+	return map[string]string{
+		"cert-manager": "cert-manager.io",
+		"zookeeper":    "zookeeper.pravega.io",
+		"prometheus":   "monitoring.coreos.com",
+	}
+}
+
 func basicK8sResourceKinds() []string {
 	return []string{
 		"pods",
@@ -162,36 +82,6 @@ func basicK8sResourceKinds() []string {
 	}
 }
 
-func certManagerCRDs() []string {
-	return []string{
-		"certificaterequests.cert-manager.io",
-		"certificates.cert-manager.io",
-		"challenges.acme.cert-manager.io",
-		"clusterissuers.cert-manager.io",
-		"issuers.cert-manager.io",
-		"orders.acme.cert-manager.io",
-	}
-}
-
-func prometheusCRDs() []string {
-	return []string{
-		"alertmanagerconfigs.monitoring.coreos.com",
-		"alertmanagers.monitoring.coreos.com",
-		"probes.monitoring.coreos.com",
-		"prometheuses.monitoring.coreos.com",
-		"prometheusrules.monitoring.coreos.com",
-		"servicemonitors.monitoring.coreos.com",
-		"thanosrulers.monitoring.coreos.com",
-		"podmonitors.monitoring.coreos.com",
-	}
-}
-
-func zookeeperCRDs() []string {
-	return []string{
-		"zookeeperclusters.zookeeper.pravega.io",
-	}
-}
-
 func koperatorCRDs() []string {
 	return []string{
 		"kafkatopics.kafka.banzaicloud.io",
@@ -201,7 +91,7 @@ func koperatorCRDs() []string {
 	}
 }
 
-func getKoperatorRelatedResourceKinds() []string {
+func koperatorRelatedResourceKinds() []string {
 	return []string{
 		"nodepoollabelsets.labels.banzaicloud.io",
 		"kafkatopics.kafka.banzaicloud.io",

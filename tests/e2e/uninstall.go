@@ -85,7 +85,7 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions k8s.KubectlOpt
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		zookeeperAvailableResourceKinds := stringSlicesInstersect(zookeeperCRDs(), k8sResourceKinds)
+		zookeeperAvailableResourceKinds := stringSlicesInstersect(dependencyCRDs.Zookeeper(), k8sResourceKinds)
 		zookeeperAvailableResourceKinds = append(zookeeperAvailableResourceKinds, basicK8sResourceKinds()...)
 
 		remainedResources, err := getK8sResources(kubectlOptions,
@@ -103,7 +103,7 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions k8s.KubectlOpt
 // requireRemoveZookeeperOperatorCRDs deletes the zookeeper-operator CRDs
 func requireRemoveZookeeperOperatorCRDs(kubectlOptions k8s.KubectlOptions) {
 	It("Removing zookeeper-operator CRDs", func() {
-		for _, crd := range zookeeperCRDs() {
+		for _, crd := range dependencyCRDs.Zookeeper() {
 			deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
 		}
 	})
@@ -130,7 +130,7 @@ func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions k8s.KubectlOp
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		prometheusAvailableResourceKinds := stringSlicesInstersect(prometheusCRDs(), k8sResourceKinds)
+		prometheusAvailableResourceKinds := stringSlicesInstersect(dependencyCRDs.Prometheus(), k8sResourceKinds)
 		prometheusAvailableResourceKinds = append(prometheusAvailableResourceKinds, basicK8sResourceKinds()...)
 
 		remainedResources, err := getK8sResources(kubectlOptions,
@@ -148,7 +148,7 @@ func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions k8s.KubectlOp
 // requireRemovePrometheusOperatorCRDs deletes the Prometheus-operator CRDs
 func requireRemovePrometheusOperatorCRDs(kubectlOptions k8s.KubectlOptions) {
 	It("Removing prometheus-operator CRDs", func() {
-		for _, crd := range prometheusCRDs() {
+		for _, crd := range dependencyCRDs.Prometheus() {
 			deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
 		}
 	})
@@ -176,7 +176,7 @@ func requireUninstallingCertManagerHelmChart(kubectlOptions k8s.KubectlOptions) 
 		k8sResourceKinds, err := listK8sResourceKinds(kubectlOptions, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		certManagerAvailableResourceKinds := stringSlicesInstersect(certManagerCRDs(), k8sResourceKinds)
+		certManagerAvailableResourceKinds := stringSlicesInstersect(dependencyCRDs.CertManager(), k8sResourceKinds)
 		certManagerAvailableResourceKinds = append(certManagerAvailableResourceKinds, basicK8sResourceKinds()...)
 
 		remainedResources, err := getK8sResources(kubectlOptions,
@@ -195,7 +195,7 @@ func requireUninstallingCertManagerHelmChart(kubectlOptions k8s.KubectlOptions) 
 // requireRemoveKoperatorCRDs deletes the cert-manager CRDs
 func requireRemoveCertManagerCRDs(kubectlOptions k8s.KubectlOptions) {
 	It("Removing cert-manager CRDs", func() {
-		for _, crd := range certManagerCRDs() {
+		for _, crd := range dependencyCRDs.CertManager() {
 			deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
 		}
 	})
