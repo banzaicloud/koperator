@@ -16,6 +16,9 @@ package e2e
 
 import "time"
 
+// Versions.
+type Version = string
+
 const (
 
 	// LocalVersion means using the files in the local repository snapshot.

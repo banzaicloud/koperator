@@ -6,9 +6,6 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 )
 
-// Versions.
-type Version = string
-
 type dependencyCRDsType struct {
 	zookeeper   []string
 	prometheus  []string
