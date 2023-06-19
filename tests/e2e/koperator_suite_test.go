@@ -52,3 +52,11 @@ var _ = BeforeSuite(func() {
 		Expect(len(pods)).To(Not(BeZero()))
 	})
 })
+
+var _ = When("Testing e2e test altogether", Ordered, func() {
+	//testInstall()
+	//testProduceConsumeInternal()
+	testUninstallZookeeperCluster()
+	testUninstallKafkaCluster()
+	testUninstall()
+})

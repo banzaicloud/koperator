@@ -20,10 +20,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = testInstall()
-
 func testInstall() bool {
-	return When("Installing Koperator", Ordered, func() {
+	return When("Installing Koperator and dependencies", Ordered, func() {
 		var kubectlOptions k8s.KubectlOptions
 		var err error
 

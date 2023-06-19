@@ -22,9 +22,11 @@ import (
 	"os"
 	"path"
 	"strings"
+	"text/template"
 	"time"
 
 	"emperror.dev/errors"
+	"github.com/Masterminds/sprig"
 	"github.com/cisco-open/k8s-objectmatcher/patch"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
@@ -391,4 +393,190 @@ func listK8sCRDs(kubectlOptions k8s.KubectlOptions, crdNames ...string) ([]strin
 	}
 
 	return strings.Split(output, "\n"), nil
+}
+
+// deleteK8sResourceOpts deletes K8s resources based on the kind and name or kind and selector.
+// It returns error in case when the resource is not found.
+// timeout parameter specifies the timeout for the deletion.
+// extraArgs can be any of the kubectl arguments.
+func deleteK8sResource(
+	kubectlOptions k8s.KubectlOptions,
+	timeout time.Duration,
+	kind string,
+	selector string,
+	name string,
+	extraArgs ...string) error {
+
+	args := []string{"delete", kind}
+
+	args = append(args, fmt.Sprintf("--timeout=%s", timeout))
+
+	logMsg := fmt.Sprintf("Deleting k8s resource: kind: '%s' ", kind)
+	logMsg, args = kubectlArgExtender(args, logMsg, selector, name, kubectlOptions.Namespace, extraArgs)
+	By(logMsg)
+
+	_, err := k8s.RunKubectlAndGetOutputE(
+		GinkgoT(),
+		&kubectlOptions,
+		args...,
+	)
+
+	return err
+}
+
+// deleteK8sResourceNoErrNotFound deletes K8s resources based on the kind and name or kind and selector.
+// Deletion is passed in case the resource is not found.
+// timeout parameter specifies the timeout for the deletion.
+// extraArgs can be any of the kubectl arguments.
+func deleteK8sResourceNoErrNotFound(kubectlOptions k8s.KubectlOptions, timeout time.Duration, kind string, name string, extraArgs ...string) error {
+	err := deleteK8sResource(kubectlOptions, timeout, kind, "", name, extraArgs...)
+	if isKubectlNotFoundError(err) {
+		By(fmt.Sprintf("K8s resource %s not found", name))
+		return nil
+	}
+	return err
+}
+
+// applyK8sResourceManifestFromString applies the specified manifest in string format to the provided
+// kubectl context and namespace.
+func applyK8sResourceManifestFromString(kubectlOptions k8s.KubectlOptions, manifest string) error {
+	By(fmt.Sprintf("Applying k8s manifest\n%s", manifest))
+	return k8s.KubectlApplyFromStringE(GinkgoT(), &kubectlOptions, manifest)
+}
+
+// applyK8sResourceFromTemplate generates manifest from the specified go-template based on values
+// and applies the specified manifest to the provided kubectl context and namespace.
+func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFile string, values map[string]interface{}) error {
+	By(fmt.Sprintf("Generating K8s manifest from template %s", templateFile))
+	var manifest bytes.Buffer
+	rawTemplate, err := os.ReadFile(templateFile)
+	if err != nil {
+		return err
+	}
+	t := template.Must(template.New("template").Funcs(sprig.TxtFuncMap()).Parse(string(rawTemplate)))
+	err = t.Execute(&manifest, values)
+	if err != nil {
+		return err
+	}
+	return applyK8sResourceManifestFromString(kubectlOptions, manifest.String())
+}
+
+// listK8sResourceKinds lists all of the available resource kinds on the K8s cluster
+// with the apiGroupSelector parameter the result can be narrowed by the resource group.
+// extraArgs can be any kubectl api-resources parameter.
+func listK8sResourceKinds(kubectlOptions k8s.KubectlOptions, apiGroupSelector string, extraArgs ...string) ([]string, error) {
+	logMsg := "Listing K8s resource kind"
+	args := []string{"api-resources", "--verbs", "list", "--output", "name", "--sort-by", "name"}
+
+	if apiGroupSelector != "" {
+		logMsg = fmt.Sprintf("%s group selector: %s", logMsg, apiGroupSelector)
+		args = append(args, "--api-group", apiGroupSelector)
+	}
+
+	args = append(args, extraArgs...)
+
+	output, err := k8s.RunKubectlAndGetOutputE(
+		GinkgoT(),
+		&kubectlOptions,
+		args...,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return kubectlRemoveWarnings(strings.Split(output, "\n")), nil
+}
+
+// getK8sResources gets the specified K8S resources from the specified kubectl context and
+// namespace optionally. Extra arguments can be any of the kubectl get flag arguments.
+// Returns a slice of the returned elements. Separator between elements must be newline.
+func getK8sResources(kubectlOptions k8s.KubectlOptions, resourceKind []string, selector string, names string, extraArgs ...string) ([]string, error) {
+	logMsg := fmt.Sprintf("Get K8S resources: '%s'", resourceKind)
+
+	args := []string{"get", strings.Join(resourceKind, ",")}
+	logMsg, args = kubectlArgExtender(args, logMsg, selector, names, kubectlOptions.Namespace, extraArgs)
+	By(logMsg)
+
+	output, err := k8s.RunKubectlAndGetOutputE(
+		GinkgoT(),
+		&kubectlOptions,
+		args...,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	output = strings.Trim(output, "'")
+	// Empty output
+	if output == "" {
+		return nil, nil
+	}
+
+	output = strings.TrimRight(output, "\n")
+	outputSlice := strings.Split(output, "\n")
+
+	// Remove warning message pollution from the output
+
+	return kubectlRemoveWarnings(outputSlice), nil
+}
+
+// waitK8sResourceCondition waits until the condition is met or the timeout is elapsed for the selected K8s resource(s)
+// extraArgs can be any of the kubectl arguments
+func waitK8sResourceCondition(kubectlOptions k8s.KubectlOptions, resourceKind, waitFor string, timeout time.Duration, selector string, names string, extraArgs ...string) error {
+	logMsg := fmt.Sprintf("Waiting K8s resource(s)' condition: '%s' to fulfil", waitFor)
+
+	args := []string{
+		"wait",
+		resourceKind,
+		fmt.Sprintf("--for=%s", waitFor),
+		fmt.Sprintf("--timeout=%s", timeout),
+	}
+
+	logMsg, args = kubectlArgExtender(args, logMsg, selector, names, kubectlOptions.Namespace, extraArgs)
+	By(logMsg)
+
+	_, err := k8s.RunKubectlAndGetOutputE(
+		GinkgoT(),
+		&kubectlOptions,
+		args...,
+	)
+
+	return err
+}
+
+// kubectlArgExtender extends the kubectl arguments and log message based on the parameters
+func kubectlArgExtender(args []string, logMsg, selector, names, namespace string, extraArgs []string) (string, []string) {
+	if selector != "" {
+		logMsg = fmt.Sprintf("%s selector: '%s'", logMsg, selector)
+		args = append(args, fmt.Sprintf("--selector=%s", selector))
+	} else if names != "" {
+		logMsg = fmt.Sprintf("%s name(s): '%s'", logMsg, names)
+		args = append(args, names)
+	}
+	if namespace != "" {
+		logMsg = fmt.Sprintf("%s namespace: '%s'", logMsg, namespace)
+	}
+	if len(extraArgs) != 0 {
+		logMsg = fmt.Sprintf("%s extraArgs: '%s'", logMsg, extraArgs)
+		args = append(args, extraArgs...)
+	}
+	return logMsg, args
+}
+
+// kubectlRemoveWarning removes those elements from the outputSlice parameter which contains kubectl warning message.
+func kubectlRemoveWarnings(outputSlice []string) []string {
+	// Remove warning message pollution from the output
+	result := make([]string, 0, len(outputSlice))
+	for i := range outputSlice {
+		if !strings.Contains(outputSlice[i], "Warning:") {
+			result = append(result, outputSlice[i])
+		}
+	}
+	return result
+}
+
+func isKubectlNotFoundError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), kubectlNotFoundErrorMsg)
 }
