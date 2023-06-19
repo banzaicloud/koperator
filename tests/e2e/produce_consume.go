@@ -35,7 +35,9 @@ func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string) 
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		err = waitK8sResourceCondition(kubectlOptions, "pods", "condition=Ready", defaultPodReadinessWaitTime, "", kcatPodName)
+		err = waitK8sResourceCondition(kubectlOptions, "pods",
+			"condition=Ready", defaultPodReadinessWaitTime, "", kcatPodName)
+
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
