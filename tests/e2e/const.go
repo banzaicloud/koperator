@@ -28,14 +28,15 @@ const (
 	kubectlArgGoTemplateKindNameNamespace                 = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
 	kubectlArgGoTemplateInternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.internalListeners}}{{$key}}{{"\n"}}{{end}}`
 	kubectlArgGoTemplateInternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.internalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
-	// kubectlArgGoTemplateExternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.externallListeners}}{{$key}}{{"\n"}}{{end}}`
-	// kubectlArgGoTemplateExternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.externalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
+	kubectlArgGoTemplateExternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.externalListeners}}{{$key}}{{"\n"}}{{end}}`
+	kubectlArgGoTemplateExternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.externalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
 
 	crdKind                    = "customresourcedefinitions.apiextensions.k8s.io"
 	kafkaKind                  = "kafkaclusters.kafka.banzaicloud.io"
 	kafkaTopicKind             = "kafkatopics.kafka.banzaicloud.io"
 	kafkaClusterName           = "kafka"
-	testTopicName              = "topic-test"
+	testExternalTopicName      = "topic-test-external"
+	testInternalTopicName      = "topic-test-internal"
 	kcatPodName                = "kcat"
 	zookeeperKind              = "zookeeperclusters.zookeeper.pravega.io"
 	zookeeperClusterName       = "zookeeper-server"

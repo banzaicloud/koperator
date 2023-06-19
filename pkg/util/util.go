@@ -437,14 +437,14 @@ func GetClientTLSConfig(client clientCtrl.Reader, secretNamespaceName types.Name
 		return nil, err
 	}
 
-	config, err := createTLSConfigFromSecret(tlsKeys)
+	config, err := CreateTLSConfigFromSecret(tlsKeys)
 	if err != nil {
 		return nil, errorfactory.New(errorfactory.InternalError{}, err, fmt.Sprintf("could not get client certificate for kafka client, name: %s namespace: %s", secretNamespaceName.Name, secretNamespaceName.Namespace))
 	}
 	return config, nil
 }
 
-func createTLSConfigFromSecret(tlsKeys *corev1.Secret) (*tls.Config, error) {
+func CreateTLSConfigFromSecret(tlsKeys *corev1.Secret) (*tls.Config, error) {
 	rootCAs := x509.NewCertPool()
 	if err := cert.CheckSSLCertSecret(tlsKeys); err != nil {
 		return nil, err
