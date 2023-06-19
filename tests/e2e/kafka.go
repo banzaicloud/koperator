@@ -41,7 +41,9 @@ func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName str
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		err = waitK8sResourceCondition(kubectlOptions, kafkaTopicKind, "jsonpath={.status.state}=created", defaultTopicCreationWaitTime, "", topicName)
+		err = waitK8sResourceCondition(kubectlOptions, kafkaTopicKind,
+			"jsonpath={.status.state}=created", defaultTopicCreationWaitTime, "", topicName)
+
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
