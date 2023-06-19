@@ -23,14 +23,15 @@ import (
 // requireDeleteKafkaTopic deletes kafkaTopic resource.
 func requireDeleteKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName string) {
 	It("Deleting KafkaTopic CR", func() {
-		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, kafkaTopicKind, "", topicName)
+		err := deleteK8sResource(kubectlOptions, defaultDeletionTimeout, kafkaTopicKind, "", topicName)
+		Expect(err).NotTo(HaveOccurred())
 	})
 }
 
 // requireDeployingKafkaTopic deploys a kafkaTopic resource from a template
 func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName string) {
 	It("Deploying KafkaTopic CR", func() {
-		applyK8sResourceFromTemplate(kubectlOptions,
+		err := applyK8sResourceFromTemplate(kubectlOptions,
 			kafkaTopicTemplate,
 			map[string]interface{}{
 				"Name":      topicName,
@@ -38,7 +39,9 @@ func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName str
 				"Namespace": kubectlOptions.Namespace,
 			},
 		)
-		err := waitK8sResourceCondition(kubectlOptions, kafkaTopicKind, "jsonpath={.status.state}=created", defaultTopicCreationWaitTime, "", topicName)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = waitK8sResourceCondition(kubectlOptions, kafkaTopicKind, "jsonpath={.status.state}=created", defaultTopicCreationWaitTime, "", topicName)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 

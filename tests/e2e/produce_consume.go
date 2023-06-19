@@ -26,14 +26,16 @@ import (
 // requireDeployingKcatPod deploys kcat pod form a template and checks the pod readiness
 func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string) {
 	It("Deploying Kcat Pod", func() {
-		applyK8sResourceFromTemplate(kubectlOptions,
+		err := applyK8sResourceFromTemplate(kubectlOptions,
 			kcatPodTemplate,
 			map[string]interface{}{
 				"Name":      kcatPodName,
 				"Namespace": kubectlOptions.Namespace,
 			},
 		)
-		err := waitK8sResourceCondition(kubectlOptions, "pods", "condition=Ready", defaultPodReadinessWaitTime, "", kcatPodName)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = waitK8sResourceCondition(kubectlOptions, "pods", "condition=Ready", defaultPodReadinessWaitTime, "", kcatPodName)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -42,7 +44,8 @@ func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string) 
 // requireDeleteKcatPod deletes kcat pod.
 func requireDeleteKcatPod(kubectlOptions k8s.KubectlOptions, podName string) {
 	It("Deleting Kcat pod", func() {
-		deleteK8sResource(kubectlOptions, defaultDeletionTimeout, "pods", "", podName)
+		err := deleteK8sResource(kubectlOptions, defaultDeletionTimeout, "pods", "", podName)
+		Expect(err).NotTo(HaveOccurred())
 	})
 }
 

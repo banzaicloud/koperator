@@ -26,7 +26,9 @@ import (
 func requireRemoveKoperatorCRDs(kubectlOptions k8s.KubectlOptions) {
 	It("Removing koperator CRDs", func() {
 		for _, crd := range koperatorCRDs() {
-			deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
+			err := deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
+			Expect(err).ShouldNot(HaveOccurred())
+
 		}
 	})
 }
@@ -104,7 +106,8 @@ func requireUninstallingZookeeperOperatorHelmChart(kubectlOptions k8s.KubectlOpt
 func requireRemoveZookeeperOperatorCRDs(kubectlOptions k8s.KubectlOptions) {
 	It("Removing zookeeper-operator CRDs", func() {
 		for _, crd := range dependencyCRDs.Zookeeper() {
-			deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
+			err := deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
 }
@@ -149,7 +152,8 @@ func requireUninstallingPrometheusOperatorHelmChart(kubectlOptions k8s.KubectlOp
 func requireRemovePrometheusOperatorCRDs(kubectlOptions k8s.KubectlOptions) {
 	It("Removing prometheus-operator CRDs", func() {
 		for _, crd := range dependencyCRDs.Prometheus() {
-			deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
+			err := deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
 }
@@ -196,7 +200,8 @@ func requireUninstallingCertManagerHelmChart(kubectlOptions k8s.KubectlOptions) 
 func requireRemoveCertManagerCRDs(kubectlOptions k8s.KubectlOptions) {
 	It("Removing cert-manager CRDs", func() {
 		for _, crd := range dependencyCRDs.CertManager() {
-			deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
+			err := deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, crdKind, crd)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
 }
