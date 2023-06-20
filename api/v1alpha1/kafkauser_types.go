@@ -15,10 +15,17 @@
 package v1alpha1
 
 import (
+	"time"
+
 	"github.com/banzaicloud/koperator/api/util"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	// default certificate duration if kafkauser.spec.expirationSeconds is not set
+	defaultCertificateDuration = time.Hour * 24 * 90
 )
 
 // KafkaUserSpec defines the desired state of KafkaUser
@@ -33,6 +40,12 @@ type KafkaUserSpec struct {
 	IncludeJKS     bool              `json:"includeJKS,omitempty"`
 	CreateCert     *bool             `json:"createCert,omitempty"`
 	PKIBackendSpec *PKIBackendSpec   `json:"pkiBackendSpec,omitempty"`
+	// expirationSeconds is the requested duration of validity of the issued certificate.
+	// The minimum valid value for expirationSeconds is 3600 i.e. 1h.
+	// When it is not specified the default validation duration is 90 days
+	// +optional
+	// +kubebuilder:validation:Minimum=3600
+	ExpirationSeconds *int32 `json:"expirationSeconds,omitempty"`
 }
 
 type PKIBackendSpec struct {
@@ -95,4 +108,11 @@ func (spec *KafkaUserSpec) GetIfCertShouldBeCreated() bool {
 // GetAnnotations returns Annotations to use for certificate or certificate signing request object
 func (spec *KafkaUserSpec) GetAnnotations() map[string]string {
 	return util.CloneMap(spec.Annotations)
+}
+
+func (spec *KafkaUserSpec) GetExpirationSeconds() int32 {
+	if spec.ExpirationSeconds == nil {
+		return int32(defaultCertificateDuration.Seconds())
+	}
+	return *spec.ExpirationSeconds
 }

@@ -81,16 +81,25 @@ func TestCreateUserACLs(t *testing.T) {
 func TestDeleteUserACLs(t *testing.T) {
 	client := newOpenedMockClient()
 
-	if err := client.DeleteUserACLs("test-user"); err != nil {
-		t.Error("Expected no error, got:", err)
-	}
+	validPatternTypes := []v1alpha1.KafkaPatternType{
+		"any",
+		"literal",
+		"match",
+		"prefixed",
+		""}
 
-	if err := client.DeleteUserACLs("with-error"); err == nil {
-		t.Error("Expected error, got nil")
+	for _, patternType := range validPatternTypes {
+		if err := client.DeleteUserACLs("test-user", patternType); err != nil {
+			t.Error("Expected no error, got:", err)
+		}
+
+		if err := client.DeleteUserACLs("with-error", patternType); err == nil {
+			t.Error("Expected error, got nil")
+		}
 	}
 
 	client.admin, _ = newMockClusterAdminFailOps([]string{}, sarama.NewConfig())
-	if err := client.DeleteUserACLs("test-userr"); err == nil {
+	if err := client.DeleteUserACLs("test-userr", ""); err == nil {
 		t.Error("Expected error, got nil")
 	}
 }

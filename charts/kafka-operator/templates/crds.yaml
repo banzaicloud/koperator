@@ -19078,12 +19078,14 @@ spec:
                           type: string
                         anyCastPort:
                           description: configuring AnyCastPort allows kafka cluster
-                            access without specifying the exact broker
+                            access without specifying the exact broker If not defined,
+                            29092 will be used for external clients to reach the kafka
+                            cluster
                           format: int32
                           type: integer
                         config:
                           description: Config allows to specify ingress controller
-                            configuration per external listener if set overrides the
+                            configuration per external listener if set, it overrides
                             the default `KafkaClusterSpec.IstioIngressConfig` or `KafkaClusterSpec.EnvoyConfig`
                             for this external listener.
                           properties:
@@ -21473,6 +21475,15 @@ spec:
                             public IP (see "brokerConfig.nodePortExternalIP") is advertised
                             on the address having the following format: <kafka-cluster-name>-<broker-id>.<namespace><value-specified-in-hostnameOverride-field>'
                           type: string
+                        ingressControllerTargetPort:
+                          description: IngressControllerTargetPort defines the container
+                            port that the ingress controller uses for handling external
+                            traffic. If not defined, 29092 will be used as the default
+                            IngressControllerTargetPort value.
+                          format: int32
+                          maximum: 65535
+                          minimum: 1024
+                          type: integer
                         name:
                           pattern: ^[a-z0-9\-]+
                           type: string
@@ -22029,6 +22040,14 @@ spec:
                 items:
                   type: string
                 type: array
+              expirationSeconds:
+                description: expirationSeconds is the requested duration of validity
+                  of the issued certificate. The minimum valid value for expirationSeconds
+                  is 3600 i.e. 1h. When it is not specified the default validation
+                  duration is 90 days
+                format: int32
+                minimum: 3600
+                type: integer
               includeJKS:
                 type: boolean
               pkiBackendSpec:

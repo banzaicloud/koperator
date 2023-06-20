@@ -15,13 +15,11 @@
 package e2e
 
 import (
-	"fmt"
 	"sort"
-	"strings"
 )
 
-// Returns the union of the slices from argument.
-func _stringSlicesUnion(sliceA, sliceB []string) []string {
+// stringSlicesInstersect returns the union of the slices from argument.
+func stringSlicesInstersect(sliceA, sliceB []string) []string {
 	if len(sliceA) == 0 || len(sliceB) == 0 {
 		return nil
 	}
@@ -44,37 +42,4 @@ func _stringSlicesUnion(sliceA, sliceB []string) []string {
 		}
 	}
 	return union
-}
-
-func _kubectlArgExtender(args []string, logMsg, selector, names, namespace string, extraArgs []string) (string, []string) {
-	if selector != "" {
-		logMsg = fmt.Sprintf("%s selector: '%s'", logMsg, selector)
-		args = append(args, fmt.Sprintf("--selector=%s", selector))
-	} else if names != "" {
-		logMsg = fmt.Sprintf("%s name(s): '%s'", logMsg, names)
-		args = append(args, names)
-	}
-	if namespace != "" {
-		logMsg = fmt.Sprintf("%s namespace: '%s'", logMsg, namespace)
-	}
-	if len(extraArgs) != 0 {
-		logMsg = fmt.Sprintf("%s extraArgs: '%s'", logMsg, extraArgs)
-	}
-	return logMsg, args
-}
-
-// _kubectlRemoveWarning removes those elements from the outputSlice parameter which contains kubectl warning message.
-func _kubectlRemoveWarnings(outputSlice []string) []string {
-	// Remove warning message pollution from the output
-	result := make([]string, 0, len(outputSlice))
-	for i := range outputSlice {
-		if !strings.Contains(outputSlice[i], "Warning:") {
-			result = append(result, outputSlice[i])
-		}
-	}
-	return result
-}
-
-func _isNotFoundError(err error) bool {
-	return err != nil && strings.Contains(err.Error(), kubectlNotFoundErrorMsg)
 }

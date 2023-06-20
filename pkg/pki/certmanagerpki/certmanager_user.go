@@ -17,6 +17,7 @@ package certmanagerpki
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"emperror.dev/errors"
 
@@ -161,6 +162,7 @@ func (c *certManager) clusterCertificateForUser(
 				Kind:  caKind,
 				Group: caGroup,
 			},
+			Duration: &metav1.Duration{Duration: time.Duration(user.Spec.GetExpirationSeconds()) * time.Second},
 		},
 	}
 	if user.Spec.IncludeJKS {

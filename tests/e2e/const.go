@@ -16,6 +16,7 @@ package e2e
 
 import "time"
 
+// Versions.
 type Version = string
 
 const (
@@ -23,28 +24,18 @@ const (
 	// LocalVersion means using the files in the local repository snapshot.
 	LocalVersion Version = "local"
 
-	kubectlNotFoundErrorMsg = "NotFound"
-
-	kubectlArgGoTemplateName                              = `-o=go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`
-	kubectlArgGoTemplateKindNameNamespace                 = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
-	kubectlArgGoTemplateInternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.internalListeners}}{{$key}}{{"\n"}}{{end}}`
-	kubectlArgGoTemplateInternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.internalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
-	// kubectlArgGoTemplateExternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.externallListeners}}{{$key}}{{"\n"}}{{end}}`
 	// kubectlArgGoTemplateExternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.externalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
 
+	crdKind                    = "customresourcedefinitions.apiextensions.k8s.io"
 	kafkaKind                  = "kafkaclusters.kafka.banzaicloud.io"
+	kafkaTopicKind             = "kafkatopics.kafka.banzaicloud.io"
 	kafkaClusterName           = "kafka"
-	testTopicName              = "topic-icp"
+	testTopicName              = "topic-test"
 	kcatPodName                = "kcat"
 	zookeeperKind              = "zookeeperclusters.zookeeper.pravega.io"
 	zookeeperClusterName       = "zookeeper-server"
 	managedByHelmLabelTemplate = "app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=%s"
 
-	kafkaClusterCreateTimeout     = 500 * time.Second
-	zookeeperClusterCreateTimeout = 4 * time.Minute
-
-	cruiseControlPodReadinessTimeout       = 50 * time.Second
-	kafkaClusterResourceReadinessTimeout   = 60 * time.Second
 	defaultDeletionTimeout                 = 20 * time.Second
 	defaultPodReadinessWaitTime            = 10 * time.Second
 	defaultTopicCreationWaitTime           = 10 * time.Second
@@ -53,12 +44,21 @@ const (
 	externalConsumerTimeout                = 5 * time.Second
 	externalProducerTimeout                = 5 * time.Second
 
-	kcatPodTemplate          = "templates/kcat.yaml.tmpl"
-	kafkaTopicTemplate       = "templates/topic.yaml.tmpl"
-	zookeeperClusterTemplate = "templates/zookeeper_cluster.yaml.tmpl"
+	kcatPodTemplate    = "templates/kcat.yaml.tmpl"
+	kafkaTopicTemplate = "templates/topic.yaml.tmpl"
+
+	kubectlNotFoundErrorMsg = "NotFound"
 )
 
-func basicK8sCRDs() []string {
+func apiGroupKoperatorDependencies() map[string]string {
+	return map[string]string{
+		"cert-manager": "cert-manager.io",
+		"zookeeper":    "zookeeper.pravega.io",
+		"prometheus":   "monitoring.coreos.com",
+	}
+}
+
+func basicK8sResourceKinds() []string {
 	return []string{
 		"pods",
 		"services",
@@ -80,36 +80,6 @@ func basicK8sCRDs() []string {
 	}
 }
 
-func certManagerCRDs() []string {
-	return []string{
-		"certificaterequests.cert-manager.io",
-		"certificates.cert-manager.io",
-		"challenges.acme.cert-manager.io",
-		"clusterissuers.cert-manager.io",
-		"issuers.cert-manager.io",
-		"orders.acme.cert-manager.io",
-	}
-}
-
-func prometheusCRDs() []string {
-	return []string{
-		"alertmanagerconfigs.monitoring.coreos.com",
-		"alertmanagers.monitoring.coreos.com",
-		"probes.monitoring.coreos.com",
-		"prometheuses.monitoring.coreos.com",
-		"prometheusrules.monitoring.coreos.com",
-		"servicemonitors.monitoring.coreos.com",
-		"thanosrulers.monitoring.coreos.com",
-		"podmonitors.monitoring.coreos.com",
-	}
-}
-
-func zookeeperCRDs() []string {
-	return []string{
-		"zookeeperclusters.zookeeper.pravega.io",
-	}
-}
-
 func koperatorCRDs() []string {
 	return []string{
 		"kafkatopics.kafka.banzaicloud.io",
@@ -119,7 +89,7 @@ func koperatorCRDs() []string {
 	}
 }
 
-func getKoperatorRelatedResourceKinds() []string {
+func koperatorRelatedResourceKinds() []string {
 	return []string{
 		"nodepoollabelsets.labels.banzaicloud.io",
 		"kafkatopics.kafka.banzaicloud.io",
