@@ -181,9 +181,9 @@ If you would like to raise an issue or open a pull request, please refer to our 
 
 If you use Koperator in a production environment, we encourage you to add yourself to the list of production [adopters](https://github.com/banzaicloud/koperator/blob/master/ADOPTERS.md).
 
-# Community
+## Community
 
-Find us on [Slack](https://join.slack.com/t/emergingtechcommunity/shared_invite/zt-1u3g8c3if-eZT5nJqzOX7BzWlVX7wQ1Q) for more fun about Kafka on Kubernetes!
+Find us on [Slack](https://eti.cisco.com/slack) for more fun about Kafka on Kubernetes!
 
 <a href="https://github.com/banzaicloud/koperator/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=banzaicloud/koperator&max=30" />
