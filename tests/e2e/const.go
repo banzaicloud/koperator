@@ -39,7 +39,7 @@ const (
 	defaultDeletionTimeout                 = 20 * time.Second
 	defaultPodReadinessWaitTime            = 10 * time.Second
 	defaultTopicCreationWaitTime           = 10 * time.Second
-	kafkaClusterResourceCleanupTimeout     = 30 * time.Second
+	kafkaClusterResourceCleanupTimeout     = 120 * time.Second
 	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
 	externalConsumerTimeout                = 5 * time.Second
 	externalProducerTimeout                = 5 * time.Second
