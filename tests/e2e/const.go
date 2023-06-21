@@ -24,6 +24,11 @@ const (
 	// LocalVersion means using the files in the local repository snapshot.
 	LocalVersion Version = "local"
 
+	kubectlArgGoTemplateName                              = `-o=go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`
+	kubectlArgGoTemplateKindNameNamespace                 = `-o=go-template='{{range .items}}{{.kind}}{{"/"}}{{.metadata.name}}{{if .metadata.namespace}}{{"."}}{{.metadata.namespace}}{{end}}{{"\n"}}{{end}}'`
+	kubectlArgGoTemplateInternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.internalListeners}}{{$key}}{{"\n"}}{{end}}`
+	kubectlArgGoTemplateInternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.internalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
+	// kubectlArgGoTemplateExternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.externallListeners}}{{$key}}{{"\n"}}{{end}}`
 	// kubectlArgGoTemplateExternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.externalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
 
 	crdKind                    = "customresourcedefinitions.apiextensions.k8s.io"
@@ -36,6 +41,11 @@ const (
 	zookeeperClusterName       = "zookeeper-server"
 	managedByHelmLabelTemplate = "app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=%s"
 
+	kafkaClusterCreateTimeout     = 500 * time.Second
+	zookeeperClusterCreateTimeout = 4 * time.Minute
+
+	cruiseControlPodReadinessTimeout       = 50 * time.Second
+	kafkaClusterResourceReadinessTimeout   = 60 * time.Second
 	defaultDeletionTimeout                 = 20 * time.Second
 	defaultPodReadinessWaitTime            = 10 * time.Second
 	defaultTopicCreationWaitTime           = 10 * time.Second
@@ -44,8 +54,9 @@ const (
 	externalConsumerTimeout                = 5 * time.Second
 	externalProducerTimeout                = 5 * time.Second
 
-	kcatPodTemplate    = "templates/kcat.yaml.tmpl"
-	kafkaTopicTemplate = "templates/topic.yaml.tmpl"
+	kcatPodTemplate          = "templates/kcat.yaml.tmpl"
+	kafkaTopicTemplate       = "templates/topic.yaml.tmpl"
+	zookeeperClusterTemplate = "templates/zookeeper_cluster.yaml.tmpl"
 
 	kubectlNotFoundErrorMsg = "NotFound"
 )
