@@ -11,7 +11,7 @@ spec:
       - "failure-domain.beta.kubernetes.io/region"
       - "failure-domain.beta.kubernetes.io/zone"
   zkAddresses:
-    - "zookeeper-client.zookeeper:2181"
+    - "zookeeper-server-client.zookeeper:2181"
   zkPath: "/kafka"
   propagateLabels: true
   oneBrokerPerNode: false
