@@ -82,7 +82,7 @@ func getExposedServicePorts(extListener v1beta1.ExternalListenerConfig, brokersI
 	// append anycast port
 	exposedPorts = append(exposedPorts, corev1.ServicePort{
 		Name:       fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
-		TargetPort: intstr.FromInt(int(extListener.GetAnyCastPort())),
+		TargetPort: intstr.FromString(getAllBrokerContainerPortName()),
 		Port:       extListener.GetAnyCastPort(),
 		Protocol:   corev1.ProtocolTCP,
 	})
