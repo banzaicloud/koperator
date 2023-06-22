@@ -7,7 +7,7 @@ metadata:
 spec:
   headlessServiceEnabled: true
   zkAddresses:
-    - "zookeeper-client.zookeeper:2181"
+    - "zookeeper-server-client.zookeeper:2181"
   propagateLabels: false
   # If true OneBrokerPerNode ensures that each kafka broker will be placed on a different node unless a custom
   # Affinity definition overrides this behavior either set in brokerConfigGroups or in one specific brokerConfig
