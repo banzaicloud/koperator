@@ -133,25 +133,31 @@ func requireExternalProducingConsumingMessage(kubectlOptions k8s.KubectlOptions,
 	})
 }
 
+// getExternalListenerNames gets the names of the KafkaCluster CR's external listeners.
+func getExternalListenerNames(kubectlOptions k8s.KubectlOptions, kafkaClusterName string) ([]string, error) {
+	By("Getting external listener names from KafkaCluster status")
+	externalListenerNames, err := getK8sResources(kubectlOptions,
+		[]string{kafkaKind},
+		"",
+		kafkaClusterName,
+		kubectlArgGoTemplateExternalListenersName,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("getting external listeners name: %w", err)
+	}
+	return externalListenerNames, nil
+}
+
 // getExternalListenerAddresses gets the Kafka cluster external addresses from the kafkaCluster CR.
 // When externalListenerName is not specified it uses the first externalListener name in the CR to get addresses.
 func getExternalListenerAddresses(kubectlOptions k8s.KubectlOptions, externalListenerName, kafkaClusterName string) ([]string, error) {
 	By(fmt.Sprintf("Getting Kafka cluster '%s' external listener addresses", kafkaClusterName))
 	if externalListenerName == "" {
-		By("Getting external listener names")
-		externalListenerNames, err := getK8sResources(kubectlOptions,
-			[]string{kafkaKind},
-			"",
-			kafkaClusterName,
-			kubectlArgGoTemplateExternalListenersName,
-		)
+		externalListenerNames, err := getExternalListenerNames(kubectlOptions, kafkaClusterName)
 		if err != nil {
-			return nil, fmt.Errorf("getting external listeners name: %w", err)
+			return nil, err
 		}
-		if len(externalListenerNames) == 0 {
-			return nil, fmt.Errorf("external listener %w", ErrorNotFound)
-		}
-
+		Expect(getExternalListenerNames).ShouldNot(BeEmpty())
 		externalListenerName = externalListenerNames[0]
 	}
 	By(fmt.Sprintf("Using external listener name: '%s'", externalListenerName))
