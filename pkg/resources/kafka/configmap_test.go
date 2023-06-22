@@ -45,7 +45,7 @@ func TestGetMountPathsFromBrokerConfigMap(t *testing.T) {
 listeners=INTERNAL://:29092,CONTROLLER://:29093
 log.dirs=/kafka-logs3/kafka,/kafka-logs/kafka,/kafka-logs2/kafka,/kafka-logs4/kafka
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter\noffsets.topic.replication.factor=2
-zookeeper.connect=zookeeper-server-client.zookeeper:2181/
+zookeeper.connect=zookeeper-client.zookeeper:2181/
 `},
 			},
 			expectedLogDirs: []string{"/kafka-logs3/kafka", "/kafka-logs/kafka", "/kafka-logs2/kafka", "/kafka-logs4/kafka"},

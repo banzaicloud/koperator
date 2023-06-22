@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func testInstallZookeeperCluster(replicaCount int) bool {
+func testInstallZookeeperCluster() bool {
 	return When("Installing Zookeeper cluster", func() {
 		var kubectlOptions k8s.KubectlOptions
 		var err error
@@ -31,11 +31,11 @@ func testInstallZookeeperCluster(replicaCount int) bool {
 		})
 
 		kubectlOptions.Namespace = zookeeperOperatorHelmDescriptor.Namespace
-		requireCreatingZookeeperCluster(kubectlOptions, replicaCount)
+		requireCreatingZookeeperCluster(kubectlOptions, zookeeperReplicaCount)
 	})
 }
 
-func testInstallKafkaCluster(kafkaClusterVersion string, kafkaClusterSample string) bool {
+func testInstallKafkaCluster(koperatorVersion string, kafkaClusterSample string) bool {
 	return When("Installing Kafka cluster", func() {
 		var kubectlOptions k8s.KubectlOptions
 		var err error
@@ -46,6 +46,6 @@ func testInstallKafkaCluster(kafkaClusterVersion string, kafkaClusterSample stri
 		})
 
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
-		requireCreatingKafkaCluster(kubectlOptions, kafkaClusterVersion, kafkaClusterSample)
+		requireCreatingKafkaCluster(kubectlOptions, koperatorVersion, kafkaClusterSample)
 	})
 }

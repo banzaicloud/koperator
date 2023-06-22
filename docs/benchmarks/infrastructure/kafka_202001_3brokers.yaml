@@ -63,7 +63,7 @@ spec:
           partition: $4
   headlessServiceEnabled: false
   zkAddresses:
-    - "zookeeper-server-client.zookeeper:2181"
+    - "zookeeper-client.zookeeper:2181"
   oneBrokerPerNode: true
   clusterImage: "ghcr.io/banzaicloud/kafka:2.13-3.1.0"
   readOnlyConfig: |

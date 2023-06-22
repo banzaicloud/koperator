@@ -37,7 +37,7 @@ func requireCreatingKafkaCluster(kubectlOptions k8s.KubectlOptions, koperatorVer
 			By(fmt.Sprintf("KafkaCluster %s already exists\n", kafkaClusterName))
 		} else {
 			By("Deploying a KafkaCluster")
-			err = requireApplyingKoperatorSampleResource(kubectlOptions, koperatorVersion, sampleFile)
+			err = applyKoperatorSampleResource(kubectlOptions, koperatorVersion, sampleFile)
 			Expect(err).NotTo(HaveOccurred())
 		}
 
@@ -46,15 +46,9 @@ func requireCreatingKafkaCluster(kubectlOptions k8s.KubectlOptions, koperatorVer
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Verifying the CruiseControl pod")
-		Eventually(context.Background(), func() bool {
-			resources, err := getK8sResources(kubectlOptions, []string{"pod"}, v1beta1.KafkaCRLabelKey+"="+kafkaClusterName+",app=cruisecontrol", "")
-			Expect(err).NotTo(HaveOccurred())
-			if len(resources) > 1 {
-				err = waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", cruiseControlPodReadinessTimeout, v1beta1.KafkaCRLabelKey+"="+kafkaClusterName+",app=cruisecontrol", "")
-				return true
-			}
-			return false
-		}, kafkaClusterResourceReadinessTimeout, 3*time.Second).Should(BeTrue())
+		Eventually(context.Background(), func() error {
+			return waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", cruiseControlPodReadinessTimeout, v1beta1.KafkaCRLabelKey+"="+kafkaClusterName+",app=cruisecontrol", "")
+		}, kafkaClusterResourceReadinessTimeout, 3*time.Second).ShouldNot(HaveOccurred())
 
 		By("Verifying all Kafka pods")
 		err = waitK8sResourceCondition(kubectlOptions, "pod", "condition=Ready", defaultPodReadinessWaitTime, v1beta1.KafkaCRLabelKey+"="+kafkaClusterName, "")

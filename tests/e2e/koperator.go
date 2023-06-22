@@ -25,13 +25,12 @@ import (
 	"emperror.dev/errors"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
-// requireApplyingKoperatorSampleResource deploys the specified sample resource (config/samples).
+// applyKoperatorSampleResource deploys the specified sample resource (config/samples).
 // The full path of the manifest also can be specified.
 // It supports different versions that can be specified with the koperatorVersion parameter.
-func requireApplyingKoperatorSampleResource(kubectlOptions k8s.KubectlOptions, koperatorVersion Version, sampleFile string) error {
+func applyKoperatorSampleResource(kubectlOptions k8s.KubectlOptions, koperatorVersion Version, sampleFile string) error {
 	By(fmt.Sprintf("Retrieving Koperator sample resource: '%s' with version: '%s' ", sampleFile, koperatorVersion))
 
 	sampleFileSplit := strings.Split(sampleFile, "/")
@@ -56,7 +55,6 @@ func requireApplyingKoperatorSampleResource(kubectlOptions k8s.KubectlOptions, k
 		httpClient := new(http.Client)
 		httpClient.Timeout = 5 * time.Second
 
-		Expect(sampleFileSplit).Should(HaveLen(1))
 		if len(sampleFileSplit) != 1 {
 			return errors.Errorf("sample file path shouldn't contain a \"/\" character")
 		}
