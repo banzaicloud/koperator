@@ -61,6 +61,7 @@ func isExistingK8SResource(
 	By(fmt.Sprintf("Checking the existence of resource %s in namespace %s (kind: %s)", resourceName, kubectlOptions.Namespace, resourceKind))
 	err := k8s.RunKubectlE(GinkgoT(), &kubectlOptions, "get", resourceKind, resourceName)
 	if err != nil {
+		By(fmt.Sprintf("Received error when getting resource: %s", err))
 		return false
 	}
 	return true
