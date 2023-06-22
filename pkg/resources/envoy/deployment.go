@@ -145,8 +145,8 @@ func getExposedContainerPorts(extListener v1beta1.ExternalListenerConfig, broker
 		}
 	}
 	exposedPorts = append(exposedPorts, corev1.ContainerPort{
-		Name:          fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp"),
-		ContainerPort: extListener.GetAnyCastPort(),
+		Name:          getAllBrokerContainerPortName(),
+		ContainerPort: extListener.GetIngressControllerTargetPort(),
 		Protocol:      corev1.ProtocolTCP,
 	})
 
@@ -162,4 +162,8 @@ func generatePodAnnotations(kafkaCluster *v1beta1.KafkaCluster,
 		"envoy.yaml.hash": hex.EncodeToString(hashedEnvoyConfig[:]),
 	}
 	return util.MergeAnnotations(ingressConfig.EnvoyConfig.GetAnnotations(), annotations)
+}
+
+func getAllBrokerContainerPortName() string {
+	return fmt.Sprintf(kafkautils.AllBrokerServiceTemplate, "tcp")
 }
