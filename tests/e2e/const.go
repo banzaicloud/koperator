@@ -53,7 +53,7 @@ const (
 	externalConsumerTimeout                = 5 * time.Second
 	externalProducerTimeout                = 5 * time.Second
 
-	zookeeperReplicaCount = 1
+	zookeeperClusterReplicaCount = 1
 
 	kcatPodTemplate          = "templates/kcat.yaml.tmpl"
 	kafkaTopicTemplate       = "templates/topic.yaml.tmpl"

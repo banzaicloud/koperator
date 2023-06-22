@@ -312,11 +312,6 @@ func listHelmReleases(kubectlOptions k8s.KubectlOptions) ([]*HelmRelease, error)
 		"--output", "json",
 	)
 
-	fmt.Println("OUTPUT: " + output)
-	if strings.Contains(output, "[]") || strings.Contains(output, "WARNING") {
-		return nil, nil
-	}
-
 	if err != nil {
 		return nil, errors.WrapIf(err, "listing Helm releases failed")
 	}

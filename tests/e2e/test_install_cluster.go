@@ -31,11 +31,11 @@ func testInstallZookeeperCluster() bool {
 		})
 
 		kubectlOptions.Namespace = zookeeperOperatorHelmDescriptor.Namespace
-		requireCreatingZookeeperCluster(kubectlOptions, zookeeperReplicaCount)
+		requireCreatingZookeeperCluster(kubectlOptions)
 	})
 }
 
-func testInstallKafkaCluster(koperatorVersion string, kafkaClusterSample string) bool {
+func testInstallKafkaCluster(kafkaClusterManifestPath string) bool {
 	return When("Installing Kafka cluster", func() {
 		var kubectlOptions k8s.KubectlOptions
 		var err error
@@ -46,6 +46,6 @@ func testInstallKafkaCluster(koperatorVersion string, kafkaClusterSample string)
 		})
 
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
-		requireCreatingKafkaCluster(kubectlOptions, koperatorVersion, kafkaClusterSample)
+		requireCreatingKafkaCluster(kubectlOptions, kafkaClusterManifestPath)
 	})
 }

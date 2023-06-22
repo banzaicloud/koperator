@@ -28,21 +28,20 @@ import (
 
 // requireCreatingKafkaCluster creates a KafkaCluster and
 // checks the success of that operation.
-func requireCreatingKafkaCluster(kubectlOptions k8s.KubectlOptions, koperatorVersion string, sampleFile string) {
+func requireCreatingKafkaCluster(kubectlOptions k8s.KubectlOptions, manifestPath string) {
 	It("Deploying a KafkaCluster", func() {
 
 		By("Checking existing KafkaClusters")
-		err := checkExistenceOfK8sResource(kubectlOptions, kafkaKind, kafkaClusterName)
-		if err == nil {
+		found := isExistingK8SResource(kubectlOptions, kafkaKind, kafkaClusterName)
+		if found {
 			By(fmt.Sprintf("KafkaCluster %s already exists\n", kafkaClusterName))
 		} else {
 			By("Deploying a KafkaCluster")
-			err = applyKoperatorSampleResource(kubectlOptions, koperatorVersion, sampleFile)
-			Expect(err).NotTo(HaveOccurred())
+			applyK8sResourceManifest(kubectlOptions, manifestPath)
 		}
 
 		By("Verifying the KafkaCluster state")
-		err = waitK8sResourceCondition(kubectlOptions, kafkaKind, fmt.Sprintf("jsonpath={.status.state}=%s", string(v1beta1.KafkaClusterRunning)), kafkaClusterCreateTimeout, "", kafkaClusterName)
+		err := waitK8sResourceCondition(kubectlOptions, kafkaKind, fmt.Sprintf("jsonpath={.status.state}=%s", string(v1beta1.KafkaClusterRunning)), kafkaClusterCreateTimeout, "", kafkaClusterName)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Verifying the CruiseControl pod")
@@ -58,28 +57,28 @@ func requireCreatingKafkaCluster(kubectlOptions k8s.KubectlOptions, koperatorVer
 
 // requireCreatingZookeeperCluster creates a ZookeeperCluster and
 // checks the success of that operation.
-func requireCreatingZookeeperCluster(kubectlOptions k8s.KubectlOptions, zkClusterReplicaCount int) {
+func requireCreatingZookeeperCluster(kubectlOptions k8s.KubectlOptions) {
 	It("Deploying a ZookeeperCluster", func() {
 
 		By("Checking existing ZookeeperClusters")
-		err := checkExistenceOfK8sResource(kubectlOptions, zookeeperKind, zookeeperClusterName)
-		if err == nil {
+		found := isExistingK8SResource(kubectlOptions, zookeeperKind, zookeeperClusterName)
+		if found {
 			By(fmt.Sprintf("ZookeeperCluster %s already exists\n", zookeeperClusterName))
 		} else {
 			By("Deploying the sample ZookeeperCluster")
-			err = applyK8sResourceFromTemplate(kubectlOptions,
+			err := applyK8sResourceFromTemplate(kubectlOptions,
 				zookeeperClusterTemplate,
 				map[string]interface{}{
 					"Name":      zookeeperClusterName,
 					"Namespace": kubectlOptions.Namespace,
-					"Replicas":  zkClusterReplicaCount,
+					"Replicas":  zookeeperClusterReplicaCount,
 				},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		}
 
 		By("Verifying the ZookeeperCluster resource")
-		err = waitK8sResourceCondition(kubectlOptions, zookeeperKind, "jsonpath={.status.readyReplicas}=1", zookeeperClusterCreateTimeout, "", zookeeperClusterName)
+		err := waitK8sResourceCondition(kubectlOptions, zookeeperKind, "jsonpath={.status.readyReplicas}=1", zookeeperClusterCreateTimeout, "", zookeeperClusterName)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Verifying the ZookeeperCluster's pods")
