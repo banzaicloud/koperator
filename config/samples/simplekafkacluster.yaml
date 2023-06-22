@@ -9,7 +9,7 @@ spec:
     jmxImage: "ghcr.io/banzaicloud/jmx-javaagent:0.16.1"
   headlessServiceEnabled: true
   zkAddresses:
-    - "zookeeper-client.zookeeper:2181"
+    - "zookeeper-server-client.zookeeper:2181"
   propagateLabels: false
   oneBrokerPerNode: false
   clusterImage: "ghcr.io/banzaicloud/kafka:2.13-3.1.0"
