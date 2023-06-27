@@ -235,6 +235,8 @@ func (helmDescriptor *helmDescriptor) uninstallHelmChart(kubectlOptions k8s.Kube
 
 	fixedArguments := []string{
 		"--debug",
+		"--wait",
+		"--cascade=foreground",
 	}
 	purge := true
 

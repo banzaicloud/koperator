@@ -54,10 +54,10 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = When("Testing e2e test altogether", Ordered, func() {
-	//testInstall()
+	// testInstall()
 	testProduceConsumeExternal("kafka-controller")
 	// testProduceConsumeInternal()
 	// testUninstallZookeeperCluster()
 	// testUninstallKafkaCluster()
-  // testUninstall()
+	// testUninstall()
 })
