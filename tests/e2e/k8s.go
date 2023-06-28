@@ -51,6 +51,22 @@ func applyK8sResourceManifest(kubectlOptions k8s.KubectlOptions, manifestPath st
 	k8s.KubectlApply(GinkgoT(), &kubectlOptions, manifestPath)
 }
 
+// isExistingK8SResource queries a Resource by it's kind, namespace and name and
+// returns true if it's found, false otherwise
+func isExistingK8SResource(
+	kubectlOptions k8s.KubectlOptions,
+	resourceKind string,
+	resourceName string,
+) bool {
+	By(fmt.Sprintf("Checking the existence of resource %s in namespace %s (kind: %s)", resourceName, kubectlOptions.Namespace, resourceKind))
+	err := k8s.RunKubectlE(GinkgoT(), &kubectlOptions, "get", resourceKind, resourceName)
+	if err != nil {
+		By(fmt.Sprintf("Received error when getting resource: %s", err))
+		return false
+	}
+	return true
+}
+
 // createOrReplaceK8sResourcesFromManifest creates non-existent Kubernetes
 // resources or replaces existing ones from the specified manifest to the
 // provided kubectl context and namespace.

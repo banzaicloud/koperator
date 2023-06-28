@@ -44,16 +44,23 @@ const (
 	zookeeperClusterName       = "zookeeper-server"
 	managedByHelmLabelTemplate = "app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=%s"
 
+	cruiseControlPodReadinessTimeout       = 50 * time.Second
+	kafkaClusterResourceReadinessTimeout   = 60 * time.Second
 	defaultDeletionTimeout                 = 20 * time.Second
 	defaultPodReadinessWaitTime            = 10 * time.Second
 	defaultTopicCreationWaitTime           = 10 * time.Second
-	kafkaClusterResourceCleanupTimeout     = 30 * time.Second
+	kafkaClusterCreateTimeout              = 500 * time.Second
+	kafkaClusterResourceCleanupTimeout     = 120 * time.Second
+	zookeeperClusterCreateTimeout          = 4 * time.Minute
 	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
 	externalConsumerTimeout                = 5 * time.Second
 	externalProducerTimeout                = 5 * time.Second
 
-	kcatPodTemplate    = "templates/kcat.yaml.tmpl"
-	kafkaTopicTemplate = "templates/topic.yaml.tmpl"
+	zookeeperClusterReplicaCount = 1
+
+	kcatPodTemplate          = "templates/kcat.yaml.tmpl"
+	kafkaTopicTemplate       = "templates/topic.yaml.tmpl"
+	zookeeperClusterTemplate = "templates/zookeeper_cluster.yaml.tmpl"
 
 	kubectlNotFoundErrorMsg = "NotFound"
 )

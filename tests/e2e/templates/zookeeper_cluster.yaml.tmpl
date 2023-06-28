@@ -1,0 +1,9 @@
+apiVersion: zookeeper.pravega.io/v1beta1
+kind: ZookeeperCluster
+metadata:
+    name: {{ .Name }}
+    namespace: {{ or .Namespace "zookeeper" }}
+spec:
+    replicas: {{ or .Replicas 1 }}
+    persistence:
+        reclaimPolicy: Delete

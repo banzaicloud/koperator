@@ -54,10 +54,12 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = When("Testing e2e test altogether", Ordered, func() {
-	// testInstall()
-	testProduceConsumeExternal("kafka-controller")
-	// testProduceConsumeInternal()
-	// testUninstallZookeeperCluster()
-	// testUninstallKafkaCluster()
-	// testUninstall()
+	//testInstall()
+	testInstallZookeeperCluster()
+	testInstallKafkaCluster("../../config/samples/simplekafkacluster.yaml")
+	testUninstallKafkaCluster()
+	testInstallKafkaCluster("../../config/samples/simplekafkacluster_ssl.yaml")
+	testUninstallKafkaCluster()
+	testUninstallZookeeperCluster()
+	//testUninstall()
 })
