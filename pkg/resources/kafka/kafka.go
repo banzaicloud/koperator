@@ -96,7 +96,7 @@ const (
 
 var (
 	// kafkaConfigBrokerRackRegex the regex to parse the "broker.rack" Kafka property used in read-only configs
-	kafkaConfigBrokerRackRegex = regexp.MustCompile(`broker\.rack\s*=\s*(\w+)`)
+	kafkaConfigBrokerRackRegex = regexp.MustCompile(`broker\.rack\s*=\s*([\w-]+)`)
 )
 
 // Reconciler implements the Component Reconciler
@@ -220,6 +220,8 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	log = log.WithValues("component", componentName, "clusterName", r.KafkaCluster.Name, "clusterNamespace", r.KafkaCluster.Namespace)
 
 	log.V(1).Info("Reconciling")
+
+	log.Info("broker rack map", "kafkaBrokerAvailabilityZoneMap", r.kafkaBrokerAvailabilityZoneMap)
 
 	ctx := context.Background()
 	if err := k8sutil.UpdateBrokerConfigurationBackup(r.Client, r.KafkaCluster); err != nil {
@@ -927,6 +929,9 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			// Check if we support multiple broker restarts and restart only in same AZ, otherwise restart only 1 broker at once
 			concurrentBrokerRestartsAllowed := r.getConcurrentBrokerRestartsAllowed()
 			terminatingOrPendingPods := getPodsInTerminatingOrPendingState(podList.Items)
+			if len(terminatingOrPendingPods) > 0 {
+				log.Info("terminating or pending pods", "terminatingOrPendingPods", terminatingOrPendingPods)
+			}
 			if len(terminatingOrPendingPods) >= concurrentBrokerRestartsAllowed {
 				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New(strconv.Itoa(concurrentBrokerRestartsAllowed)+" pod(s) is still terminating or creating"), "rolling upgrade in progress")
 			}
