@@ -79,7 +79,7 @@ kubectl create -f - <<EOF
 apiVersion: zookeeper.pravega.io/v1beta1
 kind: ZookeeperCluster
 metadata:
-    name: zookeeper
+    name: zookeeper-server
     namespace: zookeeper
 spec:
     replicas: 1
@@ -93,9 +93,9 @@ EOF
 ```
 > kubectl get pods -n zookeeper
 
-NAME                                  READY   STATUS    RESTARTS   AGE
-zookeeper-0                           1/1     Running   0          27m
-zookeeper-operator-54444dbd9d-2tccj   1/1     Running   0          28m
+NAME                                         READY   STATUS    RESTARTS   AGE
+zookeeper-server-0                           1/1     Running   0          27m
+zookeeper-operator-54444dbd9d-2tccj          1/1     Running   0          28m
 ```
 
 ### Install Koperator
