@@ -12,7 +12,7 @@ Before installing the chart, you must first install the Koperator CustomResource
 This is performed in a separate step to allow you to easily uninstall and reinstall Koperator without deleting your installed custom resources.
 
 ```
-kubectl create --validate=false -f https://github.com/banzaicloud/koperator/releases/download/v0.24.1/kafka-operator.crds.yaml
+kubectl create --validate=false -f https://github.com/banzaicloud/koperator/releases/download/v0.25.0/kafka-operator.crds.yaml
 ```
 
 To install the chart:
