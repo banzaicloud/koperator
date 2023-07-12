@@ -22,7 +22,7 @@
 
 # Koperator
 
-Koperator is an open-source operator that automates the provisioning, management, and autoscaling of Apache Kafka clusters on Kubernetes. 
+Koperator is an open-source operator that automates the provisioning, management, and autoscaling of Apache Kafka clusters on Kubernetes.
 Unlike other solutions that rely on StatefulSets, Koperator has been built with a unique architecture that provides greater flexibility and functionality for managing Apache Kafka. This architecture allows for fine-grained configuration and management of individual brokers.
 
 Some of the main features of Koperator are:
@@ -105,7 +105,7 @@ You can deploy Koperator using a Helm chart. Complete the following steps.
 1. Install the Koperator `CustomResourceDefinition` resources (adjust the version number to the Koperator release you want to install). This is performed in a separate step to allow you to uninstall and reinstall Koperator without deleting your already installed custom resources.
 
 ```
-kubectl create --validate=false -f https://github.com/banzaicloud/koperator/releases/download/v0.25.0/kafka-operator.crds.yaml
+kubectl create --validate=false -f https://github.com/banzaicloud/koperator/releases/download/v0.25.1/kafka-operator.crds.yaml
 ```
 
 2. Install Koperator into the `kafka` namespace:
