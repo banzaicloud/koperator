@@ -762,7 +762,7 @@ func (kSpec *KafkaClusterSpec) GetClusterImage() string {
 	if kSpec.ClusterImage != "" {
 		return kSpec.ClusterImage
 	}
-	return "ghcr.io/banzaicloud/kafka:2.13-3.1.0"
+	return "ghcr.io/banzaicloud/kafka:2.13-3.1.2"
 }
 
 // GetClusterMetricsReporterImage returns the default container image for Kafka Cluster
