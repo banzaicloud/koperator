@@ -56,6 +56,12 @@ const (
 	KafkaCRLabelKey = "kafka_cr"
 	// BrokerIdLabelKey is used to represent the reserved operator label, "brokerId"
 	BrokerIdLabelKey = "brokerId"
+
+	// DefaultCruiseControlImage is the default CC image used when users don't specify it in CruiseControlConfig.Image
+	DefaultCruiseControlImage = "ghcr.io/banzaicloud/cruise-control:2.5.123"
+
+	// DefaultKafkaImage is the default Kafka image used when users don't specify it in KafkaClusterSpec.ClusterImage
+	DefaultKafkaImage = "ghcr.io/banzaicloud/kafka:2.13-3.4.1"
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
@@ -762,7 +768,7 @@ func (kSpec *KafkaClusterSpec) GetClusterImage() string {
 	if kSpec.ClusterImage != "" {
 		return kSpec.ClusterImage
 	}
-	return "ghcr.io/banzaicloud/kafka:2.13-3.1.0"
+	return DefaultKafkaImage
 }
 
 // GetClusterMetricsReporterImage returns the default container image for Kafka Cluster
@@ -1051,7 +1057,7 @@ func (cConfig *CruiseControlConfig) GetCCImage() string {
 	if cConfig.Image != "" {
 		return cConfig.Image
 	}
-	return "ghcr.io/banzaicloud/cruise-control:2.5.101"
+	return DefaultCruiseControlImage
 }
 
 // GetCCLog4jConfig returns the used Cruise Control log4j configuration
