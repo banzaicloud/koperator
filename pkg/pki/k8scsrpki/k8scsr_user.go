@@ -337,7 +337,7 @@ func (c *k8sCSR) Approve(ctx context.Context, signingReq *certsigningreqv1.Certi
 	}
 	csrClient := csrclient.NewForConfigOrDie(restConfig).CertificateSigningRequests()
 
-	signingReq, err = csrClient.UpdateApproval(ctx, signingReq.Name, signingReq, metav1.UpdateOptions{})
+	signingReq, err = csrClient.UpdateApproval(ctx, signingReq.Name, signingReq, metav1.UpdateOptions{}) //nolint:staticcheck
 	if err != nil {
 		return err
 	}
