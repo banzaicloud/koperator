@@ -281,7 +281,7 @@ func expectCruiseControlDeployment(ctx context.Context, kafkaCluster *v1beta1.Ka
 	Expect(container.Lifecycle).NotTo(BeNil())
 	Expect(container.Lifecycle.PreStop).NotTo(BeNil())
 	Expect(container.Lifecycle.PreStop.Exec).NotTo(BeNil())
-	Expect(container.Image).To(Equal("ghcr.io/banzaicloud/cruise-control:2.5.101"))
+	Expect(container.Image).To(Equal("ghcr.io/banzaicloud/cruise-control:2.5.123"))
 	Expect(container.Ports).To(ConsistOf(
 		corev1.ContainerPort{
 			ContainerPort: 8090,
