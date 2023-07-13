@@ -35,7 +35,7 @@ spec:
 
   # Specify the Kafka Broker related settings
   # clusterImage can specify the whole kafkacluster image in one place
-  #clusterImage: "ghcr.io/banzaicloud/kafka:2.13-3.1.0
+  #clusterImage: "ghcr.io/banzaicloud/kafka:2.13-3.1.2
 
   #clusterWideConfig specifies the cluster-wide kafka config cluster wide, all these can be overridden per-broker
   #clusterWideConfig: |
@@ -169,7 +169,7 @@ spec:
         cruise.control.metrics.topic.replication.factor=2
       brokerConfig:
         # Docker image used by the operator to create the Broker with id 0
-        #image: "ghcr.io/banzaicloud/kafka:2.13-3.1.0
+        #image: "ghcr.io/banzaicloud/kafka:2.13-3.1.2
         # resourceRequirements works exactly like Container resources, the user can specify the limit and the requests
         # through this property
         #resourceRequirements:
@@ -189,11 +189,11 @@ spec:
         # which has type per-broker
         # priorityClassName can be used to set the broker pod's priority
         # priorityClassName: "high-priority"
-        
+
         # When "hostNameOverride" and brokerConfig.nodePortExternalIP are empty and NodePort access method is selected for external listener
         # nodePortNodeAdddressType defines the Kafka broker's Kubernetes node's address type that shall be used in the advertised.listeners property
         # when nodeport is used for an external listener.
-        # its values can be Hostname, ExternalIP, InternalIP, InternalDNS,ExternalDNS 
+        # its values can be Hostname, ExternalIP, InternalIP, InternalDNS,ExternalDNS
         #nodePortNodeAddressType: "ExternalIP"
         config: |
           sasl.enabled.mechanisms=PLAIN
@@ -240,7 +240,7 @@ spec:
         #volumeMounts:
         #  - mountPath: "/opt/kafka/libs/extra-jars"
         #    name: "jars"
-    - image: "ghcr.io/banzaicloud/kafka:2.13-3.1.0"
+    - image: "ghcr.io/banzaicloud/kafka:2.13-3.1.2"
       id: 1
       config: |
         auto.create.topics.enable=false
@@ -262,7 +262,7 @@ spec:
       readOnlyConfig: |
         auto.create.topics.enable=false
       brokerConfig:
-        image: "ghcr.io/banzaicloud/kafka:2.13-3.1.0"
+        image: "ghcr.io/banzaicloud/kafka:2.13-3.1.2"
         storageConfigs:
           - mountPath: "/kafka-logs"
             pvcSpec:
