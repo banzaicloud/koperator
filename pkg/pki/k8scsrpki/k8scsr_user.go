@@ -19,6 +19,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"strings"
 
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
@@ -38,12 +39,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	csrclient "k8s.io/client-go/kubernetes/typed/certificates/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
 	notApprovedErrMsg         = "instance is not approved"
 	notFoundApprovedCsrErrMsg = "could not find approved csr"
+	approveReason             = "ApprovedByPolicy"
 )
 
 // ReconcileUserCertificate ensures and returns a user certificate - should be idempotent
@@ -158,8 +162,15 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	}
 
 	if !foundApproved {
-		return nil, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New(notApprovedErrMsg),
-			notFoundApprovedCsrErrMsg, "csrName", signingReq.GetName())
+		if strings.Split(signingReq.Spec.SignerName, "/")[0] == CertManagerSignerNamePrefix {
+			err = c.Approve(ctx, signingReq)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New(notApprovedErrMsg),
+				notFoundApprovedCsrErrMsg, "csrName", signingReq.GetName())
+		}
 	}
 	if len(signingReq.Status.Certificate) == 0 {
 		return nil, errorfactory.New(errorfactory.ResourceNotReady{},
@@ -308,4 +319,28 @@ func isKafkaUserCertificateReady(secret *corev1.Secret, includeJKS bool) bool {
 	}
 
 	return true
+}
+
+// Approve approves certificate signing requests
+func (c *k8sCSR) Approve(ctx context.Context, signingReq *certsigningreqv1.CertificateSigningRequest) error {
+	cond := certsigningreqv1.CertificateSigningRequestCondition{
+		Type:    certsigningreqv1.CertificateApproved,
+		Status:  corev1.ConditionTrue,
+		Reason:  approveReason,
+		Message: "CSR has been approved by signer",
+	}
+	signingReq.Status.Conditions = append(signingReq.Status.Conditions, cond)
+
+	restConfig, err := ctrl.GetConfig()
+	if err != nil {
+		return err
+	}
+	csrClient := csrclient.NewForConfigOrDie(restConfig).CertificateSigningRequests()
+
+	signingReq, err = csrClient.UpdateApproval(ctx, signingReq.Name, signingReq, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
