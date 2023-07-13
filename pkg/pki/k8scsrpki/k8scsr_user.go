@@ -46,7 +46,7 @@ import (
 
 const (
 	notApprovedErrMsg         = "instance is not approved"
-	notFoundApprovedCsrErrMsg = "could not find approved csr"
+	notFoundApprovedCsrErrMsg = "could not find approved csr, or the operator is not capable of approving the csr"
 	approveReason             = "ApprovedByPolicy"
 )
 
@@ -327,7 +327,7 @@ func (c *k8sCSR) Approve(ctx context.Context, signingReq *certsigningreqv1.Certi
 		Type:    certsigningreqv1.CertificateApproved,
 		Status:  corev1.ConditionTrue,
 		Reason:  approveReason,
-		Message: "CSR has been approved by signer",
+		Message: "CSR has been approved by Koperator",
 	}
 	signingReq.Status.Conditions = append(signingReq.Status.Conditions, cond)
 
