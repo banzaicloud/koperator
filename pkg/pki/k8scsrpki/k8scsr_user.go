@@ -46,7 +46,7 @@ import (
 
 const (
 	notApprovedErrMsg         = "instance is not approved"
-	notFoundApprovedCsrErrMsg = "could not find approved csr, or the operator is not capable of approving the csr"
+	notFoundApprovedCsrErrMsg = "could not find approved csr and the operator is not capable of approving the csr"
 	approveReason             = "ApprovedByPolicy"
 )
 
