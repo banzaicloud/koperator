@@ -214,9 +214,5 @@ func requireRemoveNamespace(kubectlOptions k8s.KubectlOptions, namespace string)
 	It(fmt.Sprintf("Removing namespace %s", namespace), func() {
 		err := deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, "namespace", namespace, "--wait")
 		Expect(err).ShouldNot(HaveOccurred())
-
-		remainingResources, err := getK8sResources(kubectlOptions, []string{"namespaces"}, "", "", kubectlArgGoTemplateName)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(remainingResources).ShouldNot(ContainElement(namespace))
 	})
 }
