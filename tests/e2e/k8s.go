@@ -501,6 +501,12 @@ func listK8sResourceKinds(kubectlOptions k8s.KubectlOptions, apiGroupSelector st
 		return nil, err
 	}
 
+	output = strings.Trim(output, "'")
+	// Empty output
+	if output == "" {
+		return nil, nil
+	}
+
 	return kubectlRemoveWarnings(strings.Split(output, "\n")), nil
 }
 

@@ -25,25 +25,16 @@ func (c *dependencyCRDsType) CertManager() []string {
 func (c *dependencyCRDsType) Initialize(kubectlOptions k8s.KubectlOptions) error {
 	var err error
 	c.certManager, err = listK8sResourceKinds(kubectlOptions, apiGroupKoperatorDependencies()["cert-manager"])
-	if len(c.certManager) == 0 {
-		if err != nil {
-			return fmt.Errorf("initialize Cert-manager CRDs error: %w", err)
-		}
-		return fmt.Errorf("Cert-manager CRDs %w", ErrorNotFound)
+	if err != nil {
+		return fmt.Errorf("initialize Cert-manager CRDs error: %w", err)
 	}
 	c.prometheus, err = listK8sResourceKinds(kubectlOptions, apiGroupKoperatorDependencies()["prometheus"])
-	if len(c.prometheus) == 0 {
-		if err != nil {
-			return fmt.Errorf("initialize Prometheus CRDs error: %w", err)
-		}
-		return fmt.Errorf("Prometheus CRDs %w", ErrorNotFound)
+	if err != nil {
+		return fmt.Errorf("initialize Prometheus CRDs error: %w", err)
 	}
 	c.zookeeper, err = listK8sResourceKinds(kubectlOptions, apiGroupKoperatorDependencies()["zookeeper"])
-	if len(c.zookeeper) == 0 {
-		if err != nil {
-			return fmt.Errorf("initialize Zookeeper CRDs error: %w", err)
-		}
-		return fmt.Errorf("Zookeeper CRDs %w", ErrorNotFound)
+	if err != nil {
+		return fmt.Errorf("initialize Zookeeper CRDs error: %w", err)
 	}
 	return nil
 }
