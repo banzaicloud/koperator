@@ -245,7 +245,7 @@ func (helmDescriptor *helmDescriptor) uninstallHelmChart(kubectlOptions k8s.Kube
 		&helm.Options{
 			KubectlOptions: &kubectlOptions,
 			ExtraArgs: map[string][]string{
-				"delete": append(fixedArguments, helmDescriptor.HelmExtraArguments["install"]...),
+				"delete": append(fixedArguments, helmDescriptor.HelmExtraArguments["delete"]...),
 			},
 		},
 		helmDescriptor.ReleaseName,
