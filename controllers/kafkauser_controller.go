@@ -159,6 +159,8 @@ type KafkaUserReconciler struct {
 // +kubebuilder:rbac:groups=cert-manager.io,resources=issuers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=clusterissuers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=certificates.k8s.io,resources=certificatesigningrequests,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=certificates.k8s.io,resources=certificatesigningrequests/approval,verbs=update
+// +kubebuilder:rbac:groups=certificates.k8s.io,resources=signers,verbs=approve
 
 // Reconcile reads that state of the cluster for a KafkaUser object and makes changes based on the state read
 // and what is in the KafkaUser.Spec
