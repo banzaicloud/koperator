@@ -15,9 +15,10 @@
 package v1alpha1
 
 import (
-	"reflect"
+	"fmt"
 	"testing"
 
+	"gotest.tools/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
@@ -28,8 +29,12 @@ const (
 	testCertManagerSignerName = CertManagerSignerNamePrefix + "/test-issuer"
 )
 
-var (
-	testKafkaUser = &KafkaUser{
+func TestKafkaUserSpecValidateAnnotations(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		annotations map[string]string
+	}
+	kafkaUser := &KafkaUser{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "KafkaUser",
 		},
@@ -45,45 +50,53 @@ var (
 			},
 		},
 	}
-)
 
-func TestKafkaUserSpecValidateAnnotationsCorrectAnnotationsList(t *testing.T) {
-	testAnnotations := map[string]string{
-		"experimental.cert-manager.io/request-duration": "2880h",
+	tests := []struct {
+		name   string
+		args   args
+		wanted error
+	}{
+		{
+			name: "no invalid annotations",
+			args: args{
+				annotations: map[string]string{
+					"experimental.cert-manager.io/request-duration": "2880h",
+				},
+			},
+			wanted: nil,
+		},
+		{
+			name: "valid annotation, invalid value",
+			args: args{
+				annotations: map[string]string{
+					"experimental.cert-manager.io/request-duration": "2880",
+				},
+			},
+			wanted: fmt.Errorf("could not parse certificate request duration: time: missing unit in duration \"2880\""),
+		},
+		{
+			name: "invalid annotation",
+			args: args{
+				annotations: map[string]string{
+					"test-annotation": "test",
+				},
+			},
+			wanted: newCertManagerSignerAnnotationsWithValidators().getNotSupportedAnnotationError(),
+		},
 	}
-	kafkaUser := testKafkaUser
-	kafkaUser.Spec.Annotations = testAnnotations
 
-	err := kafkaUser.Spec.ValidateAnnotations()
-	if err != nil {
-		t.Error(err)
-	}
-}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			kafkaUser.Spec.Annotations = tt.args.annotations
+			found := kafkaUser.Spec.ValidateAnnotations()
 
-func TestKafkaUserSpecValidateAnnotationsCorrectAnnotationIncorrectValue(t *testing.T) {
-	testAnnotations := map[string]string{
-		"experimental.cert-manager.io/request-duration": "2880",
-	}
-	expectedErrorMessage := "could not parse certificate request duration: time: missing unit in duration \"2880\""
-	kafkaUser := testKafkaUser
-	kafkaUser.Spec.Annotations = testAnnotations
-
-	err := kafkaUser.Spec.ValidateAnnotations()
-	if !reflect.DeepEqual(err.Error(), expectedErrorMessage) {
-		t.Error("Expected:", expectedErrorMessage, "Got:", err.Error())
-	}
-}
-
-func TestKafkaUserSpecValidateAnnotationsIncorrectAnnotationsList(t *testing.T) {
-	testAnnotations := map[string]string{
-		"test-annotation": "test",
-	}
-	expected := newCertManagerSignerAnnotations().getNotSupportedAnnotationError()
-	kafkaUser := testKafkaUser
-	kafkaUser.Spec.Annotations = testAnnotations
-
-	err := kafkaUser.Spec.ValidateAnnotations()
-	if !reflect.DeepEqual(err.Error(), expected.Error()) {
-		t.Error("Expected:", expected.Error(), "Got:", err.Error())
+			if tt.wanted != nil && found != nil {
+				assert.Equal(t, tt.wanted.Error(), found.Error())
+			} else {
+				assert.Equal(t, tt.wanted, found)
+			}
+		})
 	}
 }

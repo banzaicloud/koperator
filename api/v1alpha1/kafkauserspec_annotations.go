@@ -48,8 +48,8 @@ type annotationValidator interface {
 	validate(string) error
 }
 
-// newCertManagerSignerAnnotations returns annotationsWhithValidations for cert-manager pki backend signer
-func newCertManagerSignerAnnotations() annotationsWhithValidations {
+// newCertManagerSignerAnnotationsWithValidators returns annotationsWhithValidations for cert-manager pki backend signer
+func newCertManagerSignerAnnotationsWithValidators() annotationsWhithValidations {
 	var c certManagerRequestDurationValidator
 	return annotationsWhithValidations{
 		"experimental.cert-manager.io/request-duration": &c,
@@ -57,7 +57,7 @@ func newCertManagerSignerAnnotations() annotationsWhithValidations {
 }
 
 // certManagerRequestDurationValidator implements annotationValidator interface
-type certManagerRequestDurationValidator struct{}
+type certManagerRequestDurationValidator func(string) error
 
 func (c certManagerRequestDurationValidator) validate(a string) error {
 	_, err := time.ParseDuration(a)
