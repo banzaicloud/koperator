@@ -29,5 +29,5 @@ jobs:
            KUBECONFIG: ${{ steps.setup-kind.outputs.kubeconfig }}
         run: |
           go work init
-          go work use -r
+          go work use -r .
           make test-e2e
