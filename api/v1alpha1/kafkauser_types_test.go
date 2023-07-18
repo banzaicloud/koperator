@@ -89,8 +89,9 @@ func TestKafkaUserSpecValidateAnnotations(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			kafkaUser.Spec.Annotations = tt.args.annotations
-			found := kafkaUser.Spec.ValidateAnnotations()
+			k := kafkaUser.DeepCopy()
+			k.Spec.Annotations = tt.args.annotations
+			found := k.Spec.ValidateAnnotations()
 
 			if tt.wanted != nil && found != nil {
 				assert.Equal(t, tt.wanted.Error(), found.Error())
