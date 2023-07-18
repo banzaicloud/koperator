@@ -28,5 +28,4 @@ jobs:
         env:
            KUBECONFIG: ${{ steps.setup-kind.outputs.kubeconfig }}
         run: |
-          go get github.com/banzaicloud/koperator/tests/e2e
-          make test-e2e
+          go test ./... -v -timeout 15m -tags e2e --ginkgo.show-node-events --ginkgo.trace --ginkgo.v 
