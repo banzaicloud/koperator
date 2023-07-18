@@ -1,0 +1,46 @@
+name: "Setup kind cluster"
+description: "Creates a kind cluster to be used elsewhere"
+inputs: # adding these parameters to make this reusable later on
+  kind_cluster_name:
+    description: "The kind cluster name to use"
+    required: true
+    default: "e2e-kind"
+  kind_k8s_version:
+    description: 'The k8s version to use'
+    required: true
+    default: 'v1.24.15'
+  kind_config:
+    description: 'Path to the kind config to use'
+    required: true
+    default: 'tests/e2e/platforms/kind/kind_config.yaml'
+outputs:
+  kubeconfig:
+    description: 'Path of the resulting kubeconfig'
+    value: ${{ steps.check-kind-cluster.outputs.kubeconfig }}
+
+runs:
+  using: "composite"
+
+  steps:
+  - name: Set up Docker Buildx
+    uses: docker/setup-buildx-action@v2
+  - uses: engineerd/setup-kind@v0.5.0
+    with:
+      name: ${{ inputs.kind_cluster_name }}
+      version: v0.20.0
+      image: kindest/node:${{ inputs.kind_k8s_version }}
+      config: ${{ inputs.kind_config }}
+
+  - name: Check kind cluster and extract kubeconfig
+    id: check-kind-cluster
+    run: |
+      kubectl version
+      kubectl cluster-info
+      kubectl get pods -n kube-system
+      echo "current-context:" $(kubectl config current-context)
+      echo "environment-kubeconfig:" ${KUBECONFIG}
+      mkdir tests/e2e/platforms/kind/${{ inputs.kind_k8s_version }}
+      kubeconfig_path=$(pwd)/tests/e2e/platforms/kind/${{ inputs.kind_k8s_version }}/kind.kconf
+      kind get kubeconfig --name ${{ inputs.kind_cluster_name }} > $kubeconfig_path
+      echo "kubeconfig=$(echo $kubeconfig_path)" >> $GITHUB_OUTPUT
+    shell: bash

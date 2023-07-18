@@ -1,0 +1,32 @@
+name: e2e-test
+
+on:
+  push:
+    branches:
+      - master
+      - add_kind_ci_execution
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Kind cluster
+        id: setup-kind
+        uses: ./.github/actions/kind-create
+
+      - name: run tests
+        env:
+           KUBECONFIG: ${{ steps.setup-kind.outputs.kubeconfig }}
+        run: |
+          go get github.com/banzaicloud/koperator/tests/e2e
+          make test-e2e
