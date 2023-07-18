@@ -42,5 +42,6 @@ runs:
       mkdir tests/e2e/platforms/kind/${{ inputs.kind_k8s_version }}
       kubeconfig_path=$(pwd)/tests/e2e/platforms/kind/${{ inputs.kind_k8s_version }}/kind.kconf
       kind get kubeconfig --name ${{ inputs.kind_cluster_name }} > $kubeconfig_path
+      chmod 600 $kubeconfig_path
       echo "kubeconfig=$(echo $kubeconfig_path)" >> $GITHUB_OUTPUT
     shell: bash
