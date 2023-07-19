@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - add_kind_ci_execution
   pull_request:
 
 jobs:

@@ -106,7 +106,7 @@ test-e2e:
 		-tags e2e \
 		--ginkgo.show-node-events \
 		--ginkgo.trace \
-		--ginkgo.v 
+		--ginkgo.v
 
 # Build manager binary
 manager: generate fmt vet
