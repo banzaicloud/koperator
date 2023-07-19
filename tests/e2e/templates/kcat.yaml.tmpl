@@ -11,3 +11,12 @@ spec:
     # Just spin & wait forever
     command: [ "/bin/sh", "-c", "--" ]
     args: [ "while true; do sleep 3000; done;" ]
+    {{ with .TLSSecretName }}
+    volumeMounts:
+    - name: sslcerts
+      mountPath: "/ssl/certs"
+  volumes:
+  - name: sslcerts
+    secret:
+      secretName: {{ . }}
+  {{ end }}

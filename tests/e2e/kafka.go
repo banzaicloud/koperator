@@ -48,3 +48,26 @@ func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName str
 	})
 
 }
+
+// requireCreatingKafkaUser creates a KafkaUser resource from a template
+func requireCreatingKafkaUser(kubectlOptions k8s.KubectlOptions, userName string, tlsSecretName string) {
+	It("Deploying KafkaUser CR", func() {
+		templateParameters := map[string]interface{}{
+			"Name":      userName,
+			"Namespace": kubectlOptions.Namespace,
+		}
+		if tlsSecretName != "" {
+			templateParameters["TLSSecretName"] = tlsSecretName
+		}
+
+		err := applyK8sResourceFromTemplate(kubectlOptions,
+			kafkaUserTemplate,
+			templateParameters,
+		)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		secretFound := isExistingK8SResource(kubectlOptions, "secret", tlsSecretName)
+		Expect(secretFound).To(BeTrue())
+	})
+
+}

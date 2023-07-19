@@ -18,9 +18,30 @@ func testProduceConsumeInternal() bool {
 
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
 
-		requireDeployingKcatPod(kubectlOptions, kcatPodName)
+		requireDeployingKcatPod(kubectlOptions, kcatPodName, "")
 		requireDeployingKafkaTopic(kubectlOptions, testInternalTopicName)
-		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testInternalTopicName)
+		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testInternalTopicName, "")
+		requireDeleteKafkaTopic(kubectlOptions, testInternalTopicName)
+		requireDeleteKcatPod(kubectlOptions, kcatPodName)
+	})
+}
+
+func testProduceConsumeInternalSSL(tlsSecretName string) bool {
+	return When("Internally produce and consume message to/from Kafka cluster using SSL", func() {
+		var kubectlOptions k8s.KubectlOptions
+		var err error
+
+		It("Acquiring K8s config and context", func() {
+			kubectlOptions, err = kubectlOptionsForCurrentContext()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
+
+		requireCreatingKafkaUser(kubectlOptions, kafkaUserName, tlsSecretName)
+		requireDeployingKcatPod(kubectlOptions, kcatPodName, tlsSecretName)
+		requireDeployingKafkaTopic(kubectlOptions, testInternalTopicName)
+		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testInternalTopicName, tlsSecretName)
 		requireDeleteKafkaTopic(kubectlOptions, testInternalTopicName)
 		requireDeleteKcatPod(kubectlOptions, kcatPodName)
 	})
