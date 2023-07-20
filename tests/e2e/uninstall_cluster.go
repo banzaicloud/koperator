@@ -30,7 +30,7 @@ import (
 // checks the removal of the Kafka cluster related resources
 func requireDeleteKafkaCluster(kubectlOptions k8s.KubectlOptions, name string) {
 	It("Delete KafkaCluster custom resource", func() {
-		err := deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, kafkaKind, koperatorLocalHelmDescriptor.Namespace)
+		err := deleteK8sResourceNoErrNotFound(kubectlOptions, defaultDeletionTimeout, kafkaKind, name)
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(context.Background(), func() []string {
 			By("Verifying the Kafka cluster resource cleanup")
