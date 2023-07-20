@@ -54,6 +54,8 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = When("Testing e2e test altogether", Ordered, func() {
+	var snapshottedInfo = &clusterSnapshot{}
+	snapshotCluster(snapshottedInfo)
 	testInstall()
 	testInstallZookeeperCluster()
 	testInstallKafkaCluster("../../config/samples/simplekafkacluster.yaml")
@@ -64,4 +66,5 @@ var _ = When("Testing e2e test altogether", Ordered, func() {
 	testUninstallKafkaCluster()
 	testUninstallZookeeperCluster()
 	testUninstall()
+	snapshotClusterAndCompare(snapshottedInfo)
 })
