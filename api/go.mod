@@ -7,6 +7,7 @@ require (
 	github.com/banzaicloud/istio-client-go v0.0.17
 	github.com/cert-manager/cert-manager v1.11.2
 	github.com/imdario/mergo v0.3.13
+	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.26.4
 	k8s.io/apimachinery v0.26.4
