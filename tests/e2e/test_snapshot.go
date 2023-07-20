@@ -77,11 +77,13 @@ func snapshotCluster(snapshottedInfo *clusterSnapshot) bool {
 			It("Get cluster-scoped api-resources names", func() {
 				clusterResourceNames, err = listK8sResourceKinds(kubectlOptions, "", "--namespaced=false")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(clusterResourceNames).NotTo(BeNil())
 				clusterResourceNames = pruneUnnecessaryClusterResourceNames(clusterResourceNames)
 			})
 			It("Get namespaced api-resources names", func() {
 				namespacedResourceNames, err = listK8sResourceKinds(kubectlOptions, "", "--namespaced=true")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(namespacedResourceNames).NotTo(BeNil())
 				namespacedResourceNames = pruneUnnecessaryNamespacedResourceNames(namespacedResourceNames)
 			})
 		})
