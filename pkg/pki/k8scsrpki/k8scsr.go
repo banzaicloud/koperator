@@ -22,9 +22,8 @@ import (
 )
 
 const (
-	DependingCsrAnnotation      string = "banzaicloud.io/csr"
-	IncludeFullChainAnnotation  string = "csr.banzaicloud.io/fullchain"
-	CertManagerSignerNamePrefix string = "clusterissuers.cert-manager.io"
+	DependingCsrAnnotation     string = "banzaicloud.io/csr"
+	IncludeFullChainAnnotation string = "csr.banzaicloud.io/fullchain"
 )
 
 type K8sCSR interface {
