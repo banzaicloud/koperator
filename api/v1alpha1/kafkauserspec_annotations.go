@@ -22,10 +22,10 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-// annotationsWhithValidations is a map whose keys are KafkaUserSpec annotation keys, and values are validators
-type annotationsWhithValidations map[string]annotationValidator
+// annotationsWithValidations is a map whose keys are KafkaUserSpec annotation keys, and values are validators
+type annotationsWithValidations map[string]annotationValidator
 
-func (a annotationsWhithValidations) validate(as map[string]string) error {
+func (a annotationsWithValidations) validate(as map[string]string) error {
 	for key, value := range as {
 		validator, ok := a[key]
 		if !ok {
@@ -39,7 +39,7 @@ func (a annotationsWhithValidations) validate(as map[string]string) error {
 	return nil
 }
 
-func (a annotationsWhithValidations) getNotSupportedAnnotationError() error {
+func (a annotationsWithValidations) getNotSupportedAnnotationError() error {
 	return fmt.Errorf("kafkauser annotations contain a not supported annotation for the signer, supported annotations: %v", maps.Keys(a))
 }
 
@@ -48,10 +48,10 @@ type annotationValidator interface {
 	validate(string) error
 }
 
-// newCertManagerSignerAnnotationsWithValidators returns annotationsWhithValidations for cert-manager pki backend signer
-func newCertManagerSignerAnnotationsWithValidators() annotationsWhithValidations {
+// newCertManagerSignerAnnotationsWithValidators returns annotationsWithValidations for cert-manager pki backend signer
+func newCertManagerSignerAnnotationsWithValidators() annotationsWithValidations {
 	var c certManagerRequestDurationValidator
-	return annotationsWhithValidations{
+	return annotationsWithValidations{
 		"experimental.cert-manager.io/request-duration": &c,
 	}
 }
