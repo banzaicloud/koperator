@@ -15,6 +15,7 @@
 package v1alpha1
 
 import (
+	"strings"
 	"time"
 
 	"github.com/banzaicloud/koperator/api/util"
@@ -26,6 +27,8 @@ import (
 const (
 	// default certificate duration if kafkauser.spec.expirationSeconds is not set
 	defaultCertificateDuration = time.Hour * 24 * 90
+	// CertManagerSignerNamePrefix is acceptable pki backend signerName prefix for cert-manager
+	CertManagerSignerNamePrefix string = "clusterissuers.cert-manager.io"
 )
 
 // KafkaUserSpec defines the desired state of KafkaUser
@@ -108,6 +111,19 @@ func (spec *KafkaUserSpec) GetIfCertShouldBeCreated() bool {
 // GetAnnotations returns Annotations to use for certificate or certificate signing request object
 func (spec *KafkaUserSpec) GetAnnotations() map[string]string {
 	return util.CloneMap(spec.Annotations)
+}
+
+// ValidateAnnotations checks if certificate signing request annotations are valid
+func (spec *KafkaUserSpec) ValidateAnnotations() error {
+	// Validate annotations for cert-manager pki backend signer
+	if strings.Split(spec.PKIBackendSpec.SignerName, "/")[0] == CertManagerSignerNamePrefix {
+		certManagerCSRAnnotations := newCertManagerSignerAnnotationsWithValidators()
+		err := certManagerCSRAnnotations.validate(spec.GetAnnotations())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (spec *KafkaUserSpec) GetExpirationSeconds() int32 {
