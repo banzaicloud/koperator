@@ -31,13 +31,12 @@ const (
 	kubectlArgGoTemplateExternalListenersName             = `-o=go-template='{{range $key,$value := .status.listenerStatuses.externalListeners}}{{$key}}{{"\n"}}{{end}}`
 	kubectlArgGoTemplateExternalListenerAddressesTemplate = `-o=go-template='{{range .status.listenerStatuses.externalListeners.%s}}{{.address}}{{"\n"}}{{end}}`
 
-
-	crdKind                    = "customresourcedefinitions.apiextensions.k8s.io"
-	kafkaKind                  = "kafkaclusters.kafka.banzaicloud.io"
-	kafkaTopicKind             = "kafkatopics.kafka.banzaicloud.io"
-	kafkaClusterName           = "kafka"
-	testExternalTopicName      = "topic-test-external"
-	testInternalTopicName      = "topic-test-internal"
+	crdKind               = "customresourcedefinitions.apiextensions.k8s.io"
+	kafkaKind             = "kafkaclusters.kafka.banzaicloud.io"
+	kafkaTopicKind        = "kafkatopics.kafka.banzaicloud.io"
+	kafkaClusterName      = "kafka"
+	testExternalTopicName = "topic-test-external"
+	testInternalTopicName = "topic-test-internal"
 
 	kcatPodName                = "kcat"
 	zookeeperKind              = "zookeeperclusters.zookeeper.pravega.io"
