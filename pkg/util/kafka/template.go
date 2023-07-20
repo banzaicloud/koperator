@@ -21,4 +21,6 @@ const (
 	HeadlessServiceTemplate = "%s-headless"
 	// NodePortServiceTemplate template for Kafka nodeport service
 	NodePortServiceTemplate = "%s-%d-%s"
+
+	BrokerConfigErrorMsgTemplate = "setting '%s' in broker configuration resulted in an error"
 )

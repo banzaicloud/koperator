@@ -21,10 +21,17 @@ const ConfigPropertyName = "broker-config"
 const (
 	KafkaConfigSuperUsers = "super.users"
 
-	KafkaConfigBoostrapServers    = "bootstrap.servers"
-	KafkaConfigZooKeeperConnect   = "zookeeper.connect"
-	KafkaConfigBrokerId           = "broker.id"
+	KafkaConfigBoostrapServers  = "bootstrap.servers"
+	KafkaConfigZooKeeperConnect = "zookeeper.connect"
+	// KafkaConfigBrokerID is used in ZooKeeper mode
+	KafkaConfigBrokerID           = "broker.id"
 	KafkaConfigBrokerLogDirectory = "log.dirs"
+
+	// Configuration keys for KRaft
+	KafkaConfigNodeID                 = "node.id"
+	KafkaConfigProcessRoles           = "process.roles"
+	KafkaConfigControllerQuorumVoters = "controller.quorum.voters"
+	KafkaConfigControllerListenerName = "controller.listener.names"
 
 	KafkaConfigListeners                   = "listeners"
 	KafkaConfigListenerName                = "listener.name"
@@ -45,7 +52,13 @@ const (
 
 // used for Cruise Control configurations
 const (
-	CruiseControlConfigMetricsReporters                 = "metric.reporters"
-	CruiseControlConfigMetricsReportersBootstrapServers = "cruise.control.metrics.reporter.bootstrap.servers"
-	CruiseControlConfigMetricsReporterK8sMode           = "cruise.control.metrics.reporter.kubernetes.mode"
+	CruiseControlConfigMetricsReporters                  = "metric.reporters"
+	CruiseControlConfigMetricsReportersBootstrapServers  = "cruise.control.metrics.reporter.bootstrap.servers"
+	CruiseControlConfigMetricsReporterK8sMode            = "cruise.control.metrics.reporter.kubernetes.mode"
+	CruiseControlConfigTopicConfigProviderClass          = "topic.config.provider.class"
+	CruiseControlConfigKafkaBrokerFailureDetectionEnable = "kafka.broker.failure.detection.enable"
+
+	CruiseControlConfigMetricsReportersVal                  = "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"
+	CruiseControlConfigTopicConfigProviderClassVal          = "com.linkedin.kafka.cruisecontrol.config.KafkaAdminTopicConfigProvider"
+	CruiseControlConfigKafkaBrokerFailureDetectionEnableVal = "true"
 )

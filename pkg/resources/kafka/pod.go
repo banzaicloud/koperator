@@ -43,6 +43,7 @@ var (
 
 func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
 	var kafkaBrokerContainerPorts []corev1.ContainerPort
+	const kafkaContainerName = "kafka"
 
 	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
 		if _, ok := r.KafkaCluster.Status.ListenerStatuses.ExternalListeners[eListener.Name]; !ok {
@@ -100,7 +101,7 @@ func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []co
 			Affinity:        getAffinity(brokerConfig, r.KafkaCluster),
 			Containers: append([]corev1.Container{
 				{
-					Name:  "kafka",
+					Name:  kafkaContainerName,
 					Image: util.GetBrokerImage(brokerConfig, r.KafkaCluster.Spec.GetClusterImage()),
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.LifecycleHandler{
@@ -165,6 +166,19 @@ fi`},
 	if r.KafkaCluster.Spec.HeadlessServiceEnabled {
 		pod.Spec.Hostname = fmt.Sprintf("%s-%d", r.KafkaCluster.Name, id)
 		pod.Spec.Subdomain = fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.Name)
+	}
+
+	// in KRaft mode, all broker nodes within the same Kafka cluster need to use the same cluster UUID to format the storage
+	if r.KafkaCluster.Spec.KraftMode() {
+		for i, container := range pod.Spec.Containers {
+			if container.Name == kafkaContainerName {
+				pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, corev1.EnvVar{
+					Name:  "CLUSTER_ID",
+					Value: r.KafkaCluster.Status.ClusterID,
+				})
+				break
+			}
+		}
 	}
 
 	return pod

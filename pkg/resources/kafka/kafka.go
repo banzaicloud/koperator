@@ -308,6 +308,19 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 	reorderedBrokers := reorderBrokers(runningBrokers, boundPersistentVolumeClaims, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID, log)
 	allBrokerDynamicConfigSucceeded := true
+
+	// all broker nodes under the same Kafka cluster must use the same cluster UUID
+	if r.KafkaCluster.Status.ClusterID == "" {
+		r.KafkaCluster.Status.ClusterID = generateRandomClusterID()
+		err = r.Client.Status().Update(ctx, r.KafkaCluster)
+		if apierrors.IsNotFound(err) {
+			err = r.Client.Update(ctx, r.KafkaCluster)
+		}
+		if err != nil {
+			return errors.WrapIf(err, "could not update cluster UUID status")
+		}
+	}
+
 	for _, broker := range reorderedBrokers {
 		brokerConfig, err := broker.GetBrokerConfig(r.KafkaCluster.Spec)
 		if err != nil {
@@ -316,14 +329,14 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		var configMap *corev1.ConfigMap
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
+			configMap = r.configMap(broker, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
 			}
 		} else if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 			if brokerState.RackAwarenessState != "" {
-				configMap = r.configMap(broker.Id, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
+				configMap = r.configMap(broker, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 				err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 				if err != nil {
 					return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())

@@ -28,5 +28,11 @@ if [[ -n "$ENVOY_SIDECAR_STATUS" ]]; then
   done
 fi
 touch /var/run/wait/do-not-exit-yet
+
+if [[ -n "$CLUSTER_ID" ]]; then
+echo "Formatting storage directories in KRaft mode with cluster ID $CLUSTER_ID"
+/opt/kafka/bin/kafka-storage.sh format --cluster-id "$CLUSTER_ID" -c /config/broker-config
+fi
+
 /opt/kafka/bin/kafka-server-start.sh /config/broker-config
 rm /var/run/wait/do-not-exit-yet

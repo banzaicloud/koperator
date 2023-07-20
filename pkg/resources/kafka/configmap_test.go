@@ -683,7 +683,8 @@ zookeeper.connect=example.zk:2181/`,
 				superUsers = []string{"CN=kafka-headless.kafka.svc.cluster.local"}
 			}
 
-			generatedConfig := r.generateBrokerConfig(0, r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{}, map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, serverPasses, clientPass, superUsers, logr.Discard())
+			generatedConfig := r.generateBrokerConfig(r.KafkaCluster.Spec.Brokers[0], r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{},
+				map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, serverPasses, clientPass, superUsers, logr.Discard())
 
 			generated, err := properties.NewFromString(generatedConfig)
 			if err != nil {

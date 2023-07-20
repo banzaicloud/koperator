@@ -50,14 +50,14 @@ func (r *Reconciler) podDisruptionBudget(log logr.Logger, extListener v1beta1.Ex
 	var spec policyv1.PodDisruptionBudgetSpec
 	var matchLabels = labelsForEnvoyIngress(r.KafkaCluster.GetName(), eListenerLabelName)
 
-	if pdbConfig.Stategy == MIN_AVAILABLE {
+	if pdbConfig.Strategy == MIN_AVAILABLE {
 		spec = policyv1.PodDisruptionBudgetSpec{
 			MinAvailable: &budget,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 			},
 		}
-	} else if pdbConfig.Stategy == MAX_UNAVAILABLE {
+	} else if pdbConfig.Strategy == MAX_UNAVAILABLE {
 		spec = policyv1.PodDisruptionBudgetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
