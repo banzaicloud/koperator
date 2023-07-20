@@ -49,8 +49,16 @@ func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName str
 
 }
 
-// requireCreatingKafkaUser creates a KafkaUser resource from a template
-func requireCreatingKafkaUser(kubectlOptions k8s.KubectlOptions, userName string, tlsSecretName string) {
+// requireDeleteKafkaUser deletes a kafkaUser resource by name
+func requireDeleteKafkaUser(kubectlOptions k8s.KubectlOptions, userName string) {
+	It("Deleting KafkaUser CR", func() {
+		err := deleteK8sResource(kubectlOptions, defaultDeletionTimeout, kafkaUserKind, "", userName)
+		Expect(err).NotTo(HaveOccurred())
+	})
+}
+
+// requireDeployingKafkaUser creates a KafkaUser resource from a template
+func requireDeployingKafkaUser(kubectlOptions k8s.KubectlOptions, userName string, tlsSecretName string) {
 	It("Deploying KafkaUser CR", func() {
 		templateParameters := map[string]interface{}{
 			"Name":        userName,

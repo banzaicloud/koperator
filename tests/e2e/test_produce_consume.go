@@ -38,12 +38,13 @@ func testProduceConsumeInternalSSL(tlsSecretName string) bool {
 
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
 
-		requireCreatingKafkaUser(kubectlOptions, kafkaUserName, tlsSecretName)
+		requireDeployingKafkaUser(kubectlOptions, kafkaUserName, tlsSecretName)
 		requireDeployingKcatPod(kubectlOptions, kcatPodName, tlsSecretName)
 		requireDeployingKafkaTopic(kubectlOptions, testInternalTopicName)
 		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testInternalTopicName, tlsSecretName)
 		requireDeleteKafkaTopic(kubectlOptions, testInternalTopicName)
 		requireDeleteKcatPod(kubectlOptions, kcatPodName)
+		requireDeleteKafkaUser(kubectlOptions, kafkaUserName)
 	})
 }
 
