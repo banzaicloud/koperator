@@ -12838,6 +12838,14 @@ spec:
                       type: object
                     brokerConfigGroup:
                       type: string
+                    brokerRoles:
+                      description: 'brokerRoles defines the role(s) for this particular
+                        broker node: regular broker, controller, or both. This must
+                        be set in KRaft mode.'
+                      items:
+                        type: string
+                      maxItems: 2
+                      type: array
                     id:
                       description: id maps to "node.id" configuration in KRaft mode,
                         and it maps to "broker.id" configuration in ZooKeeper mode.
