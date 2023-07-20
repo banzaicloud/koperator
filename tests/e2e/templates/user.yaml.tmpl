@@ -5,7 +5,7 @@ metadata:
   namespace: {{or .Namespace "kafka" }}
 spec:
   clusterRef:
-    name: kafka
+    name: {{or .ClusterName "kafka" }}
   {{ with .TLSSecretName }}
   secretName: {{ . }}
   {{ end }}

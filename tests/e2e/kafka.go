@@ -53,8 +53,9 @@ func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName str
 func requireCreatingKafkaUser(kubectlOptions k8s.KubectlOptions, userName string, tlsSecretName string) {
 	It("Deploying KafkaUser CR", func() {
 		templateParameters := map[string]interface{}{
-			"Name":      userName,
-			"Namespace": kubectlOptions.Namespace,
+			"Name":        userName,
+			"Namespace":   kubectlOptions.Namespace,
+			"ClusterName": kafkaClusterName,
 		}
 		if tlsSecretName != "" {
 			templateParameters["TLSSecretName"] = tlsSecretName
