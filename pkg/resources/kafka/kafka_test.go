@@ -1125,7 +1125,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 			errorExpected:     true,
 		},
 		{
-			testName: "Pod is deleted if allowed concurrent restarts is not specified and failure threshold is not reached",
+			testName: "Pod is deleted if allowed concurrent restarts is default and failure threshold is not reached",
 			kafkaCluster: v1beta1.KafkaCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "kafka",
@@ -1140,7 +1140,8 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 						{Id: 301, ReadOnlyConfig: "broker.rack=az3"},
 						{Id: 302, ReadOnlyConfig: "broker.rack=az3"}},
 					RollingUpgradeConfig: v1beta1.RollingUpgradeConfig{
-						FailureThreshold: 1,
+						FailureThreshold:                    1,
+						ConcurrentBrokerRestartCountPerRack: 1,
 					},
 				},
 				Status: v1beta1.KafkaClusterStatus{State: v1beta1.KafkaClusterRollingUpgrading},
@@ -1262,6 +1263,124 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 			outOfSyncReplicas: []int32{101},
 			errorExpected:     false,
 		},
+		{
+			testName: "Pod is not deleted if pod is restarting in another AZ, if brokers per AZ < tolerated failures",
+			kafkaCluster: v1beta1.KafkaCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kafka",
+					Namespace: "kafka",
+				},
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{Id: 101, ReadOnlyConfig: "broker.rack=az1"},
+						{Id: 201, ReadOnlyConfig: "broker.rack=az2"},
+						{Id: 301, ReadOnlyConfig: "broker.rack=az3"},
+					},
+					RollingUpgradeConfig: v1beta1.RollingUpgradeConfig{
+						FailureThreshold:                    2,
+						ConcurrentBrokerRestartCountPerRack: 2,
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{State: v1beta1.KafkaClusterRollingUpgrading},
+			},
+			desiredPod: &corev1.Pod{},
+			currentPod: &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
+			pods: []corev1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-101", Labels: map[string]string{"brokerId": "101"}, DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
+			},
+			errorExpected: true,
+		},
+		{
+			testName: "Pod is not deleted if there are out-of-sync replicas in another AZ, if brokers per AZ < tolerated failures",
+			kafkaCluster: v1beta1.KafkaCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kafka",
+					Namespace: "kafka",
+				},
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{Id: 101, ReadOnlyConfig: "broker.rack=az1"},
+						{Id: 201, ReadOnlyConfig: "broker.rack=az2"},
+						{Id: 301, ReadOnlyConfig: "broker.rack=az3"},
+					},
+					RollingUpgradeConfig: v1beta1.RollingUpgradeConfig{
+						FailureThreshold:                    2,
+						ConcurrentBrokerRestartCountPerRack: 2,
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{State: v1beta1.KafkaClusterRollingUpgrading},
+			},
+			desiredPod: &corev1.Pod{},
+			currentPod: &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
+			pods: []corev1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-101", Labels: map[string]string{"brokerId": "101"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
+			},
+			outOfSyncReplicas: []int32{101},
+			errorExpected:     true,
+		},
+		{
+			testName: "Pod is not deleted if there are offline replicas in another AZ, if brokers per AZ < tolerated failures",
+			kafkaCluster: v1beta1.KafkaCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kafka",
+					Namespace: "kafka",
+				},
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{Id: 101, ReadOnlyConfig: "broker.rack=az1"},
+						{Id: 201, ReadOnlyConfig: "broker.rack=az2"},
+						{Id: 301, ReadOnlyConfig: "broker.rack=az3"},
+					},
+					RollingUpgradeConfig: v1beta1.RollingUpgradeConfig{
+						FailureThreshold:                    2,
+						ConcurrentBrokerRestartCountPerRack: 2,
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{State: v1beta1.KafkaClusterRollingUpgrading},
+			},
+			desiredPod: &corev1.Pod{},
+			currentPod: &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
+			pods: []corev1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-101", Labels: map[string]string{"brokerId": "101"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
+			},
+			allOfflineReplicas: []int32{101},
+			errorExpected:      true,
+		},
+		{
+			testName: "Pod is not deleted if pod is restarting in another AZ, if broker rack value contains dashes",
+			kafkaCluster: v1beta1.KafkaCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kafka",
+					Namespace: "kafka",
+				},
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{Id: 101, ReadOnlyConfig: "broker.rack=az-1"},
+						{Id: 201, ReadOnlyConfig: "broker.rack=az-2"},
+						{Id: 301, ReadOnlyConfig: "broker.rack=az-3"},
+					},
+					RollingUpgradeConfig: v1beta1.RollingUpgradeConfig{
+						FailureThreshold:                    2,
+						ConcurrentBrokerRestartCountPerRack: 2,
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{State: v1beta1.KafkaClusterRollingUpgrading},
+			},
+			desiredPod: &corev1.Pod{},
+			currentPod: &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
+			pods: []corev1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-101", Labels: map[string]string{"brokerId": "101"}, DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
+			},
+			errorExpected: true,
+		},
 	}
 
 	mockCtrl := gomock.NewController(t)
@@ -1288,7 +1407,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 
 			// Mock kafka client
 			mockedKafkaClient := new(mocks.KafkaClient)
-			mockedKafkaClient.On("AllOfflineReplicas").Return(test.outOfSyncReplicas, nil)
+			mockedKafkaClient.On("AllOfflineReplicas").Return(test.allOfflineReplicas, nil)
 			mockedKafkaClient.On("OutOfSyncReplicas").Return(test.outOfSyncReplicas, nil)
 			mockKafkaClientProvider.On("NewFromCluster", mockClient, &test.kafkaCluster).Return(mockedKafkaClient, func() {}, nil)
 
