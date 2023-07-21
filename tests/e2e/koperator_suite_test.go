@@ -17,52 +17,162 @@
 package e2e
 
 import (
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
-	"github.com/gruntwork-io/terratest/modules/k8s"
+	"github.com/banzaicloud/koperator/tests/e2e/pkg/common/config"
+	"github.com/banzaicloud/koperator/tests/e2e/pkg/tests"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/reporters"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/spf13/viper"
 )
 
-func TestKoperator(t *testing.T) {
-	RegisterFailHandler(Fail) // Note: Ginkgo - Gomega connector.
-	RunSpecs(t, "Koperator end to end test suite")
+var testPool tests.TestPool
+
+func beforeSuite() ([]tests.TestType, error) {
+	k8sClusterPool := tests.K8sClusterPool{}
+	k8sClusterPool.AddK8sClusters(
+		tests.NewMockK8sCluster(
+			"testContextPath1",
+			"testContextName1",
+			true,
+			"1.24",
+			"provider1",
+			"clusterID1",
+		),
+		tests.NewMockK8sCluster(
+			"testContextPath2",
+			"testContextName2",
+			true,
+			"1.24",
+			"provider2",
+			"clusterID2",
+		),
+		tests.NewMockK8sCluster(
+			"testContextPath3",
+			"testContextName3",
+			true,
+			"1.24",
+			"provider3",
+			"clusterID3",
+		),
+		tests.NewMockK8sCluster(
+			"testContextPath4",
+			"testContextName4",
+			true,
+			"1.26",
+			"provider4",
+			"clusterID4",
+		),
+	)
+
+	classifier := tests.NewClassifier(k8sClusterPool, mockTest1, mockTest2)
+
+	var tests []tests.TestType
+	testStrategy := viper.GetString(config.Tests.TestStrategy)
+
+	switch testStrategy {
+	case config.TestStrategyMinimal:
+		tests = classifier.Minimal()
+	case config.TestStrategyVersionComplete:
+		tests = classifier.VersionComplete()
+	case config.TestStrategyProviderComplete:
+		tests = classifier.ProviderComplete()
+	case config.TestStrategyComplete:
+		tests = classifier.Complete()
+	}
+
+	return tests, nil
 }
 
-var _ = BeforeSuite(func() {
-	By("Acquiring K8s cluster")
-	var kubeconfigPath string
-	var kubecontextName string
+func TestKoperator(t *testing.T) {
+	var err error
 
-	By("Acquiring K8s config and context", func() {
-		var err error
-		kubeconfigPath, kubecontextName, err = currentEnvK8sContext()
-		Expect(err).NotTo(HaveOccurred())
-	})
+	err = runGinkgoTests(t)
+	if err != nil {
+		log.Printf("Koperator e2e start failed: %v", err)
+	}
+}
 
-	By("Listing kube-system pods", func() {
-		pods := k8s.ListPods(
-			ginkgo.GinkgoT(),
-			k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kube-system"),
-			v1.ListOptions{},
+func runGinkgoTests(t *testing.T) error {
+	RegisterFailHandler(Fail)
+	suiteConfig, reporterConfig := GinkgoConfiguration()
+
+	// Run only selected tests by testID label e.g: "testID:4e980f5b5c"
+	if labelFilter := viper.GetString(config.Tests.LabelFilter); labelFilter != "" {
+		suiteConfig.LabelFilter = labelFilter
+	}
+
+	var err error
+	// Generated and load tests into the pool
+	testPool, err = beforeSuite()
+	if err != nil {
+		return err
+	}
+
+	testSuiteDuration := testPool.GetTestSuiteDuration()
+	maxTimeout, err := time.ParseDuration(viper.GetString(config.Tests.MaxTimeout))
+	if err != nil {
+		return fmt.Errorf("could not parse MaxTimeout into time.Duration: %w", err)
+	}
+	// Protection against too long test suites
+	if testSuiteDuration > maxTimeout {
+		return fmt.Errorf("tests estimated duration: '%fmin' bigger then maxTimeout: '%fmin'", testSuiteDuration.Seconds(), maxTimeout.Seconds())
+	}
+
+	// Calculated timeout can be overran with the specified time length
+	allowedOverrun, err := time.ParseDuration(viper.GetString(config.Tests.AllowedOverrunDuration))
+	if err != nil {
+		return fmt.Errorf("could not parse AllowedOverrunDuration into time.Duration: %w", err)
+	}
+	// Set TestSuite timeout based on the generated tests
+	suiteConfig.Timeout = testSuiteDuration + allowedOverrun
+
+	if viper.GetBool(config.Tests.CreateTestReportFile) {
+		if err := createTestReportFile(); err != nil {
+			return err
+		}
+	}
+
+	func() {
+		defer ginkgo.GinkgoRecover()
+		RunSpecs(t, testPool.PoolInfo(), suiteConfig, reporterConfig)
+	}()
+
+	return nil
+
+}
+
+func createTestReportFile() error {
+	reportDir := viper.GetString(config.Tests.ReportDir)
+	if _, err := os.Stat(reportDir); os.IsNotExist(err) {
+		if err := os.Mkdir(reportDir, os.FileMode(0o777)); err != nil {
+			return fmt.Errorf("error while creating report directory %s err: %s", reportDir, err.Error())
+		}
+	}
+	// Generate JUnit report once all tests have finished with customized settings
+	_ = ginkgo.ReportAfterSuite("Koperator e2e", func(report ginkgo.Report) {
+		err := reporters.GenerateJUnitReportWithConfig(
+			report,
+			filepath.Join(reportDir, fmt.Sprintf("e2e_%s_%v.xml", viper.GetString(config.Tests.TestStrategy), time.Now().Format(time.RFC3339))),
+			reporters.JunitReportConfig{OmitSpecLabels: false, OmitLeafNodeType: false},
 		)
-
-		Expect(len(pods)).To(Not(BeZero()))
+		if err != nil {
+			log.Printf("error creating junit report file %s", err.Error())
+		}
 	})
-})
+	return nil
+}
 
-var _ = When("Testing e2e test altogether", Ordered, func() {
-	var snapshottedInfo = &clusterSnapshot{}
-	snapshotCluster(snapshottedInfo)
-	testInstall()
-	testInstallZookeeperCluster()
-	testInstallKafkaCluster("../../config/samples/simplekafkacluster.yaml")
-	testUninstallKafkaCluster()
-	testInstallKafkaCluster("../../config/samples/simplekafkacluster_ssl.yaml")
-	testUninstallKafkaCluster()
-	testUninstallZookeeperCluster()
-	testUninstall()
-	snapshotClusterAndCompare(snapshottedInfo)
+// Root Describe container
+var _ = Describe(time.Now().Format(time.RFC3339), func() {
+	// In the root container there is no Ordered decorator
+	// ginkgo execute parallel the generated tests by K8sClusters
+	testPool.BuildParallelByK8sCluster()
 })

@@ -101,6 +101,34 @@ func createOrReplaceK8sResourcesFromManifest( //nolint:unused // Note: this migh
 	}
 }
 
+func getDefaultKubeContext(kubeconfigPath string) (string, error) {
+	kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
+	if err != nil {
+		return "", errors.WrapIfWithDetails(err, "reading KUBECONFIG file failed", "path", kubeconfigPath)
+	}
+
+	structuredKubeconfig := make(map[string]interface{})
+	err = yaml.Unmarshal(kubeconfigBytes, &structuredKubeconfig)
+	if err != nil {
+		return "", errors.WrapIfWithDetails(
+			err,
+			"parsing kubeconfig failed",
+			"kubeconfig", string(kubeconfigBytes),
+		)
+	}
+
+	kubecontext, isOk := structuredKubeconfig["current-context"].(string)
+	if !isOk {
+		return "", errors.WrapIfWithDetails(
+			err,
+			"kubeconfig current-context is not string",
+			"current-context", structuredKubeconfig["current-context"],
+		)
+	}
+
+	return kubecontext, nil
+}
+
 // currentKubernetesContext returns the currently set Kubernetes context based
 // on the the environment variables and the KUBECONFIG file.
 func currentEnvK8sContext() (kubeconfigPath string, kubecontextName string, err error) {
@@ -114,28 +142,9 @@ func currentEnvK8sContext() (kubeconfigPath string, kubecontextName string, err 
 		kubeconfigPath = path.Join(homePath, ".kube", "config")
 	}
 
-	kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
+	kubecontext, err := getDefaultKubeContext(kubeconfigPath)
 	if err != nil {
-		return "", "", errors.WrapIfWithDetails(err, "reading KUBECONFIG file failed", "path", kubeconfigPath)
-	}
-
-	structuredKubeconfig := make(map[string]interface{})
-	err = yaml.Unmarshal(kubeconfigBytes, &structuredKubeconfig)
-	if err != nil {
-		return "", "", errors.WrapIfWithDetails(
-			err,
-			"parsing kubeconfig failed",
-			"kubeconfig", string(kubeconfigBytes),
-		)
-	}
-
-	kubecontext, isOk := structuredKubeconfig["current-context"].(string)
-	if !isOk {
-		return "", "", errors.WrapIfWithDetails(
-			err,
-			"kubeconfig current-context is not string",
-			"current-context", structuredKubeconfig["current-context"],
-		)
+		return "", "", err
 	}
 
 	return kubeconfigPath, kubecontext, nil

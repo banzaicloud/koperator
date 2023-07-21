@@ -108,6 +108,9 @@ test-e2e:
 		--ginkgo.trace \
 		--ginkgo.v
 
+test-e2e-parallel:
+	ginkgo -p -v --tags e2e tests/e2e
+
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/manager main.go
