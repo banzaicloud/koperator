@@ -168,14 +168,26 @@ fi`},
 		pod.Spec.Subdomain = fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.Name)
 	}
 
-	// in KRaft mode, all broker nodes within the same Kafka cluster need to use the same cluster UUID to format the storage
 	if r.KafkaCluster.Spec.KraftMode() {
 		for i, container := range pod.Spec.Containers {
 			if container.Name == kafkaContainerName {
-				pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, corev1.EnvVar{
-					Name:  "CLUSTER_ID",
-					Value: r.KafkaCluster.Status.ClusterID,
-				})
+				// in KRaft mode, all broker nodes within the same Kafka cluster need to use the same cluster ID to format the storage
+				pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env,
+					corev1.EnvVar{
+						Name:  "CLUSTER_ID",
+						Value: r.KafkaCluster.Status.ClusterID,
+					},
+				)
+				// see how this env var is used in wait-for-envoy-sidecars.sh
+				storageMountPaths := brokerConfig.GetStorageMountPaths()
+				if storageMountPaths != "" {
+					pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env,
+						corev1.EnvVar{
+							Name:  "LOG_DIRS",
+							Value: brokerConfig.GetStorageMountPaths(),
+						},
+					)
+				}
 				break
 			}
 		}

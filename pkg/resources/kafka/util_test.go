@@ -338,5 +338,4 @@ func TestGenerateQuorumVoters(t *testing.T) {
 			}
 		})
 	}
-
 }
