@@ -201,7 +201,7 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 		// Validate the KafkaUser instance annotations before creating a certificate request
 		err := instance.Spec.ValidateAnnotations()
 		if err != nil {
-			return requeueWithError(reqLogger, "failed to reconcile kafkauser", err)
+			return requeueWithError(reqLogger, "failed to reconcile kafkauser while validating annotations", err)
 		}
 
 		// Avoid panic if the user wants to create a kafka user but the cluster is in plaintext mode
