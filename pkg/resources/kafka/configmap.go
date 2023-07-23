@@ -53,11 +53,9 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, broker v
 
 	// Kafka Broker configurations
 	if r.KafkaCluster.Spec.KraftMode() {
-		configureBrokerKRaftMode(broker, r.KafkaCluster, config, bootstrapServers, serverPasses, extListenerStatuses,
-			intListenerStatuses, controllerIntListenerStatuses, log)
+		configureBrokerKRaftMode(broker, r.KafkaCluster, config, serverPasses, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, log)
 	} else {
-		configureBrokerZKMode(broker.Id, r.KafkaCluster, config, serverPasses, extListenerStatuses,
-			intListenerStatuses, controllerIntListenerStatuses, log)
+		configureBrokerZKMode(broker.Id, r.KafkaCluster, config, serverPasses, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, log)
 	}
 
 	// This logic prevents the removal of the mountPath from the broker configmap
@@ -135,9 +133,7 @@ func configCCMetricsReporter(kafkaCluster *v1beta1.KafkaCluster, config *propert
 	}
 }
 
-func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.KafkaCluster, config *properties.Properties,
-	bootstrapServers string, serverPasses map[string]string, extListenerStatuses, intListenerStatuses,
-	controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList, log logr.Logger) {
+func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.KafkaCluster, config *properties.Properties, serverPasses map[string]string, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList, log logr.Logger) {
 	if err := config.Set(kafkautils.KafkaConfigNodeID, broker.Id); err != nil {
 		log.Error(err, fmt.Sprintf(kafkautils.BrokerConfigErrorMsgTemplate, kafkautils.KafkaConfigNodeID))
 	}
