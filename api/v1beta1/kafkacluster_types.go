@@ -74,11 +74,7 @@ type KafkaClusterSpec struct {
 	// This is default to be true; if set to false, the Kafka cluster is in ZooKeeper mode.
 	// +kubebuilder:default=true
 	// +optional
-<<<<<<< HEAD
 	KRaftMode              bool            `json:"kRaft"`
-=======
-	KRaftMode              bool            `json:"kRaft,omitempty"`
->>>>>>> 199eb1e6 (Modify KafkaCluster API to support running in KRaft)
 	HeadlessServiceEnabled bool            `json:"headlessServiceEnabled"`
 	ListenersConfig        ListenersConfig `json:"listenersConfig"`
 	// Custom ports to expose in the container. Example use case: a custom kafka distribution, that includes an integrated metrics api endpoint
