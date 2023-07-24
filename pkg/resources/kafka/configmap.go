@@ -158,10 +158,8 @@ func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.Kafka
 	config.Merge(listenerConf)
 
 	var advertisedListenerConf []string
-
-	// expose controller listener in the listeners configuration only if this broker is a controller
-	// also expose only controller listener as the advertised.listeners configuration when this broker is a controller
-	if !isControllerNode(broker.Roles) {
+	// only expose "advertised.listeners" when the node serves as a regular broker or a combined node
+	if isBrokerNode(broker.Roles) {
 		advertisedListenerConf = generateAdvertisedListenerConfig(broker.Id, kafkaCluster.Spec.ListenersConfig,
 			extListenerStatuses, intListenerStatuses, nil)
 		if err := config.Set(kafkautils.KafkaConfigAdvertisedListeners, advertisedListenerConf); err != nil {
@@ -169,8 +167,8 @@ func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.Kafka
 		}
 	}
 
-	// "listeners" configuration can only contain controller configuration when the node is a controller-only node
 	if isControllerNodeOnly(broker.Roles) {
+		// "listeners" configuration can only contain controller configuration when the node is a controller-only node
 		for _, listener := range listenerConfig {
 			if listener[:len(controllerListenerName)] == strings.ToUpper(controllerListenerName) {
 				if err := config.Set(kafkautils.KafkaConfigListeners, listener); err != nil {
@@ -179,11 +177,9 @@ func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.Kafka
 				break
 			}
 		}
-	}
-
-	// "listeners" configuration cannot contain controller configuration when the node is a broker-only node
-	var nonControllerListener []string
-	if isBrokerNodeOnly(broker.Roles) {
+	} else if isBrokerNodeOnly(broker.Roles) {
+		// "listeners" configuration cannot contain controller configuration when the node is a broker-only node
+		var nonControllerListener []string
 		for _, listener := range listenerConfig {
 			if listener[:len(controllerListenerName)] != strings.ToUpper(controllerListenerName) {
 				nonControllerListener = append(nonControllerListener, listener)
