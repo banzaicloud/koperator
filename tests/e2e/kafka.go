@@ -75,7 +75,7 @@ func requireDeployingKafkaUser(kubectlOptions k8s.KubectlOptions, userName strin
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		secretFound := isExistingK8SResource(kubectlOptions, "secret", tlsSecretName)
+		secretFound := isExistingK8SResource(kubectlOptions, "Secret", tlsSecretName)
 		Expect(secretFound).To(BeTrue())
 	})
 
