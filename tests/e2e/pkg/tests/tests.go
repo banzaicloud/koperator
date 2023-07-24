@@ -19,8 +19,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"sort"
@@ -33,23 +31,25 @@ import (
 	"github.com/onsi/ginkgo/v2/dsl/decorators"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/maps"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type TestPool []TestType
+//	[]testCase
+//		|
+// Classifier ==> TestPool <-- []Test <-- K8sCluster <-- ClusterInfo
+// 		^						 ^
+//		|						 |
+// 	K8sClusterPool 			   testCase
+
+type TestPool []Test
 
 func (tests TestPool) Equal(other TestPool) bool {
 	if len(tests) != len(other) {
 		return false
 	}
 
-	sort.SliceStable(tests, func(i, j int) bool {
-		return tests[i].less(tests[j])
-	})
-	sort.SliceStable(other, func(i, j int) bool {
-		return other[i].less(other[j])
-	})
+	tests.Sort()
+	other.Sort()
 
 	for i := range tests {
 		if !tests[i].equal(other[i]) {
@@ -61,34 +61,53 @@ func (tests TestPool) Equal(other TestPool) bool {
 
 func (tests TestPool) PoolInfo() string {
 	testsByContextName := tests.getTestsByContextName()
+	testsByProviders := tests.getTestsByProviders()
+	testsByVersions := tests.getTestsByVersions()
 
 	return fmt.Sprintf(`
 NumberOfTests: %d
 NumberOfK8sClusters: %d
-NumberOfK8sVersions:
-NumberOfK8sProviders:
+K8sVersions: %v
+K8sProviders: %v
 TestK8sMapping: %v
 TestStrategy: %s
 ExpectedDurationSerial: %f
 ExpectedDurationParallel: %f
-`, len(tests), len(maps.Keys(testsByContextName)), tests, viper.GetString(config.Tests.TestStrategy), tests.GetTestSuiteDurationSerial().Seconds(), tests.GetTestSuiteDurationParallel().Seconds())
+`, len(tests), len(maps.Keys(testsByContextName)), maps.Keys(testsByVersions), maps.Keys(testsByProviders),
+		tests, viper.GetString(config.Tests.TestStrategy), tests.GetTestSuiteDurationSerial().Seconds(),
+		tests.GetTestSuiteDurationParallel().Seconds())
 }
 
 func (tests TestPool) BuildParallelByK8sCluster() {
-	testsByClusterID := tests.getTestsByClusterID()
+	testsByClusterID := tests.getSortedTestsByClusterID()
+	testsByClusterIDKeys := sortedKeys(testsByClusterID)
+	describeID := 0
 	// Because of the "Ordered" decorator testCases inside that container will run each after another
 	// so this K8s cluster is dedicated for tests for serial test execution
-	for clusterID, tests := range testsByClusterID {
-		Describe(clusterID, decorators.Label(fmt.Sprintf("clusterID:%s", clusterID)), Ordered, func() {
-			for _, t := range tests {
-				t.Run()
+	for _, clusterID := range testsByClusterIDKeys {
+		describeID += 1
+		tests := testsByClusterID[clusterID]
+		// Describe name has to be unique and consistent between processes for proper parallelization
+		Describe(fmt.Sprintf("%d:", describeID), decorators.Label(fmt.Sprintf("K8sID:%s", clusterID)), Ordered, func() {
+			for _, test := range tests {
+				test.Run()
 			}
 		})
 	}
 }
 
-func (tests TestPool) getTestsByClusterID() map[string][]TestType {
-	testsByClusterID := make(map[string][]TestType)
+func (tests TestPool) Sort() {
+	sort.SliceStable(tests, func(i, j int) bool {
+		return tests[i].less(tests[j])
+	})
+}
+
+func (tests TestPool) getSortedTestsByClusterID() map[string][]Test {
+	testsByClusterID := make(map[string][]Test)
+	// Need to be sorted to achieve test specs tree consistency between processes
+	// otherwise it can happen that specs order will be different for each process
+	tests.Sort()
+
 	for _, test := range tests {
 		testsByClusterID[test.k8sCluster.clusterInfo.clusterID] = append(testsByClusterID[test.k8sCluster.clusterInfo.clusterID], test)
 	}
@@ -96,8 +115,8 @@ func (tests TestPool) getTestsByClusterID() map[string][]TestType {
 	return testsByClusterID
 }
 
-func (tests TestPool) getTestsByContextName() map[string][]TestType {
-	testsByContextName := make(map[string][]TestType)
+func (tests TestPool) getTestsByContextName() map[string][]Test {
+	testsByContextName := make(map[string][]Test)
 	for _, test := range tests {
 		testsByContextName[test.k8sCluster.kubectlOptions.ContextName] = append(testsByContextName[test.k8sCluster.kubectlOptions.ContextName], test)
 	}
@@ -105,8 +124,28 @@ func (tests TestPool) getTestsByContextName() map[string][]TestType {
 	return testsByContextName
 }
 
+func (tests TestPool) getTestsByVersions() map[string][]Test {
+	testsByVersions := make(map[string][]Test)
+	for _, test := range tests {
+		testsByVersions[test.k8sCluster.clusterInfo.version] = append(testsByVersions[test.k8sCluster.clusterInfo.version], test)
+	}
+
+	return testsByVersions
+}
+
+func (tests TestPool) getTestsByProviders() map[string][]Test {
+	testsByProviders := make(map[string][]Test)
+	for _, test := range tests {
+		testsByProviders[test.k8sCluster.clusterInfo.provider] = append(testsByProviders[test.k8sCluster.clusterInfo.provider], test)
+	}
+
+	return testsByProviders
+}
+
+// GetTestSuiteDurationParallel calculate the expected duration of the tests when
+// suite is executed in parallel
 func (tests TestPool) GetTestSuiteDurationParallel() time.Duration {
-	testsByClusterID := tests.getTestsByClusterID()
+	testsByClusterID := tests.getSortedTestsByClusterID()
 
 	var max time.Duration
 	for _, tests := range testsByClusterID {
@@ -122,6 +161,8 @@ func (tests TestPool) GetTestSuiteDurationParallel() time.Duration {
 	return max
 }
 
+// GetTestSuiteDurationParallel calculate the expected duration of the tests when
+// suite is executed in serial
 func (tests TestPool) GetTestSuiteDurationSerial() time.Duration {
 	var allDuration time.Duration
 	for _, test := range tests {
@@ -130,6 +171,7 @@ func (tests TestPool) GetTestSuiteDurationSerial() time.Duration {
 	return allDuration
 }
 
+// NewClassifier creates a test classifier from K8sClusterPool and TestCases.
 func NewClassifier(k8sClusterPool K8sClusterPool, testCases ...TestCase) Classifier {
 	return Classifier{
 		k8sClusterPool: k8sClusterPool,
@@ -137,17 +179,20 @@ func NewClassifier(k8sClusterPool K8sClusterPool, testCases ...TestCase) Classif
 	}
 }
 
+// Classifier makes pairs from testCases to K8sClusters based on the specified test strategy
 type Classifier struct {
 	k8sClusterPool K8sClusterPool
 	testCases      []TestCase
 }
 
+// Minimal creates a TestPool based on minimal test strategy.
+// It means running every test case exactly once each on any provider and
+// any version of the K8sCluster pool (the ones first available to use).
 func (t Classifier) Minimal() TestPool {
-	t.k8sClusterPool.mixPool()
-	tests := make([]TestType, 0, len(t.testCases))
+	tests := make([]Test, 0, len(t.testCases))
 
 	for i, testCase := range t.testCases {
-		tests = append(tests, TestType{
+		tests = append(tests, Test{
 			testCase:   testCase,
 			k8sCluster: t.k8sClusterPool.k8sClusters[i%len(t.k8sClusterPool.k8sClusters)],
 		})
@@ -155,14 +200,16 @@ func (t Classifier) Minimal() TestPool {
 	return tests
 }
 
+// VersionComplete creates a TestPool based on version complete test strategy.
+// It means running every test case exactly len(versions) times each,
+// using any provider and every version once per case of the K8sCluster pool.
 func (t Classifier) VersionComplete() TestPool {
-	t.k8sClusterPool.mixPool()
 	k8sClustersByVersion := t.k8sClusterPool.getByVersions()
 	tests := make(TestPool, 0, len(t.testCases)*len(maps.Keys(k8sClustersByVersion)))
 
 	for _, k8sClusters := range k8sClustersByVersion {
 		for i, testCase := range t.testCases {
-			tests = append(tests, TestType{
+			tests = append(tests, Test{
 				testCase:   testCase,
 				k8sCluster: k8sClusters[i%len(k8sClusters)],
 			})
@@ -171,14 +218,16 @@ func (t Classifier) VersionComplete() TestPool {
 	return tests
 }
 
+// ProviderComplete creates a TestPool based on provider complete test strategy.
+// It means running every test case exactly len(providers) times each,
+// using any version and every provider once per case of the K8sCluster pool.
 func (t Classifier) ProviderComplete() TestPool {
-	t.k8sClusterPool.mixPool()
 	k8sClustersByProviders := t.k8sClusterPool.getByProviders()
 	tests := make(TestPool, 0, len(t.testCases)*len(maps.Keys(k8sClustersByProviders)))
 
 	for _, k8sClusters := range k8sClustersByProviders {
 		for i, testCase := range t.testCases {
-			tests = append(tests, TestType{
+			tests = append(tests, Test{
 				testCase:   testCase,
 				k8sCluster: k8sClusters[i%len(k8sClusters)],
 			})
@@ -187,15 +236,17 @@ func (t Classifier) ProviderComplete() TestPool {
 	return tests
 }
 
+// Complete creates a TestPool based on complete test strategy.
+// It means running every test case exactly len(providers)*len(versions) times each,
+// using every provider and every version combination once of the pool.
 func (t Classifier) Complete() TestPool {
-	t.k8sClusterPool.mixPool()
 	k8sClustersByProvidersVersions := t.k8sClusterPool.getByProvidersVersions()
 	var tests TestPool
 
 	for _, byVersions := range k8sClustersByProvidersVersions {
 		for _, k8sClusters := range byVersions {
 			for i, testCase := range t.testCases {
-				tests = append(tests, TestType{
+				tests = append(tests, Test{
 					testCase:   testCase,
 					k8sCluster: k8sClusters[i%len(k8sClusters)],
 				})
@@ -205,18 +256,17 @@ func (t Classifier) Complete() TestPool {
 	return tests
 }
 
+// K8sClusterPool contains the K8sClusters
 type K8sClusterPool struct {
 	k8sClusters []K8sCluster
 }
 
-func (t *K8sClusterPool) mixPool() {
-	rand.Shuffle(len(t.k8sClusters), func(i, j int) { t.k8sClusters[i], t.k8sClusters[j] = t.k8sClusters[j], t.k8sClusters[i] })
-}
-
+// AddK8sClusters add a K8sCluster(s) into the pool
 func (t *K8sClusterPool) AddK8sClusters(cluster ...K8sCluster) {
 	t.k8sClusters = append(t.k8sClusters, cluster...)
 }
 
+// FeedFomDirectory creates K8sClusters from kubeconfigs in the specified directory and add them into the pool
 func (t *K8sClusterPool) FeedFomDirectory(kubeConfigDirectoryPath string) error {
 	files, err := os.ReadDir(kubeConfigDirectoryPath)
 	if err != nil {
@@ -229,15 +279,9 @@ func (t *K8sClusterPool) FeedFomDirectory(kubeConfigDirectoryPath string) error 
 
 	for _, file := range files {
 		if file != nil {
-			//kubeContext, err := common.GetDefaultKubeContext(file.Name())
-			// if err != nil {
-			// 	err := fmt.Errorf("could not fetch default kubeContext from file: %s, err: %w", file.Name(), err)
-			// 	log.Print(err)
-			// 	continue
-			// }
 			kubectlPath := filepath.Join(kubeConfigDirectoryPath, file.Name())
+			k8sClusters, err := NewK8sClustersFromParams(kubectlPath)
 
-			k8sClusters, err := NewK8sClustersFromParams(kubectlPath, true)
 			if err != nil {
 				return fmt.Errorf("could not get K8sClusters from file '%s' err: %w", kubectlPath, err)
 			}
@@ -282,38 +326,47 @@ func (t K8sClusterPool) getByProvidersVersions() map[string]map[string][]K8sClus
 	return byProvidersVersions
 }
 
+// TestCase is a representation of an E2E test case
+// TestDuration specifies the expected length of the test
+// TestName is the name of the test
+// TestFn specifies the test function
 type TestCase struct {
 	TestDuration time.Duration
 	TestName     string
 	TestFn       func(kubectlOptions k8s.KubectlOptions)
 }
 
-func NewTest(testCase TestCase, k8sCluster K8sCluster) TestType {
+// NewTest creates a Test from a TestCase and from a K8sCluster
+// testID for Test is generated automatically based on testName and K8s clusterInfo
+func NewTest(testCase TestCase, k8sCluster K8sCluster) Test {
 	testIDseed := fmt.Sprintf("%v%v", testCase.TestName, k8sCluster.clusterInfo)
 	hash := md5.Sum([]byte(testIDseed))
 	testID := hex.EncodeToString(hash[:5])
-	return TestType{
+	return Test{
 		testID:     testID,
 		testCase:   testCase,
 		k8sCluster: k8sCluster,
 	}
 }
 
-type TestType struct {
+// Test represents an E2E test.
+// It is a combination of a testCase and a k8sCluster
+type Test struct {
 	testID     string
 	testCase   TestCase
 	k8sCluster K8sCluster
 }
 
-func (t TestType) equal(test TestType) bool {
+func (t Test) equal(test Test) bool {
 	return t.TestID() == test.TestID()
 }
 
-func (t TestType) less(test TestType) bool {
+func (t Test) less(test Test) bool {
 	return t.TestID() < test.TestID()
 }
 
-func (t *TestType) TestID() string {
+// TestID return the test UID based on testName and K8sCluster
+func (t *Test) TestID() string {
 	if t.testID == "" {
 		text := fmt.Sprintf("%v%v", t.testCase.TestName, t.k8sCluster)
 		hash := md5.Sum([]byte(text))
@@ -322,21 +375,17 @@ func (t *TestType) TestID() string {
 	return t.testID
 }
 
-func (t TestType) String() string {
+func (t Test) String() string {
 	return fmt.Sprintf("%s(%s)",
 		t.testCase.TestName, t.k8sCluster)
 }
 
-// Run encapsulates the testCase with K8s health check and details into a describe container
+// Run encapsulates the testCase in a Describe container with
+// K8s cluster health check and testID label.
 // When K8s cluster is not available the further tests are skipped
-func (t TestType) Run() {
+func (t Test) Run() {
 	Describe(fmt.Sprint(t), Ordered, decorators.Label(fmt.Sprintf("testID:%s", t.TestID())), func() {
-		var err error
 		kubectlOptions, err := t.k8sCluster.KubectlOptions()
-		//TODO (marbarta): this should be removed after testing
-		if err != nil {
-			kubectlOptions, err = common.KubectlOptionsForCurrentContext()
-		}
 
 		if err == nil {
 			_, err = k8s.ListPodsE(
@@ -351,25 +400,47 @@ func (t TestType) Run() {
 		// 		Fail(fmt.Sprintf("skipping testCase... K8s cluster connection problem: %v", err))
 		// 	}
 		// })
-
 		t.testCase.TestFn(kubectlOptions)
 	})
 }
 
-func newK8sClusterInfo(kubectlOptions k8s.KubectlOptions) (K8sClusterInfo, error) {
-	// TODO (marbarta): placeholder to get retrieve cluster information from kubeconfig
-	return K8sClusterInfo{
-		workerCount: 3,
-		multiAZ:     false,
-		clusterID:   "testCLusterID",
-		provider:    "testProvider",
-		version:     "1.25",
+func newK8sClusterInfo(kubectlOptions k8s.KubectlOptions) (k8sClusterInfo, error) {
+	version, err := k8s.GetKubernetesClusterVersionWithOptionsE(GinkgoT(), &kubectlOptions)
+	if err != nil {
+		return k8sClusterInfo{}, fmt.Errorf("could not get version: %w", err)
+	}
+	version, err = versionIdentifier(version)
+	if err != nil {
+		return k8sClusterInfo{}, fmt.Errorf("could not get version: %w", err)
+	}
+	kubeSystemNS, err := k8s.GetNamespaceE(GinkgoT(), &kubectlOptions, "kube-system")
+	if err != nil {
+		return k8sClusterInfo{}, fmt.Errorf("could not get UUID: %w", err)
+	}
+	nodes, err := k8s.GetNodesE(GinkgoT(), &kubectlOptions)
+	if err != nil {
+		return k8sClusterInfo{}, fmt.Errorf("could not get node count: %w", err)
+	}
+	if len(nodes) == 0 {
+		return k8sClusterInfo{}, errors.New("node count is: 0")
+	}
+
+	provider, err := providerIdentifier(nodes[0])
+	if err != nil {
+		return k8sClusterInfo{}, fmt.Errorf("could not provider: %w", err)
+	}
+
+	return k8sClusterInfo{
+		workerCount: len(nodes),
+		clusterID:   string(kubeSystemNS.UID),
+		provider:    string(provider),
+		version:     version,
 	}, nil
 }
 
-type K8sClusterInfo struct {
+// k8sClusterInfo contains K8s cluster informations about K8sCluster
+type k8sClusterInfo struct {
 	workerCount int
-	multiAZ     bool
 	clusterID   string
 	provider    string
 	version     string
@@ -377,26 +448,45 @@ type K8sClusterInfo struct {
 
 // NewK8sCluster retrieve the K8s cluster information and creates the K8sCluster resource
 // When K8s cluster information is not available it return error
-func NewK8sCluster(kubectlOptions k8s.KubectlOptions, reusable bool) (K8sCluster, error) {
+func NewK8sCluster(kubectlOptions k8s.KubectlOptions) (K8sCluster, error) {
 	clusterInfo, err := newK8sClusterInfo(kubectlOptions)
 	if err != nil {
-		return K8sCluster{}, fmt.Errorf("could not get clusterInfo: %w", err)
+		return K8sCluster{}, fmt.Errorf("could not get clusterInfo for K8s cluster (path: '%s' context: '%s') err: %w",
+			kubectlOptions.ConfigPath, kubectlOptions.ContextName, err)
 	}
 	return K8sCluster{
 		clusterInfo:    clusterInfo,
-		reusable:       reusable,
 		kubectlOptions: kubectlOptions,
 	}, nil
 }
 
-func NewMockK8sCluster(kubeConfigPath, kubeContext string, reusable bool, version, provider, clusterID string) K8sCluster {
+// NewK8sClusterWithProvider creates K8sCluster from kubeconfig path and kubecontext with the
+// specified provider information
+func NewK8sClusterWithProvider(kubectlOptions k8s.KubectlOptions, provider string) (K8sCluster, error) {
+	clusterInfo, err := newK8sClusterInfo(kubectlOptions)
+	if err != nil {
+		return K8sCluster{}, fmt.Errorf("could not get clusterInfo for K8s cluster (path: '%s' context: '%s') err: %w",
+			kubectlOptions.ConfigPath, kubectlOptions.ContextName, err)
+	}
+
+	if provider != "" {
+		clusterInfo.provider = provider
+	}
+
 	return K8sCluster{
-		clusterInfo: K8sClusterInfo{
+		clusterInfo:    clusterInfo,
+		kubectlOptions: kubectlOptions,
+	}, nil
+}
+
+// NewMockK8sCluster creates K8sCluster objects from the provided argument for testing purpose
+func NewMockK8sCluster(kubeConfigPath, kubeContext string, version, provider, clusterID string) K8sCluster {
+	return K8sCluster{
+		clusterInfo: k8sClusterInfo{
 			version:   version,
 			provider:  provider,
 			clusterID: clusterID,
 		},
-		reusable: reusable,
 		kubectlOptions: k8s.KubectlOptions{
 			ConfigPath:  kubeConfigPath,
 			ContextName: kubeContext,
@@ -404,11 +494,16 @@ func NewMockK8sCluster(kubeConfigPath, kubeContext string, reusable bool, versio
 	}
 }
 
-func NewK8sClusterFromParams(kubectlConfigPath, kubectlContext string, reusable bool) (K8sCluster, error) {
-	return NewK8sCluster(*k8s.NewKubectlOptions(kubectlContext, kubectlConfigPath, ""), reusable)
+// NewK8sClusterFromParams creates K8sCluster from kubectlConfigPath path and kubectlContext.
+// Cluster information is fetched from the K8s cluster automatically
+func NewK8sClusterFromParams(kubectlConfigPath, kubectlContext string) (K8sCluster, error) {
+	return NewK8sCluster(*k8s.NewKubectlOptions(kubectlContext, kubectlConfigPath, ""))
 }
 
-func NewK8sClustersFromParams(kubectlConfigPath string, reusable bool) ([]K8sCluster, error) {
+// NewK8sClustersFromParams creates K8sClusters based on kubeconfig path
+// When multiple context is found in the kubeconfig it creates multiple K8sClusters for all of them
+// Cluster information is fetched from the K8s cluster automatically
+func NewK8sClustersFromParams(kubectlConfigPath string) ([]K8sCluster, error) {
 	kubeContexts, err := common.GetKubeContexts(kubectlConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not get kubecontexts: %w", err)
@@ -417,18 +512,18 @@ func NewK8sClustersFromParams(kubectlConfigPath string, reusable bool) ([]K8sClu
 	var k8sClusters []K8sCluster
 
 	for _, kubeContext := range kubeContexts {
-		k8sCluster, err := NewK8sCluster(*k8s.NewKubectlOptions(kubeContext, kubectlConfigPath, ""), reusable)
+		k8sCluster, err := NewK8sCluster(*k8s.NewKubectlOptions(kubeContext, kubectlConfigPath, ""))
 		if err != nil {
-			err := fmt.Errorf("could not create K8sCluster: %w", err)
-			log.Print(err)
-			continue
+			return nil, err
 		}
 		k8sClusters = append(k8sClusters, k8sCluster)
 	}
 	return k8sClusters, nil
 }
 
-func NewK8sClusterFromCurrentConfig(reusable bool) (K8sCluster, error) {
+// NewK8sClusterFromCurrentConfig creates K8sCluster from the local KUBECONFIG env and it's current context
+// Cluster information is fetched from the K8s cluster automatically
+func NewK8sClusterFromCurrentConfig() (K8sCluster, error) {
 	kubectlOptions, err := common.KubectlOptionsForCurrentContext()
 	if err != nil {
 		return K8sCluster{}, err
@@ -436,19 +531,20 @@ func NewK8sClusterFromCurrentConfig(reusable bool) (K8sCluster, error) {
 
 	clusterInfo, err := newK8sClusterInfo(kubectlOptions)
 	if err != nil {
-		return K8sCluster{}, fmt.Errorf("could not get clusterInfo: %w", err)
+		return K8sCluster{}, fmt.Errorf("could not get clusterInfo for K8s cluster (path: '%s' context: '%s') err: %w",
+			kubectlOptions.ConfigPath, kubectlOptions.ContextName, err)
 	}
 
 	return K8sCluster{
 		clusterInfo:    clusterInfo,
-		reusable:       reusable,
 		kubectlOptions: kubectlOptions,
 	}, nil
 }
 
+// K8sCluster represents a K8s cluster.
+// It contains informations and access related configurations about K8s cluster
 type K8sCluster struct {
-	reusable       bool
-	clusterInfo    K8sClusterInfo
+	clusterInfo    k8sClusterInfo
 	kubectlOptions k8s.KubectlOptions
 }
 
@@ -456,6 +552,7 @@ func (c K8sCluster) isKubectlOptionsFilled() bool {
 	return c.kubectlOptions.ConfigPath != "" && c.kubectlOptions.ContextName != ""
 }
 
+// KubectlOptions returns K8s access related configurations for kubectl
 func (c K8sCluster) KubectlOptions() (k8s.KubectlOptions, error) {
 	if !c.isKubectlOptionsFilled() {
 		return k8s.KubectlOptions{}, errors.New("kubectlOptions is unfilled")
@@ -467,7 +564,5 @@ func (c K8sCluster) String() string {
 	if !c.isKubectlOptionsFilled() {
 		return "Unknown"
 	}
-	// return fmt.Sprintf("Provider: %s Version: %s KubeContextPath: %s KubeContext: %s",
-	// 	c.clusterInfo.provider, c.clusterInfo.version, c.kubectlOptions.ConfigPath, c.kubectlOptions.ContextName)
-	return fmt.Sprintf(c.clusterInfo.clusterID)
+	return fmt.Sprintf(c.kubectlOptions.ContextName)
 }

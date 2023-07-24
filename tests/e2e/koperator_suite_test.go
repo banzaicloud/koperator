@@ -41,7 +41,20 @@ func beforeSuite() (tests.TestPool, error) {
 		return nil, err
 	}
 
+	// k8sCluster, err := tests.New
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//k8sClusterPool.AddK8sClusters(k8sCluster)
+
 	classifier := tests.NewClassifier(k8sClusterPool, testCaseInstall)
+
+	//classifier := tests.MockTestsMinimal()
+	//classifier := tests.MockTestsProvider()
+	//classifier := tests.MockTestsProviderMoreTestsThenProvider()
+	//classifier := tests.MockTestsVersionOne()
+	// classifier := tests.MockTestsVersion()
+	//classifier := tests.MockTestsComplete()
 
 	var testPool tests.TestPool
 	testStrategy := viper.GetString(config.Tests.TestStrategy)
@@ -65,7 +78,7 @@ func TestKoperator(t *testing.T) {
 
 	err = runGinkgoTests(t)
 	if err != nil {
-		log.Printf("Koperator e2e start failed: %v", err)
+		t.Errorf("Koperator E2E start failed: %v", err)
 	}
 }
 
@@ -96,7 +109,7 @@ func runGinkgoTests(t *testing.T) error {
 	}
 	// Protection against too long test suites
 	if testSuiteDuration > maxTimeout {
-		return fmt.Errorf("tests estimated duration: '%fmin' bigger then maxTimeout: '%fmin'", testSuiteDuration.Seconds(), maxTimeout.Seconds())
+		return fmt.Errorf("tests estimated duration: '%dsec' bigger then maxTimeout: '%dsec'", int(testSuiteDuration.Seconds()), int(maxTimeout.Seconds()))
 	}
 
 	// Calculated timeout can be overran with the specified time length
@@ -125,6 +138,18 @@ func runGinkgoTests(t *testing.T) error {
 
 }
 
+// Maybe this can be used to get more debug information into the test report.
+// var _ = ReportAfterEach(func(report SpecReport) {
+// 	fmt.Fprintf(os.Stderr, "SPEC REPORT: %s | %s\nFAILURE MESSAGE: %s\n OUTPUT: %s\n", report.State, report.FullText(), report.FailureMessage(), report.CapturedStdOutErr)
+// })
+
+// Root Describe container
+var _ = Describe("", func() {
+	// In the root container there is no Ordered decorator
+	// ginkgo execute parallel the generated tests by K8sClusters
+	testPool.BuildParallelByK8sCluster()
+})
+
 func sectionStringDelimiter() string {
 	delimiter := ""
 	for i := 0; i < 100; i++ {
@@ -152,50 +177,4 @@ func createTestReportFile() error {
 		}
 	})
 	return nil
-}
-
-// Root Describe container
-var _ = Describe(time.Now().Format(time.RFC3339), func() {
-	// In the root container there is no Ordered decorator
-	// ginkgo execute parallel the generated tests by K8sClusters
-	testPool.BuildParallelByK8sCluster()
-})
-
-func MockK8sClusterPool() tests.K8sClusterPool {
-	k8sClusterPool := tests.K8sClusterPool{}
-	k8sClusterPool.AddK8sClusters(
-		tests.NewMockK8sCluster(
-			"testContextPath1",
-			"testContextName1",
-			true,
-			"1.24",
-			"provider1",
-			"clusterID1",
-		),
-		tests.NewMockK8sCluster(
-			"testContextPath2",
-			"testContextName2",
-			true,
-			"1.24",
-			"provider2",
-			"clusterID2",
-		),
-		tests.NewMockK8sCluster(
-			"testContextPath3",
-			"testContextName3",
-			true,
-			"1.24",
-			"provider3",
-			"clusterID3",
-		),
-		tests.NewMockK8sCluster(
-			"testContextPath4",
-			"testContextName4",
-			true,
-			"1.26",
-			"provider4",
-			"clusterID4",
-		),
-	)
-	return k8sClusterPool
 }

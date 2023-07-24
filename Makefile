@@ -116,7 +116,7 @@ test-e2e: bin/ginkgo
 
 # Run e2e tests parallel
 test-e2e-parallel: bin/ginkgo
-	ginkgo -p -v --tags e2e tests/e2e
+	ginkgo -v -p --tags e2e tests/e2e
 
 # Compile test binary for debugging
 build-e2e-debug-binary:

@@ -34,16 +34,14 @@ func Test_Classifier_minimal(t *testing.T) {
 				k8sClusterPool: K8sClusterPool{
 					k8sClusters: []K8sCluster{
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local1",
 								version:   "1.24",
 								provider:  "provider1",
 							},
 						},
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local2",
 								version:   "1.25",
 								provider:  "provider1",
@@ -60,14 +58,14 @@ func Test_Classifier_minimal(t *testing.T) {
 					},
 				},
 			},
-			want: []TestType{
+			want: []Test{
 				{
 					testCase: TestCase{
 						TestName: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -79,8 +77,8 @@ func Test_Classifier_minimal(t *testing.T) {
 						TestName: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local2",
 							version:   "1.25",
 							provider:  "provider1",
@@ -113,7 +111,7 @@ func Test_Classifier_providerComplete(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   []TestType
+		want   []Test
 	}{
 		{
 			name: "simpleCase",
@@ -121,16 +119,16 @@ func Test_Classifier_providerComplete(t *testing.T) {
 				k8sClusterPool: K8sClusterPool{
 					k8sClusters: []K8sCluster{
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local1",
 								version:   "1.24",
 								provider:  "provider1",
 							},
 						},
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local2",
 								version:   "1.25",
 								provider:  "provider2",
@@ -147,14 +145,14 @@ func Test_Classifier_providerComplete(t *testing.T) {
 					},
 				},
 			},
-			want: []TestType{
+			want: []Test{
 				{
 					testCase: TestCase{
 						TestName: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -166,8 +164,8 @@ func Test_Classifier_providerComplete(t *testing.T) {
 						TestName: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -179,8 +177,8 @@ func Test_Classifier_providerComplete(t *testing.T) {
 						TestName: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local2",
 							version:   "1.25",
 							provider:  "provider2",
@@ -192,8 +190,8 @@ func Test_Classifier_providerComplete(t *testing.T) {
 						TestName: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local2",
 							version:   "1.25",
 							provider:  "provider2",
@@ -226,7 +224,7 @@ func Test_Classifier_versionComplete(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   []TestType
+		want   []Test
 	}{
 		{
 			name: "simpleCase",
@@ -234,16 +232,16 @@ func Test_Classifier_versionComplete(t *testing.T) {
 				k8sClusterPool: K8sClusterPool{
 					k8sClusters: []K8sCluster{
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local1",
 								version:   "1.24",
 								provider:  "provider1",
 							},
 						},
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local1",
 								version:   "1.25",
 								provider:  "provider1",
@@ -260,14 +258,14 @@ func Test_Classifier_versionComplete(t *testing.T) {
 					},
 				},
 			},
-			want: []TestType{
+			want: []Test{
 				{
 					testCase: TestCase{
 						TestName: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -279,8 +277,8 @@ func Test_Classifier_versionComplete(t *testing.T) {
 						TestName: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -292,8 +290,8 @@ func Test_Classifier_versionComplete(t *testing.T) {
 						TestName: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -305,8 +303,8 @@ func Test_Classifier_versionComplete(t *testing.T) {
 						TestName: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -339,7 +337,7 @@ func Test_Classifier_complete(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   []TestType
+		want   []Test
 	}{
 		{
 			name: "simpleCase",
@@ -347,16 +345,16 @@ func Test_Classifier_complete(t *testing.T) {
 				k8sClusterPool: K8sClusterPool{
 					k8sClusters: []K8sCluster{
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local1",
 								version:   "1.24",
 								provider:  "provider1",
 							},
 						},
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local2",
 								version:   "1.25",
 								provider:  "provider2",
@@ -373,14 +371,14 @@ func Test_Classifier_complete(t *testing.T) {
 					},
 				},
 			},
-			want: []TestType{
+			want: []Test{
 				{
 					testCase: TestCase{
 						TestName: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -392,8 +390,8 @@ func Test_Classifier_complete(t *testing.T) {
 						TestName: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -405,8 +403,8 @@ func Test_Classifier_complete(t *testing.T) {
 						TestName: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local2",
 							version:   "1.25",
 							provider:  "provider2",
@@ -418,8 +416,8 @@ func Test_Classifier_complete(t *testing.T) {
 						TestName: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local2",
 							version:   "1.25",
 							provider:  "provider2",
@@ -434,32 +432,32 @@ func Test_Classifier_complete(t *testing.T) {
 				k8sClusterPool: K8sClusterPool{
 					k8sClusters: []K8sCluster{
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local1",
 								version:   "1.24",
 								provider:  "provider1",
 							},
 						},
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local2",
 								version:   "1.25",
 								provider:  "provider2",
 							},
 						},
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local3",
 								version:   "1.25",
 								provider:  "provider3",
 							},
 						},
 						{
-							reusable: true,
-							clusterInfo: K8sClusterInfo{
+
+							clusterInfo: k8sClusterInfo{
 								clusterID: "local4",
 								version:   "1.25",
 								provider:  "provider3",
@@ -476,14 +474,14 @@ func Test_Classifier_complete(t *testing.T) {
 					},
 				},
 			},
-			want: []TestType{
+			want: []Test{
 				{
 					testCase: TestCase{
 						TestName: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -495,8 +493,8 @@ func Test_Classifier_complete(t *testing.T) {
 						TestName: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
 							provider:  "provider1",
@@ -508,8 +506,8 @@ func Test_Classifier_complete(t *testing.T) {
 						TestName: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local2",
 							version:   "1.25",
 							provider:  "provider2",
@@ -521,8 +519,8 @@ func Test_Classifier_complete(t *testing.T) {
 						TestName: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local2",
 							version:   "1.25",
 							provider:  "provider2",
@@ -534,8 +532,8 @@ func Test_Classifier_complete(t *testing.T) {
 						TestName: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local3",
 							version:   "1.25",
 							provider:  "provider3",
@@ -547,8 +545,8 @@ func Test_Classifier_complete(t *testing.T) {
 						TestName: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-						reusable: true,
-						clusterInfo: K8sClusterInfo{
+
+						clusterInfo: k8sClusterInfo{
 							clusterID: "local3",
 							version:   "1.25",
 							provider:  "provider3",

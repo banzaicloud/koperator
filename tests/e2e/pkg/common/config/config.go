@@ -31,11 +31,11 @@ const (
 
 const (
 	defaultReportDir               = "reports"
-	defaultCreateTestReportFile    = "false"
+	defaultCreateTestReportFile    = "true"
 	defaultMaxTimeout              = "30m"
 	defaultAllowedOverrunDuration  = "5m"
 	defaultTestStrategy            = TestStrategyMinimal
-	defaultKubeConfigDirectoryPath = "platforms/kind/kubeconfigs"
+	defaultKubeConfigDirectoryPath = "kubeconfigs"
 )
 
 type TestsType struct {

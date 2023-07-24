@@ -20,24 +20,14 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func testUninstall() bool {
+func testUninstall(kubectlOptions k8s.KubectlOptions) bool {
 	return When("Uninstalling Koperator and dependencies", Ordered, func() {
-		var kubectlOptions k8s.KubectlOptions
-		var err error
-
 		When("Initializing", func() {
-			It("Acquiring K8s config and context", func() {
-				kubectlOptions, err = kubectlOptionsForCurrentContext()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
 			It("Setting globals", func() {
 				err := dependencyCRDs.Initialize(kubectlOptions)
 				Expect(err).NotTo(HaveOccurred())
 			})
-
 		})
-
 		requireUninstallingKoperator(k8s.KubectlOptions{
 			ContextName: kubectlOptions.ContextName,
 			ConfigPath:  kubectlOptions.ConfigPath,
@@ -58,6 +48,5 @@ func testUninstall() bool {
 			ConfigPath:  kubectlOptions.ConfigPath,
 			Namespace:   certManagerHelmDescriptor.Namespace,
 		})
-
 	})
 }

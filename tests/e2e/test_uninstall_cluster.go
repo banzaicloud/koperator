@@ -17,35 +17,18 @@ package e2e
 import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
-func testUninstallZookeeperCluster() bool {
+func testUninstallZookeeperCluster(kubectlOptions k8s.KubectlOptions) bool {
 	return When("Uninstalling Zookeeper cluster", func() {
-		var kubectlOptions k8s.KubectlOptions
-		var err error
-
-		It("Acquiring K8s config and context", func() {
-			kubectlOptions, err = kubectlOptionsForCurrentContext()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		kubectlOptions.Namespace = zookeeperOperatorHelmDescriptor.Namespace
 		requireDeleteZookeeperCluster(kubectlOptions, zookeeperClusterName)
 
 	})
 }
 
-func testUninstallKafkaCluster() bool {
+func testUninstallKafkaCluster(kubectlOptions k8s.KubectlOptions) bool {
 	return When("Uninstalling Kafka cluster", func() {
-		var kubectlOptions k8s.KubectlOptions
-		var err error
-
-		It("Acquiring K8s config and context", func() {
-			kubectlOptions, err = kubectlOptionsForCurrentContext()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
 		requireDeleteKafkaCluster(kubectlOptions, kafkaClusterName)
 	})

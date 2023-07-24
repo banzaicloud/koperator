@@ -13,10 +13,17 @@ inputs: # adding these parameters to make this reusable later on
     description: 'Path to the kind config to use'
     required: true
     default: 'tests/e2e/platforms/kind/kind_config.yaml'
+  kubeconfig_dir_path:
+    description: 'Relative dir path of the created kind cluster kubeconfig'
+    required: true
+    default: 'tests/e2e/kubeconfigs'
 outputs:
   kubeconfig:
     description: 'Path of the resulting kubeconfig'
     value: ${{ steps.check-kind-cluster.outputs.kubeconfig }}
+  kubeconfig_dir_path:
+    description: 'Dir path of the resulting kubeconfig'
+    value: ${{ steps.check-kind-cluster.outputs.kubeconfig_dir_path }}
 
 runs:
   using: "composite"
@@ -38,10 +45,14 @@ runs:
       kubectl cluster-info
       kubectl get pods -n kube-system
       echo "current-context:" $(kubectl config current-context)
-      echo "environment-kubeconfig:" ${KUBECONFIG}
-      mkdir -p tests/e2e/platforms/kind/kubeconfigs
-      kubeconfig_path=$(pwd)/tests/e2e/platforms/kind/kubeconfigs/kind.kconf
+      kubeconfig_dir_path=$(pwd)/${{ inputs.kubeconfig_dir_path }}
+      mkdir -p $kubeconfig_dir_path
+      kubeconfig_filename=${{ inputs.kind_cluster_name }}-${{ inputs.kind_k8s_version }}.yaml
+      kubeconfig_path=$kubeconfig_dir_path/$kubeconfig_filename
       kind get kubeconfig --name ${{ inputs.kind_cluster_name }} > $kubeconfig_path
       chmod 600 $kubeconfig_path
+      echo "kubeconfig path: $kubeconfig_path"
       echo "kubeconfig=$(echo $kubeconfig_path)" >> $GITHUB_OUTPUT
+      echo "kubeconfig_dir_path=$(echo $kubeconfig_dir_path)" >> $GITHUB_OUTPUT
+
     shell: bash

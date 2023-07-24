@@ -164,7 +164,7 @@ func (helmDescriptor *helmDescriptor) installHelmChart(kubectlOptions k8s.Kubect
 		fixedArguments := []string{
 			"--create-namespace",
 			"--atomic",
-			"--debug",
+			//"--debug",
 		}
 
 		helmChartNameOrLocalPath := helmDescriptor.ChartName

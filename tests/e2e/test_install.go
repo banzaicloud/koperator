@@ -24,8 +24,8 @@ import (
 )
 
 var testCaseInstall = tests.TestCase{
-	TestDuration: 10 * time.Minute,
-	TestName:     "Testing e2e test altogether",
+	TestDuration: 4 * time.Minute,
+	TestName:     "INSTALL_TESTCASE",
 	TestFn:       testInstall,
 }
 

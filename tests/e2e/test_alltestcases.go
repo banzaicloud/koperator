@@ -22,8 +22,8 @@ import (
 )
 
 var alltestCase = tests.TestCase{
-	TestDuration: 10 * time.Minute,
-	TestName:     "Testing e2e test altogether",
+	TestDuration: 30 * time.Minute,
+	TestName:     "ALL_TESTCASE",
 	TestFn:       allTestCase,
 }
 
@@ -32,12 +32,16 @@ func allTestCase(kubectlOptions k8s.KubectlOptions) {
 	var snapshottedInfo = &clusterSnapshot{}
 	snapshotCluster(snapshottedInfo)
 	testInstall(kubectlOptions)
-	testInstallZookeeperCluster()
-	testInstallKafkaCluster("../../config/samples/simplekafkacluster.yaml")
-	testUninstallKafkaCluster()
-	testInstallKafkaCluster("../../config/samples/simplekafkacluster_ssl.yaml")
-	testUninstallKafkaCluster()
-	testUninstallZookeeperCluster()
-	testUninstall()
+	testInstallZookeeperCluster(kubectlOptions)
+	testInstallKafkaCluster(kubectlOptions, "../../config/samples/simplekafkacluster.yaml")
+	testProduceConsumeExternal(kubectlOptions, "")
+	testProduceConsumeInternal(kubectlOptions)
+	testUninstallKafkaCluster(kubectlOptions)
+	testInstallKafkaCluster(kubectlOptions, "../../config/samples/simplekafkacluster_ssl.yaml")
+	testProduceConsumeExternal(kubectlOptions, "")
+	testProduceConsumeInternal(kubectlOptions)
+	testUninstallKafkaCluster(kubectlOptions)
+	testUninstallZookeeperCluster(kubectlOptions)
+	testUninstall(kubectlOptions)
 	snapshotClusterAndCompare(snapshottedInfo)
 }
