@@ -15,6 +15,9 @@
 package e2e
 
 import (
+	"context"
+	"time"
+
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -75,8 +78,9 @@ func requireDeployingKafkaUser(kubectlOptions k8s.KubectlOptions, userName strin
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		secretFound := isExistingK8SResource(kubectlOptions, "Secret", tlsSecretName)
-		Expect(secretFound).To(BeTrue())
+		Eventually(context.Background(), func() bool {
+			return isExistingK8SResource(kubectlOptions, "Secret", tlsSecretName)
+		}, defaultUserCreationWaitTime, 3*time.Second).Should(Equal(true))
 	})
 
 }
