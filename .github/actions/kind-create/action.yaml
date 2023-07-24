@@ -39,8 +39,8 @@ runs:
       kubectl get pods -n kube-system
       echo "current-context:" $(kubectl config current-context)
       echo "environment-kubeconfig:" ${KUBECONFIG}
-      mkdir tests/e2e/platforms/kind/${{ inputs.kind_k8s_version }}
-      kubeconfig_path=$(pwd)/tests/e2e/platforms/kind/${{ inputs.kind_k8s_version }}/kind.kconf
+      mkdir -p tests/e2e/platforms/kind/kubeconfigs
+      kubeconfig_path=$(pwd)/tests/e2e/platforms/kind/kubeconfigs/kind.kconf
       kind get kubeconfig --name ${{ inputs.kind_cluster_name }} > $kubeconfig_path
       chmod 600 $kubeconfig_path
       echo "kubeconfig=$(echo $kubeconfig_path)" >> $GITHUB_OUTPUT

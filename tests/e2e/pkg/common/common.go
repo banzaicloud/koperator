@@ -20,7 +20,11 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/gruntwork-io/terratest/modules/k8s"
+	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v2"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 // currentKubernetesContext returns the currently set Kubernetes context based
@@ -85,4 +89,41 @@ func GetDefaultKubeContext(kubeconfigPath string) (string, error) {
 	}
 
 	return kubecontext, nil
+}
+
+// GetRawConfig creates a raw clientcmd api config
+func GetRawConfig(kubeconfigPath string) (api.Config, error) {
+	rules := clientcmd.NewDefaultClientConfigLoadingRules()
+	if kubeconfigPath == "" {
+		return api.Config{}, errors.New("missing kubeconfigPath")
+	}
+	rules.ExplicitPath = kubeconfigPath
+
+	clientConfig := clientcmd.
+		NewNonInteractiveDeferredLoadingClientConfig(rules, nil)
+
+	return clientConfig.RawConfig()
+}
+
+func GetKubeContexts(kubeconfigPath string) ([]string, error) {
+	configs, err := GetRawConfig(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return maps.Keys(configs.Contexts), nil
+}
+
+// GetConfig returns kubernetes config based on the current environment.
+// If fpath is provided, loads configuration from that file. Otherwise,
+// GetConfig uses default strategy to load configuration from $KUBECONFIG,
+// .kube/config, or just returns in-cluster config.
+func GetConfigWithContext(kubeconfigPath, kubeContext string) (*rest.Config, error) {
+	rules := clientcmd.NewDefaultClientConfigLoadingRules()
+	if kubeconfigPath != "" {
+		rules.ExplicitPath = kubeconfigPath
+	}
+	overrides := &clientcmd.ConfigOverrides{CurrentContext: kubeContext}
+	return clientcmd.
+		NewNonInteractiveDeferredLoadingClientConfig(rules, overrides).
+		ClientConfig()
 }

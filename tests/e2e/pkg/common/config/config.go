@@ -30,20 +30,22 @@ const (
 )
 
 const (
-	defaultReportDir              = "reports"
-	defaultCreateTestReportFile   = "false"
-	defaultMaxTimeout             = "1m"
-	defaultAllowedOverrunDuration = "1m"
-	defaultTestStrategy           = TestStrategyMinimal
+	defaultReportDir               = "reports"
+	defaultCreateTestReportFile    = "false"
+	defaultMaxTimeout              = "30m"
+	defaultAllowedOverrunDuration  = "5m"
+	defaultTestStrategy            = TestStrategyMinimal
+	defaultKubeConfigDirectoryPath = "platforms/kind/kubeconfigs"
 )
 
 type TestsType struct {
-	ReportDir              string
-	CreateTestReportFile   string
-	MaxTimeout             string
-	AllowedOverrunDuration string
-	TestStrategy           string
-	LabelFilter            string
+	ReportDir               string
+	CreateTestReportFile    string
+	MaxTimeout              string
+	AllowedOverrunDuration  string
+	TestStrategy            string
+	LabelFilter             string
+	KubeConfigDirectoryPath string
 }
 
 func (t TestsType) String() string {
@@ -54,18 +56,21 @@ MaxTimeout: %s
 AllowedOverrunDuration: %s
 TestStrategy: %s
 LabelFilter: %s
+KubeConfigDirectoryPath: %s
 `, viper.GetString(t.ReportDir), viper.GetString(t.CreateTestReportFile),
 		viper.GetString(t.MaxTimeout), viper.GetString(t.AllowedOverrunDuration),
-		viper.GetString(t.TestStrategy), viper.GetString(t.LabelFilter))
+		viper.GetString(t.TestStrategy), viper.GetString(t.LabelFilter),
+		viper.GetString(t.KubeConfigDirectoryPath))
 }
 
 var Tests = TestsType{
-	CreateTestReportFile:   "tests.CreateTestReportFile",
-	MaxTimeout:             "tests.MaxTimeout",
-	AllowedOverrunDuration: "tests.AllowedOverrunDuration",
-	TestStrategy:           "tests.TestStrategy",
-	ReportDir:              "tests.ReportDir",
-	LabelFilter:            "tests.LabelFilter",
+	CreateTestReportFile:    "tests.CreateTestReportFile",
+	MaxTimeout:              "tests.MaxTimeout",
+	AllowedOverrunDuration:  "tests.AllowedOverrunDuration",
+	TestStrategy:            "tests.TestStrategy",
+	ReportDir:               "tests.ReportDir",
+	LabelFilter:             "tests.LabelFilter",
+	KubeConfigDirectoryPath: "tests.KubeConfigDirectoryPath",
 }
 
 func init() {
@@ -86,4 +91,6 @@ func init() {
 	viper.BindEnv(Tests.TestStrategy, "TEST_STRATEGY")
 	viper.SetDefault(Tests.TestStrategy, defaultTestStrategy)
 
+	viper.BindEnv(Tests.KubeConfigDirectoryPath, "KUBECONFIG_DIR")
+	viper.SetDefault(Tests.KubeConfigDirectoryPath, defaultKubeConfigDirectoryPath)
 }

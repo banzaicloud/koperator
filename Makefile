@@ -25,6 +25,9 @@ CONTROLLER_GEN_VERSION = v0.9.2
 CONTROLLER_GEN = $(PWD)/bin/controller-gen
 
 ENVTEST_K8S_VERSION = 1.24.2
+GINKGO_VERSION := 2.9.7
+MOCKGEN_VERSION := 1.6.0
+
 
 KUSTOMIZE_BASE = config/overlays/specific-manager-version
 
@@ -98,12 +101,21 @@ test: generate fmt vet manifests bin/setup-envtest
 		-timeout 1h
 	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
+bin/ginkgo: $(BIN_DIR)/ginkgo-$(GINKGO_VERSION)
+	@ln -sf ginkgo-$(GINKGO_VERSION) $(BIN_DIR)/ginkgo
+
+$(BIN_DIR)/ginkgo-$(GINKGO_VERSION):
+	@mkdir -p $(BIN_DIR)
+	@GOBIN=$(BIN_DIR) go install github.com/onsi/ginkgo/v2/ginkgo@v$(GINKGO_VERSION)
+	@mv $(BIN_DIR)/ginkgo $(BIN_DIR)/ginkgo-$(GINKGO_VERSION)
+
+
 # Run e2e tests serial
-test-e2e:
+test-e2e: bin/ginkgo
 	ginkgo -v --tags e2e tests/e2e
 
 # Run e2e tests parallel
-test-e2e-parallel:
+test-e2e-parallel: bin/ginkgo
 	ginkgo -p -v --tags e2e tests/e2e
 
 # Compile test binary for debugging
@@ -257,9 +269,6 @@ gen-license-header: bin/gotemplate ## Generate license header used in source cod
 		--follow-symlinks \
 		--import="$(BOILERPLATE_DIR)/vars.yml" \
 		--source="$(BOILERPLATE_DIR)"
-
-
-MOCKGEN_VERSION := 1.6.0
 
 bin/mockgen: $(BIN_DIR)/mockgen-$(MOCKGEN_VERSION)
 	@ln -sf mockgen-$(MOCKGEN_VERSION) $(BIN_DIR)/mockgen

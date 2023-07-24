@@ -15,21 +15,23 @@
 package e2e
 
 import (
+	"time"
+
+	"github.com/banzaicloud/koperator/tests/e2e/pkg/tests"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-func testInstall() bool {
-	return When("Installing Koperator and dependencies", Ordered, func() {
-		var kubectlOptions k8s.KubectlOptions
+var testCaseInstall = tests.TestCase{
+	TestDuration: 10 * time.Minute,
+	TestName:     "Testing e2e test altogether",
+	TestFn:       testInstall,
+}
+
+func testInstall(kubectlOptions k8s.KubectlOptions) {
+	When("Installing Koperator and dependencies", Ordered, func() {
 		var err error
-
-		It("Acquiring K8s config and context", func() {
-			kubectlOptions, err = kubectlOptionsForCurrentContext()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		When("Installing cert-manager", func() {
 			It("Installing cert-manager Helm chart", func() {
 				err = certManagerHelmDescriptor.installHelmChart(kubectlOptions)

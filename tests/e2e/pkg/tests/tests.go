@@ -23,6 +23,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/banzaicloud/koperator/tests/e2e/pkg/common"
@@ -37,6 +38,26 @@ import (
 )
 
 type TestPool []TestType
+
+func (tests TestPool) Equal(other TestPool) bool {
+	if len(tests) != len(other) {
+		return false
+	}
+
+	sort.SliceStable(tests, func(i, j int) bool {
+		return tests[i].less(tests[j])
+	})
+	sort.SliceStable(other, func(i, j int) bool {
+		return other[i].less(other[j])
+	})
+
+	for i := range tests {
+		if !tests[i].equal(other[i]) {
+			return false
+		}
+	}
+	return true
+}
 
 func (tests TestPool) PoolInfo() string {
 	testsByContextName := tests.getTestsByContextName()
@@ -121,7 +142,7 @@ type Classifier struct {
 	testCases      []TestCase
 }
 
-func (t Classifier) Minimal() []TestType {
+func (t Classifier) Minimal() TestPool {
 	t.k8sClusterPool.mixPool()
 	tests := make([]TestType, 0, len(t.testCases))
 
@@ -134,10 +155,10 @@ func (t Classifier) Minimal() []TestType {
 	return tests
 }
 
-func (t Classifier) VersionComplete() []TestType {
+func (t Classifier) VersionComplete() TestPool {
 	t.k8sClusterPool.mixPool()
 	k8sClustersByVersion := t.k8sClusterPool.getByVersions()
-	tests := make([]TestType, 0, len(t.testCases)*len(maps.Keys(k8sClustersByVersion)))
+	tests := make(TestPool, 0, len(t.testCases)*len(maps.Keys(k8sClustersByVersion)))
 
 	for _, k8sClusters := range k8sClustersByVersion {
 		for i, testCase := range t.testCases {
@@ -150,10 +171,10 @@ func (t Classifier) VersionComplete() []TestType {
 	return tests
 }
 
-func (t Classifier) ProviderComplete() []TestType {
+func (t Classifier) ProviderComplete() TestPool {
 	t.k8sClusterPool.mixPool()
 	k8sClustersByProviders := t.k8sClusterPool.getByProviders()
-	tests := make([]TestType, 0, len(t.testCases)*len(maps.Keys(k8sClustersByProviders)))
+	tests := make(TestPool, 0, len(t.testCases)*len(maps.Keys(k8sClustersByProviders)))
 
 	for _, k8sClusters := range k8sClustersByProviders {
 		for i, testCase := range t.testCases {
@@ -166,10 +187,10 @@ func (t Classifier) ProviderComplete() []TestType {
 	return tests
 }
 
-func (t Classifier) Complete() []TestType {
+func (t Classifier) Complete() TestPool {
 	t.k8sClusterPool.mixPool()
 	k8sClustersByProvidersVersions := t.k8sClusterPool.getByProvidersVersions()
-	var tests []TestType
+	var tests TestPool
 
 	for _, byVersions := range k8sClustersByProvidersVersions {
 		for _, k8sClusters := range byVersions {
@@ -208,18 +229,19 @@ func (t *K8sClusterPool) FeedFomDirectory(kubeConfigDirectoryPath string) error 
 
 	for _, file := range files {
 		if file != nil {
-			kubeContext, err := common.GetDefaultKubeContext(file.Name())
-			if err != nil {
-				err := fmt.Errorf("could not fetch default kubeContext from file: %s, err: %w", file.Name(), err)
-				log.Print(err)
-				continue
-			}
+			//kubeContext, err := common.GetDefaultKubeContext(file.Name())
+			// if err != nil {
+			// 	err := fmt.Errorf("could not fetch default kubeContext from file: %s, err: %w", file.Name(), err)
+			// 	log.Print(err)
+			// 	continue
+			// }
 			kubectlPath := filepath.Join(kubeConfigDirectoryPath, file.Name())
-			k8sCluster, err := NewK8sClusterFromParams(kubectlPath, kubeContext, true)
+
+			k8sClusters, err := NewK8sClustersFromParams(kubectlPath, true)
 			if err != nil {
-				return fmt.Errorf("could not create K8sCluster structure from file '%s' err: %w", kubectlPath, err)
+				return fmt.Errorf("could not get K8sClusters from file '%s' err: %w", kubectlPath, err)
 			}
-			t.AddK8sClusters(k8sCluster)
+			t.AddK8sClusters(k8sClusters...)
 		}
 	}
 	return nil
@@ -283,11 +305,11 @@ type TestType struct {
 	k8sCluster K8sCluster
 }
 
-func (t TestType) Equal(test TestType) bool {
+func (t TestType) equal(test TestType) bool {
 	return t.TestID() == test.TestID()
 }
 
-func (t TestType) Less(test TestType) bool {
+func (t TestType) less(test TestType) bool {
 	return t.TestID() < test.TestID()
 }
 
@@ -384,6 +406,26 @@ func NewMockK8sCluster(kubeConfigPath, kubeContext string, reusable bool, versio
 
 func NewK8sClusterFromParams(kubectlConfigPath, kubectlContext string, reusable bool) (K8sCluster, error) {
 	return NewK8sCluster(*k8s.NewKubectlOptions(kubectlContext, kubectlConfigPath, ""), reusable)
+}
+
+func NewK8sClustersFromParams(kubectlConfigPath string, reusable bool) ([]K8sCluster, error) {
+	kubeContexts, err := common.GetKubeContexts(kubectlConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("could not get kubecontexts: %w", err)
+	}
+
+	var k8sClusters []K8sCluster
+
+	for _, kubeContext := range kubeContexts {
+		k8sCluster, err := NewK8sCluster(*k8s.NewKubectlOptions(kubeContext, kubectlConfigPath, ""), reusable)
+		if err != nil {
+			err := fmt.Errorf("could not create K8sCluster: %w", err)
+			log.Print(err)
+			continue
+		}
+		k8sClusters = append(k8sClusters, k8sCluster)
+	}
+	return k8sClusters, nil
 }
 
 func NewK8sClusterFromCurrentConfig(reusable bool) (K8sCluster, error) {

@@ -15,20 +15,23 @@
 package e2e
 
 import (
+	"time"
+
 	"github.com/banzaicloud/koperator/tests/e2e/pkg/tests"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 )
 
 var alltestCase = tests.TestCase{
-	TestName: "Testing e2e test altogether",
-	TestFn:   allTestCase,
+	TestDuration: 10 * time.Minute,
+	TestName:     "Testing e2e test altogether",
+	TestFn:       allTestCase,
 }
 
 // TODO (marbarta): kubectlOptions should be passed for the subtests
 func allTestCase(kubectlOptions k8s.KubectlOptions) {
 	var snapshottedInfo = &clusterSnapshot{}
 	snapshotCluster(snapshottedInfo)
-	testInstall()
+	testInstall(kubectlOptions)
 	testInstallZookeeperCluster()
 	testInstallKafkaCluster("../../config/samples/simplekafkacluster.yaml")
 	testUninstallKafkaCluster()

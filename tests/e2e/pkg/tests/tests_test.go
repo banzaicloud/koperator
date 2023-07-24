@@ -15,7 +15,6 @@
 package tests
 
 import (
-	"sort"
 	"testing"
 )
 
@@ -27,7 +26,7 @@ func Test_Classifier_minimal(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   []TestType
+		want   TestPool
 	}{
 		{
 			name: "simpleCase",
@@ -99,21 +98,8 @@ func Test_Classifier_minimal(t *testing.T) {
 			}
 
 			got := tr.Minimal()
-			if len(tt.want) != len(got) {
-				t.Fatalf("not equal want: %v got: %v", tt.want, got)
-			}
-
-			sort.SliceStable(got, func(i, j int) bool {
-				return got[i].Less(got[j])
-			})
-			sort.SliceStable(tt.want, func(i, j int) bool {
-				return tt.want[i].Less(tt.want[j])
-			})
-
-			for i := range got {
-				if !got[i].Equal(tt.want[i]) {
-					t.Errorf("not equal want: %v got: %v", tt.want[i], got[i])
-				}
+			if !got.Equal(tt.want) {
+				t.Errorf("want: %v\ngot: %v", tt.want, got)
 			}
 		})
 	}
@@ -225,21 +211,8 @@ func Test_Classifier_providerComplete(t *testing.T) {
 			}
 
 			got := tr.ProviderComplete()
-			if len(tt.want) != len(got) {
-				t.Fatalf("not equal want: %v got: %v", tt.want, got)
-			}
-
-			sort.SliceStable(got, func(i, j int) bool {
-				return got[i].Less(got[j])
-			})
-			sort.SliceStable(tt.want, func(i, j int) bool {
-				return tt.want[i].Less(tt.want[j])
-			})
-
-			for i := range got {
-				if !got[i].Equal(tt.want[i]) {
-					t.Errorf("not equal want: %v got: %v", tt.want[i], got[i])
-				}
+			if !got.Equal(tt.want) {
+				t.Errorf("want: %v\ngot: %v", tt.want, got)
 			}
 		})
 	}
@@ -351,21 +324,8 @@ func Test_Classifier_versionComplete(t *testing.T) {
 			}
 
 			got := tr.VersionComplete()
-			if len(tt.want) != len(got) {
-				t.Fatalf("not equal want: %v got: %v", tt.want, got)
-			}
-
-			sort.SliceStable(got, func(i, j int) bool {
-				return got[i].Less(got[j])
-			})
-			sort.SliceStable(tt.want, func(i, j int) bool {
-				return tt.want[i].Less(tt.want[j])
-			})
-
-			for i := range got {
-				if !got[i].Equal(tt.want[i]) {
-					t.Errorf("not equal want: %v got: %v", tt.want[i], got[i])
-				}
+			if !got.Equal(tt.want) {
+				t.Errorf("want: %v\ngot: %v", tt.want, got)
 			}
 		})
 	}
@@ -606,21 +566,8 @@ func Test_Classifier_complete(t *testing.T) {
 			}
 
 			got := tr.Complete()
-			if len(tt.want) != len(got) {
-				t.Fatalf("not equal want: %v got: %v", tt.want, got)
-			}
-
-			sort.SliceStable(got, func(i, j int) bool {
-				return got[i].Less(got[j])
-			})
-			sort.SliceStable(tt.want, func(i, j int) bool {
-				return tt.want[i].Less(tt.want[j])
-			})
-
-			for i := range got {
-				if !got[i].Equal(tt.want[i]) {
-					t.Errorf("not equal want: %v got: %v", tt.want[i].TestID(), got[i].TestID())
-				}
+			if !got.Equal(tt.want) {
+				t.Errorf("want: %v\ngot: %v", tt.want, got)
 			}
 		})
 	}
