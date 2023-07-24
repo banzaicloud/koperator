@@ -42,22 +42,15 @@ func (tests TestPool) PoolInfo() string {
 	testsByContextName := tests.getTestsByContextName()
 
 	return fmt.Sprintf(`
-
 NumberOfTests: %d
-
 NumberOfK8sClusters: %d
-
 NumberOfK8sVersions:
-
 NumberOfK8sProviders:
-
 TestK8sMapping: %v
-
 TestStrategy: %s
-
-ExpectedDuration: %f
-
-`, len(tests), len(maps.Keys(testsByContextName)), tests, viper.GetString(config.Tests.TestStrategy), tests.GetTestSuiteDuration().Seconds())
+ExpectedDurationSerial: %f
+ExpectedDurationParallel: %f
+`, len(tests), len(maps.Keys(testsByContextName)), tests, viper.GetString(config.Tests.TestStrategy), tests.GetTestSuiteDurationSerial().Seconds(), tests.GetTestSuiteDurationParallel().Seconds())
 }
 
 func (tests TestPool) BuildParallelByK8sCluster() {
@@ -91,7 +84,7 @@ func (tests TestPool) getTestsByContextName() map[string][]TestType {
 	return testsByContextName
 }
 
-func (tests TestPool) GetTestSuiteDuration() time.Duration {
+func (tests TestPool) GetTestSuiteDurationParallel() time.Duration {
 	testsByClusterID := tests.getTestsByClusterID()
 
 	var max time.Duration
@@ -106,6 +99,14 @@ func (tests TestPool) GetTestSuiteDuration() time.Duration {
 		}
 	}
 	return max
+}
+
+func (tests TestPool) GetTestSuiteDurationSerial() time.Duration {
+	var allDuration time.Duration
+	for _, test := range tests {
+		allDuration += test.testCase.TestDuration
+	}
+	return allDuration
 }
 
 func NewClassifier(k8sClusterPool K8sClusterPool, testCases ...TestCase) Classifier {

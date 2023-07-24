@@ -98,18 +98,21 @@ test: generate fmt vet manifests bin/setup-envtest
 		-timeout 1h
 	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
-# Run e2e tests
+# Run e2e tests serial
 test-e2e:
-	go test github.com/banzaicloud/koperator/tests/e2e \
-		-v \
-		-timeout 20m \
-		-tags e2e \
-		--ginkgo.show-node-events \
-		--ginkgo.trace \
-		--ginkgo.v
+	ginkgo -v --tags e2e tests/e2e
 
+# Run e2e tests parallel
 test-e2e-parallel:
 	ginkgo -p -v --tags e2e tests/e2e
+
+# Compile test binary for debugging
+build-e2e-debug-binary:
+	go test github.com/banzaicloud/koperator/tests/e2e \
+		--tags e2e \
+	 	-c \
+	 	-o /Users/marbarta/go/src/github.com/banzaicloud/koperator/tests/e2e/__debug_bin \
+	  	-gcflags all=-N
 
 # Build manager binary
 manager: generate fmt vet

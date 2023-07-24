@@ -116,7 +116,11 @@ func runGinkgoTests(t *testing.T) error {
 		return err
 	}
 
-	testSuiteDuration := testPool.GetTestSuiteDuration()
+	testSuiteDuration := testPool.GetTestSuiteDurationSerial()
+	if suiteConfig.ParallelProcess > 1 {
+		testSuiteDuration = testPool.GetTestSuiteDurationParallel()
+	}
+
 	maxTimeout, err := time.ParseDuration(viper.GetString(config.Tests.MaxTimeout))
 	if err != nil {
 		return fmt.Errorf("could not parse MaxTimeout into time.Duration: %w", err)
@@ -142,7 +146,7 @@ func runGinkgoTests(t *testing.T) error {
 
 	func() {
 		defer ginkgo.GinkgoRecover()
-		RunSpecs(t, testPool.PoolInfo(), suiteConfig, reporterConfig)
+		RunSpecs(t, fmt.Sprintf("PoolInfo: \n%s\nConfigurations: \n%s\n", testPool.PoolInfo(), config.Tests), suiteConfig, reporterConfig)
 	}()
 
 	return nil

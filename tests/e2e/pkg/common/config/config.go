@@ -14,7 +14,11 @@
 
 package config
 
-import "github.com/spf13/viper"
+import (
+	"fmt"
+
+	"github.com/spf13/viper"
+)
 
 type TestStrategy struct{}
 
@@ -25,14 +29,37 @@ const (
 	TestStrategyComplete         = "complete"
 )
 
-var Tests = struct {
+const (
+	defaultReportDir              = "reports"
+	defaultCreateTestReportFile   = "false"
+	defaultMaxTimeout             = "1m"
+	defaultAllowedOverrunDuration = "1m"
+	defaultTestStrategy           = TestStrategyMinimal
+)
+
+type TestsType struct {
 	ReportDir              string
 	CreateTestReportFile   string
 	MaxTimeout             string
 	AllowedOverrunDuration string
 	TestStrategy           string
 	LabelFilter            string
-}{
+}
+
+func (t TestsType) String() string {
+	return fmt.Sprintf(`
+ReportDir: %s
+CreateTestReportFile: %s
+MaxTimeout: %s
+AllowedOverrunDuration: %s
+TestStrategy: %s
+LabelFilter: %s
+`, viper.GetString(t.ReportDir), viper.GetString(t.CreateTestReportFile),
+		viper.GetString(t.MaxTimeout), viper.GetString(t.AllowedOverrunDuration),
+		viper.GetString(t.TestStrategy), viper.GetString(t.LabelFilter))
+}
+
+var Tests = TestsType{
 	CreateTestReportFile:   "tests.CreateTestReportFile",
 	MaxTimeout:             "tests.MaxTimeout",
 	AllowedOverrunDuration: "tests.AllowedOverrunDuration",
@@ -45,20 +72,18 @@ func init() {
 	viper.AutomaticEnv()
 
 	viper.BindEnv(Tests.CreateTestReportFile, "CREATE_TEST_REPORT_FILE")
-	viper.SetDefault(Tests.CreateTestReportFile, true)
+	viper.SetDefault(Tests.CreateTestReportFile, defaultCreateTestReportFile)
 
 	viper.BindEnv(Tests.ReportDir, "REPORT_DIR")
-	viper.SetDefault(Tests.ReportDir, "reports")
+	viper.SetDefault(Tests.ReportDir, defaultReportDir)
 
 	viper.BindEnv(Tests.MaxTimeout, "MAX_TIMEOUT")
-	viper.SetDefault(Tests.MaxTimeout, "10s")
+	viper.SetDefault(Tests.MaxTimeout, defaultMaxTimeout)
 
 	viper.BindEnv(Tests.AllowedOverrunDuration, "ALLOWED_OVERRUN_DURATION")
-	viper.SetDefault(Tests.AllowedOverrunDuration, "5s")
+	viper.SetDefault(Tests.AllowedOverrunDuration, defaultAllowedOverrunDuration)
 
 	viper.BindEnv(Tests.TestStrategy, "TEST_STRATEGY")
-	viper.SetDefault(Tests.TestStrategy, TestStrategyMinimal)
-
-	viper.BindEnv(Tests.LabelFilter, "TEST_MODE")
+	viper.SetDefault(Tests.TestStrategy, defaultTestStrategy)
 
 }
