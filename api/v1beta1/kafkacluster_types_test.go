@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gotest.tools/assert"
 
 	corev1 "k8s.io/api/core/v1"
@@ -456,5 +457,198 @@ func TestGetBrokerLabels(t *testing.T) {
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Error("Expected:", expected, "Got:", result)
+	}
+}
+
+func TestGetStorageMountPaths(t *testing.T) {
+	testCases := []struct {
+		testName           string
+		brokerConfig       *BrokerConfig
+		expectedMountPaths string
+	}{
+		{
+			testName:           "BrokerConfig has no StorageConfigs",
+			brokerConfig:       &BrokerConfig{},
+			expectedMountPaths: "",
+		},
+		{
+			testName: "BrokerConfig has one storage configuration under StorageConfigs",
+			brokerConfig: &BrokerConfig{
+				StorageConfigs: []StorageConfig{
+					{
+						MountPath: "test-log-1",
+					},
+				},
+			},
+			expectedMountPaths: "test-log-1",
+		},
+		{
+			testName: "BrokerConfig has multiple storage configuration under StorageConfigs",
+			brokerConfig: &BrokerConfig{
+				StorageConfigs: []StorageConfig{
+					{
+						MountPath: "test-log-1",
+					},
+					{
+						MountPath: "test-log-2",
+					},
+					{
+						MountPath: "test-log-3",
+					},
+					{
+						MountPath: "test-log-4",
+					},
+					{
+						MountPath: "test-log-5",
+					},
+				},
+			},
+			expectedMountPaths: "test-log-1,test-log-2,test-log-3,test-log-4,test-log-5",
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.testName, func(t *testing.T) {
+			gotMountPaths := test.brokerConfig.GetStorageMountPaths()
+			require.Equal(t, gotMountPaths, test.expectedMountPaths)
+		})
+	}
+}
+
+func TestIsBrokerOnlyNode(t *testing.T) {
+	testCases := []struct {
+		testName     string
+		broker       Broker
+		isBrokerOnly bool
+	}{
+		{
+			testName: "the broker is a broker-only node",
+			broker: Broker{
+				Id:    0,
+				Roles: []string{"broker"},
+			},
+			isBrokerOnly: true,
+		},
+		{
+			testName: "the broker is a controller-only node",
+			broker: Broker{
+				Id:    0,
+				Roles: []string{"controller"},
+			},
+			isBrokerOnly: false,
+		},
+		{
+			testName: "the broker is a combined node",
+			broker: Broker{
+				Id:    0,
+				Roles: []string{"controller", "broker"},
+			},
+			isBrokerOnly: false,
+		},
+		{
+			testName: "the broker has no process roles defined",
+			broker: Broker{
+				Id: 0,
+			},
+			isBrokerOnly: false,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.testName, func(t *testing.T) {
+			require.Equal(t, test.broker.IsBrokerOnlyNode(), test.isBrokerOnly)
+		})
+	}
+}
+
+func TestIsControllerOnlyNode(t *testing.T) {
+	testCases := []struct {
+		testName         string
+		broker           Broker
+		isControllerOnly bool
+	}{
+		{
+			testName: "the broker is a controller-only node",
+			broker: Broker{
+				Id:    0,
+				Roles: []string{"controller"},
+			},
+			isControllerOnly: true,
+		},
+		{
+			testName: "the broker is a broker-only node",
+			broker: Broker{
+				Id:    0,
+				Roles: []string{"broker"},
+			},
+			isControllerOnly: false,
+		},
+		{
+			testName: "the broker is a combined node",
+			broker: Broker{
+				Id:    0,
+				Roles: []string{"broker", "controller"},
+			},
+			isControllerOnly: false,
+		},
+		{
+			testName: "the broker has no process roles defined",
+			broker: Broker{
+				Id: 0,
+			},
+			isControllerOnly: false,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.testName, func(t *testing.T) {
+			require.Equal(t, test.broker.IsControllerOnlyNode(), test.isControllerOnly)
+		})
+	}
+}
+
+func TestIsCombinedNode(t *testing.T) {
+	testCases := []struct {
+		testName   string
+		broker     Broker
+		isCombined bool
+	}{
+		{
+			testName: "the broker is a broker-only node",
+			broker: Broker{
+				Id:    0,
+				Roles: []string{"broker"},
+			},
+			isCombined: false,
+		},
+		{
+			testName: "the broker is a controller-only node",
+			broker: Broker{
+				Id:    0,
+				Roles: []string{"controller"},
+			},
+			isCombined: false,
+		},
+		{
+			testName: "the broker is a combined node",
+			broker: Broker{
+				Id:    0,
+				Roles: []string{"broker", "controller"},
+			},
+			isCombined: true,
+		},
+		{
+			testName: "the broker has no process roles defined",
+			broker: Broker{
+				Id: 0,
+			},
+			isCombined: false,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.testName, func(t *testing.T) {
+			require.Equal(t, test.broker.IsCombinedNode(), test.isCombined)
+		})
 	}
 }

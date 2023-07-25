@@ -12823,11 +12823,21 @@ spec:
                     brokerConfigGroup:
                       type: string
                     id:
+                      description: id maps to "node.id" configuration in KRaft mode,
+                        and it maps to "broker.id" configuration in ZooKeeper mode.
                       exclusiveMaximum: true
                       format: int32
                       maximum: 65535
                       minimum: 0
                       type: integer
+                    processRoles:
+                      description: 'processRoles defines the role(s) for this particular
+                        broker node: broker, controller, or both. This must be set
+                        in KRaft mode.'
+                      items:
+                        type: string
+                      maxItems: 2
+                      type: array
                     readOnlyConfig:
                       type: string
                   required:
@@ -19056,6 +19066,12 @@ spec:
                       type: string
                     type: object
                 type: object
+              kRaft:
+                default: true
+                description: kRaft is used to decide where the Kafka cluster is under
+                  KRaft mode or ZooKeeper mode. This is default to be true; if set
+                  to false, the Kafka cluster is in ZooKeeper mode.
+                type: boolean
               kubernetesClusterDomain:
                 type: string
               listenersConfig:
@@ -21703,14 +21719,15 @@ spec:
               zkAddresses:
                 description: ZKAddresses specifies the ZooKeeper connection string
                   in the form hostname:port where host and port are the host and port
-                  of a ZooKeeper server.
+                  of a ZooKeeper server. This is not used under KRaft mode.
                 items:
                   type: string
                 type: array
               zkPath:
                 description: ZKPath specifies the ZooKeeper chroot path as part of
                   its ZooKeeper connection string which puts its data under some path
-                  in the global ZooKeeper namespace.
+                  in the global ZooKeeper namespace. This is not used under KRaft
+                  mode.
                 type: string
             required:
             - brokers
@@ -21719,7 +21736,6 @@ spec:
             - listenersConfig
             - oneBrokerPerNode
             - rollingUpgradeConfig
-            - zkAddresses
             type: object
           status:
             description: KafkaClusterStatus defines the observed state of KafkaCluster
@@ -21813,6 +21829,10 @@ spec:
                   - rackAwarenessState
                   type: object
                 type: object
+              clusterID:
+                description: ClusterID is a based64-encoded random UUID generated
+                  to run the Kafka cluster in KRaft mode
+                type: string
               cruiseControlTopicStatus:
                 description: CruiseControlTopicStatus holds info about the CC topic
                   status

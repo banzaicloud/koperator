@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-
 	"github.com/imdario/mergo"
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
@@ -62,19 +61,33 @@ const (
 
 	// DefaultKafkaImage is the default Kafka image used when users don't specify it in KafkaClusterSpec.ClusterImage
 	DefaultKafkaImage = "ghcr.io/banzaicloud/kafka:2.13-3.4.1"
+
+	// controllerNodeProcessRole represents the node is a controller node
+	controllerNodeProcessRole = "controller"
+	// brokerNodeProcessRole represents the node is a broker node
+	brokerNodeProcessRole = "broker"
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
+	// kRaft is used to decide where the Kafka cluster is under KRaft mode or ZooKeeper mode.
+	// This is default to be true; if set to false, the Kafka cluster is in ZooKeeper mode.
+	// +kubebuilder:default=true
+	// +optional
+	KRaftMode              bool            `json:"kRaft"`
 	HeadlessServiceEnabled bool            `json:"headlessServiceEnabled"`
 	ListenersConfig        ListenersConfig `json:"listenersConfig"`
 	// Custom ports to expose in the container. Example use case: a custom kafka distribution, that includes an integrated metrics api endpoint
 	AdditionalPorts []corev1.ContainerPort `json:"additionalPorts,omitempty"`
 	// ZKAddresses specifies the ZooKeeper connection string
 	// in the form hostname:port where host and port are the host and port of a ZooKeeper server.
-	ZKAddresses []string `json:"zkAddresses"`
+	// This is not used under KRaft mode.
+	// +optional
+	ZKAddresses []string `json:"zkAddresses,omitempty"`
 	// ZKPath specifies the ZooKeeper chroot path as part
 	// of its ZooKeeper connection string which puts its data under some path in the global ZooKeeper namespace.
+	// This is not used under KRaft mode.
+	// +optional
 	ZKPath                      string                  `json:"zkPath,omitempty"`
 	RackAwareness               *RackAwareness          `json:"rackAwareness,omitempty"`
 	ClusterImage                string                  `json:"clusterImage,omitempty"`
@@ -126,6 +139,8 @@ type KafkaClusterStatus struct {
 	RollingUpgrade           RollingUpgradeStatus     `json:"rollingUpgradeStatus,omitempty"`
 	AlertCount               int                      `json:"alertCount"`
 	ListenerStatuses         ListenerStatuses         `json:"listenerStatuses,omitempty"`
+	// ClusterID is a based64-encoded random UUID generated to run the Kafka cluster in KRaft mode
+	ClusterID string `json:"clusterID,omitempty"`
 }
 
 // RollingUpgradeStatus defines status of rolling upgrade
@@ -161,11 +176,12 @@ type DisruptionBudgetWithStrategy struct {
 	DisruptionBudget `json:",inline"`
 	// The strategy to be used, either minAvailable or maxUnavailable
 	// +kubebuilder:validation:Enum=minAvailable;maxUnavailable
-	Stategy string `json:"strategy,omitempty"`
+	Strategy string `json:"strategy,omitempty"`
 }
 
 // Broker defines the broker basic configuration
 type Broker struct {
+	// id maps to "node.id" configuration in KRaft mode, and it maps to "broker.id" configuration in ZooKeeper mode.
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=65535
 	// +kubebuilder:validation:ExclusiveMaximum=true
@@ -173,6 +189,11 @@ type Broker struct {
 	BrokerConfigGroup string        `json:"brokerConfigGroup,omitempty"`
 	ReadOnlyConfig    string        `json:"readOnlyConfig,omitempty"`
 	BrokerConfig      *BrokerConfig `json:"brokerConfig,omitempty"`
+	// processRoles defines the role(s) for this particular broker node: broker, controller, or both.
+	// This must be set in KRaft mode.
+	// +kubebuilder:validation:MaxItems=2
+	// +optional
+	Roles []string `json:"processRoles,omitempty"`
 }
 
 // BrokerConfig defines the broker configuration
@@ -859,6 +880,19 @@ func (bConfig *BrokerConfig) GetTerminationGracePeriod() int64 {
 	return *bConfig.TerminationGracePeriod
 }
 
+// GetStorageMountPaths returns a string with comma-separated storage mount paths that the broker uses
+func (bConfig *BrokerConfig) GetStorageMountPaths() string {
+	var mountPaths string
+	for i, sc := range bConfig.StorageConfigs {
+		if i != len(bConfig.StorageConfigs)-1 {
+			mountPaths += sc.MountPath + ","
+		} else {
+			mountPaths += sc.MountPath
+		}
+	}
+	return mountPaths
+}
+
 // GetNodeSelector returns the node selector for cruise control
 func (cConfig *CruiseControlConfig) GetNodeSelector() map[string]string {
 	return cConfig.NodeSelector
@@ -1135,6 +1169,31 @@ func (b *Broker) GetBrokerConfig(kafkaClusterSpec KafkaClusterSpec) (*BrokerConf
 	bConfig.Envs = envs
 
 	return bConfig, nil
+}
+
+// IsBrokerNode returns true when the broker is a broker node
+func (b *Broker) IsBrokerNode() bool {
+	return util.StringSliceContains(b.Roles, brokerNodeProcessRole)
+}
+
+// IsControllerNode returns true when the broker is a controller node
+func (b *Broker) IsControllerNode() bool {
+	return util.StringSliceContains(b.Roles, controllerNodeProcessRole)
+}
+
+// IsBrokerOnlyNode returns true when the broker is a broker-only node
+func (b *Broker) IsBrokerOnlyNode() bool {
+	return b.IsBrokerNode() && !b.IsControllerNode()
+}
+
+// IsControllerOnlyNode returns true when the broker is a controller-only node
+func (b *Broker) IsControllerOnlyNode() bool {
+	return b.IsControllerNode() && !b.IsBrokerNode()
+}
+
+// IsCombinedNode returns true when the broker is a broker + controller node
+func (b *Broker) IsCombinedNode() bool {
+	return b.IsBrokerNode() && b.IsControllerNode()
 }
 
 func mergeEnvs(kafkaClusterSpec KafkaClusterSpec, groupConfig, bConfig *BrokerConfig) []corev1.EnvVar {
