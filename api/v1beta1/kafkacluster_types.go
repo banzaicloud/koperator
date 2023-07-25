@@ -801,10 +801,6 @@ func (kSpec *KafkaClusterSpec) GetClusterMetricsReporterImage() string {
 	return kSpec.CruiseControlConfig.GetCCImage()
 }
 
-func (kSpec *KafkaClusterSpec) KraftMode() bool {
-	return kSpec.KRaftMode
-}
-
 func (cTaskSpec *CruiseControlTaskSpec) GetDurationMinutes() float64 {
 	if cTaskSpec.RetryDurationMinutes == 0 {
 		return 5
