@@ -10,7 +10,7 @@ require (
 	github.com/banzaicloud/istio-client-go v0.0.17
 	github.com/banzaicloud/istio-operator/api/v2 v2.15.1
 	github.com/banzaicloud/k8s-objectmatcher v1.8.0
-	github.com/banzaicloud/koperator/api v0.28.5
+	github.com/banzaicloud/koperator/api v0.28.6
 	github.com/banzaicloud/koperator/properties v0.4.1
 	github.com/cert-manager/cert-manager v1.11.2
 	github.com/cisco-open/cluster-registry-controller/api v0.2.5
@@ -24,7 +24,7 @@ require (
 	github.com/prometheus/common v0.37.0
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.24.0
-	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91
+	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/inf.v0 v0.9.1
 	gotest.tools v2.2.0+incompatible

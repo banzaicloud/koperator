@@ -162,7 +162,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	}
 
 	if !foundApproved {
-		if strings.Split(signingReq.Spec.SignerName, "/")[0] == CertManagerSignerNamePrefix {
+		if strings.Split(signingReq.Spec.SignerName, "/")[0] == v1alpha1.CertManagerSignerNamePrefix {
 			err = c.Approve(ctx, signingReq)
 			if err != nil {
 				return nil, err
