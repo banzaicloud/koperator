@@ -30,6 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
@@ -180,7 +182,7 @@ func (r *KafkaTopicReconciler) Reconcile(ctx context.Context, request reconcile.
 	}
 
 	// ensure a finalizer for cleanup on deletion
-	if !util.StringSliceContains(instance.GetFinalizers(), topicFinalizer) {
+	if !apiutil.StringSliceContains(instance.GetFinalizers(), topicFinalizer) {
 		reqLogger.Info("Adding Finalizer for the KafkaTopic")
 		instance.SetFinalizers(append(instance.GetFinalizers(), topicFinalizer))
 		if instance, err = r.updateAndFetchLatest(ctx, instance); err != nil {
@@ -224,7 +226,7 @@ func (r *KafkaTopicReconciler) checkFinalizers(ctx context.Context, broker kafka
 	reqLogger := logr.FromContextOrDiscard(ctx)
 	reqLogger.Info("Kafka topic is marked for deletion")
 	var err error
-	if util.StringSliceContains(topic.GetFinalizers(), topicFinalizer) {
+	if apiutil.StringSliceContains(topic.GetFinalizers(), topicFinalizer) {
 		// Remove topic from Kafka cluster when it is managed by Koperator
 		if isTopicManagedByKoperator(topic) {
 			if err = r.finalizeKafkaTopic(reqLogger, broker, topic); err != nil {

@@ -120,16 +120,6 @@ func TestIsSSLEnabledForInternalCommunication(t *testing.T) {
 	}
 }
 
-func TestStringSliceContains(t *testing.T) {
-	slice := []string{"1", "2", "3"}
-	if !StringSliceContains(slice, "1") {
-		t.Error("Expected slice contains 1, got false")
-	}
-	if StringSliceContains(slice, "4") {
-		t.Error("Expected slice not contains 4, got true")
-	}
-}
-
 func TestStringSliceRemove(t *testing.T) {
 	slice := []string{"1", "2", "3"}
 	removed := StringSliceRemove(slice, "3")

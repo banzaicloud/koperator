@@ -48,6 +48,8 @@ import (
 	clientCtrl "sigs.k8s.io/controller-runtime/pkg/client"
 	k8s_zap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
+
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
@@ -151,16 +153,6 @@ func ConvertPropertiesToMapStringPointer(pp *properties.Properties) map[string]*
 	return result
 }
 
-// StringSliceContains returns true if list contains s
-func StringSliceContains(list []string, s string) bool {
-	for _, v := range list {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 // StringSliceRemove will remove s from list
 func StringSliceRemove(list []string, s string) []string {
 	for i, v := range list {
@@ -219,12 +211,12 @@ func IsIngressConfigInUse(iConfigName, defaultConfigName string, cluster *v1beta
 			return false
 		}
 		if len(brokerConfig.BrokerIngressMapping) == 0 && iConfigName == defaultConfigName ||
-			StringSliceContains(brokerConfig.BrokerIngressMapping, iConfigName) {
+			apiutil.StringSliceContains(brokerConfig.BrokerIngressMapping, iConfigName) {
 			return true
 		}
 	}
 	for _, status := range cluster.Status.BrokersState {
-		if StringSliceContains(status.ExternalListenerConfigNames, iConfigName) {
+		if apiutil.StringSliceContains(status.ExternalListenerConfigNames, iConfigName) {
 			return true
 		}
 	}
@@ -245,12 +237,12 @@ func ShouldIncludeBroker(brokerConfig *v1beta1.BrokerConfig, status v1beta1.Kafk
 	defaultIngressConfigName, ingressConfigName string) bool {
 	if brokerConfig != nil {
 		if len(brokerConfig.BrokerIngressMapping) == 0 && (ingressConfigName == defaultIngressConfigName || defaultIngressConfigName == "") ||
-			StringSliceContains(brokerConfig.BrokerIngressMapping, ingressConfigName) {
+			apiutil.StringSliceContains(brokerConfig.BrokerIngressMapping, ingressConfigName) {
 			return true
 		}
 	}
 	if brokerState, ok := status.BrokersState[strconv.Itoa(brokerID)]; ok {
-		if StringSliceContains(brokerState.ExternalListenerConfigNames, ingressConfigName) {
+		if apiutil.StringSliceContains(brokerState.ExternalListenerConfigNames, ingressConfigName) {
 			return true
 		}
 	}

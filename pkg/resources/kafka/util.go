@@ -22,7 +22,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
-	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 // generateQuorumVoters generates the quorum voters in the format of brokerID@nodeAddress:listenerPort
@@ -38,7 +37,7 @@ func generateQuorumVoters(brokers []v1beta1.Broker, controllerListenerStatuses m
 
 	// find the controller nodes and their corresponding listener addresses
 	for _, b := range brokers {
-		if isControllerNode(b.Roles) {
+		if b.IsControllerNode() {
 			for _, controllerListenerStatus := range controllerListenerStatuses {
 				for _, status := range controllerListenerStatus {
 					if status.Name == fmt.Sprintf("broker-%d", b.Id) {
@@ -60,22 +59,6 @@ func generateQuorumVoters(brokers []v1beta1.Broker, controllerListenerStatuses m
 	}
 
 	return quorumVoters
-}
-
-func isBrokerNodeOnly(roles []string) bool {
-	return isBrokerNode(roles) && !isControllerNode(roles)
-}
-
-func isControllerNodeOnly(roles []string) bool {
-	return isControllerNode(roles) && !isBrokerNode(roles)
-}
-
-func isBrokerNode(roles []string) bool {
-	return util.StringSliceContains(roles, "broker")
-}
-
-func isControllerNode(roles []string) bool {
-	return util.StringSliceContains(roles, "controller")
 }
 
 // generateRandomClusterID() generates a based64-encoded random UUID with 16 bytes as the cluster ID

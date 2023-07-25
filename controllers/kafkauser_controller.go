@@ -23,6 +23,8 @@ import (
 
 	"emperror.dev/errors"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
+
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -294,7 +296,7 @@ func (r *KafkaUserReconciler) Reconcile(ctx context.Context, request reconcile.R
 	}
 
 	// ensure a finalizer for cleanup on deletion
-	if !util.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
+	if !apiutil.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
 		r.addFinalizer(reqLogger, instance)
 		if instance, err = r.updateAndFetchLatest(ctx, instance); err != nil {
 			return requeueWithError(reqLogger, "failed to update kafkauser with finalizer", err)
@@ -338,7 +340,7 @@ func (r *KafkaUserReconciler) checkFinalizers(ctx context.Context, cluster *v1be
 	reqLogger := logr.FromContextOrDiscard(ctx)
 	// run finalizers
 	var err error
-	if util.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
+	if apiutil.StringSliceContains(instance.GetFinalizers(), userFinalizer) {
 		if len(instance.Spec.TopicGrants) > 0 {
 			for _, topicGrant := range instance.Spec.TopicGrants {
 				if err = r.finalizeKafkaUserACLs(reqLogger, cluster, user, topicGrant.PatternType); err != nil {

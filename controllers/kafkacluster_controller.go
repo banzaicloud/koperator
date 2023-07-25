@@ -32,6 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
+
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
@@ -200,7 +202,7 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, cluster *v
 	log.Info("KafkaCluster is marked for deletion, checking for children")
 
 	// If the main finalizer is gone then we've already finished up
-	if !util.StringSliceContains(cluster.GetFinalizers(), clusterFinalizer) {
+	if !apiutil.StringSliceContains(cluster.GetFinalizers(), clusterFinalizer) {
 		return reconciled()
 	}
 
@@ -224,7 +226,7 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, cluster *v
 
 	// If we haven't deleted all kafkatopics yet, iterate namespaces and delete all kafkatopics
 	// with the matching label.
-	if util.StringSliceContains(cluster.GetFinalizers(), clusterTopicsFinalizer) {
+	if apiutil.StringSliceContains(cluster.GetFinalizers(), clusterTopicsFinalizer) {
 		log.Info(fmt.Sprintf("Sending delete kafkatopics request to all namespaces for cluster %s/%s", cluster.Namespace, cluster.Name))
 		for _, ns := range namespaces {
 			if err := r.Client.DeleteAllOf(
@@ -268,7 +270,7 @@ func (r *KafkaClusterReconciler) checkFinalizers(ctx context.Context, cluster *v
 
 	// If we haven't deleted all kafkausers yet, iterate namespaces and delete all kafkausers
 	// with the matching label.
-	if util.StringSliceContains(cluster.GetFinalizers(), clusterUsersFinalizer) {
+	if apiutil.StringSliceContains(cluster.GetFinalizers(), clusterUsersFinalizer) {
 		log.Info(fmt.Sprintf("Sending delete kafkausers request to all namespaces for cluster %s/%s", cluster.Namespace, cluster.Name))
 		for _, ns := range namespaces {
 			if err := r.Client.DeleteAllOf(
@@ -329,7 +331,7 @@ func topicListToStrSlice(list v1alpha1.KafkaTopicList) []string {
 func (r *KafkaClusterReconciler) ensureFinalizers(ctx context.Context, cluster *v1beta1.KafkaCluster) (updated *v1beta1.KafkaCluster, err error) {
 	finalizers := []string{clusterFinalizer, clusterTopicsFinalizer, clusterUsersFinalizer}
 	for _, finalizer := range finalizers {
-		if util.StringSliceContains(cluster.GetFinalizers(), finalizer) {
+		if apiutil.StringSliceContains(cluster.GetFinalizers(), finalizer) {
 			continue
 		}
 		cluster.SetFinalizers(append(cluster.GetFinalizers(), finalizer))

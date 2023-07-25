@@ -21,11 +21,12 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-logr/logr"
 
+	apiutil "github.com/banzaicloud/koperator/api/util"
+
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
-	"github.com/banzaicloud/koperator/pkg/util"
 )
 
 // PerBrokerConfigs configurations will not trigger rolling upgrade when updated
@@ -64,7 +65,7 @@ func GrantsToACLStrings(dn string, grants []v1alpha1.UserTopicGrant) []string {
 		}
 		patternType := strings.ToUpper(string(x.PatternType))
 		cmn := fmt.Sprintf(commonACLString, dn, patternType, x.TopicName)
-		if !util.StringSliceContains(acls, cmn) {
+		if !apiutil.StringSliceContains(acls, cmn) {
 			acls = append(acls, cmn)
 		}
 		switch x.AccessType {
@@ -72,7 +73,7 @@ func GrantsToACLStrings(dn string, grants []v1alpha1.UserTopicGrant) []string {
 			readACL := fmt.Sprintf(readACLString, dn, patternType, x.TopicName)
 			readGroupACL := fmt.Sprintf(readGroupACLString, dn)
 			for _, y := range []string{readACL, readGroupACL} {
-				if !util.StringSliceContains(acls, y) {
+				if !apiutil.StringSliceContains(acls, y) {
 					acls = append(acls, y)
 				}
 			}
@@ -80,7 +81,7 @@ func GrantsToACLStrings(dn string, grants []v1alpha1.UserTopicGrant) []string {
 			createACL := fmt.Sprintf(createACLString, dn, patternType, x.TopicName)
 			writeACL := fmt.Sprintf(writeACLString, dn, patternType, x.TopicName)
 			for _, y := range []string{createACL, writeACL} {
-				if !util.StringSliceContains(acls, y) {
+				if !apiutil.StringSliceContains(acls, y) {
 					acls = append(acls, y)
 				}
 			}

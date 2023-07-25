@@ -160,7 +160,7 @@ func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.Kafka
 
 	var advertisedListenerConf []string
 	// only expose "advertised.listeners" when the node serves as a regular broker or a combined node
-	if isBrokerNode(broker.Roles) {
+	if broker.IsBrokerNode() {
 		advertisedListenerConf = generateAdvertisedListenerConfig(broker.Id, kafkaCluster.Spec.ListenersConfig,
 			extListenerStatuses, intListenerStatuses, nil)
 		if err := config.Set(kafkautils.KafkaConfigAdvertisedListeners, advertisedListenerConf); err != nil {
@@ -168,7 +168,7 @@ func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.Kafka
 		}
 	}
 
-	if isControllerNodeOnly(broker.Roles) {
+	if broker.IsControllerOnlyNode() {
 		// "listeners" configuration can only contain controller configuration when the node is a controller-only node
 		for _, listener := range listenerConfig {
 			if listener[:len(controllerListenerName)] == strings.ToUpper(controllerListenerName) {
@@ -178,7 +178,7 @@ func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.Kafka
 				break
 			}
 		}
-	} else if isBrokerNodeOnly(broker.Roles) {
+	} else if broker.IsBrokerOnlyNode() {
 		// "listeners" configuration cannot contain controller configuration when the node is a broker-only node
 		var nonControllerListener []string
 		for _, listener := range listenerConfig {
