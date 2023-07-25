@@ -560,7 +560,7 @@ type IngressServiceSettings struct {
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
 	// externalTrafficPolicy denotes if this Service desires to route external
 	// traffic to node-local or cluster-wide endpoints. "Local" preserves the
-	// client source IP and avoids a second hop for LoadBalancer anapi/v1beta1/kafkacluster_types_test.god Nodeport
+	// client source IP and avoids a second hop for LoadBalancer and Nodeport
 	// type services, but risks potentially imbalanced traffic spreading.
 	// "Cluster" obscures the client source IP and may cause a second hop to
 	// another node, but should have good overall load-spreading.
