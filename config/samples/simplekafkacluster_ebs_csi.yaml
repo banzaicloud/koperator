@@ -5,6 +5,7 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: kafka
 spec:
+  kRaft: false
   headlessServiceEnabled: false
   rackAwareness:
     labels:

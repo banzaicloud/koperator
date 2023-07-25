@@ -310,7 +310,7 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 	allBrokerDynamicConfigSucceeded := true
 
 	// all broker nodes under the same Kafka cluster must use the same cluster UUID
-	if r.KafkaCluster.Status.ClusterID == "" {
+	if r.KafkaCluster.Spec.KRaftMode && r.KafkaCluster.Status.ClusterID == "" {
 		r.KafkaCluster.Status.ClusterID = generateRandomClusterID()
 		err = r.Client.Status().Update(ctx, r.KafkaCluster)
 		if apierrors.IsNotFound(err) {

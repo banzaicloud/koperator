@@ -5,6 +5,7 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: kafka
 spec:
+  kRaft: false
   monitoringConfig:
     jmxImage: "banzaicloud/jmx-javaagent:0.13.0"
     pathToJar: "/opt/jmx_exporter/jmx_prometheus_javaagent-0.13.0.jar"

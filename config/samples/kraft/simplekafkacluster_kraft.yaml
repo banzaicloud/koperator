@@ -5,10 +5,10 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: kafka
 spec:
-  kRaft: false
+  kRaft: true
+  monitoringConfig:
+    jmxImage: "ghcr.io/banzaicloud/jmx-javaagent:0.16.1"
   headlessServiceEnabled: true
-  zkAddresses:
-    - "zookeeper-server-client.zookeeper:2181"
   propagateLabels: false
   oneBrokerPerNode: false
   clusterImage: "ghcr.io/banzaicloud/kafka:2.13-3.4.1"
@@ -17,22 +17,17 @@ spec:
     cruise.control.metrics.topic.auto.create=true
     cruise.control.metrics.topic.num.partitions=1
     cruise.control.metrics.topic.replication.factor=2
-    sasl.enabled.mechanisms=OAUTHBEARER
-    # OAuth issuer token endpoint URL
-    sasl.oauthbearer.token.endpoint.url=https://myidp.example.com/oauth2/default/v1/token
-    # OAuth issuer's JWK Set endpoint URL from which to retrieve the set of JWKs managed by the provider; this can be a file://-based URL that points to a broker file system-accessible file-based copy of the JWKS data.
-    sasl.oauthbearer.jwks.endpoint.url=https://myidp.example.com/oauth2/default/v1/keys
-    listener.name.external.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-      clientSecret="<client-secret>" \
-      clientId="oauth-client-id";
   brokerConfigGroups:
     default:
-      # podSecurityContext:
-      #  runAsNonRoot: false
-      # securityContext:
-      #  privileged: true
       storageConfigs:
         - mountPath: "/kafka-logs"
+          pvcSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
+        - mountPath: "/kafka-logs-2"
           pvcSpec:
             accessModes:
               - ReadWriteOnce
@@ -45,10 +40,29 @@ spec:
   brokers:
     - id: 0
       brokerConfigGroup: "default"
+      processRoles:
+        - broker
     - id: 1
       brokerConfigGroup: "default"
+      processRoles:
+        - broker
     - id: 2
       brokerConfigGroup: "default"
+      processRoles:
+        - broker
+    - id: 3
+      brokerConfigGroup: "default"
+      processRoles:
+        - controller
+        - broker
+    - id: 4
+      brokerConfigGroup: "default"
+      processRoles:
+        - controller
+    - id: 5
+      brokerConfigGroup: "default"
+      processRoles:
+        - controller
   rollingUpgradeConfig:
     failureThreshold: 1
   listenersConfig:
@@ -62,11 +76,6 @@ spec:
         containerPort: 29093
         usedForInnerBrokerCommunication: false
         usedForControllerCommunication: true
-    externalListeners:
-      - type: "sasl_plaintext"
-        name: "external"
-        externalStartingPort: 19090
-        containerPort: 9094
   cruiseControlConfig:
     # podSecurityContext:
     #  runAsNonRoot: false
@@ -77,6 +86,14 @@ spec:
     topicConfig:
       partitions: 12
       replicationFactor: 3
+#    resourceRequirements:
+#      requests:
+#        cpu: 500m
+#        memory: 1Gi
+#      limits:
+#        cpu: 500m
+#        memory: 1Gi
+#    image: "ghcr.io/banzaicloud/cruise-control:2.5.86"
     config: |
       # Copyright 2017 LinkedIn Corp. Licensed under the BSD 2-Clause License (the "License"). See License in the project root for license information.
       #
@@ -203,10 +220,6 @@ spec:
       metric.anomaly.analyzer.metrics=BROKER_PRODUCE_LOCAL_TIME_MS_MAX,BROKER_PRODUCE_LOCAL_TIME_MS_MEAN,BROKER_CONSUMER_FETCH_LOCAL_TIME_MS_MAX,BROKER_CONSUMER_FETCH_LOCAL_TIME_MS_MEAN,BROKER_FOLLOWER_FETCH_LOCAL_TIME_MS_MAX,BROKER_FOLLOWER_FETCH_LOCAL_TIME_MS_MEAN,BROKER_LOG_FLUSH_TIME_MS_MAX,BROKER_LOG_FLUSH_TIME_MS_MEAN
       ## Adjust accordingly if your metrics reporter is an older version and does not produce these metrics.
       #metric.anomaly.analyzer.metrics=BROKER_PRODUCE_LOCAL_TIME_MS_50TH,BROKER_PRODUCE_LOCAL_TIME_MS_999TH,BROKER_CONSUMER_FETCH_LOCAL_TIME_MS_50TH,BROKER_CONSUMER_FETCH_LOCAL_TIME_MS_999TH,BROKER_FOLLOWER_FETCH_LOCAL_TIME_MS_50TH,BROKER_FOLLOWER_FETCH_LOCAL_TIME_MS_999TH,BROKER_LOG_FLUSH_TIME_MS_50TH,BROKER_LOG_FLUSH_TIME_MS_999TH
-      # The zk path to store failed broker information.
-      failed.brokers.zk.path=/CruiseControlBrokerList
-      # Topic config provider class
-      topic.config.provider.class=com.linkedin.kafka.cruisecontrol.config.KafkaTopicConfigProvider
       # The cluster configurations for the KafkaTopicConfigProvider
       cluster.configs.file=config/clusterConfigs.json
       # The maximum time in milliseconds to store the response and access details of a completed user task.
