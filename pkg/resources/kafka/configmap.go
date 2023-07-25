@@ -21,10 +21,11 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	zookeeperutils "github.com/banzaicloud/koperator/pkg/util/zookeeper"
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	zookeeperutils "github.com/banzaicloud/koperator/pkg/util/zookeeper"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"

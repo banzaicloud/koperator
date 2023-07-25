@@ -19,9 +19,10 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/google/uuid"
+
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/util"
-	"github.com/google/uuid"
 )
 
 // generateQuorumVoters generates the quorum voters in the format of brokerID@nodeAddress:listenerPort

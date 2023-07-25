@@ -69,7 +69,6 @@ func (r *Reconciler) configMap(clientPass string, capacityConfig string, log log
 		if err = ccConfig.Set(kafkautils.CruiseControlConfigKafkaBrokerFailureDetectionEnable, kafkautils.CruiseControlConfigKafkaBrokerFailureDetectionEnableVal); err != nil {
 			log.Error(err, fmt.Sprintf("setting '%s' in Cruise Control configuration failed", kafkautils.CruiseControlConfigKafkaBrokerFailureDetectionEnable), "config", kafkautils.CruiseControlConfigKafkaBrokerFailureDetectionEnableVal)
 		}
-
 	} else {
 		// Add Zookeeper configuration when we are in Zookeeper mode only
 		zkConnect := zookeeperutils.PrepareConnectionAddress(r.KafkaCluster.Spec.ZKAddresses, r.KafkaCluster.Spec.GetZkPath())

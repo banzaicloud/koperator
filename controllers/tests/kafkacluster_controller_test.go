@@ -45,6 +45,8 @@ var _ = Describe("KafkaCluster", func() {
 		externalListenerHostNameKRaft string
 	)
 
+	const lbIngressHostName = "external.az1.host.com"
+
 	BeforeEach(func() {
 		atomic.AddUint64(&count, 1)
 
@@ -267,7 +269,7 @@ var _ = Describe("KafkaCluster", func() {
 			}
 			kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
 			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaCluster.Name)
-			externalListenerHostName = "external.az1.host.com"
+			externalListenerHostName = lbIngressHostName
 
 			// use the kafkaCluster above as a blueprint for creating a KafkaCluster under KRaft mode
 			testExternalListenerKRaft := kafkaClusterKRaft.Spec.ListenersConfig.ExternalListeners[0]
@@ -281,7 +283,7 @@ var _ = Describe("KafkaCluster", func() {
 			}
 			kafkaClusterKRaft.Spec.ListenersConfig.ExternalListeners[0] = testExternalListenerKRaft
 			loadBalancerServiceNameKRaft = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaClusterKRaft.Name)
-			externalListenerHostNameKRaft = "external.az1.host.com"
+			externalListenerHostNameKRaft = lbIngressHostName
 		})
 		It("should reconcile object properly", func(ctx SpecContext) {
 			expectDefaultBrokerSettingsForExternalListenerBinding(ctx, kafkaCluster, count)
@@ -309,7 +311,7 @@ var _ = Describe("KafkaCluster", func() {
 			}
 			kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
 			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaCluster.Name)
-			externalListenerHostName = "external.az1.host.com"
+			externalListenerHostName = lbIngressHostName
 
 			// KRaft
 			testExternalListenerKRaft := kafkaClusterKRaft.Spec.ListenersConfig.ExternalListeners[0]
@@ -328,7 +330,7 @@ var _ = Describe("KafkaCluster", func() {
 			}
 			kafkaClusterKRaft.Spec.ListenersConfig.ExternalListeners[0] = testExternalListenerKRaft
 			loadBalancerServiceNameKRaft = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaClusterKRaft.Name)
-			externalListenerHostNameKRaft = "external.az1.host.com"
+			externalListenerHostNameKRaft = lbIngressHostName
 		})
 		It("should reconcile object properly", func(ctx SpecContext) {
 			expectDefaultBrokerSettingsForExternalListenerBinding(ctx, kafkaCluster, count)

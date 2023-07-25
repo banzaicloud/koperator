@@ -43,7 +43,6 @@ func TestGenerateClusterID(t *testing.T) {
 }
 
 func TestGenerateQuorumVoters(t *testing.T) {
-
 	tests := []struct {
 		testName             string
 		brokers              []v1beta1.Broker
