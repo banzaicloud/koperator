@@ -162,7 +162,59 @@ func expectKafkaBrokerConfigmap(ctx context.Context, kafkaCluster *v1beta1.Kafka
 	Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 	Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.BrokerIdLabelKey, strconv.Itoa(int(broker.Id))))
 
-	Expect(configMap.Data).To(HaveKeyWithValue("broker-config", fmt.Sprintf(`advertised.listeners=CONTROLLER://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29092,TEST://test.host.com:%d
+	var expectedBrokerConfig string
+	if kafkaCluster.Spec.KRaftMode {
+		switch broker.Id {
+		case 0:
+			// broker-only node
+			expectedBrokerConfig = fmt.Sprintf(`advertised.listeners=INTERNAL://%s-%d.%s.svc.cluster.local:29092,TEST://test.host.com:%d
+controller.listener.names=CONTROLLER
+controller.quorum.voters=1@%s-1.%s.svc.cluster.local:29093,2@%s-2.%s.svc.cluster.local:29093
+cruise.control.metrics.reporter.bootstrap.servers=%s-all-broker.%s.svc.cluster.local:29092
+cruise.control.metrics.reporter.kubernetes.mode=true
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:PLAINTEXT
+listeners=INTERNAL://:29092,TEST://:9094
+log.dirs=/kafka-logs/kafka,/ephemeral-dir1/kafka
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+node.id=%d
+process.roles=broker
+`, kafkaCluster.Name, broker.Id, kafkaCluster.Namespace, 19090+broker.Id, kafkaCluster.Name, kafkaCluster.Namespace, kafkaCluster.Name, kafkaCluster.Namespace, kafkaCluster.Name,
+				kafkaCluster.Namespace, broker.Id)
+		case 1:
+			// controller-only node
+			expectedBrokerConfig = fmt.Sprintf(`controller.listener.names=CONTROLLER
+controller.quorum.voters=1@%s-1.%s.svc.cluster.local:29093,2@%s-2.%s.svc.cluster.local:29093
+cruise.control.metrics.reporter.bootstrap.servers=%s-all-broker.%s.svc.cluster.local:29092
+cruise.control.metrics.reporter.kubernetes.mode=true
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:PLAINTEXT
+listeners=CONTROLLER://:29093
+log.dirs=/kafka-logs/kafka,/ephemeral-dir1/kafka
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+node.id=%d
+process.roles=controller
+`, kafkaCluster.Name, kafkaCluster.Namespace, kafkaCluster.Name, kafkaCluster.Namespace, kafkaCluster.Name,
+				kafkaCluster.Namespace, broker.Id)
+		case 2:
+			// combined node
+			expectedBrokerConfig = fmt.Sprintf(`advertised.listeners=INTERNAL://%s-%d.%s.svc.cluster.local:29092,TEST://test.host.com:%d
+controller.listener.names=CONTROLLER
+controller.quorum.voters=1@%s-1.%s.svc.cluster.local:29093,2@%s-2.%s.svc.cluster.local:29093
+cruise.control.metrics.reporter.bootstrap.servers=%s-all-broker.%s.svc.cluster.local:29092
+cruise.control.metrics.reporter.kubernetes.mode=true
+inter.broker.listener.name=INTERNAL
+listener.security.protocol.map=INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:PLAINTEXT
+listeners=INTERNAL://:29092,CONTROLLER://:29093,TEST://:9094
+log.dirs=/kafka-logs/kafka,/ephemeral-dir1/kafka
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+node.id=%d
+process.roles=controller,broker
+`, kafkaCluster.Name, broker.Id, kafkaCluster.Namespace, 19090+broker.Id, kafkaCluster.Name, kafkaCluster.Namespace, kafkaCluster.Name, kafkaCluster.Namespace, kafkaCluster.Name,
+				kafkaCluster.Namespace, broker.Id)
+		}
+	} else {
+		expectedBrokerConfig = fmt.Sprintf(`advertised.listeners=CONTROLLER://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29092,TEST://test.host.com:%d
 broker.id=%d
 control.plane.listener.name=CONTROLLER
 cruise.control.metrics.reporter.bootstrap.servers=kafkacluster-1-all-broker.kafka-1.svc.cluster.local:29092
@@ -173,7 +225,9 @@ listeners=INTERNAL://:29092,CONTROLLER://:29093,TEST://:9094
 log.dirs=/kafka-logs/kafka,/ephemeral-dir1/kafka
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 zookeeper.connect=/
-`, randomGenTestNumber, broker.Id, randomGenTestNumber, randomGenTestNumber, broker.Id, randomGenTestNumber, 19090+broker.Id, broker.Id)))
+`, randomGenTestNumber, broker.Id, randomGenTestNumber, randomGenTestNumber, broker.Id, randomGenTestNumber, 19090+broker.Id, broker.Id)
+	}
+	Expect(configMap.Data).To(HaveKeyWithValue("broker-config", expectedBrokerConfig))
 
 	// assert log4j?
 }
@@ -255,38 +309,85 @@ func expectKafkaBrokerPod(ctx context.Context, kafkaCluster *v1beta1.KafkaCluste
 	Expect(container.Lifecycle).NotTo(BeNil())
 	Expect(container.Lifecycle.PreStop).NotTo(BeNil())
 	getEnvName := func(c corev1.EnvVar) string { return c.Name }
-	Expect(container.Env).To(ConsistOf(
-		// the exact value is not interesting
-		WithTransform(getEnvName, Equal("KAFKA_OPTS")),
-		WithTransform(getEnvName, Equal("KAFKA_JVM_PERFORMANCE_OPTS")),
 
-		// the exact value should be checked
-		corev1.EnvVar{
-			Name: "ENVOY_SIDECAR_STATUS",
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					APIVersion: "v1",
-					FieldPath:  `metadata.annotations['sidecar.istio.io/status']`,
+	// when passing a slice to ConsistOf(), the slice needs to be the only argument, which is not applicable here,
+	// therefore, we need an if-else clause where each condition must have its own ConsistOf()
+	if kafkaCluster.Spec.KRaftMode {
+		Expect(container.Env).To(ConsistOf(
+			// the exact value is not interesting
+			WithTransform(getEnvName, Equal("KAFKA_OPTS")),
+			WithTransform(getEnvName, Equal("KAFKA_JVM_PERFORMANCE_OPTS")),
+
+			// the exact value should be checked
+			corev1.EnvVar{
+				Name: "ENVOY_SIDECAR_STATUS",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  `metadata.annotations['sidecar.istio.io/status']`,
+					},
 				},
 			},
-		},
-		corev1.EnvVar{
-			Name:  "KAFKA_HEAP_OPTS",
-			Value: "-Xmx2G -Xms2G",
-		},
-		corev1.EnvVar{
-			Name:  "ENVVAR1",
-			Value: "VALUE1 VALUE2",
-		},
-		corev1.EnvVar{
-			Name:  "ENVVAR2",
-			Value: "VALUE2",
-		},
-		corev1.EnvVar{
-			Name:  "CLASSPATH",
-			Value: "/opt/kafka/libs/extensions/*:/test/class/path",
-		},
-	))
+			corev1.EnvVar{
+				Name:  "KAFKA_HEAP_OPTS",
+				Value: "-Xmx2G -Xms2G",
+			},
+			corev1.EnvVar{
+				Name:  "ENVVAR1",
+				Value: "VALUE1 VALUE2",
+			},
+			corev1.EnvVar{
+				Name:  "ENVVAR2",
+				Value: "VALUE2",
+			},
+			corev1.EnvVar{
+				Name:  "CLASSPATH",
+				Value: "/opt/kafka/libs/extensions/*:/test/class/path",
+			},
+			corev1.EnvVar{
+				Name:  "CLUSTER_ID",
+				Value: kafkaCluster.Status.ClusterID,
+			},
+			corev1.EnvVar{
+				Name:  "LOG_DIRS",
+				Value: "/kafka-logs,/ephemeral-dir1",
+			},
+		))
+	} else {
+		Expect(container.Env).To(ConsistOf(
+			// the exact value is not interesting
+			WithTransform(getEnvName, Equal("KAFKA_OPTS")),
+			WithTransform(getEnvName, Equal("KAFKA_JVM_PERFORMANCE_OPTS")),
+
+			// the exact value should be checked
+			corev1.EnvVar{
+				Name: "ENVOY_SIDECAR_STATUS",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  `metadata.annotations['sidecar.istio.io/status']`,
+					},
+				},
+			},
+			corev1.EnvVar{
+				Name:  "KAFKA_HEAP_OPTS",
+				Value: "-Xmx2G -Xms2G",
+			},
+			corev1.EnvVar{
+				Name:  "ENVVAR1",
+				Value: "VALUE1 VALUE2",
+			},
+			corev1.EnvVar{
+				Name:  "ENVVAR2",
+				Value: "VALUE2",
+			},
+			corev1.EnvVar{
+				Name:  "CLASSPATH",
+				Value: "/opt/kafka/libs/extensions/*:/test/class/path",
+			},
+		))
+	}
+
 	Expect(container.VolumeMounts).To(HaveLen(9))
 	Expect(container.VolumeMounts[0]).To(Equal(corev1.VolumeMount{
 		Name:      "a-test-volume",
@@ -423,19 +524,19 @@ func expectKafkaCRStatus(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster
 			"internal": {
 				{
 					Name:    "any-broker",
-					Address: fmt.Sprintf("%s-all-broker.kafka-1.svc.cluster.local:29092", kafkaCluster.Name),
+					Address: fmt.Sprintf("%s-all-broker.%s.svc.cluster.local:29092", kafkaCluster.Name, kafkaCluster.Namespace),
 				},
 				{
 					Name:    "broker-0",
-					Address: fmt.Sprintf("%s-0.kafka-1.svc.cluster.local:29092", kafkaCluster.Name),
+					Address: fmt.Sprintf("%s-0.%s.svc.cluster.local:29092", kafkaCluster.Name, kafkaCluster.Namespace),
 				},
 				{
 					Name:    "broker-1",
-					Address: fmt.Sprintf("%s-1.kafka-1.svc.cluster.local:29092", kafkaCluster.Name),
+					Address: fmt.Sprintf("%s-1.%s.svc.cluster.local:29092", kafkaCluster.Name, kafkaCluster.Namespace),
 				},
 				{
 					Name:    "broker-2",
-					Address: fmt.Sprintf("%s-2.kafka-1.svc.cluster.local:29092", kafkaCluster.Name),
+					Address: fmt.Sprintf("%s-2.%s.svc.cluster.local:29092", kafkaCluster.Name, kafkaCluster.Namespace),
 				},
 			},
 		},
@@ -461,7 +562,7 @@ func expectKafkaCRStatus(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster
 		},
 	}))
 	for _, brokerState := range kafkaCluster.Status.BrokersState {
-		Expect(brokerState.Version).To(Equal("2.7.0"))
+		Expect(brokerState.Version).To(Equal("3.4.1"))
 		Expect(brokerState.Image).To(Equal(kafkaCluster.Spec.GetClusterImage()))
 	}
 }

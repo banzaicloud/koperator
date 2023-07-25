@@ -97,7 +97,7 @@ func expectCruiseControlService(ctx context.Context, kafkaCluster *v1beta1.Kafka
 			TargetPort: intstr.FromInt(9020),
 		},
 	))
-	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, "kafkacluster-1"))
+	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 	Expect(service.Spec.Selector).To(HaveKeyWithValue(v1beta1.AppLabelKey, "cruisecontrol"))
 }
 
@@ -113,10 +113,20 @@ func expectCruiseControlConfigMap(ctx context.Context, kafkaCluster *v1beta1.Kaf
 	Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.AppLabelKey, "cruisecontrol"))
 	Expect(configMap.Labels).To(HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name))
 
-	Expect(configMap.Data).To(HaveKeyWithValue("cruisecontrol.properties", fmt.Sprintf(`bootstrap.servers=%s-all-broker.%s.%s:29092
+	var expectedCCProperties string
+	if kafkaCluster.Spec.KRaftMode {
+		expectedCCProperties = fmt.Sprintf(`bootstrap.servers=%s-all-broker.%s.%s:29092
+kafka.broker.failure.detection.enable=true
+some.config=value
+topic.config.provider.class=com.linkedin.kafka.cruisecontrol.config.KafkaAdminTopicConfigProvider
+`, kafkaCluster.Name, kafkaCluster.Namespace, "svc.cluster.local")
+	} else {
+		expectedCCProperties = fmt.Sprintf(`bootstrap.servers=%s-all-broker.%s.%s:29092
 some.config=value
 zookeeper.connect=/
-`, kafkaCluster.Name, kafkaCluster.Namespace, "svc.cluster.local")))
+`, kafkaCluster.Name, kafkaCluster.Namespace, "svc.cluster.local")
+	}
+	Expect(configMap.Data).To(HaveKeyWithValue("cruisecontrol.properties", expectedCCProperties))
 	Expect(configMap.Data).To(HaveKeyWithValue("capacity.json", `{
     "brokerCapacities": [
         {

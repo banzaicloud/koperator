@@ -168,7 +168,7 @@ fi`},
 		pod.Spec.Subdomain = fmt.Sprintf(kafkautils.HeadlessServiceTemplate, r.KafkaCluster.Name)
 	}
 
-	if r.KafkaCluster.Spec.KraftMode() {
+	if r.KafkaCluster.Spec.KRaftMode {
 		for i, container := range pod.Spec.Containers {
 			if container.Name == kafkaContainerName {
 				// in KRaft mode, all broker nodes within the same Kafka cluster need to use the same cluster ID to format the storage

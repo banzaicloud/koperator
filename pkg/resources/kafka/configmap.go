@@ -52,7 +52,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, broker v
 	configCCMetricsReporter(r.KafkaCluster, config, clientPass, bootstrapServers, log)
 
 	// Kafka Broker configurations
-	if r.KafkaCluster.Spec.KraftMode() {
+	if r.KafkaCluster.Spec.KRaftMode {
 		configureBrokerKRaftMode(broker, r.KafkaCluster, config, serverPasses, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, log)
 	} else {
 		configureBrokerZKMode(broker.Id, r.KafkaCluster, config, serverPasses, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, log)

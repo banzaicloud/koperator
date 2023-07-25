@@ -39,6 +39,10 @@ var _ = Describe("KafkaCluster", func() {
 		kafkaCluster             *v1beta1.KafkaCluster
 		loadBalancerServiceName  string
 		externalListenerHostName string
+
+		kafkaClusterKRaft             *v1beta1.KafkaCluster
+		loadBalancerServiceNameKRaft  string
+		externalListenerHostNameKRaft string
 	)
 
 	BeforeEach(func() {
@@ -158,6 +162,12 @@ var _ = Describe("KafkaCluster", func() {
 				Value: "VALUE1",
 			},
 		}
+
+		// use the kafkaCluster above as a blueprint for creating a KafkaCluster under KRaft mode
+		kafkaClusterKRaft = kafkaCluster.DeepCopy()
+		kafkaClusterKRaft.Spec.KRaftMode = true
+		kafkaClusterKRaft.Spec.Brokers = createMinimalKRaftBrokers()
+		kafkaClusterKRaft.Name = fmt.Sprintf("kafkacluster-kraft-%d", count)
 	})
 
 	JustBeforeEach(func(ctx SpecContext) {
@@ -181,11 +191,30 @@ var _ = Describe("KafkaCluster", func() {
 		envoyLBService.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
 			Hostname: externalListenerHostName,
 		}}
-
 		err = k8sClient.Status().Update(ctx, envoyLBService)
 		Expect(err).NotTo(HaveOccurred())
 
 		waitForClusterRunningState(ctx, kafkaCluster, namespace)
+
+		/* same tests for KRaft mode */
+		By("creating kafka cluster object under KRaft mode " + kafkaClusterKRaft.Name + " in namespace " + namespace)
+		err = k8sClient.Create(ctx, kafkaClusterKRaft)
+		Expect(err).NotTo(HaveOccurred())
+
+		envoyLBServiceKRaft := &corev1.Service{}
+		Eventually(ctx, func() error {
+			return k8sClient.Get(ctx, types.NamespacedName{
+				Name:      loadBalancerServiceNameKRaft,
+				Namespace: namespace,
+			}, envoyLBServiceKRaft)
+		}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
+
+		envoyLBServiceKRaft.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
+			Hostname: externalListenerHostNameKRaft,
+		}}
+		err = k8sClient.Status().Update(ctx, envoyLBServiceKRaft)
+		Expect(err).NotTo(HaveOccurred())
+		waitForClusterRunningState(ctx, kafkaClusterKRaft, namespace)
 	})
 
 	JustAfterEach(func(ctx SpecContext) {
@@ -195,12 +224,19 @@ var _ = Describe("KafkaCluster", func() {
 		err := k8sClient.Delete(ctx, kafkaCluster)
 		Expect(err).NotTo(HaveOccurred())
 
+		By("deleting Kafka cluster object under KRaft mode " + kafkaClusterKRaft.Name + " in namespace " + kafkaClusterKRaft.Namespace)
+		err = k8sClient.Delete(ctx, kafkaClusterKRaft)
+		Expect(err).NotTo(HaveOccurred())
+
 		kafkaCluster = nil
 	})
 	When("using default configuration", func() {
 		BeforeEach(func() {
 			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-%s", kafkaCluster.Name)
 			externalListenerHostName = "test.host.com"
+
+			loadBalancerServiceNameKRaft = fmt.Sprintf("envoy-loadbalancer-test-%s", kafkaClusterKRaft.Name)
+			externalListenerHostNameKRaft = "test.host.com"
 		})
 		It("should reconciles objects properly", func(ctx SpecContext) {
 			expectEnvoy(ctx, kafkaCluster, []string{"test"})
@@ -208,6 +244,14 @@ var _ = Describe("KafkaCluster", func() {
 			expectCruiseControlMonitoring(ctx, kafkaCluster)
 			expectKafka(ctx, kafkaCluster, count)
 			expectCruiseControl(ctx, kafkaCluster)
+		})
+
+		It("should reconciles objects properly for Kafka cluster un KRaft mode", func(ctx SpecContext) {
+			expectEnvoy(ctx, kafkaClusterKRaft, []string{"test"})
+			expectKafkaMonitoring(ctx, kafkaClusterKRaft)
+			expectCruiseControlMonitoring(ctx, kafkaClusterKRaft)
+			expectKafka(ctx, kafkaClusterKRaft, count)
+			expectCruiseControl(ctx, kafkaClusterKRaft)
 		})
 	})
 	When("configuring one ingress envoy controller config inside the external listener without bindings", func() {
@@ -224,10 +268,27 @@ var _ = Describe("KafkaCluster", func() {
 			kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
 			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaCluster.Name)
 			externalListenerHostName = "external.az1.host.com"
+
+			// use the kafkaCluster above as a blueprint for creating a KafkaCluster under KRaft mode
+			testExternalListenerKRaft := kafkaClusterKRaft.Spec.ListenersConfig.ExternalListeners[0]
+			testExternalListenerKRaft.Config = &v1beta1.Config{
+				DefaultIngressConfig: "az1",
+				IngressConfig: map[string]v1beta1.IngressConfig{
+					"az1": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az1"},
+					}},
+				},
+			}
+			kafkaClusterKRaft.Spec.ListenersConfig.ExternalListeners[0] = testExternalListenerKRaft
+			loadBalancerServiceNameKRaft = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaClusterKRaft.Name)
+			externalListenerHostNameKRaft = "external.az1.host.com"
 		})
 		It("should reconcile object properly", func(ctx SpecContext) {
 			expectDefaultBrokerSettingsForExternalListenerBinding(ctx, kafkaCluster, count)
 			expectEnvoy(ctx, kafkaCluster, []string{"test-az1"})
+
+			expectDefaultBrokerSettingsForExternalListenerBinding(ctx, kafkaClusterKRaft, count)
+			expectEnvoy(ctx, kafkaClusterKRaft, []string{"test-az1"})
 		})
 	})
 	When("configuring two ingress envoy controller config inside the external listener without bindings", func() {
@@ -249,10 +310,32 @@ var _ = Describe("KafkaCluster", func() {
 			kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
 			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaCluster.Name)
 			externalListenerHostName = "external.az1.host.com"
+
+			// KRaft
+			testExternalListenerKRaft := kafkaClusterKRaft.Spec.ListenersConfig.ExternalListeners[0]
+			testExternalListenerKRaft.Config = &v1beta1.Config{
+				DefaultIngressConfig: "az1",
+				IngressConfig: map[string]v1beta1.IngressConfig{
+					"az1": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az1"},
+					},
+					},
+					"az2": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az2"},
+					},
+					},
+				},
+			}
+			kafkaClusterKRaft.Spec.ListenersConfig.ExternalListeners[0] = testExternalListenerKRaft
+			loadBalancerServiceNameKRaft = fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaClusterKRaft.Name)
+			externalListenerHostNameKRaft = "external.az1.host.com"
 		})
 		It("should reconcile object properly", func(ctx SpecContext) {
 			expectDefaultBrokerSettingsForExternalListenerBinding(ctx, kafkaCluster, count)
 			expectEnvoy(ctx, kafkaCluster, []string{"test-az1"})
+
+			expectDefaultBrokerSettingsForExternalListenerBinding(ctx, kafkaClusterKRaft, count)
+			expectEnvoy(ctx, kafkaClusterKRaft, []string{"test-az1"})
 		})
 	})
 	When("configuring two ingress envoy controller config inside the external listener without using the default", func() {
@@ -277,19 +360,43 @@ var _ = Describe("KafkaCluster", func() {
 			kafkaCluster.Spec.BrokerConfigGroups["default"] = defaultBrokerConfig
 			loadBalancerServiceName = fmt.Sprintf("envoy-loadbalancer-test-az2-%s", kafkaCluster.Name)
 			externalListenerHostName = "external.az2.host.com"
+
+			// KRaft
+			testExternalListenerKRaft := kafkaClusterKRaft.Spec.ListenersConfig.ExternalListeners[0]
+			testExternalListenerKRaft.Config = &v1beta1.Config{
+				DefaultIngressConfig: "az1",
+				IngressConfig: map[string]v1beta1.IngressConfig{
+					"az1": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az1"},
+					},
+					},
+					"az2": {EnvoyConfig: &v1beta1.EnvoyConfig{
+						Annotations: map[string]string{"zone": "az2"},
+					},
+					},
+				},
+			}
+			kafkaClusterKRaft.Spec.ListenersConfig.ExternalListeners[0] = testExternalListenerKRaft
+			defaultBrokerConfigKRaft := kafkaClusterKRaft.Spec.BrokerConfigGroups["default"]
+			defaultBrokerConfigKRaft.BrokerIngressMapping = []string{"az2"}
+			kafkaClusterKRaft.Spec.BrokerConfigGroups["default"] = defaultBrokerConfigKRaft
+			loadBalancerServiceNameKRaft = fmt.Sprintf("envoy-loadbalancer-test-az2-%s", kafkaClusterKRaft.Name)
+			externalListenerHostNameKRaft = "external.az2.host.com"
 		})
 		It("should reconcile object properly", func(ctx SpecContext) {
 			expectEnvoy(ctx, kafkaCluster, []string{"test-az2"})
+			expectEnvoy(ctx, kafkaClusterKRaft, []string{"test-az2"})
 		})
 	})
 })
 
 var _ = Describe("KafkaCluster with two config external listener", func() {
 	var (
-		count        uint64 = 0
-		namespace    string
-		namespaceObj *corev1.Namespace
-		kafkaCluster *v1beta1.KafkaCluster
+		count             uint64 = 0
+		namespace         string
+		namespaceObj      *corev1.Namespace
+		kafkaCluster      *v1beta1.KafkaCluster
+		kafkaClusterKRaft *v1beta1.KafkaCluster
 	)
 
 	BeforeEach(func() {
@@ -320,6 +427,12 @@ var _ = Describe("KafkaCluster with two config external listener", func() {
 			},
 		}
 		kafkaCluster.Spec.ListenersConfig.ExternalListeners[0] = testExternalListener
+
+		// use the kafkaCluster above as a blueprint for creating a KafkaCluster under KRaft mode
+		kafkaClusterKRaft = kafkaCluster.DeepCopy()
+		kafkaClusterKRaft.Spec.KRaftMode = true
+		kafkaClusterKRaft.Spec.Brokers = createMinimalKRaftBrokers()
+		kafkaClusterKRaft.Name = fmt.Sprintf("kafkacluster-kraft-%d", count)
 	})
 	JustBeforeEach(func(ctx SpecContext) {
 		By("creating namespace " + namespace)
@@ -364,18 +477,63 @@ var _ = Describe("KafkaCluster with two config external listener", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		waitForClusterRunningState(ctx, kafkaCluster, namespace)
+
+		/* same tests for KRaft mode */
+
+		By("creating kafka cluster object in KRaft mode " + kafkaClusterKRaft.Name + " in namespace " + namespace)
+		err = k8sClient.Create(ctx, kafkaClusterKRaft)
+		Expect(err).NotTo(HaveOccurred())
+
+		envoyLBServiceKRaft := &corev1.Service{}
+		Eventually(ctx, func() error {
+			return k8sClient.Get(ctx, types.NamespacedName{
+				Name:      fmt.Sprintf("envoy-loadbalancer-test-az1-%s", kafkaClusterKRaft.Name),
+				Namespace: namespace,
+			}, envoyLBServiceKRaft)
+		}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
+
+		envoyLBServiceKRaft.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
+			Hostname: "external.az1.host.com",
+		}}
+		err = k8sClient.Status().Update(ctx, envoyLBServiceKRaft)
+		Expect(err).NotTo(HaveOccurred())
+
+		envoyLBServiceKRaft = &corev1.Service{}
+		Eventually(ctx, func() error {
+			return k8sClient.Get(ctx, types.NamespacedName{
+				Name:      fmt.Sprintf("envoy-loadbalancer-test-az2-%s", kafkaClusterKRaft.Name),
+				Namespace: namespace,
+			}, envoyLBServiceKRaft)
+		}, 5*time.Second, 100*time.Millisecond).Should(Succeed())
+
+		envoyLBServiceKRaft.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
+			Hostname: "external.az2.host.com",
+		}}
+		err = k8sClient.Status().Update(ctx, envoyLBServiceKRaft)
+		Expect(err).NotTo(HaveOccurred())
+
+		waitForClusterRunningState(ctx, kafkaClusterKRaft, namespace)
 	})
 
 	When("configuring two ingress envoy controller config inside the external listener using both as bindings", func() {
 		BeforeEach(func() {
 			kafkaCluster.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az1"}}
 			kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az2"}}
+
+			/* same tests for KafkaCluster in KRaft mode */
+			kafkaClusterKRaft.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az1"}}
+			kafkaClusterKRaft.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az2"}}
 		})
 		It("should reconcile object properly", func(ctx SpecContext) {
 			expectEnvoyWithConfigAz1(ctx, kafkaCluster)
 			expectEnvoyWithConfigAz2(ctx, kafkaCluster)
 			expectBrokerConfigmapForAz1ExternalListener(ctx, kafkaCluster, count)
 			expectBrokerConfigmapForAz2ExternalListener(ctx, kafkaCluster, count)
+
+			expectEnvoyWithConfigAz1(ctx, kafkaClusterKRaft)
+			expectEnvoyWithConfigAz2(ctx, kafkaClusterKRaft)
+			expectBrokerConfigmapForAz1ExternalListener(ctx, kafkaClusterKRaft, count)
+			expectBrokerConfigmapForAz2ExternalListener(ctx, kafkaClusterKRaft, count)
 		})
 	})
 })
@@ -395,7 +553,6 @@ func expectKafkaMonitoring(ctx context.Context, kafkaCluster *v1beta1.KafkaClust
 func expectCruiseControlMonitoring(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) {
 	configMap := corev1.ConfigMap{}
 	configMapName := fmt.Sprintf("%s-cc-jmx-exporter", kafkaCluster.Name)
-	// logf.Log.Info("name", "name", configMapName)
 	Eventually(ctx, func() error {
 		err := k8sClient.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: kafkaCluster.Namespace}, &configMap)
 		return err
@@ -403,4 +560,24 @@ func expectCruiseControlMonitoring(ctx context.Context, kafkaCluster *v1beta1.Ka
 
 	Expect(configMap.Labels).To(And(HaveKeyWithValue(v1beta1.AppLabelKey, "cruisecontrol-jmx"), HaveKeyWithValue(v1beta1.KafkaCRLabelKey, kafkaCluster.Name)))
 	Expect(configMap.Data).To(HaveKeyWithValue("config.yaml", kafkaCluster.Spec.MonitoringConfig.CCJMXExporterConfig))
+}
+
+func createMinimalKRaftBrokers() []v1beta1.Broker {
+	return []v1beta1.Broker{
+		{
+			Id:                int32(0),
+			Roles:             []string{"broker"},
+			BrokerConfigGroup: defaultBrokerConfigGroup,
+		},
+		{
+			Id:                int32(1),
+			Roles:             []string{"controller"},
+			BrokerConfigGroup: defaultBrokerConfigGroup,
+		},
+		{
+			Id:                int32(2),
+			Roles:             []string{"controller", "broker"},
+			BrokerConfigGroup: defaultBrokerConfigGroup,
+		},
+	}
 }

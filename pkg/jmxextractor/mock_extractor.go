@@ -20,5 +20,5 @@ type mockJmxExtractor struct{}
 
 func (exp *mockJmxExtractor) ExtractDockerImageAndVersion(brokerId int32, brokerConfig *v1beta1.BrokerConfig,
 	clusterImage string, headlessServiceEnabled bool) (*v1beta1.KafkaVersion, error) {
-	return &v1beta1.KafkaVersion{Image: clusterImage, Version: "2.7.0"}, nil
+	return &v1beta1.KafkaVersion{Image: clusterImage, Version: "3.4.1"}, nil
 }

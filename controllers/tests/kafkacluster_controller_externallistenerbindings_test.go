@@ -49,12 +49,49 @@ func expectDefaultBrokerSettingsForExternalListenerBinding(ctx context.Context, 
 		brokerConfig, err := properties.NewFromString(configMap.Data["broker-config"])
 		Expect(err).NotTo(HaveOccurred())
 		advertisedListener, found := brokerConfig.Get("advertised.listeners")
-		Expect(found).To(BeTrue())
-		Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29092,TEST://external.az1.host.com:%d",
-			randomGenTestNumber, broker.Id, randomGenTestNumber, randomGenTestNumber, broker.Id, randomGenTestNumber, 19090+broker.Id)))
+		expectedAdvertisedListenersFound := true
+		var expectedAdvertisedListener string
+		if kafkaCluster.Spec.KRaftMode {
+			switch broker.Id {
+			case 0:
+				// broker-only node
+				expectedAdvertisedListener = fmt.Sprintf("INTERNAL://kafkacluster-kraft-%d-%d.kafka-%d.svc.cluster.local:29092,TEST://external.az1.host.com:%d",
+					randomGenTestNumber, broker.Id, randomGenTestNumber, 19090+broker.Id)
+			case 1:
+				// controller-only node
+				expectedAdvertisedListenersFound = false
+				expectedAdvertisedListener = ""
+			case 2:
+				// combined node
+				expectedAdvertisedListener = fmt.Sprintf("INTERNAL://kafkacluster-kraft-%d-%d.kafka-%d.svc.cluster.local:29092,TEST://external.az1.host.com:%d",
+					randomGenTestNumber, broker.Id, randomGenTestNumber, 19090+broker.Id)
+			}
+		} else {
+			expectedAdvertisedListener = fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29093,"+
+				"INTERNAL://kafkacluster-%d-%d.kafka-%d.svc.cluster.local:29092,TEST://external.az1.host.com:%d",
+				randomGenTestNumber, broker.Id, randomGenTestNumber, randomGenTestNumber, broker.Id, randomGenTestNumber, 19090+broker.Id)
+		}
+		Expect(found).To(Equal(expectedAdvertisedListenersFound))
+		Expect(advertisedListener.Value()).To(Equal(expectedAdvertisedListener))
+
 		listeners, found := brokerConfig.Get("listeners")
 		Expect(found).To(BeTrue())
-		Expect(listeners.Value()).To(Equal("INTERNAL://:29092,CONTROLLER://:29093,TEST://:9094"))
+
+		var expectedListeners string
+		if kafkaCluster.Spec.KRaftMode {
+			switch broker.Id {
+			case 0:
+				expectedListeners = "INTERNAL://:29092,TEST://:9094"
+			case 1:
+				expectedListeners = "CONTROLLER://:29093"
+			case 2:
+				expectedListeners = "INTERNAL://:29092,CONTROLLER://:29093,TEST://:9094"
+			}
+		} else {
+			expectedListeners = "INTERNAL://:29092,CONTROLLER://:29093,TEST://:9094"
+		}
+		Expect(listeners.Value()).To(Equal(expectedListeners))
+
 		listenerSecMap, found := brokerConfig.Get(kafkautils.KafkaConfigListenerSecurityProtocolMap)
 		Expect(found).To(BeTrue())
 		Expect(listenerSecMap.Value()).To(Equal("INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,TEST:PLAINTEXT"))
@@ -112,8 +149,16 @@ func expectBrokerConfigmapForAz1ExternalListener(ctx context.Context, kafkaClust
 	Expect(err).NotTo(HaveOccurred())
 	advertisedListener, found := brokerConfig.Get("advertised.listeners")
 	Expect(found).To(BeTrue())
-	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az1.host.com:%d",
-		randomGenTestNumber, 0, randomGenTestNumber, randomGenTestNumber, 0, randomGenTestNumber, 19090)))
+	var expectedAdvertisedListener string
+	if kafkaCluster.Spec.KRaftMode {
+		// broker-0 is a broker-only node
+		expectedAdvertisedListener = fmt.Sprintf("INTERNAL://kafkacluster-kraft-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az1.host.com:%d",
+			randomGenTestNumber, 0, randomGenTestNumber, 19090)
+	} else {
+		expectedAdvertisedListener = fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az1.host.com:%d",
+			randomGenTestNumber, 0, randomGenTestNumber, randomGenTestNumber, 0, randomGenTestNumber, 19090)
+	}
+	Expect(advertisedListener.Value()).To(Equal(expectedAdvertisedListener))
 }
 
 func expectBrokerConfigmapForAz2ExternalListener(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, randomGenTestNumber uint64) {
@@ -128,9 +173,18 @@ func expectBrokerConfigmapForAz2ExternalListener(ctx context.Context, kafkaClust
 	brokerConfig, err := properties.NewFromString(configMap.Data["broker-config"])
 	Expect(err).NotTo(HaveOccurred())
 	advertisedListener, found := brokerConfig.Get("advertised.listeners")
-	Expect(found).To(BeTrue())
-	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az2.host.com:%d",
-		randomGenTestNumber, 1, randomGenTestNumber, randomGenTestNumber, 1, randomGenTestNumber, 19091)))
+	var (
+		expectedAdvertisedListener string
+		expectedFound              bool
+	)
+	// for the Kafka cluster under KRaft mode, broker-1 is a controller-only node and therefore "advertised.listeners" is not available
+	if !kafkaCluster.Spec.KRaftMode {
+		expectedAdvertisedListener = fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az2.host.com:%d",
+			randomGenTestNumber, 1, randomGenTestNumber, randomGenTestNumber, 1, randomGenTestNumber, 19091)
+		expectedFound = true
+	}
+	Expect(found).To(Equal(expectedFound))
+	Expect(advertisedListener.Value()).To(Equal(expectedAdvertisedListener))
 
 	configMap = corev1.ConfigMap{}
 	Eventually(ctx, func() error {
@@ -144,6 +198,12 @@ func expectBrokerConfigmapForAz2ExternalListener(ctx context.Context, kafkaClust
 	Expect(err).NotTo(HaveOccurred())
 	advertisedListener, found = brokerConfig.Get("advertised.listeners")
 	Expect(found).To(BeTrue())
-	Expect(advertisedListener.Value()).To(Equal(fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az2.host.com:%d",
-		randomGenTestNumber, 2, randomGenTestNumber, randomGenTestNumber, 2, randomGenTestNumber, 19092)))
+	if kafkaCluster.Spec.KRaftMode {
+		expectedAdvertisedListener = fmt.Sprintf("INTERNAL://kafkacluster-kraft-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az2.host.com:%d",
+			randomGenTestNumber, 2, randomGenTestNumber, 19092)
+	} else {
+		expectedAdvertisedListener = fmt.Sprintf("CONTROLLER://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29093,INTERNAL://kafkacluster-%d-%d.kafkaconfigtest-%d.svc.cluster.local:29092,TEST://external.az2.host.com:%d",
+			randomGenTestNumber, 2, randomGenTestNumber, randomGenTestNumber, 2, randomGenTestNumber, 19092)
+	}
+	Expect(advertisedListener.Value()).To(Equal(expectedAdvertisedListener))
 }
