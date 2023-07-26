@@ -924,7 +924,7 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New(strconv.Itoa(r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack)+" pod(s) is still terminating or creating"), "rolling upgrade in progress")
 			}
 			kafkaBrokerAvailabilityZoneMap := getBrokerAzMap(r.KafkaCluster)
-			currentPodAz := r.getBrokerAz(currentPod, kafkaBrokerAvailabilityZoneMap)
+			currentPodAz, _ := r.getBrokerAz(currentPod, kafkaBrokerAvailabilityZoneMap)
 			if r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack > 1 && r.existsTerminatingPodFromAnotherAz(currentPodAz, terminatingOrPendingPods, kafkaBrokerAvailabilityZoneMap) {
 				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating or creating from another AZ"), "rolling upgrade in progress")
 			}
@@ -1006,7 +1006,8 @@ func (r *Reconciler) existsTerminatingPodFromAnotherAz(currentPodAz string, term
 		return true
 	}
 	for _, terminatingOrPendingPod := range terminatingOrPendingPods {
-		if currentPodAz != r.getBrokerAz(&terminatingOrPendingPod, kafkaBrokerAvailabilityZoneMap) {
+		terminatingOrPendingPodAz, err := r.getBrokerAz(&terminatingOrPendingPod, kafkaBrokerAvailabilityZoneMap)
+		if err != nil || currentPodAz != terminatingOrPendingPodAz {
 			return true
 		}
 	}
@@ -1376,12 +1377,12 @@ func getPodsInTerminatingOrPendingState(items []corev1.Pod) []corev1.Pod {
 	return pods
 }
 
-func (r *Reconciler) getBrokerAz(pod *corev1.Pod, kafkaBrokerAvailabilityZoneMap map[int32]string) string {
+func (r *Reconciler) getBrokerAz(pod *corev1.Pod, kafkaBrokerAvailabilityZoneMap map[int32]string) (string, error) {
 	brokerId, err := strconv.ParseInt(pod.Labels[v1beta1.BrokerIdLabelKey], 10, 32)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return kafkaBrokerAvailabilityZoneMap[int32(brokerId)]
+	return kafkaBrokerAvailabilityZoneMap[int32(brokerId)], nil
 }
 
 func getServiceFromExternalListener(client client.Client, cluster *v1beta1.KafkaCluster,
