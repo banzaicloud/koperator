@@ -24,8 +24,10 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
+	types2 "github.com/banzaicloud/go-cruise-control/pkg/types"
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 	"github.com/go-logr/logr"
+	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +41,7 @@ import (
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
+	banzaiv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	"github.com/banzaicloud/koperator/pkg/jmxextractor"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
@@ -98,7 +101,8 @@ var (
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
-	kafkaClientProvider kafkaclient.Provider
+	kafkaClientProvider        kafkaclient.Provider
+	CruiseControlScalerFactory func(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster) (scale.CruiseControlScaler, error)
 }
 
 // New creates a new reconciler for Kafka
@@ -109,7 +113,8 @@ func New(client client.Client, directClient client.Reader, cluster *v1beta1.Kafk
 			DirectClient: directClient,
 			KafkaCluster: cluster,
 		},
-		kafkaClientProvider: kafkaClientProvider,
+		kafkaClientProvider:        kafkaClientProvider,
+		CruiseControlScalerFactory: scale.ScaleFactoryFn(),
 	}
 }
 
@@ -471,12 +476,11 @@ func (r *Reconciler) reconcileKafkaPodDelete(ctx context.Context, log logr.Logge
 
 	if len(podsDeletedFromSpec) > 0 {
 		if !arePodsAlreadyDeleted(podsDeletedFromSpec, log) {
-			cruiseControlURL := scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster)
 			// FIXME: we should reuse the context of the Kafka Controller
-			cc, err := scale.NewCruiseControlScaler(context.TODO(), scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster))
+			cc, err := r.CruiseControlScalerFactory(context.TODO(), r.KafkaCluster)
 			if err != nil {
 				return errorfactory.New(errorfactory.CruiseControlNotReady{}, err,
-					"failed to initialize Cruise Control Scaler", "cruise control url", cruiseControlURL)
+					"failed to initialize Cruise Control Scaler", "cruise control url", scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster))
 			}
 
 			brokerStates := []scale.KafkaBrokerState{
@@ -923,6 +927,12 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			if len(terminatingOrPendingPods) >= r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack {
 				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New(strconv.Itoa(r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack)+" pod(s) is still terminating or creating"), "rolling upgrade in progress")
 			}
+			if r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack > 1 && len(terminatingOrPendingPods) > 0 {
+				err = r.isCruiseControlRackAwareDistributionGoalViolated()
+				if err != nil {
+					return err
+				}
+			}
 			kafkaBrokerAvailabilityZoneMap := getBrokerAzMap(r.KafkaCluster)
 			currentPodAz, _ := r.getBrokerAz(currentPod, kafkaBrokerAvailabilityZoneMap)
 			if r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack > 1 && r.existsTerminatingPodFromAnotherAz(currentPodAz, terminatingOrPendingPods, kafkaBrokerAvailabilityZoneMap) {
@@ -986,6 +996,27 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 		}
 	}
 	log.Info("broker pod deleted", "pod", currentPod.GetName(), v1beta1.BrokerIdLabelKey, currentPod.Labels[v1beta1.BrokerIdLabelKey])
+	return nil
+}
+
+func (r *Reconciler) isCruiseControlRackAwareDistributionGoalViolated() error {
+	cruiseControlURL := scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster)
+	cc, err := r.CruiseControlScalerFactory(context.TODO(), r.KafkaCluster)
+	if err != nil {
+		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "failed to initialize Cruise Control", "cruise control url", cruiseControlURL)
+	}
+	status, err := cc.Status(context.TODO())
+	if err != nil {
+		return errorfactory.New(errorfactory.CruiseControlNotReady{}, errors.New("failed to get status from Cruise Control"), "rolling upgrade in progress")
+	}
+	if !slices.Contains(status.Result.AnalyzerState.ReadyGoals, types2.RackAwareDistributionGoal) {
+		return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("RackAwareDistributionGoal is not ready"), "rolling upgrade in progress")
+	}
+	for _, anomaly := range status.Result.AnomalyDetectorState.RecentGoalViolations {
+		if slices.Contains(anomaly.FixableViolatedGoals, types2.RackAwareDistributionGoal) || slices.Contains(anomaly.UnfixableViolatedGoals, types2.RackAwareDistributionGoal) {
+			return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("RackAwareDistributionGoal is violated"), "rolling upgrade in progress")
+		}
+	}
 	return nil
 }
 

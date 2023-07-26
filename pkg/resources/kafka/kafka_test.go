@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+	ccTypes "github.com/banzaicloud/go-cruise-control/pkg/types"
+	"github.com/banzaicloud/koperator/pkg/scale"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	"github.com/onsi/gomega"
@@ -36,6 +38,7 @@ import (
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
+	controllerMocks "github.com/banzaicloud/koperator/controllers/tests/mocks"
 	"github.com/banzaicloud/koperator/pkg/resources"
 	mocks "github.com/banzaicloud/koperator/pkg/resources/kafka/mocks"
 )
@@ -966,6 +969,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 		pods               []corev1.Pod
 		allOfflineReplicas []int32
 		outOfSyncReplicas  []int32
+		ccStatus           *scale.StatusTaskResult
 		errorExpected      bool
 	}{
 		{
@@ -1055,6 +1059,14 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
+			ccStatus: &scale.StatusTaskResult{
+				Result: &ccTypes.StateResult{
+					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
+					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
+						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
+					},
+				},
+			},
 			errorExpected: true,
 		},
 		{
@@ -1087,6 +1099,14 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-202", Labels: map[string]string{"brokerId": "202"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
+			},
+			ccStatus: &scale.StatusTaskResult{
+				Result: &ccTypes.StateResult{
+					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
+					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
+						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
+					},
+				},
 			},
 			errorExpected: true,
 		},
@@ -1191,6 +1211,14 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
+			ccStatus: &scale.StatusTaskResult{
+				Result: &ccTypes.StateResult{
+					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
+					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
+						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
+					},
+				},
+			},
 			errorExpected: true,
 		},
 		{
@@ -1230,6 +1258,42 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 			errorExpected:      true,
 		},
 		{
+			testName: "Pod is deleted if all pods are running and CC RackAwareDistributionGoal is not ready and allowed concurrent restarts is not reached",
+			kafkaCluster: v1beta1.KafkaCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kafka",
+					Namespace: "kafka",
+				},
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{Id: 101, ReadOnlyConfig: "broker.rack=az1"},
+						{Id: 102, ReadOnlyConfig: "broker.rack=az1"},
+						{Id: 201, ReadOnlyConfig: "broker.rack=az2"},
+						{Id: 202, ReadOnlyConfig: "broker.rack=az2"},
+						{Id: 301, ReadOnlyConfig: "broker.rack=az3"},
+						{Id: 302, ReadOnlyConfig: "broker.rack=az3"}},
+					RollingUpgradeConfig: v1beta1.RollingUpgradeConfig{
+						FailureThreshold:                    2,
+						ConcurrentBrokerRestartCountPerRack: 2,
+					},
+				},
+				Status: v1beta1.KafkaClusterStatus{State: v1beta1.KafkaClusterRollingUpgrading},
+			},
+			desiredPod: &corev1.Pod{},
+			currentPod: &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "kafka-102", Labels: map[string]string{"brokerId": "102"}}},
+			pods: []corev1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-101", Labels: map[string]string{"brokerId": "101"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-102", Labels: map[string]string{"brokerId": "102"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-202", Labels: map[string]string{"brokerId": "202"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
+			},
+			allOfflineReplicas: []int32{},
+			outOfSyncReplicas:  []int32{101},
+			errorExpected:      false,
+		},
+		{
 			testName: "Pod is deleted if failure is in same AZ and allowed concurrent restarts is not reached",
 			kafkaCluster: v1beta1.KafkaCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1263,7 +1327,15 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 			},
 			allOfflineReplicas: []int32{},
 			outOfSyncReplicas:  []int32{101},
-			errorExpected:      false,
+			ccStatus: &scale.StatusTaskResult{
+				Result: &ccTypes.StateResult{
+					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
+					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
+						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
+					},
+				},
+			},
+			errorExpected: false,
 		},
 		{
 			testName: "Pod is not deleted if pod is restarting in another AZ, if brokers per AZ < tolerated failures",
@@ -1291,6 +1363,14 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-101", Labels: map[string]string{"brokerId": "101"}, DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
+			},
+			ccStatus: &scale.StatusTaskResult{
+				Result: &ccTypes.StateResult{
+					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
+					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
+						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
+					},
+				},
 			},
 			errorExpected: true,
 		},
@@ -1383,6 +1463,14 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 			},
+			ccStatus: &scale.StatusTaskResult{
+				Result: &ccTypes.StateResult{
+					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
+					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
+						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
+					},
+				},
+			},
 			errorExpected: true,
 		},
 	}
@@ -1418,6 +1506,13 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				mockedKafkaClient.EXPECT().OutOfSyncReplicas().Return(test.outOfSyncReplicas, nil)
 			}
 			mockKafkaClientProvider.On("NewFromCluster", mockClient, &test.kafkaCluster).Return(mockedKafkaClient, func() {}, nil)
+
+			// Mock Cruise Control client
+			mockCruiseControl := controllerMocks.NewMockCruiseControlScaler(mockCtrl)
+			if test.ccStatus != nil {
+				mockCruiseControl.EXPECT().Status(context.TODO()).Return(*test.ccStatus, nil)
+			}
+			r.CruiseControlScalerFactory = controllerMocks.NewMockScaleFactory(mockCruiseControl)
 
 			// Call the handleRollingUpgrade function with the provided test.desiredPod and test.currentPod
 			err := r.handleRollingUpgrade(logf.Log, test.desiredPod, test.currentPod, reflect.TypeOf(test.desiredPod))
