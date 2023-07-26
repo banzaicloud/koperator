@@ -15,6 +15,9 @@
 package e2e
 
 import (
+	"context"
+	"time"
+
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -45,6 +48,39 @@ func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName str
 			"jsonpath={.status.state}=created", defaultTopicCreationWaitTime, "", topicName)
 
 		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+}
+
+// requireDeleteKafkaUser deletes a kafkaUser resource by name
+func requireDeleteKafkaUser(kubectlOptions k8s.KubectlOptions, userName string) {
+	It("Deleting KafkaUser CR", func() {
+		err := deleteK8sResource(kubectlOptions, defaultDeletionTimeout, kafkaUserKind, "", userName)
+		Expect(err).NotTo(HaveOccurred())
+	})
+}
+
+// requireDeployingKafkaUser creates a KafkaUser resource from a template
+func requireDeployingKafkaUser(kubectlOptions k8s.KubectlOptions, userName string, tlsSecretName string) {
+	It("Deploying KafkaUser CR", func() {
+		templateParameters := map[string]interface{}{
+			"Name":        userName,
+			"Namespace":   kubectlOptions.Namespace,
+			"ClusterName": kafkaClusterName,
+		}
+		if tlsSecretName != "" {
+			templateParameters["TLSSecretName"] = tlsSecretName
+		}
+
+		err := applyK8sResourceFromTemplate(kubectlOptions,
+			kafkaUserTemplate,
+			templateParameters,
+		)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Eventually(context.Background(), func() bool {
+			return isExistingK8SResource(kubectlOptions, "Secret", tlsSecretName)
+		}, defaultUserCreationWaitTime, 3*time.Second).Should(Equal(true))
 	})
 
 }

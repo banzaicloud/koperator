@@ -26,14 +26,19 @@ import (
 )
 
 // requireDeployingKcatPod deploys kcat pod form a template and checks the pod readiness
-func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string) {
+func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string, tlsSecretName string) {
 	It("Deploying Kcat Pod", func() {
+		templateParameters := map[string]interface{}{
+			"Name":      kcatPodName,
+			"Namespace": kubectlOptions.Namespace,
+		}
+		if tlsSecretName != "" {
+			templateParameters["TLSSecretName"] = tlsSecretName
+		}
+
 		err := applyK8sResourceFromTemplate(kubectlOptions,
 			kcatPodTemplate,
-			map[string]interface{}{
-				"Name":      kcatPodName,
-				"Namespace": kubectlOptions.Namespace,
-			},
+			templateParameters,
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -48,15 +53,16 @@ func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string) 
 // requireDeleteKcatPod deletes kcat pod.
 func requireDeleteKcatPod(kubectlOptions k8s.KubectlOptions, podName string) {
 	It("Deleting Kcat pod", func() {
-		err := deleteK8sResource(kubectlOptions, defaultDeletionTimeout, "pods", "", podName)
+		err := deleteK8sResource(kubectlOptions, kcatDeleetionTimeout, "pods", "", podName)
 		Expect(err).NotTo(HaveOccurred())
 	})
 }
 
 // requireInternalProducingConsumingMessage produces and consumes messages internally through a kcat pod
 // and makes comparisons between the produced and consumed messages.
-// When internalAddress parameter is empty, it gets the internal address from the kafkaCluster CR status
-func requireInternalProducingConsumingMessage(kubectlOptions k8s.KubectlOptions, internalAddress, kcatPodName, topicName string) {
+// When internalAddress parameter is empty, it gets the internal address from the kafkaCluster CR status.
+// When tlsSecretName is set
+func requireInternalProducingConsumingMessage(kubectlOptions k8s.KubectlOptions, internalAddress, kcatPodName, topicName string, tlsSecretName string) {
 	It(fmt.Sprintf("Producing and consuming messages to/from topicName: '%s", topicName), func() {
 		if internalAddress == "" {
 			By("Getting Kafka cluster internal addresses")
@@ -83,11 +89,16 @@ func requireInternalProducingConsumingMessage(kubectlOptions k8s.KubectlOptions,
 			internalAddress = internalListenerAddresses[0]
 		}
 
+		tlsMode := false
+		if tlsSecretName != "" {
+			tlsMode = true
+		}
+
 		currentTime := time.Now()
-		err := producingMessagesInternally(kubectlOptions, kcatPodName, internalAddress, topicName, currentTime.String())
+		err := producingMessagesInternally(kubectlOptions, kcatPodName, internalAddress, topicName, currentTime.String(), tlsMode)
 		Expect(err).NotTo(HaveOccurred())
 
-		consumedMessages, err := consumingMessagesInternally(kubectlOptions, kcatPodName, internalAddress, topicName)
+		consumedMessages, err := consumingMessagesInternally(kubectlOptions, kcatPodName, internalAddress, topicName, tlsMode)
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(consumedMessages).Should(ContainSubstring(currentTime.String()))
