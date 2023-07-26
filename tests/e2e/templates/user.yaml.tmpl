@@ -1,0 +1,11 @@
+apiVersion: kafka.banzaicloud.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: {{or .Name "test-user"}}
+  namespace: {{or .Namespace "kafka" }}
+spec:
+  clusterRef:
+    name: {{or .ClusterName "kafka" }}
+  {{ with .TLSSecretName }}
+  secretName: {{ . }}
+  {{ end }}
