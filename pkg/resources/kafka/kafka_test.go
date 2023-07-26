@@ -1121,8 +1121,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
-			outOfSyncReplicas: []int32{101},
-			errorExpected:     true,
+			errorExpected: true,
 		},
 		{
 			testName: "Pod is deleted if allowed concurrent restarts is default and failure threshold is not reached",
@@ -1156,7 +1155,9 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
-			errorExpected: false,
+			allOfflineReplicas: []int32{},
+			outOfSyncReplicas:  []int32{},
+			errorExpected:      false,
 		},
 		{
 			testName: "Pod is not deleted if pod is restarting in another AZ, even if allowed concurrent restarts is not reached",
@@ -1190,8 +1191,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
-			outOfSyncReplicas: []int32{201},
-			errorExpected:     true,
+			errorExpected: true,
 		},
 		{
 			testName: "Pod is not deleted if failure is in another AZ, even if allowed concurrent restarts is not reached",
@@ -1225,8 +1225,9 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
-			outOfSyncReplicas: []int32{201},
-			errorExpected:     true,
+			allOfflineReplicas: []int32{},
+			outOfSyncReplicas:  []int32{201},
+			errorExpected:      true,
 		},
 		{
 			testName: "Pod is deleted if failure is in same AZ and allowed concurrent restarts is not reached",
@@ -1260,8 +1261,9 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
-			outOfSyncReplicas: []int32{101},
-			errorExpected:     false,
+			allOfflineReplicas: []int32{},
+			outOfSyncReplicas:  []int32{101},
+			errorExpected:      false,
 		},
 		{
 			testName: "Pod is not deleted if pod is restarting in another AZ, if brokers per AZ < tolerated failures",
@@ -1319,8 +1321,9 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 			},
-			outOfSyncReplicas: []int32{101},
-			errorExpected:     true,
+			allOfflineReplicas: []int32{},
+			outOfSyncReplicas:  []int32{101},
+			errorExpected:      true,
 		},
 		{
 			testName: "Pod is not deleted if there are offline replicas in another AZ, if brokers per AZ < tolerated failures",
@@ -1350,6 +1353,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 			},
 			allOfflineReplicas: []int32{101},
+			outOfSyncReplicas:  []int32{},
 			errorExpected:      true,
 		},
 		{
@@ -1406,9 +1410,13 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 			}
 
 			// Mock kafka client
-			mockedKafkaClient := new(mocks.KafkaClient)
-			mockedKafkaClient.On("AllOfflineReplicas").Return(test.allOfflineReplicas, nil)
-			mockedKafkaClient.On("OutOfSyncReplicas").Return(test.outOfSyncReplicas, nil)
+			mockedKafkaClient := mocks.NewMockKafkaClient(mockCtrl)
+			if test.allOfflineReplicas != nil {
+				mockedKafkaClient.EXPECT().AllOfflineReplicas().Return(test.allOfflineReplicas, nil)
+			}
+			if test.outOfSyncReplicas != nil {
+				mockedKafkaClient.EXPECT().OutOfSyncReplicas().Return(test.outOfSyncReplicas, nil)
+			}
 			mockKafkaClientProvider.On("NewFromCluster", mockClient, &test.kafkaCluster).Return(mockedKafkaClient, func() {}, nil)
 
 			// Call the handleRollingUpgrade function with the provided test.desiredPod and test.currentPod
