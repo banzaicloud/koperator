@@ -189,15 +189,15 @@ type Broker struct {
 	BrokerConfigGroup string        `json:"brokerConfigGroup,omitempty"`
 	ReadOnlyConfig    string        `json:"readOnlyConfig,omitempty"`
 	BrokerConfig      *BrokerConfig `json:"brokerConfig,omitempty"`
-	// processRoles defines the role(s) for this particular broker node: broker, controller, or both.
-	// This must be set in KRaft mode.
-	// +kubebuilder:validation:MaxItems=2
-	// +optional
-	Roles []string `json:"processRoles,omitempty"`
 }
 
 // BrokerConfig defines the broker configuration
 type BrokerConfig struct {
+	// processRoles defines the role(s) for this particular Kafka node: "broker", "controller", or both.
+	// This must be set in KRaft mode.
+	// +kubebuilder:validation:MaxItems=2
+	// +optional
+	Roles                []string                      `json:"processRoles,omitempty"`
 	Image                string                        `json:"image,omitempty"`
 	MetricsReporterImage string                        `json:"metricsReporterImage,omitempty"`
 	Config               string                        `json:"config,omitempty"`
@@ -1026,6 +1026,31 @@ func (cConfig *CruiseControlConfig) GetResources() *corev1.ResourceRequirements 
 	}
 }
 
+// IsBrokerNode returns true when the broker is a broker node
+func (bConfig *BrokerConfig) IsBrokerNode() bool {
+	return util.StringSliceContains(bConfig.Roles, brokerNodeProcessRole)
+}
+
+// IsControllerNode returns true when the broker is a controller node
+func (bConfig *BrokerConfig) IsControllerNode() bool {
+	return util.StringSliceContains(bConfig.Roles, controllerNodeProcessRole)
+}
+
+// IsBrokerOnlyNode returns true when the broker is a broker-only node
+func (bConfig *BrokerConfig) IsBrokerOnlyNode() bool {
+	return bConfig.IsBrokerNode() && !bConfig.IsControllerNode()
+}
+
+// IsControllerOnlyNode returns true when the broker is a controller-only node
+func (bConfig *BrokerConfig) IsControllerOnlyNode() bool {
+	return bConfig.IsControllerNode() && !bConfig.IsBrokerNode()
+}
+
+// IsCombinedNode returns true when the broker is a broker + controller node
+func (bConfig *BrokerConfig) IsCombinedNode() bool {
+	return bConfig.IsBrokerNode() && bConfig.IsControllerNode()
+}
+
 // GetResources returns the broker specific Kubernetes resource
 func (bConfig *BrokerConfig) GetResources() *corev1.ResourceRequirements {
 	if bConfig.Resources != nil {
@@ -1169,31 +1194,6 @@ func (b *Broker) GetBrokerConfig(kafkaClusterSpec KafkaClusterSpec) (*BrokerConf
 	bConfig.Envs = envs
 
 	return bConfig, nil
-}
-
-// IsBrokerNode returns true when the broker is a broker node
-func (b *Broker) IsBrokerNode() bool {
-	return util.StringSliceContains(b.Roles, brokerNodeProcessRole)
-}
-
-// IsControllerNode returns true when the broker is a controller node
-func (b *Broker) IsControllerNode() bool {
-	return util.StringSliceContains(b.Roles, controllerNodeProcessRole)
-}
-
-// IsBrokerOnlyNode returns true when the broker is a broker-only node
-func (b *Broker) IsBrokerOnlyNode() bool {
-	return b.IsBrokerNode() && !b.IsControllerNode()
-}
-
-// IsControllerOnlyNode returns true when the broker is a controller-only node
-func (b *Broker) IsControllerOnlyNode() bool {
-	return b.IsControllerNode() && !b.IsBrokerNode()
-}
-
-// IsCombinedNode returns true when the broker is a broker + controller node
-func (b *Broker) IsCombinedNode() bool {
-	return b.IsBrokerNode() && b.IsControllerNode()
 }
 
 func mergeEnvs(kafkaClusterSpec KafkaClusterSpec, groupConfig, bConfig *BrokerConfig) []corev1.EnvVar {

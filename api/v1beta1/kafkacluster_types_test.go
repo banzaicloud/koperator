@@ -524,31 +524,38 @@ func TestIsBrokerOnlyNode(t *testing.T) {
 		{
 			testName: "the broker is a broker-only node",
 			broker: Broker{
-				Id:    0,
-				Roles: []string{"broker"},
+				Id: 0,
+				BrokerConfig: &BrokerConfig{
+					Roles: []string{"broker"},
+				},
 			},
 			isBrokerOnly: true,
 		},
 		{
 			testName: "the broker is a controller-only node",
 			broker: Broker{
-				Id:    0,
-				Roles: []string{"controller"},
+				Id: 0,
+				BrokerConfig: &BrokerConfig{
+					Roles: []string{"controller"},
+				},
 			},
 			isBrokerOnly: false,
 		},
 		{
 			testName: "the broker is a combined node",
 			broker: Broker{
-				Id:    0,
-				Roles: []string{"controller", "broker"},
+				Id: 0,
+				BrokerConfig: &BrokerConfig{
+					Roles: []string{"controller", "broker"},
+				},
 			},
 			isBrokerOnly: false,
 		},
 		{
 			testName: "the broker has no process roles defined",
 			broker: Broker{
-				Id: 0,
+				Id:           0,
+				BrokerConfig: &BrokerConfig{},
 			},
 			isBrokerOnly: false,
 		},
@@ -556,7 +563,7 @@ func TestIsBrokerOnlyNode(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.testName, func(t *testing.T) {
-			require.Equal(t, test.broker.IsBrokerOnlyNode(), test.isBrokerOnly)
+			require.Equal(t, test.broker.BrokerConfig.IsBrokerOnlyNode(), test.isBrokerOnly)
 		})
 	}
 }
@@ -570,24 +577,30 @@ func TestIsControllerOnlyNode(t *testing.T) {
 		{
 			testName: "the broker is a controller-only node",
 			broker: Broker{
-				Id:    0,
-				Roles: []string{"controller"},
+				Id: 0,
+				BrokerConfig: &BrokerConfig{
+					Roles: []string{"controller"},
+				},
 			},
 			isControllerOnly: true,
 		},
 		{
 			testName: "the broker is a broker-only node",
 			broker: Broker{
-				Id:    0,
-				Roles: []string{"broker"},
+				Id: 0,
+				BrokerConfig: &BrokerConfig{
+					Roles: []string{"broker"},
+				},
 			},
 			isControllerOnly: false,
 		},
 		{
 			testName: "the broker is a combined node",
 			broker: Broker{
-				Id:    0,
-				Roles: []string{"broker", "controller"},
+				Id: 0,
+				BrokerConfig: &BrokerConfig{
+					Roles: []string{"broker", "controller"},
+				},
 			},
 			isControllerOnly: false,
 		},
@@ -595,6 +608,9 @@ func TestIsControllerOnlyNode(t *testing.T) {
 			testName: "the broker has no process roles defined",
 			broker: Broker{
 				Id: 0,
+				// every broker is expected to have the broker configurations set through either "brokerConfig" or "brokerConfigGroup"
+				// and this part is tested in other places, therefore setting "brokerConfig" to be empty for this unit test
+				BrokerConfig: &BrokerConfig{},
 			},
 			isControllerOnly: false,
 		},
@@ -602,7 +618,7 @@ func TestIsControllerOnlyNode(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.testName, func(t *testing.T) {
-			require.Equal(t, test.broker.IsControllerOnlyNode(), test.isControllerOnly)
+			require.Equal(t, test.broker.BrokerConfig.IsControllerOnlyNode(), test.isControllerOnly)
 		})
 	}
 }
@@ -616,31 +632,38 @@ func TestIsCombinedNode(t *testing.T) {
 		{
 			testName: "the broker is a broker-only node",
 			broker: Broker{
-				Id:    0,
-				Roles: []string{"broker"},
+				Id: 0,
+				BrokerConfig: &BrokerConfig{
+					Roles: []string{"broker"},
+				},
 			},
 			isCombined: false,
 		},
 		{
 			testName: "the broker is a controller-only node",
 			broker: Broker{
-				Id:    0,
-				Roles: []string{"controller"},
+				Id: 0,
+				BrokerConfig: &BrokerConfig{
+					Roles: []string{"controller"},
+				},
 			},
 			isCombined: false,
 		},
 		{
 			testName: "the broker is a combined node",
 			broker: Broker{
-				Id:    0,
-				Roles: []string{"broker", "controller"},
+				Id: 0,
+				BrokerConfig: &BrokerConfig{
+					Roles: []string{"broker", "controller"},
+				},
 			},
 			isCombined: true,
 		},
 		{
 			testName: "the broker has no process roles defined",
 			broker: Broker{
-				Id: 0,
+				Id:           0,
+				BrokerConfig: &BrokerConfig{},
 			},
 			isCombined: false,
 		},
@@ -648,7 +671,7 @@ func TestIsCombinedNode(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.testName, func(t *testing.T) {
-			require.Equal(t, test.broker.IsCombinedNode(), test.isCombined)
+			require.Equal(t, test.broker.BrokerConfig.IsCombinedNode(), test.isCombined)
 		})
 	}
 }
