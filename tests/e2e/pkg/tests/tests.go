@@ -71,11 +71,11 @@ K8sVersions: %v
 K8sProviders: %v
 TestK8sMapping: %v
 TestStrategy: %s
-ExpectedDurationSerial: %f
-ExpectedDurationParallel: %f
+ExpectedDurationSerial: %s
+ExpectedDurationParallel: %s
 `, len(tests), len(maps.Keys(testsByContextName)), maps.Keys(testsByVersions), maps.Keys(testsByProviders),
-		tests, viper.GetString(config.Tests.TestStrategy), tests.GetTestSuiteDurationSerial().Seconds(),
-		tests.GetTestSuiteDurationParallel().Seconds())
+		tests, viper.GetString(config.Tests.TestStrategy), tests.GetTestSuiteDurationSerial().String(),
+		tests.GetTestSuiteDurationParallel().String())
 }
 
 func (tests TestPool) BuildParallelByK8sCluster() {

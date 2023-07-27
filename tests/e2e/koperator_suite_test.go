@@ -41,20 +41,7 @@ func beforeSuite() (tests.TestPool, error) {
 		return nil, err
 	}
 
-	// k8sCluster, err := tests.New
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//k8sClusterPool.AddK8sClusters(k8sCluster)
-
-	classifier := tests.NewClassifier(k8sClusterPool, testCaseInstall)
-
-	//classifier := tests.MockTestsMinimal()
-	//classifier := tests.MockTestsProvider()
-	// classifier := tests.MockTestsProviderMoreTestsThenProvider()
-	//classifier := tests.MockTestsVersionOne()
-	// classifier := tests.MockTestsVersion()
-	//classifier := tests.MockTestsComplete()
+	classifier := tests.NewClassifier(k8sClusterPool, alltestCase)
 
 	var testPool tests.TestPool
 	testStrategy := viper.GetString(config.Tests.TestStrategy)
@@ -109,7 +96,7 @@ func runGinkgoTests(t *testing.T) error {
 	}
 	// Protection against too long test suites
 	if testSuiteDuration > maxTimeout {
-		return fmt.Errorf("tests estimated duration: '%dsec' bigger then maxTimeout: '%dsec'", int(testSuiteDuration.Seconds()), int(maxTimeout.Seconds()))
+		return fmt.Errorf("tests estimated duration: '%s' bigger then maxTimeout: '%s'", testSuiteDuration.String(), maxTimeout.String())
 	}
 
 	// Calculated timeout can be overran with the specified time length

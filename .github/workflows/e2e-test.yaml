@@ -42,7 +42,7 @@ jobs:
         env:
            TEST_STRATEGY: version
            KUBECONFIG_DIR: kubeconfigs
-           MAX_TIMEOUT: "2h"
+           MAX_TIMEOUT: "1h"
         run: |
           go work init
           go work use -r .
