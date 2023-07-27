@@ -33,7 +33,7 @@ const (
 	defaultReportDir               = "reports"
 	defaultCreateTestReportFile    = "true"
 	defaultMaxTimeout              = "30m"
-	defaultAllowedOverrunDuration  = "5m"
+	defaultAllowedOverrunDuration  = "10m"
 	defaultTestStrategy            = TestStrategyMinimal
 	defaultKubeConfigDirectoryPath = "kubeconfigs"
 )

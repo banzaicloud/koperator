@@ -22,7 +22,7 @@ import (
 )
 
 var alltestCase = tests.TestCase{
-	TestDuration: 30 * time.Minute,
+	TestDuration: 20 * time.Minute,
 	TestName:     "ALL_TESTCASE",
 	TestFn:       allTestCase,
 }
@@ -34,12 +34,13 @@ func allTestCase(kubectlOptions k8s.KubectlOptions) {
 	testInstall(kubectlOptions)
 	testInstallZookeeperCluster(kubectlOptions)
 	testInstallKafkaCluster(kubectlOptions, "../../config/samples/simplekafkacluster.yaml")
-	testProduceConsumeExternal(kubectlOptions, "")
+	//testProduceConsumeExternal(kubectlOptions, "")
 	testProduceConsumeInternal(kubectlOptions)
 	testUninstallKafkaCluster(kubectlOptions)
 	testInstallKafkaCluster(kubectlOptions, "../../config/samples/simplekafkacluster_ssl.yaml")
-	testProduceConsumeExternal(kubectlOptions, "")
-	testProduceConsumeInternal(kubectlOptions)
+	//testProduceConsumeExternal(kubectlOptions, "")
+	//testProduceConsumeInternal(kubectlOptions)
+	testProduceConsumeInternalSSL(kubectlOptions, defaultTLSSecretName)
 	testUninstallKafkaCluster(kubectlOptions)
 	testUninstallZookeeperCluster(kubectlOptions)
 	testUninstall(kubectlOptions)

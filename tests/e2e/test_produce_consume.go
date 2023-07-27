@@ -17,6 +17,19 @@ func testProduceConsumeInternal(kubectlOptions k8s.KubectlOptions) bool {
 	})
 }
 
+func testProduceConsumeInternalSSL(kubectlOptions k8s.KubectlOptions, tlsSecretName string) bool {
+	return When("Internally produce and consume message to/from Kafka cluster using SSL", func() {
+		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
+
+		requireDeployingKafkaUser(kubectlOptions, kafkaUserName, tlsSecretName)
+		requireDeployingKcatPod(kubectlOptions, kcatPodName, tlsSecretName)
+		requireDeployingKafkaTopic(kubectlOptions, testInternalTopicName)
+		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testInternalTopicName, tlsSecretName)
+		requireDeleteKafkaTopic(kubectlOptions, testInternalTopicName)
+		requireDeleteKcatPod(kubectlOptions, kcatPodName)
+		requireDeleteKafkaUser(kubectlOptions, kafkaUserName)
+	})
+}
 
 func testProduceConsumeExternal(kubectlOptions k8s.KubectlOptions, tlsSecretName string) bool {
 	return When("Externally produce and consume message to/from Kafka cluster", func() {
