@@ -395,11 +395,11 @@ func (t Test) Run() {
 			)
 		}
 
-		// It("Checking K8s cluster health", func() {
-		// 	if err != nil {
-		// 		Fail(fmt.Sprintf("skipping testCase... K8s cluster connection problem: %v", err))
-		// 	}
-		// })
+		It("Checking K8s cluster health", func() {
+			if err != nil {
+				Fail(fmt.Sprintf("skipping testCase... K8s cluster connection problem: %v", err))
+			}
+		})
 		t.testCase.TestFn(kubectlOptions)
 	})
 }
