@@ -51,7 +51,7 @@ func beforeSuite() (tests.TestPool, error) {
 
 	//classifier := tests.MockTestsMinimal()
 	//classifier := tests.MockTestsProvider()
-	//classifier := tests.MockTestsProviderMoreTestsThenProvider()
+	// classifier := tests.MockTestsProviderMoreTestsThenProvider()
 	//classifier := tests.MockTestsVersionOne()
 	// classifier := tests.MockTestsVersion()
 	//classifier := tests.MockTestsComplete()
@@ -84,7 +84,7 @@ func TestKoperator(t *testing.T) {
 
 func runGinkgoTests(t *testing.T) error {
 	RegisterFailHandler(Fail)
-	suiteConfig, reporterConfig := GinkgoConfiguration()
+	suiteConfig, _ := GinkgoConfiguration()
 
 	// Run only selected tests by testID label e.g: "testID:4e980f5b5c"
 	if labelFilter := viper.GetString(config.Tests.LabelFilter); labelFilter != "" {
@@ -131,7 +131,7 @@ func runGinkgoTests(t *testing.T) error {
 
 	func() {
 		defer ginkgo.GinkgoRecover()
-		RunSpecs(t, testDescription, suiteConfig, reporterConfig)
+		RunSpecs(t, testDescription, suiteConfig)
 	}()
 
 	return nil

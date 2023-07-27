@@ -41,7 +41,7 @@ jobs:
       - name: Run E2E tests
         env:
            TEST_STRATEGY: version
-           KUBECONFIG_DIR: tests/e2e/kubeconfigs
+           KUBECONFIG_DIR: kubeconfigs
            MAX_TIMEOUT: "2h"
         run: |
           go work init

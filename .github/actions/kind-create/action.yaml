@@ -21,9 +21,6 @@ outputs:
   kubeconfig:
     description: 'Path of the resulting kubeconfig'
     value: ${{ steps.check-kind-cluster.outputs.kubeconfig }}
-  kubeconfig_dir_path:
-    description: 'Dir path of the resulting kubeconfig'
-    value: ${{ steps.check-kind-cluster.outputs.kubeconfig_dir_path }}
 
 runs:
   using: "composite"
@@ -53,6 +50,4 @@ runs:
       chmod 600 $kubeconfig_path
       echo "kubeconfig path: $kubeconfig_path"
       echo "kubeconfig=$(echo $kubeconfig_path)" >> $GITHUB_OUTPUT
-      echo "kubeconfig_dir_path=$(echo $kubeconfig_dir_path)" >> $GITHUB_OUTPUT
-
     shell: bash

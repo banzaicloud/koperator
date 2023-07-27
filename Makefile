@@ -25,7 +25,8 @@ CONTROLLER_GEN_VERSION = v0.9.2
 CONTROLLER_GEN = $(PWD)/bin/controller-gen
 
 ENVTEST_K8S_VERSION = 1.24.2
-GINKGO_VERSION := 2.9.7
+# Ginkgo version should be the same that is used in the module imports
+GINKGO_VERSION := 2.11.0
 MOCKGEN_VERSION := 1.6.0
 
 
@@ -117,14 +118,6 @@ test-e2e: bin/ginkgo
 # Run e2e tests parallel
 test-e2e-parallel: bin/ginkgo
 	ginkgo -v -p --tags e2e tests/e2e
-
-# Compile test binary for debugging
-build-e2e-debug-binary:
-	go test github.com/banzaicloud/koperator/tests/e2e \
-		--tags e2e \
-	 	-c \
-	 	-o /Users/marbarta/go/src/github.com/banzaicloud/koperator/tests/e2e/__debug_bin \
-	  	-gcflags all=-N
 
 # Build manager binary
 manager: generate fmt vet
