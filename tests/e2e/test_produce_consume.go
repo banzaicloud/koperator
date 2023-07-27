@@ -17,6 +17,7 @@ func testProduceConsumeInternal(kubectlOptions k8s.KubectlOptions) bool {
 	})
 }
 
+
 func testProduceConsumeExternal(kubectlOptions k8s.KubectlOptions, tlsSecretName string) bool {
 	return When("Externally produce and consume message to/from Kafka cluster", func() {
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
