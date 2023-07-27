@@ -21564,15 +21564,17 @@ spec:
               zkAddresses:
                 description: ZKAddresses specifies the ZooKeeper connection string
                   in the form hostname:port where host and port are the host and port
-                  of a ZooKeeper server. This is not used under KRaft mode.
+                  of a ZooKeeper server. Under ZooKeeper mode, this is a must-have
+                  configuration. And if set under KRaft mode, Koperator ignores this
+                  configuration.
                 items:
                   type: string
                 type: array
               zkPath:
                 description: ZKPath specifies the ZooKeeper chroot path as part of
                   its ZooKeeper connection string which puts its data under some path
-                  in the global ZooKeeper namespace. This is not used under KRaft
-                  mode.
+                  in the global ZooKeeper namespace. If set under KRaft mode, Koperator
+                  ignores this configuration.
                 type: string
             required:
             - brokers

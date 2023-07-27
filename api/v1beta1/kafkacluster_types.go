@@ -81,12 +81,13 @@ type KafkaClusterSpec struct {
 	AdditionalPorts []corev1.ContainerPort `json:"additionalPorts,omitempty"`
 	// ZKAddresses specifies the ZooKeeper connection string
 	// in the form hostname:port where host and port are the host and port of a ZooKeeper server.
-	// This is not used under KRaft mode.
+	// Under ZooKeeper mode, this is a must-have configuration.
+	// And if set under KRaft mode, Koperator ignores this configuration.
 	// +optional
 	ZKAddresses []string `json:"zkAddresses,omitempty"`
 	// ZKPath specifies the ZooKeeper chroot path as part
 	// of its ZooKeeper connection string which puts its data under some path in the global ZooKeeper namespace.
-	// This is not used under KRaft mode.
+	// If set under KRaft mode, Koperator ignores this configuration.
 	// +optional
 	ZKPath                      string                  `json:"zkPath,omitempty"`
 	RackAwareness               *RackAwareness          `json:"rackAwareness,omitempty"`
