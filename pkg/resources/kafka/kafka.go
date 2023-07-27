@@ -138,17 +138,6 @@ func getBrokerAzMap(cluster *v1beta1.KafkaCluster) map[int32]string {
 	return brokerAzMap
 }
 
-func getBrokerRack(readOnlyConfig string) string {
-	if readOnlyConfig == "" {
-		return ""
-	}
-	match := kafkaConfigBrokerRackRegex.FindStringSubmatch(readOnlyConfig)
-	if len(match) == 2 {
-		return match[1]
-	}
-	return ""
-}
-
 func getCreatedPvcForBroker(
 	ctx context.Context,
 	c client.Reader,

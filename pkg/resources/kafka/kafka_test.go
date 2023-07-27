@@ -1526,3 +1526,85 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 		})
 	}
 }
+
+func TestGetBrokerAzMap(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		testName      string
+		kafkaCluster  v1beta1.KafkaCluster
+		expectedAzMap map[int32]string
+	}{
+		{
+			testName: "Brokers have different AZs if no broker rack value is set",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{Id: 101, ReadOnlyConfig: ""},
+						{Id: 201, ReadOnlyConfig: ""},
+						{Id: 301, ReadOnlyConfig: ""},
+					},
+				},
+			},
+			expectedAzMap: map[int32]string{101: "101", 201: "201", 301: "301"},
+		},
+		{
+			testName: "Brokers have different AZs if one broker has no broker rack value set",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{Id: 101, ReadOnlyConfig: "broker.rack=az1"},
+						{Id: 102, ReadOnlyConfig: ""},
+						{Id: 201, ReadOnlyConfig: "broker.rack=az2"},
+						{Id: 202, ReadOnlyConfig: "broker.rack=az2"},
+						{Id: 301, ReadOnlyConfig: "broker.rack=az3"},
+						{Id: 302, ReadOnlyConfig: "broker.rack=az3"},
+					},
+				},
+			},
+			expectedAzMap: map[int32]string{101: "101", 102: "102", 201: "201", 202: "202", 301: "301", 302: "302"},
+		},
+		{
+			testName: "Brokers have different AZs if read only configs is a corrupted string for one broker",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{Id: 101, ReadOnlyConfig: "broker.rack;az1"},
+						{Id: 201, ReadOnlyConfig: "broker.rack=az2"},
+						{Id: 301, ReadOnlyConfig: "broker.rack=az3"},
+					},
+				},
+			},
+			expectedAzMap: map[int32]string{101: "101", 201: "201", 301: "301"},
+		},
+		{
+			testName: "Brokers have correct AZs if read only configs is valid for all brokers",
+			kafkaCluster: v1beta1.KafkaCluster{
+				Spec: v1beta1.KafkaClusterSpec{
+					Brokers: []v1beta1.Broker{
+						{Id: 101, ReadOnlyConfig: "broker.rack=az-1"},
+						{Id: 102, ReadOnlyConfig: "broker.rack=az-1"},
+						{Id: 201, ReadOnlyConfig: "broker.rack=az-2"},
+						{Id: 202, ReadOnlyConfig: "broker.rack=az-2"},
+						{Id: 301, ReadOnlyConfig: "broker.rack=az-3"},
+						{Id: 302, ReadOnlyConfig: "broker.rack=az-3"},
+					},
+				},
+			},
+			expectedAzMap: map[int32]string{
+				101: "az-1",
+				102: "az-1",
+				201: "az-2",
+				202: "az-2",
+				301: "az-3",
+				302: "az-3",
+			},
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.testName, func(t *testing.T) {
+			azMap := getBrokerAzMap(&test.kafkaCluster)
+			assert.Equal(t, test.expectedAzMap, azMap)
+		})
+	}
+}
