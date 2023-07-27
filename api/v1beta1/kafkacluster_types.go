@@ -143,6 +143,18 @@ type RollingUpgradeConfig struct {
 	// distinct broker replicas with either offline replicas or out of sync replicas and the number of alerts triggered by
 	// alerts with 'rollingupgrade'
 	FailureThreshold int `json:"failureThreshold"`
+
+	// ConcurrentBrokerRestartCountPerRack controls how many brokers can be restarted in parallel during a rolling upgrade. If
+	// it is set to a value greater than 1, the operator will restart up to that amount of brokers in parallel, if the
+	// brokers are within the same rack (as specified by "broker.rack" in broker read-only configs). Since using Kafka broker
+	// racks spreads out the replicas, we know that restarting multiple brokers in the same rack will not cause more than
+	// 1/Nth of the replicas of a topic-partition to be unavailable at the same time, where N is the number of racks used.
+	// This is a safe way to speed up the rolling upgrade. Note that for the rack distribution explained above, Cruise Control
+	// requires `com.linkedin.kafka.cruisecontrol.analyzer.goals.RackAwareDistributionGoal` to be configured. Default value is 1.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:default=1
+	// +optional
+	ConcurrentBrokerRestartCountPerRack int `json:"concurrentBrokerRestartCountPerRack,omitempty"`
 }
 
 // DisruptionBudget defines the configuration for PodDisruptionBudget where the workload is managed by the kafka-operator
