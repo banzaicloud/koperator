@@ -39,7 +39,7 @@ import (
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 )
 
-func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, broker v1beta1.Broker,
+func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32, quorumVoters []string,
 	extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
 	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) *properties.Properties {
 	config := properties.NewProperties()
@@ -54,13 +54,13 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, broker v
 
 	// Kafka Broker configurations
 	if r.KafkaCluster.Spec.KRaftMode {
-		configureBrokerKRaftMode(broker, r.KafkaCluster, config, serverPasses, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, log)
+		configureBrokerKRaftMode(bConfig, id, r.KafkaCluster, config, quorumVoters, serverPasses, extListenerStatuses, intListenerStatuses, log)
 	} else {
-		configureBrokerZKMode(broker.Id, r.KafkaCluster, config, serverPasses, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, log)
+		configureBrokerZKMode(id, r.KafkaCluster, config, serverPasses, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, log)
 	}
 
 	// This logic prevents the removal of the mountPath from the broker configmap
-	brokerConfigMapName := fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, broker.Id)
+	brokerConfigMapName := fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id)
 	var brokerConfigMapOld v1.ConfigMap
 	err = r.Client.Get(context.Background(), client.ObjectKey{Name: brokerConfigMapName, Namespace: r.KafkaCluster.GetNamespace()}, &brokerConfigMapOld)
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -69,7 +69,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, broker v
 
 	mountPathsOld, err := getMountPathsFromBrokerConfigMap(&brokerConfigMapOld)
 	if err != nil {
-		log.Error(err, "could not get mountPaths from broker configmap", v1beta1.BrokerIdLabelKey, broker.Id)
+		log.Error(err, "could not get mountPaths from broker configmap", v1beta1.BrokerIdLabelKey, id)
 	}
 
 	mountPathsNew := generateStorageConfig(bConfig.StorageConfigs)
@@ -77,7 +77,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, broker v
 
 	if isMountPathRemoved {
 		log.Error(errors.New("removed storage is found in the KafkaCluster CR"),
-			"removing storage from broker is not supported", v1beta1.BrokerIdLabelKey, broker.Id, "mountPaths",
+			"removing storage from broker is not supported", v1beta1.BrokerIdLabelKey, id, "mountPaths",
 			mountPathsOld, "mountPaths in kafkaCluster CR ", mountPathsNew)
 	}
 
@@ -134,16 +134,17 @@ func configCCMetricsReporter(kafkaCluster *v1beta1.KafkaCluster, config *propert
 	}
 }
 
-func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.KafkaCluster, config *properties.Properties, serverPasses map[string]string, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList, log logr.Logger) {
-	if err := config.Set(kafkautils.KafkaConfigNodeID, broker.Id); err != nil {
+func configureBrokerKRaftMode(bConfig *v1beta1.BrokerConfig, brokerID int32, kafkaCluster *v1beta1.KafkaCluster, config *properties.Properties,
+	quorumVoters []string, serverPasses map[string]string, extListenerStatuses, intListenerStatuses map[string]v1beta1.ListenerStatusList, log logr.Logger) {
+	if err := config.Set(kafkautils.KafkaConfigNodeID, brokerID); err != nil {
 		log.Error(err, fmt.Sprintf(kafkautils.BrokerConfigErrorMsgTemplate, kafkautils.KafkaConfigNodeID))
 	}
 
-	if err := config.Set(kafkautils.KafkaConfigProcessRoles, broker.Roles); err != nil {
+	if err := config.Set(kafkautils.KafkaConfigProcessRoles, bConfig.Roles); err != nil {
 		log.Error(err, fmt.Sprintf(kafkautils.BrokerConfigErrorMsgTemplate, kafkautils.KafkaConfigProcessRoles))
 	}
 
-	if err := config.Set(kafkautils.KafkaConfigControllerQuorumVoters, generateQuorumVoters(kafkaCluster.Spec.Brokers, controllerIntListenerStatuses)); err != nil {
+	if err := config.Set(kafkautils.KafkaConfigControllerQuorumVoters, quorumVoters); err != nil {
 		log.Error(err, fmt.Sprintf(kafkautils.BrokerConfigErrorMsgTemplate, kafkautils.KafkaConfigControllerQuorumVoters))
 	}
 
@@ -160,15 +161,15 @@ func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.Kafka
 
 	var advertisedListenerConf []string
 	// only expose "advertised.listeners" when the node serves as a regular broker or a combined node
-	if broker.IsBrokerNode() {
-		advertisedListenerConf = generateAdvertisedListenerConfig(broker.Id, kafkaCluster.Spec.ListenersConfig,
+	if bConfig.IsBrokerNode() {
+		advertisedListenerConf = generateAdvertisedListenerConfig(brokerID, kafkaCluster.Spec.ListenersConfig,
 			extListenerStatuses, intListenerStatuses, nil)
 		if err := config.Set(kafkautils.KafkaConfigAdvertisedListeners, advertisedListenerConf); err != nil {
 			log.Error(err, fmt.Sprintf(kafkautils.BrokerConfigErrorMsgTemplate, kafkautils.KafkaConfigAdvertisedListeners))
 		}
 	}
 
-	if broker.IsControllerOnlyNode() {
+	if bConfig.IsControllerOnlyNode() {
 		// "listeners" configuration can only contain controller configuration when the node is a controller-only node
 		for _, listener := range listenerConfig {
 			if listener[:len(controllerListenerName)] == strings.ToUpper(controllerListenerName) {
@@ -178,7 +179,7 @@ func configureBrokerKRaftMode(broker v1beta1.Broker, kafkaCluster *v1beta1.Kafka
 				break
 			}
 		}
-	} else if broker.IsBrokerOnlyNode() {
+	} else if bConfig.IsBrokerOnlyNode() {
 		// "listeners" configuration cannot contain controller configuration when the node is a broker-only node
 		var nonControllerListener []string
 		for _, listener := range listenerConfig {
@@ -260,8 +261,8 @@ func generateSuperUsers(users []string) (suStrings []string) {
 	return
 }
 
-func (r *Reconciler) configMap(broker v1beta1.Broker, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
-	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
+func (r *Reconciler) configMap(broker v1beta1.Broker, brokerConfig *v1beta1.BrokerConfig, quorumVoters []string,
+	extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
 	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) *corev1.ConfigMap {
 	brokerConf := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
@@ -272,7 +273,7 @@ func (r *Reconciler) configMap(broker v1beta1.Broker, brokerConfig *v1beta1.Brok
 			),
 			r.KafkaCluster,
 		),
-		Data: map[string]string{kafkautils.ConfigPropertyName: r.generateBrokerConfig(broker, brokerConfig, extListenerStatuses,
+		Data: map[string]string{kafkautils.ConfigPropertyName: r.generateBrokerConfig(broker, brokerConfig, quorumVoters, extListenerStatuses,
 			intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)},
 	}
 	if brokerConfig.Log4jConfig != "" {
@@ -482,13 +483,13 @@ func mergeSuperUsersPropertyValue(source *properties.Properties, target *propert
 	return ""
 }
 
-func (r Reconciler) generateBrokerConfig(broker v1beta1.Broker, brokerConfig *v1beta1.BrokerConfig, extListenerStatuses,
-	intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
+func (r Reconciler) generateBrokerConfig(broker v1beta1.Broker, brokerConfig *v1beta1.BrokerConfig, quorumVoters []string,
+	extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses map[string]v1beta1.ListenerStatusList,
 	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) string {
 	finalBrokerConfig := getBrokerReadOnlyConfig(broker, r.KafkaCluster, log)
 
 	// Get operator generated configuration
-	opGenConf := r.getConfigProperties(brokerConfig, broker, extListenerStatuses, intListenerStatuses,
+	opGenConf := r.getConfigProperties(brokerConfig, broker.Id, quorumVoters, extListenerStatuses, intListenerStatuses,
 		controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 
 	// Merge operator generated configuration to the final one

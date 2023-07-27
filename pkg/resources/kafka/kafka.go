@@ -301,34 +301,45 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 		}
 	}
 
-	// all broker nodes under the same Kafka cluster must use the same cluster UUID
-	if r.KafkaCluster.Spec.KRaftMode && r.KafkaCluster.Status.ClusterID == "" {
-		r.KafkaCluster.Status.ClusterID = generateRandomClusterID()
-		err = r.Client.Status().Update(ctx, r.KafkaCluster)
-		if apierrors.IsNotFound(err) {
-			err = r.Client.Update(ctx, r.KafkaCluster)
-		}
-		if err != nil {
-			return errors.NewWithDetails("could not update ClusterID status",
-				"component", componentName,
-				"clusterName", r.KafkaCluster.Name,
-				"clusterNamespace", r.KafkaCluster.Namespace)
-		}
-	}
-
 	controllerID, err := r.determineControllerId()
 	if err != nil {
 		log.Error(err, "could not find controller broker")
 	}
 
-	// In KRaft mode:
-	// 1. there is no way for admin client to know which node is the active controller, controllerID obtained above is just a broker ID of a random active broker (this is intentional by Kafka)
-	// 2. the follower controllers replicate the data that is written to the active controller and serves as hot standbys if the active controller fails.
-	//    Because the controllers now all track the latest state, controller fail-over will not require a lengthy reloading time to have all the state to transfer to the new controller
-	// Therefore, by setting the controllerID to be -1 to not take the controller identity into consideration when reordering the brokers
+	var quorumVoters []string
 	if r.KafkaCluster.Spec.KRaftMode {
+		// all broker nodes under the same Kafka cluster must use the same cluster UUID
+		if r.KafkaCluster.Status.ClusterID == "" {
+			r.KafkaCluster.Status.ClusterID = generateRandomClusterID()
+			err = r.Client.Status().Update(ctx, r.KafkaCluster)
+			if apierrors.IsNotFound(err) {
+				err = r.Client.Update(ctx, r.KafkaCluster)
+			}
+			if err != nil {
+				return errors.NewWithDetails("could not update ClusterID status",
+					"component", componentName,
+					"clusterName", r.KafkaCluster.Name,
+					"clusterNamespace", r.KafkaCluster.Namespace)
+			}
+		}
+
+		// In KRaft mode:
+		// 1. there is no way for admin client to know which node is the active controller, controllerID obtained above is just a broker ID of a random active broker (this is intentional by Kafka)
+		// 2. the follower controllers replicate the data that is written to the active controller and serves as hot standbys if the active controller fails.
+		//    Because the controllers now all track the latest state, controller fail-over will not require a lengthy reloading time to have all the state to transfer to the new controller
+		// Therefore, by setting the controllerID to be -1 to not take the controller identity into consideration when reordering the brokers
 		controllerID = -1
+
+		quorumVoters, err = generateQuorumVoters(r.KafkaCluster, controllerIntListenerStatuses)
+		if err != nil {
+			return errors.WrapIfWithDetails(err,
+				"failed to generate quorum voters configuration",
+				"component", componentName,
+				"clusterName", r.KafkaCluster.GetName(),
+				"clusterNamespace", r.KafkaCluster.GetNamespace())
+		}
 	}
+
 	reorderedBrokers := reorderBrokers(runningBrokers, boundPersistentVolumeClaims, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID, log)
 
 	allBrokerDynamicConfigSucceeded := true
@@ -340,14 +351,14 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 
 		var configMap *corev1.ConfigMap
 		if r.KafkaCluster.Spec.RackAwareness == nil {
-			configMap = r.configMap(broker, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
+			configMap = r.configMap(broker, brokerConfig, quorumVoters, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 			err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())
 			}
 		} else if brokerState, ok := r.KafkaCluster.Status.BrokersState[strconv.Itoa(int(broker.Id))]; ok {
 			if brokerState.RackAwarenessState != "" {
-				configMap = r.configMap(broker, brokerConfig, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
+				configMap = r.configMap(broker, brokerConfig, quorumVoters, extListenerStatuses, intListenerStatuses, controllerIntListenerStatuses, serverPasses, clientPass, superUsers, log)
 				err := k8sutil.Reconcile(log, r.Client, configMap, r.KafkaCluster)
 				if err != nil {
 					return errors.WrapIfWithDetails(err, "failed to reconcile resource", "resource", configMap.GetObjectKind().GroupVersionKind())

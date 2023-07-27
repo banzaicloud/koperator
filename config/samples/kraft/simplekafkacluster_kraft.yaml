@@ -27,7 +27,11 @@ spec:
             resources:
               requests:
                 storage: 10Gi
-        - mountPath: "/kafka-logs-2"
+    broker:
+      processRoles:
+        - broker
+      storageConfigs:
+        - mountPath: "/kafka-logs-broker"
           pvcSpec:
             accessModes:
               - ReadWriteOnce
@@ -39,30 +43,27 @@ spec:
         prometheus.io/port: "9020"
   brokers:
     - id: 0
-      brokerConfigGroup: "default"
-      processRoles:
-        - broker
+      brokerConfigGroup: "broker"
     - id: 1
-      brokerConfigGroup: "default"
-      processRoles:
-        - broker
+      brokerConfigGroup: "broker"
     - id: 2
-      brokerConfigGroup: "default"
-      processRoles:
-        - broker
+      brokerConfigGroup: "broker"
     - id: 3
       brokerConfigGroup: "default"
-      processRoles:
-        - controller
-        - broker
+      brokerConfig:
+        processRoles:
+          - controller
+          - broker
     - id: 4
       brokerConfigGroup: "default"
-      processRoles:
-        - controller
+      brokerConfig:
+        processRoles:
+          - controller
     - id: 5
       brokerConfigGroup: "default"
-      processRoles:
-        - controller
+      brokerConfig:
+        processRoles:
+          - controller
   rollingUpgradeConfig:
     failureThreshold: 1
   listenersConfig:

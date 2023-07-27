@@ -682,7 +682,7 @@ zookeeper.connect=example.zk:2181/`,
 				superUsers = []string{"CN=kafka-headless.kafka.svc.cluster.local"}
 			}
 
-			generatedConfig := r.generateBrokerConfig(r.KafkaCluster.Spec.Brokers[0], r.KafkaCluster.Spec.Brokers[0].BrokerConfig, map[string]v1beta1.ListenerStatusList{},
+			generatedConfig := r.generateBrokerConfig(r.KafkaCluster.Spec.Brokers[0], r.KafkaCluster.Spec.Brokers[0].BrokerConfig, nil, map[string]v1beta1.ListenerStatusList{},
 				map[string]v1beta1.ListenerStatusList{}, controllerListenerStatus, serverPasses, clientPass, superUsers, logr.Discard())
 
 			generated, err := properties.NewFromString(generatedConfig)
@@ -715,9 +715,9 @@ func TestGenerateBrokerConfigKRaftMode(t *testing.T) {
 			testName: "a Kafka cluster with a mix of broker-only and controller-only nodes; broker-only nodes with multiple mount paths",
 			brokers: []v1beta1.Broker{
 				{
-					Id:    0,
-					Roles: []string{"broker"},
+					Id: 0,
 					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
 						StorageConfigs: []v1beta1.StorageConfig{
 							{
 								MountPath: "/test-kafka-logs",
@@ -729,9 +729,9 @@ func TestGenerateBrokerConfigKRaftMode(t *testing.T) {
 					},
 				},
 				{
-					Id:    500,
-					Roles: []string{"controller"},
+					Id: 500,
 					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
 						StorageConfigs: []v1beta1.StorageConfig{
 							{
 								MountPath: "/test-kafka-logs",
@@ -740,9 +740,9 @@ func TestGenerateBrokerConfigKRaftMode(t *testing.T) {
 					},
 				},
 				{
-					Id:    200,
-					Roles: []string{"broker"},
+					Id: 200,
 					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
 						StorageConfigs: []v1beta1.StorageConfig{
 							{
 								MountPath: "/test-kafka-logs",
@@ -847,9 +847,9 @@ process.roles=broker
 			testName: "a Kafka cluster with a mix of broker-only, controller-only, and combined roles; controller nodes with multiple mount paths",
 			brokers: []v1beta1.Broker{
 				{
-					Id:    0,
-					Roles: []string{"broker"},
+					Id: 0,
 					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
 						StorageConfigs: []v1beta1.StorageConfig{
 							{
 								MountPath: "/test-kafka-logs",
@@ -858,9 +858,9 @@ process.roles=broker
 					},
 				},
 				{
-					Id:    50,
-					Roles: []string{"controller"},
+					Id: 50,
 					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
 						StorageConfigs: []v1beta1.StorageConfig{
 							{
 								MountPath: "/test-kafka-logs",
@@ -872,9 +872,9 @@ process.roles=broker
 					},
 				},
 				{
-					Id:    100,
-					Roles: []string{"broker", "controller"},
+					Id: 100,
 					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker", "controller"},
 						StorageConfigs: []v1beta1.StorageConfig{
 							{
 								MountPath: "/test-kafka-logs",
@@ -1009,7 +1009,12 @@ process.roles=broker,controller
 			}
 
 			for i, b := range test.brokers {
-				generatedConfig := r.generateBrokerConfig(b, b.BrokerConfig, map[string]v1beta1.ListenerStatusList{},
+				quorumVoters, err := generateQuorumVoters(r.KafkaCluster, test.controllerListenerStatus)
+				if err != nil {
+					t.Error(err)
+				}
+
+				generatedConfig := r.generateBrokerConfig(b, b.BrokerConfig, quorumVoters, map[string]v1beta1.ListenerStatusList{},
 					test.internalListenerStatuses, test.controllerListenerStatus, nil, "", nil, logr.Discard())
 
 				require.Equal(t, test.expectedBrokerConfigs[i], generatedConfig)

@@ -42,7 +42,10 @@ func TestGenerateClusterID(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestGenerateQuorumVoters(t *testing.T) {
+	kafkaCluster := &v1beta1.KafkaCluster{}
+
 	tests := []struct {
 		testName             string
 		brokers              []v1beta1.Broker
@@ -53,32 +56,46 @@ func TestGenerateQuorumVoters(t *testing.T) {
 			testName: "brokers with ascending order by IDs; controller listener statuses has the same order as brokers",
 			brokers: []v1beta1.Broker{
 				{
-					Id:    int32(0),
-					Roles: []string{"broker"},
+					Id: int32(0),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(10),
-					Roles: []string{"broker"},
+					Id: int32(10),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(20),
-					Roles: []string{"broker"},
+					Id: int32(20),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(30),
-					Roles: []string{"broker"},
+					Id: int32(30),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(40),
-					Roles: []string{"controller"},
+					Id: int32(40),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 				{
-					Id:    int32(50),
-					Roles: []string{"controller"},
+					Id: int32(50),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 				{
-					Id:    int32(60),
-					Roles: []string{"controller"},
+					Id: int32(60),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 			},
 			listenersStatuses: map[string]v1beta1.ListenerStatusList{
@@ -119,35 +136,49 @@ func TestGenerateQuorumVoters(t *testing.T) {
 				"60@fakeKafka-60.fakeKafka-headless.default.svc.cluster.local:29093"},
 		},
 		{
-			testName: "brokers with decreasing order by IDs; controller listener statuses has the same order as brokers",
+			testName: "brokers with descending order by IDs; controller listener statuses has the same order as brokers",
 			brokers: []v1beta1.Broker{
 				{
-					Id:    int32(60),
-					Roles: []string{"broker"},
+					Id: int32(60),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(50),
-					Roles: []string{"broker"},
+					Id: int32(50),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(40),
-					Roles: []string{"broker"},
+					Id: int32(40),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(30),
-					Roles: []string{"broker"},
+					Id: int32(30),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(20),
-					Roles: []string{"controller"},
+					Id: int32(20),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 				{
-					Id:    int32(10),
-					Roles: []string{"controller"},
+					Id: int32(10),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 				{
-					Id:    int32(0),
-					Roles: []string{"controller"},
+					Id: int32(0),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 			},
 			listenersStatuses: map[string]v1beta1.ListenerStatusList{
@@ -191,32 +222,46 @@ func TestGenerateQuorumVoters(t *testing.T) {
 			testName: "brokers with ascending order by IDs; controller listener statuses has the opposite order as brokers",
 			brokers: []v1beta1.Broker{
 				{
-					Id:    int32(0),
-					Roles: []string{"broker"},
+					Id: int32(0),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(10),
-					Roles: []string{"broker"},
+					Id: int32(10),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(20),
-					Roles: []string{"broker"},
+					Id: int32(20),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(30),
-					Roles: []string{"broker"},
+					Id: int32(30),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(40),
-					Roles: []string{"controller"},
+					Id: int32(40),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 				{
-					Id:    int32(50),
-					Roles: []string{"controller"},
+					Id: int32(50),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 				{
-					Id:    int32(60),
-					Roles: []string{"controller"},
+					Id: int32(60),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 			},
 			listenersStatuses: map[string]v1beta1.ListenerStatusList{
@@ -260,32 +305,46 @@ func TestGenerateQuorumVoters(t *testing.T) {
 			testName: "brokers and controller listener statuses with random order",
 			brokers: []v1beta1.Broker{
 				{
-					Id:    int32(100),
-					Roles: []string{"broker", "controller"},
+					Id: int32(100),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker", "controller"},
+					},
 				},
 				{
-					Id:    int32(50),
-					Roles: []string{"broker"},
+					Id: int32(50),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(80),
-					Roles: []string{"controller"},
+					Id: int32(80),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 				{
-					Id:    int32(30),
-					Roles: []string{"broker"},
+					Id: int32(30),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(90),
-					Roles: []string{"controller"},
+					Id: int32(90),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 				{
-					Id:    int32(40),
-					Roles: []string{"broker"},
+					Id: int32(40),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"broker"},
+					},
 				},
 				{
-					Id:    int32(60),
-					Roles: []string{"controller"},
+					Id: int32(60),
+					BrokerConfig: &v1beta1.BrokerConfig{
+						Roles: []string{"controller"},
+					},
 				},
 			},
 			listenersStatuses: map[string]v1beta1.ListenerStatusList{
@@ -331,7 +390,11 @@ func TestGenerateQuorumVoters(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			gotQuorumVoters := generateQuorumVoters(test.brokers, test.listenersStatuses)
+			kafkaCluster.Spec.Brokers = test.brokers
+			gotQuorumVoters, err := generateQuorumVoters(kafkaCluster, test.listenersStatuses)
+			if err != nil {
+				t.Error(err)
+			}
 			if !reflect.DeepEqual(gotQuorumVoters, test.expectedQuorumVoters) {
 				t.Error("Expected:", test.expectedQuorumVoters, "Got:", gotQuorumVoters)
 			}

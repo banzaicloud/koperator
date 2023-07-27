@@ -523,8 +523,8 @@ var _ = Describe("KafkaCluster with two config external listener", func() {
 			kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az2"}}
 
 			/* same tests for KafkaCluster in KRaft mode */
-			kafkaClusterKRaft.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az1"}}
-			kafkaClusterKRaft.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az2"}}
+			kafkaClusterKRaft.Spec.Brokers[0].BrokerConfig.BrokerIngressMapping = []string{"az1"}
+			kafkaClusterKRaft.Spec.Brokers[1].BrokerConfig.BrokerIngressMapping = []string{"az2"}
 		})
 		It("should reconcile object properly", func(ctx SpecContext) {
 			expectEnvoyWithConfigAz1(ctx, kafkaCluster)
@@ -567,19 +567,24 @@ func expectCruiseControlMonitoring(ctx context.Context, kafkaCluster *v1beta1.Ka
 func createMinimalKRaftBrokers() []v1beta1.Broker {
 	return []v1beta1.Broker{
 		{
-			Id:                int32(0),
-			Roles:             []string{"broker"},
+			Id: int32(0),
+			BrokerConfig: &v1beta1.BrokerConfig{
+				Roles: []string{"broker"},
+			},
 			BrokerConfigGroup: defaultBrokerConfigGroup,
 		},
 		{
-			Id:                int32(1),
-			Roles:             []string{"controller"},
+			Id: int32(1),
+			BrokerConfig: &v1beta1.BrokerConfig{
+				Roles: []string{"controller"},
+			},
 			BrokerConfigGroup: defaultBrokerConfigGroup,
 		},
 		{
-			Id:                int32(2),
-			Roles:             []string{"controller", "broker"},
-			BrokerConfigGroup: defaultBrokerConfigGroup,
-		},
+			Id: int32(2),
+			BrokerConfig: &v1beta1.BrokerConfig{
+				Roles: []string{"controller", "broker"},
+			},
+			BrokerConfigGroup: defaultBrokerConfigGroup},
 	}
 }

@@ -28,7 +28,7 @@ import (
 // The generated quorum voters are guaranteed in ascending order by broker IDs to ensure same quorum voters configurations are returned
 // regardless of the order of brokers and controllerListenerStatuses are passed in - this is needed to avoid triggering
 // unnecessary rolling upgrade operations
-func generateQuorumVoters(brokers []v1beta1.Broker, controllerListenerStatuses map[string]v1beta1.ListenerStatusList) []string {
+func generateQuorumVoters(kafkaCluster *v1beta1.KafkaCluster, controllerListenerStatuses map[string]v1beta1.ListenerStatusList) ([]string, error) {
 	var (
 		quorumVoters []string
 		brokerIDs    []int32
@@ -36,8 +36,13 @@ func generateQuorumVoters(brokers []v1beta1.Broker, controllerListenerStatuses m
 	idToListenerAddrMap := make(map[int32]string)
 
 	// find the controller nodes and their corresponding listener addresses
-	for _, b := range brokers {
-		if b.IsControllerNode() {
+	for _, b := range kafkaCluster.Spec.Brokers {
+		brokerConfig, err := b.GetBrokerConfig(kafkaCluster.Spec)
+		if err != nil {
+			return nil, err
+		}
+
+		if brokerConfig.IsControllerNode() {
 			for _, controllerListenerStatus := range controllerListenerStatuses {
 				for _, status := range controllerListenerStatus {
 					if status.Name == fmt.Sprintf("broker-%d", b.Id) {
@@ -58,7 +63,7 @@ func generateQuorumVoters(brokers []v1beta1.Broker, controllerListenerStatuses m
 		quorumVoters = append(quorumVoters, fmt.Sprintf("%d@%s", brokerId, idToListenerAddrMap[brokerId]))
 	}
 
-	return quorumVoters
+	return quorumVoters, nil
 }
 
 // generateRandomClusterID() generates a based64-encoded random UUID with 16 bytes as the cluster ID
