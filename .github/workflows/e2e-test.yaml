@@ -46,7 +46,7 @@ jobs:
         run: |
           go work init
           go work use -r .
-          make test-e2e-parallel
+          make test-e2e
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action/composite@master

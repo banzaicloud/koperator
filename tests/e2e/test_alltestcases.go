@@ -19,6 +19,7 @@ import (
 
 	"github.com/banzaicloud/koperator/tests/e2e/pkg/tests"
 	"github.com/gruntwork-io/terratest/modules/k8s"
+	"github.com/onsi/gomega/format"
 )
 
 var alltestCase = tests.TestCase{
@@ -29,6 +30,7 @@ var alltestCase = tests.TestCase{
 
 // TODO (marbarta): kubectlOptions should be passed for the subtests
 func allTestCase(kubectlOptions k8s.KubectlOptions) {
+	format.MaxLength = 0
 	var snapshottedInfo = &clusterSnapshot{}
 	snapshotCluster(snapshottedInfo)
 	testInstall(kubectlOptions)
