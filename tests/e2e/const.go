@@ -52,7 +52,7 @@ const (
 	defaultPodReadinessWaitTime            = 10 * time.Second
 	defaultTopicCreationWaitTime           = 10 * time.Second
 	defaultUserCreationWaitTime            = 10 * time.Second
-	kafkaClusterCreateTimeout              = 500 * time.Second
+	kafkaClusterCreateTimeout              = 600 * time.Second
 	kafkaClusterResourceCleanupTimeout     = 120 * time.Second
 	kcatDeleetionTimeout                   = 40 * time.Second
 	zookeeperClusterCreateTimeout          = 4 * time.Minute
