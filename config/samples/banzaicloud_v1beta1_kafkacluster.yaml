@@ -18,12 +18,12 @@ spec:
   # Specify the usable ingress controller, only envoy and istioingress supported can be left blank
   ingressController: "envoy"
   # Specify the zookeeper addresses where the Kafka should store it's metadata
-  # (this should not be set in KRaft mode)
+  # This configuration has no impact if the KafkaCluster is under KRaft mode
   zkAddresses:
     - "zookeeper-client.zookeeper:2181"
   # Specify the zookeeper path where the Kafka related metadatas should be placed
   # By default it is bound to "/" and can be left blank
-  # (this should not be set in KRaft mode)
+  # This configuration has no impact if the KafkaCluster is under KRaft mode
   zkPath: "/kafka"
   # rackAwareness add support for Kafka rack aware feature
   rackAwareness:
