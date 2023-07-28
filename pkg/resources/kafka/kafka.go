@@ -18,14 +18,12 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
 	"emperror.dev/errors"
 	types2 "github.com/banzaicloud/go-cruise-control/pkg/types"
-	properties "github.com/banzaicloud/koperator/properties/pkg"
 	"github.com/go-logr/logr"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
@@ -34,6 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	properties "github.com/banzaicloud/koperator/properties/pkg"
 
 	apiutil "github.com/banzaicloud/koperator/api/util"
 
@@ -91,11 +91,6 @@ const (
 	nonControllerBrokerReconcilePriority
 	// controllerBrokerReconcilePriority the priority used for controller broker used to define its priority in the reconciliation order
 	controllerBrokerReconcilePriority
-)
-
-var (
-	// kafkaConfigBrokerRackRegex the regex to parse the "broker.rack" Kafka property used in read-only configs
-	kafkaConfigBrokerRackRegex = regexp.MustCompile(`broker\.rack\s*=\s*(\w+)`)
 )
 
 // Reconciler implements the Component Reconciler

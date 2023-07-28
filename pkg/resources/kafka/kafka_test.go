@@ -22,13 +22,14 @@ import (
 
 	"emperror.dev/errors"
 	ccTypes "github.com/banzaicloud/go-cruise-control/pkg/types"
-	"github.com/banzaicloud/koperator/pkg/scale"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/banzaicloud/koperator/pkg/scale"
 
 	"github.com/banzaicloud/koperator/pkg/kafkaclient"
 
