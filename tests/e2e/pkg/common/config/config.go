@@ -32,7 +32,7 @@ const (
 const (
 	defaultReportDir               = "reports"
 	defaultCreateTestReportFile    = "true"
-	defaultMaxTimeout              = "30m"
+	defaultMaxTimeout              = "1h"
 	defaultAllowedOverrunDuration  = "10m"
 	defaultTestStrategy            = TestStrategyMinimal
 	defaultKubeConfigDirectoryPath = "kubeconfigs"
@@ -93,4 +93,6 @@ func init() {
 
 	viper.BindEnv(Tests.KubeConfigDirectoryPath, "KUBECONFIG_DIR")
 	viper.SetDefault(Tests.KubeConfigDirectoryPath, defaultKubeConfigDirectoryPath)
+
+	viper.BindEnv(Tests.LabelFilter, "LABEL_FILTER")
 }

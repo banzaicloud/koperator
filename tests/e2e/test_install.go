@@ -24,9 +24,9 @@ import (
 )
 
 var testCaseInstall = tests.TestCase{
-	TestDuration: 4 * time.Minute,
-	TestName:     "INSTALL_TESTCASE",
-	TestFn:       testInstall,
+	Duration: 4 * time.Minute,
+	Name:     "INSTALL_TESTCASE",
+	TestFn:   testInstall,
 }
 
 func testInstall(kubectlOptions k8s.KubectlOptions) {

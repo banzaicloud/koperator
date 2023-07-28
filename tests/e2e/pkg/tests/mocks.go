@@ -214,9 +214,9 @@ func MockTestsComplete() Classifier {
 }
 
 var mockTest1 = TestCase{
-	TestDuration: 4 * time.Second,
-	TestName:     "MockTest1",
-	TestFn:       testMockTest1,
+	Duration: 4 * time.Second,
+	Name:     "MockTest1",
+	TestFn:   testMockTest1,
 }
 
 func testMockTest1(kubectlOptions k8s.KubectlOptions) {
@@ -229,9 +229,9 @@ func testMockTest1(kubectlOptions k8s.KubectlOptions) {
 }
 
 var mockTest2 = TestCase{
-	TestDuration: 5 * time.Second,
-	TestName:     "MockTest2",
-	TestFn:       testMockTest2,
+	Duration: 5 * time.Second,
+	Name:     "MockTest2",
+	TestFn:   testMockTest2,
 }
 
 func testMockTest2(kubectlOptions k8s.KubectlOptions) {
@@ -249,9 +249,9 @@ func testMockTest2(kubectlOptions k8s.KubectlOptions) {
 }
 
 var mockTest3 = TestCase{
-	TestDuration: 4 * time.Second,
-	TestName:     "MockTest3",
-	TestFn:       testMockTest3,
+	Duration: 4 * time.Second,
+	Name:     "MockTest3",
+	TestFn:   testMockTest3,
 }
 
 func testMockTest3(kubectlOptions k8s.KubectlOptions) {

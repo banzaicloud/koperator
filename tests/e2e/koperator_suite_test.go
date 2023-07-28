@@ -30,6 +30,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/reporters"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 	"github.com/spf13/viper"
 )
 
@@ -73,6 +74,9 @@ func runGinkgoTests(t *testing.T) error {
 	RegisterFailHandler(Fail)
 	suiteConfig, _ := GinkgoConfiguration()
 
+	// Gomega configurations
+	format.MaxLength = 0
+
 	// Run only selected tests by testID label e.g: "testID:4e980f5b5c"
 	if labelFilter := viper.GetString(config.Tests.LabelFilter); labelFilter != "" {
 		suiteConfig.LabelFilter = labelFilter
@@ -85,8 +89,10 @@ func runGinkgoTests(t *testing.T) error {
 		return fmt.Errorf("beforeSuite ran into err: %w", err)
 	}
 
+	runningSuiteProgress.allSpecCount = testPool.GetTestSuiteSpecsCount()
+
 	testSuiteDuration := testPool.GetTestSuiteDurationSerial()
-	if suiteConfig.ParallelProcess > 1 {
+	if suiteConfig.ParallelTotal > 1 {
 		testSuiteDuration = testPool.GetTestSuiteDurationParallel()
 	}
 
@@ -125,10 +131,35 @@ func runGinkgoTests(t *testing.T) error {
 
 }
 
+type runningSuiteData struct {
+	passedTestCount  int
+	skippedTestCount int
+	failedTestCount  int
+	allSpecCount     int
+}
+
+var runningSuiteProgress = runningSuiteData{}
+
 // Maybe this can be used to get more debug information into the test report.
-// var _ = ReportAfterEach(func(report SpecReport) {
-// 	fmt.Fprintf(os.Stderr, "SPEC REPORT: %s | %s\nFAILURE MESSAGE: %s\n OUTPUT: %s\n", report.State, report.FullText(), report.FailureMessage(), report.CapturedStdOutErr)
-// })
+var _ = ReportAfterEach(func(report SpecReport) {
+	switch report.State.String() {
+	case "failed":
+		runningSuiteProgress.failedTestCount += 1
+	case "passed":
+		runningSuiteProgress.passedTestCount += 1
+	case "skipped":
+		runningSuiteProgress.skippedTestCount += 1
+	}
+
+	r := fmt.Sprintf("{{red}}%s(TOTAL:%d PROGRESS:%d/%d/%d){{/}}",
+		report.State,
+		runningSuiteProgress.allSpecCount,
+		runningSuiteProgress.passedTestCount,
+		runningSuiteProgress.failedTestCount,
+		runningSuiteProgress.skippedTestCount)
+
+	AddReportEntry("PROGRESS,", r)
+})
 
 // Root Describe container
 var _ = Describe("", func() {

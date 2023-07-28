@@ -19,18 +19,16 @@ import (
 
 	"github.com/banzaicloud/koperator/tests/e2e/pkg/tests"
 	"github.com/gruntwork-io/terratest/modules/k8s"
-	"github.com/onsi/gomega/format"
 )
 
 var alltestCase = tests.TestCase{
-	TestDuration: 20 * time.Minute,
-	TestName:     "ALL_TESTCASE",
-	TestFn:       allTestCase,
+	SpecsCount: 45,
+	Duration:   20 * time.Minute,
+	Name:       "ALL_TESTCASE",
+	TestFn:     allTestCase,
 }
 
-// TODO (marbarta): kubectlOptions should be passed for the subtests
 func allTestCase(kubectlOptions k8s.KubectlOptions) {
-	format.MaxLength = 0
 	var snapshottedInfo = &clusterSnapshot{}
 	snapshotCluster(snapshottedInfo)
 	testInstall(kubectlOptions)

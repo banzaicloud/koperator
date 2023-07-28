@@ -66,6 +66,7 @@ func (tests TestPool) PoolInfo() string {
 
 	return fmt.Sprintf(`
 NumberOfTests: %d
+NumberOfSpecs: %d
 NumberOfK8sClusters: %d
 K8sVersions: %v
 K8sProviders: %v
@@ -73,7 +74,7 @@ TestK8sMapping: %v
 TestStrategy: %s
 ExpectedDurationSerial: %s
 ExpectedDurationParallel: %s
-`, len(tests), len(maps.Keys(testsByContextName)), maps.Keys(testsByVersions), maps.Keys(testsByProviders),
+`, len(tests), tests.GetTestSuiteSpecsCount(), len(maps.Keys(testsByContextName)), maps.Keys(testsByVersions), maps.Keys(testsByProviders),
 		tests, viper.GetString(config.Tests.TestStrategy), tests.GetTestSuiteDurationSerial().String(),
 		tests.GetTestSuiteDurationParallel().String())
 }
@@ -151,7 +152,7 @@ func (tests TestPool) GetTestSuiteDurationParallel() time.Duration {
 	for _, tests := range testsByClusterID {
 		var localDuration time.Duration
 		for _, test := range tests {
-			localDuration += test.testCase.TestDuration
+			localDuration += test.testCase.Duration
 		}
 
 		if localDuration > max {
@@ -166,9 +167,19 @@ func (tests TestPool) GetTestSuiteDurationParallel() time.Duration {
 func (tests TestPool) GetTestSuiteDurationSerial() time.Duration {
 	var allDuration time.Duration
 	for _, test := range tests {
-		allDuration += test.testCase.TestDuration
+		allDuration += test.testCase.Duration
 	}
 	return allDuration
+}
+
+// GetTestSuiteDurationParallel calculate the expected duration of the tests when
+// suite is executed in serial
+func (tests TestPool) GetTestSuiteSpecsCount() int {
+	var specsCount int
+	for _, test := range tests {
+		specsCount += test.testCase.SpecsCount
+	}
+	return specsCount
 }
 
 // NewClassifier creates a test classifier from K8sClusterPool and TestCases.
@@ -327,19 +338,21 @@ func (t K8sClusterPool) getByProvidersVersions() map[string]map[string][]K8sClus
 }
 
 // TestCase is a representation of an E2E test case
-// TestDuration specifies the expected length of the test
-// TestName is the name of the test
+// SpecsCount is the number of the gingko specs
+// Duration specifies the expected length of the test
+// Name is the name of the test
 // TestFn specifies the test function
 type TestCase struct {
-	TestDuration time.Duration
-	TestName     string
-	TestFn       func(kubectlOptions k8s.KubectlOptions)
+	SpecsCount int
+	Duration   time.Duration
+	Name       string
+	TestFn     func(kubectlOptions k8s.KubectlOptions)
 }
 
 // NewTest creates a Test from a TestCase and from a K8sCluster
-// testID for Test is generated automatically based on testName and K8s clusterInfo
+// testID for Test is generated automatically based on Name and K8s clusterInfo
 func NewTest(testCase TestCase, k8sCluster K8sCluster) Test {
-	testIDseed := fmt.Sprintf("%v%v", testCase.TestName, k8sCluster.clusterInfo)
+	testIDseed := fmt.Sprintf("%v%v", testCase.Name, k8sCluster.clusterInfo)
 	hash := md5.Sum([]byte(testIDseed))
 	testID := hex.EncodeToString(hash[:5])
 	return Test{
@@ -365,10 +378,10 @@ func (t Test) less(test Test) bool {
 	return t.TestID() < test.TestID()
 }
 
-// TestID return the test UID based on testName and K8sCluster
+// TestID return the test UID based on test name and K8sCluster
 func (t *Test) TestID() string {
 	if t.testID == "" {
-		text := fmt.Sprintf("%v%v", t.testCase.TestName, t.k8sCluster)
+		text := fmt.Sprintf("%v%v", t.testCase.Name, t.k8sCluster)
 		hash := md5.Sum([]byte(text))
 		t.testID = hex.EncodeToString(hash[:5])
 	}
@@ -377,7 +390,7 @@ func (t *Test) TestID() string {
 
 func (t Test) String() string {
 	return fmt.Sprintf("%s(%s)",
-		t.testCase.TestName, t.k8sCluster)
+		t.testCase.Name, t.k8sCluster)
 }
 
 // Run encapsulates the testCase in a Describe container with

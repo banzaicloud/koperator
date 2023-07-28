@@ -51,17 +51,17 @@ func Test_Classifier_minimal(t *testing.T) {
 				},
 				testCases: []TestCase{
 					{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 				},
 			},
 			want: []Test{
 				{
 					testCase: TestCase{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
 
@@ -74,7 +74,7 @@ func Test_Classifier_minimal(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
 
@@ -138,17 +138,17 @@ func Test_Classifier_providerComplete(t *testing.T) {
 				},
 				testCases: []TestCase{
 					{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 				},
 			},
 			want: []Test{
 				{
 					testCase: TestCase{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
 
@@ -161,7 +161,7 @@ func Test_Classifier_providerComplete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
 
@@ -174,7 +174,7 @@ func Test_Classifier_providerComplete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
 
@@ -187,7 +187,7 @@ func Test_Classifier_providerComplete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
 
@@ -251,17 +251,17 @@ func Test_Classifier_versionComplete(t *testing.T) {
 				},
 				testCases: []TestCase{
 					{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 				},
 			},
 			want: []Test{
 				{
 					testCase: TestCase{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
 
@@ -274,7 +274,7 @@ func Test_Classifier_versionComplete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
 
@@ -287,7 +287,7 @@ func Test_Classifier_versionComplete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
 
@@ -300,7 +300,7 @@ func Test_Classifier_versionComplete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
 
@@ -364,17 +364,17 @@ func Test_Classifier_complete(t *testing.T) {
 				},
 				testCases: []TestCase{
 					{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 				},
 			},
 			want: []Test{
 				{
 					testCase: TestCase{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
 
@@ -387,7 +387,7 @@ func Test_Classifier_complete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
 
@@ -400,7 +400,7 @@ func Test_Classifier_complete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
 
@@ -413,7 +413,7 @@ func Test_Classifier_complete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
 
@@ -467,17 +467,17 @@ func Test_Classifier_complete(t *testing.T) {
 				},
 				testCases: []TestCase{
 					{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 				},
 			},
 			want: []Test{
 				{
 					testCase: TestCase{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
 
@@ -490,7 +490,7 @@ func Test_Classifier_complete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
 
@@ -503,7 +503,7 @@ func Test_Classifier_complete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
 
@@ -516,7 +516,7 @@ func Test_Classifier_complete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
 
@@ -529,7 +529,7 @@ func Test_Classifier_complete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase1",
+						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
 
@@ -542,7 +542,7 @@ func Test_Classifier_complete(t *testing.T) {
 				},
 				{
 					testCase: TestCase{
-						TestName: "testCase2",
+						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
 
