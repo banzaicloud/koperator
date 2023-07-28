@@ -323,13 +323,6 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 			}
 		}
 
-		// In KRaft mode:
-		// 1. there is no way for admin client to know which node is the active controller, controllerID obtained above is just a broker ID of a random active broker (this is intentional by Kafka)
-		// 2. the follower controllers replicate the data that is written to the active controller and serves as hot standbys if the active controller fails.
-		//    Because the controllers now all track the latest state, controller fail-over will not require a lengthy reloading time to have all the state to transfer to the new controller
-		// Therefore, by setting the controllerID to be -1 to not take the controller identity into consideration when reordering the brokers
-		controllerID = -1
-
 		quorumVoters, err = generateQuorumVoters(r.KafkaCluster, controllerIntListenerStatuses)
 		if err != nil {
 			return errors.WrapIfWithDetails(err,
@@ -338,6 +331,13 @@ func (r *Reconciler) Reconcile(log logr.Logger) error {
 				"clusterName", r.KafkaCluster.GetName(),
 				"clusterNamespace", r.KafkaCluster.GetNamespace())
 		}
+
+		// In KRaft mode:
+		// 1. there is no way for admin client to know which node is the active controller, controllerID obtained above is just a broker ID of a random active broker (this is intentional by Kafka)
+		// 2. the follower controllers replicate the data that is written to the active controller and serves as hot standbys if the active controller fails.
+		//    Because the controllers now all track the latest state, controller fail-over will not require a lengthy reloading time to have all the state to transfer to the new controller
+		// Therefore, by setting the controllerID to be -1 to not take the controller identity into consideration when reordering the brokers
+		controllerID = -1
 	}
 
 	reorderedBrokers := reorderBrokers(runningBrokers, boundPersistentVolumeClaims, r.KafkaCluster.Spec.Brokers, r.KafkaCluster.Status.BrokersState, controllerID, log)
