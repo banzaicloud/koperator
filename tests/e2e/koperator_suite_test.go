@@ -26,6 +26,7 @@ import (
 
 	"github.com/banzaicloud/koperator/tests/e2e/pkg/common/config"
 	"github.com/banzaicloud/koperator/tests/e2e/pkg/tests"
+	"github.com/onsi/ginkgo/types"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/reporters"
@@ -140,7 +141,7 @@ type runningSuiteData struct {
 
 var runningSuiteProgress = runningSuiteData{}
 
-// Maybe this can be used to get more debug information into the test report.
+// Report suit progress only into the std output
 var _ = ReportAfterEach(func(report SpecReport) {
 	switch report.State.String() {
 	case "failed":
@@ -151,14 +152,15 @@ var _ = ReportAfterEach(func(report SpecReport) {
 		runningSuiteProgress.skippedTestCount += 1
 	}
 
-	r := fmt.Sprintf("{{red}}%s(TOTAL:%d PROGRESS:%d/%d/%d){{/}}",
+	r := fmt.Sprintf("{{red}}%s(TOTAL:%d PROGRESS:%d/%d/%d) PID: %d{{/}}",
 		report.State,
 		runningSuiteProgress.allSpecCount,
 		runningSuiteProgress.passedTestCount,
 		runningSuiteProgress.failedTestCount,
-		runningSuiteProgress.skippedTestCount)
+		runningSuiteProgress.skippedTestCount,
+		report.ParallelProcess)
 
-	AddReportEntry("PROGRESS,", r)
+	AddReportEntry("", r, ReportEntryVisibilityNever, types.CodeLocation{})
 })
 
 // Root Describe container
