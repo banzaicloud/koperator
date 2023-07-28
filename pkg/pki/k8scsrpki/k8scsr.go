@@ -15,6 +15,8 @@
 package k8scsrpki
 
 import (
+	"flag"
+
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/util/pki"
 
@@ -25,6 +27,12 @@ const (
 	DependingCsrAnnotation     string = "banzaicloud.io/csr"
 	IncludeFullChainAnnotation string = "csr.banzaicloud.io/fullchain"
 )
+
+var namespaceCertManager string
+
+func init() {
+	flag.StringVar(&namespaceCertManager, "cert-manager-namespace", "cert-manager", "The namespace where cert-manager is running")
+}
 
 type K8sCSR interface {
 	pki.Manager

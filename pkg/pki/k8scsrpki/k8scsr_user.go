@@ -33,6 +33,7 @@ import (
 	certutil "github.com/banzaicloud/koperator/pkg/util/cert"
 	pkicommon "github.com/banzaicloud/koperator/pkg/util/pki"
 
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certsigningreqv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,9 +46,11 @@ import (
 )
 
 const (
-	notApprovedErrMsg         = "instance is not approved"
-	notFoundApprovedCsrErrMsg = "could not find approved csr and the operator is not capable of approving the csr"
-	approveReason             = "ApprovedByPolicy"
+	notApprovedErrMsg                             = "instance is not approved"
+	notFoundApprovedCsrErrMsg                     = "could not find approved csr and the operator is not capable of approving the csr"
+	notFoundCAInClusterIssuerErrMsg               = "could not extract CA from ClusterIssuer"
+	approveReason                                 = "ApprovedByPolicy"
+	defaultCertManagerIssuerSecretCertificateFile = "tls.crt"
 )
 
 // ReconcileUserCertificate ensures and returns a user certificate - should be idempotent
@@ -187,10 +190,40 @@ func (c *k8sCSR) ReconcileUserCertificate(
 	secret.Data[corev1.TLSCertKey] = certs[0].ToPEM()
 	//CA chain certs
 	var caChain []byte
-	for _, cr := range certs {
-		if cr.Certificate.IsCA {
-			caChain = append(caChain, cr.ToPEM()...)
-			caChain = append(caChain, byte('\n'))
+	if strings.Split(signingReq.Spec.SignerName, "/")[0] == v1alpha1.CertManagerSignerNamePrefix {
+		clusterIssuer := &certv1.ClusterIssuer{}
+		clusterIssuerName := strings.Split(signingReq.Spec.SignerName, "/")[1]
+		err := c.client.Get(ctx, types.NamespacedName{
+			Name: clusterIssuerName,
+		}, clusterIssuer)
+		if err != nil {
+			return nil, errors.WrapIfWithDetails(err,
+				"failed to get ClusterIssuer from K8s", "clusterIssuer", clusterIssuerName)
+		}
+
+		if clusterIssuer.GetSpec().CA == nil {
+			return nil, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New(notFoundCAInClusterIssuerErrMsg),
+				"clusterIssuer doesn't contain CA secret reference", "clusterIssuer", clusterIssuerName)
+		}
+
+		certManagerSecret := &corev1.Secret{}
+		err = c.client.Get(ctx, types.NamespacedName{
+			Name:      clusterIssuer.GetSpec().CA.SecretName,
+			Namespace: namespaceCertManager,
+		}, certManagerSecret)
+		if err != nil {
+			return nil, errors.WrapIfWithDetails(err,
+				"failed to get secret from K8s", "secretName", clusterIssuer.GetSpec().CA.SecretName,
+				"namespace", certManagerSecret.GetNamespace())
+		}
+
+		caChain = certManagerSecret.Data[defaultCertManagerIssuerSecretCertificateFile]
+	} else {
+		for _, cr := range certs {
+			if cr.Certificate.IsCA {
+				caChain = append(caChain, cr.ToPEM()...)
+				caChain = append(caChain, byte('\n'))
+			}
 		}
 	}
 	secret.Data[v1alpha1.CaChainPem] = caChain
