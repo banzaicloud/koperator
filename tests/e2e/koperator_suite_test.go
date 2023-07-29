@@ -26,7 +26,6 @@ import (
 
 	"github.com/banzaicloud/koperator/tests/e2e/pkg/common/config"
 	"github.com/banzaicloud/koperator/tests/e2e/pkg/tests"
-	"github.com/onsi/ginkgo/types"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/reporters"
@@ -152,7 +151,7 @@ var _ = ReportAfterEach(func(report SpecReport) {
 		runningSuiteProgress.skippedTestCount += 1
 	}
 
-	r := fmt.Sprintf("{{red}}%s(TOTAL:%d PROGRESS:%d/%d/%d) PID: %d{{/}}",
+	entry := fmt.Sprintf("{{red}}%s(TOTAL:%d PROGRESS/PROC:%d/%d/%d PID: %d){{/}}",
 		report.State,
 		runningSuiteProgress.allSpecCount,
 		runningSuiteProgress.passedTestCount,
@@ -160,7 +159,12 @@ var _ = ReportAfterEach(func(report SpecReport) {
 		runningSuiteProgress.skippedTestCount,
 		report.ParallelProcess)
 
-	AddReportEntry("", r, ReportEntryVisibilityNever, types.CodeLocation{})
+	// TODO: it would be better to calculate somehow the total specs count per process
+	// Im not sure about that is possible because specs number can be different on each processes
+	// This is because the classifier sort the tests the best possible way so when there are
+	// more available cluster then tests it is possible that one of the test is executed on a cluster and another on another one
+	// e.g: [MockTest2(testContextName2) MockTest1(testContextName1) MockTest2(testContextName1) MockTest1(testContextName2) MockTest1(testContextName3) MockTest2(testContextName4)]
+	AddReportEntry(entry)
 })
 
 // Root Describe container

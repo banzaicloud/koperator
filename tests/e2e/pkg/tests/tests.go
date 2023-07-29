@@ -182,6 +182,11 @@ func (tests TestPool) GetTestSuiteSpecsCount() int {
 	return specsCount
 }
 
+// GetParallelTotal returns the maximum number of the possible parallelization
+func (tests TestPool) GetParallelTotal() int {
+	return len(maps.Keys(tests.getSortedTestsByClusterID()))
+}
+
 // NewClassifier creates a test classifier from K8sClusterPool and TestCases.
 func NewClassifier(k8sClusterPool K8sClusterPool, testCases ...TestCase) Classifier {
 	return Classifier{
