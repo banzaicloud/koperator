@@ -56,16 +56,19 @@ const (
 	// BrokerIdLabelKey is used to represent the reserved operator label, "brokerId"
 	BrokerIdLabelKey = "brokerId"
 
+	// ProcessRolesKey is used to identify which process roles the Kafka pod has
+	ProcessRolesKey = "processRoles"
+
 	// DefaultCruiseControlImage is the default CC image used when users don't specify it in CruiseControlConfig.Image
 	DefaultCruiseControlImage = "ghcr.io/banzaicloud/cruise-control:2.5.123"
 
 	// DefaultKafkaImage is the default Kafka image used when users don't specify it in KafkaClusterSpec.ClusterImage
 	DefaultKafkaImage = "ghcr.io/banzaicloud/kafka:2.13-3.4.1"
 
-	// controllerNodeProcessRole represents the node is a controller node
-	controllerNodeProcessRole = "controller"
-	// brokerNodeProcessRole represents the node is a broker node
-	brokerNodeProcessRole = "broker"
+	// ControllerNodeProcessRole represents the node is a controller node
+	ControllerNodeProcessRole = "controller"
+	// BrokerNodeProcessRole represents the node is a broker node
+	BrokerNodeProcessRole = "broker"
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
@@ -970,7 +973,10 @@ func (bConfig *BrokerConfig) GetBrokerLabels(kafkaClusterName string, brokerId i
 	return util.MergeLabels(
 		bConfig.BrokerLabels,
 		util.LabelsForKafka(kafkaClusterName),
-		map[string]string{BrokerIdLabelKey: fmt.Sprintf("%d", brokerId)},
+		map[string]string{
+			BrokerIdLabelKey: fmt.Sprintf("%d", brokerId),
+			ProcessRolesKey:  strings.Join(bConfig.Roles, "_"),
+		},
 	)
 }
 
@@ -1041,12 +1047,12 @@ func (cConfig *CruiseControlConfig) GetResources() *corev1.ResourceRequirements 
 
 // IsBrokerNode returns true when the broker is a broker node
 func (bConfig *BrokerConfig) IsBrokerNode() bool {
-	return util.StringSliceContains(bConfig.Roles, brokerNodeProcessRole)
+	return util.StringSliceContains(bConfig.Roles, BrokerNodeProcessRole)
 }
 
 // IsControllerNode returns true when the broker is a controller node
 func (bConfig *BrokerConfig) IsControllerNode() bool {
-	return util.StringSliceContains(bConfig.Roles, controllerNodeProcessRole)
+	return util.StringSliceContains(bConfig.Roles, ControllerNodeProcessRole)
 }
 
 // IsBrokerOnlyNode returns true when the broker is a broker-only node
