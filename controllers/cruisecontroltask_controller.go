@@ -129,6 +129,17 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			break
 		}
 
+		if instance.Spec.KRaftMode {
+			// In KRaft mode, CC has no information about the controller-only nodes
+			// therefore we need to ignore the controller-only nodes before sending add_broker request to CC
+			brokerIDs, err = util.FilterControllerOnlyNodes(brokerIDs, instance.Spec)
+			if err != nil {
+				// if we failed to filter out the controller-only nodes, there is no point to ask CC to perform the upscale because it will fail eventually
+				return requeueWithError(log, fmt.Sprintf("failed to filter out controller-only nodes from the Kafka cluster, "+
+					"clusterName: %s, clusterNamespace: %s", instance.GetName(), instance.GetNamespace()), err)
+			}
+		}
+
 		unavailableBrokers, err := getUnavailableBrokers(ctx, scaler, brokerIDs)
 		if err != nil {
 			log.Error(err, "could not get unavailable brokers for upscale")
@@ -142,17 +153,19 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			return requeueAfter(DefaultRequeueAfterTimeInSec)
 		}
 
-		cruiseControlOpRef, err := r.addBrokers(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs)
-		if err != nil {
-			return requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for upscale has failed, brokerIDs: %s", brokerIDs), err)
-		}
-
-		for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationAddBroker) {
-			if task == nil {
-				continue
+		if len(brokerIDs) != 0 {
+			cruiseControlOpRef, err := r.addBrokers(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs)
+			if err != nil {
+				return requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for upscale has failed, brokerIDs: %s", brokerIDs), err)
 			}
-			task.SetCruiseControlOperationRef(cruiseControlOpRef)
-			task.SetStateScheduled()
+
+			for _, task := range tasksAndStates.GetActiveTasksByOp(banzaiv1alpha1.OperationAddBroker) {
+				if task == nil {
+					continue
+				}
+				task.SetCruiseControlOperationRef(cruiseControlOpRef)
+				task.SetStateScheduled()
+			}
 		}
 	case tasksAndStates.NumActiveTasksByOp(banzaiv1alpha1.OperationRemoveBroker) > 0:
 		var removeTask *CruiseControlTask
@@ -202,15 +215,32 @@ func (r *CruiseControlTaskReconciler) Reconcile(ctx context.Context, request ctr
 			return requeueWithError(log, "failed to determine which broker using JBOD or not JBOD capacity configuration at rebalance operation", err)
 		}
 
+		var filteredBrokerIDs []string
+		if instance.Spec.KRaftMode {
+			// there is a Kafka nodes sanity check in CC implementation before CC starts the disk re-balancing
+			// the sanity check uses information from the cluster metadata, where the controller-only nodes will present
+			// in other words, cruise control CANNOT perform disk re-balancing for controller-only nodes in KRaft mode as of today
+			filteredBrokerIDs, err = util.FilterControllerOnlyNodes(brokerIDs, instance.Spec)
+			if err != nil {
+				// if we failed to filter out the controller-only nodes, there is no point to ask CC to perform the disk re-balancing because it will fail eventually
+				return requeueWithError(log, fmt.Sprintf("failed to filter out controller-only nodes from the Kafka cluster, "+
+					"clusterName: %s, clusterNamespace: %s", instance.GetName(), instance.GetNamespace()), err)
+			}
+		}
+
+		if len(filteredBrokerIDs) == 0 {
+			return reconciled()
+		}
+
 		var cruiseControlOpRef corev1.LocalObjectReference
 		// when there is at least one not JBOD broker in the kafka cluster CC cannot do the disk rebalance :(
 		if len(brokersNotJBOD) > 0 {
-			cruiseControlOpRef, err = r.rebalanceDisks(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs, false)
+			cruiseControlOpRef, err = r.rebalanceDisks(ctx, instance, operationTTLSecondsAfterFinished, filteredBrokerIDs, false)
 			if err != nil {
 				return requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for re-balancing not JBOD disks has failed, brokerIDs: %s", brokerIDs), err)
 			}
 		} else {
-			cruiseControlOpRef, err = r.rebalanceDisks(ctx, instance, operationTTLSecondsAfterFinished, brokerIDs, true)
+			cruiseControlOpRef, err = r.rebalanceDisks(ctx, instance, operationTTLSecondsAfterFinished, filteredBrokerIDs, true)
 			if err != nil {
 				return requeueWithError(log, fmt.Sprintf("creating CruiseControlOperation for re-balancing not JBOD disks has failed, brokerIDs: %s", brokerIDs), err)
 			}

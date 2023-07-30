@@ -481,6 +481,9 @@ func (r *Reconciler) reconcileKafkaPodDelete(ctx context.Context, log logr.Logge
 				scale.KafkaBrokerDemoted,
 				scale.KafkaBrokerBadDisks,
 			}
+
+			// Note: CC will not be able to query the controller-only nodes in KRaft mode
+			// therefore, there will be no GracefulDownscale for deleting a controller-only node in the Kafka cluster
 			availableBrokers, err := cc.BrokersWithState(ctx, brokerStates...)
 			if err != nil {
 				log.Error(err, "failed to get the list of available brokers from Cruise Control")
@@ -529,13 +532,18 @@ func (r *Reconciler) reconcileKafkaPodDelete(ctx context.Context, log logr.Logge
 				continue
 			}
 
-			if brokerState, ok := r.KafkaCluster.Status.BrokersState[broker.Labels[v1beta1.BrokerIdLabelKey]]; ok &&
-				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded &&
-				brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleRequired {
-				if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
-					log.Info("cc task is still running for broker", v1beta1.BrokerIdLabelKey, broker.Labels[v1beta1.BrokerIdLabelKey], "CruiseControlOperationReference", brokerState.GracefulActionState.CruiseControlOperationReference)
+			processRoles, found := broker.GetLabels()[v1beta1.ProcessRolesKey]
+			// only applicable in KRaft: if this Kafka pod is not a controller-only node, there is no corresponding CC
+			// therefore we can just skip the broker state check and delete the pod safely
+			if !(found && processRoles == v1beta1.ControllerNodeProcessRole) {
+				if brokerState, ok := r.KafkaCluster.Status.BrokersState[broker.Labels[v1beta1.BrokerIdLabelKey]]; ok &&
+					brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulDownscaleSucceeded &&
+					brokerState.GracefulActionState.CruiseControlState != v1beta1.GracefulUpscaleRequired {
+					if brokerState.GracefulActionState.CruiseControlState == v1beta1.GracefulDownscaleRunning {
+						log.Info("cc task is still running for broker", v1beta1.BrokerIdLabelKey, broker.Labels[v1beta1.BrokerIdLabelKey], "CruiseControlOperationReference", brokerState.GracefulActionState.CruiseControlOperationReference)
+					}
+					continue
 				}
-				continue
 			}
 
 			err = r.Client.Delete(context.TODO(), &broker)
@@ -601,6 +609,7 @@ func arePodsAlreadyDeleted(pods []corev1.Pod, log logr.Logger) bool {
 	}
 	return true
 }
+
 func (r *Reconciler) getClientPasswordKeyAndUser() (string, string, error) {
 	var clientPass, CN string
 	if r.KafkaCluster.Spec.IsClientSSLSecretPresent() {
@@ -796,7 +805,14 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 			if ccState != v1beta1.GracefulUpscaleSucceeded && !ccState.IsDownscale() {
 				gracefulActionState := v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleSucceeded}
 
-				if r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
+				// TODO: remove this part when we have a better state management strategy for all the controller-only nodes
+				controllerOnlyNode := false
+				if r.KafkaCluster.Spec.KRaftMode {
+					if processRoles, found := desiredPod.Labels[v1beta1.ProcessRolesKey]; found && processRoles == v1beta1.ControllerNodeProcessRole {
+						controllerOnlyNode = true
+					}
+				}
+				if !controllerOnlyNode && r.KafkaCluster.Status.CruiseControlTopicStatus == v1beta1.CruiseControlTopicReady {
 					gracefulActionState = v1beta1.GracefulActionState{CruiseControlState: v1beta1.GracefulUpscaleRequired}
 				}
 				statusErr = k8sutil.UpdateBrokerStatus(r.Client, []string{desiredPod.Labels[v1beta1.BrokerIdLabelKey]}, r.KafkaCluster, gracefulActionState, log)
@@ -805,6 +821,7 @@ func (r *Reconciler) reconcileKafkaPod(log logr.Logger, desiredPod *corev1.Pod, 
 				}
 			}
 		}
+
 		log.Info("resource created")
 		return nil
 	case len(podList.Items) == 1:

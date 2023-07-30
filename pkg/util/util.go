@@ -197,6 +197,35 @@ func GetBrokerIdsFromStatusAndSpec(brokerStatuses map[string]v1beta1.BrokerState
 	return brokerIDs
 }
 
+// GetBrokerFromKafkaClusterSpec gets the broker from the KafkaCluster CR based on given broker ID
+func GetBrokerFromKafkaClusterSpec(brokerId string, spec v1beta1.KafkaClusterSpec) *v1beta1.Broker {
+	for _, broker := range spec.Brokers {
+		if brokerId == strconv.Itoa(int(broker.Id)) {
+			return &broker
+		}
+	}
+	return nil
+}
+
+func FilterControllerOnlyNodes(brokerIDs []string, spec v1beta1.KafkaClusterSpec) ([]string, error) {
+	var filteredIDs []string
+	for _, brokerId := range brokerIDs {
+		broker := GetBrokerFromKafkaClusterSpec(brokerId, spec)
+		if broker != nil {
+			bConfig, err := broker.GetBrokerConfig(spec)
+			if err != nil {
+				return nil, err
+			}
+
+			if !bConfig.IsControllerOnlyNode() {
+				filteredIDs = append(filteredIDs, strconv.Itoa(int(broker.Id)))
+			}
+		}
+	}
+
+	return filteredIDs, nil
+}
+
 // IsIngressConfigInUse returns true if the provided ingressConfigName is bound to the given broker
 func IsIngressConfigInUse(iConfigName, defaultConfigName string, cluster *v1beta1.KafkaCluster, log logr.Logger) bool {
 	// Check if the global default is in use

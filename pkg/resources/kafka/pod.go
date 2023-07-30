@@ -42,46 +42,7 @@ var (
 )
 
 func (r *Reconciler) pod(id int32, brokerConfig *v1beta1.BrokerConfig, pvcs []corev1.PersistentVolumeClaim, log logr.Logger) runtime.Object {
-	var kafkaBrokerContainerPorts []corev1.ContainerPort
 	const kafkaContainerName = "kafka"
-
-	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
-		if _, ok := r.KafkaCluster.Status.ListenerStatuses.ExternalListeners[eListener.Name]; !ok {
-			continue
-		}
-		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
-			Name:          strings.ReplaceAll(eListener.GetListenerServiceName(), "_", "-"),
-			ContainerPort: eListener.ContainerPort,
-			Protocol:      corev1.ProtocolTCP,
-		})
-	}
-
-	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
-		kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
-			Name:          strings.ReplaceAll(iListener.GetListenerServiceName(), "_", "-"),
-			ContainerPort: iListener.ContainerPort,
-			Protocol:      corev1.ProtocolTCP,
-		})
-	}
-
-	kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, r.KafkaCluster.Spec.AdditionalPorts...)
-
-	for _, envVar := range r.KafkaCluster.Spec.Envs {
-		if envVar.Name == "JMX_PORT" {
-			port, err := strconv.ParseInt(envVar.Value, 10, 32)
-			if err != nil {
-				log.Error(err, "can't parse JMX_PORT environment variable")
-			}
-
-			kafkaBrokerContainerPorts = append(kafkaBrokerContainerPorts, corev1.ContainerPort{
-				Name:          "jmx",
-				ContainerPort: int32(port),
-				Protocol:      corev1.ProtocolTCP,
-			})
-
-			break
-		}
-	}
 
 	dataVolume, dataVolumeMount := generateDataVolumeAndVolumeMount(pvcs, brokerConfig.StorageConfigs)
 
@@ -141,14 +102,8 @@ fi`},
 						},
 					}),
 
-					Command: command,
-					Ports: append(kafkaBrokerContainerPorts, []corev1.ContainerPort{
-						{
-							ContainerPort: 9020,
-							Protocol:      corev1.ProtocolTCP,
-							Name:          "metrics",
-						},
-					}...),
+					Command:      command,
+					Ports:        append(r.generateKafkaContainerPorts(log)),
 					VolumeMounts: getVolumeMounts(brokerConfig.VolumeMounts, dataVolumeMount, r.KafkaCluster.Spec, r.KafkaCluster.Name),
 					Resources:    *brokerConfig.GetResources(),
 				},
@@ -194,6 +149,56 @@ fi`},
 	}
 
 	return pod
+}
+
+func (r *Reconciler) generateKafkaContainerPorts(log logr.Logger) []corev1.ContainerPort {
+	var kafkaContainerPorts []corev1.ContainerPort
+
+	for _, eListener := range r.KafkaCluster.Spec.ListenersConfig.ExternalListeners {
+		if _, ok := r.KafkaCluster.Status.ListenerStatuses.ExternalListeners[eListener.Name]; !ok {
+			continue
+		}
+		kafkaContainerPorts = append(kafkaContainerPorts, corev1.ContainerPort{
+			Name:          strings.ReplaceAll(eListener.GetListenerServiceName(), "_", "-"),
+			ContainerPort: eListener.ContainerPort,
+			Protocol:      corev1.ProtocolTCP,
+		})
+	}
+
+	for _, iListener := range r.KafkaCluster.Spec.ListenersConfig.InternalListeners {
+		kafkaContainerPorts = append(kafkaContainerPorts, corev1.ContainerPort{
+			Name:          strings.ReplaceAll(iListener.GetListenerServiceName(), "_", "-"),
+			ContainerPort: iListener.ContainerPort,
+			Protocol:      corev1.ProtocolTCP,
+		})
+	}
+
+	kafkaContainerPorts = append(kafkaContainerPorts, r.KafkaCluster.Spec.AdditionalPorts...)
+
+	for _, envVar := range r.KafkaCluster.Spec.Envs {
+		if envVar.Name == "JMX_PORT" {
+			port, err := strconv.ParseInt(envVar.Value, 10, 32)
+			if err != nil {
+				log.Error(err, "can't parse JMX_PORT environment variable")
+			}
+
+			kafkaContainerPorts = append(kafkaContainerPorts, corev1.ContainerPort{
+				Name:          "jmx",
+				ContainerPort: int32(port),
+				Protocol:      corev1.ProtocolTCP,
+			})
+			break
+		}
+	}
+
+	// container port for metrics
+	kafkaContainerPorts = append(kafkaContainerPorts, corev1.ContainerPort{
+		ContainerPort: 9020,
+		Protocol:      corev1.ProtocolTCP,
+		Name:          "metrics",
+	})
+
+	return kafkaContainerPorts
 }
 
 func getInitContainers(brokerConfig *v1beta1.BrokerConfig, kafkaClusterSpec v1beta1.KafkaClusterSpec) []corev1.Container {

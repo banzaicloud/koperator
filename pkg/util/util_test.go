@@ -20,6 +20,7 @@ import (
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/util/istioingress"
+	"github.com/stretchr/testify/require"
 
 	"gotest.tools/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -674,5 +675,143 @@ cruise.control.metrics.reporter.kubernetes.mode=true`,
 		if !reflect.DeepEqual(test.broker, broker) {
 			t.Errorf("Expected: %v  Got: %v", test.broker, broker)
 		}
+	}
+}
+
+func TestFilterControllerOnlyNodes(t *testing.T) {
+	testCases := []struct {
+		testName                  string
+		kafkaClusterSpec          v1beta1.KafkaClusterSpec
+		allBrokerIDs              []string
+		expectedIDsAfterFiltering []string
+	}{
+		{
+			testName: "there is no controller-only node in the Kafka cluster",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				KRaftMode: true,
+				Brokers: []v1beta1.Broker{
+					{
+						Id: 0,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"broker"},
+						},
+					},
+					{
+						Id: 1,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"broker"},
+						},
+					},
+					{
+						Id: 2,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"broker", "controller"},
+						},
+					},
+				},
+			},
+			allBrokerIDs:              []string{"0", "1", "2"},
+			expectedIDsAfterFiltering: []string{"0", "1", "2"},
+		},
+		{
+			testName: "there is one controller-only node in the Kafka cluster",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				KRaftMode: true,
+				Brokers: []v1beta1.Broker{
+					{
+						Id: 0,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"broker"},
+						},
+					},
+					{
+						Id: 1,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"controller"},
+						},
+					},
+					{
+						Id: 2,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"broker", "controller"},
+						},
+					},
+				},
+			},
+			allBrokerIDs:              []string{"0", "1", "2"},
+			expectedIDsAfterFiltering: []string{"0", "2"},
+		},
+		{
+			testName: "there are multiple controller-only nodes in the Kafka cluster",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				KRaftMode: true,
+				Brokers: []v1beta1.Broker{
+					{
+						Id: 0,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"broker"},
+						},
+					},
+					{
+						Id: 1,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"controller"},
+						},
+					},
+					{
+						Id: 2,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"broker", "controller"},
+						},
+					},
+					{
+						Id: 3,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"controller"},
+						},
+					},
+				},
+			},
+			allBrokerIDs:              []string{"0", "1", "2", "3"},
+			expectedIDsAfterFiltering: []string{"0", "2"},
+		},
+		{
+			testName: "all nodes are controller-only in the Kafka cluster",
+			kafkaClusterSpec: v1beta1.KafkaClusterSpec{
+				KRaftMode: true,
+				Brokers: []v1beta1.Broker{
+					{
+						Id: 0,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"controller"},
+						},
+					},
+					{
+						Id: 1,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"controller"},
+						},
+					},
+					{
+						Id: 2,
+						BrokerConfig: &v1beta1.BrokerConfig{
+							Roles: []string{"controller"},
+						},
+					},
+				},
+			},
+			allBrokerIDs:              []string{"0", "1", "2"},
+			expectedIDsAfterFiltering: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			filteredIDs, err := FilterControllerOnlyNodes(tc.allBrokerIDs, tc.kafkaClusterSpec)
+			if err != nil {
+				t.Errorf("error should be nil, got: %v", err)
+			}
+			require.Equal(t, tc.expectedIDsAfterFiltering, filteredIDs)
+		})
 	}
 }
