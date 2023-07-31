@@ -64,6 +64,7 @@ var _ = When("Testing e2e test altogether", Ordered, func() {
 	testInstallKafkaCluster("../../config/samples/simplekafkacluster_ssl.yaml")
 	testProduceConsumeInternalSSL(defaultTLSSecretName)
 	testUninstallKafkaCluster()
+	testWebhooks()
 	testUninstallZookeeperCluster()
 	testUninstall()
 	snapshotClusterAndCompare(snapshottedInfo)
