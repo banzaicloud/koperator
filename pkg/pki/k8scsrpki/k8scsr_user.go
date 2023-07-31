@@ -209,7 +209,7 @@ func (c *k8sCSR) ReconcileUserCertificate(
 		certManagerSecret := &corev1.Secret{}
 		err = c.client.Get(ctx, types.NamespacedName{
 			Name:      clusterIssuer.GetSpec().CA.SecretName,
-			Namespace: namespaceCertManager,
+			Namespace: pkicommon.NamespaceCertManager,
 		}, certManagerSecret)
 		if err != nil {
 			return nil, errors.WrapIfWithDetails(err,
