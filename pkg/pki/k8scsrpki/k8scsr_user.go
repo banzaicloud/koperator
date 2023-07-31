@@ -386,5 +386,4 @@ func (c *k8sCSR) getCAChain(ctx context.Context, signingReq *certsigningreqv1.Ce
 	}
 
 	return caChain, nil
-
 }
