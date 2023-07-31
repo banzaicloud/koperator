@@ -28,8 +28,7 @@ import (
 // 1x2 + 1x3 = 5 test all-together
 // Runtime parallel: 1x(5) = 5sec (time of the longest testCase)
 func MockTestsMinimal() Classifier {
-	k8sClusterPool := K8sClusterPool{}
-	k8sClusterPool.AddK8sClusters(
+	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
 			"testContextPath1",
 			"testContextName1",
@@ -51,7 +50,7 @@ func MockTestsMinimal() Classifier {
 			"provider3",
 			"clusterID3",
 		),
-	)
+	}
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2)
 }
 
@@ -61,8 +60,7 @@ func MockTestsMinimal() Classifier {
 // 3x2 + 3x3 = 15 test all-together
 // Runtime parallel: 3x(3) = 9sec (time of the longest testCase)
 func MockTestsProvider() Classifier {
-	k8sClusterPool := K8sClusterPool{}
-	k8sClusterPool.AddK8sClusters(
+	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
 			"testContextPath1",
 			"testContextName1",
@@ -84,7 +82,7 @@ func MockTestsProvider() Classifier {
 			"provider3",
 			"clusterID3",
 		),
-	)
+	}
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2)
 }
 
@@ -94,8 +92,7 @@ func MockTestsProvider() Classifier {
 // 2x2 + 2x2 + 2x3 = 14 test all-together
 // Runtime parallel: 4 + 4 + 5 = 13
 func MockTestsProviderMoreTestsThenProvider() Classifier {
-	k8sClusterPool := K8sClusterPool{}
-	k8sClusterPool.AddK8sClusters(
+	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
 			"testContextPath1",
 			"testContextName1",
@@ -110,7 +107,7 @@ func MockTestsProviderMoreTestsThenProvider() Classifier {
 			"provider2",
 			"clusterID2",
 		),
-	)
+	}
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2, mockTest3)
 }
 
@@ -120,8 +117,7 @@ func MockTestsProviderMoreTestsThenProvider() Classifier {
 // 2x2  2x3 = 10 test all-together
 // Runtime parallel: 1x5 = 5
 func MockTestsVersionOne() Classifier {
-	k8sClusterPool := K8sClusterPool{}
-	k8sClusterPool.AddK8sClusters(
+	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
 			"testContextPath1",
 			"testContextName1",
@@ -136,7 +132,7 @@ func MockTestsVersionOne() Classifier {
 			"provider2",
 			"clusterID2",
 		),
-	)
+	}
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2)
 }
 
@@ -146,8 +142,7 @@ func MockTestsVersionOne() Classifier {
 // 2x2  2x3 = 10 test all-together
 // Runtime parallel: 4 + 5 = 9
 func MockTestsVersion() Classifier {
-	k8sClusterPool := K8sClusterPool{}
-	k8sClusterPool.AddK8sClusters(
+	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
 			"testContextPath1",
 			"testContextName1",
@@ -169,7 +164,7 @@ func MockTestsVersion() Classifier {
 			"provider3",
 			"clusterID4",
 		),
-	)
+	}
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2)
 }
 
@@ -179,8 +174,7 @@ func MockTestsVersion() Classifier {
 // 2x2  2x3 = 10 test all-together
 // Runtime parallel: 4 + 5 = 9
 func MockTestsComplete() Classifier {
-	k8sClusterPool := K8sClusterPool{}
-	k8sClusterPool.AddK8sClusters(
+	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
 			"testContextPath1",
 			"testContextName1",
@@ -209,7 +203,7 @@ func MockTestsComplete() Classifier {
 			"provider3",
 			"clusterID4",
 		),
-	)
+	}
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2)
 }
 

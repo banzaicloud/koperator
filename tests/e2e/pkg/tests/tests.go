@@ -43,6 +43,7 @@ import (
 
 type TestPool []Test
 
+// Equal returns true when the TestPools are equal
 func (tests TestPool) Equal(other TestPool) bool {
 	if len(tests) != len(other) {
 		return false
@@ -79,16 +80,18 @@ ExpectedDurationParallel: %s
 		tests.GetTestSuiteDurationParallel().String())
 }
 
+// BuildParallelByK8sCluster builds Describe container blocks from tests and K8sClusters.
+// In this way we can have guarantee to the tests serial execution for a K8sCluster.
 func (tests TestPool) BuildParallelByK8sCluster() {
 	testsByClusterID := tests.getSortedTestsByClusterID()
 	testsByClusterIDKeys := sortedKeys(testsByClusterID)
 	describeID := 0
 	// Because of the "Ordered" decorator testCases inside that container will run each after another
-	// so this K8s cluster is dedicated for tests for serial test execution
+	// thus this K8s cluster (container) is dedicated for certain test for serial execution.
 	for _, clusterID := range testsByClusterIDKeys {
 		describeID += 1
 		tests := testsByClusterID[clusterID]
-		// Describe name has to be unique and consistent between processes for proper parallelization
+		// Describe name has to be unique and consistent between processes for proper parallelization.
 		Describe(fmt.Sprintf("%d:", describeID), decorators.Label(fmt.Sprintf("K8sID:%s", clusterID)), Ordered, func() {
 			for _, test := range tests {
 				test.Run()
@@ -143,8 +146,8 @@ func (tests TestPool) getTestsByProviders() map[string][]Test {
 	return testsByProviders
 }
 
-// GetTestSuiteDurationParallel calculate the expected duration of the tests when
-// suite is executed in parallel
+// GetTestSuiteDurationParallel calculates the expected duration of the tests when
+// suite is executed in parallel.
 func (tests TestPool) GetTestSuiteDurationParallel() time.Duration {
 	testsByClusterID := tests.getSortedTestsByClusterID()
 
@@ -162,8 +165,8 @@ func (tests TestPool) GetTestSuiteDurationParallel() time.Duration {
 	return max
 }
 
-// GetTestSuiteDurationParallel calculate the expected duration of the tests when
-// suite is executed in serial
+// GetTestSuiteDurationSerial calculates the expected duration of the tests when
+// test suite is executed in serial.
 func (tests TestPool) GetTestSuiteDurationSerial() time.Duration {
 	var allDuration time.Duration
 	for _, test := range tests {
@@ -172,8 +175,7 @@ func (tests TestPool) GetTestSuiteDurationSerial() time.Duration {
 	return allDuration
 }
 
-// GetTestSuiteDurationParallel calculate the expected duration of the tests when
-// suite is executed in serial
+// GetTestSuiteSpecsCount returns the number of specs in the pool based on the testCase explicit information.
 func (tests TestPool) GetTestSuiteSpecsCount() int {
 	var specsCount int
 	for _, test := range tests {
@@ -195,7 +197,7 @@ func NewClassifier(k8sClusterPool K8sClusterPool, testCases ...TestCase) Classif
 	}
 }
 
-// Classifier makes pairs from testCases to K8sClusters based on the specified test strategy
+// Classifier makes pairs from testCases and K8sClusters based on the specified test strategy
 type Classifier struct {
 	k8sClusterPool K8sClusterPool
 	testCases      []TestCase
@@ -210,7 +212,7 @@ func (t Classifier) Minimal() TestPool {
 	for i, testCase := range t.testCases {
 		tests = append(tests, Test{
 			testCase:   testCase,
-			k8sCluster: t.k8sClusterPool.k8sClusters[i%len(t.k8sClusterPool.k8sClusters)],
+			k8sCluster: t.k8sClusterPool[i%len(t.k8sClusterPool)],
 		})
 	}
 	return tests
@@ -272,18 +274,11 @@ func (t Classifier) Complete() TestPool {
 	return tests
 }
 
-// K8sClusterPool contains the K8sClusters
-type K8sClusterPool struct {
-	k8sClusters []K8sCluster
-}
+// K8sClusterPool is a representation of the K8sClusters.
+type K8sClusterPool []K8sCluster
 
-// AddK8sClusters add a K8sCluster(s) into the pool
-func (t *K8sClusterPool) AddK8sClusters(cluster ...K8sCluster) {
-	t.k8sClusters = append(t.k8sClusters, cluster...)
-}
-
-// FeedFomDirectory creates K8sClusters from kubeconfigs in the specified directory and add them into the pool
-func (t *K8sClusterPool) FeedFomDirectory(kubeConfigDirectoryPath string) error {
+// FeedFomDirectory creates K8sClusters from kubeconfigs in the specified directory and add them into the pool.
+func (k8sPool K8sClusterPool) FeedFomDirectory(kubeConfigDirectoryPath string) error {
 	files, err := os.ReadDir(kubeConfigDirectoryPath)
 	if err != nil {
 		return fmt.Errorf("unable to read kubeConfig directory '%s' error: %w", kubeConfigDirectoryPath, err)
@@ -301,35 +296,35 @@ func (t *K8sClusterPool) FeedFomDirectory(kubeConfigDirectoryPath string) error 
 			if err != nil {
 				return fmt.Errorf("could not get K8sClusters from file '%s' err: %w", kubectlPath, err)
 			}
-			t.AddK8sClusters(k8sClusters...)
+			k8sPool = append(k8sPool, k8sClusters...)
 		}
 	}
 	return nil
 }
 
-func (t K8sClusterPool) getByVersions() map[string][]K8sCluster {
+func (k8sPool K8sClusterPool) getByVersions() map[string][]K8sCluster {
 	byVersions := make(map[string][]K8sCluster)
 
-	for _, k8sCluster := range t.k8sClusters {
+	for _, k8sCluster := range k8sPool {
 		byVersions[k8sCluster.clusterInfo.version] = append(byVersions[k8sCluster.clusterInfo.version], k8sCluster)
 	}
 
 	return byVersions
 }
 
-func (t K8sClusterPool) getByProviders() map[string][]K8sCluster {
+func (k8sPool K8sClusterPool) getByProviders() map[string][]K8sCluster {
 	byProviders := make(map[string][]K8sCluster)
 
-	for _, k8sCluster := range t.k8sClusters {
+	for _, k8sCluster := range k8sPool {
 		byProviders[k8sCluster.clusterInfo.provider] = append(byProviders[k8sCluster.clusterInfo.provider], k8sCluster)
 	}
 
 	return byProviders
 }
 
-func (t K8sClusterPool) getByProvidersVersions() map[string]map[string][]K8sCluster {
+func (k8sPool K8sClusterPool) getByProvidersVersions() map[string]map[string][]K8sCluster {
 	byProvidersVersions := make(map[string]map[string][]K8sCluster)
-	byProviders := t.getByProviders()
+	byProviders := k8sPool.getByProviders()
 
 	for provider, k8sClusters := range byProviders {
 		for _, k8sCluster := range k8sClusters {
@@ -342,11 +337,11 @@ func (t K8sClusterPool) getByProvidersVersions() map[string]map[string][]K8sClus
 	return byProvidersVersions
 }
 
-// TestCase is a representation of an E2E test case
-// SpecsCount is the number of the gingko specs
-// Duration specifies the expected length of the test
-// Name is the name of the test
-// TestFn specifies the test function
+// TestCase is a representation of an E2E test case.
+//   - SpecsCount is the number of the gingko specs in the test.
+//   - Duration specifies the expected length of the test.
+//   - Name is the name of the test.
+//   - TestFn specifies the test function.
 type TestCase struct {
 	SpecsCount int
 	Duration   time.Duration
@@ -354,21 +349,20 @@ type TestCase struct {
 	TestFn     func(kubectlOptions k8s.KubectlOptions)
 }
 
-// NewTest creates a Test from a TestCase and from a K8sCluster
-// testID for Test is generated automatically based on Name and K8s clusterInfo
+// NewTest creates a Test from a TestCase and from a K8sCluster.
+// The testID for Test is generated automatically based on Name and K8s clusterInfo.
 func NewTest(testCase TestCase, k8sCluster K8sCluster) Test {
-	testIDseed := fmt.Sprintf("%v%v", testCase.Name, k8sCluster.clusterInfo)
-	hash := md5.Sum([]byte(testIDseed))
-	testID := hex.EncodeToString(hash[:5])
-	return Test{
-		testID:     testID,
+	test := Test{
 		testCase:   testCase,
 		k8sCluster: k8sCluster,
 	}
+	test.generateTestID()
+
+	return test
 }
 
 // Test represents an E2E test.
-// It is a combination of a testCase and a k8sCluster
+// It is a combination of a testCase and a k8sCluster.
 type Test struct {
 	testID     string
 	testCase   TestCase
@@ -383,13 +377,17 @@ func (t Test) less(test Test) bool {
 	return t.TestID() < test.TestID()
 }
 
-// TestID return the test UID based on test name and K8sCluster
+// generateTestID generates the test UID based on the name of the test and the K8sCluster.
+func (t *Test) generateTestID() string {
+	text := fmt.Sprintf("%v%v", t.testCase.Name, t.k8sCluster)
+	hash := md5.Sum([]byte(text))
+	t.testID = hex.EncodeToString(hash[:5])
+
+	return t.testID
+}
+
+// TestID returns the test UID based on the name of the test and the K8sCluster.
 func (t *Test) TestID() string {
-	if t.testID == "" {
-		text := fmt.Sprintf("%v%v", t.testCase.Name, t.k8sCluster)
-		hash := md5.Sum([]byte(text))
-		t.testID = hex.EncodeToString(hash[:5])
-	}
 	return t.testID
 }
 
@@ -400,7 +398,7 @@ func (t Test) String() string {
 
 // Run encapsulates the testCase in a Describe container with
 // K8s cluster health check and testID label.
-// When K8s cluster is not available the further tests are skipped
+// When K8s cluster is not available the further tests will be skipped.
 func (t Test) Run() {
 	Describe(fmt.Sprint(t), Ordered, decorators.Label(fmt.Sprintf("testID:%s", t.TestID())), func() {
 		kubectlOptions, err := t.k8sCluster.KubectlOptions()
@@ -464,8 +462,8 @@ type k8sClusterInfo struct {
 	version     string
 }
 
-// NewK8sCluster retrieve the K8s cluster information and creates the K8sCluster resource
-// When K8s cluster information is not available it return error
+// NewK8sCluster retrieves the K8s cluster information and creates the K8sCluster resource.
+// When it cannot get K8s cluster information it returns error.
 func NewK8sCluster(kubectlOptions k8s.KubectlOptions) (K8sCluster, error) {
 	clusterInfo, err := newK8sClusterInfo(kubectlOptions)
 	if err != nil {
@@ -513,14 +511,14 @@ func NewMockK8sCluster(kubeConfigPath, kubeContext string, version, provider, cl
 }
 
 // NewK8sClusterFromParams creates K8sCluster from kubectlConfigPath path and kubectlContext.
-// Cluster information is fetched from the K8s cluster automatically
+// Cluster information is fetched from the K8s cluster automatically.
 func NewK8sClusterFromParams(kubectlConfigPath, kubectlContext string) (K8sCluster, error) {
 	return NewK8sCluster(*k8s.NewKubectlOptions(kubectlContext, kubectlConfigPath, ""))
 }
 
-// NewK8sClustersFromParams creates K8sClusters based on kubeconfig path
-// When multiple context is found in the kubeconfig it creates multiple K8sClusters for all of them
-// Cluster information is fetched from the K8s cluster automatically
+// NewK8sClustersFromParams creates K8sClusters based on kubeconfig path.
+// When multiple context is found in the kubeconfig it creates multiple K8sClusters from all of them.
+// Cluster information is fetched from the K8s cluster automatically at creation time.
 func NewK8sClustersFromParams(kubectlConfigPath string) ([]K8sCluster, error) {
 	kubeContexts, err := common.GetKubeContexts(kubectlConfigPath)
 	if err != nil {
@@ -539,8 +537,8 @@ func NewK8sClustersFromParams(kubectlConfigPath string) ([]K8sCluster, error) {
 	return k8sClusters, nil
 }
 
-// NewK8sClusterFromCurrentConfig creates K8sCluster from the local KUBECONFIG env and it's current context
-// Cluster information is fetched from the K8s cluster automatically
+// NewK8sClusterFromCurrentConfig creates K8sCluster from the local KUBECONFIG env and it's current context.
+// Cluster information is fetched from the K8s cluster automatically.
 func NewK8sClusterFromCurrentConfig() (K8sCluster, error) {
 	kubectlOptions, err := common.KubectlOptionsForCurrentContext()
 	if err != nil {
@@ -560,7 +558,7 @@ func NewK8sClusterFromCurrentConfig() (K8sCluster, error) {
 }
 
 // K8sCluster represents a K8s cluster.
-// It contains informations and access related configurations about K8s cluster
+// It contains informations and access related configurations about K8s cluster.
 type K8sCluster struct {
 	clusterInfo    k8sClusterInfo
 	kubectlOptions k8s.KubectlOptions
@@ -570,7 +568,7 @@ func (c K8sCluster) isKubectlOptionsFilled() bool {
 	return c.kubectlOptions.ConfigPath != "" && c.kubectlOptions.ContextName != ""
 }
 
-// KubectlOptions returns K8s access related configurations for kubectl
+// KubectlOptions returns K8s access related configurations for kubectl.
 func (c K8sCluster) KubectlOptions() (k8s.KubectlOptions, error) {
 	if !c.isKubectlOptionsFilled() {
 		return k8s.KubectlOptions{}, errors.New("kubectlOptions is unfilled")
