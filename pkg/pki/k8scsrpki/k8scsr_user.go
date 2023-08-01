@@ -348,9 +348,11 @@ func (c *k8sCSR) Approve(ctx context.Context, signingReq *certsigningreqv1.Certi
 
 func (c *k8sCSR) getCAChain(ctx context.Context, signingReq *certsigningreqv1.CertificateSigningRequest, certs []*certutil.CertificateContainer) ([]byte, error) {
 	var caChain []byte
-	if strings.Split(signingReq.Spec.SignerName, "/")[0] == v1alpha1.CertManagerSignerNamePrefix {
+	signerName := strings.Split(signingReq.Spec.SignerName, "/")
+
+	if signerName[0] == v1alpha1.CertManagerSignerNamePrefix {
 		clusterIssuer := &certv1.ClusterIssuer{}
-		clusterIssuerName := strings.Split(signingReq.Spec.SignerName, "/")[1]
+		clusterIssuerName := signerName[1]
 		err := c.client.Get(ctx, types.NamespacedName{
 			Name: clusterIssuerName,
 		}, clusterIssuer)
