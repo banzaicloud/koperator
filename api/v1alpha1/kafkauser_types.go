@@ -116,7 +116,7 @@ func (spec *KafkaUserSpec) GetAnnotations() map[string]string {
 // ValidateAnnotations checks if certificate signing request annotations are valid
 func (spec *KafkaUserSpec) ValidateAnnotations() error {
 	// Validate annotations for cert-manager pki backend signer
-	if strings.Split(spec.PKIBackendSpec.SignerName, "/")[0] == CertManagerSignerNamePrefix {
+	if spec.PKIBackendSpec != nil && strings.Split(spec.PKIBackendSpec.SignerName, "/")[0] == CertManagerSignerNamePrefix {
 		certManagerCSRAnnotations := newCertManagerSignerAnnotationsWithValidators()
 		err := certManagerCSRAnnotations.validate(spec.GetAnnotations())
 		if err != nil {
