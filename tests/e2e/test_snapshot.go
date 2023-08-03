@@ -59,19 +59,11 @@ type localComparisonPartialObjectMetadataType struct {
 
 // snapshotCluster takes a clusterSnapshot of a K8s cluster and
 // stores it into the snapshotCluster instance referenced as input
-func snapshotCluster(snapshottedInfo *clusterSnapshot) bool {
+func snapshotCluster(kubectlOptions k8s.KubectlOptions, snapshottedInfo *clusterSnapshot) bool {
 	return When("Get cluster resources state", Ordered, func() {
-		var kubectlOptions k8s.KubectlOptions
-		var err error
-
-		BeforeAll(func() {
-			By("Acquiring K8s config and context")
-			kubectlOptions, err = kubectlOptionsForCurrentContext()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		var clusterResourceNames []string
 		var namespacedResourceNames []string
+		var err error
 
 		When("Get api-resources names", func() {
 			It("Get cluster-scoped api-resources names", func() {
@@ -135,10 +127,10 @@ func snapshotCluster(snapshottedInfo *clusterSnapshot) bool {
 
 // snapshotClusterAndCompare takes a current snapshot of the K8s cluster and
 // compares it against a snapshot provided as input
-func snapshotClusterAndCompare(snapshottedInitialInfo *clusterSnapshot) bool {
+func snapshotClusterAndCompare(kubectlOptions k8s.KubectlOptions, snapshottedInitialInfo *clusterSnapshot) bool {
 	return When("Verifying cluster resources state", Ordered, func() {
 		var snapshottedCurrentInfo = &clusterSnapshot{}
-		snapshotCluster(snapshottedCurrentInfo)
+		snapshotCluster(kubectlOptions, snapshottedCurrentInfo)
 
 		It("Checking resources list", func() {
 			// Temporarily increase maximum output length (default 4000) to fit more objects in the printed diff.

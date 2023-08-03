@@ -30,7 +30,7 @@ var alltestCase = tests.TestCase{
 
 func allTestCase(kubectlOptions k8s.KubectlOptions) {
 	var snapshottedInfo = &clusterSnapshot{}
-	snapshotCluster(snapshottedInfo)
+	snapshotCluster(kubectlOptions, snapshottedInfo)
 	testInstall(kubectlOptions)
 	testInstallZookeeperCluster(kubectlOptions)
 	testInstallKafkaCluster(kubectlOptions, "../../config/samples/simplekafkacluster.yaml")
@@ -44,5 +44,5 @@ func allTestCase(kubectlOptions k8s.KubectlOptions) {
 	testUninstallKafkaCluster(kubectlOptions)
 	testUninstallZookeeperCluster(kubectlOptions)
 	testUninstall(kubectlOptions)
-	snapshotClusterAndCompare(snapshottedInfo)
+	snapshotClusterAndCompare(kubectlOptions, snapshottedInfo)
 }
