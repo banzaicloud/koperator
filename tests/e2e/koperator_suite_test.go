@@ -100,18 +100,20 @@ func runGinkgoTests(t *testing.T) error {
 	if err != nil {
 		return fmt.Errorf("could not parse MaxTimeout into time.Duration: %w", err)
 	}
-	// Protection against too long test suites
-	if testSuiteDuration > maxTimeout {
-		return fmt.Errorf("tests estimated duration: '%s' bigger then maxTimeout: '%s'", testSuiteDuration.String(), maxTimeout.String())
-	}
 
 	// Calculated timeout can be overran with the specified time length
 	allowedOverrun, err := time.ParseDuration(viper.GetString(config.Tests.AllowedOverrunDuration))
 	if err != nil {
 		return fmt.Errorf("could not parse AllowedOverrunDuration into time.Duration: %w", err)
 	}
+
 	// Set TestSuite timeout based on the generated tests
 	suiteConfig.Timeout = testSuiteDuration + allowedOverrun
+
+	// Protection against too long test suites
+	if suiteConfig.Timeout > maxTimeout {
+		return fmt.Errorf("tests estimated duration: '%s' longer then maxTimeout: '%s'", suiteConfig.Timeout.String(), maxTimeout.String())
+	}
 
 	if viper.GetBool(config.Tests.CreateTestReportFile) {
 		if err := createTestReportFile(); err != nil {

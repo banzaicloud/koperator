@@ -49,8 +49,8 @@ func (tests TestPool) Equal(other TestPool) bool {
 		return false
 	}
 
-	tests.Sort()
-	other.Sort()
+	tests.sort()
+	other.sort()
 
 	for i := range tests {
 		if !tests[i].equal(other[i]) {
@@ -100,7 +100,7 @@ func (tests TestPool) BuildParallelByK8sCluster() {
 	}
 }
 
-func (tests TestPool) Sort() {
+func (tests TestPool) sort() {
 	sort.SliceStable(tests, func(i, j int) bool {
 		return tests[i].less(tests[j])
 	})
@@ -110,7 +110,7 @@ func (tests TestPool) getSortedTestsByClusterID() map[string][]Test {
 	testsByClusterID := make(map[string][]Test)
 	// Need to be sorted to achieve test specs tree consistency between processes
 	// otherwise it can happen that specs order will be different for each process
-	tests.Sort()
+	tests.sort()
 
 	for _, test := range tests {
 		testsByClusterID[test.k8sCluster.clusterInfo.clusterID] = append(testsByClusterID[test.k8sCluster.clusterInfo.clusterID], test)

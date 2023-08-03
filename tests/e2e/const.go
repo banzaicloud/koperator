@@ -53,7 +53,7 @@ const (
 	defaultTopicCreationWaitTime         = 10 * time.Second
 	defaultUserCreationWaitTime          = 10 * time.Second
 
-	kafkaClusterCreateTimeout              = 600 * time.Second // Increased from 600 to 700 for multiple kind
+	kafkaClusterCreateTimeout              = 600 * time.Second
 	kafkaClusterResourceCleanupTimeout     = 120 * time.Second
 	kcatDeleetionTimeout                   = 40 * time.Second
 	zookeeperClusterCreateTimeout          = 7 * time.Minute // Increased from 4 to 7 for multiple kind
