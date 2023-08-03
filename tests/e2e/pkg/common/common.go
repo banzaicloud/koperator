@@ -22,12 +22,11 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v2"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-// currentKubernetesContext returns the currently set Kubernetes context based
+// CurrentEnvK8sContext returns the currently set Kubernetes context based
 // on the the environment variables and the KUBECONFIG file.
 func CurrentEnvK8sContext() (kubeconfigPath string, kubecontextName string, err error) {
 	kubeconfigPath, isExisting := os.LookupEnv("KUBECONFIG")
@@ -63,6 +62,7 @@ func KubectlOptionsForCurrentContext() (k8s.KubectlOptions, error) {
 	}, nil
 }
 
+// GetDefaultKubeContext returns the default kubeContext name from the given kubeconfig file
 func GetDefaultKubeContext(kubeconfigPath string) (string, error) {
 	kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
 	if err != nil {
@@ -105,25 +105,11 @@ func GetRawConfig(kubeconfigPath string) (api.Config, error) {
 	return clientConfig.RawConfig()
 }
 
+// GetKubeContexts returns the available kubecontext names in the kubeconfig file
 func GetKubeContexts(kubeconfigPath string) ([]string, error) {
 	configs, err := GetRawConfig(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
 	return maps.Keys(configs.Contexts), nil
-}
-
-// GetConfig returns kubernetes config based on the current environment.
-// If fpath is provided, loads configuration from that file. Otherwise,
-// GetConfig uses default strategy to load configuration from $KUBECONFIG,
-// .kube/config, or just returns in-cluster config.
-func GetConfigWithContext(kubeconfigPath, kubeContext string) (*rest.Config, error) {
-	rules := clientcmd.NewDefaultClientConfigLoadingRules()
-	if kubeconfigPath != "" {
-		rules.ExplicitPath = kubeconfigPath
-	}
-	overrides := &clientcmd.ConfigOverrides{CurrentContext: kubeContext}
-	return clientcmd.
-		NewNonInteractiveDeferredLoadingClientConfig(rules, overrides).
-		ClientConfig()
 }

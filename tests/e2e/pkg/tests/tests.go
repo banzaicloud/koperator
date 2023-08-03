@@ -60,6 +60,7 @@ func (tests TestPool) Equal(other TestPool) bool {
 	return true
 }
 
+// PoolInfo returns a formatted string as information about the current testPool
 func (tests TestPool) PoolInfo() string {
 	testsByContextName := tests.getTestsByContextName()
 	testsByProviders := tests.getTestsByProviders()
