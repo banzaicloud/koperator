@@ -22,11 +22,13 @@ import (
 	"time"
 )
 
-// MockTestsMinimal:
-// 3 different provider 2 different version 3 different K8s cluster with 2 tests
-// Expected: 2 testCase 1 testCase on any available K8sCluster
-// 1x2 + 1x3 = 5 test all-together
-// Runtime parallel: 1x(5) = 5sec (time of the longest testCase)
+// MockTestsMinimal returns a Classifier that has 3 different K8s clusters using 2 different K8s versions and 3 different providers.
+// The Classifier contains 2 tests.
+//
+//	Expected (minimal strategy):
+//	  - 2 testCases
+//	  - 1 testCase on any of the available K8sClusters
+//	  - runtime parallel: 1x(5) = 5sec (time of the longest testCase)
 func MockTestsMinimal() Classifier {
 	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
@@ -54,11 +56,13 @@ func MockTestsMinimal() Classifier {
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2)
 }
 
-// MockTestsProvider:
-// 3 different provider 3 different K8s cluster with 2 tests
-// Expected: 6 testCase 2 testCase on every provider
-// 3x2 + 3x3 = 15 test all-together
-// Runtime parallel: 3x(3) = 9sec (time of the longest testCase)
+// MockTestsProvider returns a Classifier that has 3 different K8s clusters using 3 different K8s provider.
+// The Classifier contains 2 tests.
+//
+//	Expected (provider strategy):
+//	  - 6 testCases
+//	  - 2 testCases on different providers
+//	  - runtime parallel: 3x(3) = 9sec
 func MockTestsProvider() Classifier {
 	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
@@ -86,11 +90,13 @@ func MockTestsProvider() Classifier {
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2)
 }
 
-// MockTestsProviderMoreTestsThenProvider:
-// 2 different provider 2 different K8s cluster with 3 tests
-// Expected: 6 testCase 3 testCase on every provider
-// 2x2 + 2x2 + 2x3 = 14 test all-together
-// Runtime parallel: 4 + 4 + 5 = 13
+// MockTestsProviderMoreTestsThenProvider returns a Classifier that has 2 different K8s clusters using 2 different K8s provider.
+// The Classifier contains 3 tests.
+//
+//	Expected (provider strategy):
+//	  - 6 testCases
+//	  - 3 testCases on different providers
+//	  - runtime parallel: 4 + 4 + 5 = 13sec
 func MockTestsProviderMoreTestsThenProvider() Classifier {
 	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
@@ -111,11 +117,13 @@ func MockTestsProviderMoreTestsThenProvider() Classifier {
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2, mockTest3)
 }
 
-// MockTestsVersionOne:
-// no different version 2 different K8s cluster with 2 tests
-// Expected: 2 testCase -> 1 testCase on each K8sCluster
-// 2x2  2x3 = 10 test all-together
-// Runtime parallel: 1x5 = 5
+// MockTestsVersionOne returns a Classifier that has 2 different K8s clusters using same K8s versions and 2 different providers.
+// The Classifier contains 2 tests.
+//
+//	Expected (version strategy):
+//	  - 2 testCases
+//	  - 1 testCase on any of the available K8sClusters
+//	  - runtime parallel: 1 x 5 = 5sec
 func MockTestsVersionOne() Classifier {
 	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
@@ -136,11 +144,13 @@ func MockTestsVersionOne() Classifier {
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2)
 }
 
-// MockTestsVersion:
-// 2 different version 3 different K8s cluster with 2 tests
-// Expected: 4 testCase -> 2 testCase on each version
-// 2x2  2x3 = 10 test all-together
-// Runtime parallel: 4 + 5 = 9
+// MockTestsVersion returns a Classifier that has 3 different K8s clusters using 2 different K8s versions and 2 different providers.
+// The Classifier contains 2 tests.
+//
+//	Expected (version strategy):
+//	  - 2 testCases
+//	  - 1 testCase on any of the available K8sClusters
+//	  - runtime parallel: 1 x 5 = 5sec
 func MockTestsVersion() Classifier {
 	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
@@ -168,11 +178,13 @@ func MockTestsVersion() Classifier {
 	return NewClassifier(k8sClusterPool, mockTest1, mockTest2)
 }
 
-// MockTestsVersion:
-// 2 different version 2 different version 4 K8s cluster with 2 tests
-// Expected: 4 testCase -> 2 testCase on each version
-// 2x2  2x3 = 10 test all-together
-// Runtime parallel: 4 + 5 = 9
+// MockTestsComplete returns a Classifier that has 4 different K8s clusters using 2 different K8s versions and 3 different providers.
+// The Classifier contains 2 tests.
+//
+//	Expected (complete strategy):
+//	  - 6 testCases
+//	  - 2 testCase on every different K8sClusters provider and version
+//	  - runtime parallel: 4 + 5 = 9sec
 func MockTestsComplete() Classifier {
 	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
@@ -236,8 +248,6 @@ func testMockTest2(kubectlOptions k8s.KubectlOptions) {
 	})
 	It("MockTest2-2", func() {
 		time.Sleep(time.Second * 1)
-		//Expect(0).Should(Equal(1))
-		AddReportEntry("Output:", CurrentSpecReport().CapturedGinkgoWriterOutput)
 	})
 	It("MockTest2-3", func() {
 		time.Sleep(time.Second * 1)
