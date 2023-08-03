@@ -64,7 +64,7 @@ const (
 type StatusTaskResult struct {
 	TaskResult *Result
 	Status     *CruiseControlStatus
-	Result     *types.StateResult
+	State      *types.StateResult
 }
 
 // CruiseControlStatus struct is used to describe internal state of Cruise Control.

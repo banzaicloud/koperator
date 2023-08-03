@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	types2 "github.com/banzaicloud/go-cruise-control/pkg/types"
+	ccTypes "github.com/banzaicloud/go-cruise-control/pkg/types"
 	"github.com/go-logr/logr"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
@@ -912,7 +912,7 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New(strconv.Itoa(r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack)+" pod(s) is still terminating or creating"), "rolling upgrade in progress")
 			}
 			if r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack > 1 && len(terminatingOrPendingPods) > 0 {
-				err = r.isCruiseControlRackAwareDistributionGoalViolated()
+				err = r.checkCCRackAwareDistributionGoal()
 				if err != nil {
 					return err
 				}
@@ -983,21 +983,21 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 	return nil
 }
 
-func (r *Reconciler) isCruiseControlRackAwareDistributionGoalViolated() error {
+func (r *Reconciler) checkCCRackAwareDistributionGoal() error {
 	cruiseControlURL := scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster)
 	cc, err := r.CruiseControlScalerFactory(context.TODO(), r.KafkaCluster)
 	if err != nil {
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "failed to initialize Cruise Control", "cruise control url", cruiseControlURL)
 	}
-	status, err := cc.Status(context.TODO())
+	status, err := cc.Status(context.Background())
 	if err != nil {
 		return errorfactory.New(errorfactory.CruiseControlNotReady{}, errors.New("failed to get status from Cruise Control"), "rolling upgrade in progress")
 	}
-	if !slices.Contains(status.Result.AnalyzerState.ReadyGoals, types2.RackAwareDistributionGoal) {
+	if !slices.Contains(status.State.AnalyzerState.ReadyGoals, ccTypes.RackAwareDistributionGoal) {
 		return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("RackAwareDistributionGoal is not ready"), "rolling upgrade in progress")
 	}
-	for _, anomaly := range status.Result.AnomalyDetectorState.RecentGoalViolations {
-		if slices.Contains(anomaly.FixableViolatedGoals, types2.RackAwareDistributionGoal) || slices.Contains(anomaly.UnfixableViolatedGoals, types2.RackAwareDistributionGoal) {
+	for _, anomaly := range status.State.AnomalyDetectorState.RecentGoalViolations {
+		if slices.Contains(anomaly.FixableViolatedGoals, ccTypes.RackAwareDistributionGoal) || slices.Contains(anomaly.UnfixableViolatedGoals, ccTypes.RackAwareDistributionGoal) {
 			return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("RackAwareDistributionGoal is violated"), "rolling upgrade in progress")
 		}
 	}

@@ -1061,7 +1061,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
 			ccStatus: &scale.StatusTaskResult{
-				Result: &ccTypes.StateResult{
+				State: &ccTypes.StateResult{
 					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
 					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
 						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
@@ -1102,7 +1102,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
 			ccStatus: &scale.StatusTaskResult{
-				Result: &ccTypes.StateResult{
+				State: &ccTypes.StateResult{
 					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
 					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
 						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
@@ -1213,7 +1213,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
 			ccStatus: &scale.StatusTaskResult{
-				Result: &ccTypes.StateResult{
+				State: &ccTypes.StateResult{
 					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
 					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
 						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
@@ -1329,7 +1329,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 			allOfflineReplicas: []int32{},
 			outOfSyncReplicas:  []int32{101},
 			ccStatus: &scale.StatusTaskResult{
-				Result: &ccTypes.StateResult{
+				State: &ccTypes.StateResult{
 					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
 					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
 						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
@@ -1366,7 +1366,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 			},
 			ccStatus: &scale.StatusTaskResult{
-				Result: &ccTypes.StateResult{
+				State: &ccTypes.StateResult{
 					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
 					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
 						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
@@ -1465,7 +1465,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 			},
 			ccStatus: &scale.StatusTaskResult{
-				Result: &ccTypes.StateResult{
+				State: &ccTypes.StateResult{
 					AnalyzerState: ccTypes.AnalyzerState{ReadyGoals: []ccTypes.Goal{ccTypes.RackAwareDistributionGoal}},
 					AnomalyDetectorState: ccTypes.AnomalyDetectorState{
 						RecentGoalViolations: []ccTypes.AnomalyDetails{{UnfixableViolatedGoals: []ccTypes.Goal{}, FixableViolatedGoals: []ccTypes.Goal{}}},
@@ -1511,7 +1511,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 			// Mock Cruise Control client
 			mockCruiseControl := controllerMocks.NewMockCruiseControlScaler(mockCtrl)
 			if test.ccStatus != nil {
-				mockCruiseControl.EXPECT().Status(context.TODO()).Return(*test.ccStatus, nil)
+				mockCruiseControl.EXPECT().Status(context.Background()).Return(*test.ccStatus, nil)
 			}
 			r.CruiseControlScalerFactory = controllerMocks.NewMockScaleFactory(mockCruiseControl)
 
