@@ -77,7 +77,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("there is an add_broker operation for execution", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock1())
+			cruiseControlOperationReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMock1())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -105,7 +105,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("add_broker operation is finished with completedWithError and 30s has not elapsed", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock2())
+			cruiseControlOperationReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMock2())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -132,7 +132,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("add_broker operation is finished with completedWithError and 30s has elapsed", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock5())
+			cruiseControlOperationReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMock5())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
@@ -161,7 +161,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("there is an errored remove_broker and an add_broker operation", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock3())
+			cruiseControlOperationReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMock3())
 			// First operation will get completedWithError
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(ctx, &operation)
@@ -208,7 +208,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("there is a new remove_broker and an errored remove_broker operation with pause annotation", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4())
+			cruiseControlOperationReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMock4())
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Labels["pause"] = "true"
 			err := k8sClient.Create(ctx, &operation)
@@ -257,7 +257,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("there is a new remove_broker and an errored remove_broker operation with ignore ErrorPolicy", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock4())
+			cruiseControlOperationReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMock4())
 			// Creating first operation
 			operation := generateCruiseControlOperation(opName1, namespace, kafkaCluster.GetName())
 			operation.Spec.ErrorPolicy = v1alpha1.ErrorPolicyIgnore
@@ -307,7 +307,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("Cruise Control makes the Status operation async", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			cruiseControlOperationReconciler.ScaleFactory = NewMockScaleFactory(getScaleMock7())
+			cruiseControlOperationReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMock7())
 			operation := generateCruiseControlOperation("add-broker-operation", namespace, kafkaCluster.GetName())
 			err := k8sClient.Create(ctx, &operation)
 			Expect(err).NotTo(HaveOccurred())
