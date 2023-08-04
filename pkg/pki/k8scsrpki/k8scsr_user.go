@@ -49,6 +49,7 @@ const (
 	notApprovedErrMsg                             = "instance is not approved"
 	notFoundApprovedCsrErrMsg                     = "could not find approved csr and the operator is not capable of approving the csr"
 	notFoundCAInClusterIssuerErrMsg               = "could not extract CA from ClusterIssuer"
+	notFoundCertManagerSecretField                = "could not find certificate field in cert-manager Secret"
 	approveReason                                 = "ApprovedByPolicy"
 	defaultCertManagerIssuerSecretCertificateFile = "tls.crt"
 )
@@ -377,7 +378,13 @@ func (c *k8sCSR) getCAChain(ctx context.Context, signingReq *certsigningreqv1.Ce
 				"namespace", certManagerSecret.GetNamespace())
 		}
 
-		caChain = certManagerSecret.Data[defaultCertManagerIssuerSecretCertificateFile]
+		chain, ok := certManagerSecret.Data[defaultCertManagerIssuerSecretCertificateFile]
+		if !ok {
+			return caChain, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New(notFoundCertManagerSecretField),
+				"failed to get field", "secretName", clusterIssuer.GetSpec().CA.SecretName,
+				"namespace", certManagerSecret.GetNamespace(), "field", defaultCertManagerIssuerSecretCertificateFile)
+		}
+		caChain = chain
 	} else {
 		for _, cr := range certs {
 			if cr.Certificate.IsCA {
