@@ -66,6 +66,9 @@ type PKIBackend string
 // CruiseControlVolumeState holds information about the state of volume rebalance
 type CruiseControlVolumeState string
 
+// ControllerMode holds information about whether the Kafka cluster is in ZooKeeper, or in KRaft mode
+type ControllerMode string
+
 // IsRunningState returns true if CruiseControlVolumeState indicates
 // that the CC operation is scheduled and in-progress
 func (s CruiseControlVolumeState) IsRunningState() bool {
@@ -219,6 +222,13 @@ type BrokerState struct {
 	Image string `json:"image,omitempty"`
 	// Compressed data from broker configuration to restore broker pod in specific cases
 	ConfigurationBackup string `json:"configurationBackup,omitempty"`
+}
+
+type ControllerState struct {
+	// Version holds the current version of the broker in semver format
+	Version string `json:"version,omitempty"`
+	// Image specifies the current docker image of the broker
+	Image string `json:"image,omitempty"`
 }
 
 const (

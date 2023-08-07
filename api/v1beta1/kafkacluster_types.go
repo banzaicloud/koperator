@@ -62,19 +62,36 @@ const (
 
 	// DefaultKafkaImage is the default Kafka image used when users don't specify it in KafkaClusterSpec.ClusterImage
 	DefaultKafkaImage = "ghcr.io/banzaicloud/kafka:2.13-3.4.1"
+
+	// NodeIdLabelKey is used to represent the reserved operator label, "nodeId", and used only in KRaft mode.
+	// It serves the same purpose as BrokerIdLabelKey in ZooKeeper-mode, but Kafka uses "node.id" in KRaft, so we will follow this convention in KRaft-mode.
+	NodeIdLabelKey = "nodeId"
+
+	KRaftControllerMode ControllerMode = "kraft"
+	// DefaultControllerMode is the default controller mode that the Kafka cluster is in.
+	// The default controller mode will be switched to "kraft" when the default mode is decided to be kraft-mode.
+	DefaultControllerMode ControllerMode = "zookeeper"
 )
 
 // KafkaClusterSpec defines the desired state of KafkaCluster
 type KafkaClusterSpec struct {
+	// ControllerMode specifies the Kafka cluster in either ZooKeeper or KRaft mode. If not specified, the Kafka cluster is assumed to be in ZooKeeper-mode.
+	// +kubebuilder:validation:Enum=kraft;zookeeper
+	// +optional
+	ControllerMode         ControllerMode  `json:"controllerMode,omitempty"`
 	HeadlessServiceEnabled bool            `json:"headlessServiceEnabled"`
 	ListenersConfig        ListenersConfig `json:"listenersConfig"`
 	// Custom ports to expose in the container. Example use case: a custom kafka distribution, that includes an integrated metrics api endpoint
 	AdditionalPorts []corev1.ContainerPort `json:"additionalPorts,omitempty"`
 	// ZKAddresses specifies the ZooKeeper connection string
 	// in the form hostname:port where host and port are the host and port of a ZooKeeper server.
-	ZKAddresses []string `json:"zkAddresses"`
+	// If set under KRaft mode, Koperator will ignore this configuration.
+	// +optional
+	ZKAddresses []string `json:"zkAddresses,omitempty"`
 	// ZKPath specifies the ZooKeeper chroot path as part
 	// of its ZooKeeper connection string which puts its data under some path in the global ZooKeeper namespace.
+	// If set under KRaft mode, Koperator will ignore this configuration.
+	// +optional
 	ZKPath                      string                  `json:"zkPath,omitempty"`
 	RackAwareness               *RackAwareness          `json:"rackAwareness,omitempty"`
 	ClusterImage                string                  `json:"clusterImage,omitempty"`
@@ -83,8 +100,12 @@ type KafkaClusterSpec struct {
 	ClusterWideConfig           string                  `json:"clusterWideConfig,omitempty"`
 	BrokerConfigGroups          map[string]BrokerConfig `json:"brokerConfigGroups,omitempty"`
 	Brokers                     []Broker                `json:"brokers"`
-	DisruptionBudget            DisruptionBudget        `json:"disruptionBudget,omitempty"`
-	RollingUpgradeConfig        RollingUpgradeConfig    `json:"rollingUpgradeConfig"`
+	// Controller represent the controller nodes in KRaft mode, and this must be set in KRaft mode.
+	// If set in ZooKeeper-mode, Koperator will ignore this configuration.
+	// +optional
+	Controllers          []Controller         `json:"controllers,omitempty"`
+	DisruptionBudget     DisruptionBudget     `json:"disruptionBudget,omitempty"`
+	RollingUpgradeConfig RollingUpgradeConfig `json:"rollingUpgradeConfig"`
 	// +kubebuilder:validation:Enum=envoy;istioingress
 	// IngressController specifies the type of the ingress controller to be used for external listeners. The `istioingress` ingress controller type requires the `spec.istioControlPlane` field to be populated as well.
 	IngressController string `json:"ingressController,omitempty"`
@@ -120,12 +141,17 @@ type KafkaClusterSpec struct {
 
 // KafkaClusterStatus defines the observed state of KafkaCluster
 type KafkaClusterStatus struct {
-	BrokersState             map[string]BrokerState   `json:"brokersState,omitempty"`
-	CruiseControlTopicStatus CruiseControlTopicStatus `json:"cruiseControlTopicStatus,omitempty"`
-	State                    ClusterState             `json:"state"`
-	RollingUpgrade           RollingUpgradeStatus     `json:"rollingUpgradeStatus,omitempty"`
-	AlertCount               int                      `json:"alertCount"`
-	ListenerStatuses         ListenerStatuses         `json:"listenerStatuses,omitempty"`
+	// BrokerState holds information about broker state
+	BrokersState map[string]BrokerState `json:"brokersState,omitempty"`
+	// ControllerState holds information about controller state in KRaft
+	ControllerState          map[string]ControllerState `json:"controllersState,omitempty"`
+	CruiseControlTopicStatus CruiseControlTopicStatus   `json:"cruiseControlTopicStatus,omitempty"`
+	State                    ClusterState               `json:"state"`
+	RollingUpgrade           RollingUpgradeStatus       `json:"rollingUpgradeStatus,omitempty"`
+	AlertCount               int                        `json:"alertCount"`
+	ListenerStatuses         ListenerStatuses           `json:"listenerStatuses,omitempty"`
+	// ClusterID is a base64-encoded random UUID generated by Koperator to run the Kafka cluster in KRaft mode
+	ClusterID string `json:"clusterID,omitempty"`
 }
 
 // RollingUpgradeStatus defines status of rolling upgrade
@@ -176,8 +202,11 @@ type DisruptionBudgetWithStrategy struct {
 	Stategy string `json:"strategy,omitempty"`
 }
 
-// Broker defines the broker basic configuration
+// Broker represents "broker" nodes.
+// In ZooKeeper world, this particular broker node could also be the only controller in the Kafka cluster.
+// In KRaft world, this broker node could also be a combined (broker + controller) node, however, the combined mode shouldn't be used in production environment per Kafka's recommendation.
 type Broker struct {
+	// Id maps to "node.id" configuration in KRaft mode; and it maps to "broker.id" configuration in ZooKeeper mode.
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=65535
 	// +kubebuilder:validation:ExclusiveMaximum=true
@@ -185,39 +214,39 @@ type Broker struct {
 	BrokerConfigGroup string        `json:"brokerConfigGroup,omitempty"`
 	ReadOnlyConfig    string        `json:"readOnlyConfig,omitempty"`
 	BrokerConfig      *BrokerConfig `json:"brokerConfig,omitempty"`
+	// CombinedNode indicates if this broker node is a combined (broker + controller) node in KRaft mode. If set to true,
+	// Koperator assumes the ReadOnlyConfig would include the read-only configurations for both the controller and broker processes.
+	// This is default to false; if set to true in ZooKeeper mode, Koperator will ignore this configuration.
+	// +optional
+	CombinedNode bool `json:"combinedNode,omitempty"`
 }
 
-// BrokerConfig defines the broker configuration
+// BrokerConfig defines the broker configurations
 type BrokerConfig struct {
-	Image                string                        `json:"image,omitempty"`
-	MetricsReporterImage string                        `json:"metricsReporterImage,omitempty"`
-	Config               string                        `json:"config,omitempty"`
-	StorageConfigs       []StorageConfig               `json:"storageConfigs,omitempty"`
-	ServiceAccountName   string                        `json:"serviceAccountName,omitempty"`
-	Resources            *corev1.ResourceRequirements  `json:"resourceRequirements,omitempty"`
-	ImagePullSecrets     []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	NodeSelector         map[string]string             `json:"nodeSelector,omitempty"`
-	Tolerations          []corev1.Toleration           `json:"tolerations,omitempty"`
-	KafkaHeapOpts        string                        `json:"kafkaHeapOpts,omitempty"`
-	KafkaJVMPerfOpts     string                        `json:"kafkaJvmPerfOpts,omitempty"`
-	// Override for the default log4j configuration
-	Log4jConfig string `json:"log4jConfig,omitempty"`
-	// Custom annotations for the broker pods - e.g.: Prometheus scraping annotations:
-	// prometheus.io/scrape: "true"
-	// prometheus.io/port: "9020"
-	BrokerAnnotations map[string]string `json:"brokerAnnotations,omitempty"`
-	// Custom labels for the broker pods, example use case: for Prometheus monitoring to capture the group for each broker as a label, e.g.:
-	// kafka_broker_group: "default_group"
-	// these labels will not override the reserved labels that the operator relies on, for example, "app", "brokerId", and "kafka_cr"
+	CommonConfig         `json:",inline"`
+	BrokerSpecificConfig `json:",inline"`
+}
+
+// BrokerSpecificConfig defines the configurations that are only applicable to brokers
+type BrokerSpecificConfig struct {
+	// BrokerIngressMapping allows to set specific ingress to a specific broker mappings.
+	// If left empty, all broker will inherit the default one specified under external listeners config.
+	// Only used when ExternalListeners.Config is populated
 	// +optional
-	BrokerLabels map[string]string `json:"brokerLabels,omitempty"`
-	// Network throughput information in kB/s used by Cruise Control to determine broker network capacity.
-	// By default it is set to `125000` which means 1Gbit/s in network throughput.
+	BrokerIngressMapping []string `json:"brokerIngressMapping,omitempty"`
+	// +optional
+	Config string `json:"config,omitempty"`
+	// +optional
+	MetricsReporterImage string `json:"metricsReporterImage,omitempty"`
+	// NetworkConfig holds network throughput information in kB/s used by Cruise Control to determine broker network capacity.
+	// By default, it is set to `125000` which means 1Gbit/s in network throughput.
+	// +optional
 	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`
-	// External listeners that use NodePort type service to expose the broker outside the Kubernetes clusterT and their
+	// External listeners that use NodePort type service to expose the broker outside the Kubernetes cluster and their
 	// external IP to advertise Kafka broker external listener. The external IP value is ignored in case of external listeners that use LoadBalancer
 	// type service to expose the broker outside the Kubernetes cluster. Also, when "hostnameOverride" field of the external listener is set
 	// it will override the broker's external listener advertise address according to the description of the "hostnameOverride" field.
+	// +optional
 	NodePortExternalIP map[string]string `json:"nodePortExternalIP,omitempty"`
 	// When "hostNameOverride" and brokerConfig.nodePortExternalIP are empty and NodePort access method is selected for an external listener
 	// the NodePortNodeAdddressType defines the Kafka broker's Kubernetes node's address type that shall be used in the advertised.listeners property.
@@ -226,39 +255,107 @@ type BrokerConfig struct {
 	// +kubebuilder:validation:Enum=Hostname;ExternalIP;InternalIP;InternalDNS;ExternalDNS
 	// +optional
 	NodePortNodeAddressType corev1.NodeAddressType `json:"nodePortNodeAddressType,omitempty"`
-	// Any definition received through this field will override the default behaviour of OneBrokerPerNode flag
-	// and the operator supposes that the user is aware of how scheduling is done by kubernetes
-	// Affinity could be set through brokerConfigGroups definitions and can be set for individual brokers as well
-	// where letter setting will override the group setting
-	Affinity           *corev1.Affinity           `json:"affinity,omitempty"`
-	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
-	// SecurityContext allows to set security context for the kafka container
-	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
-	// BrokerIngressMapping allows to set specific ingress to a specific broker mappings.
-	// If left empty, all broker will inherit the default one specified under external listeners config
-	// Only used when ExternalListeners.Config is populated
-	BrokerIngressMapping []string `json:"brokerIngressMapping,omitempty"`
-	// InitContainers add extra initContainers to the Kafka broker pod
-	InitContainers []corev1.Container `json:"initContainers,omitempty"`
-	// Containers add extra Containers to the Kafka broker pod
+}
+
+// Controller represents "controller" nodes in KRaft. This is not applicable to ZooKeeper mode
+type Controller struct {
+	Id               int32             `json:"id"`
+	ReadOnlyConfig   string            `json:"readOnlyConfig,omitempty"`
+	ControllerConfig *ControllerConfig `json:"controllerConfig,omitempty"`
+}
+
+// ControllerConfig defines the controller configurations in KRaft. This section is ignored in ZooKeeper-mode.
+type ControllerConfig struct {
+	CommonConfig             `json:",inline"`
+	ControllerSpecificConfig `json:",inline"`
+}
+
+// ControllerSpecificConfig defines the controller-specific configurations in KRaft
+type ControllerSpecificConfig struct {
+}
+
+// CommonConfig holds the common configurations that are applicable to both the "brokers" and "controllers" (in KRaft term)
+// In ZooKeeper-mode, this is just a subset of the old BrokerConfig
+type CommonConfig struct {
+	// Affinity holds affinity scheduling rules for the Kafka nodes.
+	// If it is used for broker configuration, any definition received through this field will override the default behaviour of OneBrokerPerNode flag
+	// and the operator supposes that the user is aware of how scheduling is done by kubernetes.
+	// If it is used for broker configuration, Affinity could be set through brokerConfigGroups definitions and can be set for individual brokers as well
+	// where individual setting will override the group setting.
+	// +optional
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	// Annotations holds common annotations for the Kafka pods - e.g.: Prometheus scraping annotations:
+	// prometheus.io/scrape: "true"
+	// prometheus.io/port: "9020"
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// Containers add extra Containers to the Kafka pod
+	// +optional
 	Containers []corev1.Container `json:"containers,omitempty"`
-	// Volumes define some extra Kubernetes Volumes for the Kafka broker Pods.
-	Volumes []corev1.Volume `json:"volumes,omitempty"`
-	// VolumeMounts define some extra Kubernetes VolumeMounts for the Kafka broker Pods.
-	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
-	// Envs defines environment variables for Kafka broker Pods.
+	// Envs defines environment variables for Kafka pods.
 	// Adding the "+" prefix to the name prepends the value to that environment variable instead of overwriting it.
 	// Add the "+" suffix to append.
+	// +optional
 	Envs []corev1.EnvVar `json:"envs,omitempty"`
+	// Image defines the customized image used for the Kafka container.
+	// +optional
+	Image string `json:"image,omitempty"`
+	// ImagePullSecrets sets the necessary image pull secrets for the Kafka image pull.
+	// +optional
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	// InitContainers add extra initContainers to the Kafka pod
+	// +optional
+	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+	// KafkaHeapOpts defines the Kafka node specific Heap settings.
+	// +optional
+	KafkaHeapOpts string `json:"kafkaHeapOpts,omitempty"`
+	// KafkaJVMPerfOpts defines the Kafka node specific Perf JVM settings.
+	// +optional
+	KafkaJVMPerfOpts string `json:"kafkaJvmPerfOpts,omitempty"`
+	// Labels defines the custom labels for the Kafka pod, example use case:
+	// for Prometheus monitoring to capture the group for each Kafka pod as a label, e.g.: kafka_controller: "controller_1".
+	// These labels will not override the reserved labels that the operator relies on, for example, "app", "brokerId", "nodeId", and "kafka_cr"
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+	// Log4jConfig overrides the default log4j configurations for the Kafka server.
+	// +optional
+	Log4jConfig string `json:"log4jConfig,omitempty"`
+	// NodeSelector defines the node selector settings for the Kafka pod.
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// PodSecurityContext holds pod-level security attributes and common container settings for the Kafka pod.
+	// +optional
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	// PriorityClassName specifies the priority class name for a Kafka pod(s).
+	// If specified, the PriorityClass resource with this PriorityClassName must be created beforehand.
+	// If not specified, the Kafka pods' priority is default to zero.
+	// +optional
+	PriorityClassName string `json:"priorityClassName,omitempty"`
+	// ResourceRequirements describes the compute resource requirements.
+	// +optional
+	Resources *corev1.ResourceRequirements `json:"resourceRequirements,omitempty"`
+	// ServiceAccountName defines the service account use for the Kafka pod.
+	// +optional
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+	// SecurityContext allows to set security context for the kafka container
+	// +optional
+	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+	// StorageConfig defines the storage configurations for the Kafka node.
+	// +optional
+	StorageConfigs []StorageConfig `json:"storageConfigs,omitempty"`
 	// TerminationGracePeriod defines the pod termination grace period
 	// +kubebuilder:default=120
 	// +optional
 	TerminationGracePeriod *int64 `json:"terminationGracePeriodSeconds,omitempty"`
-	// PriorityClassName specifies the priority class name for a broker pod(s).
-	// If specified, the PriorityClass resource with this PriorityClassName must be created beforehand.
-	// If not specified, the broker pods' priority is default to zero.
+	// Tolerations holds the information about the toleration settings for the Kafka pod.
 	// +optional
-	PriorityClassName string `json:"priorityClassName,omitempty"`
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// VolumeMounts define some extra Kubernetes VolumeMounts for the Kafka pods.
+	// +optional
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
+	// Volumes define some extra Kubernetes Volumes for the Kafka pods.
+	// +optional
+	Volumes []corev1.Volume `json:"volumes,omitempty"`
 }
 
 type NetworkConfig struct {
@@ -791,6 +888,14 @@ func (kSpec *KafkaClusterSpec) GetClusterMetricsReporterImage() string {
 	return kSpec.CruiseControlConfig.GetCCImage()
 }
 
+// GetControllerMode returns the controller mode that the Kafka cluster is in: either "zookeeper" or "kraft"
+func (kSpec *KafkaClusterSpec) GetControllerMode() ControllerMode {
+	if kSpec.ControllerMode != "" {
+		return kSpec.ControllerMode
+	}
+	return DefaultControllerMode
+}
+
 func (cTaskSpec *CruiseControlTaskSpec) GetDurationMinutes() float64 {
 	if cTaskSpec.RetryDurationMinutes == 0 {
 		return 5
@@ -927,13 +1032,13 @@ func (bConfig *BrokerConfig) GetImagePullSecrets() []corev1.LocalObjectReference
 
 // GetBrokerAnnotations returns the annotations that are applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerAnnotations() map[string]string {
-	return util.CloneMap(bConfig.BrokerAnnotations)
+	return util.CloneMap(bConfig.Annotations)
 }
 
 // GetBrokerLabels returns the labels that are applied to broker pods
 func (bConfig *BrokerConfig) GetBrokerLabels(kafkaClusterName string, brokerId int32) map[string]string {
 	return util.MergeLabels(
-		bConfig.BrokerLabels,
+		bConfig.Labels,
 		util.LabelsForKafka(kafkaClusterName),
 		map[string]string{BrokerIdLabelKey: fmt.Sprintf("%d", brokerId)},
 	)
