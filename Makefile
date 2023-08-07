@@ -275,3 +275,8 @@ mock-generate: bin/mockgen
 	    -package mocks \
 		-destination pkg/resources/kafka/mocks/Client.go \
 		sigs.k8s.io/controller-runtime/pkg/client Client
+	$(BIN_DIR)/mockgen \
+		-copyright_file $(BOILERPLATE_DIR)/header.generated.txt \
+		-package mocks \
+		-destination pkg/resources/kafka/mocks/KafkaClient.go \
+		-source pkg/kafkaclient/client.go

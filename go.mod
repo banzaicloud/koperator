@@ -10,7 +10,7 @@ require (
 	github.com/banzaicloud/istio-client-go v0.0.17
 	github.com/banzaicloud/istio-operator/api/v2 v2.15.1
 	github.com/banzaicloud/k8s-objectmatcher v1.8.0
-	github.com/banzaicloud/koperator/api v0.28.6
+	github.com/banzaicloud/koperator/api v0.28.7
 	github.com/banzaicloud/koperator/properties v0.4.1
 	github.com/cert-manager/cert-manager v1.11.2
 	github.com/cisco-open/cluster-registry-controller/api v0.2.5
@@ -38,6 +38,7 @@ require (
 require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 )
 
