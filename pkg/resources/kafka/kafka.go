@@ -23,7 +23,9 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
+	ccTypes "github.com/banzaicloud/go-cruise-control/pkg/types"
 	"github.com/go-logr/logr"
+	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,12 +33,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	properties "github.com/banzaicloud/koperator/properties/pkg"
+
 	apiutil "github.com/banzaicloud/koperator/api/util"
 
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
 
 	"github.com/banzaicloud/koperator/api/v1alpha1"
 	"github.com/banzaicloud/koperator/api/v1beta1"
+	banzaiv1beta1 "github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/banzaicloud/koperator/pkg/errorfactory"
 	"github.com/banzaicloud/koperator/pkg/jmxextractor"
 	"github.com/banzaicloud/koperator/pkg/k8sutil"
@@ -91,7 +96,8 @@ const (
 // Reconciler implements the Component Reconciler
 type Reconciler struct {
 	resources.Reconciler
-	kafkaClientProvider kafkaclient.Provider
+	kafkaClientProvider        kafkaclient.Provider
+	CruiseControlScalerFactory func(ctx context.Context, kafkaCluster *banzaiv1beta1.KafkaCluster) (scale.CruiseControlScaler, error)
 }
 
 // New creates a new reconciler for Kafka
@@ -102,9 +108,31 @@ func New(client client.Client, directClient client.Reader, cluster *v1beta1.Kafk
 			DirectClient: directClient,
 			KafkaCluster: cluster,
 		},
-		kafkaClientProvider: kafkaClientProvider,
+		kafkaClientProvider:        kafkaClientProvider,
+		CruiseControlScalerFactory: scale.ScaleFactoryFn(),
 	}
 }
+
+func getBrokerAzMap(cluster *v1beta1.KafkaCluster) map[int32]string {
+	brokerAzMap := make(map[int32]string)
+	for _, broker := range cluster.Spec.Brokers {
+		readOnlyConfigs, err := properties.NewFromString(broker.ReadOnlyConfig)
+		if err == nil {
+			brokerRack, brokerRackConfigFound := readOnlyConfigs.Get("broker.rack")
+			if brokerRackConfigFound {
+				brokerAzMap[broker.Id] = brokerRack.Value()
+			}
+		}
+	}
+	// if incomplete broker AZ information, consider all brokers as being in different AZs
+	if len(brokerAzMap) != len(cluster.Spec.Brokers) {
+		for _, broker := range cluster.Spec.Brokers {
+			brokerAzMap[broker.Id] = fmt.Sprintf("%d", broker.Id)
+		}
+	}
+	return brokerAzMap
+}
+
 func getCreatedPvcForBroker(
 	ctx context.Context,
 	c client.Reader,
@@ -432,12 +460,11 @@ func (r *Reconciler) reconcileKafkaPodDelete(ctx context.Context, log logr.Logge
 
 	if len(podsDeletedFromSpec) > 0 {
 		if !arePodsAlreadyDeleted(podsDeletedFromSpec, log) {
-			cruiseControlURL := scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster)
 			// FIXME: we should reuse the context of the Kafka Controller
-			cc, err := scale.NewCruiseControlScaler(context.TODO(), scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster))
+			cc, err := r.CruiseControlScalerFactory(context.TODO(), r.KafkaCluster)
 			if err != nil {
 				return errorfactory.New(errorfactory.CruiseControlNotReady{}, err,
-					"failed to initialize Cruise Control Scaler", "cruise control url", cruiseControlURL)
+					"failed to initialize Cruise Control Scaler", "cruise control url", scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster))
 			}
 
 			brokerStates := []scale.KafkaBrokerState{
@@ -874,18 +901,30 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			if err != nil {
 				return errors.WrapIf(err, "failed to reconcile resource")
 			}
-			for _, pod := range podList.Items {
-				pod := pod
-				if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {
-					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating"), "rolling upgrade in progress")
-				}
-				if k8sutil.IsPodContainsPendingContainer(&pod) {
-					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still creating"), "rolling upgrade in progress")
-				}
+			// Check that all pods are present as in spec, before checking for terminating or pending pods, as we can have absent pods
+			if len(podList.Items) < len(r.KafkaCluster.Spec.Brokers) {
+				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod count differs from brokers spec"), "rolling upgrade in progress")
 			}
 
-			errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
+			// Check if we support multiple broker restarts and restart only in same AZ, otherwise restart only 1 broker at once
+			terminatingOrPendingPods := getPodsInTerminatingOrPendingState(podList.Items)
+			if len(terminatingOrPendingPods) >= r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack {
+				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New(strconv.Itoa(r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack)+" pod(s) is still terminating or creating"), "rolling upgrade in progress")
+			}
+			if r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack > 1 && len(terminatingOrPendingPods) > 0 {
+				err = r.checkCCRackAwareDistributionGoal()
+				if err != nil {
+					return err
+				}
+			}
+			kafkaBrokerAvailabilityZoneMap := getBrokerAzMap(r.KafkaCluster)
+			currentPodAz, _ := r.getBrokerAz(currentPod, kafkaBrokerAvailabilityZoneMap)
+			if r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack > 1 && r.existsTerminatingPodFromAnotherAz(currentPodAz, terminatingOrPendingPods, kafkaBrokerAvailabilityZoneMap) {
+				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("pod is still terminating or creating from another AZ"), "rolling upgrade in progress")
+			}
 
+			// Check broker count with out-of-sync and offline replicas against the rolling upgrade failure threshold
+			errorCount := r.KafkaCluster.Status.RollingUpgrade.ErrorCount
 			kClient, close, err := r.kafkaClientProvider.NewFromCluster(r.Client, r.KafkaCluster)
 			if err != nil {
 				return errorfactory.New(errorfactory.BrokersUnreachable{}, err, "could not connect to kafka brokers")
@@ -905,7 +944,6 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			if len(outOfSyncReplicas) > 0 {
 				log.Info("out-of-sync replicas", "IDs", outOfSyncReplicas)
 			}
-
 			impactedReplicas := make(map[int32]struct{})
 			for _, brokerID := range allOfflineReplicas {
 				impactedReplicas[brokerID] = struct{}{}
@@ -913,11 +951,16 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 			for _, brokerID := range outOfSyncReplicas {
 				impactedReplicas[brokerID] = struct{}{}
 			}
-
 			errorCount += len(impactedReplicas)
-
 			if errorCount >= r.KafkaCluster.Spec.RollingUpgradeConfig.FailureThreshold {
 				return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("cluster is not healthy"), "rolling upgrade in progress")
+			}
+
+			// If multiple concurrent restarts and broker failures allowed, restart only brokers from the same AZ
+			if r.KafkaCluster.Spec.RollingUpgradeConfig.ConcurrentBrokerRestartCountPerRack > 1 && r.KafkaCluster.Spec.RollingUpgradeConfig.FailureThreshold > 1 {
+				if r.existsFailedBrokerFromAnotherRack(currentPodAz, impactedReplicas, kafkaBrokerAvailabilityZoneMap) {
+					return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("broker is not healthy from another AZ"), "rolling upgrade in progress")
+				}
 			}
 		}
 	}
@@ -940,6 +983,53 @@ func (r *Reconciler) handleRollingUpgrade(log logr.Logger, desiredPod, currentPo
 	return nil
 }
 
+func (r *Reconciler) checkCCRackAwareDistributionGoal() error {
+	cruiseControlURL := scale.CruiseControlURLFromKafkaCluster(r.KafkaCluster)
+	cc, err := r.CruiseControlScalerFactory(context.TODO(), r.KafkaCluster)
+	if err != nil {
+		return errorfactory.New(errorfactory.CruiseControlNotReady{}, err, "failed to initialize Cruise Control", "cruise control url", cruiseControlURL)
+	}
+	status, err := cc.Status(context.Background())
+	if err != nil {
+		return errorfactory.New(errorfactory.CruiseControlNotReady{}, errors.New("failed to get status from Cruise Control"), "rolling upgrade in progress")
+	}
+	if !slices.Contains(status.State.AnalyzerState.ReadyGoals, ccTypes.RackAwareDistributionGoal) {
+		return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("RackAwareDistributionGoal is not ready"), "rolling upgrade in progress")
+	}
+	for _, anomaly := range status.State.AnomalyDetectorState.RecentGoalViolations {
+		if slices.Contains(anomaly.FixableViolatedGoals, ccTypes.RackAwareDistributionGoal) || slices.Contains(anomaly.UnfixableViolatedGoals, ccTypes.RackAwareDistributionGoal) {
+			return errorfactory.New(errorfactory.ReconcileRollingUpgrade{}, errors.New("RackAwareDistributionGoal is violated"), "rolling upgrade in progress")
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) existsFailedBrokerFromAnotherRack(currentPodAz string, impactedReplicas map[int32]struct{}, kafkaBrokerAvailabilityZoneMap map[int32]string) bool {
+	if currentPodAz == "" && len(impactedReplicas) > 0 {
+		return true
+	}
+	for brokerWithFailure := range impactedReplicas {
+		if currentPodAz != kafkaBrokerAvailabilityZoneMap[brokerWithFailure] {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Reconciler) existsTerminatingPodFromAnotherAz(currentPodAz string, terminatingOrPendingPods []corev1.Pod, kafkaBrokerAvailabilityZoneMap map[int32]string) bool {
+	if currentPodAz == "" && len(terminatingOrPendingPods) > 0 {
+		return true
+	}
+	for _, terminatingOrPendingPod := range terminatingOrPendingPods {
+		terminatingOrPendingPodAz, err := r.getBrokerAz(&terminatingOrPendingPod, kafkaBrokerAvailabilityZoneMap)
+		if err != nil || currentPodAz != terminatingOrPendingPodAz {
+			return true
+		}
+	}
+	return false
+}
+
+//nolint:funlen
 func (r *Reconciler) reconcileKafkaPvc(ctx context.Context, log logr.Logger, brokersDesiredPvcs map[string][]*corev1.PersistentVolumeClaim) error {
 	brokersVolumesState := make(map[string]map[string]v1beta1.VolumeState)
 	var brokerIds []string
@@ -1287,6 +1377,27 @@ func (r *Reconciler) determineControllerId() (int32, error) {
 	}
 
 	return controllerID, nil
+}
+
+func getPodsInTerminatingOrPendingState(items []corev1.Pod) []corev1.Pod {
+	var pods []corev1.Pod
+	for _, pod := range items {
+		if k8sutil.IsMarkedForDeletion(pod.ObjectMeta) {
+			pods = append(pods, pod)
+		}
+		if k8sutil.IsPodContainsPendingContainer(&pod) {
+			pods = append(pods, pod)
+		}
+	}
+	return pods
+}
+
+func (r *Reconciler) getBrokerAz(pod *corev1.Pod, kafkaBrokerAvailabilityZoneMap map[int32]string) (string, error) {
+	brokerId, err := strconv.ParseInt(pod.Labels[v1beta1.BrokerIdLabelKey], 10, 32)
+	if err != nil {
+		return "", err
+	}
+	return kafkaBrokerAvailabilityZoneMap[int32(brokerId)], nil
 }
 
 func getServiceFromExternalListener(client client.Client, cluster *v1beta1.KafkaCluster,
