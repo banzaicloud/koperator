@@ -279,7 +279,7 @@ func (t Classifier) Complete() TestPool {
 type K8sClusterPool []K8sCluster
 
 // FeedFomDirectory creates K8sClusters from kubeconfigs in the specified directory and add them into the pool.
-func (k8sPool K8sClusterPool) FeedFomDirectory(kubeConfigDirectoryPath string) error {
+func (k8sPool *K8sClusterPool) FeedFomDirectory(kubeConfigDirectoryPath string) error {
 	files, err := os.ReadDir(kubeConfigDirectoryPath)
 	if err != nil {
 		return fmt.Errorf("unable to read kubeConfig directory '%s' error: %w", kubeConfigDirectoryPath, err)
@@ -297,7 +297,7 @@ func (k8sPool K8sClusterPool) FeedFomDirectory(kubeConfigDirectoryPath string) e
 			if err != nil {
 				return fmt.Errorf("could not get K8sClusters from file '%s' err: %w", kubectlPath, err)
 			}
-			k8sPool = append(k8sPool, k8sClusters...)
+			*k8sPool = append(*k8sPool, k8sClusters...)
 		}
 	}
 	return nil

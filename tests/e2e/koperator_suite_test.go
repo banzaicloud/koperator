@@ -37,7 +37,7 @@ import (
 var testPool tests.TestPool
 
 func beforeSuite() (tests.TestPool, error) {
-	k8sClusterPool := tests.K8sClusterPool{}
+	var k8sClusterPool tests.K8sClusterPool
 	if err := k8sClusterPool.FeedFomDirectory(viper.GetString(config.Tests.KubeConfigDirectoryPath)); err != nil {
 		return nil, err
 	}
