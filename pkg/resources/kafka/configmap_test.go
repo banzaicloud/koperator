@@ -653,8 +653,12 @@ zookeeper.connect=example.zk:2181/`,
 								Id:             0,
 								ReadOnlyConfig: test.perBrokerReadOnlyConfig,
 								BrokerConfig: &v1beta1.BrokerConfig{
-									Config:         test.perBrokerConfig,
-									StorageConfigs: test.perBrokerStorageConfig,
+									BrokerSpecificConfig: v1beta1.BrokerSpecificConfig{
+										Config: test.perBrokerConfig,
+									},
+									CommonConfig: v1beta1.CommonConfig{
+										StorageConfigs: test.perBrokerStorageConfig,
+									},
 								},
 							},
 							},

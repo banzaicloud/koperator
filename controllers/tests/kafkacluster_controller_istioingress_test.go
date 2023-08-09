@@ -455,8 +455,8 @@ var _ = Describe("KafkaClusterIstioIngressControllerWithBrokerIdBindings", func(
 				},
 			},
 		}
-		kafkaCluster.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az1"}}
-		kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az2"}}
+		kafkaCluster.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerSpecificConfig: v1beta1.BrokerSpecificConfig{BrokerIngressMapping: []string{"az1"}}}
+		kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerSpecificConfig: v1beta1.BrokerSpecificConfig{BrokerIngressMapping: []string{"az2"}}}
 	})
 
 	JustBeforeEach(func(ctx SpecContext) {

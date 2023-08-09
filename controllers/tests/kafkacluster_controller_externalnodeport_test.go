@@ -110,21 +110,33 @@ var _ = Describe("KafkaClusterNodeportExternalAccess", func() {
 			}
 			kafkaCluster.Spec.BrokerConfigGroups = map[string]v1beta1.BrokerConfig{
 				"br-0": {
-					StorageConfigs: defaultStorageConfig,
-					NodePortExternalIP: map[string]string{
-						"test": "1.2.3.4",
+					CommonConfig: v1beta1.CommonConfig{
+						StorageConfigs: defaultStorageConfig,
+					},
+					BrokerSpecificConfig: v1beta1.BrokerSpecificConfig{
+						NodePortExternalIP: map[string]string{
+							"test": "1.2.3.4",
+						},
 					},
 				},
 				"br-1": {
-					StorageConfigs: defaultStorageConfig,
-					NodePortExternalIP: map[string]string{
-						"test": "1.2.3.5",
+					CommonConfig: v1beta1.CommonConfig{
+						StorageConfigs: defaultStorageConfig,
+					},
+					BrokerSpecificConfig: v1beta1.BrokerSpecificConfig{
+						NodePortExternalIP: map[string]string{
+							"test": "1.2.3.5",
+						},
 					},
 				},
 				"br-2": {
-					StorageConfigs: defaultStorageConfig,
-					NodePortExternalIP: map[string]string{
-						"test": "1.2.3.6",
+					CommonConfig: v1beta1.CommonConfig{
+						StorageConfigs: defaultStorageConfig,
+					},
+					BrokerSpecificConfig: v1beta1.BrokerSpecificConfig{
+						NodePortExternalIP: map[string]string{
+							"test": "1.2.3.6",
+						},
 					},
 				},
 			}

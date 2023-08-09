@@ -368,8 +368,8 @@ var _ = Describe("KafkaCluster with two config external listener", func() {
 
 	When("configuring two ingress envoy controller config inside the external listener using both as bindings", func() {
 		BeforeEach(func() {
-			kafkaCluster.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az1"}}
-			kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerIngressMapping: []string{"az2"}}
+			kafkaCluster.Spec.Brokers[0].BrokerConfig = &v1beta1.BrokerConfig{BrokerSpecificConfig: v1beta1.BrokerSpecificConfig{BrokerIngressMapping: []string{"az1"}}}
+			kafkaCluster.Spec.Brokers[1].BrokerConfig = &v1beta1.BrokerConfig{BrokerSpecificConfig: v1beta1.BrokerSpecificConfig{BrokerIngressMapping: []string{"az2"}}}
 		})
 		It("should reconcile object properly", func(ctx SpecContext) {
 			expectEnvoyWithConfigAz1(ctx, kafkaCluster)

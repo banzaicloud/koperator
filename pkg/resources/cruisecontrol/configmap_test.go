@@ -45,10 +45,13 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 						{
 							Id: 0,
 							BrokerConfig: &v1beta1.BrokerConfig{
-								Resources: &v1.ResourceRequirements{
-									Limits: v1.ResourceList{
-										"cpu": cpuQuantity,
-									}},
+								CommonConfig: v1beta1.CommonConfig{
+									Resources: &v1.ResourceRequirements{
+										Limits: v1.ResourceList{
+											"cpu": cpuQuantity,
+										},
+									},
+								},
 							},
 						},
 						{
@@ -144,13 +147,15 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 				Spec: v1beta1.KafkaClusterSpec{
 					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 						"default": {
-							StorageConfigs: []v1beta1.StorageConfig{
-								{
-									MountPath: "/path-from-default",
-									PvcSpec: &v1.PersistentVolumeClaimSpec{
-										Resources: v1.ResourceRequirements{
-											Requests: v1.ResourceList{
-												v1.ResourceStorage: quantity,
+							CommonConfig: v1beta1.CommonConfig{
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/path-from-default",
+										PvcSpec: &v1.PersistentVolumeClaimSpec{
+											Resources: v1.ResourceRequirements{
+												Requests: v1.ResourceList{
+													v1.ResourceStorage: quantity,
+												},
 											},
 										},
 									},
@@ -163,10 +168,12 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 							Id:                0,
 							BrokerConfigGroup: "default",
 							BrokerConfig: &v1beta1.BrokerConfig{
-								Resources: &v1.ResourceRequirements{
-									Limits: v1.ResourceList{
-										"cpu": cpuQuantity,
-									}},
+								CommonConfig: v1beta1.CommonConfig{
+									Resources: &v1.ResourceRequirements{
+										Limits: v1.ResourceList{
+											"cpu": cpuQuantity,
+										}},
+								},
 							},
 						},
 						{
@@ -181,13 +188,15 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 							Id:                3,
 							BrokerConfigGroup: "default",
 							BrokerConfig: &v1beta1.BrokerConfig{
-								StorageConfigs: []v1beta1.StorageConfig{
-									{
-										MountPath: "/path1",
-										PvcSpec: &v1.PersistentVolumeClaimSpec{
-											Resources: v1.ResourceRequirements{
-												Requests: v1.ResourceList{
-													v1.ResourceStorage: quantity,
+								CommonConfig: v1beta1.CommonConfig{
+									StorageConfigs: []v1beta1.StorageConfig{
+										{
+											MountPath: "/path1",
+											PvcSpec: &v1.PersistentVolumeClaimSpec{
+												Resources: v1.ResourceRequirements{
+													Requests: v1.ResourceList{
+														v1.ResourceStorage: quantity,
+													},
 												},
 											},
 										},
@@ -267,13 +276,15 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 				Spec: v1beta1.KafkaClusterSpec{
 					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 						"default": {
-							StorageConfigs: []v1beta1.StorageConfig{
-								{
-									MountPath: "/path-from-default",
-									PvcSpec: &v1.PersistentVolumeClaimSpec{
-										Resources: v1.ResourceRequirements{
-											Requests: v1.ResourceList{
-												v1.ResourceStorage: quantity,
+							CommonConfig: v1beta1.CommonConfig{
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/path-from-default",
+										PvcSpec: &v1.PersistentVolumeClaimSpec{
+											Resources: v1.ResourceRequirements{
+												Requests: v1.ResourceList{
+													v1.ResourceStorage: quantity,
+												},
 											},
 										},
 									},
@@ -286,10 +297,12 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 							Id:                0,
 							BrokerConfigGroup: "default",
 							BrokerConfig: &v1beta1.BrokerConfig{
-								Resources: &v1.ResourceRequirements{
-									Limits: v1.ResourceList{
-										"cpu": cpuQuantity,
-									}},
+								CommonConfig: v1beta1.CommonConfig{
+									Resources: &v1.ResourceRequirements{
+										Limits: v1.ResourceList{
+											"cpu": cpuQuantity,
+										}},
+								},
 							},
 						},
 						{
@@ -388,13 +401,15 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 				Spec: v1beta1.KafkaClusterSpec{
 					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 						"default": {
-							StorageConfigs: []v1beta1.StorageConfig{
-								{
-									MountPath: "/path-from-default",
-									PvcSpec: &v1.PersistentVolumeClaimSpec{
-										Resources: v1.ResourceRequirements{
-											Requests: v1.ResourceList{
-												v1.ResourceStorage: oneMiQuantity,
+							CommonConfig: v1beta1.CommonConfig{
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/path-from-default",
+										PvcSpec: &v1.PersistentVolumeClaimSpec{
+											Resources: v1.ResourceRequirements{
+												Requests: v1.ResourceList{
+													v1.ResourceStorage: oneMiQuantity,
+												},
 											},
 										},
 									},
@@ -439,13 +454,15 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 				Spec: v1beta1.KafkaClusterSpec{
 					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 						"default": {
-							StorageConfigs: []v1beta1.StorageConfig{
-								{
-									MountPath: "/path-from-default",
-									PvcSpec: &v1.PersistentVolumeClaimSpec{
-										Resources: v1.ResourceRequirements{
-											Requests: v1.ResourceList{
-												v1.ResourceStorage: quantity,
+							CommonConfig: v1beta1.CommonConfig{
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/path-from-default",
+										PvcSpec: &v1.PersistentVolumeClaimSpec{
+											Resources: v1.ResourceRequirements{
+												Requests: v1.ResourceList{
+													v1.ResourceStorage: quantity,
+												},
 											},
 										},
 									},
@@ -469,17 +486,21 @@ func TestGenerateCapacityConfig_JBOD(t *testing.T) {
 						{
 							Id: 3,
 							BrokerConfig: &v1beta1.BrokerConfig{
-								NetworkConfig: &v1beta1.NetworkConfig{
-									IncomingNetworkThroughPut: "200",
-									OutgoingNetworkThroughPut: "200",
+								BrokerSpecificConfig: v1beta1.BrokerSpecificConfig{
+									NetworkConfig: &v1beta1.NetworkConfig{
+										IncomingNetworkThroughPut: "200",
+										OutgoingNetworkThroughPut: "200",
+									},
 								},
-								StorageConfigs: []v1beta1.StorageConfig{
-									{
-										MountPath: "/path1",
-										PvcSpec: &v1.PersistentVolumeClaimSpec{
-											Resources: v1.ResourceRequirements{
-												Requests: v1.ResourceList{
-													v1.ResourceStorage: quantity,
+								CommonConfig: v1beta1.CommonConfig{
+									StorageConfigs: []v1beta1.StorageConfig{
+										{
+											MountPath: "/path1",
+											PvcSpec: &v1.PersistentVolumeClaimSpec{
+												Resources: v1.ResourceRequirements{
+													Requests: v1.ResourceList{
+														v1.ResourceStorage: quantity,
+													},
 												},
 											},
 										},
@@ -588,13 +609,15 @@ func TestReturnErrorStorageConfigLessThan1MB(t *testing.T) {
 		Spec: v1beta1.KafkaClusterSpec{
 			BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 				"default": {
-					StorageConfigs: []v1beta1.StorageConfig{
-						{
-							MountPath: "/path-from-default",
-							PvcSpec: &v1.PersistentVolumeClaimSpec{
-								Resources: v1.ResourceRequirements{
-									Requests: v1.ResourceList{
-										v1.ResourceStorage: fiveHundredKiQuantity,
+					CommonConfig: v1beta1.CommonConfig{
+						StorageConfigs: []v1beta1.StorageConfig{
+							{
+								MountPath: "/path-from-default",
+								PvcSpec: &v1.PersistentVolumeClaimSpec{
+									Resources: v1.ResourceRequirements{
+										Requests: v1.ResourceList{
+											v1.ResourceStorage: fiveHundredKiQuantity,
+										},
 									},
 								},
 							},
@@ -939,44 +962,55 @@ func TestGenerateCapacityConfigWithUserProvidedInput(t *testing.T) {
 						{
 							Id: 0,
 							BrokerConfig: &v1beta1.BrokerConfig{
-								Resources: &v1.ResourceRequirements{
-									Limits: v1.ResourceList{
-										"cpu": cpuQuantity,
-									}},
+								CommonConfig: v1beta1.CommonConfig{
+									Resources: &v1.ResourceRequirements{
+										Limits: v1.ResourceList{
+											"cpu": cpuQuantity,
+										},
+									},
+								},
 							},
 						},
 						{
 							Id: 1,
 							BrokerConfig: &v1beta1.BrokerConfig{
-								Resources: &v1.ResourceRequirements{
-									Limits: v1.ResourceList{
-										"cpu": cpuQuantity,
-									}},
+								CommonConfig: v1beta1.CommonConfig{
+									Resources: &v1.ResourceRequirements{
+										Limits: v1.ResourceList{
+											"cpu": cpuQuantity,
+										},
+									},
+								},
 							},
 						},
 						{
 							Id: 2,
 							BrokerConfig: &v1beta1.BrokerConfig{
-								Resources: &v1.ResourceRequirements{
-									Limits: v1.ResourceList{
-										"cpu": cpuQuantity,
-									}},
+								CommonConfig: v1beta1.CommonConfig{
+									Resources: &v1.ResourceRequirements{
+										Limits: v1.ResourceList{
+											"cpu": cpuQuantity,
+										},
+									},
+								},
 							},
 						},
 						{
 							Id: 4,
 							BrokerConfig: &v1beta1.BrokerConfig{
-								Resources: &v1.ResourceRequirements{
-									Limits: v1.ResourceList{
-										"cpu": cpuQuantity,
-									}},
-								StorageConfigs: []v1beta1.StorageConfig{
-									{
-										MountPath: "/path1",
-										PvcSpec: &v1.PersistentVolumeClaimSpec{
-											Resources: v1.ResourceRequirements{
-												Requests: v1.ResourceList{
-													v1.ResourceStorage: resource.MustParse("100M"),
+								CommonConfig: v1beta1.CommonConfig{
+									Resources: &v1.ResourceRequirements{
+										Limits: v1.ResourceList{
+											"cpu": cpuQuantity,
+										}},
+									StorageConfigs: []v1beta1.StorageConfig{
+										{
+											MountPath: "/path1",
+											PvcSpec: &v1.PersistentVolumeClaimSpec{
+												Resources: v1.ResourceRequirements{
+													Requests: v1.ResourceList{
+														v1.ResourceStorage: resource.MustParse("100M"),
+													},
 												},
 											},
 										},

@@ -390,24 +390,26 @@ func upScale(log logr.Logger, labels model.LabelSet, annotations model.LabelSet,
 		broker = v1beta1.Broker{
 			Id: biggestId + 1,
 			BrokerConfig: &v1beta1.BrokerConfig{
-				Image: string(annotations["image"]),
-				StorageConfigs: []v1beta1.StorageConfig{
-					{
-						MountPath: string(annotations["mountPath"]),
-						PvcSpec: &corev1.PersistentVolumeClaimSpec{
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-							StorageClassName: storageClassName,
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse(string(annotations["diskSize"])),
+				CommonConfig: v1beta1.CommonConfig{
+					Image: string(annotations["image"]),
+					StorageConfigs: []v1beta1.StorageConfig{
+						{
+							MountPath: string(annotations["mountPath"]),
+							PvcSpec: &corev1.PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+								StorageClassName: storageClassName,
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse(string(annotations["diskSize"])),
+									},
 								},
 							},
 						},
 					},
+					Annotations: brokerAnnotations,
 				},
-				BrokerAnnotations: brokerAnnotations,
 			},
 		}
 	}

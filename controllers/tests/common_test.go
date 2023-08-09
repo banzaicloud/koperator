@@ -77,28 +77,30 @@ func createMinimalKafkaClusterCR(name, namespace string) *v1beta1.KafkaCluster {
 			},
 			BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 				defaultBrokerConfigGroup: {
-					StorageConfigs: []v1beta1.StorageConfig{
-						{
-							MountPath: "/kafka-logs",
-							PvcSpec: &corev1.PersistentVolumeClaimSpec{
-								AccessModes: []corev1.PersistentVolumeAccessMode{
-									corev1.ReadWriteOnce,
-								},
-								Resources: corev1.ResourceRequirements{
-									Requests: map[corev1.ResourceName]resource.Quantity{
-										corev1.ResourceStorage: resource.MustParse("10Gi"),
+					CommonConfig: v1beta1.CommonConfig{
+						StorageConfigs: []v1beta1.StorageConfig{
+							{
+								MountPath: "/kafka-logs",
+								PvcSpec: &corev1.PersistentVolumeClaimSpec{
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
+									Resources: corev1.ResourceRequirements{
+										Requests: map[corev1.ResourceName]resource.Quantity{
+											corev1.ResourceStorage: resource.MustParse("10Gi"),
+										},
 									},
 								},
+								// emptyDir should be ignored as pvcSpec has prio
+								EmptyDir: &corev1.EmptyDirVolumeSource{
+									SizeLimit: util.QuantityPointer(resource.MustParse("20Mi")),
+								},
 							},
-							// emptyDir should be ignored as pvcSpec has prio
-							EmptyDir: &corev1.EmptyDirVolumeSource{
-								SizeLimit: util.QuantityPointer(resource.MustParse("20Mi")),
-							},
-						},
-						{
-							MountPath: "/ephemeral-dir1",
-							EmptyDir: &corev1.EmptyDirVolumeSource{
-								SizeLimit: util.QuantityPointer(resource.MustParse("100Mi")),
+							{
+								MountPath: "/ephemeral-dir1",
+								EmptyDir: &corev1.EmptyDirVolumeSource{
+									SizeLimit: util.QuantityPointer(resource.MustParse("100Mi")),
+								},
 							},
 						},
 					},

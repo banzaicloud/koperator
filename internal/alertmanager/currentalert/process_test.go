@@ -93,13 +93,15 @@ func Test_resizePvc(t *testing.T) {
 				Spec: v1beta1.KafkaClusterSpec{
 					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 						"default": {
-							StorageConfigs: []v1beta1.StorageConfig{
-								{
-									MountPath: "/kafka-logs",
-									PvcSpec: &corev1.PersistentVolumeClaimSpec{
-										Resources: corev1.ResourceRequirements{
-											Requests: corev1.ResourceList{
-												corev1.ResourceStorage: resource.MustParse("4Gi"),
+							CommonConfig: v1beta1.CommonConfig{
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/kafka-logs",
+										PvcSpec: &corev1.PersistentVolumeClaimSpec{
+											Resources: corev1.ResourceRequirements{
+												Requests: corev1.ResourceList{
+													corev1.ResourceStorage: resource.MustParse("4Gi"),
+												},
 											},
 										},
 									},
@@ -161,13 +163,15 @@ func Test_resizePvc(t *testing.T) {
 				Spec: v1beta1.KafkaClusterSpec{
 					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 						"default": {
-							StorageConfigs: []v1beta1.StorageConfig{
-								{
-									MountPath: "/kafka-logs",
-									PvcSpec: &corev1.PersistentVolumeClaimSpec{
-										Resources: corev1.ResourceRequirements{
-											Requests: corev1.ResourceList{
-												corev1.ResourceStorage: resource.MustParse("1Gi"),
+							CommonConfig: v1beta1.CommonConfig{
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/kafka-logs",
+										PvcSpec: &corev1.PersistentVolumeClaimSpec{
+											Resources: corev1.ResourceRequirements{
+												Requests: corev1.ResourceList{
+													corev1.ResourceStorage: resource.MustParse("1Gi"),
+												},
 											},
 										},
 									},
@@ -179,13 +183,15 @@ func Test_resizePvc(t *testing.T) {
 						{
 							Id: int32(0),
 							BrokerConfig: &v1beta1.BrokerConfig{
-								StorageConfigs: []v1beta1.StorageConfig{
-									{
-										MountPath: "/kafka-logs",
-										PvcSpec: &corev1.PersistentVolumeClaimSpec{
-											Resources: corev1.ResourceRequirements{
-												Requests: corev1.ResourceList{
-													corev1.ResourceStorage: resource.MustParse("4Gi"),
+								CommonConfig: v1beta1.CommonConfig{
+									StorageConfigs: []v1beta1.StorageConfig{
+										{
+											MountPath: "/kafka-logs",
+											PvcSpec: &corev1.PersistentVolumeClaimSpec{
+												Resources: corev1.ResourceRequirements{
+													Requests: corev1.ResourceList{
+														corev1.ResourceStorage: resource.MustParse("4Gi"),
+													},
 												},
 											},
 										},
@@ -462,14 +468,16 @@ func Test_upScale(t *testing.T) {
 				Spec: v1beta1.KafkaClusterSpec{
 					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 						"default": {
-							StorageConfigs: []v1beta1.StorageConfig{
-								{
-									MountPath: "/kafka-logs",
-									PvcSpec: &corev1.PersistentVolumeClaimSpec{
-										AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-										Resources: corev1.ResourceRequirements{
-											Requests: corev1.ResourceList{
-												corev1.ResourceStorage: resource.MustParse("4Gi"),
+							CommonConfig: v1beta1.CommonConfig{
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/kafka-logs",
+										PvcSpec: &corev1.PersistentVolumeClaimSpec{
+											AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+											Resources: corev1.ResourceRequirements{
+												Requests: corev1.ResourceList{
+													corev1.ResourceStorage: resource.MustParse("4Gi"),
+												},
 											},
 										},
 									},
@@ -504,13 +512,15 @@ func Test_upScale(t *testing.T) {
 				Spec: v1beta1.KafkaClusterSpec{
 					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 						"default": {
-							StorageConfigs: []v1beta1.StorageConfig{
-								{
-									MountPath: "/kafka-logs",
-									PvcSpec: &corev1.PersistentVolumeClaimSpec{
-										Resources: corev1.ResourceRequirements{
-											Requests: corev1.ResourceList{
-												corev1.ResourceStorage: resource.MustParse("4Gi"),
+							CommonConfig: v1beta1.CommonConfig{
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/kafka-logs",
+										PvcSpec: &corev1.PersistentVolumeClaimSpec{
+											Resources: corev1.ResourceRequirements{
+												Requests: corev1.ResourceList{
+													corev1.ResourceStorage: resource.MustParse("4Gi"),
+												},
 											},
 										},
 									},
@@ -540,17 +550,19 @@ func Test_upScale(t *testing.T) {
 			expectedBrokers: []v1beta1.Broker{
 				{Id: 0, BrokerConfigGroup: "default"},
 				{Id: 1, BrokerConfig: &v1beta1.BrokerConfig{
-					Image:             "org/kafka:tag",
-					BrokerAnnotations: map[string]string{"test annotation1": "ann value1", "test annotation2": "ann value2"},
-					StorageConfigs: []v1beta1.StorageConfig{
-						{
-							MountPath: "/kafkalog",
-							PvcSpec: &corev1.PersistentVolumeClaimSpec{
-								StorageClassName: util.StringPointer("gp2"),
-								AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-								Resources: corev1.ResourceRequirements{
-									Requests: map[corev1.ResourceName]resource.Quantity{
-										corev1.ResourceStorage: resource.MustParse("10G"),
+					CommonConfig: v1beta1.CommonConfig{
+						Image:       "org/kafka:tag",
+						Annotations: map[string]string{"test annotation1": "ann value1", "test annotation2": "ann value2"},
+						StorageConfigs: []v1beta1.StorageConfig{
+							{
+								MountPath: "/kafkalog",
+								PvcSpec: &corev1.PersistentVolumeClaimSpec{
+									StorageClassName: util.StringPointer("gp2"),
+									AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+									Resources: corev1.ResourceRequirements{
+										Requests: map[corev1.ResourceName]resource.Quantity{
+											corev1.ResourceStorage: resource.MustParse("10G"),
+										},
 									},
 								},
 							},
@@ -618,14 +630,16 @@ func Test_downScale(t *testing.T) {
 				Spec: v1beta1.KafkaClusterSpec{
 					BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 						"default": {
-							StorageConfigs: []v1beta1.StorageConfig{
-								{
-									MountPath: "/kafka-logs",
-									PvcSpec: &corev1.PersistentVolumeClaimSpec{
-										AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-										Resources: corev1.ResourceRequirements{
-											Requests: corev1.ResourceList{
-												corev1.ResourceStorage: resource.MustParse("4Gi"),
+							CommonConfig: v1beta1.CommonConfig{
+								StorageConfigs: []v1beta1.StorageConfig{
+									{
+										MountPath: "/kafka-logs",
+										PvcSpec: &corev1.PersistentVolumeClaimSpec{
+											AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+											Resources: corev1.ResourceRequirements{
+												Requests: corev1.ResourceList{
+													corev1.ResourceStorage: resource.MustParse("4Gi"),
+												},
 											},
 										},
 									},
@@ -736,16 +750,18 @@ func setupEnvironment(t *testing.T, testClient client.Client) {
 			},
 			BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 				"default": {
-					StorageConfigs: []v1beta1.StorageConfig{
-						{
-							MountPath: "/kafka-logs",
-							PvcSpec: &corev1.PersistentVolumeClaimSpec{
-								AccessModes: []corev1.PersistentVolumeAccessMode{
-									"ReadWriteOnce",
-								},
-								Resources: corev1.ResourceRequirements{
-									Requests: map[corev1.ResourceName]resource.Quantity{
-										"storage": storageResourceQuantity,
+					CommonConfig: v1beta1.CommonConfig{
+						StorageConfigs: []v1beta1.StorageConfig{
+							{
+								MountPath: "/kafka-logs",
+								PvcSpec: &corev1.PersistentVolumeClaimSpec{
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										"ReadWriteOnce",
+									},
+									Resources: corev1.ResourceRequirements{
+										Requests: map[corev1.ResourceName]resource.Quantity{
+											"storage": storageResourceQuantity,
+										},
 									},
 								},
 							},

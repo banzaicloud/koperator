@@ -85,7 +85,7 @@ func TestGetAffinity(t *testing.T) {
 	affinity = getAffinity(mergedAffinityBrokerConfig2, &cluster)
 	assert.DeepEqual(t, affinity.PodAntiAffinity, defaultPodAntiAffinity.PodAntiAffinity)
 
-	nonNilAffinityBrokerConfig := v1beta1.BrokerConfig{Affinity: &corev1.Affinity{PodAntiAffinity: &corev1.PodAntiAffinity{}}}
+	nonNilAffinityBrokerConfig := v1beta1.BrokerConfig{CommonConfig: v1beta1.CommonConfig{Affinity: &corev1.Affinity{PodAntiAffinity: &corev1.PodAntiAffinity{}}}}
 
 	cluster.Spec.OneBrokerPerNode = false
 	// still expecting old behavior but with only a preferred anti-affinity
@@ -125,16 +125,18 @@ func Test_generateEnvConfig(t *testing.T) {
 		Id:                0,
 		BrokerConfigGroup: "default",
 		BrokerConfig: &v1beta1.BrokerConfig{
-			Envs: []corev1.EnvVar{
-				{Name: "c", Value: "broker"},
-				{Name: "f+ ", Value: "broker"},
-				{Name: " h", Value: "broker"},
-				{Name: "i+", Value: "broker"},
-				{Name: "j", Value: "broker"},
-				{Name: " +k", Value: "broker"},
-				{Name: "+l", Value: "broker"},
-				{Name: "m+ ", Value: "broker"},
-				{Name: " +o", Value: "broker"},
+			CommonConfig: v1beta1.CommonConfig{
+				Envs: []corev1.EnvVar{
+					{Name: "c", Value: "broker"},
+					{Name: "f+ ", Value: "broker"},
+					{Name: " h", Value: "broker"},
+					{Name: "i+", Value: "broker"},
+					{Name: "j", Value: "broker"},
+					{Name: " +k", Value: "broker"},
+					{Name: "+l", Value: "broker"},
+					{Name: "m+ ", Value: "broker"},
+					{Name: " +o", Value: "broker"},
+				},
 			},
 		},
 	}
@@ -153,17 +155,19 @@ func Test_generateEnvConfig(t *testing.T) {
 		},
 		BrokerConfigGroups: map[string]v1beta1.BrokerConfig{
 			"default": {
-				Envs: []corev1.EnvVar{
-					{Name: "b", Value: "group"},
-					{Name: "e+", Value: "group"},
-					{Name: "g", Value: "group"},
-					{Name: "h", Value: "group"},
-					{Name: "i", Value: "group"},
-					{Name: "j+ ", Value: "group"},
-					{Name: "k+", Value: " group"},
-					{Name: "l+ ", Value: " group"},
-					{Name: "m+", Value: "group"},
-					{Name: "+o ", Value: "group"},
+				CommonConfig: v1beta1.CommonConfig{
+					Envs: []corev1.EnvVar{
+						{Name: "b", Value: "group"},
+						{Name: "e+", Value: "group"},
+						{Name: "g", Value: "group"},
+						{Name: "h", Value: "group"},
+						{Name: "i", Value: "group"},
+						{Name: "j+ ", Value: "group"},
+						{Name: "k+", Value: " group"},
+						{Name: "l+ ", Value: " group"},
+						{Name: "m+", Value: "group"},
+						{Name: "+o ", Value: "group"},
+					},
 				},
 			},
 		},
