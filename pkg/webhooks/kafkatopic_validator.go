@@ -253,7 +253,7 @@ func (s *KafkaTopicValidator) checkExistingKafkaTopicCRs(ctx context.Context,
 		}
 	}
 	if foundKafkaTopic != nil {
-		logMsg := fmt.Sprintf("kafkaTopic CR '%s' in namesapce '%s' is already referencing to Kafka topic '%s'",
+		logMsg := fmt.Sprintf("kafkaTopic CR '%s' in namespace '%s' is already referencing to Kafka topic '%s'",
 			foundKafkaTopic.Name, foundKafkaTopic.Namespace, foundKafkaTopic.Spec.Name)
 		return field.Invalid(field.NewPath("spec").Child("name"), foundKafkaTopic.Spec.Name, logMsg), nil
 	}
