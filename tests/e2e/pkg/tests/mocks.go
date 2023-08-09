@@ -27,7 +27,7 @@ import (
 //	Expected (minimal strategy):
 //	  - 2 testCases
 //	  - 1 testCase on any of the available K8sClusters
-//	  - runtime parallel: 1x(5) = 5sec (time of the longest testCase)
+//	  - runtime parallel: 1x(3) = 3sec (time of the longest testCase)
 func MockTestsMinimal() Classifier {
 	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
@@ -61,7 +61,7 @@ func MockTestsMinimal() Classifier {
 //	Expected (provider strategy):
 //	  - 6 testCases
 //	  - 2 testCases on different providers
-//	  - runtime parallel: 3x(3) = 9sec
+//	  - runtime parallel: 2 + 3 = 5sec
 func MockTestsProvider() Classifier {
 	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
@@ -95,7 +95,7 @@ func MockTestsProvider() Classifier {
 //	Expected (provider strategy):
 //	  - 6 testCases
 //	  - 3 testCases on different providers
-//	  - runtime parallel: 4 + 4 + 5 = 13sec
+//	  - runtime parallel: 2 + 3 + 4 = 9sec
 func MockTestsProviderMoreTestsThenProvider() Classifier {
 	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
@@ -122,7 +122,7 @@ func MockTestsProviderMoreTestsThenProvider() Classifier {
 //	Expected (version strategy):
 //	  - 2 testCases
 //	  - 1 testCase on any of the available K8sClusters
-//	  - runtime parallel: 1 x 5 = 5sec
+//	  - runtime parallel: 1 x 3 = 3sec
 func MockTestsVersionOne() Classifier {
 	k8sClusterPool := K8sClusterPool{
 		NewMockK8sCluster(
@@ -147,8 +147,8 @@ func MockTestsVersionOne() Classifier {
 // The Classifier contains 2 tests.
 //
 //	Expected (version strategy):
-//	  - 2 testCases
-//	  - 1 testCase on any of the available K8sClusters
+//	  - 4 testCases
+//	  - 2 testCase on any of the available K8sClusters
 //	  - runtime parallel: 1 x 5 = 5sec
 func MockTestsVersion() Classifier {
 	k8sClusterPool := K8sClusterPool{
@@ -220,7 +220,7 @@ func MockTestsComplete() Classifier {
 
 var mockTest1 = TestCase{
 	SpecsCount: 2,
-	Duration:   4 * time.Second,
+	Duration:   2 * time.Second,
 	Name:       "MockTest1",
 	TestFn:     testMockTest1,
 }
@@ -236,7 +236,7 @@ func testMockTest1(kubectlOptions k8s.KubectlOptions) {
 
 var mockTest2 = TestCase{
 	SpecsCount: 3,
-	Duration:   5 * time.Second,
+	Duration:   3 * time.Second,
 	Name:       "MockTest2",
 	TestFn:     testMockTest2,
 }

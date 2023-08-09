@@ -16,6 +16,9 @@ package tests
 
 import (
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_Classifier_minimal(t *testing.T) {
@@ -557,6 +560,52 @@ func Test_Classifier_complete(t *testing.T) {
 			if !got.Equal(tt.want) {
 				t.Errorf("want: %v\ngot: %v", tt.want, got)
 			}
+		})
+	}
+}
+
+func TestTestPool_GetTestSuiteDurationParallel(t *testing.T) {
+	tests := []struct {
+		name  string
+		tests TestPool
+		want  time.Duration
+	}{
+		{
+			name:  "MockTestsProvider",
+			tests: MockTestsProvider().ProviderComplete(),
+			want:  5 * time.Second,
+		},
+		{
+			name:  "MockTestsProviderMoreTestsThenProvider",
+			tests: MockTestsProviderMoreTestsThenProvider().ProviderComplete(),
+			want:  9 * time.Second,
+		},
+
+		{
+			name:  "MockTestsVersionOne",
+			tests: MockTestsVersionOne().VersionComplete(),
+			want:  3 * time.Second,
+		},
+		{
+			name:  "MockTestsComplete",
+			tests: MockTestsComplete().Complete(),
+			want:  5 * time.Second,
+		},
+		{
+			name:  "MockTestsVersion",
+			tests: MockTestsVersion().VersionComplete(),
+			want:  5 * time.Second,
+		},
+		{
+			name:  "MockTestsMinimal",
+			tests: MockTestsMinimal().Minimal(),
+			want:  3 * time.Second,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.tests.GetTestSuiteDurationParallel()
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
