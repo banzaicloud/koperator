@@ -27,21 +27,21 @@ const (
 var k8sProviderRegexp = map[k8sProvider]string{
 	k8sProviderGKE:  "^gke-",
 	k8sProviderAKS:  "^aks-",
-	k8sProviderPKE:  ".compute.internal", //TODO (marbarta): this is not so good (is not unique PKE)
+	k8sProviderPKE:  ".compute.internal@v[0-9].[0-9]+.[0-9]+$", //TODO (marbarta): this is not so good (is not unique PKE)
 	k8sProviderEKS:  ".[0-9]-eks-",
 	k8sProviderKind: "^kind",
 }
 
 func versionIdentifier(version string) (string, error) {
-	version = regexp.MustCompile(k8sVersionRegexp).FindString(version)
-	if version == "" {
+	versionMatch := regexp.MustCompile(k8sVersionRegexp).FindString(version)
+	if versionMatch == "" {
 		return "", fmt.Errorf("K8s cluster version could not be recognized: '%s'", version)
 	}
-	return version, nil
+	return versionMatch, nil
 }
 
 func providerIdentifier(node corev1.Node) (k8sProvider, error) {
-	checkString := node.Name + node.Status.NodeInfo.KubeletVersion
+	checkString := node.Name + "@" + node.Status.NodeInfo.KubeletVersion
 	var foundProvider k8sProvider
 	for provider, regexpProvider := range k8sProviderRegexp {
 		if regexp.MustCompile(regexpProvider).MatchString(checkString) {
