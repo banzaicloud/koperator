@@ -609,3 +609,163 @@ func TestTestPool_GetTestSuiteDurationParallel(t *testing.T) {
 		})
 	}
 }
+
+func TestTestPool_Equal(t *testing.T) {
+	type args struct {
+		other TestPool
+	}
+	tests := []struct {
+		name  string
+		tests TestPool
+		args  args
+		want  bool
+	}{
+		{
+			name: "Simple case true",
+			tests: []Test{
+				{
+					testCase: mockTest1,
+					k8sCluster: NewMockK8sCluster(
+						"testContextPath2",
+						"testContextName2",
+						"1.25",
+						"provider2",
+						"clusterID1",
+					),
+				},
+				{
+					testCase: mockTest1,
+					k8sCluster: NewMockK8sCluster(
+						"testContextPath3",
+						"testContextName2",
+						"1.25",
+						"provider2",
+						"clusterID2",
+					),
+				},
+				{
+					testCase: mockTest1,
+					k8sCluster: NewMockK8sCluster(
+						"testContextPath3",
+						"testContextName3",
+						"1.25",
+						"provider2",
+						"clusterID3",
+					),
+				},
+			},
+			args: args{
+				other: []Test{
+					{
+						testCase: mockTest1,
+						k8sCluster: NewMockK8sCluster(
+							"testContextPath3",
+							"testContextName2",
+							"1.25",
+							"provider2",
+							"clusterID2",
+						),
+					},
+					{
+						testCase: mockTest1,
+						k8sCluster: NewMockK8sCluster(
+							"testContextPath2",
+							"testContextName2",
+							"1.25",
+							"provider2",
+							"clusterID1",
+						),
+					},
+					{
+						testCase: mockTest1,
+						k8sCluster: NewMockK8sCluster(
+							"testContextPath3",
+							"testContextName3",
+							"1.25",
+							"provider2",
+							"clusterID3",
+						),
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Simple case false",
+			tests: []Test{
+				{
+					testCase: mockTest1,
+					k8sCluster: NewMockK8sCluster(
+						"testContextPath2",
+						"testContextName2",
+						"1.25",
+						"provider2",
+						"clusterID1",
+					),
+				},
+				{
+					testCase: mockTest1,
+					k8sCluster: NewMockK8sCluster(
+						"testContextPath3",
+						"testContextName2",
+						"1.25",
+						"provider2",
+						"clusterID2",
+					),
+				},
+				{
+					testCase: mockTest1,
+					k8sCluster: NewMockK8sCluster(
+						"testContextPath3",
+						"testContextName3",
+						"1.25",
+						"provider2",
+						"clusterID3",
+					),
+				},
+			},
+			args: args{
+				other: []Test{
+					{
+						testCase: mockTest1,
+						k8sCluster: NewMockK8sCluster(
+							"testContextPath3",
+							"testContextName2",
+							"1.25",
+							"provider2",
+							"clusterID2",
+						),
+					},
+					{
+						testCase: mockTest1,
+						k8sCluster: NewMockK8sCluster(
+							"testContextPath2",
+							"testContextName2",
+							"1.25",
+							"provider2",
+							"clusterID1",
+						),
+					},
+					{
+						testCase: mockTest1,
+						k8sCluster: NewMockK8sCluster(
+							"testContextPath3",
+							"testContextName3",
+							"1.25",
+							"provider2",
+							"clusterID4",
+						),
+					},
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			got := tt.tests.Equal(tt.args.other)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

@@ -380,7 +380,7 @@ func (t Test) less(test Test) bool {
 
 // generateTestID generates the test UID based on the name of the test and the K8sCluster.
 func (t *Test) generateTestID() string {
-	text := fmt.Sprintf("%v%v", t.testCase.Name, t.k8sCluster)
+	text := fmt.Sprintf("%v%#v", t.testCase.Name, t.k8sCluster)
 	hash := md5.Sum([]byte(text))
 	t.testID = hex.EncodeToString(hash[:5])
 
@@ -389,6 +389,9 @@ func (t *Test) generateTestID() string {
 
 // TestID returns the test UID based on the name of the test and the K8sCluster.
 func (t *Test) TestID() string {
+	if t.testID == "" {
+		t.generateTestID()
+	}
 	return t.testID
 }
 
