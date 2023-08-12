@@ -91,7 +91,7 @@ install-kustomize:
 
 # Run tests
 test: generate fmt vet manifests bin/setup-envtest
-	cd api && go test ./...
+	go test -failfast ./api/... ./tests/e2e/... ./properties/...
 	KUBEBUILDER_ASSETS=$$($(BIN_DIR)/setup-envtest --print path --bin-dir $(BIN_DIR) use $(ENVTEST_K8S_VERSION)) \
 	go test ./... \
 		-coverprofile cover.out \
@@ -100,7 +100,6 @@ test: generate fmt vet manifests bin/setup-envtest
 		-test.v \
 		-test.paniconexit0 \
 		-timeout 1h
-	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
 bin/ginkgo: $(BIN_DIR)/ginkgo-$(GINKGO_VERSION)
 	@ln -sf ginkgo-$(GINKGO_VERSION) $(BIN_DIR)/ginkgo
