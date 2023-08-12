@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -230,7 +231,7 @@ func Test_Classifier_versionComplete(t *testing.T) {
 			fields: fields{
 				k8sClusterPool: K8sClusterPool{
 					{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local1", ConfigPath: "local1"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
@@ -238,9 +239,9 @@ func Test_Classifier_versionComplete(t *testing.T) {
 						},
 					},
 					{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local2", ConfigPath: "local2"},
 						clusterInfo: k8sClusterInfo{
-							clusterID: "local1",
+							clusterID: "local2",
 							version:   "1.25",
 							provider:  "provider1",
 						},
@@ -261,7 +262,7 @@ func Test_Classifier_versionComplete(t *testing.T) {
 						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local1", ConfigPath: "local1"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
@@ -274,7 +275,7 @@ func Test_Classifier_versionComplete(t *testing.T) {
 						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local1", ConfigPath: "local1"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
@@ -287,10 +288,10 @@ func Test_Classifier_versionComplete(t *testing.T) {
 						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local2", ConfigPath: "local2"},
 						clusterInfo: k8sClusterInfo{
-							clusterID: "local1",
-							version:   "1.24",
+							clusterID: "local2",
+							version:   "1.25",
 							provider:  "provider1",
 						},
 					},
@@ -300,10 +301,10 @@ func Test_Classifier_versionComplete(t *testing.T) {
 						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local2", ConfigPath: "local2"},
 						clusterInfo: k8sClusterInfo{
-							clusterID: "local1",
-							version:   "1.24",
+							clusterID: "local2",
+							version:   "1.25",
 							provider:  "provider1",
 						},
 					},
@@ -426,7 +427,7 @@ func Test_Classifier_complete(t *testing.T) {
 			fields: fields{
 				k8sClusterPool: K8sClusterPool{
 					{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local1", ConfigPath: "local1"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
@@ -434,7 +435,7 @@ func Test_Classifier_complete(t *testing.T) {
 						},
 					},
 					{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local2", ConfigPath: "local2"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local2",
 							version:   "1.25",
@@ -442,7 +443,7 @@ func Test_Classifier_complete(t *testing.T) {
 						},
 					},
 					{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local3", ConfigPath: "local3"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local3",
 							version:   "1.25",
@@ -450,7 +451,7 @@ func Test_Classifier_complete(t *testing.T) {
 						},
 					},
 					{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local4", ConfigPath: "local4"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local4",
 							version:   "1.25",
@@ -473,7 +474,7 @@ func Test_Classifier_complete(t *testing.T) {
 						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local1", ConfigPath: "local1"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
@@ -486,7 +487,7 @@ func Test_Classifier_complete(t *testing.T) {
 						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local1", ConfigPath: "local1"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local1",
 							version:   "1.24",
@@ -499,7 +500,7 @@ func Test_Classifier_complete(t *testing.T) {
 						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local2", ConfigPath: "local2"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local2",
 							version:   "1.25",
@@ -512,7 +513,7 @@ func Test_Classifier_complete(t *testing.T) {
 						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local2", ConfigPath: "local2"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local2",
 							version:   "1.25",
@@ -525,7 +526,7 @@ func Test_Classifier_complete(t *testing.T) {
 						Name: "testCase1",
 					},
 					k8sCluster: K8sCluster{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local3", ConfigPath: "local3"},
 						clusterInfo: k8sClusterInfo{
 							clusterID: "local3",
 							version:   "1.25",
@@ -538,9 +539,9 @@ func Test_Classifier_complete(t *testing.T) {
 						Name: "testCase2",
 					},
 					k8sCluster: K8sCluster{
-
+						kubectlOptions: k8s.KubectlOptions{ContextName: "local4", ConfigPath: "local4"},
 						clusterInfo: k8sClusterInfo{
-							clusterID: "local3",
+							clusterID: "local4",
 							version:   "1.25",
 							provider:  "provider3",
 						},
