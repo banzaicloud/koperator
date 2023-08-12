@@ -211,10 +211,7 @@ func (t Classifier) Minimal() TestPool {
 	tests := make([]Test, 0, len(t.testCases))
 
 	for i, testCase := range t.testCases {
-		tests = append(tests, Test{
-			testCase:   testCase,
-			k8sCluster: t.k8sClusterPool[i%len(t.k8sClusterPool)],
-		})
+		tests = append(tests, NewTest(testCase, t.k8sClusterPool[i%len(t.k8sClusterPool)]))
 	}
 	return tests
 }
@@ -228,10 +225,7 @@ func (t Classifier) VersionComplete() TestPool {
 
 	for _, k8sClusters := range k8sClustersByVersion {
 		for i, testCase := range t.testCases {
-			tests = append(tests, Test{
-				testCase:   testCase,
-				k8sCluster: k8sClusters[i%len(k8sClusters)],
-			})
+			tests = append(tests, NewTest(testCase, k8sClusters[i%len(k8sClusters)]))
 		}
 	}
 	return tests
@@ -246,10 +240,7 @@ func (t Classifier) ProviderComplete() TestPool {
 
 	for _, k8sClusters := range k8sClustersByProviders {
 		for i, testCase := range t.testCases {
-			tests = append(tests, Test{
-				testCase:   testCase,
-				k8sCluster: k8sClusters[i%len(k8sClusters)],
-			})
+			tests = append(tests, NewTest(testCase, k8sClusters[i%len(k8sClusters)]))
 		}
 	}
 	return tests
@@ -265,10 +256,7 @@ func (t Classifier) Complete() TestPool {
 	for _, byVersions := range k8sClustersByProvidersVersions {
 		for _, k8sClusters := range byVersions {
 			for i, testCase := range t.testCases {
-				tests = append(tests, Test{
-					testCase:   testCase,
-					k8sCluster: k8sClusters[i%len(k8sClusters)],
-				})
+				tests = append(tests, NewTest(testCase, k8sClusters[i%len(k8sClusters)]))
 			}
 		}
 	}
