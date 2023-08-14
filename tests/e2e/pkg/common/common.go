@@ -30,6 +30,7 @@ import (
 // on the the environment variables and the KUBECONFIG file.
 func CurrentEnvK8sContext() (kubeconfigPath string, kubecontextName string, err error) {
 	kubeconfigPath, isExisting := os.LookupEnv("KUBECONFIG")
+
 	if !isExisting {
 		homePath, err := os.UserHomeDir()
 		if err != nil {
@@ -91,23 +92,22 @@ func GetDefaultKubeContext(kubeconfigPath string) (string, error) {
 	return kubecontext, nil
 }
 
-// GetRawConfig creates a raw clientcmd api config
-func GetRawConfig(kubeconfigPath string) (api.Config, error) {
+// CreateRawConfig creates a raw clientcmd api config
+func CreateRawConfig(kubeconfigPath string) (api.Config, error) {
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	if kubeconfigPath == "" {
 		return api.Config{}, errors.New("missing kubeconfigPath")
 	}
 	rules.ExplicitPath = kubeconfigPath
 
-	clientConfig := clientcmd.
-		NewNonInteractiveDeferredLoadingClientConfig(rules, nil)
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, nil)
 
 	return clientConfig.RawConfig()
 }
 
 // GetKubeContexts returns the available kubecontext names in the kubeconfig file
 func GetKubeContexts(kubeconfigPath string) ([]string, error) {
-	configs, err := GetRawConfig(kubeconfigPath)
+	configs, err := CreateRawConfig(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
