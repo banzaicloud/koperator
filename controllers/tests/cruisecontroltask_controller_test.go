@@ -88,7 +88,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	When("new storage is added", Serial, func() {
 
 		JustBeforeEach(func(ctx SpecContext) {
-			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask2([]string{mountPath}))
+			kafkaClusterCCReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMockCCTask2([]string{mountPath}))
 
 			err := util.RetryOnConflict(util.DefaultBackOffForConflict, func() error {
 				if err := k8sClient.Get(ctx, types.NamespacedName{
@@ -147,7 +147,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("new storage is added but there is a not JBOD capacityConfig for that", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask2([]string{mountPath}))
+			kafkaClusterCCReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMockCCTask2([]string{mountPath}))
 			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
@@ -227,7 +227,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("new storage is added and one broker is JBOD and another is not JBOD", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask2([]string{mountPath}))
+			kafkaClusterCCReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMockCCTask2([]string{mountPath}))
 			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
@@ -312,7 +312,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("new broker is added", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask1())
+			kafkaClusterCCReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMockCCTask1())
 			err := k8sClient.Get(ctx, types.NamespacedName{
 				Name:      kafkaCluster.Name,
 				Namespace: kafkaCluster.Namespace,
@@ -400,7 +400,7 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 	})
 	When("a broker is removed", Serial, func() {
 		JustBeforeEach(func(ctx SpecContext) {
-			kafkaClusterCCReconciler.ScaleFactory = NewMockScaleFactory(getScaleMockCCTask1())
+			kafkaClusterCCReconciler.ScaleFactory = mocks.NewMockScaleFactory(getScaleMockCCTask1())
 			err := util.RetryOnConflict(util.DefaultBackOffForConflict, func() error {
 				if err := k8sClient.Get(ctx, types.NamespacedName{
 					Name:      kafkaCluster.Name,
@@ -446,12 +446,6 @@ var _ = Describe("CruiseControlTaskReconciler", func() {
 		})
 	})
 })
-
-func NewMockScaleFactory(mock scale.CruiseControlScaler) func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
-	return func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster) (scale.CruiseControlScaler, error) {
-		return mock, nil
-	}
-}
 
 func getScaleMockCCTask1() *mocks.MockCruiseControlScaler {
 	mockCtrl := gomock.NewController(GinkgoT())
