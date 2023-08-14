@@ -350,6 +350,9 @@ func (c *k8sCSR) Approve(ctx context.Context, signingReq *certsigningreqv1.Certi
 func (c *k8sCSR) getCAChain(ctx context.Context, signingReq *certsigningreqv1.CertificateSigningRequest, certs []*certutil.CertificateContainer) ([]byte, error) {
 	var caChain []byte
 	signerName := strings.Split(signingReq.Spec.SignerName, "/")
+	if len(signerName) < 2 { // Note: [signerNamePrefix, clusterIssuerName]
+		return nil, errors.NewWithDetails("invalid signer name", "signerName", signingReq.Spec.SignerName)
+	}
 
 	if signerName[0] == v1alpha1.CertManagerSignerNamePrefix {
 		clusterIssuer := &certv1.ClusterIssuer{}
@@ -358,12 +361,12 @@ func (c *k8sCSR) getCAChain(ctx context.Context, signingReq *certsigningreqv1.Ce
 			Name: clusterIssuerName,
 		}, clusterIssuer)
 		if err != nil {
-			return caChain, errors.WrapIfWithDetails(err,
+			return nil, errors.WrapIfWithDetails(err,
 				"failed to get ClusterIssuer from K8s", "clusterIssuer", clusterIssuerName)
 		}
 
 		if clusterIssuer.GetSpec().CA == nil {
-			return caChain, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New(notFoundCAInClusterIssuerErrMsg),
+			return nil, errorfactory.New(errorfactory.FatalReconcileError{}, errors.New(notFoundCAInClusterIssuerErrMsg),
 				"clusterIssuer doesn't contain CA secret reference", "clusterIssuer", clusterIssuerName)
 		}
 
@@ -373,7 +376,7 @@ func (c *k8sCSR) getCAChain(ctx context.Context, signingReq *certsigningreqv1.Ce
 			Namespace: pkicommon.NamespaceCertManager,
 		}, certManagerSecret)
 		if err != nil {
-			return caChain, errors.WrapIfWithDetails(err,
+			return nil, errors.WrapIfWithDetails(err,
 				"failed to get secret from K8s", "secretName", clusterIssuer.GetSpec().CA.SecretName,
 				"namespace", certManagerSecret.GetNamespace())
 		}
