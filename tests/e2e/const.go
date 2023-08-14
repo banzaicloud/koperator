@@ -56,7 +56,7 @@ const (
 	kafkaClusterCreateTimeout              = 600 * time.Second
 	kafkaClusterResourceCleanupTimeout     = 120 * time.Second
 	kcatDeleetionTimeout                   = 40 * time.Second
-	zookeeperClusterCreateTimeout          = 7 * time.Minute // Increased from 4 to 7 for multiple kind
+	zookeeperClusterCreateTimeout          = 4 * time.Minute
 	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
 	externalConsumerTimeout                = 5 * time.Second
 	externalProducerTimeout                = 5 * time.Second
