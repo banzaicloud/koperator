@@ -36,12 +36,14 @@ import (
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	istioclientv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 
 	banzaiistiov1alpha1 "github.com/banzaicloud/istio-operator/api/v2/v1alpha1"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -125,13 +127,14 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "controller-leader-election-helper",
-		NewCache:           managerWatchCacheBuilder,
-		Port:               webhookServerPort,
-		CertDir:            webhookCertDir,
+		Scheme:                scheme,
+		MetricsBindAddress:    metricsAddr,
+		LeaderElection:        enableLeaderElection,
+		LeaderElectionID:      "controller-leader-election-helper",
+		NewCache:              managerWatchCacheBuilder,
+		Port:                  webhookServerPort,
+		CertDir:               webhookCertDir,
+		ClientDisableCacheFor: []client.Object{&corev1.Secret{}},
 	})
 
 	if err != nil {
