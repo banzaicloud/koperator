@@ -32,6 +32,8 @@ package main
 import (
 	"context"
 	"flag"
+	"net/http"
+	"net/http/pprof"
 	"os"
 	"strings"
 
@@ -138,6 +140,7 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
+	mgr.AddMetricsExtraHandler("/debug/pprof/", http.HandlerFunc(pprof.Index))
 
 	if err := certv1.AddToScheme(mgr.GetScheme()); err != nil {
 		setupLog.Error(err, "")
