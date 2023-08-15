@@ -99,6 +99,9 @@ spec:
                 - pkiBackend
                 type: object
               secretName:
+                description: secretName is used as the name of the K8S secret that
+                  contains the certificate of the KafkaUser. SecretName should be
+                  unique inside the namespace where KafkaUser is located.
                 type: string
               topicGrants:
                 items:
