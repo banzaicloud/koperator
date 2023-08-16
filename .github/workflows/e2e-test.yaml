@@ -30,14 +30,13 @@ jobs:
           kind_k8s_version: v1.24.13
           kubeconfig_dir_path: tests/e2e/kubeconfigs
 
-      # TODO: ZookeeperCluster create time out always on the second kind cluster
-      # - name: Setup Kind cluster2
-      #   id: setup-kind2
-      #   uses: ./.github/actions/kind-create
-      #   with:
-      #     kind_cluster_name: kind2
-      #     kind_k8s_version:  v1.25.9
-      #     kubeconfig_dir_path: tests/e2e/kubeconfigs
+      - name: Setup Kind cluster2
+        id: setup-kind2
+        uses: ./.github/actions/kind-create
+        with:
+          kind_cluster_name: kind2
+          kind_k8s_version:  v1.23.17
+          kubeconfig_dir_path: tests/e2e/kubeconfigs
 
       - name: Run E2E tests
         env:
