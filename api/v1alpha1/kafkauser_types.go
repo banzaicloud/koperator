@@ -34,6 +34,7 @@ const (
 // KafkaUserSpec defines the desired state of KafkaUser
 // +k8s:openapi-gen=true
 type KafkaUserSpec struct {
+	// secretName is used as the name of the K8S secret that contains the certificate of the KafkaUser. SecretName should be unique inside the namespace where KafkaUser is located.
 	SecretName string           `json:"secretName"`
 	ClusterRef ClusterReference `json:"clusterRef"`
 	// Annotations defines the annotations placed on the certificate or certificate signing request object
