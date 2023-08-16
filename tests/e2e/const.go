@@ -53,10 +53,10 @@ const (
 	defaultTopicCreationWaitTime         = 10 * time.Second
 	defaultUserCreationWaitTime          = 10 * time.Second
 
-	kafkaClusterCreateTimeout              = 600 * time.Second
+	kafkaClusterCreateTimeout              = 800 * time.Second
 	kafkaClusterResourceCleanupTimeout     = 120 * time.Second
 	kcatDeleetionTimeout                   = 40 * time.Second
-	zookeeperClusterCreateTimeout          = 4 * time.Minute
+	zookeeperClusterCreateTimeout          = 5 * time.Minute
 	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
 	externalConsumerTimeout                = 5 * time.Second
 	externalProducerTimeout                = 5 * time.Second
