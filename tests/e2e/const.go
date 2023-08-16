@@ -49,7 +49,7 @@ const (
 	cruiseControlPodReadinessTimeout     = 50 * time.Second
 	kafkaClusterResourceReadinessTimeout = 60 * time.Second
 	defaultDeletionTimeout               = 20 * time.Second
-	defaultPodReadinessWaitTime          = 10 * time.Second
+	defaultPodReadinessWaitTime          = 60 * time.Second
 	defaultTopicCreationWaitTime         = 10 * time.Second
 	defaultUserCreationWaitTime          = 10 * time.Second
 
