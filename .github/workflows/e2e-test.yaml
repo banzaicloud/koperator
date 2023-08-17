@@ -22,7 +22,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Kind cluster1
+      - name: Setup Kind cluster
         id: setup-kind1
         uses: ./.github/actions/kind-create
         with:
@@ -30,13 +30,13 @@ jobs:
           kind_k8s_version: v1.24.13
           kubeconfig_dir_path: tests/e2e/kubeconfigs
 
-      - name: Setup Kind cluster2
-        id: setup-kind2
-        uses: ./.github/actions/kind-create
-        with:
-          kind_cluster_name: kind2
-          kind_k8s_version:  v1.23.17
-          kubeconfig_dir_path: tests/e2e/kubeconfigs
+      # - name: Setup Kind cluster2
+      #   id: setup-kind2
+      #   uses: ./.github/actions/kind-create
+      #   with:
+      #     kind_cluster_name: kind2
+      #     kind_k8s_version:  v1.23.17
+      #     kubeconfig_dir_path: tests/e2e/kubeconfigs
 
       - name: Run E2E tests
         env:
