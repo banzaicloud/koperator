@@ -88,7 +88,8 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 		})
 
 		It("Test non-existent KafkaCluster", func() {
-			output, err := applyK8sResourceFromTemplateWithDryRun(kubectlOptions,
+			output, err := applyK8sResourceFromTemplateWithDryRun(
+				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
 					"Name":      testInternalTopicName,
@@ -106,11 +107,13 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 			Expect(len(strings.Split(output, "\n"))).To(Equal(1))
 			Expect(output).To(
 				ContainSubstring("spec.clusterRef.name: Invalid value: %[1]q: kafkaCluster '%[1]s' in the namespace '%[2]s' does not exist",
-					kafkaClusterName+"NOT", kubectlOptions.Namespace))
+					kafkaClusterName+"NOT", kubectlOptions.Namespace),
+			)
 		})
 
 		It("Test 0 partitions and replicationFactor", func() {
-			output, err := applyK8sResourceFromTemplateWithDryRun(kubectlOptions,
+			output, err := applyK8sResourceFromTemplateWithDryRun(
+				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
 					"Name":              testInternalTopicName,
@@ -128,12 +131,14 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 			Expect(len(strings.Split(output, "\n"))).To(Equal(3))
 			Expect(output).To(And(
 				ContainSubstring("spec.partitions: Invalid value: %s: number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)", "0"),
-				ContainSubstring("spec.replicationFactor: Invalid value: %s: replication factor must be larger than 0 (or set it to be -1 to use the broker's default)", "0")))
+				ContainSubstring("spec.replicationFactor: Invalid value: %s: replication factor must be larger than 0 (or set it to be -1 to use the broker's default)", "0"),
+			))
 		})
 
 		// In the current validation webhook implementation, this case can only be encountered on a Create operation
 		It("Test ReplicationFactor larger than number of brokers", func() {
-			output, err := applyK8sResourceFromTemplateWithDryRun(kubectlOptions,
+			output, err := applyK8sResourceFromTemplateWithDryRun(
+				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
 					"Name":              testInternalTopicName,
@@ -147,7 +152,9 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 			// The KafkaTopic "topic-test-internal" is invalid: spec.replicationFactor: Invalid value: 10: replication factor is larger than the number of nodes in the kafka cluster (available brokers: 3)
 			Expect(len(strings.Split(output, "\n"))).To(Equal(1))
 			Expect(output).To(And(
-				ContainSubstring("spec.replicationFactor: Invalid value"), ContainSubstring("replication factor is larger than the number of nodes in the kafka cluster")))
+				ContainSubstring("spec.replicationFactor: Invalid value"),
+				ContainSubstring("replication factor is larger than the number of nodes in the kafka cluster"),
+			))
 		})
 
 		// Test case involving existing CRs but not necessarily an Update operation
@@ -156,7 +163,8 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 
 			It("Testing conflict on spec.name", func() {
 				By("With managedBy koperator annotation")
-				output, err := applyK8sResourceFromTemplateWithDryRun(kubectlOptions,
+				output, err := applyK8sResourceFromTemplateWithDryRun(
+					kubectlOptions,
 					kafkaTopicTemplate,
 					map[string]interface{}{
 						"Name":        testInternalTopicName + "-different-cr-name",
@@ -172,10 +180,12 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 				Expect(len(strings.Split(output, "\n"))).To(Equal(1))
 				Expect(output).To(
 					ContainSubstring("spec.name: Invalid value: %[1]q: kafkaTopic CR '%[1]s' in namesapce '%[2]s' is already referencing to Kafka topic '%[1]s'",
-						testInternalTopicName, kubectlOptions.Namespace))
+						testInternalTopicName, kubectlOptions.Namespace),
+				)
 
 				By("Without managedBy koperator annotation")
-				output, err = applyK8sResourceFromTemplateWithDryRun(kubectlOptions,
+				output, err = applyK8sResourceFromTemplateWithDryRun(
+					kubectlOptions,
 					kafkaTopicTemplate,
 					map[string]interface{}{
 						"Name":      testInternalTopicName + "-different-cr-name",
@@ -196,7 +206,8 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 					ContainSubstring("spec.name: Invalid value: %[1]q: kafkaTopic CR '%[1]s' in namesapce '%[2]s' is already referencing to Kafka topic '%[1]s'",
 						testInternalTopicName, kubectlOptions.Namespace),
 					ContainSubstring("spec.name: Invalid value: %[1]q: topic %[1]q already exists on kafka cluster and it is not managed by Koperator",
-						testInternalTopicName)))
+						testInternalTopicName),
+				))
 
 			})
 
@@ -215,7 +226,8 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 		requireDeployingKafkaTopic(kubectlOptions, testInternalTopicName)
 
 		It("Test non-existent KafkaCluster", func() {
-			output, err := applyK8sResourceFromTemplateWithDryRun(kubectlOptions,
+			output, err := applyK8sResourceFromTemplateWithDryRun(
+				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
 					"Name":      testInternalTopicName,
@@ -233,7 +245,8 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 			Expect(len(strings.Split(output, "\n"))).To(Equal(1))
 			Expect(output).To(
 				ContainSubstring("spec.clusterRef.name: Invalid value: %[1]q: kafkaCluster '%[1]s' in the namespace '%[2]s' does not exist",
-					kafkaClusterName+"NOT", kubectlOptions.Namespace))
+					kafkaClusterName+"NOT", kubectlOptions.Namespace),
+			)
 		})
 
 		// A successfully created KafkaTopic CR cannot have 0 for either Partition or ReplicationFactor.
@@ -242,7 +255,8 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 		// * spec.replicationFactor changed (not just decreased)
 		// Consequently, an Update test for 0 values will automatically also cover the decreasing/changing scenarios.
 		It("Test 0 values partitions and replicationFactor", func() {
-			output, err := applyK8sResourceFromTemplateWithDryRun(kubectlOptions,
+			output, err := applyK8sResourceFromTemplateWithDryRun(
+				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
 					"Name":              testInternalTopicName,
@@ -264,12 +278,14 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 				ContainSubstring("spec.partitions: Invalid value: 0: number of partitions must be larger than 0"),
 				ContainSubstring("spec.replicationFactor: Invalid value: 0: replication factor must be larger than 0"),
 				ContainSubstring("spec.partitions: Invalid value: %s: kafka does not support decreasing partition count on an existing topic", "0"),
-				ContainSubstring("spec.replicationFactor: Invalid value: %s: kafka does not support changing the replication factor on an existing topic", "0")))
+				ContainSubstring("spec.replicationFactor: Invalid value: %s: kafka does not support changing the replication factor on an existing topic", "0"),
+			))
 		})
 
 		It("Testing conflict on spec.name", func() {
 			By("With managedBy koperator annotation")
-			output, err := applyK8sResourceFromTemplateWithDryRun(kubectlOptions,
+			output, err := applyK8sResourceFromTemplateWithDryRun(
+				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
 					"Name":        testInternalTopicName + "-different-cr-name",
@@ -285,10 +301,12 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 			Expect(len(strings.Split(output, "\n"))).To(Equal(1))
 			Expect(output).To(
 				ContainSubstring("spec.name: Invalid value: %q: kafkaTopic CR '%s' in namesapce '%s' is already referencing to Kafka topic '%s'",
-					testInternalTopicName, testInternalTopicName, kubectlOptions.Namespace, testInternalTopicName))
+					testInternalTopicName, testInternalTopicName, kubectlOptions.Namespace, testInternalTopicName),
+			)
 
 			By("Without managedBy koperator annotation")
-			output, err = applyK8sResourceFromTemplateWithDryRun(kubectlOptions,
+			output, err = applyK8sResourceFromTemplateWithDryRun(
+				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
 					"Name":      testInternalTopicName + "-different-cr-name",
@@ -309,7 +327,8 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 				ContainSubstring("spec.name: Invalid value: %[1]q: kafkaTopic CR '%[1]s' in namesapce '%[2]s' is already referencing to Kafka topic '%[1]s'",
 					testInternalTopicName, kubectlOptions.Namespace),
 				ContainSubstring("spec.name: Invalid value: %[1]q: topic %[1]q already exists on kafka cluster and it is not managed by Koperator",
-					testInternalTopicName)))
+					testInternalTopicName),
+			))
 		})
 
 		// Clean up the KafkaTopic set up to test Update operations against
