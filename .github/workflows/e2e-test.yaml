@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
 
     steps:
       - name: Set up Go
@@ -20,13 +23,39 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup Kind cluster
-        id: setup-kind
+        id: setup-kind1
         uses: ./.github/actions/kind-create
+        with:
+          kind_cluster_name: kind1
+          kind_k8s_version: v1.24.13
+          kubeconfig_dir_path: tests/e2e/kubeconfigs
 
-      - name: run tests
+      # - name: Setup Kind cluster2
+      #   id: setup-kind2
+      #   uses: ./.github/actions/kind-create
+      #   with:
+      #     kind_cluster_name: kind2
+      #     kind_k8s_version:  v1.23.17
+      #     kubeconfig_dir_path: tests/e2e/kubeconfigs
+
+      - name: Run E2E tests
         env:
-           KUBECONFIG: ${{ steps.setup-kind.outputs.kubeconfig }}
+           TEST_STRATEGY: version
+           KUBECONFIG_DIR: kubeconfigs
+           MAX_TIMEOUT: "1h"
         run: |
           go work init
           go work use -r .
-          make test-e2e
+          make test-e2e-parallel
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action/composite@master
+        if: always()
+        with:
+          commit: ${{ github.event.workflow_run.head_sha }}
+          report_individual_runs: "true"
+          check_name: "E2E test report"
+          large_files: true
+          comment_mode: off
+          files: |
+            tests/e2e/reports/e2e_*.xml

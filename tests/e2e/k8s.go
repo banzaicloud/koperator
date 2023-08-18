@@ -20,13 +20,13 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"strings"
 	"text/template"
 	"time"
 
 	"emperror.dev/errors"
 	"github.com/Masterminds/sprig"
+	"github.com/banzaicloud/koperator/tests/e2e/pkg/common"
 	"github.com/cisco-open/k8s-objectmatcher/patch"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
@@ -99,46 +99,6 @@ func createOrReplaceK8sResourcesFromManifest( //nolint:unused // Note: this migh
 			"--filename", resourceManifest,
 		)
 	}
-}
-
-// currentKubernetesContext returns the currently set Kubernetes context based
-// on the the environment variables and the KUBECONFIG file.
-func currentEnvK8sContext() (kubeconfigPath string, kubecontextName string, err error) {
-	kubeconfigPath, isExisting := os.LookupEnv("KUBECONFIG")
-	if !isExisting {
-		homePath, err := os.UserHomeDir()
-		if err != nil {
-			return "", "", errors.WrapIf(err, "retrieving user home directory failed")
-		}
-
-		kubeconfigPath = path.Join(homePath, ".kube", "config")
-	}
-
-	kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
-	if err != nil {
-		return "", "", errors.WrapIfWithDetails(err, "reading KUBECONFIG file failed", "path", kubeconfigPath)
-	}
-
-	structuredKubeconfig := make(map[string]interface{})
-	err = yaml.Unmarshal(kubeconfigBytes, &structuredKubeconfig)
-	if err != nil {
-		return "", "", errors.WrapIfWithDetails(
-			err,
-			"parsing kubeconfig failed",
-			"kubeconfig", string(kubeconfigBytes),
-		)
-	}
-
-	kubecontext, isOk := structuredKubeconfig["current-context"].(string)
-	if !isOk {
-		return "", "", errors.WrapIfWithDetails(
-			err,
-			"kubeconfig current-context is not string",
-			"current-context", structuredKubeconfig["current-context"],
-		)
-	}
-
-	return kubeconfigPath, kubecontext, nil
 }
 
 // getK8sCRD queries and returns the CRD of the specified CRD name from the
@@ -381,7 +341,7 @@ func kubectlOptions(kubecontextName, kubeconfigPath, namespace string) k8s.Kubec
 // kubectlOptionsForCurrentContext returns a kubectlOptions object for the
 // current Kubernetes context or alternatively an error.
 func kubectlOptionsForCurrentContext() (k8s.KubectlOptions, error) {
-	kubeconfigPath, kubecontextName, err := currentEnvK8sContext()
+	kubeconfigPath, kubecontextName, err := common.CurrentEnvK8sContext()
 	if err != nil {
 		return k8s.KubectlOptions{}, errors.WrapIf(err, "retrieving current environment Kubernetes context failed")
 	}

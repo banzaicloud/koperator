@@ -17,54 +17,190 @@
 package e2e
 
 import (
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
-	"github.com/gruntwork-io/terratest/modules/k8s"
+	"github.com/banzaicloud/koperator/tests/e2e/pkg/common/config"
+	"github.com/banzaicloud/koperator/tests/e2e/pkg/tests"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/reporters"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/onsi/gomega/format"
+	"github.com/spf13/viper"
 )
 
-func TestKoperator(t *testing.T) {
-	RegisterFailHandler(Fail) // Note: Ginkgo - Gomega connector.
-	RunSpecs(t, "Koperator end to end test suite")
+var testPool tests.TestPool
+
+func beforeSuite() (tests.TestPool, error) {
+	var k8sClusterPool tests.K8sClusterPool
+	if err := k8sClusterPool.FeedFomDirectory(viper.GetString(config.Tests.KubeConfigDirectoryPath)); err != nil {
+		return nil, err
+	}
+
+	classifier := tests.NewClassifier(k8sClusterPool, alltestCase)
+
+	var testPool tests.TestPool
+	testStrategy := viper.GetString(config.Tests.TestStrategy)
+
+	switch testStrategy {
+	case config.TestStrategyMinimal:
+		testPool = classifier.Minimal()
+	case config.TestStrategyVersionComplete:
+		testPool = classifier.VersionComplete()
+	case config.TestStrategyProviderComplete:
+		testPool = classifier.ProviderComplete()
+	case config.TestStrategyComplete:
+		testPool = classifier.Complete()
+	}
+
+	return testPool, nil
 }
 
-var _ = BeforeSuite(func() {
-	By("Acquiring K8s cluster")
-	var kubeconfigPath string
-	var kubecontextName string
+func TestKoperator(t *testing.T) {
+	var err error
 
-	By("Acquiring K8s config and context", func() {
-		var err error
-		kubeconfigPath, kubecontextName, err = currentEnvK8sContext()
-		Expect(err).NotTo(HaveOccurred())
-	})
+	err = runGinkgoTests(t)
+	if err != nil {
+		t.Errorf("Koperator E2E start failed: %v", err)
+	}
+}
 
-	By("Listing kube-system pods", func() {
-		pods := k8s.ListPods(
-			ginkgo.GinkgoT(),
-			k8s.NewKubectlOptions(kubecontextName, kubeconfigPath, "kube-system"),
-			v1.ListOptions{},
+func runGinkgoTests(t *testing.T) error {
+	RegisterFailHandler(Fail)
+	suiteConfig, _ := GinkgoConfiguration()
+
+	// Gomega configurations
+	format.MaxLength = 0
+
+	// Run only selected tests by testID label e.g: "testID:4e980f5b5c"
+	if labelFilter := viper.GetString(config.Tests.LabelFilter); labelFilter != "" {
+		suiteConfig.LabelFilter = labelFilter
+	}
+
+	var err error
+	// Generated and load tests into the pool
+	testPool, err = beforeSuite()
+	if err != nil {
+		return fmt.Errorf("beforeSuite ran into err: %w", err)
+	}
+
+	runningSuiteProgress.allSpecCount = testPool.GetTestSuiteSpecsCount()
+
+	testSuiteDuration := testPool.GetTestSuiteDurationSerial()
+	if suiteConfig.ParallelTotal > 1 {
+		testSuiteDuration = testPool.GetTestSuiteDurationParallel()
+	}
+
+	maxTimeout, err := time.ParseDuration(viper.GetString(config.Tests.MaxTimeout))
+	if err != nil {
+		return fmt.Errorf("could not parse MaxTimeout into time.Duration: %w", err)
+	}
+
+	// Calculated timeout can be overran with the specified time length
+	allowedOverrun, err := time.ParseDuration(viper.GetString(config.Tests.AllowedOverrunDuration))
+	if err != nil {
+		return fmt.Errorf("could not parse AllowedOverrunDuration into time.Duration: %w", err)
+	}
+
+	// Set TestSuite timeout based on the generated tests
+	suiteConfig.Timeout = testSuiteDuration + allowedOverrun
+
+	// Protection against too long test suites
+	if suiteConfig.Timeout > maxTimeout {
+		return fmt.Errorf("tests estimated duration: '%s' longer then maxTimeout: '%s'", suiteConfig.Timeout.String(), maxTimeout.String())
+	}
+
+	if viper.GetBool(config.Tests.CreateTestReportFile) {
+		if err := createTestReportFile(); err != nil {
+			return err
+		}
+	}
+
+	testDescription := fmt.Sprintf("\n%s\nConfigurations: \n%s%s\nPoolInfo: \n%s%s\n",
+		sectionStringDelimiter(), config.Tests, sectionStringDelimiter(), testPool.PoolInfo(), sectionStringDelimiter())
+
+	func() {
+		defer ginkgo.GinkgoRecover()
+		RunSpecs(t, testDescription, suiteConfig)
+	}()
+
+	return nil
+
+}
+
+type runningSuiteData struct {
+	passedTestCount  int
+	skippedTestCount int
+	failedTestCount  int
+	allSpecCount     int
+}
+
+var runningSuiteProgress = runningSuiteData{}
+
+// Report suit progress only into the std output
+var _ = ReportAfterEach(func(report SpecReport) {
+	switch report.State.String() {
+	case "failed":
+		runningSuiteProgress.failedTestCount += 1
+	case "passed":
+		runningSuiteProgress.passedTestCount += 1
+	case "skipped":
+		runningSuiteProgress.skippedTestCount += 1
+	}
+
+	entry := fmt.Sprintf("{{red}}%s(TOTAL:%d PROGRESS/PROC:%d/%d/%d PID: %d){{/}}",
+		report.State,
+		runningSuiteProgress.allSpecCount,
+		runningSuiteProgress.passedTestCount,
+		runningSuiteProgress.failedTestCount,
+		runningSuiteProgress.skippedTestCount,
+		report.ParallelProcess)
+
+	// TODO: it would be better to calculate somehow the total specs count per process
+	// Im not sure about that is possible because specs number can be different on each processes
+	// This is because the classifier sort the tests the best possible way so when there are
+	// more available cluster then tests it is possible that one of the test is executed on a cluster and another on another one
+	// e.g: [MockTest2(testContextName2) MockTest1(testContextName1) MockTest2(testContextName1) MockTest1(testContextName2) MockTest1(testContextName3) MockTest2(testContextName4)]
+	AddReportEntry(entry)
+})
+
+// Root Describe container
+var _ = Describe("", func() {
+	// In the root container there is no Ordered decorator
+	// ginkgo execute parallel the generated tests by K8sClusters
+	testPool.BuildParallelByK8sCluster()
+})
+
+func sectionStringDelimiter() string {
+	delimiter := ""
+	for i := 0; i < 100; i++ {
+		delimiter += "-"
+	}
+	return delimiter
+}
+
+func createTestReportFile() error {
+	reportDir := viper.GetString(config.Tests.ReportDir)
+	if _, err := os.Stat(reportDir); os.IsNotExist(err) {
+		if err := os.Mkdir(reportDir, os.FileMode(0o777)); err != nil {
+			return fmt.Errorf("error while creating report directory %s err: %s", reportDir, err.Error())
+		}
+	}
+	// Generate JUnit report once all tests have finished with customized settings
+	_ = ginkgo.ReportAfterSuite("Koperator e2e", func(report ginkgo.Report) {
+		err := reporters.GenerateJUnitReportWithConfig(
+			report,
+			filepath.Join(reportDir, fmt.Sprintf("e2e_%s_%v.xml", viper.GetString(config.Tests.TestStrategy), time.Now().Format(time.RFC3339))),
+			reporters.JunitReportConfig{OmitSpecLabels: false, OmitLeafNodeType: false},
 		)
-
-		Expect(len(pods)).To(Not(BeZero()))
+		if err != nil {
+			log.Printf("error creating junit report file %s", err.Error())
+		}
 	})
-})
-
-var _ = When("Testing e2e test altogether", Ordered, func() {
-	var snapshottedInfo = &clusterSnapshot{}
-	snapshotCluster(snapshottedInfo)
-	testInstall()
-	testInstallZookeeperCluster()
-	testInstallKafkaCluster("../../config/samples/simplekafkacluster.yaml")
-	testProduceConsumeInternal()
-	testUninstallKafkaCluster()
-	testInstallKafkaCluster("../../config/samples/simplekafkacluster_ssl.yaml")
-	testProduceConsumeInternalSSL(defaultTLSSecretName)
-	testUninstallKafkaCluster()
-	testUninstallZookeeperCluster()
-	testUninstall()
-	snapshotClusterAndCompare(snapshottedInfo)
-})
+	return nil
+}

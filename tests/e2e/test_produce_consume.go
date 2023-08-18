@@ -3,19 +3,10 @@ package e2e
 import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
-func testProduceConsumeInternal() bool {
+func testProduceConsumeInternal(kubectlOptions k8s.KubectlOptions) bool {
 	return When("Internally produce and consume message to/from Kafka cluster", func() {
-		var kubectlOptions k8s.KubectlOptions
-		var err error
-
-		It("Acquiring K8s config and context", func() {
-			kubectlOptions, err = kubectlOptionsForCurrentContext()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
 
 		requireDeployingKcatPod(kubectlOptions, kcatPodName, "")
@@ -26,16 +17,8 @@ func testProduceConsumeInternal() bool {
 	})
 }
 
-func testProduceConsumeInternalSSL(tlsSecretName string) bool {
+func testProduceConsumeInternalSSL(kubectlOptions k8s.KubectlOptions, tlsSecretName string) bool {
 	return When("Internally produce and consume message to/from Kafka cluster using SSL", func() {
-		var kubectlOptions k8s.KubectlOptions
-		var err error
-
-		It("Acquiring K8s config and context", func() {
-			kubectlOptions, err = kubectlOptionsForCurrentContext()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
 
 		requireDeployingKafkaUser(kubectlOptions, kafkaUserName, tlsSecretName)
@@ -48,16 +31,8 @@ func testProduceConsumeInternalSSL(tlsSecretName string) bool {
 	})
 }
 
-func testProduceConsumeExternal(tlsSecretName string) bool {
+func testProduceConsumeExternal(kubectlOptions k8s.KubectlOptions, tlsSecretName string) bool {
 	return When("Externally produce and consume message to/from Kafka cluster", func() {
-		var kubectlOptions k8s.KubectlOptions
-		var err error
-
-		It("Acquiring K8s config and context", func() {
-			kubectlOptions, err = kubectlOptionsForCurrentContext()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
 
 		requireDeployingKafkaTopic(kubectlOptions, testExternalTopicName)

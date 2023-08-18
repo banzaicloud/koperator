@@ -46,16 +46,17 @@ const (
 	zookeeperClusterName       = "zookeeper-server"
 	managedByHelmLabelTemplate = "app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=%s"
 
-	cruiseControlPodReadinessTimeout       = 50 * time.Second
-	kafkaClusterResourceReadinessTimeout   = 60 * time.Second
-	defaultDeletionTimeout                 = 20 * time.Second
-	defaultPodReadinessWaitTime            = 10 * time.Second
-	defaultTopicCreationWaitTime           = 10 * time.Second
-	defaultUserCreationWaitTime            = 10 * time.Second
-	kafkaClusterCreateTimeout              = 600 * time.Second
+	cruiseControlPodReadinessTimeout     = 50 * time.Second
+	kafkaClusterResourceReadinessTimeout = 60 * time.Second
+	defaultDeletionTimeout               = 20 * time.Second
+	defaultPodReadinessWaitTime          = 60 * time.Second
+	defaultTopicCreationWaitTime         = 10 * time.Second
+	defaultUserCreationWaitTime          = 10 * time.Second
+
+	kafkaClusterCreateTimeout              = 800 * time.Second
 	kafkaClusterResourceCleanupTimeout     = 120 * time.Second
 	kcatDeleetionTimeout                   = 40 * time.Second
-	zookeeperClusterCreateTimeout          = 4 * time.Minute
+	zookeeperClusterCreateTimeout          = 5 * time.Minute
 	zookeeperClusterResourceCleanupTimeout = 60 * time.Second
 	externalConsumerTimeout                = 5 * time.Second
 	externalProducerTimeout                = 5 * time.Second

@@ -25,6 +25,10 @@ CONTROLLER_GEN_VERSION = v0.9.2
 CONTROLLER_GEN = $(PWD)/bin/controller-gen
 
 ENVTEST_K8S_VERSION = 1.24.2
+# Ginkgo version should be the same that is used in the module imports
+GINKGO_VERSION := 2.11.0
+MOCKGEN_VERSION := 1.6.0
+
 
 KUSTOMIZE_BASE = config/overlays/specific-manager-version
 
@@ -86,8 +90,10 @@ install-kustomize:
 	fi
 
 # Run tests
-test: generate fmt vet manifests bin/setup-envtest
-	cd api && go test ./...
+test: generate fmt vet manifests bin/setup-envtest 
+	cd api && go test -failfast ./... 
+	cd tests/e2e && go test -failfast ./... 
+	cd properties && go test -failfast ./...
 	KUBEBUILDER_ASSETS=$$($(BIN_DIR)/setup-envtest --print path --bin-dir $(BIN_DIR) use $(ENVTEST_K8S_VERSION)) \
 	go test ./... \
 		-coverprofile cover.out \
@@ -96,17 +102,23 @@ test: generate fmt vet manifests bin/setup-envtest
 		-test.v \
 		-test.paniconexit0 \
 		-timeout 1h
-	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
-# Run e2e tests
-test-e2e:
-	go test github.com/banzaicloud/koperator/tests/e2e \
-		-v \
-		-timeout 20m \
-		-tags e2e \
-		--ginkgo.show-node-events \
-		--ginkgo.trace \
-		--ginkgo.v
+bin/ginkgo: $(BIN_DIR)/ginkgo-$(GINKGO_VERSION)
+	@ln -sf ginkgo-$(GINKGO_VERSION) $(BIN_DIR)/ginkgo
+
+$(BIN_DIR)/ginkgo-$(GINKGO_VERSION):
+	@mkdir -p $(BIN_DIR)
+	@GOBIN=$(BIN_DIR) go install github.com/onsi/ginkgo/v2/ginkgo@v$(GINKGO_VERSION)
+	@mv $(BIN_DIR)/ginkgo $(BIN_DIR)/ginkgo-$(GINKGO_VERSION)
+
+
+# Run e2e tests serial
+test-e2e: bin/ginkgo
+	ginkgo -v --tags e2e tests/e2e
+
+# Run e2e tests parallel
+test-e2e-parallel: bin/ginkgo
+	ginkgo -v -p --tags e2e tests/e2e
 
 # Build manager binary
 manager: generate fmt vet
@@ -145,12 +157,14 @@ fmt:
 	go fmt ./...
 	cd api && go fmt ./...
 	cd properties && go fmt ./...
+	cd tests/e2e && go fmt ./...
 
 # Run go vet against code
 vet:
 	go vet ./...
 	cd api && go fmt ./...
 	cd properties && go vet ./...
+	cd tests/e2e && go vet ./...
 
 # Generate code
 generate: bin/controller-gen gen-license-header ## Generate source code for APIs, Mocks, etc
@@ -251,9 +265,6 @@ gen-license-header: bin/gotemplate ## Generate license header used in source cod
 		--follow-symlinks \
 		--import="$(BOILERPLATE_DIR)/vars.yml" \
 		--source="$(BOILERPLATE_DIR)"
-
-
-MOCKGEN_VERSION := 1.6.0
 
 bin/mockgen: $(BIN_DIR)/mockgen-$(MOCKGEN_VERSION)
 	@ln -sf mockgen-$(MOCKGEN_VERSION) $(BIN_DIR)/mockgen

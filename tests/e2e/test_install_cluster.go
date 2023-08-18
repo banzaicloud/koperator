@@ -17,34 +17,17 @@ package e2e
 import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
-func testInstallZookeeperCluster() bool {
+func testInstallZookeeperCluster(kubectlOptions k8s.KubectlOptions) bool {
 	return When("Installing Zookeeper cluster", func() {
-		var kubectlOptions k8s.KubectlOptions
-		var err error
-
-		It("Acquiring K8s config and context", func() {
-			kubectlOptions, err = kubectlOptionsForCurrentContext()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		kubectlOptions.Namespace = zookeeperOperatorHelmDescriptor.Namespace
 		requireCreatingZookeeperCluster(kubectlOptions)
 	})
 }
 
-func testInstallKafkaCluster(kafkaClusterManifestPath string) bool {
+func testInstallKafkaCluster(kubectlOptions k8s.KubectlOptions, kafkaClusterManifestPath string) bool {
 	return When("Installing Kafka cluster", func() {
-		var kubectlOptions k8s.KubectlOptions
-		var err error
-
-		It("Acquiring K8s config and context", func() {
-			kubectlOptions, err = kubectlOptionsForCurrentContext()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
 		requireCreatingKafkaCluster(kubectlOptions, kafkaClusterManifestPath)
 	})
