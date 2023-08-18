@@ -15,49 +15,12 @@
 package e2e
 
 import (
-	"bytes"
-	"fmt"
-	"os"
 	"strings"
-	"text/template"
 
-	"github.com/Masterminds/sprig"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-// TODO(mihalexa): move to k8s.go
-const (
-	dryRunStrategyNone   string = "none"
-	dryRunStrategyClient string = "client"
-	dryRunStrategyServer string = "server"
-)
-
-// TODO(mihalexa): move to k8s.go
-// applyK8sResourceFromTemplateWithDryRun is copy of applyK8sResourceFromTemplate which calls a "--dry-run=<strategy>" kubectl command
-func applyK8sResourceFromTemplateWithDryRun(kubectlOptions k8s.KubectlOptions, templateFile string, values map[string]interface{}, dryRunStrategy string) (string, error) {
-	By(fmt.Sprintf("Generating K8s manifest from template %s for dry-run apply", templateFile))
-	var manifest bytes.Buffer
-	rawTemplate, err := os.ReadFile(templateFile)
-	if err != nil {
-		return "", err
-	}
-	t := template.Must(template.New("template").Funcs(sprig.TxtFuncMap()).Parse(string(rawTemplate)))
-	err = t.Execute(&manifest, values)
-	if err != nil {
-		return "", err
-	}
-
-	By("Replicating terratest's k8s.KubectlApplyFromStringE")
-	tmpfile, err := k8s.StoreConfigToTempFileE(GinkgoT(), manifest.String())
-	if err != nil {
-		return "", err
-	}
-	defer os.Remove(tmpfile)
-
-	return k8s.RunKubectlAndGetOutputE(GinkgoT(), &kubectlOptions, "apply", "-f", tmpfile, "--dry-run="+dryRunStrategy, "--output=yaml")
-}
 
 func testWebhooks() bool {
 	return When("Testing webhooks", func() {
@@ -88,7 +51,7 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 		})
 
 		It("Test non-existent KafkaCluster", func() {
-			output, err := applyK8sResourceFromTemplateWithDryRun(
+			err := applyK8sResourceFromTemplate(
 				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
@@ -100,19 +63,20 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 						"Namespace": kubectlOptions.Namespace,
 					},
 				},
-				dryRunStrategyServer,
+				dryRunStrategyArgServer,
 			)
 			Expect(err).To(HaveOccurred())
-			// Example error: The KafkaTopic "topic-test-internal" is invalid: spec.clusterRef.name: Invalid value: "kafkaNOT": kafkaCluster 'kafkaNOT' in the namespace 'kafka' does not exist
-			Expect(len(strings.Split(output, "\n"))).To(Equal(1))
-			Expect(output).To(
+			// Example error:
+			// error while running command: exit status 1; The KafkaTopic "topic-test-internal" is invalid: spec.clusterRef.name: Invalid value: "kafkaNOT": kafkaCluster 'kafkaNOT' in the namespace 'kafka' does not exist
+			Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(1))
+			Expect(err.Error()).To(
 				ContainSubstring("spec.clusterRef.name: Invalid value: %[1]q: kafkaCluster '%[1]s' in the namespace '%[2]s' does not exist",
 					kafkaClusterName+"NOT", kubectlOptions.Namespace),
 			)
 		})
 
 		It("Test 0 partitions and replicationFactor", func() {
-			output, err := applyK8sResourceFromTemplateWithDryRun(
+			err := applyK8sResourceFromTemplate(
 				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
@@ -121,15 +85,15 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 					"Partition":         "0",
 					"ReplicationFactor": "0",
 				},
-				dryRunStrategyServer,
+				dryRunStrategyArgServer,
 			)
 			Expect(err).To(HaveOccurred())
 			// Example error:
-			// The KafkaTopic "topic-test-internal" is invalid:
+			// error while running command: exit status 1; The KafkaTopic "topic-test-internal" is invalid:
 			// * spec.partitions: Invalid value: 0: number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)
 			// * spec.replicationFactor: Invalid value: 0: replication factor must be larger than 0 (or set it to be -1 to use the broker's default)
-			Expect(len(strings.Split(output, "\n"))).To(Equal(3))
-			Expect(output).To(And(
+			Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(3))
+			Expect(err.Error()).To(And(
 				ContainSubstring("spec.partitions: Invalid value: %s: number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)", "0"),
 				ContainSubstring("spec.replicationFactor: Invalid value: %s: replication factor must be larger than 0 (or set it to be -1 to use the broker's default)", "0"),
 			))
@@ -137,7 +101,7 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 
 		// In the current validation webhook implementation, this case can only be encountered on a Create operation
 		It("Test ReplicationFactor larger than number of brokers", func() {
-			output, err := applyK8sResourceFromTemplateWithDryRun(
+			err := applyK8sResourceFromTemplate(
 				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
@@ -145,13 +109,13 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 					"TopicName":         testInternalTopicName,
 					"ReplicationFactor": "10",
 				},
-				dryRunStrategyServer,
+				dryRunStrategyArgServer,
 			)
 			Expect(err).To(HaveOccurred())
 			// Example error:
-			// The KafkaTopic "topic-test-internal" is invalid: spec.replicationFactor: Invalid value: 10: replication factor is larger than the number of nodes in the kafka cluster (available brokers: 3)
-			Expect(len(strings.Split(output, "\n"))).To(Equal(1))
-			Expect(output).To(And(
+			// error while running command: exit status 1; The KafkaTopic "topic-test-internal" is invalid: spec.replicationFactor: Invalid value: 10: replication factor is larger than the number of nodes in the kafka cluster (available brokers: 3)
+			Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(1))
+			Expect(err.Error()).To(And(
 				ContainSubstring("spec.replicationFactor: Invalid value"),
 				ContainSubstring("replication factor is larger than the number of nodes in the kafka cluster"),
 			))
@@ -163,7 +127,7 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 
 			It("Testing conflict on spec.name", func() {
 				By("With managedBy koperator annotation")
-				output, err := applyK8sResourceFromTemplateWithDryRun(
+				err := applyK8sResourceFromTemplate(
 					kubectlOptions,
 					kafkaTopicTemplate,
 					map[string]interface{}{
@@ -172,19 +136,19 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 						"Namespace":   kubectlOptions.Namespace,
 						"Annotations": []string{"managedBy: koperator"},
 					},
-					dryRunStrategyServer,
+					dryRunStrategyArgServer,
 				)
 				Expect(err).To(HaveOccurred())
 				// Example error:
-				// The KafkaTopic "topic-test-internal-different-cr-name" is invalid: spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namesapce 'kafka' is already referencing to Kafka topic 'topic-test-internal'
-				Expect(len(strings.Split(output, "\n"))).To(Equal(1))
-				Expect(output).To(
+				// error while running command: exit status 1; The KafkaTopic "topic-test-internal-different-cr-name" is invalid: spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namesapce 'kafka' is already referencing to Kafka topic 'topic-test-internal'
+				Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(1))
+				Expect(err.Error()).To(
 					ContainSubstring("spec.name: Invalid value: %[1]q: kafkaTopic CR '%[1]s' in namesapce '%[2]s' is already referencing to Kafka topic '%[1]s'",
 						testInternalTopicName, kubectlOptions.Namespace),
 				)
 
 				By("Without managedBy koperator annotation")
-				output, err = applyK8sResourceFromTemplateWithDryRun(
+				err = applyK8sResourceFromTemplate(
 					kubectlOptions,
 					kafkaTopicTemplate,
 					map[string]interface{}{
@@ -192,17 +156,17 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 						"TopicName": testInternalTopicName,
 						"Namespace": kubectlOptions.Namespace,
 					},
-					dryRunStrategyServer,
+					dryRunStrategyArgServer,
 				)
 				Expect(err).To(HaveOccurred())
 				// Example error:
-				// The KafkaTopic "topic-test-internal-different-cr-name" is invalid:
+				// error while running command: exit status 1; The KafkaTopic "topic-test-internal-different-cr-name" is invalid:
 				// * spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namesapce 'kafka' is already referencing to Kafka topic 'topic-test-internal'
 				// * spec.name: Invalid value: "topic-test-internal": topic "topic-test-internal" already exists on kafka cluster and it is not managed by Koperator,
 				// 					if you want it to be managed by Koperator so you can modify its configurations through a KafkaTopic CR,
 				// 					add this "managedBy: koperator" annotation to this KafkaTopic CR
-				Expect(len(strings.Split(output, "\n"))).To(Equal(5))
-				Expect(output).To(And(
+				Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(5))
+				Expect(err.Error()).To(And(
 					ContainSubstring("spec.name: Invalid value: %[1]q: kafkaTopic CR '%[1]s' in namesapce '%[2]s' is already referencing to Kafka topic '%[1]s'",
 						testInternalTopicName, kubectlOptions.Namespace),
 					ContainSubstring("spec.name: Invalid value: %[1]q: topic %[1]q already exists on kafka cluster and it is not managed by Koperator",
@@ -226,7 +190,7 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 		requireDeployingKafkaTopic(kubectlOptions, testInternalTopicName)
 
 		It("Test non-existent KafkaCluster", func() {
-			output, err := applyK8sResourceFromTemplateWithDryRun(
+			err := applyK8sResourceFromTemplate(
 				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
@@ -238,12 +202,13 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 						"Namespace": kubectlOptions.Namespace,
 					},
 				},
-				dryRunStrategyServer,
+				dryRunStrategyArgServer,
 			)
 			Expect(err).To(HaveOccurred())
-			// Example error: The KafkaTopic "topic-test-internal" is invalid: spec.clusterRef.name: Invalid value: "kafkaNOT": kafkaCluster 'kafkaNOT' in the namespace 'kafka' does not exist
-			Expect(len(strings.Split(output, "\n"))).To(Equal(1))
-			Expect(output).To(
+			// Example error:
+			// error while running command: exit status 1; The KafkaTopic "topic-test-internal" is invalid: spec.clusterRef.name: Invalid value: "kafkaNOT": kafkaCluster 'kafkaNOT' in the namespace 'kafka' does not exist
+			Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(1))
+			Expect(err.Error()).To(
 				ContainSubstring("spec.clusterRef.name: Invalid value: %[1]q: kafkaCluster '%[1]s' in the namespace '%[2]s' does not exist",
 					kafkaClusterName+"NOT", kubectlOptions.Namespace),
 			)
@@ -255,7 +220,7 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 		// * spec.replicationFactor changed (not just decreased)
 		// Consequently, an Update test for 0 values will automatically also cover the decreasing/changing scenarios.
 		It("Test 0 values partitions and replicationFactor", func() {
-			output, err := applyK8sResourceFromTemplateWithDryRun(
+			err := applyK8sResourceFromTemplate(
 				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
@@ -264,17 +229,17 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 					"Partition":         "0",
 					"ReplicationFactor": "0",
 				},
-				dryRunStrategyServer,
+				dryRunStrategyArgServer,
 			)
 			Expect(err).To(HaveOccurred())
 			// Example error:
-			// The KafkaTopic "topic-test-internal" is invalid:
+			// error while running command: exit status 1; The KafkaTopic "topic-test-internal" is invalid:
 			// * spec.partitions: Invalid value: 0: number of partitions must be larger than 0 (or set it to be -1 to use the broker's default)
 			// * spec.replicationFactor: Invalid value: 0: replication factor must be larger than 0 (or set it to be -1 to use the broker's default)
 			// * spec.partitions: Invalid value: 0: kafka does not support decreasing partition count on an existing topic (from 2 to 0)
 			// * spec.replicationFactor: Invalid value: 0: kafka does not support changing the replication factor on an existing topic (from 2 to 0)
-			Expect(len(strings.Split(output, "\n"))).To(Equal(5))
-			Expect(output).To(And(
+			Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(5))
+			Expect(err.Error()).To(And(
 				ContainSubstring("spec.partitions: Invalid value: 0: number of partitions must be larger than 0"),
 				ContainSubstring("spec.replicationFactor: Invalid value: 0: replication factor must be larger than 0"),
 				ContainSubstring("spec.partitions: Invalid value: %s: kafka does not support decreasing partition count on an existing topic", "0"),
@@ -284,7 +249,7 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 
 		It("Testing conflict on spec.name", func() {
 			By("With managedBy koperator annotation")
-			output, err := applyK8sResourceFromTemplateWithDryRun(
+			err := applyK8sResourceFromTemplate(
 				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
@@ -293,19 +258,19 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 					"Namespace":   kubectlOptions.Namespace,
 					"Annotations": []string{"managedBy: koperator"},
 				},
-				dryRunStrategyServer,
+				dryRunStrategyArgServer,
 			)
 			Expect(err).To(HaveOccurred())
 			// Example error:
-			// The KafkaTopic "topic-test-internal-different-cr-name" is invalid: spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namesapce 'kafka' is already referencing to Kafka topic 'topic-test-internal'
-			Expect(len(strings.Split(output, "\n"))).To(Equal(1))
-			Expect(output).To(
+			// error while running command: exit status 1; The KafkaTopic "topic-test-internal-different-cr-name" is invalid: spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namesapce 'kafka' is already referencing to Kafka topic 'topic-test-internal'
+			Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(1))
+			Expect(err.Error()).To(
 				ContainSubstring("spec.name: Invalid value: %q: kafkaTopic CR '%s' in namesapce '%s' is already referencing to Kafka topic '%s'",
 					testInternalTopicName, testInternalTopicName, kubectlOptions.Namespace, testInternalTopicName),
 			)
 
 			By("Without managedBy koperator annotation")
-			output, err = applyK8sResourceFromTemplateWithDryRun(
+			err = applyK8sResourceFromTemplate(
 				kubectlOptions,
 				kafkaTopicTemplate,
 				map[string]interface{}{
@@ -313,17 +278,17 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions) bool {
 					"TopicName": testInternalTopicName, // same spec.name as the KafkaTopic deployed in the beginning of the Update test scenario
 					"Namespace": kubectlOptions.Namespace,
 				},
-				dryRunStrategyServer,
+				dryRunStrategyArgServer,
 			)
 			Expect(err).To(HaveOccurred())
 			// Example error:
-			// The KafkaTopic "topic-test-internal-different-cr-name" is invalid:
+			// error while running command: exit status 1; The KafkaTopic "topic-test-internal-different-cr-name" is invalid:
 			// * spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namesapce 'kafka' is already referencing to Kafka topic 'topic-test-internal'
 			// * spec.name: Invalid value: "topic-test-internal": topic "topic-test-internal" already exists on kafka cluster and it is not managed by Koperator,
 			// 					if you want it to be managed by Koperator so you can modify its configurations through a KafkaTopic CR,
 			// 					add this "managedBy: koperator" annotation to this KafkaTopic CR
-			Expect(len(strings.Split(output, "\n"))).To(Equal(5))
-			Expect(output).To(And(
+			Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(5))
+			Expect(err.Error()).To(And(
 				ContainSubstring("spec.name: Invalid value: %[1]q: kafkaTopic CR '%[1]s' in namesapce '%[2]s' is already referencing to Kafka topic '%[1]s'",
 					testInternalTopicName, kubectlOptions.Namespace),
 				ContainSubstring("spec.name: Invalid value: %[1]q: topic %[1]q already exists on kafka cluster and it is not managed by Koperator",
