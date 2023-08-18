@@ -15,8 +15,6 @@
 package certmanagerpki
 
 import (
-	"flag"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/banzaicloud/koperator/api/v1beta1"
@@ -24,12 +22,6 @@ import (
 )
 
 const spiffeIdTemplate = "spiffe://%s/ns/%s/kafkauser/%s"
-
-var namespaceCertManager string
-
-func init() {
-	flag.StringVar(&namespaceCertManager, "cert-manager-namespace", "cert-manager", "The namespace where cert-manager is running")
-}
 
 type CertManager interface {
 	pki.Manager
