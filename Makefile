@@ -253,14 +253,14 @@ gen-license-header: bin/gotemplate ## Generate license header used in source cod
 		--source="$(BOILERPLATE_DIR)"
 
 
-MOCKGEN_VERSION := 1.6.0
+MOCKGEN_VERSION := 0.2.0
 
 bin/mockgen: $(BIN_DIR)/mockgen-$(MOCKGEN_VERSION)
 	@ln -sf mockgen-$(MOCKGEN_VERSION) $(BIN_DIR)/mockgen
 
 $(BIN_DIR)/mockgen-$(MOCKGEN_VERSION):
 	@mkdir -p $(BIN_DIR)
-	@GOBIN=$(BIN_DIR) go install github.com/golang/mock/mockgen@v$(MOCKGEN_VERSION)
+	@GOBIN=$(BIN_DIR) go install go.uber.org/mock/mockgen@v$(MOCKGEN_VERSION)
 	@mv $(BIN_DIR)/mockgen $(BIN_DIR)/mockgen-$(MOCKGEN_VERSION)
 
 .PHONY: mock-generate
