@@ -23,9 +23,9 @@ import (
 	"emperror.dev/errors"
 	ccTypes "github.com/banzaicloud/go-cruise-control/pkg/types"
 	"github.com/go-logr/logr"
-	"github.com/golang/mock/gomock"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
