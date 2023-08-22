@@ -65,7 +65,12 @@ func (helmDescriptor *helmDescriptor) crdPath() (string, error) { //nolint:unuse
 		},
 		helmDescriptor.Repository,
 		helmDescriptor.ReleaseName,
-		[]string{"templates/crds.yaml"},
+		[]string{
+			"crds/cruisecontroloperations.yaml",
+			"crds/kafkaclusters.yaml",
+			"crds/kafkatopics.yaml",
+			"crds/kafkausers.yaml",
+		},
 	))
 
 	return createTempFileFromBytes(localCRDsBytes, "", "", 0)
