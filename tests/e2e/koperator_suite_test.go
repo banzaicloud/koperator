@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestKoperator(t *testing.T) {
@@ -59,12 +60,12 @@ var _ = When("Testing e2e test altogether", Ordered, func() {
 	testInstall()
 	testInstallZookeeperCluster()
 	testInstallKafkaCluster("../../config/samples/simplekafkacluster.yaml")
+	testWebhookKafkaTopic(types.NamespacedName{Name: kafkaClusterName, Namespace: koperatorLocalHelmDescriptor.Namespace})
 	testProduceConsumeInternal()
 	testUninstallKafkaCluster()
 	testInstallKafkaCluster("../../config/samples/simplekafkacluster_ssl.yaml")
 	testProduceConsumeInternalSSL(defaultTLSSecretName)
 	testUninstallKafkaCluster()
-	testWebhooks()
 	testUninstallZookeeperCluster()
 	testUninstall()
 	snapshotClusterAndCompare(snapshottedInfo)
