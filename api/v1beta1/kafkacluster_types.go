@@ -47,25 +47,37 @@ const (
 	defaultServiceAccountName = "default"
 
 	// External Listener Config
+
+	// defaultAnyCastPort kafka anycast port that can be used by clients for metadata queries
 	defaultAnyCastPort                 = 29092
 	defaultIngressControllerTargetPort = 29092
 
 	// Envoy Config
-	defaultEnvoyReplicas        = 1
-	defaultEnvoyAdminPort       = 8081
-	defaultEnvoyHealthCheckPort = 8080
-	defaultEnvoyConcurrency     = 0
 
+	// KafkaClusterDeployment.spec.replicas
+	defaultEnvoyReplicas = 1
+	// KafkaClusterDeployment.spec.template.spec.container["envoy"].port["tcp-admin"].containerPort
+	defaultEnvoyAdminPort = 8081
+	// KafkaClusterDeployment.spec.template.spec.container["envoy"].port["tcp-health"].containerPort
+	defaultEnvoyHealthCheckPort = 8080
+	// KafkaClusterDeployment.spec.template.spec.container["envoy"].args
+	defaultEnvoyConcurrency = 0
+
+	// KafkaClusterDeployment.spec.template.spec.container["envoy"].resource
 	defaultEnvoyRequestResourceCpu    = "100m"
 	defaultEnvoyRequestResourceMemory = "100Mi"
 	defaultEnvoyLimitResourceCpu      = "100m"
 	defaultEnvoyLimitResourceMemory   = "100Mi"
 
+	// KafkaClusterDeployment.spec.template.spec.container["envoy"].image
 	defaultEnvoyImage = "envoyproxy/envoy:v1.22.2"
 
 	// Broker Config
+
+	// KafkaBrokerPod.spec.terminationGracePeriodSeconds
 	defaultBrokerTerminationGracePeriod = 120
 
+	// KafkaBrokerPod.spec.container["kafka"].resource
 	defaultBrokerRequestResourceCpu    = "1000m"
 	defaultBrokerRequestResourceMemory = "2Gi"
 	defaultBrokerLimitResourceCpu      = "1500m"
@@ -75,8 +87,11 @@ const (
 	defaultBrokerPerfJvmOpts = "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true -Dsun.net.inetaddr.ttl=60"
 
 	// Cruise Control Config
+
+	// CruiseControlDeployment.spec.template.spec.container["%s-cruisecontrol"].image
 	defaultCruiseControlImage = "ghcr.io/banzaicloud/cruise-control:2.5.123"
 
+	// CruiseControlDeployment.spec.template.spec.container["%s-cruisecontrol"].resources
 	defaultCruiseControlRequestResourceCpu    = "200m"
 	defaultCruiseControlRequestResourceMemory = "768Mi"
 	defaultCruiseControlLimitResourceCpu      = "200m"
@@ -89,18 +104,30 @@ const (
 	defaultKafkaClusterIngressController = "envoy"
 	defaultKafkaClusterK8sClusterDomain  = "cluster.local"
 
+	// KafkaBroker.spec.container["kafka"].image
 	defaultKafkaImage = "ghcr.io/banzaicloud/kafka:2.13-3.4.1"
 
 	// Istio Ingress Config
+
+	// IstioMeshGateway.spec.deployment.resources
 	defaultIstioIngressRequestResourceCpu    = "100m"
 	defaultIstioIngressRequestResourceMemory = "128Mi"
 	defaultIstioIngressLimitResourceCpu      = "2000m"
 	defaultIstioIngressLimitResourceMemory   = "1024Mi"
 
+	// IstioMeshGateway.spec.deployment.replicas.count
+	// IstioMeshGateway.spec.deployment.replicas.min
+	// IstioMeshGateway.spec.deployment.replicas.max
 	defaultReplicas = 1
 
 	// Monitor Config
-	defaultMonitorImage     = "ghcr.io/banzaicloud/jmx-javaagent:0.16.1"
+
+	// KafkaBrokerPod.spec.initContainer[jmx-exporter].image
+	// kafkaClusterDeployment.spec.template.spec.initContainer["jmx-exporter"].image
+	defaultMonitorImage = "ghcr.io/banzaicloud/jmx-javaagent:0.16.1"
+
+	// KafkaBrokerPod.spec.initContainer["jmx-exporter"].command
+	// kafkaClusterDeployment.spec.template.spec.initContainer["jmx-exporter"].command
 	defaultMonitorPathToJar = "/jmx_prometheus_javaagent.jar"
 )
 
@@ -1070,7 +1097,7 @@ func (bConfig *BrokerConfig) GetKafkaHeapOpts() string {
 	return defaultBrokerHeapOpts
 }
 
-// GetKafkaPerfJmvOpts returns the broker specific Perf JVM settings
+// GetKafkaPerfJvmOpts returns the broker specific Perf JVM settings
 func (bConfig *BrokerConfig) GetKafkaPerfJvmOpts() string {
 	if bConfig.KafkaJVMPerfOpts != "" {
 		return bConfig.KafkaJVMPerfOpts
