@@ -291,6 +291,9 @@ type CruiseControlConfig struct {
 	//  Annotations to be applied to CruiseControl pod
 	// +optional
 	CruiseControlAnnotations map[string]string `json:"cruiseControlAnnotations,omitempty"`
+	//  Labels to be applied to CruiseControl pod
+	// +optional
+	CruiseControlLabels map[string]string `json:"cruiseControlLabels,omitempty"`
 	// InitContainers add extra initContainers to CruiseControl pod
 	InitContainers []corev1.Container `json:"initContainers,omitempty"`
 	// Volumes define some extra Kubernetes Volumes for the CruiseControl Pods.
@@ -356,6 +359,8 @@ type EnvoyConfig struct {
 	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 	// Annotations defines the annotations placed on the envoy ingress controller deployment
 	Annotations map[string]string `json:"annotations,omitempty"`
+	// Labels defines the labels placed on the envoy ingress controller deployment
+	Labels map[string]string `json:"labels,omitempty"`
 	// If specified and supported by the platform, traffic through the
 	// cloud-provider load-balancer will be restricted to the specified client
 	// IPs. This field will be ignored if the
