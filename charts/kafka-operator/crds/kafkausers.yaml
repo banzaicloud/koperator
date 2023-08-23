@@ -1,0 +1,153 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
+  name: kafkausers.kafka.banzaicloud.io
+spec:
+  group: kafka.banzaicloud.io
+  names:
+    kind: KafkaUser
+    listKind: KafkaUserList
+    plural: kafkausers
+    singular: kafkauser
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: KafkaUser is the Schema for the kafka users API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: KafkaUserSpec defines the desired state of KafkaUser
+            properties:
+              annotations:
+                additionalProperties:
+                  type: string
+                description: Annotations defines the annotations placed on the certificate
+                  or certificate signing request object
+                type: object
+              clusterRef:
+                description: ClusterReference states a reference to a cluster for
+                  topic/user provisioning
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                type: object
+              createCert:
+                type: boolean
+              dnsNames:
+                items:
+                  type: string
+                type: array
+              expirationSeconds:
+                description: expirationSeconds is the requested duration of validity
+                  of the issued certificate. The minimum valid value for expirationSeconds
+                  is 3600 i.e. 1h. When it is not specified the default validation
+                  duration is 90 days
+                format: int32
+                minimum: 3600
+                type: integer
+              includeJKS:
+                type: boolean
+              pkiBackendSpec:
+                properties:
+                  issuerRef:
+                    description: ObjectReference is a reference to an object with
+                      a given name, kind and group.
+                    properties:
+                      group:
+                        description: Group of the resource being referred to.
+                        type: string
+                      kind:
+                        description: Kind of the resource being referred to.
+                        type: string
+                      name:
+                        description: Name of the resource being referred to.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  pkiBackend:
+                    enum:
+                    - cert-manager
+                    - k8s-csr
+                    type: string
+                  signerName:
+                    description: SignerName indicates requested signer, and is a qualified
+                      name.
+                    type: string
+                required:
+                - pkiBackend
+                type: object
+              secretName:
+                description: secretName is used as the name of the K8S secret that
+                  contains the certificate of the KafkaUser. SecretName should be
+                  unique inside the namespace where KafkaUser is located.
+                type: string
+              topicGrants:
+                items:
+                  description: UserTopicGrant is the desired permissions for the KafkaUser
+                  properties:
+                    accessType:
+                      description: KafkaAccessType hold info about Kafka ACL
+                      enum:
+                      - read
+                      - write
+                      type: string
+                    patternType:
+                      description: KafkaPatternType hold the Resource Pattern Type
+                        of kafka ACL
+                      enum:
+                      - literal
+                      - match
+                      - prefixed
+                      - any
+                      type: string
+                    topicName:
+                      type: string
+                  required:
+                  - accessType
+                  - topicName
+                  type: object
+                type: array
+            required:
+            - clusterRef
+            - secretName
+            type: object
+          status:
+            description: KafkaUserStatus defines the observed state of KafkaUser
+            properties:
+              acls:
+                items:
+                  type: string
+                type: array
+              state:
+                description: UserState defines the state of a KafkaUser
+                type: string
+            required:
+            - state
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

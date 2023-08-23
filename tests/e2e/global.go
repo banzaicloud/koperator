@@ -40,26 +40,22 @@ var (
 		ChartVersion: LocalVersion,
 		ReleaseName:  "kafka-operator",
 		Namespace:    "kafka",
-		SetValues: map[string]string{
-			"crd.enabled": "true",
-		},
-		LocalCRDSubpaths: []string{"templates/crds.yaml"},
-		LocalCRDTemplateRenderValues: map[string]string{
-			"crd.enabled": "true",
+		LocalCRDSubpaths: []string{
+			"crds/cruisecontroloperations.yaml",
+			"crds/kafkaclusters.yaml",
+			"crds/kafkatopics.yaml",
+			"crds/kafkausers.yaml",
 		},
 	}
 
 	// koperatorLocalHelmDescriptor describes the Koperator Helm component with
 	// a remote latest chart and version.
 	koperatorRemoteLatestHelmDescriptor = helmDescriptor{ //nolint:unused // Note: intentional possibly needed in the future for upgrade test.
-		Repository:   "https://kubernetes-charts.banzaicloud.com",
-		ChartName:    "kafka-operator",
-		ChartVersion: "", // Note: empty string translates to latest final version.
-		ReleaseName:  "kafka-operator",
-		Namespace:    "kafka",
-		SetValues: map[string]string{
-			"crd.enabled": "true",
-		},
+		Repository:                   "https://kubernetes-charts.banzaicloud.com",
+		ChartName:                    "kafka-operator",
+		ChartVersion:                 "", // Note: empty string translates to latest final version.
+		ReleaseName:                  "kafka-operator",
+		Namespace:                    "kafka",
 		RemoteCRDPathVersionTemplate: "https://github.com/banzaicloud/koperator/releases/download/%s/kafka-operator.crds.yaml",
 	}
 
