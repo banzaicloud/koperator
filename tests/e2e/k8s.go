@@ -81,7 +81,7 @@ func applyK8sResourceManifestFromString(kubectlOptions k8s.KubectlOptions, manif
 
 // applyK8sResourceFromTemplate generates manifest from the specified go-template based on values
 // and applies the specified manifest to the provided kubectl context and namespace.
-func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFile string, values map[string]interface{}, extraArgs ...string) error {
+func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFile string, values map[string]any, extraArgs ...string) error {
 	By(fmt.Sprintf("Generating k8s manifest from template %s", templateFile))
 	var manifest bytes.Buffer
 	rawTemplate, err := os.ReadFile(templateFile)
@@ -93,6 +93,24 @@ func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFil
 	if err != nil {
 		return err
 	}
+	return applyK8sResourceManifestFromString(kubectlOptions, manifest.String(), extraArgs...)
+}
+
+// applyK8sResourceFromTemplate generates manifest from the specified go-template based on values
+// and applies the specified manifest to the provided kubectl context and namespace.
+func applyK8sResourceFromTemplate_2(kubectlOptions k8s.KubectlOptions, templateFile string, values any, extraArgs ...string) error {
+	By(fmt.Sprintf("Generating k8s manifest from template %s", templateFile))
+	var manifest bytes.Buffer
+	rawTemplate, err := os.ReadFile(templateFile)
+	if err != nil {
+		return err
+	}
+	t := template.Must(template.New("template").Funcs(sprig.TxtFuncMap()).Parse(string(rawTemplate)))
+	err = t.Execute(&manifest, values)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("###\nManifest is :\n%s\n###\n", manifest.String())
 	return applyK8sResourceManifestFromString(kubectlOptions, manifest.String(), extraArgs...)
 }
 
