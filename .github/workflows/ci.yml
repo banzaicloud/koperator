@@ -7,14 +7,51 @@ on:
   pull_request:
 
 jobs:
-  build:
+  check-integrity:
+    name: Check integrity
     runs-on: ubuntu-latest
 
     steps:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.19
+          go-version: 1.20.7
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check Go modules dependency file integrity
+        run: |
+          for module_file in $(find . -type f -name go.mod); do
+            module=$(dirname $module_file)
+            cd "$module"
+            go mod tidy
+            if [ "$(git status --porcelain)" != "" ]; then
+              printf >&2 '\n`go mod tidy` in module `%s` results in a dirty state, Go mod files are not in sync with the source code files, differences:\n\n%s\n\n' "$module" "$(git diff)"
+              git reset --hard
+              exit 1
+            fi
+            cd - > /dev/null
+          done
+
+      - name: Check generated file integrity
+        run: |
+          make generate manifests
+          if [ "$(git status --porcelain)" != "" ]; then
+            printf >&2 '\ngenerating code files and manifests results in a dirty state, generated files are not in sync with the source code files, differences:\n\n%s\n\n' "$(git diff)"
+            git reset --hard
+            exit 1
+          fi
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20.7
 
       - name: Checkout code
         uses: actions/checkout@v3
