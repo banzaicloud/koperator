@@ -200,7 +200,7 @@ spec:
             - --metrics-addr=":{{ .Values.metricEndpoint.port }}"
           {{- end }}
           {{- if .Values.healthProbe.port }}
-            - --liveness-readiness-probe-addr:{{ .Values.healthProbe.port }}
+            - --liveness-readiness-probe-addr=:{{ .Values.healthProbe.port }}
           {{- end }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
