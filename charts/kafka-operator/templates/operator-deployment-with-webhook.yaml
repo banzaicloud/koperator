@@ -248,7 +248,7 @@ spec:
               readOnly: true
           {{- end }}
           resources:
-          {{ toYaml .Values.operator.resources | nindent 12 }}
+          {{- toYaml .Values.operator.resources | nindent 12 }}
           {{- if .Values.containerSecurityContext }}
           securityContext:
           {{ toYaml .Values.containerSecurityContext | nindent 12 }}
