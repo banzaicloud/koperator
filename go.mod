@@ -23,6 +23,7 @@ require (
 	github.com/pavlo-v-chernykh/keystore-go/v4 v4.4.1
 	github.com/prometheus/common v0.37.0
 	github.com/stretchr/testify v1.8.1
+	go.uber.org/mock v0.2.0
 	go.uber.org/zap v1.24.0
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 	google.golang.org/protobuf v1.28.1
@@ -68,7 +69,6 @@ require (
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/gnostic v0.6.9 // indirect

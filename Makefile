@@ -28,7 +28,7 @@ ENVTEST_K8S_VERSION = 1.24.2
 
 KUSTOMIZE_BASE = config/overlays/specific-manager-version
 
-HELM_CRD_PATH = charts/kafka-operator/templates/crds.yaml
+HELM_CRD_PATH = charts/kafka-operator/crds
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -133,12 +133,10 @@ manifests: bin/controller-gen
 	cd api && $(CONTROLLER_GEN) $(CRD_OPTIONS) webhook paths="./..." output:crd:artifacts:config=../config/base/crds output:webhook:artifacts:config=../config/base/webhook
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./controllers/..." output:rbac:artifacts:config=./config/base/rbac
 	## Regenerate CRDs for the helm chart
-	echo "{{- if .Values.crd.enabled }}" > $(HELM_CRD_PATH)
-	cat config/base/crds/kafka.banzaicloud.io_cruisecontroloperations.yaml >> $(HELM_CRD_PATH)
-	cat config/base/crds/kafka.banzaicloud.io_kafkaclusters.yaml >> $(HELM_CRD_PATH)
-	cat config/base/crds/kafka.banzaicloud.io_kafkatopics.yaml >> $(HELM_CRD_PATH)
-	cat config/base/crds/kafka.banzaicloud.io_kafkausers.yaml >> $(HELM_CRD_PATH)
-	echo "{{- end }}" >> $(HELM_CRD_PATH)
+	cp config/base/crds/kafka.banzaicloud.io_cruisecontroloperations.yaml $(HELM_CRD_PATH)/cruisecontroloperations.yaml
+	cp config/base/crds/kafka.banzaicloud.io_kafkaclusters.yaml $(HELM_CRD_PATH)/kafkaclusters.yaml
+	cp config/base/crds/kafka.banzaicloud.io_kafkatopics.yaml $(HELM_CRD_PATH)/kafkatopics.yaml
+	cp config/base/crds/kafka.banzaicloud.io_kafkausers.yaml $(HELM_CRD_PATH)/kafkausers.yaml
 
 # Run go fmt against code
 fmt:
@@ -253,14 +251,14 @@ gen-license-header: bin/gotemplate ## Generate license header used in source cod
 		--source="$(BOILERPLATE_DIR)"
 
 
-MOCKGEN_VERSION := 1.6.0
+MOCKGEN_VERSION := 0.2.0
 
 bin/mockgen: $(BIN_DIR)/mockgen-$(MOCKGEN_VERSION)
 	@ln -sf mockgen-$(MOCKGEN_VERSION) $(BIN_DIR)/mockgen
 
 $(BIN_DIR)/mockgen-$(MOCKGEN_VERSION):
 	@mkdir -p $(BIN_DIR)
-	@GOBIN=$(BIN_DIR) go install github.com/golang/mock/mockgen@v$(MOCKGEN_VERSION)
+	@GOBIN=$(BIN_DIR) go install go.uber.org/mock/mockgen@v$(MOCKGEN_VERSION)
 	@mv $(BIN_DIR)/mockgen $(BIN_DIR)/mockgen-$(MOCKGEN_VERSION)
 
 .PHONY: mock-generate

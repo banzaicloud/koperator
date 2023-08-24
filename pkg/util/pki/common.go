@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
+	"flag"
 	"fmt"
 	"sort"
 	"strings"
@@ -61,6 +62,13 @@ const (
 	// MaxCNLen specifies the number of chars that the longest common name can have
 	MaxCNLen = 64
 )
+
+// NamespaceCertManager points to a namespace where cert-manager is located
+var NamespaceCertManager string
+
+func init() {
+	flag.StringVar(&NamespaceCertManager, "cert-manager-namespace", "cert-manager", "The namespace where cert-manager is running")
+}
 
 // Manager is the main interface for objects performing PKI operations
 type Manager interface {
