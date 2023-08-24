@@ -227,11 +227,11 @@ spec:
           {{ toYaml .Values.additionalEnv | nindent 12 }}
           {{- end }}
           ports:
-          {{- if .Values.webhook.enabled }}
+            {{- if .Values.webhook.enabled }}
             - containerPort: {{ .Values.webhook.serverPort | default 9443 }}
               name: webhook-server
               protocol: TCP
-          {{- end }}
+            {{- end}}
             - containerPort: {{ (.Values.metricEndpoint).port | default 8080 }}
               name: metrics
               protocol: TCP
