@@ -199,8 +199,8 @@ spec:
           {{- if (.Values.metricEndpoint).port }}
             - --metrics-addr=":{{ .Values.metricEndpoint.port }}"
           {{- end }}
-          {{- if .Values.livenessReadinessProbe.port }}
-            - --liveness-readiness-probe-addr=:{{ .Values.livenessReadinessProbe.port }}
+          {{- if .Values.healthProbes.port }}
+            - --health-probes-addr=:{{ .Values.healthProbes.port }}
           {{- end }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
@@ -238,7 +238,7 @@ spec:
             - containerPort: {{ .Values.alertManager.port }}
               name: alerts
               protocol: TCP
-            - containerPort: {{ .Values.livenessReadinessProbe.port | default 8081 }}
+            - containerPort: {{ .Values.healthProbes.port | default 8081 }}
               name: liveness-readiness-probe
               protocol: TCP
           volumeMounts:

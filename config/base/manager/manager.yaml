@@ -26,20 +26,20 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 10
           httpGet:
-            port: 8081
+            port: health-probes
             path: /healthz
         readinessProbe:
           initialDelaySeconds: 20
           periodSeconds: 15
           httpGet:
-            port: 8081
+            port: health-probes
             path: /readyz
         ports:
         - containerPort: 9001
           name: alerts
           protocol: TCP
         - containerPort: 8081
-          name: liveness-readiness-probe
+          name: health-probes
           protocol: TCP
         resources:
           limits:
