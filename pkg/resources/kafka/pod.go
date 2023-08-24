@@ -533,7 +533,7 @@ func generateEnvConfig(brokerConfig *v1beta1.BrokerConfig, defaultEnvVars []core
 	if _, ok := envs["KAFKA_JVM_PERFORMANCE_OPTS"]; !ok || brokerConfig.KafkaJVMPerfOpts != "" {
 		envs["KAFKA_JVM_PERFORMANCE_OPTS"] = corev1.EnvVar{
 			Name:  "KAFKA_JVM_PERFORMANCE_OPTS",
-			Value: brokerConfig.GetKafkaPerfJvmOpts(),
+			Value: brokerConfig.GetKafkaPerfJmvOpts(),
 		}
 	}
 	// Sort map values by key to avoid diff in sequence
