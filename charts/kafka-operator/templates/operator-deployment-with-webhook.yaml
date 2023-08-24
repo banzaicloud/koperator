@@ -206,17 +206,17 @@ spec:
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           name: manager
           livenessProbe:
+            initialDelaySeconds: 15
+            periodSeconds: 10
             httpGet:
               port: health-probes
               path: /healthz
-            initialDelaySeconds: 15
-            periodSeconds: 10
           readinessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 15
             httpGet:
               port: health-probes
               path: /readyz
-            initialDelaySeconds: 20
-            periodSeconds: 15
           env:
             - name: POD_NAMESPACE
               valueFrom:
