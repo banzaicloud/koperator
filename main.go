@@ -32,6 +32,8 @@ package main
 import (
 	"context"
 	"flag"
+	"net/http"
+	"net/http/pprof"
 	"os"
 	"strings"
 
@@ -89,6 +91,7 @@ func main() {
 		certSigningDisabled               bool
 		certManagerEnabled                bool
 		maxKafkaTopicConcurrentReconciles int
+		enableprofile                     bool
 	)
 
 	flag.StringVar(&namespaces, "namespaces", "", "Comma separated list of namespaces where operator listens for resources")
@@ -103,6 +106,7 @@ func main() {
 	flag.BoolVar(&certManagerEnabled, "cert-manager-enabled", false, "Enable cert-manager integration")
 	flag.BoolVar(&certSigningDisabled, "disable-cert-signing-support", false, "Disable native certificate signing integration")
 	flag.IntVar(&maxKafkaTopicConcurrentReconciles, "max-kafka-topic-concurrent-reconciles", 10, "Define max amount of concurrent KafkaTopic reconciles")
+	flag.BoolVar(&enableprofile, "pprof", false, "Enable pprof")
 	flag.Parse()
 	ctrl.SetLogger(util.CreateLogger(verboseLogging, developmentLogging))
 
@@ -137,6 +141,14 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
+	}
+
+	if enableprofile {
+		mgr.AddMetricsExtraHandler("/debug/pprof/", http.HandlerFunc(pprof.Index))
+		mgr.AddMetricsExtraHandler("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+		mgr.AddMetricsExtraHandler("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+		mgr.AddMetricsExtraHandler("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+		mgr.AddMetricsExtraHandler("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
 	}
 
 	if err := certv1.AddToScheme(mgr.GetScheme()); err != nil {
