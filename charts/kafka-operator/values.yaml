@@ -20,9 +20,9 @@ operator:
   # configurable Kubernetes namespaces.
   # In this scenario, users can replace the default
   # ClusterRole and ClusterRoleBinding to Role and RoleBinding respectively.
-  # When this field is not empty and Cert-manager is used, 
+  # When this field is not empty and Cert-manager is used,
   # the Cert-manager's Custom Resource Namespace must be included in the comma separated list.
-  # When it is empty, all namespaces will be watched. 
+  # When it is empty, all namespaces will be watched.
   namespaces: ""
   verboseLogging: false
   developmentLogging: false
@@ -72,6 +72,9 @@ prometheusMetrics:
     serviceAccount:
       create: true
       name: kafka-operator-authproxy
+
+healthProbe:
+  port: 8081
 
 #metricEndpoint:
 #  port:

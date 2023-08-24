@@ -199,9 +199,24 @@ spec:
           {{- if (.Values.metricEndpoint).port }}
             - --metrics-addr=":{{ .Values.metricEndpoint.port }}"
           {{- end }}
+          {{- if .Values.healthProbe.port }}
+            - --health-probe-addr=":{{ .Values.healthProbe.port }}"
+          {{- end }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           name: manager
+          livenessProbe:
+            httpGet:
+              port: health-probes
+              path: /healthz
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              port: health-probes
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 15
           env:
             - name: POD_NAMESPACE
               valueFrom:
@@ -222,6 +237,9 @@ spec:
               protocol: TCP
             - containerPort: {{ .Values.alertManager.port }}
               name: alerts
+              protocol: TCP
+            - containerPort: {{ .Values.healthProbe.port | default 8081 }}
+              name: health-probes
               protocol: TCP
           volumeMounts:
           {{- if .Values.webhook.enabled }}

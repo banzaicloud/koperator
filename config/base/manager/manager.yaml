@@ -22,6 +22,18 @@ spec:
         - --enable-leader-election
         image: ghcr.io/banzaicloud/kafka-operator:latest
         name: manager
+        readinessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 15
+          httpGet:
+            port: 8081
+            path: /readyz
+        livenessProbe:
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          httpGet:
+            port: 8081
+            path: /healthz
         ports:
         - containerPort: 9001
           name: alerts

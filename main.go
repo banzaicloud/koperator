@@ -33,6 +33,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -89,10 +90,12 @@ func main() {
 		certSigningDisabled               bool
 		certManagerEnabled                bool
 		maxKafkaTopicConcurrentReconciles int
+		healthProbeAddr                   string
 	)
 
 	flag.StringVar(&namespaces, "namespaces", "", "Comma separated list of namespaces where operator listens for resources")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&healthProbeAddr, "health-probe-addr", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&webhookDisabled, "disable-webhooks", false, "Disable webhooks used to validate custom resources")
@@ -125,14 +128,25 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "controller-leader-election-helper",
-		NewCache:           managerWatchCacheBuilder,
-		Port:               webhookServerPort,
-		CertDir:            webhookCertDir,
+		Scheme:                 scheme,
+		MetricsBindAddress:     metricsAddr,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "controller-leader-election-helper",
+		NewCache:               managerWatchCacheBuilder,
+		Port:                   webhookServerPort,
+		CertDir:                webhookCertDir,
+		HealthProbeBindAddress: healthProbeAddr,
 	})
+
+	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to start /healthz endpoint")
+		os.Exit(1)
+	}
+
+	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to start /readyz endpoint")
+		os.Exit(1)
+	}
 
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
