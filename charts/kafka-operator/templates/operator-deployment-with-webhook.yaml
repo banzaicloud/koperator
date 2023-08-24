@@ -208,12 +208,14 @@ spec:
           livenessProbe:
             initialDelaySeconds: 15
             periodSeconds: 10
+            failureThreshold: 20
             httpGet:
               port: health-probes
               path: /healthz
           readinessProbe:
             initialDelaySeconds: 20
             periodSeconds: 15
+            failureThreshold: 20
             httpGet:
               port: health-probes
               path: /readyz
