@@ -137,6 +137,10 @@ func main() {
 		CertDir:                webhookCertDir,
 		HealthProbeBindAddress: livenessReadinessAddr,
 	})
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
 
 	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to start /healthz endpoint")
@@ -145,11 +149,6 @@ func main() {
 
 	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to start /readyz endpoint")
-		os.Exit(1)
-	}
-
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
