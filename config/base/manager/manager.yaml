@@ -39,7 +39,7 @@ spec:
           name: alerts
           protocol: TCP
         - containerPort: 8081
-          name: liveness-readiness-probes
+          name: liveness-readiness-probe
           protocol: TCP
         resources:
           limits:

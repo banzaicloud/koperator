@@ -73,7 +73,7 @@ prometheusMetrics:
       create: true
       name: kafka-operator-authproxy
 
-healthProbe:
+livenessReadinessProbe:
   port: 8081
 
 #metricEndpoint:
