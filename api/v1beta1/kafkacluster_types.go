@@ -43,16 +43,16 @@ const (
 
 	// These are default values for API keys
 
-	// General
+	/* General Config */
 	defaultServiceAccountName = "default"
 
-	// External Listener Config
+	/* External Listener Config */
 
 	// defaultAnyCastPort kafka anycast port that can be used by clients for metadata queries
 	defaultAnyCastPort                 = 29092
 	defaultIngressControllerTargetPort = 29092
 
-	// Envoy Config
+	/* Envoy Config */
 
 	// KafkaClusterDeployment.spec.replicas
 	defaultEnvoyReplicas = 1
@@ -72,7 +72,7 @@ const (
 	// KafkaClusterDeployment.spec.template.spec.container["envoy"].image
 	defaultEnvoyImage = "envoyproxy/envoy:v1.22.2"
 
-	// Broker Config
+	/* Broker Config */
 
 	// KafkaBrokerPod.spec.terminationGracePeriodSeconds
 	defaultBrokerTerminationGracePeriod = 120
@@ -86,7 +86,7 @@ const (
 	defaultBrokerHeapOpts    = "-Xmx2G -Xms2G"
 	defaultBrokerPerfJvmOpts = "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true -Dsun.net.inetaddr.ttl=60"
 
-	// Cruise Control Config
+	/* Cruise Control Config */
 
 	// CruiseControlDeployment.spec.template.spec.container["%s-cruisecontrol"].image
 	defaultCruiseControlImage = "ghcr.io/banzaicloud/cruise-control:2.5.123"
@@ -107,7 +107,7 @@ const (
 	// KafkaBroker.spec.container["kafka"].image
 	defaultKafkaImage = "ghcr.io/banzaicloud/kafka:2.13-3.4.1"
 
-	// Istio Ingress Config
+	/* Istio Ingress Config */
 
 	// IstioMeshGateway.spec.deployment.resources
 	defaultIstioIngressRequestResourceCpu    = "100m"
@@ -120,7 +120,7 @@ const (
 	// IstioMeshGateway.spec.deployment.replicas.max
 	defaultReplicas = 1
 
-	// Monitor Config
+	/* Monitor Config */
 
 	// KafkaBrokerPod.spec.initContainer[jmx-exporter].image
 	// kafkaClusterDeployment.spec.template.spec.initContainer["jmx-exporter"].image
