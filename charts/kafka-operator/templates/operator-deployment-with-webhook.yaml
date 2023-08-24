@@ -209,13 +209,13 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 10
             httpGet:
-              port: liveness-readiness-probe
+              port: health-probes
               path: /healthz
           readinessProbe:
             initialDelaySeconds: 20
             periodSeconds: 15
             httpGet:
-              port: liveness-readiness-probe
+              port: health-probes
               path: /readyz
           env:
             - name: POD_NAMESPACE
@@ -239,7 +239,7 @@ spec:
               name: alerts
               protocol: TCP
             - containerPort: {{ .Values.healthProbes.port | default 8081 }}
-              name: liveness-readiness-probe
+              name: health-probes
               protocol: TCP
           volumeMounts:
           {{- if .Values.webhook.enabled }}
