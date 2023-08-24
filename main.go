@@ -33,10 +33,10 @@ import (
 	"context"
 	"flag"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	istioclientv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 
