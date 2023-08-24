@@ -38,6 +38,9 @@ spec:
         - containerPort: 9001
           name: alerts
           protocol: TCP
+        - containerPort: 8081
+          name: liveness-readiness-probes
+          protocol: TCP
         resources:
           limits:
             cpu: 300m

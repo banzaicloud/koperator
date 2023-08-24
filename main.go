@@ -90,12 +90,12 @@ func main() {
 		certSigningDisabled               bool
 		certManagerEnabled                bool
 		maxKafkaTopicConcurrentReconciles int
-		healthProbeAddr                   string
+		livenessReadinessAddr             string
 	)
 
 	flag.StringVar(&namespaces, "namespaces", "", "Comma separated list of namespaces where operator listens for resources")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&healthProbeAddr, "health-probe-addr", ":8081", "The address the probe endpoint binds to.")
+	flag.StringVar(&livenessReadinessAddr, "liveness-readiness-probe-addr", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&webhookDisabled, "disable-webhooks", false, "Disable webhooks used to validate custom resources")
@@ -135,7 +135,7 @@ func main() {
 		NewCache:               managerWatchCacheBuilder,
 		Port:                   webhookServerPort,
 		CertDir:                webhookCertDir,
-		HealthProbeBindAddress: healthProbeAddr,
+		HealthProbeBindAddress: livenessReadinessAddr,
 	})
 
 	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
