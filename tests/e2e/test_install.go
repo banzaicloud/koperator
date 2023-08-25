@@ -30,26 +30,26 @@ func testInstall() bool {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		// When("Installing cert-manager", func() {
-		// 	It("Installing cert-manager Helm chart", func() {
-		// 		err = certManagerHelmDescriptor.installHelmChart(kubectlOptions)
-		// 		Expect(err).NotTo(HaveOccurred())
-		// 	})
-		// })
+		When("Installing cert-manager", func() {
+			It("Installing cert-manager Helm chart", func() {
+				err = certManagerHelmDescriptor.installHelmChart(kubectlOptions)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 
-		// When("Installing zookeeper-operator", func() {
-		// 	It("Installing zookeeper-operator Helm chart", func() {
-		// 		err = zookeeperOperatorHelmDescriptor.installHelmChart(kubectlOptions)
-		// 		Expect(err).NotTo(HaveOccurred())
-		// 	})
-		// })
+		When("Installing zookeeper-operator", func() {
+			It("Installing zookeeper-operator Helm chart", func() {
+				err = zookeeperOperatorHelmDescriptor.installHelmChart(kubectlOptions)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 
-		// When("Installing prometheus-operator", func() {
-		// 	It("Installing prometheus-operator Helm chart", func() {
-		// 		err = prometheusOperatorHelmDescriptor.installHelmChart(kubectlOptions)
-		// 		Expect(err).NotTo(HaveOccurred())
-		// 	})
-		// })
+		When("Installing prometheus-operator", func() {
+			It("Installing prometheus-operator Helm chart", func() {
+				err = prometheusOperatorHelmDescriptor.installHelmChart(kubectlOptions)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 
 		When("Installing Koperator", func() {
 			It("Installing Koperator Helm chart", func() {

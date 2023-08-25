@@ -21,14 +21,13 @@ import (
 )
 
 func init() {
+	// Set helm chart values for Koperator to be able to use custom image
 	koperatorImagePath := os.Getenv("IMG_E2E")
 	if koperatorImagePath != "" {
-		var koperatorImageRepository, koperatorImageTag string
-
 		koperatorImagePathSplit := strings.Split(koperatorImagePath, ":")
 
-		koperatorImageRepository = koperatorImagePathSplit[0]
-		koperatorImageTag = "latest"
+		koperatorImageRepository := koperatorImagePathSplit[0]
+		koperatorImageTag := "latest"
 
 		if len(koperatorImagePathSplit) == 2 {
 			koperatorImageTag = koperatorImagePathSplit[1]
