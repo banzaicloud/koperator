@@ -16,7 +16,30 @@ package e2e
 
 import (
 	"errors"
+	"os"
+	"strings"
 )
+
+func init() {
+	koperatorImagePath := os.Getenv("IMG_E2E")
+	if koperatorImagePath != "" {
+		var koperatorImageRepository, koperatorImageTag string
+
+		koperatorImagePathSplit := strings.Split(koperatorImagePath, ":")
+
+		koperatorImageRepository = koperatorImagePathSplit[0]
+		koperatorImageTag = "latest"
+
+		if len(koperatorImagePathSplit) == 2 {
+			koperatorImageTag = koperatorImagePathSplit[1]
+		}
+
+		koperatorLocalHelmDescriptor.SetValues = map[string]string{
+			"operator.image.repository": koperatorImageRepository,
+			"operator.image.tag":        koperatorImageTag,
+		}
+	}
+}
 
 // HelmDescriptors.
 var (

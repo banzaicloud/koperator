@@ -100,7 +100,7 @@ test: generate fmt vet manifests bin/setup-envtest
 
 # Run e2e tests
 test-e2e:
-	go test github.com/banzaicloud/koperator/tests/e2e \
+	 IMG_E2E=${IMG_E2E} go test github.com/banzaicloud/koperator/tests/e2e \
 		-v \
 		-timeout 20m \
 		-tags e2e \
