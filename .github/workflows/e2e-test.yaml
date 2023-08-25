@@ -22,7 +22,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Buld docker image
+      - name: Build docker image
         run: |
           GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")
           IMG=koperator_e2e_test:$GITHUB_SHA_SHORT make docker-build
@@ -35,7 +35,7 @@ jobs:
         run: |
           GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")
           IMG=koperator_e2e_test:$GITHUB_SHA_SHORT
-          kind load docker-image $IMG
+          kind load docker-image $IMG --name e2e-kind
 
 
       - name: run tests
