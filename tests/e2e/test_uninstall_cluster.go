@@ -32,11 +32,10 @@ func testUninstallZookeeperCluster() bool {
 
 		kubectlOptions.Namespace = zookeeperOperatorHelmDescriptor.Namespace
 		requireDeleteZookeeperCluster(kubectlOptions, zookeeperClusterName)
-
 	})
 }
 
-func testUninstallKafkaCluster() bool {
+func testUninstallKafkaCluster() bool { //nolint:unparam // Note: respecting Ginkgo testing interface by returning bool.
 	return When("Uninstalling Kafka cluster", func() {
 		var kubectlOptions k8s.KubectlOptions
 		var err error

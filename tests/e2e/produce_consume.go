@@ -29,7 +29,7 @@ import (
 func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string, tlsSecretName string) {
 	It("Deploying Kcat Pod", func() {
 		templateParameters := map[string]interface{}{
-			"Name":      kcatPodName,
+			"Name":      podName,
 			"Namespace": kubectlOptions.Namespace,
 		}
 		if tlsSecretName != "" {
@@ -43,11 +43,10 @@ func requireDeployingKcatPod(kubectlOptions k8s.KubectlOptions, podName string, 
 		Expect(err).ShouldNot(HaveOccurred())
 
 		err = waitK8sResourceCondition(kubectlOptions, "pods",
-			"condition=Ready", defaultPodReadinessWaitTime, "", kcatPodName)
+			"condition=Ready", defaultPodReadinessWaitTime, "", podName)
 
 		Expect(err).ShouldNot(HaveOccurred())
 	})
-
 }
 
 // requireDeleteKcatPod deletes kcat pod.
@@ -107,7 +106,7 @@ func requireInternalProducingConsumingMessage(kubectlOptions k8s.KubectlOptions,
 
 // requireExternalProducingConsumingMessage gets the Kafka cluster external addresses from the kafkaCluster CR status
 // when externalAddresses is not specified. It also produces and consumes messages and makes a comparison between them.
-func requireExternalProducingConsumingMessage(kubectlOptions k8s.KubectlOptions, topicName, tlsSecretName string, externalAddresses ...string) {
+func requireExternalProducingConsumingMessage(kubectlOptions k8s.KubectlOptions, topicName, tlsSecretName string, externalAddresses ...string) { //nolint:unused // Note: unused linter disabled until External e2e tests are turned on.
 	It("Producing and consuming messages", func() {
 		if len(externalAddresses) == 0 {
 			var err error
@@ -145,7 +144,7 @@ func requireExternalProducingConsumingMessage(kubectlOptions k8s.KubectlOptions,
 }
 
 // getExternalListenerNames gets the names of the KafkaCluster CR's external listeners.
-func getExternalListenerNames(kubectlOptions k8s.KubectlOptions, kafkaClusterName string) ([]string, error) {
+func getExternalListenerNames(kubectlOptions k8s.KubectlOptions, kafkaClusterName string) ([]string, error) { //nolint:unused // Note: unused linter disabled until External e2e tests are turned on.
 	By("Getting external listener names from KafkaCluster status")
 	externalListenerNames, err := getK8sResources(kubectlOptions,
 		[]string{kafkaKind},
@@ -161,7 +160,7 @@ func getExternalListenerNames(kubectlOptions k8s.KubectlOptions, kafkaClusterNam
 
 // getExternalListenerAddresses gets the Kafka cluster external addresses from the kafkaCluster CR.
 // When externalListenerName is not specified it uses the first externalListener name in the CR to get addresses.
-func getExternalListenerAddresses(kubectlOptions k8s.KubectlOptions, externalListenerName, kafkaClusterName string) ([]string, error) {
+func getExternalListenerAddresses(kubectlOptions k8s.KubectlOptions, externalListenerName, kafkaClusterName string) ([]string, error) { //nolint:unused // Note: unused linter disabled until External e2e tests are turned on.
 	By(fmt.Sprintf("Getting Kafka cluster '%s' external listener addresses", kafkaClusterName))
 	if externalListenerName == "" {
 		externalListenerNames, err := getExternalListenerNames(kubectlOptions, kafkaClusterName)
@@ -186,11 +185,10 @@ func getExternalListenerAddresses(kubectlOptions k8s.KubectlOptions, externalLis
 	}
 
 	return externalListenerAddresses, nil
-
 }
 
 // requireAvailableExternalKafkaAddress checks that is there any available external address for the Kafka cluster.
-func requireAvailableExternalKafkaAddress(kubectlOptions k8s.KubectlOptions, externalListenerName, kafkaClusterName string) {
+func requireAvailableExternalKafkaAddress(kubectlOptions k8s.KubectlOptions, externalListenerName, kafkaClusterName string) { //nolint:unused // Note: unused linter disabled until External e2e tests are turned on.
 	It(fmt.Sprintf("Checks that the KafkaCluster '%s' has external address", kafkaClusterName), func() {
 		_, err := getExternalListenerAddresses(kubectlOptions, externalListenerName, kafkaClusterName)
 		Expect(err).ShouldNot(HaveOccurred())
