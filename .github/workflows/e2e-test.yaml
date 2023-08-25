@@ -7,7 +7,7 @@ on:
   pull_request:
 
 env:
-  IMG_E2E: koperator_e2e_test:$GITHUB_SHA  
+  IMG_E2E: koperator_e2e_test:${GITHUB_SHA}  
 
 jobs:
   build:
