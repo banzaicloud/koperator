@@ -7,7 +7,7 @@ on:
   pull_request:
 
 env:
-  IMG_E2E: koperator_e2e_test:${GITHUB_SHA}  
+  REPOSITORY: koperator_e2e_test  
 
 jobs:
   build:
@@ -24,9 +24,7 @@ jobs:
       
       - name: Build docker image
         run: |
-          GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")
-          #IMG=koperator_e2e_test:$GITHUB_SHA_SHORT make docker-build
-          IMG=$IMG_E2E make docker-build
+          IMG=$REPOSITORY:$GITHUB_SHA make docker-build
 
       - name: Setup Kind cluster
         id: setup-kind
@@ -34,16 +32,13 @@ jobs:
 
       - name: Load image into kind cluster
         run: |
-          GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")
-          #IMG=koperator_e2e_test:$GITHUB_SHA_SHORT
-          kind load docker-image $IMG_E2E --name e2e-kind
+          kind load docker-image $REPOSITORY:$GITHUB_SHA --name e2e-kind
 
 
-      - name: run tests
+      - name: Run E2E tests
         env:
            KUBECONFIG: ${{ steps.setup-kind.outputs.kubeconfig }}
         run: |
           go work init
           go work use -r .
-          #GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")
-          make test-e2e
+          IMG_E2E=$REPOSITORY:$GITHUB_SHA make test-e2e
