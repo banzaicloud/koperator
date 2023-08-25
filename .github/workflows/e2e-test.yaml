@@ -7,7 +7,7 @@ on:
   pull_request:
 
 env:
-  REPOSITORY: koperator_e2e_test  
+  REPOSITORY: koperator_e2e_test
 
 jobs:
   build:
@@ -24,7 +24,7 @@ jobs:
       
       - name: Build docker image
         run: |
-          IMG=$REPOSITORY:$GITHUB_SHA make docker-build
+          IMG=$REPOSITORY:$GITHUB_REF-$GITHUB_SHA make docker-build
 
       - name: Setup Kind cluster
         id: setup-kind
@@ -32,7 +32,7 @@ jobs:
 
       - name: Load image into kind cluster
         run: |
-          kind load docker-image $REPOSITORY:$GITHUB_SHA --name e2e-kind
+          kind load docker-image $REPOSITORY:$GITHUB_REF-$GITHUB_SHA --name e2e-kind
 
 
       - name: Run E2E tests
@@ -41,4 +41,4 @@ jobs:
         run: |
           go work init
           go work use -r .
-          IMG_E2E=$REPOSITORY:$GITHUB_SHA make test-e2e
+          IMG_E2E=$REPOSITORY:$GITHUB_REF-$GITHUB_SHA make test-e2e
