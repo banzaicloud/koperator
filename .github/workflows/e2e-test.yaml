@@ -6,6 +6,9 @@ on:
       - master
   pull_request:
 
+env:
+  IMG: koperator_e2e_test:$GITHUB_SHA  
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,10 +21,22 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v3
+      
+      - name: Buld docker image
+        run: |
+          GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")
+          IMG=koperator_e2e_test:$GITHUB_SHA_SHORT make docker-build
 
       - name: Setup Kind cluster
         id: setup-kind
         uses: ./.github/actions/kind-create
+
+      - name: Load image into kind cluster
+        run: |
+          GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")
+          IMG=koperator_e2e_test:$GITHUB_SHA_SHORT
+          kind load docker-image $IMG
+
 
       - name: run tests
         env:
@@ -29,4 +44,5 @@ jobs:
         run: |
           go work init
           go work use -r .
-          make test-e2e
+          GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")
+          IMG=koperator_e2e_test:$GITHUB_SHA_SHORT make test-e2e
