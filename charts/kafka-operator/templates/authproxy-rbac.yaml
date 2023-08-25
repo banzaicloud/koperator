@@ -1,11 +1,9 @@
 {{- if and .Values.prometheusMetrics.authProxy.serviceAccount.create .Values.prometheusMetrics.enabled .Values.prometheusMetrics.authProxy.enabled }}
 apiVersion: v1
 kind: ServiceAccount
-{{- if .Values.imagePullSecrets }}
+{{- with .Values.imagePullSecrets }}
 imagePullSecrets:
-{{- range .Values.imagePullSecrets }}
-  - name: {{ . }}
-{{- end }}
+{{- toYaml . | nindent 0 }}
 {{- end }}
 metadata:
   name: {{ include "operator.metricsAuthProxy.serviceAccountName" .}}

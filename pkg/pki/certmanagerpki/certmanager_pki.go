@@ -53,7 +53,7 @@ func (c *certManager) FinalizePKI(ctx context.Context) error {
 		if c.cluster.Spec.ListenersConfig.SSLSecrets.IssuerRef == nil {
 			objNames = append(
 				objNames,
-				types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerCACertTemplate, c.cluster.Name), Namespace: namespaceCertManager})
+				types.NamespacedName{Name: fmt.Sprintf(pkicommon.BrokerCACertTemplate, c.cluster.Name), Namespace: pkicommon.NamespaceCertManager})
 		}
 		for _, obj := range objNames {
 			// Delete the certificates first so we don't accidentally recreate the
@@ -183,7 +183,7 @@ func caSecretForProvidedCert(ctx context.Context, client client.Client, cluster 
 	caSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
-			Namespace: namespaceCertManager,
+			Namespace: pkicommon.NamespaceCertManager,
 			Labels:    pkicommon.LabelsForKafkaPKI(cluster.Name, cluster.Namespace),
 		},
 		Data: map[string][]byte{
@@ -214,7 +214,7 @@ func caCertForCluster(cluster *v1beta1.KafkaCluster) *certv1.Certificate {
 	return &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf(pkicommon.BrokerCACertTemplate, cluster.Name),
-			Namespace: namespaceCertManager,
+			Namespace: pkicommon.NamespaceCertManager,
 			Labels:    pkicommon.LabelsForKafkaPKI(cluster.Name, cluster.Namespace),
 		},
 		Spec: certv1.CertificateSpec{

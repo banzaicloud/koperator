@@ -26,7 +26,7 @@ import (
 	api "github.com/banzaicloud/go-cruise-control/pkg/api"
 	types "github.com/banzaicloud/go-cruise-control/pkg/types"
 	scale "github.com/banzaicloud/koperator/pkg/scale"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockCruiseControlScaler is a mock of CruiseControlScaler interface.

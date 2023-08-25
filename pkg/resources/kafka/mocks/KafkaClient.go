@@ -25,7 +25,7 @@ import (
 	sarama "github.com/Shopify/sarama"
 	v1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 	kafkaclient "github.com/banzaicloud/koperator/pkg/kafkaclient"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockKafkaClient is a mock of KafkaClient interface.
