@@ -1120,7 +1120,7 @@ func (eConfig *EnvoyConfig) GetEnvoyAdminPort() int32 {
 	if eConfig.AdminPort != nil {
 		return *eConfig.AdminPort
 	}
-	return defaultEnvoyAdminPort
+	return DefaultEnvoyAdminPort
 }
 
 // GetEnvoyHealthCheckPort returns the envoy admin port
@@ -1128,7 +1128,7 @@ func (eConfig *EnvoyConfig) GetEnvoyHealthCheckPort() int32 {
 	if eConfig.HealthCheckPort != nil {
 		return *eConfig.HealthCheckPort
 	}
-	return defaultEnvoyHealthCheckPort
+	return DefaultEnvoyHealthCheckPort
 }
 
 // GetCCImage returns the used Cruise Control image
