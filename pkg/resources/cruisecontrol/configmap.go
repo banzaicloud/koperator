@@ -40,7 +40,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const MinLogDirSizeInMB = int64(1)
+const (
+	MinLogDirSizeInMB = int64(1)
+
+	storageConfigCPUDefaultValue   = "100"
+	storageConfigNWINDefaultValue  = "125000"
+	storageConfigNWOUTDefaultValue = "125000"
+	defaultDoc                     = "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
+)
 
 func (r *Reconciler) configMap(clientPass string, capacityConfig string, log logr.Logger) runtime.Object {
 	ccConfig := properties.NewProperties()
@@ -114,13 +121,6 @@ func generateSSLConfig(kafkaCluster v1beta1.KafkaClusterSpec, clientPass string,
 	}
 	return config
 }
-
-const (
-	storageConfigCPUDefaultValue   = "100"
-	storageConfigNWINDefaultValue  = "125000"
-	storageConfigNWOUTDefaultValue = "125000"
-	defaultDoc                     = "Capacity unit used for disk is in MB, cpu is in percentage, network throughput is in KB."
-)
 
 type CapacityConfig struct {
 	BrokerCapacities []BrokerCapacity `json:"brokerCapacities"`
