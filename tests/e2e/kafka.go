@@ -35,14 +35,6 @@ func requireDeleteKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName string
 // requireDeployingKafkaTopic deploys a kafkaTopic resource from a template
 func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName string) {
 	It("Deploying KafkaTopic CR", func() {
-		// err := applyK8sResourceFromTemplate(kubectlOptions,
-		// 	kafkaTopicTemplate,
-		// 	map[string]interface{}{
-		// 		"Name":      topicName,
-		// 		"TopicName": topicName,
-		// 		"Namespace": kubectlOptions.Namespace,
-		// 	},
-		// )
 		values := kafkaTopicTemplateData{
 			Annotations: []string{"managedBy: koperator"},
 			ClusterRef: kafkaTopicClusterRef{
@@ -56,7 +48,7 @@ func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName str
 			TopicName:         topicName,
 		}
 
-		err := applyK8sResourceFromTemplate_2(kubectlOptions, kafkaTopicTemplate, values)
+		err := applyK8sResourceFromTemplate(kubectlOptions, kafkaTopicTemplate, values)
 
 		Expect(err).ShouldNot(HaveOccurred())
 

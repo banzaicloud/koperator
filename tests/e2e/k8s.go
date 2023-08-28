@@ -65,14 +65,9 @@ func applyK8sResourceManifest(kubectlOptions k8s.KubectlOptions, manifestPath st
 // applyK8sResourceManifestFromString applies the specified manifest in string format to the provided
 // kubectl context and namespace.
 func applyK8sResourceManifestFromString(kubectlOptions k8s.KubectlOptions, manifest string, extraArgs ...string) error {
-	// Replicating terratest's k8s.KubectlApplyFromStringE but with the possibility of a variadic argument that allows options like --dry-run
-	//
-	// TODO: look for a different implementation for temp files because terratest's version uses the composite test name to generate
-	// the temp file name which, in our case, includes all the descriptive Ginkgo statements (which are by design quite verbose).
-	// That can lead to erroring out on temp file creation based on the file name being too long.
-	tmpfile, err := k8s.StoreConfigToTempFileE(GinkgoT(), manifest)
+	tmpfile, err := createTempFileFromBytes([]byte(manifest), "", "", 0)
 	if err != nil {
-		return err
+		return fmt.Errorf("storing provided manifest data into temp file failed: %w", err)
 	}
 	defer os.Remove(tmpfile)
 
@@ -81,7 +76,7 @@ func applyK8sResourceManifestFromString(kubectlOptions k8s.KubectlOptions, manif
 
 // applyK8sResourceFromTemplate generates manifest from the specified go-template based on values
 // and applies the specified manifest to the provided kubectl context and namespace.
-func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFile string, values map[string]any, extraArgs ...string) error {
+func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFile string, values any, extraArgs ...string) error {
 	By(fmt.Sprintf("Generating k8s manifest from template %s", templateFile))
 	var manifest bytes.Buffer
 	rawTemplate, err := os.ReadFile(templateFile)
@@ -93,24 +88,7 @@ func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFil
 	if err != nil {
 		return err
 	}
-	return applyK8sResourceManifestFromString(kubectlOptions, manifest.String(), extraArgs...)
-}
 
-// applyK8sResourceFromTemplate generates manifest from the specified go-template based on values
-// and applies the specified manifest to the provided kubectl context and namespace.
-func applyK8sResourceFromTemplate_2(kubectlOptions k8s.KubectlOptions, templateFile string, values any, extraArgs ...string) error {
-	By(fmt.Sprintf("Generating k8s manifest from template %s", templateFile))
-	var manifest bytes.Buffer
-	rawTemplate, err := os.ReadFile(templateFile)
-	if err != nil {
-		return err
-	}
-	t := template.Must(template.New("template").Funcs(sprig.TxtFuncMap()).Parse(string(rawTemplate)))
-	err = t.Execute(&manifest, values)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("###\nManifest is :\n%s\n###\n", manifest.String())
 	return applyK8sResourceManifestFromString(kubectlOptions, manifest.String(), extraArgs...)
 }
 
