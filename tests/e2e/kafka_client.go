@@ -28,7 +28,7 @@ import (
 )
 
 // producingMessagesExternally produces messages based on the parameters into the kafka cluster synchronously.
-func producingMessagesExternally(externalKafkaAddresses []string, topicName string, messages []string, clientOptions ...kgo.Opt) error {
+func producingMessagesExternally(externalKafkaAddresses []string, topicName string, messages []string, clientOptions ...kgo.Opt) error { //nolint:unused // Note: unused linter disabled until External e2e tests are turned on.
 	By(fmt.Sprintf("Producing messages: '%s' to externalKafkaAddresses: '%s' topicName: '%s'", messages, externalKafkaAddresses, topicName))
 
 	clientOptions = append(clientOptions, kgo.SeedBrokers(externalKafkaAddresses...))
@@ -58,7 +58,7 @@ func producingMessagesExternally(externalKafkaAddresses []string, topicName stri
 
 // consumingMessagesExternally consuming messages based on parameters from Kafka cluster.
 // It returns messages as string slice.
-func consumingMessagesExternally(externalKafkaAddresses []string, topicName string, clientOptions ...kgo.Opt) ([]string, error) {
+func consumingMessagesExternally(externalKafkaAddresses []string, topicName string, clientOptions ...kgo.Opt) ([]string, error) { //nolint:unused // Note: unused linter disabled until External e2e tests are turned on.
 	By(fmt.Sprintf("Consuming messages from externalKafkaAddresses: '%s' topicName: '%s'", externalKafkaAddresses, topicName))
 
 	clientOptions = append(clientOptions, kgo.SeedBrokers(externalKafkaAddresses...), kgo.ConsumeTopics(topicName))
@@ -99,7 +99,7 @@ func consumingMessagesExternally(externalKafkaAddresses []string, topicName stri
 	return messages, nil
 }
 
-func getTLSConfigFromSecret(kubectlOptions k8s.KubectlOptions, secretName string) (*tls.Config, error) {
+func getTLSConfigFromSecret(kubectlOptions k8s.KubectlOptions, secretName string) (*tls.Config, error) { //nolint:unused // Note: unused linter disabled until External e2e tests are turned on.
 	By(fmt.Sprintf("Getting TLS config from secret name: '%s' namespace: '%s'", secretName, kubectlOptions.Namespace))
 	tlsSecret, err := k8s.GetSecretE(GinkgoT(), &kubectlOptions, secretName)
 	if err != nil {
