@@ -19,18 +19,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/banzaicloud/koperator/api/v1beta1"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/banzaicloud/koperator/api/v1beta1"
 )
 
 // requireCreatingKafkaCluster creates a KafkaCluster and
 // checks the success of that operation.
 func requireCreatingKafkaCluster(kubectlOptions k8s.KubectlOptions, manifestPath string) {
 	It("Deploying a KafkaCluster", func() {
-
 		By("Checking existing KafkaClusters")
 		found := isExistingK8SResource(kubectlOptions, kafkaKind, kafkaClusterName)
 		if found {
@@ -59,7 +59,6 @@ func requireCreatingKafkaCluster(kubectlOptions k8s.KubectlOptions, manifestPath
 // checks the success of that operation.
 func requireCreatingZookeeperCluster(kubectlOptions k8s.KubectlOptions) {
 	It("Deploying a ZookeeperCluster", func() {
-
 		By("Checking existing ZookeeperClusters")
 		found := isExistingK8SResource(kubectlOptions, zookeeperKind, zookeeperClusterName)
 		if found {

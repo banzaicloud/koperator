@@ -49,7 +49,6 @@ func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName str
 
 		Expect(err).ShouldNot(HaveOccurred())
 	})
-
 }
 
 // requireDeleteKafkaUser deletes a kafkaUser resource by name
@@ -82,5 +81,4 @@ func requireDeployingKafkaUser(kubectlOptions k8s.KubectlOptions, userName strin
 			return isExistingK8SResource(kubectlOptions, "Secret", tlsSecretName)
 		}, defaultUserCreationWaitTime, 3*time.Second).Should(Equal(true))
 	})
-
 }
