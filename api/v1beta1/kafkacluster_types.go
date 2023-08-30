@@ -57,9 +57,9 @@ const (
 	// KafkaClusterDeployment.spec.replicas
 	defaultEnvoyReplicas = 1
 	// KafkaClusterDeployment.spec.template.spec.container["envoy"].port["tcp-admin"].containerPort
-	DefaultEnvoyAdminPort = 8081
+	defaultEnvoyAdminPort = 8081
 	// KafkaClusterDeployment.spec.template.spec.container["envoy"].port["tcp-health"].containerPort
-	DefaultEnvoyHealthCheckPort = 8080
+	defaultEnvoyHealthCheckPort = 8080
 	// KafkaClusterDeployment.spec.template.spec.container["envoy"].args
 	defaultEnvoyConcurrency = 0
 
@@ -1120,7 +1120,7 @@ func (eConfig *EnvoyConfig) GetEnvoyAdminPort() int32 {
 	if eConfig.AdminPort != nil {
 		return *eConfig.AdminPort
 	}
-	return DefaultEnvoyAdminPort
+	return defaultEnvoyAdminPort
 }
 
 // GetEnvoyHealthCheckPort returns the envoy admin port
@@ -1128,7 +1128,7 @@ func (eConfig *EnvoyConfig) GetEnvoyHealthCheckPort() int32 {
 	if eConfig.HealthCheckPort != nil {
 		return *eConfig.HealthCheckPort
 	}
-	return DefaultEnvoyHealthCheckPort
+	return defaultEnvoyHealthCheckPort
 }
 
 // GetCCImage returns the used Cruise Control image
