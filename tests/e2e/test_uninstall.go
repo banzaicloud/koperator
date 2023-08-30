@@ -35,7 +35,6 @@ func testUninstall() bool {
 				err := dependencyCRDs.Initialize(kubectlOptions)
 				Expect(err).NotTo(HaveOccurred())
 			})
-
 		})
 
 		requireUninstallingKoperator(k8s.KubectlOptions{
@@ -58,6 +57,5 @@ func testUninstall() bool {
 			ConfigPath:  kubectlOptions.ConfigPath,
 			Namespace:   certManagerHelmDescriptor.Namespace,
 		})
-
 	})
 }

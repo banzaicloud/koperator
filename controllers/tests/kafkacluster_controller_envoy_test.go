@@ -70,13 +70,13 @@ func expectEnvoyLoadBalancer(ctx context.Context, kafkaCluster *v1beta1.KafkaClu
 
 	Expect(loadBalancer.Spec.Ports[4].Name).To(Equal("tcp-health"))
 	Expect(loadBalancer.Spec.Ports[4].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[4].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
-	Expect(loadBalancer.Spec.Ports[4].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+	Expect(loadBalancer.Spec.Ports[4].Port).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort()))
+	Expect(loadBalancer.Spec.Ports[4].TargetPort.IntVal).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort()))
 
 	Expect(loadBalancer.Spec.Ports[5].Name).To(Equal("tcp-admin"))
 	Expect(loadBalancer.Spec.Ports[5].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[5].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
-	Expect(loadBalancer.Spec.Ports[5].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[5].Port).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort()))
+	Expect(loadBalancer.Spec.Ports[5].TargetPort.IntVal).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort()))
 }
 
 func expectEnvoyConfigMap(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, eListenerTemplate string) {
@@ -395,13 +395,13 @@ func expectEnvoyWithConfigAz1(ctx context.Context, kafkaCluster *v1beta1.KafkaCl
 
 	Expect(loadBalancer.Spec.Ports[2].Name).To(Equal("tcp-health"))
 	Expect(loadBalancer.Spec.Ports[2].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
-	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+	Expect(loadBalancer.Spec.Ports[2].Port).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort()))
+	Expect(loadBalancer.Spec.Ports[2].TargetPort.IntVal).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort()))
 
 	Expect(loadBalancer.Spec.Ports[3].Name).To(Equal("tcp-admin"))
 	Expect(loadBalancer.Spec.Ports[3].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[3].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
-	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[3].Port).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort()))
+	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort()))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-az1-%s", kafkaCluster.Name)
@@ -425,12 +425,12 @@ func expectEnvoyWithConfigAz1(ctx context.Context, kafkaCluster *v1beta1.KafkaCl
 		},
 		corev1.ContainerPort{
 			Name:          "tcp-admin",
-			ContainerPort: v1beta1.DefaultEnvoyAdminPort,
+			ContainerPort: kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort(),
 			Protocol:      corev1.ProtocolTCP,
 		},
 		corev1.ContainerPort{
 			Name:          "tcp-health",
-			ContainerPort: v1beta1.DefaultEnvoyHealthCheckPort,
+			ContainerPort: kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort(),
 			Protocol:      corev1.ProtocolTCP,
 		},
 	))
@@ -605,13 +605,13 @@ func expectEnvoyWithConfigAz2(ctx context.Context, kafkaCluster *v1beta1.KafkaCl
 
 	Expect(loadBalancer.Spec.Ports[3].Name).To(Equal("tcp-health"))
 	Expect(loadBalancer.Spec.Ports[3].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[3].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
-	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyHealthCheckPort))
+	Expect(loadBalancer.Spec.Ports[3].Port).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort()))
+	Expect(loadBalancer.Spec.Ports[3].TargetPort.IntVal).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort()))
 
 	Expect(loadBalancer.Spec.Ports[4].Name).To(Equal("tcp-admin"))
 	Expect(loadBalancer.Spec.Ports[4].Protocol).To(Equal(corev1.ProtocolTCP))
-	Expect(loadBalancer.Spec.Ports[4].Port).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
-	Expect(loadBalancer.Spec.Ports[4].TargetPort.IntVal).To(BeEquivalentTo(v1beta1.DefaultEnvoyAdminPort))
+	Expect(loadBalancer.Spec.Ports[4].Port).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort()))
+	Expect(loadBalancer.Spec.Ports[4].TargetPort.IntVal).To(BeEquivalentTo(kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort()))
 
 	var deployment appsv1.Deployment
 	deploymentName := fmt.Sprintf("envoy-test-az2-%s", kafkaCluster.Name)
@@ -640,12 +640,12 @@ func expectEnvoyWithConfigAz2(ctx context.Context, kafkaCluster *v1beta1.KafkaCl
 		},
 		corev1.ContainerPort{
 			Name:          "tcp-admin",
-			ContainerPort: v1beta1.DefaultEnvoyAdminPort,
+			ContainerPort: kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort(),
 			Protocol:      corev1.ProtocolTCP,
 		},
 		corev1.ContainerPort{
 			Name:          "tcp-health",
-			ContainerPort: v1beta1.DefaultEnvoyHealthCheckPort,
+			ContainerPort: kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort(),
 			Protocol:      corev1.ProtocolTCP,
 		},
 	))

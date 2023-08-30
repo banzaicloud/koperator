@@ -59,7 +59,7 @@ type localComparisonPartialObjectMetadataType struct {
 
 // snapshotCluster takes a clusterSnapshot of a K8s cluster and
 // stores it into the snapshotCluster instance referenced as input
-func snapshotCluster(snapshottedInfo *clusterSnapshot) bool {
+func snapshotCluster(snapshottedInfo *clusterSnapshot) bool { //nolint:unparam // Note: respecting Ginkgo testing interface by returning bool.
 	return When("Get cluster resources state", Ordered, func() {
 		var kubectlOptions k8s.KubectlOptions
 		var err error
@@ -129,7 +129,6 @@ func snapshotCluster(snapshottedInfo *clusterSnapshot) bool {
 			By("Storing recorded objects into the input snapshot object")
 			snapshottedInfo.resources = resources
 		})
-
 	})
 }
 

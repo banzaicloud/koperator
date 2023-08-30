@@ -174,7 +174,6 @@ func requireUninstallingCertManager(kubectlOptions k8s.KubectlOptions) {
 // and checks the success of that operation.
 func requireUninstallingCertManagerHelmChart(kubectlOptions k8s.KubectlOptions) {
 	It("Uninstalling Cert-manager Helm chart", func() {
-
 		err := certManagerHelmDescriptor.uninstallHelmChart(kubectlOptions, true)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -196,7 +195,6 @@ func requireUninstallingCertManagerHelmChart(kubectlOptions k8s.KubectlOptions) 
 
 		Expect(remainedResources).Should(BeEmpty())
 	})
-
 }
 
 // requireRemoveKoperatorCRDs deletes the cert-manager CRDs

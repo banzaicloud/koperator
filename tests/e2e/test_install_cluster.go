@@ -35,7 +35,7 @@ func testInstallZookeeperCluster() bool {
 	})
 }
 
-func testInstallKafkaCluster(kafkaClusterManifestPath string) bool {
+func testInstallKafkaCluster(kafkaClusterManifestPath string) bool { //nolint:unparam // Note: respecting Ginkgo testing interface by returning bool.
 	return When("Installing Kafka cluster", func() {
 		var kubectlOptions k8s.KubectlOptions
 		var err error
