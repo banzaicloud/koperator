@@ -38,10 +38,10 @@ import (
 const (
 	// allowedCRDByteCount is the limitation of the number of bytes a CRD is
 	// allowed to have when being applied by K8s API server/kubectl.
-	allowedCRDByteCount = 262144
+	allowedCRDByteCount = 262144 //nolint:unused // Note: this const is currently only used in helper functions which are not yet called on so this linter transitively fails for this const
 
 	// crdNamePrefix is the prefix of the CRD names when listed through kubectl.
-	crdNamePrefix = "customresourcedefinition.apiextensions.k8s.io/"
+	crdNamePrefix = "customresourcedefinition.apiextensions.k8s.io/" //nolint:unused // Note: this const is currently only used in helper functions which are not yet called on so this linter transitively fails for this const
 )
 
 // applyK8sResourceManifests applies the specified manifest to the provided
@@ -419,10 +419,10 @@ func deleteK8sResource(
 	kubectlOptions k8s.KubectlOptions,
 	timeout time.Duration,
 	kind string,
-	selector string,
+	selector string, //nolint:unparam // Note: library function with selector argument currently always receiving zero value ("").
 	name string,
-	extraArgs ...string) error {
-
+	extraArgs ...string,
+) error {
 	args := []string{"delete", kind}
 
 	args = append(args, fmt.Sprintf("--timeout=%s", timeout))
@@ -444,7 +444,7 @@ func deleteK8sResource(
 // Deletion is passed in case the resource is not found.
 // timeout parameter specifies the timeout for the deletion.
 // extraArgs can be any of the kubectl arguments.
-func deleteK8sResourceNoErrNotFound(kubectlOptions k8s.KubectlOptions, timeout time.Duration, kind string, name string, extraArgs ...string) error {
+func deleteK8sResourceNoErrNotFound(kubectlOptions k8s.KubectlOptions, timeout time.Duration, kind string, name string, extraArgs ...string) error { //nolint:unparam // Note: library function with timeout argument currently always using the same const.
 	err := deleteK8sResource(kubectlOptions, timeout, kind, "", name, extraArgs...)
 	if isKubectlNotFoundError(err) {
 		By(fmt.Sprintf("K8s resource %s not found", name))
@@ -481,11 +481,9 @@ func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFil
 // with the apiGroupSelector parameter the result can be narrowed by the resource group.
 // extraArgs can be any kubectl api-resources parameter.
 func listK8sResourceKinds(kubectlOptions k8s.KubectlOptions, apiGroupSelector string, extraArgs ...string) ([]string, error) {
-	logMsg := "Listing K8s resource kind"
 	args := []string{"api-resources", "--verbs", "list", "--output", "name", "--sort-by", "name"}
 
 	if apiGroupSelector != "" {
-		logMsg = fmt.Sprintf("%s group selector: %s", logMsg, apiGroupSelector)
 		args = append(args, "--api-group", apiGroupSelector)
 	}
 
@@ -546,7 +544,7 @@ func getK8sResources(kubectlOptions k8s.KubectlOptions, resourceKind []string, s
 
 // waitK8sResourceCondition waits until the condition is met or the timeout is elapsed for the selected K8s resource(s)
 // extraArgs can be any of the kubectl arguments
-func waitK8sResourceCondition(kubectlOptions k8s.KubectlOptions, resourceKind, waitFor string, timeout time.Duration, selector string, names string, extraArgs ...string) error {
+func waitK8sResourceCondition(kubectlOptions k8s.KubectlOptions, resourceKind, waitFor string, timeout time.Duration, selector string, names string, extraArgs ...string) error { //nolint:unparam // Note: library function with variadic argument currently always nil.
 	logMsg := fmt.Sprintf("Waiting K8s resource(s)' condition: '%s' to fulfil", waitFor)
 
 	args := []string{

@@ -1,14 +1,16 @@
 run:
     deadline: 2m
-
     skip-dirs:
-        - client
+      - client
+    go: '1.19'
+    build-tags:
+      - e2e
 
 linters:
   disable-all: true
   enable:
     - bodyclose
-    - depguard
+    # - depguard        # NOTE: we want to allow all packages
     - dogsled
     # - dupl            # NOTE: intentionally disabled
     - errcheck
@@ -45,8 +47,6 @@ linters:
     - whitespace
 
 linters-settings:
-  gocyclo:
-    min-complexity: 38
   dogsled:
     max-blank-identifiers: 3 # default: 2
   funlen:
@@ -56,13 +56,8 @@ linters-settings:
   gocritic:
     disabled-checks:
       - commentFormatting
-  golint:
-    min-confidence: 0.1
-  goimports:
-    local-prefixes: github.com/banzaicloud/koperator
-  lll:
-    # FIXME: we should be able to reduce the length of lines to be closer to the default 120 lines
-    line-length: 300  # default: 120
+  gocyclo:
+    min-complexity: 38
   goheader:
     values:
       const:
@@ -86,3 +81,10 @@ linters-settings:
       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
       See the License for the specific language governing permissions and
       limitations under the License.
+  goimports:
+    local-prefixes: github.com/banzaicloud/koperator
+  golint:
+    min-confidence: 0.1
+  lll:
+    # FIXME: we should be able to reduce the length of lines to be closer to the default 120 lines
+    line-length: 300  # default: 120

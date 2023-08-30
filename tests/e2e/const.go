@@ -41,7 +41,7 @@ const (
 	testInternalTopicName = "topic-test-internal"
 
 	defaultTLSSecretName       = "test-secret"
-	kcatPodName                = "kcat"
+	kcatName                   = "kcat"
 	zookeeperKind              = "zookeeperclusters.zookeeper.pravega.io"
 	zookeeperClusterName       = "zookeeper-server"
 	managedByHelmLabelTemplate = "app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=%s"

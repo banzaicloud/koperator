@@ -24,7 +24,6 @@ import (
 // consumingMessagesInternally consuming messages based on parameters from Kafka cluster.
 // It returns messages in string slice.
 func consumingMessagesInternally(kubectlOptions k8s.KubectlOptions, kcatPodName string, internalKafkaAddress string, topicName string, tlsMode bool) (string, error) {
-
 	By(fmt.Sprintf("Consuming messages from internalKafkaAddress: '%s' topicName: '%s'", internalKafkaAddress, topicName))
 
 	kcatTLSParameters := ""
