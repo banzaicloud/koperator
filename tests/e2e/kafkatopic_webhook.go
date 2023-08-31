@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func testWebhookKafkaTopic(kafkaCluster types.NamespacedName) {
+func testWebhookKafkaTopic() {
 	// temporary section; to be refactored after kubeconfig injection PR
 	var kubectlOptions k8s.KubectlOptions
 	var err error
@@ -33,7 +33,8 @@ func testWebhookKafkaTopic(kafkaCluster types.NamespacedName) {
 		GinkgoT().Fail()
 	}
 
-	kubectlOptions.Namespace = kafkaCluster.Namespace
+	kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
+	kafkaCluster := types.NamespacedName{Name: kafkaClusterName, Namespace: koperatorLocalHelmDescriptor.Namespace}
 
 	testWebhookCreateKafkaTopic(kubectlOptions, kafkaCluster)
 	testWebhookUpdateKafkaTopic(kubectlOptions, kafkaCluster)
@@ -152,7 +153,7 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions, kafkaCluster
 						Name:      kafkaCluster.Name,
 						Namespace: kafkaCluster.Namespace,
 					},
-					Name:              overlappingTopicName + "different-cr-name", // Note: This information is relevant to this particular test case.
+					Name:              overlappingTopicName + "-different-cr-name", // Note: This information is relevant to this particular test case.
 					Namespace:         kubectlOptions.Namespace,
 					Partitions:        ptr.To(int32(2)),
 					ReplicationFactor: ptr.To(int32(2)),
@@ -166,10 +167,10 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions, kafkaCluster
 				)
 				Expect(err).To(HaveOccurred())
 				// Example error:
-				// error while running command: exit status 1; The KafkaTopic "topic-test-internal-different-cr-name" is invalid: spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namesapce 'kafka' is already referencing to Kafka topic 'topic-test-internal'
+				// error while running command: exit status 1; The KafkaTopic "topic-test-internal-different-cr-name" is invalid: spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namespace 'kafka' is already referencing to Kafka topic 'topic-test-internal'
 				Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(1))
 				Expect(err.Error()).To(
-					ContainSubstring("The KafkaTopic %[1]q is invalid: spec.name: Invalid value: %[2]q: kafkaTopic CR '%[2]s' in namesapce '%[3]s' is already referencing to Kafka topic '%[2]s'",
+					ContainSubstring("The KafkaTopic %[1]q is invalid: spec.name: Invalid value: %[2]q: kafkaTopic CR '%[2]s' in namespace '%[3]s' is already referencing to Kafka topic '%[2]s'",
 						caseData.Name, overlappingTopicName, caseData.Namespace),
 				)
 
@@ -180,7 +181,7 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions, kafkaCluster
 						Name:      kafkaCluster.Name,
 						Namespace: kafkaCluster.Namespace,
 					},
-					Name:              overlappingTopicName + "different-cr-name", // Note: This information is relevant to this particular test case.
+					Name:              overlappingTopicName + "-different-cr-name", // Note: This information is relevant to this particular test case.
 					Namespace:         kubectlOptions.Namespace,
 					Partitions:        ptr.To(int32(2)),
 					ReplicationFactor: ptr.To(int32(2)),
@@ -195,14 +196,14 @@ func testWebhookCreateKafkaTopic(kubectlOptions k8s.KubectlOptions, kafkaCluster
 				Expect(err).To(HaveOccurred())
 				// Example error:
 				// error while running command: exit status 1; The KafkaTopic "topic-test-internal-different-cr-name" is invalid:
-				// * spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namesapce 'kafka' is already referencing to Kafka topic 'topic-test-internal'
+				// * spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namespace 'kafka' is already referencing to Kafka topic 'topic-test-internal'
 				// * spec.name: Invalid value: "topic-test-internal": topic "topic-test-internal" already exists on kafka cluster and it is not managed by Koperator,
 				// 					if you want it to be managed by Koperator so you can modify its configurations through a KafkaTopic CR,
 				// 					add this "managedBy: koperator" annotation to this KafkaTopic CR
 				Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(5))
 				Expect(err.Error()).To(And(
 					ContainSubstring("The KafkaTopic %q is invalid:", caseData.Name),
-					ContainSubstring("spec.name: Invalid value: %[1]q: kafkaTopic CR '%[1]s' in namesapce '%[2]s' is already referencing to Kafka topic '%[1]s'",
+					ContainSubstring("spec.name: Invalid value: %[1]q: kafkaTopic CR '%[1]s' in namespace '%[2]s' is already referencing to Kafka topic '%[1]s'",
 						overlappingTopicName, caseData.Namespace),
 					ContainSubstring("spec.name: Invalid value: %[1]q: topic %[1]q already exists on kafka cluster and it is not managed by Koperator",
 						overlappingTopicName),
@@ -319,10 +320,10 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions, kafkaCluster
 			)
 			Expect(err).To(HaveOccurred())
 			// Example error:
-			// error while running command: exit status 1; The KafkaTopic "topic-test-internal-different-cr-name" is invalid: spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namesapce 'kafka' is already referencing to Kafka topic 'topic-test-internal'
+			// error while running command: exit status 1; The KafkaTopic "topic-test-internal-different-cr-name" is invalid: spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namespace 'kafka' is already referencing to Kafka topic 'topic-test-internal'
 			Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(1))
 			Expect(err.Error()).To(
-				ContainSubstring("The KafkaTopic %[1]q is invalid: spec.name: Invalid value: %[2]q: kafkaTopic CR '%[2]s' in namesapce '%[3]s' is already referencing to Kafka topic '%[2]s'",
+				ContainSubstring("The KafkaTopic %[1]q is invalid: spec.name: Invalid value: %[2]q: kafkaTopic CR '%[2]s' in namespace '%[3]s' is already referencing to Kafka topic '%[2]s'",
 					caseData.Name, overlappingTopicName, caseData.Namespace),
 			)
 
@@ -348,14 +349,14 @@ func testWebhookUpdateKafkaTopic(kubectlOptions k8s.KubectlOptions, kafkaCluster
 			Expect(err).To(HaveOccurred())
 			// Example error:
 			// error while running command: exit status 1; The KafkaTopic "topic-test-internal-different-cr-name" is invalid:
-			// * spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namesapce 'kafka' is already referencing to Kafka topic 'topic-test-internal'
+			// * spec.name: Invalid value: "topic-test-internal": kafkaTopic CR 'topic-test-internal' in namespace 'kafka' is already referencing to Kafka topic 'topic-test-internal'
 			// * spec.name: Invalid value: "topic-test-internal": topic "topic-test-internal" already exists on kafka cluster and it is not managed by Koperator,
 			// 					if you want it to be managed by Koperator so you can modify its configurations through a KafkaTopic CR,
 			// 					add this "managedBy: koperator" annotation to this KafkaTopic CR
 			Expect(len(strings.Split(err.Error(), "\n"))).To(Equal(5))
 			Expect(err.Error()).To(And(
 				ContainSubstring("The KafkaTopic %q is invalid:", caseData.Name),
-				ContainSubstring("spec.name: Invalid value: %[1]q: kafkaTopic CR '%[1]s' in namesapce '%[2]s' is already referencing to Kafka topic '%[1]s'\n",
+				ContainSubstring("spec.name: Invalid value: %[1]q: kafkaTopic CR '%[1]s' in namespace '%[2]s' is already referencing to Kafka topic '%[1]s'\n",
 					overlappingTopicName, caseData.Namespace),
 				ContainSubstring("spec.name: Invalid value: %[1]q: topic %[1]q already exists on kafka cluster and it is not managed by Koperator",
 					overlappingTopicName),
