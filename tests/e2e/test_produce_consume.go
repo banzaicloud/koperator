@@ -1,3 +1,17 @@
+// Copyright © 2023 Cisco Systems, Inc. and/or its affiliates
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package e2e
 
 import (
@@ -18,11 +32,11 @@ func testProduceConsumeInternal() bool {
 
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
 
-		requireDeployingKcatPod(kubectlOptions, kcatPodName, "")
+		requireDeployingKcatPod(kubectlOptions, kcatName, "")
 		requireDeployingKafkaTopic(kubectlOptions, testInternalTopicName)
-		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testInternalTopicName, "")
+		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatName, testInternalTopicName, "")
 		requireDeleteKafkaTopic(kubectlOptions, testInternalTopicName)
-		requireDeleteKcatPod(kubectlOptions, kcatPodName)
+		requireDeleteKcatPod(kubectlOptions, kcatName)
 	})
 }
 
@@ -39,16 +53,16 @@ func testProduceConsumeInternalSSL(tlsSecretName string) bool {
 		kubectlOptions.Namespace = koperatorLocalHelmDescriptor.Namespace
 
 		requireDeployingKafkaUser(kubectlOptions, kafkaUserName, tlsSecretName)
-		requireDeployingKcatPod(kubectlOptions, kcatPodName, tlsSecretName)
+		requireDeployingKcatPod(kubectlOptions, kcatName, tlsSecretName)
 		requireDeployingKafkaTopic(kubectlOptions, testInternalTopicName)
-		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatPodName, testInternalTopicName, tlsSecretName)
+		requireInternalProducingConsumingMessage(kubectlOptions, "", kcatName, testInternalTopicName, tlsSecretName)
 		requireDeleteKafkaTopic(kubectlOptions, testInternalTopicName)
-		requireDeleteKcatPod(kubectlOptions, kcatPodName)
+		requireDeleteKcatPod(kubectlOptions, kcatName)
 		requireDeleteKafkaUser(kubectlOptions, kafkaUserName)
 	})
 }
 
-func testProduceConsumeExternal(tlsSecretName string) bool {
+func testProduceConsumeExternal(tlsSecretName string) bool { //nolint:unused // Note: unused linter disabled until External e2e tests are turned on.
 	return When("Externally produce and consume message to/from Kafka cluster", func() {
 		var kubectlOptions k8s.KubectlOptions
 		var err error

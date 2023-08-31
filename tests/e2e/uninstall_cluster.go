@@ -73,7 +73,6 @@ func requireDeleteZookeeperCluster(kubectlOptions k8s.KubectlOptions, name strin
 				"--all-namespaces", kubectlArgGoTemplateKindNameNamespace)
 			Expect(err).ShouldNot(HaveOccurred())
 			return resources
-
 		}, zookeeperClusterResourceCleanupTimeout, 1*time.Second).Should(BeEmpty())
 	})
 }
