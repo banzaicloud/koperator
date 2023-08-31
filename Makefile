@@ -97,8 +97,9 @@ test: generate fmt vet manifests bin/setup-envtest ## Run unit and integration (
 		-timeout 1h
 	cd properties && go test -coverprofile cover.out -cover -failfast -v -covermode=count ./pkg/... ./internal/...
 
-test-e2e: # Run e2e tests.
-	go test github.com/banzaicloud/koperator/tests/e2e \
+# Run e2e tests
+test-e2e:
+	 IMG_E2E=${IMG_E2E} go test github.com/banzaicloud/koperator/tests/e2e \
 		-v \
 		-timeout 20m \
 		-tags e2e \

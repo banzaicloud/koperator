@@ -199,9 +199,26 @@ spec:
           {{- if (.Values.metricEndpoint).port }}
             - --metrics-addr=":{{ .Values.metricEndpoint.port }}"
           {{- end }}
+          {{- if .Values.healthProbes.port }}
+            - --health-probes-addr=:{{ .Values.healthProbes.port }}
+          {{- end }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           name: manager
+          livenessProbe:
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 100
+            httpGet:
+              port: health-probes
+              path: /healthz
+          readinessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 100
+            httpGet:
+              port: health-probes
+              path: /readyz
           env:
             - name: POD_NAMESPACE
               valueFrom:
@@ -212,16 +229,19 @@ spec:
           {{ toYaml .Values.additionalEnv | nindent 12 }}
           {{- end }}
           ports:
-          {{- if .Values.webhook.enabled }}
+            {{- if .Values.webhook.enabled }}
             - containerPort: {{ .Values.webhook.serverPort | default 9443 }}
               name: webhook-server
               protocol: TCP
-          {{- end }}
+            {{- end}}
             - containerPort: {{ (.Values.metricEndpoint).port | default 8080 }}
               name: metrics
               protocol: TCP
             - containerPort: {{ .Values.alertManager.port }}
               name: alerts
+              protocol: TCP
+            - containerPort: {{ .Values.healthProbes.port | default 8081 }}
+              name: health-probes
               protocol: TCP
           volumeMounts:
           {{- if .Values.webhook.enabled }}
@@ -230,7 +250,7 @@ spec:
               readOnly: true
           {{- end }}
           resources:
-          {{ toYaml .Values.operator.resources | nindent 12 }}
+          {{- toYaml .Values.operator.resources | nindent 12 }}
           {{- if .Values.containerSecurityContext }}
           securityContext:
           {{ toYaml .Values.containerSecurityContext | nindent 12 }}

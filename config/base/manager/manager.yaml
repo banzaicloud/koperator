@@ -22,9 +22,24 @@ spec:
         - --enable-leader-election
         image: ghcr.io/banzaicloud/kafka-operator:latest
         name: manager
+        livenessProbe:
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          httpGet:
+            port: health-probes
+            path: /healthz
+        readinessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 15
+          httpGet:
+            port: health-probes
+            path: /readyz
         ports:
         - containerPort: 9001
           name: alerts
+          protocol: TCP
+        - containerPort: 8081
+          name: health-probes
           protocol: TCP
         resources:
           limits:

@@ -6,6 +6,9 @@ on:
       - master
   pull_request:
 
+env:
+  REPOSITORY: koperator_e2e_test  
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,15 +21,24 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v3
+      
+      - name: Build docker image
+        run: |
+          IMG=$REPOSITORY:$GITHUB_SHA make docker-build
 
       - name: Setup Kind cluster
         id: setup-kind
         uses: ./.github/actions/kind-create
 
-      - name: run tests
+      - name: Load image into kind cluster
+        run: |
+          kind load docker-image $REPOSITORY:$GITHUB_SHA --name e2e-kind
+
+
+      - name: Run E2E tests
         env:
            KUBECONFIG: ${{ steps.setup-kind.outputs.kubeconfig }}
         run: |
           go work init
           go work use -r .
-          make test-e2e
+          IMG_E2E=$REPOSITORY:$GITHUB_SHA make test-e2e

@@ -36,6 +36,7 @@ import (
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	istioclientv1beta1 "github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 
@@ -89,6 +90,7 @@ func main() {
 		certSigningDisabled               bool
 		certManagerEnabled                bool
 		maxKafkaTopicConcurrentReconciles int
+		healthProbesAddr                  string
 	)
 
 	flag.StringVar(&namespaces, "namespaces", "", "Comma separated list of namespaces where operator listens for resources")
@@ -103,6 +105,7 @@ func main() {
 	flag.BoolVar(&certManagerEnabled, "cert-manager-enabled", false, "Enable cert-manager integration")
 	flag.BoolVar(&certSigningDisabled, "disable-cert-signing-support", false, "Disable native certificate signing integration")
 	flag.IntVar(&maxKafkaTopicConcurrentReconciles, "max-kafka-topic-concurrent-reconciles", 10, "Define max amount of concurrent KafkaTopic reconciles")
+	flag.StringVar(&healthProbesAddr, "health-probes-addr", ":8081", "The address the probe endpoint binds to.")
 	flag.Parse()
 	ctrl.SetLogger(util.CreateLogger(verboseLogging, developmentLogging))
 
@@ -125,17 +128,27 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "controller-leader-election-helper",
-		NewCache:           managerWatchCacheBuilder,
-		Port:               webhookServerPort,
-		CertDir:            webhookCertDir,
+		Scheme:                 scheme,
+		MetricsBindAddress:     metricsAddr,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "controller-leader-election-helper",
+		NewCache:               managerWatchCacheBuilder,
+		Port:                   webhookServerPort,
+		CertDir:                webhookCertDir,
+		HealthProbeBindAddress: healthProbesAddr,
 	})
-
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to start /healthz endpoint")
+		os.Exit(1)
+	}
+
+	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to start /readyz endpoint")
 		os.Exit(1)
 	}
 
