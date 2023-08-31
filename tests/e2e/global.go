@@ -16,6 +16,8 @@ package e2e
 
 import (
 	"errors"
+	"os"
+	"strings"
 )
 
 // HelmDescriptors.
@@ -35,18 +37,39 @@ var (
 
 	// koperatorLocalHelmDescriptor describes the Koperator Helm component with
 	// a local chart and version.
-	koperatorLocalHelmDescriptor = helmDescriptor{
-		Repository:   "../../charts/kafka-operator",
-		ChartVersion: LocalVersion,
-		ReleaseName:  "kafka-operator",
-		Namespace:    "kafka",
-		LocalCRDSubpaths: []string{
-			"crds/cruisecontroloperations.yaml",
-			"crds/kafkaclusters.yaml",
-			"crds/kafkatopics.yaml",
-			"crds/kafkausers.yaml",
-		},
-	}
+	koperatorLocalHelmDescriptor = func() helmDescriptor {
+		koperatorLocalHelmDescriptor := helmDescriptor{
+			Repository:   "../../charts/kafka-operator",
+			ChartVersion: LocalVersion,
+			ReleaseName:  "kafka-operator",
+			Namespace:    "kafka",
+			LocalCRDSubpaths: []string{
+				"crds/cruisecontroloperations.yaml",
+				"crds/kafkaclusters.yaml",
+				"crds/kafkatopics.yaml",
+				"crds/kafkausers.yaml",
+			},
+		}
+		// Set helm chart values for Koperator to be able to use custom image
+		koperatorImagePath := os.Getenv("IMG_E2E")
+		if koperatorImagePath != "" {
+			koperatorImagePathSplit := strings.Split(koperatorImagePath, ":")
+
+			koperatorImageRepository := koperatorImagePathSplit[0]
+			koperatorImageTag := "latest"
+
+			if len(koperatorImagePathSplit) == 2 {
+				koperatorImageTag = koperatorImagePathSplit[1]
+			}
+
+			koperatorLocalHelmDescriptor.SetValues = map[string]string{
+				"operator.image.repository": koperatorImageRepository,
+				"operator.image.tag":        koperatorImageTag,
+			}
+		}
+
+		return koperatorLocalHelmDescriptor
+	}()
 
 	// koperatorLocalHelmDescriptor describes the Koperator Helm component with
 	// a remote latest chart and version.
