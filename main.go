@@ -144,11 +144,31 @@ func main() {
 	}
 
 	if enableprofile {
-		mgr.AddMetricsExtraHandler("/debug/pprof/", http.HandlerFunc(pprof.Index))
-		mgr.AddMetricsExtraHandler("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
-		mgr.AddMetricsExtraHandler("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
-		mgr.AddMetricsExtraHandler("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
-		mgr.AddMetricsExtraHandler("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+		err := mgr.AddMetricsExtraHandler("/debug/pprof/", http.HandlerFunc(pprof.Index))
+		if err != nil {
+			setupLog.Error(err, "unable to attach pprof to webserver")
+			os.Exit(1)
+		}
+		err = mgr.AddMetricsExtraHandler("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+		if err != nil {
+			setupLog.Error(err, "unable to attach pprof/cmdline to webserver")
+			os.Exit(1)
+		}
+		err = mgr.AddMetricsExtraHandler("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+		if err != nil {
+			setupLog.Error(err, "unable to attach pprof/profile to webserver")
+			os.Exit(1)
+		}
+		err = mgr.AddMetricsExtraHandler("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+		if err != nil {
+			setupLog.Error(err, "unable to attach pprof/symbol to webserver")
+			os.Exit(1)
+		}
+		err = mgr.AddMetricsExtraHandler("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+		if err != nil {
+			setupLog.Error(err, "unable to attach pprof/trace to webserver")
+			os.Exit(1)
+		}
 	}
 
 	if err := certv1.AddToScheme(mgr.GetScheme()); err != nil {
