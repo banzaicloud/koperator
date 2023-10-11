@@ -1,7 +1,7 @@
 FROM alpine:latest AS kafka_dist
 
 ARG scala_version=2.13
-ARG kafka_version=3.4.1
+ARG kafka_version=3.6.0
 ARG kafka_distro_base_url=https://downloads.apache.org/kafka
 
 ENV kafka_distro=kafka_$scala_version-$kafka_version.tgz
@@ -26,7 +26,7 @@ RUN rm -r kafka_$scala_version-$kafka_version/bin/windows
 FROM debian:bullseye-slim
 
 ARG scala_version=2.13
-ARG kafka_version=3.4.1
+ARG kafka_version=3.6.0
 
 
 RUN set -eux; \
