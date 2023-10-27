@@ -172,7 +172,7 @@ kubectl -n kafka run kafka-consumer -it --image=ghcr.io/banzaicloud/kafka:2.13-3
 
 ## Documentation
 
-For detailed documentation on the Koperator project, please visit the [Cisco Calisti documentation](https://docs.calisti.app/sdm/koperator/).
+For detailed documentation on the Koperator project, see the [Koperator documentation website](https://banzaicloud.github.io/koperator-docs/).
 
 ## Issues and contributions
 
