@@ -38,17 +38,58 @@ import (
 const (
 	// allowedCRDByteCount is the limitation of the number of bytes a CRD is
 	// allowed to have when being applied by K8s API server/kubectl.
-	allowedCRDByteCount = 262144 //nolint:unused // Note: this const is currently only used in helper functions which are not yet called on so this linter transitively fails for this const
+	allowedCRDByteCount = 262144 //nolint:unused // Note: this const is currently only used in helper functions which are not yet called on so this linter transitively fails for this const.
 
 	// crdNamePrefix is the prefix of the CRD names when listed through kubectl.
-	crdNamePrefix = "customresourcedefinition.apiextensions.k8s.io/" //nolint:unused // Note: this const is currently only used in helper functions which are not yet called on so this linter transitively fails for this const
+	crdNamePrefix = "customresourcedefinition.apiextensions.k8s.io/" //nolint:unused // Note: this const is currently only used in helper functions which are not yet called on so this linter transitively fails for this const.
+
+	// Per the kubectl spec, "dry-run" strategy must be "none", "server", or "client".
+	// With current use cases in e2e tests, we only expect to use "server" so the other options are commented out.
+	dryRunStrategyArgServer string = "--dry-run=server" // submit server-side request without persisting the resource.
+	//dryRunStrategyArgClient string = "--dry-run=client" // the resource is only validated locally but not sent to the Api-server.
+	//dryRunStrategyArgNone   string = "--dry-run=none" // default value; submit server-side request and persist the resource.
+
 )
 
 // applyK8sResourceManifests applies the specified manifest to the provided
 // kubectl context and namespace.
-func applyK8sResourceManifest(kubectlOptions k8s.KubectlOptions, manifestPath string) { //nolint:unused // Note: this might come in handy for manual K8s resource operations.
-	By(fmt.Sprintf("Applying k8s manifest %s", manifestPath))
-	k8s.KubectlApply(GinkgoT(), &kubectlOptions, manifestPath)
+func applyK8sResourceManifest(kubectlOptions k8s.KubectlOptions, manifestPath string, extraArgs ...string) error { //nolint:unused // Note: this might come in handy for manual K8s resource operations.
+	args := []string{"apply", "-f", manifestPath}
+	logMsg := fmt.Sprintf("Applying k8s manifest from path %s", manifestPath)
+	logMsg, args = kubectlArgExtender(args, logMsg, "", "", kubectlOptions.Namespace, extraArgs)
+	By(logMsg)
+
+	return k8s.RunKubectlE(GinkgoT(), &kubectlOptions, args...)
+}
+
+// applyK8sResourceManifestFromString applies the specified manifest in string format to the provided
+// kubectl context and namespace.
+func applyK8sResourceManifestFromString(kubectlOptions k8s.KubectlOptions, manifest string, extraArgs ...string) error {
+	tmpfile, err := createTempFileFromBytes([]byte(manifest), "", "", 0)
+	if err != nil {
+		return fmt.Errorf("storing provided manifest data into temp file failed: %w", err)
+	}
+	defer os.Remove(tmpfile)
+
+	return applyK8sResourceManifest(kubectlOptions, tmpfile, extraArgs...)
+}
+
+// applyK8sResourceFromTemplate generates manifest from the specified go-template based on values
+// and applies the specified manifest to the provided kubectl context and namespace.
+func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFile string, values any, extraArgs ...string) error {
+	By(fmt.Sprintf("Generating k8s manifest from template %s", templateFile))
+	var manifest bytes.Buffer
+	rawTemplate, err := os.ReadFile(templateFile)
+	if err != nil {
+		return err
+	}
+	t := template.Must(template.New("template").Funcs(sprig.TxtFuncMap()).Parse(string(rawTemplate)))
+	err = t.Execute(&manifest, values)
+	if err != nil {
+		return err
+	}
+
+	return applyK8sResourceManifestFromString(kubectlOptions, manifest.String(), extraArgs...)
 }
 
 // isExistingK8SResource queries a Resource by it's kind, namespace and name and
@@ -191,7 +232,10 @@ func installK8sCRD(kubectlOptions k8s.KubectlOptions, crd []byte, shouldBeValida
 
 		createOrReplaceK8sResourcesFromManifest(kubectlOptions, "crd", object.GetName(), tempPath, shouldBeValidated)
 	default: // Note: regular CRD.
-		applyK8sResourceManifest(kubectlOptions, tempPath)
+		err = applyK8sResourceManifest(kubectlOptions, tempPath)
+		if err != nil {
+			return errors.WrapIfWithDetails(err, "applying CRD failed", "crd", string(crd))
+		}
 	}
 
 	return nil
@@ -451,30 +495,6 @@ func deleteK8sResourceNoErrNotFound(kubectlOptions k8s.KubectlOptions, timeout t
 		return nil
 	}
 	return err
-}
-
-// applyK8sResourceManifestFromString applies the specified manifest in string format to the provided
-// kubectl context and namespace.
-func applyK8sResourceManifestFromString(kubectlOptions k8s.KubectlOptions, manifest string) error {
-	By(fmt.Sprintf("Applying k8s manifest\n%s", manifest))
-	return k8s.KubectlApplyFromStringE(GinkgoT(), &kubectlOptions, manifest)
-}
-
-// applyK8sResourceFromTemplate generates manifest from the specified go-template based on values
-// and applies the specified manifest to the provided kubectl context and namespace.
-func applyK8sResourceFromTemplate(kubectlOptions k8s.KubectlOptions, templateFile string, values map[string]interface{}) error {
-	By(fmt.Sprintf("Generating K8s manifest from template %s", templateFile))
-	var manifest bytes.Buffer
-	rawTemplate, err := os.ReadFile(templateFile)
-	if err != nil {
-		return err
-	}
-	t := template.Must(template.New("template").Funcs(sprig.TxtFuncMap()).Parse(string(rawTemplate)))
-	err = t.Execute(&manifest, values)
-	if err != nil {
-		return err
-	}
-	return applyK8sResourceManifestFromString(kubectlOptions, manifest.String())
 }
 
 // listK8sResourceKinds lists all of the available resource kinds on the K8s cluster
