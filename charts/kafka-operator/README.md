@@ -65,7 +65,7 @@ Parameter | Description | Default
 `prometheusMetrics.authProxy.serviceAccount.create` | If true, create the service account (see `prometheusMetrics.authProxy.serviceAccount.name`) used by prometheus auth proxy | `true`
 `prometheusMetrics.authProxy.serviceAccount.name` | ServiceAccount used by prometheus auth proxy | `kafka-operator-authproxy`
 `prometheusMetrics.authProxy.image.repository` | Auth proxy container image repository | `gcr.io/kubebuilder/kube-rbac-proxy`
-`prometheusMetrics.authProxy.image.tag` | Auth proxy container image tag | `v0.13.0`
+`prometheusMetrics.authProxy.image.tag` | Auth proxy container image tag | `v0.15.0`
 `prometheusMetrics.authProxy.image.pullPolicy` | Auth proxy container image pull policy | `IfNotPresent`
 `rbac.enabled` | Create rbac service account and roles | `true`
 `imagePullSecrets` | Image pull secrets can be set | `[]`

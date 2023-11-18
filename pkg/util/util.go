@@ -31,11 +31,11 @@ import (
 	"strings"
 	"time"
 
+	"dario.cat/mergo"
 	"emperror.dev/errors"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	clusterregv1alpha1 "github.com/cisco-open/cluster-registry-controller/api/v1alpha1"
 	"github.com/go-logr/logr"
-	"github.com/imdario/mergo"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	corev1 "k8s.io/api/core/v1"
@@ -344,8 +344,6 @@ func GetBrokerMetricsReporterImage(brokerConfig *v1beta1.BrokerConfig, kafkaClus
 
 // getRandomString returns a random string containing uppercase, lowercase and number characters with the length given
 func GetRandomString(length int) (string, error) {
-	rand.Seed(time.Now().UnixNano())
-
 	chars := []rune(symbolSet)
 
 	var b strings.Builder
@@ -539,7 +537,8 @@ func RetryOnError(backoff wait.Backoff, fn func() error, isRetryableError func(e
 			return false, err
 		}
 	})
-	if err == wait.ErrWaitTimeout {
+
+	if wait.Interrupted(err) {
 		err = lastErr
 	}
 	return err

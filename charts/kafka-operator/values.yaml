@@ -67,7 +67,7 @@ prometheusMetrics:
     enabled: true
     image:
       repository: gcr.io/kubebuilder/kube-rbac-proxy
-      tag: v0.13.0
+      tag: v0.15.0
       pullPolicy: IfNotPresent
     serviceAccount:
       create: true

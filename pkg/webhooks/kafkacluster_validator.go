@@ -18,9 +18,12 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"emperror.dev/errors"
 	"golang.org/x/exp/slices"
-	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -35,7 +38,7 @@ type KafkaClusterValidator struct {
 	Log logr.Logger
 }
 
-func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	var allErrs field.ErrorList
 	kafkaClusterOld := oldObj.(*banzaicloudv1beta1.KafkaCluster)
 	kafkaClusterNew := newObj.(*banzaicloudv1beta1.KafkaCluster)
@@ -44,7 +47,7 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	fieldErr, err := checkBrokerStorageRemoval(&kafkaClusterOld.Spec, &kafkaClusterNew.Spec)
 	if err != nil {
 		log.Error(err, errorDuringValidationMsg)
-		return apierrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
+		return nil, apierrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
 	}
 	if fieldErr != nil {
 		allErrs = append(allErrs, fieldErr)
@@ -56,16 +59,16 @@ func (s KafkaClusterValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	}
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	log.Info("rejected", "invalid field(s)", allErrs.ToAggregate().Error())
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		kafkaClusterNew.GroupVersionKind().GroupKind(),
 		kafkaClusterNew.Name, allErrs)
 }
 
-func (s KafkaClusterValidator) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+func (s KafkaClusterValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	var allErrs field.ErrorList
 	kafkaCluster := obj.(*banzaicloudv1beta1.KafkaCluster)
 	log := s.Log.WithValues("name", kafkaCluster.GetName(), "namespace", kafkaCluster.GetNamespace())
@@ -76,17 +79,17 @@ func (s KafkaClusterValidator) ValidateCreate(ctx context.Context, obj runtime.O
 	}
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	log.Info("rejected", "invalid field(s)", allErrs.ToAggregate().Error())
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		kafkaCluster.GroupVersionKind().GroupKind(),
 		kafkaCluster.Name, allErrs)
 }
 
-func (s KafkaClusterValidator) ValidateDelete(ctx context.Context, obj runtime.Object) error {
-	return nil
+func (s KafkaClusterValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	return nil, nil
 }
 
 // checkBrokerStorageRemoval checks if there is any broker storage which has been removed. If yes, admission will be rejected
@@ -245,7 +248,7 @@ func checkExternalListenerStartingPort(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 		}
 
 		if len(collidingPortsBrokerIDs) > 0 {
-			errmsg := invalidExternalListenerStartingPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate external access port numbers ("+
+			errmsg := invalidExternalListenerStartingPortErrMsg + ": " + fmt.Sprintf("ExternalListener '%s' would generate external access port numbers ("+ //nolint:goconst
 				"externalStartingPort + Broker ID) that collide with either the envoy admin port ('%d'), the envoy health-check port ('%d'), or the ingressControllerTargetPort ('%d') for brokers %v",
 				extListener.Name, kafkaClusterSpec.EnvoyConfig.GetEnvoyAdminPort(), kafkaClusterSpec.EnvoyConfig.GetEnvoyHealthCheckPort(), extListener.GetIngressControllerTargetPort(), collidingPortsBrokerIDs)
 			fldErr := field.Invalid(field.NewPath("spec").Child("listenersConfig").Child("externalListeners").Index(i).Child("externalStartingPort"), extListener.ExternalStartingPort, errmsg)
@@ -267,7 +270,7 @@ func checkTargetPortsCollisionForEnvoy(kafkaClusterSpec *banzaicloudv1beta1.Kafk
 	hcp := kafkaClusterSpec.EnvoyConfig.GetEnvoyHealthCheckPort()
 
 	if ap == hcp {
-		errmsg := invalidContainerPortForIngressControllerErrMsg + ": The envoy configuration uses an admin port number that collides with the health-check port number"
+		errmsg := invalidContainerPortForIngressControllerErrMsg + ": The envoy configuration uses an admin port number that collides with the health-check port number" //nolint:goconst
 		fldErr := field.Invalid(field.NewPath("spec").Child("envoyConfig").Child("adminPort"), kafkaClusterSpec.EnvoyConfig.GetEnvoyAdminPort(), errmsg)
 		allErrs = append(allErrs, fldErr)
 	}

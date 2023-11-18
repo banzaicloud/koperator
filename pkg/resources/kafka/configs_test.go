@@ -17,7 +17,7 @@ package kafka
 import (
 	"testing"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 
 	properties "github.com/banzaicloud/koperator/properties/pkg"
 )

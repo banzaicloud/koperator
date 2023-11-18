@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"strings"
 
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
 	"emperror.dev/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,32 +51,32 @@ type KafkaTopicValidator struct {
 	Log                 logr.Logger
 }
 
-func (s KafkaTopicValidator) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+func (s KafkaTopicValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	return s.validate(ctx, obj)
 }
 
-func (s KafkaTopicValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+func (s KafkaTopicValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	return s.validate(ctx, newObj)
 }
 
-func (s KafkaTopicValidator) ValidateDelete(ctx context.Context, obj runtime.Object) error {
-	return nil
+func (s KafkaTopicValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	return nil, nil
 }
 
-func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) error {
+func (s *KafkaTopicValidator) validate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	kafkaTopic := obj.(*banzaicloudv1alpha1.KafkaTopic)
 	log := s.Log.WithValues("name", kafkaTopic.GetName(), "namespace", kafkaTopic.GetNamespace())
 
 	fieldErrs, err := s.validateKafkaTopic(ctx, log, kafkaTopic)
 	if err != nil {
 		log.Error(err, errorDuringValidationMsg)
-		return apierrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
+		return nil, apierrors.NewInternalError(errors.WithMessage(err, errorDuringValidationMsg))
 	}
 	if len(fieldErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 	log.Info("rejected", "invalid field(s)", fieldErrs.ToAggregate().Error())
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		kafkaTopic.GetObjectKind().GroupVersionKind().GroupKind(),
 		kafkaTopic.Name, fieldErrs)
 }
