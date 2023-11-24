@@ -64,7 +64,7 @@ type brokerReconcilePriority int
 const (
 	componentName         = "kafka"
 	brokerConfigTemplate  = "%s-config"
-	brokerStorageTemplate = "%s-%d-storage-%d-"
+	brokerStorageTemplate = "%s-%d-storage-%d"
 
 	brokerConfigMapVolumeMount = "broker-config"
 	kafkaDataVolumeMount       = "kafka-data"

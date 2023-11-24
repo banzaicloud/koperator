@@ -63,7 +63,7 @@ func (r *Reconciler) pvc(brokerId int32, storageIndex int, storage v1beta1.Stora
 	}
 
 	return &corev1.PersistentVolumeClaim{
-		ObjectMeta: templates.ObjectMetaWithGeneratedNameAndAnnotations(
+		ObjectMeta: templates.ObjectMetaWithNameAndAnnotations(
 			fmt.Sprintf(brokerStorageTemplate, r.KafkaCluster.Name, brokerId, storageIndex),
 			apiutil.MergeLabels(
 				apiutil.LabelsForKafka(r.KafkaCluster.Name),
