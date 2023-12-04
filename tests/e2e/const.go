@@ -94,7 +94,6 @@ func basicK8sResourceKinds() []string {
 		"jobs.batch",
 		"cronjobs.batch",
 		"poddisruptionbudgets.policy",
-		"podsecuritypolicies.policy",
 		"persistentvolumeclaims",
 		"persistentvolumes",
 	}
