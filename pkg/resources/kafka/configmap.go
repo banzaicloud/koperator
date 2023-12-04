@@ -112,7 +112,7 @@ func (r *Reconciler) getConfigProperties(bConfig *v1beta1.BrokerConfig, id int32
 	}
 
 	// This logic prevents the removal of the mountPath from the broker configmap
-	brokerConfigMapName := fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id)
+	brokerConfigMapName := fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id) //nolint:goconst
 	var brokerConfigMapOld v1.ConfigMap
 	err = r.Client.Get(context.Background(), client.ObjectKey{Name: brokerConfigMapName, Namespace: r.KafkaCluster.GetNamespace()}, &brokerConfigMapOld)
 	if err != nil && !apierrors.IsNotFound(err) {

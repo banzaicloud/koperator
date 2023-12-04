@@ -17,7 +17,7 @@ package kafkaclient
 import (
 	"testing"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 )
 
 func TestListTopics(t *testing.T) {

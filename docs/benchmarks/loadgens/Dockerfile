@@ -15,7 +15,7 @@ WORKDIR /build/sangrenel
 
 RUN go mod download && go build -o /sangrenel
 
-FROM alpine:3.16
+FROM alpine:3.18
 
 RUN apk add --update --no-cache ca-certificates tzdata curl bash
 

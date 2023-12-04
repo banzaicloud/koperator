@@ -22,7 +22,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	sarama "github.com/Shopify/sarama"
+	sarama "github.com/IBM/sarama"
 	v1alpha1 "github.com/banzaicloud/koperator/api/v1alpha1"
 	kafkaclient "github.com/banzaicloud/koperator/pkg/kafkaclient"
 	gomock "go.uber.org/mock/gomock"

@@ -139,7 +139,6 @@ func DecodeCertificate(raw []byte) (cert *x509.Certificate, err error) {
 
 // GeneratePass generates a random password
 func GeneratePass(length int) (passw []byte) {
-	mathrand.Seed(time.Now().UnixNano())
 	var b strings.Builder
 	for i := 0; i < length; i++ {
 		b.WriteRune(passChars[mathrand.Intn(len(passChars))])
@@ -254,7 +253,7 @@ func GenerateTestCert() (cert, key []byte, expectedDn string, err error) {
 	}
 	buf := new(bytes.Buffer)
 	if err = pem.Encode(buf, &pem.Block{Type: "CERTIFICATE", Bytes: cert}); err != nil {
-		return
+		return //nolint:golint,nakedret
 	}
 	cert = buf.Bytes()
 	key, err = encodePrivateKeyInPemFormat(priv)

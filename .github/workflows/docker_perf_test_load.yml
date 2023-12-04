@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Cache Docker layers
         uses: actions/cache@v3
@@ -42,19 +42,19 @@ jobs:
 
       - name: Setup Docker metadata
         id: setup-docker-metadata
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/banzaicloud/koperator-performance-test-load
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
 
       - name: Build koperator-performance-test-load
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           tags: ghcr.io/banzaicloud/koperator-performance-test-load:${{ steps.imagetag.outputs.value }}
           file: docs/benchmarks/loadgens/Dockerfile

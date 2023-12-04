@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 
 	certsigningreqv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"

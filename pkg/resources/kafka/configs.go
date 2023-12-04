@@ -18,7 +18,7 @@ import (
 	"strconv"
 
 	"emperror.dev/errors"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/go-logr/logr"
 
 	corev1 "k8s.io/api/core/v1"

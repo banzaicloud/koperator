@@ -8,7 +8,7 @@ inputs: # adding these parameters to make this reusable later on
   kind_k8s_version:
     description: 'The k8s version to use'
     required: true
-    default: 'v1.24.15'
+    default: 'v1.27.3'
   kind_config:
     description: 'Path to the kind config to use'
     required: true
@@ -23,7 +23,7 @@ runs:
 
   steps:
   - name: Set up Docker Buildx
-    uses: docker/setup-buildx-action@v2
+    uses: docker/setup-buildx-action@v3
   - uses: engineerd/setup-kind@v0.5.0
     with:
       name: ${{ inputs.kind_cluster_name }}
