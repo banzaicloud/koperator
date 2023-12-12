@@ -736,7 +736,7 @@ func expectEnvoyWithConfigAz1Tls(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(loadBalancer.Spec.Ports[0].Name).To(Equal("tcp-all-broker"))
 	Expect(loadBalancer.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
 	Expect(loadBalancer.Spec.Ports[0].Port).To(BeEquivalentTo(29092))
-	Expect(loadBalancer.Spec.Ports[0].TargetPort.IntVal).To(BeEquivalentTo(29092))
+	Expect(loadBalancer.Spec.Ports[0].TargetPort.StrVal).To(BeEquivalentTo("tcp-all-broker"))
 
 	Expect(loadBalancer.Spec.Ports[1].Name).To(Equal("tcp-health"))
 	Expect(loadBalancer.Spec.Ports[1].Protocol).To(Equal(corev1.ProtocolTCP))
@@ -1325,7 +1325,7 @@ func expectEnvoyWithConfigAz2Tls(kafkaCluster *v1beta1.KafkaCluster) {
 	Expect(loadBalancer.Spec.Ports[0].Name).To(Equal("tcp-all-broker"))
 	Expect(loadBalancer.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
 	Expect(loadBalancer.Spec.Ports[0].Port).To(BeEquivalentTo(29092))
-	Expect(loadBalancer.Spec.Ports[0].TargetPort.IntVal).To(BeEquivalentTo(29092))
+	Expect(loadBalancer.Spec.Ports[0].TargetPort.StrVal).To(BeEquivalentTo("tcp-all-broker"))
 
 	Expect(loadBalancer.Spec.Ports[1].Name).To(Equal("tcp-health"))
 	Expect(loadBalancer.Spec.Ports[1].Protocol).To(Equal(corev1.ProtocolTCP))

@@ -2,7 +2,7 @@ run:
     deadline: 2m
     skip-dirs:
       - client
-    go: '1.19'
+    go: '1.21'
     build-tags:
       - e2e
 
@@ -88,3 +88,17 @@ linters-settings:
   lll:
     # FIXME: we should be able to reduce the length of lines to be closer to the default 120 lines
     line-length: 300  # default: 120
+  depguard:
+    rules:
+      main:
+        files:
+          - $all
+        deny:
+          - pkg: "forbiddenpackage"
+            desc: Please don't use forbiddenpackage package
+
+issues:
+  exclude-rules:
+    - path: '(.+)_test\.go'
+      linters:
+        - goconst

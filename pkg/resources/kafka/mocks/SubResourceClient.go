@@ -16,8 +16,9 @@ package mocks
 
 import (
 	"context"
-	"go.uber.org/mock/gomock"
 	"reflect"
+
+	"go.uber.org/mock/gomock"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

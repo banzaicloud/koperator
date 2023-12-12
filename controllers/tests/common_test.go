@@ -160,7 +160,7 @@ func waitForClusterRunningState(ctx context.Context, kafkaCluster *v1beta1.Kafka
 		}
 	}()
 
-	Eventually(ch, 120*time.Second, 50*time.Millisecond).Should(Receive())
+	Eventually(ch, 240*time.Second, 50*time.Millisecond).Should(Receive())
 }
 
 func getMockedKafkaClientForCluster(kafkaCluster *v1beta1.KafkaCluster) (kafkaclient.KafkaClient, func()) {

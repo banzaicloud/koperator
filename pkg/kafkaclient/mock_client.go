@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/banzaicloud/koperator/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

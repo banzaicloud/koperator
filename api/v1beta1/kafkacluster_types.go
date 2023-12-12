@@ -21,7 +21,7 @@ import (
 
 	"emperror.dev/errors"
 
-	"github.com/imdario/mergo"
+	"dario.cat/mergo"
 
 	"github.com/banzaicloud/istio-client-go/pkg/networking/v1beta1"
 

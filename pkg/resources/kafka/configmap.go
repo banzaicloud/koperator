@@ -163,7 +163,7 @@ func (r *Reconciler) configMap(id int32, brokerConfig *v1beta1.BrokerConfig, ext
 	serverPasses map[string]string, clientPass string, superUsers []string, log logr.Logger) *corev1.ConfigMap {
 	brokerConf := &corev1.ConfigMap{
 		ObjectMeta: templates.ObjectMeta(
-			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id),
+			fmt.Sprintf(brokerConfigTemplate+"-%d", r.KafkaCluster.Name, id), //nolint:goconst
 			apiutil.MergeLabels(
 				apiutil.LabelsForKafka(r.KafkaCluster.Name),
 				map[string]string{v1beta1.BrokerIdLabelKey: fmt.Sprintf("%d", id)},

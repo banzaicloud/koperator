@@ -87,7 +87,7 @@ var (
 	prometheusOperatorHelmDescriptor = helmDescriptor{
 		Repository:   "https://prometheus-community.github.io/helm-charts",
 		ChartName:    "kube-prometheus-stack",
-		ChartVersion: "42.0.1",
+		ChartVersion: "54.1.0",
 		ReleaseName:  "prometheus-operator",
 		Namespace:    "prometheus",
 		SetValues: map[string]string{
@@ -113,7 +113,7 @@ var (
 	zookeeperOperatorHelmDescriptor = helmDescriptor{
 		Repository:   "https://charts.pravega.io",
 		ChartName:    "zookeeper-operator",
-		ChartVersion: "0.2.14",
+		ChartVersion: "0.2.15",
 		ReleaseName:  "zookeeper-operator",
 		Namespace:    "zookeeper",
 		SetValues: map[string]string{

@@ -17,14 +17,14 @@ RELEASE_MSG ?= "koperator release"
 
 REL_TAG = $(shell ./scripts/increment_version.sh -${RELEASE_TYPE} ${TAG})
 
-GOLANGCI_VERSION = 1.51.2
-LICENSEI_VERSION = 0.8.0
+GOLANGCI_VERSION = 1.55.2
+LICENSEI_VERSION = 0.9.0
 GOPROXY=https://proxy.golang.org
 
-CONTROLLER_GEN_VERSION = v0.9.2
+CONTROLLER_GEN_VERSION = v0.13.0
 CONTROLLER_GEN = $(PWD)/bin/controller-gen
 
-ENVTEST_K8S_VERSION = 1.24.x!
+ENVTEST_K8S_VERSION = 1.27.x!
 
 KUSTOMIZE_BASE = config/overlays/specific-manager-version
 
@@ -224,7 +224,7 @@ license-header-fix: gen-license-header bin/addlicense ## Fix missing license hea
 		$(ADDLICENSE_OPTS_IGNORE) \
 		$(ADDLICENSE_SOURCE_DIRS)
 
-GOTEMPLATE_VERSION := 3.7.3
+GOTEMPLATE_VERSION := 3.7.5
 
 bin/gotemplate: $(BIN_DIR)/gotemplate-$(GOTEMPLATE_VERSION) ## Symlink gotemplate-<version> into versionless gotemplate.
 	@ln -sf gotemplate-$(GOTEMPLATE_VERSION) $(BIN_DIR)/gotemplate

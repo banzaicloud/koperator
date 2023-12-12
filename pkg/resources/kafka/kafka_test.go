@@ -16,7 +16,6 @@ package kafka
 
 import (
 	"context"
-	"go.uber.org/mock/gomock"
 	"reflect"
 	"testing"
 	"time"
@@ -25,6 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -1176,7 +1176,7 @@ func TestReconcileKafkaPvcDiskRemoval(t *testing.T) {
 
 			// Mock the status update call
 			mockClient.EXPECT().Status().Return(mockSubResourceClient).AnyTimes()
-			mockSubResourceClient.EXPECT().Update(context.TODO(), gomock.AssignableToTypeOf(&v1beta1.KafkaCluster{})).Do(func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, opts ...client.SubResourceUpdateOption) {
+			mockSubResourceClient.EXPECT().Update(context.Background(), gomock.AssignableToTypeOf(&v1beta1.KafkaCluster{})).Do(func(ctx context.Context, kafkaCluster *v1beta1.KafkaCluster, opts ...client.SubResourceUpdateOption) {
 				r.KafkaCluster.Status = kafkaCluster.Status
 			}).Return(nil).AnyTimes()
 
@@ -1390,8 +1390,9 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
-			outOfSyncReplicas: []int32{101},
-			errorExpected:     true,
+			outOfSyncReplicas:  []int32{101},
+			allOfflineReplicas: []int32{},
+			errorExpected:      true,
 		},
 		{
 			testName: "Pod is deleted if allowed concurrent restarts is not specified and failure threshold is not reached",
@@ -1424,7 +1425,9 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
-			errorExpected: false,
+			errorExpected:      false,
+			allOfflineReplicas: []int32{},
+			outOfSyncReplicas:  []int32{},
 		},
 		{
 			testName: "Pod is not deleted if pod is restarting in another AZ, even if allowed concurrent restarts is not reached",
@@ -1458,8 +1461,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
-			outOfSyncReplicas: []int32{201},
-			errorExpected:     true,
+			errorExpected: true,
 		},
 		{
 			testName: "Pod is not deleted if failure is in another AZ, even if allowed concurrent restarts is not reached",
@@ -1493,8 +1495,9 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
-			outOfSyncReplicas: []int32{201},
-			errorExpected:     true,
+			outOfSyncReplicas:  []int32{201},
+			allOfflineReplicas: []int32{},
+			errorExpected:      true,
 		},
 		{
 			testName: "Pod is deleted if failure is in same AZ and allowed concurrent restarts is not reached",
@@ -1528,8 +1531,9 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-302", Labels: map[string]string{"brokerId": "302"}}},
 			},
-			outOfSyncReplicas: []int32{101},
-			errorExpected:     false,
+			outOfSyncReplicas:  []int32{101},
+			allOfflineReplicas: []int32{},
+			errorExpected:      false,
 		},
 		{
 			testName: "Pod is not deleted if pod is restarting in another AZ, if brokers per AZ < tolerated failures",
@@ -1587,8 +1591,9 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-201", Labels: map[string]string{"brokerId": "201"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 			},
-			outOfSyncReplicas: []int32{101},
-			errorExpected:     true,
+			outOfSyncReplicas:  []int32{101},
+			allOfflineReplicas: []int32{},
+			errorExpected:      true,
 		},
 		{
 			testName: "Pod is not deleted if there are offline replicas in another AZ, if brokers per AZ < tolerated failures",
@@ -1618,6 +1623,7 @@ func TestReconcileConcurrentBrokerRestartsAllowed(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Name: "kafka-301", Labels: map[string]string{"brokerId": "301"}}},
 			},
 			allOfflineReplicas: []int32{101},
+			outOfSyncReplicas:  []int32{},
 			errorExpected:      true,
 		},
 		{
