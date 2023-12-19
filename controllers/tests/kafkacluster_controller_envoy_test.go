@@ -1359,7 +1359,7 @@ func expectEnvoyWithConfigAz2Tls(kafkaCluster *v1beta1.KafkaCluster) {
 		},
 		corev1.ContainerPort{
 			Name:          "tcp-health",
-			ContainerPort: kafkaCluster.Spec.EnvoyConfig.GetEnvoyAdminPort(),
+			ContainerPort: kafkaCluster.Spec.EnvoyConfig.GetEnvoyHealthCheckPort(),
 			Protocol:      corev1.ProtocolTCP,
 		},
 	))
