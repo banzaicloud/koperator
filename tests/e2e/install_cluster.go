@@ -37,7 +37,8 @@ func requireCreatingKafkaCluster(kubectlOptions k8s.KubectlOptions, manifestPath
 			By(fmt.Sprintf("KafkaCluster %s already exists\n", kafkaClusterName))
 		} else {
 			By("Deploying a KafkaCluster")
-			applyK8sResourceManifest(kubectlOptions, manifestPath)
+			err := applyK8sResourceManifest(kubectlOptions, manifestPath)
+			Expect(err).NotTo(HaveOccurred())
 		}
 
 		By("Verifying the KafkaCluster state")

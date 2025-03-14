@@ -21,6 +21,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/ptr"
 )
 
 // requireDeleteKafkaTopic deletes kafkaTopic resource.
@@ -34,14 +35,21 @@ func requireDeleteKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName string
 // requireDeployingKafkaTopic deploys a kafkaTopic resource from a template
 func requireDeployingKafkaTopic(kubectlOptions k8s.KubectlOptions, topicName string) {
 	It("Deploying KafkaTopic CR", func() {
-		err := applyK8sResourceFromTemplate(kubectlOptions,
-			kafkaTopicTemplate,
-			map[string]interface{}{
-				"Name":      topicName,
-				"TopicName": topicName,
-				"Namespace": kubectlOptions.Namespace,
+		values := kafkaTopicTemplateData{
+			Annotations: []string{"managedBy: koperator"},
+			ClusterRef: kafkaTopicClusterRef{
+				Name:      kafkaClusterName,
+				Namespace: kubectlOptions.Namespace,
 			},
-		)
+			Name:              topicName,
+			Namespace:         kubectlOptions.Namespace,
+			Partitions:        ptr.To(int32(2)),
+			ReplicationFactor: ptr.To(int32(2)),
+			TopicName:         topicName,
+		}
+
+		err := applyK8sResourceFromTemplate(kubectlOptions, kafkaTopicTemplate, values)
+
 		Expect(err).ShouldNot(HaveOccurred())
 
 		err = waitK8sResourceCondition(kubectlOptions, kafkaTopicKind,
@@ -81,4 +89,24 @@ func requireDeployingKafkaUser(kubectlOptions k8s.KubectlOptions, userName strin
 			return isExistingK8SResource(kubectlOptions, "Secret", tlsSecretName)
 		}, defaultUserCreationWaitTime, 3*time.Second).Should(Equal(true))
 	})
+}
+
+// kafkaTopicTemplateData is a struct that holds the relevant information and structure
+// to fill out the template used to generate KafkaTopics.
+// TODO: long term we should use the structs in the api module instead of these local structs.
+type kafkaTopicTemplateData struct {
+	Annotations       []string
+	ClusterRef        kafkaTopicClusterRef
+	Name              string
+	Namespace         string
+	Partitions        *int32
+	ReplicationFactor *int32
+	TopicName         string
+}
+
+// kafkaTopicClusterRef holds the information relevant to identifying a KafkaCluster within a KafkaTopic CR.
+// TODO: Long term, we should use the structs in the api module instead of these local structs.
+type kafkaTopicClusterRef struct {
+	Name      string
+	Namespace string
 }

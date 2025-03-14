@@ -59,6 +59,7 @@ var _ = When("Testing e2e test altogether", Ordered, func() {
 	testInstall()
 	testInstallZookeeperCluster()
 	testInstallKafkaCluster("../../config/samples/simplekafkacluster.yaml")
+	testWebhookKafkaTopic()
 	testProduceConsumeInternal()
 	testUninstallKafkaCluster()
 	testInstallKafkaCluster("../../config/samples/simplekafkacluster_ssl.yaml")

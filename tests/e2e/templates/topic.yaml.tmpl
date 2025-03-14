@@ -3,12 +3,18 @@ kind: KafkaTopic
 metadata:
   name: {{ .Name }}
   namespace: {{or .Namespace "kafka"}}
+  {{- if .Annotations }}
+  annotations:
+    {{- range .Annotations }}
+    {{ . }}
+    {{- end }}
+  {{- end }}
 spec:
   clusterRef:
-    name: kafka
-    namespace: kafka
+    name: {{or .ClusterRef.Name "kafka"}}
+    namespace: {{or .ClusterRef.Namespace "kafka"}}
   name: {{ .TopicName }}
-  partitions: {{or .Partition 2}}
+  partitions: {{or .Partitions 2}}
   replicationFactor: {{or .ReplicationFactor 2}}
   config:
     "retention.ms": "604800000"
